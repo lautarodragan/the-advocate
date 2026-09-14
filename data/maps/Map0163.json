@@ -1,59 +1,57 @@
 {
-  "id": 163,
-  "name": "Saldra Tutorial",
-  "size": [20, 15],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0163.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "RunAuraTutorial",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MemorizeBGM", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "Saldra is a member of the Lazer Teeth", []],
-            [0, "ShowMessage_2", "street gang.", []],
-            [0, "ShowMessage", "He is skilled with Poles and Staffs of", []],
-            [0, "ShowMessage_2", "all lengths and weights.", []],
-            [0, "ShowMessage", "Saldra learns his FightDirty techniques", []],
-            [0, "ShowMessage_2", "by reading special skill tomes written by", []],
-            [0, "ShowMessage_2", "the FD Master. These tomes can be found", []],
-            [0, "ShowMessage_2", "all over the world.", []],
-            [0, "ShowMessage", "Rumor has it that all of the FD techniques", []],
-            [0, "ShowMessage_2", "are collected in the First Edition, but the", []],
-            [0, "ShowMessage_2", "location of this ultimate book is a mystery.", []],
-            [0, "PlayMemorizedBGM", "", []],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "RecallToLocation", "", [127, 128, 129]]
-          ]
+          "character_direction": "right",
+          "event_commands": [
+            {"code": "MemorizeBGM"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "Saldra is a member of the Lazer Teeth"},
+            {"code": "ShowMessage_2", "string": "street gang."},
+            {"code": "ShowMessage", "string": "He is skilled with Poles and Staffs of"},
+            {"code": "ShowMessage_2", "string": "all lengths and weights."},
+            {"code": "ShowMessage", "string": "Saldra learns his FightDirty techniques"},
+            {"code": "ShowMessage_2", "string": "by reading special skill tomes written by"},
+            {"code": "ShowMessage_2", "string": "the FD Master. These tomes can be found"},
+            {"code": "ShowMessage_2", "string": "all over the world."},
+            {"code": "ShowMessage", "string": "Rumor has it that all of the FD techniques"},
+            {"code": "ShowMessage_2", "string": "are collected in the First Edition, but the"},
+            {"code": "ShowMessage_2", "string": "location of this ultimate book is a mystery."},
+            {"code": "PlayMemorizedBGM"},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "RecallToLocation", "parameters": [127, 128, 129]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [10, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     }
-  ]
+  ],
+  "save_count": 29
 }

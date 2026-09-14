@@ -1,197 +1,160 @@
 {
-  "id": 75,
-  "name": "Battle Rink Ladder",
-  "size": [20, 40],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0075.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [10, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "RadinMixes",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "touched",
-          "animation": "fixed_graphic"
+          "animation_type": "fixed_graphic",
+          "character_index": 6,
+          "character_name": "RadinMixes",
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 39
     },
     {
       "id": 2,
       "name": "Blob Rank",
-      "at": [10, 31],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Monster1", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 10,
+      "y": 31
     },
     {
       "id": 3,
       "name": "Skeleton Rank",
-      "at": [10, 15],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 15
     },
     {
       "id": 4,
       "name": "Wylden Rank",
-      "at": [10, 23],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 23
     },
     {
       "id": 5,
       "name": "Ghost Rank",
-      "at": [10, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     },
     {
       "id": 6,
       "name": "Minotaur Rank",
-      "at": [10, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10
     },
     {
       "id": 7,
       "name": "Golem Rank",
-      "at": [3, 32],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "Monster2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 32
     },
     {
       "id": 8,
       "name": "Harpy Rank",
-      "at": [1, 20],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Monster2", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 1,
+      "y": 20
     },
     {
       "id": 9,
       "name": "Dragon Rank",
-      "at": [16, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "Monster2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 24
     },
     {
       "id": 10,
       "name": "Wraith Rank",
-      "at": [1, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 2
     },
     {
       "id": 11,
       "name": "Tyrant Rank",
-      "at": [16, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "Monster2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 9
     }
-  ]
+  ],
+  "height": 40,
+  "save_count": 3
 }

@@ -1,955 +1,1317 @@
 {
-  "id": 60,
-  "name": "Floor 1",
-  "size": [20, 15],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0060.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [11, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [59, 21, 23]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [59, 21, 23]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [13, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [62, 13, 3]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [62, 13, 3]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [14, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [61, 14, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [61, 14, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 13
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [1, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [61, 1, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [61, 1, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 13
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [4, 10],
       "pages": [
         {
-          "tile": 52,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 188, 188, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Umph... these floors are unstable! I need", []],
-            [0, "ShowMessage_2", "to be more careful.", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "You need Lazer Teeth training, man - I", []],
-            [1, "ShowMessage_2", "landed on my feet!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Good for you, Saldra.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "<smug>", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_index": 52,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 188, 188, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Umph... these floors are unstable! I need"},
+            {"code": "ShowMessage_2", "string": "to be more careful."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You need Lazer Teeth training, man - I"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "landed on my feet!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Good for you, Saldra."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "<smug>"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 188
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 188
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 10
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [3, 10],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 188, 188, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Umph... these floors are unstable! I need", []],
-            [0, "ShowMessage_2", "to be more careful.", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "You need Lazer Teeth training, man - I", []],
-            [1, "ShowMessage_2", "landed on my feet!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Good for you, Saldra.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "<smug>", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 188, 188, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Umph... these floors are unstable! I need"},
+            {"code": "ShowMessage_2", "string": "to be more careful."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You need Lazer Teeth training, man - I"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "landed on my feet!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Good for you, Saldra."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "<smug>"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 188
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 188
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 10
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [3, 9],
       "pages": [
         {
-          "tile": 52,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 188, 188, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Umph... these floors are unstable! I need", []],
-            [0, "ShowMessage_2", "to be more careful.", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "You need Lazer Teeth training, man - I", []],
-            [1, "ShowMessage_2", "landed on my feet!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Good for you, Saldra.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "<smug>", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_index": 52,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 188, 188, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Umph... these floors are unstable! I need"},
+            {"code": "ShowMessage_2", "string": "to be more careful."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You need Lazer Teeth training, man - I"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "landed on my feet!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Good for you, Saldra."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "<smug>"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 188
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 188
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 9
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [4, 9],
       "pages": [
         {
-          "tile": 52,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 188, 188, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Umph... these floors are unstable! I need", []],
-            [0, "ShowMessage_2", "to be more careful.", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "You need Lazer Teeth training, man - I", []],
-            [1, "ShowMessage_2", "landed on my feet!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Good for you, Saldra.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "<smug>", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_index": 52,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 188, 188, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Umph... these floors are unstable! I need"},
+            {"code": "ShowMessage_2", "string": "to be more careful."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You need Lazer Teeth training, man - I"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "landed on my feet!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Good for you, Saldra."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "<smug>"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 188
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 188
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 9
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [5, 3],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 189, 189, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 3, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [6]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 189, 189, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 3, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100,
+                50
+              ]
+            },
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 189
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 189
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 3, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 3, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100,
+                50
+              ]
+            },
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 3
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [5, 4],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 189, 189, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 4, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [6]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 189, 189, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 4, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100,
+                100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 189
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 189
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 3, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 3, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100,
+                50
+              ]
+            },
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 4
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [15, 10],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 190, 190, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 190, 190, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 190
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 190
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 10
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [16, 10],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 190, 190, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 190, 190, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 190
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 190
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 10
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [17, 10],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 190, 190, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 190, 190, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 190
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 190
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 10
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [17, 13],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 191, 191, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 191, 191, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 191
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 191
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 13
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [18, 13],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 191, 191, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 191, 191, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 191
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 191
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 13
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [18, 12],
       "pages": [
         {
-          "tile": 53,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 191, 191, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 53,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 191, 191, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 191
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 191
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 12
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [13, 6],
       "pages": [
         {
-          "tile": 52,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 196, 196, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "character_index": 52,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 196, 196, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 196
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 196
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 6
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [12, 10],
       "pages": [
+        {"character_index": 53, "id": 1, "move_type": "stationary", "trigger": "touched"},
         {
-          "tile": 53,
-          "layer": "below",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 200
+          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch... two floors. That was not fun."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'm telling you, man, you need Lazer"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Teeth training in the worst way!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Can it, Saldra."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 201, 201, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
+        },
+        {
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 201
+          },
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 45, 45, 0, 0, 61, 0]},
+            {"code": "ControlVars", "parameters": [0, 46, 46, 0, 0, 60, 0]},
+            {"code": "ControlVars", "parameters": [0, 47, 47, 0, 0, 62, 0]},
+            {"code": "ControlVars", "parameters": [0, 43, 43, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 44, 44, 2, 0, 5, 0]},
+            {"code": "RecallToLocation", "parameters": [45, 43, 44]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
           "trigger": "touched"
-        },
-        {
-          "conditions": {
-            "switch_a": 200
-          },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch... two floors. That was not fun.", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I'm telling you, man, you need Lazer", []],
-            [1, "ShowMessage_2", "Teeth training in the worst way!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Can it, Saldra.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 201, 201, 0]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 201
-          },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 45, 45, 0, 0, 61, 0]],
-            [0, "ControlVars", "", [0, 46, 46, 0, 0, 60, 0]],
-            [0, "ControlVars", "", [0, 47, 47, 0, 0, 62, 0]],
-            [0, "ControlVars", "", [0, 43, 43, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 44, 44, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 44, 44, 2, 0, 5, 0]],
-            [0, "RecallToLocation", "", [45, 43, 44]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
         }
-      ]
+      ],
+      "x": 12,
+      "y": 10
     },
     {
       "id": 19,
       "name": "Recycle1.1",
-      "at": [6, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 209, 209, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       150 credits"},
+            {"code": "ChangeGold", "parameters": [0, 0, 150]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 209, 209, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       150 credits", []],
-            [0, "ChangeGold", "", [0, 0, 150]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 209
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 209
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 9
     },
     {
       "id": 20,
       "name": "Recycle1.2",
-      "at": [3, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 210, 210, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Rusty Chain-R"},
+            {"code": "ChangeItems", "parameters": [0, 0, 128, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 210, 210, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Rusty Chain-R", []],
-            [0, "ChangeItems", "", [0, 0, 128, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 210
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 210
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 3
     },
     {
       "id": 21,
       "name": "Recycle1.3",
-      "at": [14, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 211, 211, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Balanced Pole-RL"},
+            {"code": "ChangeItems", "parameters": [0, 0, 131, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 211, 211, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Balanced Pole-RL", []],
-            [0, "ChangeItems", "", [0, 0, 131, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 211
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 211
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 10
     },
     {
       "id": 22,
       "name": "Recycle1.4",
-      "at": [7, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 212, 212, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Cold Sandwich-HP x2"},
+            {"code": "ChangeItems", "parameters": [0, 0, 97, 0, 2]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 212, 212, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Cold Sandwich-HP x2", []],
-            [0, "ChangeItems", "", [0, 0, 97, 0, 2]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 212
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 212
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 3
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 59
 }

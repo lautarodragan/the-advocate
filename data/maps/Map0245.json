@@ -1,733 +1,866 @@
 {
-  "id": 245,
-  "name": "Northern Surl Road",
-  "size": [30, 70],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0245.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This is the way to Paradise - we shouldn't", []],
-            [0, "ShowMessage_2", "go this way. The Agency is probably hot", []],
-            [0, "ShowMessage_2", "on our heels by now!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "ProceedWithMovement", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This is the way to Paradise - we shouldn't"},
+            {"code": "ShowMessage_2", "string": "go this way. The Agency is probably hot"},
+            {"code": "ShowMessage_2", "string": "on our heels by now!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "ProceedWithMovement"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 635
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 635
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [249, 58, 13]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [249, 58, 13]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 20
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [11, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [206, 32, 33]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [206, 32, 33]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [18, 69],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [246, 11, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [246, 11, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 69
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [4, 19],
       "pages": [
         {
-          "tile": 138,
+          "character_direction": "up",
+          "character_index": 138,
+          "character_pattern": "right",
+          "event_commands": [
+            {"code": "ShowMessage", "string": " <-- PARADISE 1 km"},
+            {"code": "ShowMessage_2", "string": "    [Offering a night's refuge for"},
+            {"code": "ShowMessage_2", "string": "    the wanderers of the  world]"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", " <-- PARADISE 1 km", []],
-            [0, "ShowMessage_2", "    [Offering a night's refuge for", []],
-            [0, "ShowMessage_2", "    the wanderers of the  world]", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 19
     },
     {
       "id": 5,
       "name": "ParadiseCharacter",
-      "at": [9, 28],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 386
+          "character_direction": "left",
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 386
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "Talan, Emily! You're alive!"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 27]},
+            {"code": "ChangeHP", "parameters": [1, 27, 0, 0, 999, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Radin, I'm glad to see you're safe!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I was able to give the antidote to"},
+            {"code": "ShowMessage_2", "string": "Isabella... but we got separated in"},
+            {"code": "ShowMessage_2", "string": "the dark - I don't know if she's safe."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'm... I'm sure she made it."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We should keep moving - those Agency"},
+            {"code": "ShowMessage_2", "string": "Guards will be after us once they've"},
+            {"code": "ShowMessage_2", "string": "had time to regroup."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "Let's find a safe place so we can do some"},
+            {"code": "ShowMessage_2", "string": "regrouping of our own. Then we'll find a"},
+            {"code": "ShowMessage_2", "string": "way to make the Agency pay!"},
+            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 36, 1, 37]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 657, 657, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "Talan, Emily! You're alive!", []],
-            [0, "ChangePartyMembers", "", [0, 0, 27]],
-            [0, "ChangeHP", "", [1, 27, 0, 0, 999, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Radin, I'm glad to see you're safe!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I was able to give the antidote to", []],
-            [0, "ShowMessage_2", "Isabella... but we got separated in", []],
-            [0, "ShowMessage_2", "the dark - I don't know if she's safe.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'm... I'm sure she made it.", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We should keep moving - those Agency", []],
-            [0, "ShowMessage_2", "Guards will be after us once they've", []],
-            [0, "ShowMessage_2", "had time to regroup.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "Let's find a safe place so we can do some", []],
-            [0, "ShowMessage_2", "regrouping of our own. Then we'll find a", []],
-            [0, "ShowMessage_2", "way to make the Agency pay!", []],
-            [0, "MoveEvent", "", [10005, 8, 0, 0, 36, 1, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 657, 657, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 388
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 388
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Emily, Talan! You're alive!"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Lerle, I'm so glad to see you're safe!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We should keep moving - those Agency"},
+            {"code": "ShowMessage_2", "string": "Guards will be after us once they've"},
+            {"code": "ShowMessage_2", "string": "had time to regroup."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Let's find a safe place so we can do some"},
+            {"code": "ShowMessage_2", "string": "regrouping of our own. Then we'll deal"},
+            {"code": "ShowMessage_2", "string": "out swift justice on the Agency!"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 26]},
+            {"code": "ChangeHP", "parameters": [1, 26, 0, 0, 999, 0]},
+            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 36, 1, 37]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 657, 657, 0]}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Emily, Talan! You're alive!", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Lerle, I'm so glad to see you're safe!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We should keep moving - those Agency", []],
-            [0, "ShowMessage_2", "Guards will be after us once they've", []],
-            [0, "ShowMessage_2", "had time to regroup.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Let's find a safe place so we can do some", []],
-            [0, "ShowMessage_2", "regrouping of our own. Then we'll deal", []],
-            [0, "ShowMessage_2", "out swift justice on the Agency!", []],
-            [0, "ChangePartyMembers", "", [0, 0, 26]],
-            [0, "ChangeHP", "", [1, 26, 0, 0, 999, 0]],
-            [0, "MoveEvent", "", [10005, 8, 0, 0, 36, 1, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 657, 657, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 385
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 385
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "I see you two made it. I'm surprised, boy."},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 28]},
+            {"code": "ChangeHP", "parameters": [1, 28, 0, 0, 999, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Sern, I'm glad to see you're safe!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We should keep moving - those Agency"},
+            {"code": "ShowMessage_2", "string": "Guards will be after us once they've"},
+            {"code": "ShowMessage_2", "string": "had time to regroup."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Let's find a safe place so we can do some"},
+            {"code": "ShowMessage_2", "string": "regrouping of our own. Then we'll make"},
+            {"code": "ShowMessage_2", "string": "those bastards pay!"},
+            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 36, 1, 37]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 657, 657, 0]}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "I see you two made it. I'm surprised, boy.", []],
-            [0, "ChangePartyMembers", "", [0, 0, 28]],
-            [0, "ChangeHP", "", [1, 28, 0, 0, 999, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Sern, I'm glad to see you're safe!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We should keep moving - those Agency", []],
-            [0, "ShowMessage_2", "Guards will be after us once they've", []],
-            [0, "ShowMessage_2", "had time to regroup.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Let's find a safe place so we can do some", []],
-            [0, "ShowMessage_2", "regrouping of our own. Then we'll make", []],
-            [0, "ShowMessage_2", "those bastards pay!", []],
-            [0, "MoveEvent", "", [10005, 8, 0, 0, 36, 1, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 657, 657, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 657
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 657
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 4,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 28
     },
     {
       "id": 6,
       "name": "NorthernRoad.1",
-      "at": [1, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 754, 754, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 109, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Agility Pill-AGL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 754, 754, 0]],
-            [0, "ChangeItems", "", [0, 0, 109, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Agility Pill-AGL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 754
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 754
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 4
     },
     {
       "id": 7,
       "name": "NorthernRoad.2",
-      "at": [1, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 755, 755, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 127, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Stale Pita-HP x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 755, 755, 0]],
-            [0, "ChangeItems", "", [0, 0, 127, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Stale Pita-HP x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 755
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 755
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 7
     },
     {
       "id": 8,
       "name": "NorthernRoad.3",
-      "at": [23, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 756, 756, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 208, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Solid Sword-R"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 756, 756, 0]],
-            [0, "ChangeItems", "", [0, 0, 208, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Solid Sword-R", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 756
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 756
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 12
     },
     {
       "id": 9,
       "name": "NorthernRoad.4",
-      "at": [5, 51],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 757, 757, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 255, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Mud Boots-O"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 757, 757, 0]],
-            [0, "ChangeItems", "", [0, 0, 255, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Mud Boots-O", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 757
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 757
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 51
     },
     {
       "id": 10,
       "name": "NorthernRoad.5",
-      "at": [28, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 758, 758, 0]},
+            {"code": "ChangeGold", "parameters": [0, 0, 420]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       420 credits"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 758, 758, 0]],
-            [0, "ChangeGold", "", [0, 0, 420]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       420 credits", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 758
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 758
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 49
     },
     {
       "id": 11,
       "name": "AfterBattleMint",
-      "at": [29, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 29
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [29, 69],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 47, 0]],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 47, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 69
     },
     {
       "id": 13,
       "name": "NorthernRoad.6",
-      "at": [11, 50],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 936, 936, 0]},
+            {"code": "ChangeGold", "parameters": [0, 0, 850]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       850 credits"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 936, 936, 0]],
-            [0, "ChangeGold", "", [0, 0, 850]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       850 credits", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 936
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 936
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 50
     },
     {
       "id": 14,
       "name": "NorthernRoad.7",
-      "at": [23, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 937, 937, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 258, 0, 3]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Recharge Draught-SP x3"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 937, 937, 0]],
-            [0, "ChangeItems", "", [0, 0, 258, 0, 3]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Recharge Draught-SP x3", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 937
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 937
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 36
     },
     {
       "id": 15,
       "name": "NorthernRoad.8",
-      "at": [0, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 938, 938, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 334, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Force Field-DEF"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 938, 938, 0]],
-            [0, "ChangeItems", "", [0, 0, 334, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Force Field-DEF", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 938
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 938
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 34
     },
     {
       "id": 16,
       "name": "RadinBox.15",
-      "at": [13, 27],
       "pages": [
         {
-          "conditions": {
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 993, 993, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 341, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Contaminated Battery x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 993, 993, 0]],
-            [0, "ChangeItems", "", [0, 0, 341, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Contaminated Battery x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 993,
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 993,
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 27
     },
     {
       "id": 17,
       "name": "RadinBox.16",
-      "at": [24, 31],
       "pages": [
         {
-          "conditions": {
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 994, 994, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 340, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Broken Field Device"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 994, 994, 0]],
-            [0, "ChangeItems", "", [0, 0, 340, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Broken Field Device", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 994,
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 994,
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 31
     },
     {
       "id": 18,
       "name": "RadinBox.17",
-      "at": [1, 50],
       "pages": [
         {
-          "conditions": {
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 995, 995, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 340, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Broken Field Device"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 995, 995, 0]],
-            [0, "ChangeItems", "", [0, 0, 340, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Broken Field Device", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 995,
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 995,
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 50
     }
-  ]
+  ],
+  "height": 70,
+  "save_count": 87,
+  "width": 30
 }

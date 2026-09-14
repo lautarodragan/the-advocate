@@ -1,8 +1,1 @@
-{
-  "id": 322,
-  "name": "Area 2 Dark Catacombs",
-  "size": [20, 15],
-  "chipset": [3, "inner"],
-  "tiles": "Map0322.tiles",
-  "events": []
-}
+{"chipset_id": 3, "save_count": 4}

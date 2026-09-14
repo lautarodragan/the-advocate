@@ -1,100 +1,85 @@
 {
-  "id": 306,
-  "name": "Outside Ship",
-  "size": [20, 40],
-  "chipset": [47, "tech5"],
-  "tiles": "Map0306.tiles",
-  "parallax": {
-    "name": "starpan",
-    "loop_x": false,
-    "loop_y": true,
-    "scroll_x": 0,
-    "scroll_y": 7
-  },
+  "chipset_id": 47,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlaySound", "Explosion3", [100, 60, 50]],
-            [0, "PanScreen", "", [3, 0, 40, 6, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
-            [0, "PanScreen", "", [2, 0, 30, 4, 1]],
-            [0, "ShowBattleAnimation", "", [77, 3, 0, 0]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 29, 26, 38, 36, 2, 2, 28]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowBattleAnimation", "", [78, 4, 0, 0]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "PlaySound", "Explosion3", [100, 60, 50]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Manta... can you hear me...?\\|\\^", []],
-            [0, "ShowBattleAnimation", "", [77, 5, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowBattleAnimation", "", [78, 3, 1, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "Teleport", "", [307, 0, 13]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Explosion3"},
+            {"code": "PanScreen", "parameters": [3, 0, 40, 6, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]},
+            {"code": "PanScreen", "parameters": [2, 0, 30, 4, 1]},
+            {"code": "ShowBattleAnimation", "parameters": [77, 3, 0, 0]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 29, 26, 38, 36, 2, 2, 28]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowBattleAnimation", "parameters": [78, 4, 0, 0]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Explosion3"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Manta... can you hear me...?\\|\\^"},
+            {"code": "ShowBattleAnimation", "parameters": [77, 5, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowBattleAnimation", "parameters": [78, 3, 1, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "Teleport", "parameters": [307, 0, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Dalia",
-      "at": [5, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "ABLDalia",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "ABLDalia",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 3
     },
     {
       "id": 3,
       "name": "Target1",
-      "at": [1, 2],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 1,
+      "y": 2
     },
     {
       "id": 4,
       "name": "Target2",
-      "at": [3, 4],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 3,
+      "y": 4
     },
     {
       "id": 5,
       "name": "Target3",
-      "at": [7, 12],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 7,
+      "y": 12
     }
-  ]
+  ],
+  "height": 40,
+  "parallax_auto_loop_y": true,
+  "parallax_flag": true,
+  "parallax_loop_y": true,
+  "parallax_name": "starpan",
+  "parallax_sy": 7,
+  "save_count": 18
 }

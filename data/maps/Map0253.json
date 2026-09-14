@@ -1,60 +1,63 @@
 {
-  "id": 253,
-  "name": "The Agency and Advocate",
-  "size": [40, 39],
-  "chipset": [31, "worldmapcharlie"],
-  "tiles": "Map0253.tiles",
+  "chipset_id": 31,
   "events": [
     {
       "id": 1,
       "name": "Tasgarde",
-      "at": [33, 4],
       "pages": [
         {
-          "tile": 16,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [74, 19, 48]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "character_direction": "left",
+          "character_index": 16,
+          "event_commands": [
+            {"code": "Teleport", "parameters": [74, 19, 48]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 4
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [15, 10],
       "pages": [
         {
-          "tile": 4,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [69, 20, 38]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "character_index": 4,
+          "event_commands": [
+            {"code": "Teleport", "parameters": [69, 20, 38]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 10
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangeItems", "", [1, 0, 81, 0, 1]],
-            [0, "PanScreen", "", [2, 0, 30, 4, 0]],
-            [0, "PanScreen", "", [2, 1, 30, 4, 1]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [277, 6, 28]]
-          ]
+          "event_commands": [
+            {"code": "ChangeItems", "parameters": [1, 0, 81, 0, 1]},
+            {"code": "PanScreen", "parameters": [2, 0, 30, 4, 0]},
+            {"code": "PanScreen", "parameters": [2, 1, 30, 4, 1]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [277, 6, 28]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "height": 39,
+  "save_count": 32,
+  "width": 40
 }

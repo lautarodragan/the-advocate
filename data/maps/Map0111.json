@@ -1,100 +1,104 @@
 {
-  "id": 111,
-  "name": "CustomMenuTest",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0111.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ControlVars", "", [0, 63, 63, 0, 0, 1, 0]],
-            [0, "ControlVars", "", [0, 74, 74, 0, 0, 19, 0]],
-            [0, "ControlVars", "", [0, 79, 79, 0, 0, 4, 0]],
-            [0, "ControlVars", "", [0, 86, 86, 0, 0, 99, 0]],
-            [0, "ControlVars", "", [0, 95, 95, 0, 0, 4, 0]],
-            [0, "ControlVars", "", [0, 111, 111, 0, 0, 11, 0]],
-            [0, "ControlVars", "", [0, 116, 116, 0, 0, 3, 0]],
-            [0, "ControlVars", "", [0, 119, 119, 0, 0, 11, 0]],
-            [0, "ChangeItems", "", [0, 0, 81, 0, 1]],
-            [0, "ControlSwitches", "", [0, 334, 334, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ControlVars", "parameters": [0, 63, 63, 0, 0, 1, 0]},
+            {"code": "ControlVars", "parameters": [0, 74, 74, 0, 0, 19, 0]},
+            {"code": "ControlVars", "parameters": [0, 79, 79, 0, 0, 4, 0]},
+            {"code": "ControlVars", "parameters": [0, 86, 86, 0, 0, 99, 0]},
+            {"code": "ControlVars", "parameters": [0, 95, 95, 0, 0, 4, 0]},
+            {"code": "ControlVars", "parameters": [0, 111, 111, 0, 0, 11, 0]},
+            {"code": "ControlVars", "parameters": [0, 116, 116, 0, 0, 3, 0]},
+            {"code": "ControlVars", "parameters": [0, 119, 119, 0, 0, 11, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 81, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 334, 334, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 334
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 334
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [4, 4],
       "pages": [
         {
-          "tile": 7,
+          "character_index": 7,
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ChangePartyMembers", "", [0, 0, 17]],
-            [0, "ChangePartyMembers", "", [0, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 4
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [12, 4],
       "pages": [
         {
-          "tile": 26,
+          "character_index": 26,
+          "event_commands": [
+            {"code": "ChangeItems", "parameters": [0, 0, 281, 0, 1]},
+            {"code": "ChangeItems", "parameters": [0, 0, 289, 0, 1]},
+            {"code": "ChangeItems", "parameters": [0, 0, 275, 0, 1]},
+            {"code": "ChangeItems", "parameters": [0, 0, 269, 0, 1]},
+            {"code": "ShowMessage", "string": "Items added."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ChangeItems", "", [0, 0, 281, 0, 1]],
-            [0, "ChangeItems", "", [0, 0, 289, 0, 1]],
-            [0, "ChangeItems", "", [0, 0, 275, 0, 1]],
-            [0, "ChangeItems", "", [0, 0, 269, 0, 1]],
-            [0, "ShowMessage", "Items added.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 4
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [5, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "ABLDalia",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "ABLDalia",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "This is a test of the Inn music."},
+            {"code": "ShowInn", "parameters": [0, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "This is a test of the Inn music.", []],
-            [0, "ShowInn", "", [0, 0, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 9
     }
-  ]
+  ],
+  "save_count": 83
 }

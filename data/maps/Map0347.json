@@ -1,147 +1,152 @@
 {
-  "id": 347,
-  "name": "Squad Test",
-  "size": [20, 30],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0347.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "Sern",
-      "at": [11, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "YoungAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "YoungAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 25
     },
     {
       "id": 2,
       "name": "Drago",
-      "at": [5, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "YoungAgents",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "YoungAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 22
     },
     {
       "id": 3,
       "name": "Isabella",
-      "at": [2, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "YoungAgents",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "YoungAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 26
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [0, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "We're almost there, team! Keep cover", []],
-            [0, "ShowMessage_2", "behind the rocks and move forward!", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Watch out for enemy fire, Sern!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "I can handle it, Drago!", []],
-            [0, "ShowMessage_2", "Watch out for yourself!", []],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "ISABELLA", []],
-            [0, "ShowMessage_2", "Concentrate, everyone!", []],
-            [0, "PanScreen", "", [2, 0, 15, 3, 0]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 28, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 13]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 12, 0, 0, 0, 0, 0, 13]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 12, 0, 0, 0, 13, 1, 1, 1, 1, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "We made it!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Squad Team Epsilon, you will enter this", []],
-            [0, "ShowMessage_2", "building and await further instruction.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Squad Leader, you will wait here for", []],
-            [0, "ShowMessage_2", "the final part of the examination.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "PanScreen", "", [3, 0, 15, 6, 0]],
-            [0, "MessageOptions", "", [1, 1, 1, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Wait... isn't there more?", []],
-            [0, "ShowMessage_2", "His sleep is troubled... but perhaps I", []],
-            [0, "ShowMessage_2", "can see a little further...", []],
-            [0, "Teleport", "", [242, 9, 21]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "We're almost there, team! Keep cover"},
+            {"code": "ShowMessage_2", "string": "behind the rocks and move forward!"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Watch out for enemy fire, Sern!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "I can handle it, Drago!"},
+            {"code": "ShowMessage_2", "string": "Watch out for yourself!"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "ISABELLA"},
+            {"code": "ShowMessage_2", "string": "Concentrate, everyone!"},
+            {"code": "PanScreen", "parameters": [2, 0, 15, 3, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 28, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 13]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                3, 8, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 12, 0, 0, 0, 0, 0,
+                13
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 28, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 12, 0, 0, 0, 13, 1, 1, 1,
+                1, 12
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "We made it!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Squad Team Epsilon, you will enter this"},
+            {"code": "ShowMessage_2", "string": "building and await further instruction."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Squad Leader, you will wait here for"},
+            {"code": "ShowMessage_2", "string": "the final part of the examination."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "PanScreen", "parameters": [3, 0, 15, 6, 0]},
+            {"code": "MessageOptions", "parameters": [1, 1, 1, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Wait... isn't there more?"},
+            {"code": "ShowMessage_2", "string": "His sleep is troubled... but perhaps I"},
+            {"code": "ShowMessage_2", "string": "can see a little further..."},
+            {"code": "Teleport", "parameters": [242, 9, 21]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "y": 29
     },
     {
       "id": 5,
       "name": "Agent1",
-      "at": [12, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 9
     },
     {
       "id": 6,
       "name": "Agent1",
-      "at": [14, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 9
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 14
 }

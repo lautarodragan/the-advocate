@@ -1,192 +1,40 @@
 [
   {
+    "a_rate": 150,
+    "b_rate": 125,
+    "d_rate": 75,
+    "e_rate": 50,
     "id": 1,
     "name": "Sword",
-    "type": 1,
-    "a_rate": 150,
-    "b_rate": 125,
-    "d_rate": 75,
-    "e_rate": 50
+    "type": "magical"
   },
-  {
-    "id": 2,
-    "name": "Spear",
-    "type": 0,
-    "a_rate": 150,
-    "b_rate": 125,
-    "d_rate": 75,
-    "e_rate": 50
-  },
-  {
-    "id": 3,
-    "name": "Shock",
-    "type": 0,
-    "a_rate": 150,
-    "b_rate": 125,
-    "d_rate": 75,
-    "e_rate": 50
-  },
-  {
-    "id": 4,
-    "name": "Bow",
-    "type": 0,
-    "a_rate": 150,
-    "b_rate": 125,
-    "d_rate": 75,
-    "e_rate": 50
-  },
-  {
-    "id": 5,
-    "name": "Flame",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 6,
-    "name": "Cold",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 7,
-    "name": "Thunder",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 8,
-    "name": "Water",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 9,
-    "name": "Earth",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 10,
-    "name": "Air",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 11,
-    "name": "Holy",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 12,
-    "name": "Dark",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 13,
-    "name": "Attack",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 14,
-    "name": "Defence",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 15,
-    "name": "Mind",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 16,
-    "name": "Agility",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 17,
-    "name": "Suction",
-    "type": 1,
-    "a_rate": 200,
-    "b_rate": 150
-  },
-  {
-    "id": 18,
-    "name": "---BL---",
-    "type": 0
-  },
-  {
-    "id": 19,
-    "name": "Ray",
-    "type": 0
-  },
-  {
-    "id": 20,
-    "name": "Thud",
-    "type": 0
-  },
-  {
-    "id": 21,
-    "name": "Martial",
-    "type": 0
-  },
-  {
-    "id": 22,
-    "name": "Cut",
-    "type": 0
-  },
-  {
-    "id": 23,
-    "name": "Bullets",
-    "type": 0
-  },
-  {
-    "id": 24,
-    "name": "Mental",
-    "type": 0
-  },
-  {
-    "id": 25,
-    "name": "Electric",
-    "type": 1
-  },
-  {
-    "id": 26,
-    "name": "Liquid",
-    "type": 1
-  },
-  {
-    "id": 27,
-    "name": "Solid",
-    "type": 1
-  },
-  {
-    "id": 28,
-    "name": "Flame",
-    "type": 1
-  },
-  {
-    "id": 29,
-    "type": 1
-  },
-  {
-    "id": 30,
-    "type": 0
-  }
+  {"a_rate": 150, "b_rate": 125, "d_rate": 75, "e_rate": 50, "id": 2, "name": "Spear"},
+  {"a_rate": 150, "b_rate": 125, "d_rate": 75, "e_rate": 50, "id": 3, "name": "Shock"},
+  {"a_rate": 150, "b_rate": 125, "d_rate": 75, "e_rate": 50, "id": 4, "name": "Bow"},
+  {"a_rate": 200, "b_rate": 150, "id": 5, "name": "Flame", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 6, "name": "Cold", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 7, "name": "Thunder", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 8, "name": "Water", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 9, "name": "Earth", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 10, "name": "Air", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 11, "name": "Holy", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 12, "name": "Dark", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 13, "name": "Attack", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 14, "name": "Defence", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 15, "name": "Mind", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 16, "name": "Agility", "type": "magical"},
+  {"a_rate": 200, "b_rate": 150, "id": 17, "name": "Suction", "type": "magical"},
+  {"id": 18, "name": "---BL---"},
+  {"id": 19, "name": "Ray"},
+  {"id": 20, "name": "Thud"},
+  {"id": 21, "name": "Martial"},
+  {"id": 22, "name": "Cut"},
+  {"id": 23, "name": "Bullets"},
+  {"id": 24, "name": "Mental"},
+  {"id": 25, "name": "Electric", "type": "magical"},
+  {"id": 26, "name": "Liquid", "type": "magical"},
+  {"id": 27, "name": "Solid", "type": "magical"},
+  {"id": 28, "name": "Flame", "type": "magical"},
+  {"id": 29, "type": "magical"},
+  {"id": 30}
 ]

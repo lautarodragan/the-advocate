@@ -1,592 +1,677 @@
 {
-  "id": 258,
-  "name": "Surl Ruins 2",
-  "size": [35, 60],
-  "chipset": [37, "shrine1"],
-  "tiles": "Map0258.tiles",
+  "chipset_id": 37,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [13, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [210, 11, 46]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [210, 11, 46]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [8, 59],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [271, 13, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [271, 13, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 59
     },
     {
       "id": 3,
       "name": "Ruin2.1",
-      "at": [0, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 783, 783, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 257, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Healing Draught-HP"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 783, 783, 0]],
-            [0, "ChangeItems", "", [0, 0, 257, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Healing Draught-HP", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 783
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 783
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 2
     },
     {
       "id": 4,
       "name": "Ruin2.2",
-      "at": [24, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 784, 784, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 274, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       CattleProd-!R"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 784, 784, 0]],
-            [0, "ChangeItems", "", [0, 0, 274, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       CattleProd-!R", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 784
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 784
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 12
     },
     {
       "id": 5,
       "name": "Ruin2.3",
-      "at": [28, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 785, 785, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 336, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Scorched Doll"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Dark5"},
+            {"code": "ChangeSkills", "parameters": [1, 32, 0, 0, 295]},
+            {"code": "ShowMessage", "string": "KERSH has been subjected"},
+            {"code": "ShowMessage_2", "string": "to MEMORIES OF HATE!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 785, 785, 0]],
-            [0, "ChangeItems", "", [0, 0, 336, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Scorched Doll", []],
-            [0, "Wait", "", [2]],
-            [0, "PlaySound", "Dark5", [100, 100, 50]],
-            [0, "ChangeSkills", "", [1, 32, 0, 0, 295]],
-            [0, "ShowMessage", "KERSH has been subjected", []],
-            [0, "ShowMessage_2", "to MEMORIES OF HATE!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 785
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 785
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 18
     },
     {
       "id": 6,
       "name": "Ruin2.4",
-      "at": [19, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 786, 786, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 350, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       One Boot-O"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 786, 786, 0]],
-            [0, "ChangeItems", "", [0, 0, 350, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       One Boot-O", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 786
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 786
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 21
     },
     {
       "id": 7,
       "name": "Ruin2.5",
-      "at": [10, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 787, 787, 0]},
+            {"code": "ChangeGold", "parameters": [0, 0, 50]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       50 credits"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 787, 787, 0]],
-            [0, "ChangeGold", "", [0, 0, 50]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       50 credits", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 787
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 787
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 13
     },
     {
       "id": 8,
       "name": "Ruin2.6",
-      "at": [2, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 788, 788, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 354, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Dented Shield-L"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 788, 788, 0]],
-            [0, "ChangeItems", "", [0, 0, 354, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Dented Shield-L", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 788
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 788
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 29
     },
     {
       "id": 9,
       "name": "Ruin2.7",
-      "at": [34, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 789, 789, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 313, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Gray Bark"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 789, 789, 0]],
-            [0, "ChangeItems", "", [0, 0, 313, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Gray Bark", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 789
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 789
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 44
     },
     {
       "id": 10,
       "name": "Ruin2.8",
-      "at": [1, 50],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 790, 790, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 130, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Jumper Cable-LIFE x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 790, 790, 0]],
-            [0, "ChangeItems", "", [0, 0, 130, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Jumper Cable-LIFE x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 790
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 790
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 50
     },
     {
       "id": 11,
       "name": "Ruin2.9",
-      "at": [34, 54],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 791, 791, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 259, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Agility Potion-AGL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 791, 791, 0]],
-            [0, "ChangeItems", "", [0, 0, 259, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Agility Potion-AGL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 791
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 791
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 54
     },
     {
       "id": 12,
       "name": "AfterBattleMint",
-      "at": [34, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 34
     },
     {
       "id": 13,
       "name": "DroidMerchant",
-      "at": [16, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown5",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "Crown5",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SHOPPING DROID"},
+            {"code": "ShowMessage_2", "string": "Welcome to.... <whir>.... <click>"},
+            {"code": "ShowMessage_2", "string": "Emporium of... <snap> Goods!"},
+            {"code": "ShowMessage", "string": "SHOPPING DROID"},
+            {"code": "ShowMessage_2", "string": "What would... you... <whirrr> like?"},
+            {
+              "code": "ShowChoice",
+              "parameters": [0],
+              "string": "Weapons... and armor?/Other... <click> useful goods?"
+            },
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Weapons... and armor?"},
+            {
+              "code": "OpenShop",
+              "indent": 1,
+              "parameters": [0, 1, 0, 0, 140, 203, 194, 390, 241, 248]
+            },
+            {"code": "END", "indent": 1},
+            {
+              "code": "ShowChoiceOption",
+              "parameters": [1],
+              "string": "Other... <click> useful goods?"
+            },
+            {
+              "code": "OpenShop",
+              "indent": 1,
+              "parameters": [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 130, 115]
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "SHOPPING DROID", []],
-            [0, "ShowMessage_2", "Welcome to.... <whir>.... <click>", []],
-            [0, "ShowMessage_2", "Emporium of... <snap> Goods!", []],
-            [0, "ShowMessage", "SHOPPING DROID", []],
-            [0, "ShowMessage_2", "What would... you... <whirrr> like?", []],
-            [0, "ShowChoice", "Weapons... and armor?/Other... <click> useful goods?", [0]],
-            [0, "ShowChoiceOption", "Weapons... and armor?", [0]],
-            [1, "OpenShop", "", [0, 1, 0, 0, 140, 203, 194, 390, 241, 248]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "Other... <click> useful goods?", [1]],
-            [1, "OpenShop", "", [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 130, 115]],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 2
     },
     {
       "id": 14,
       "name": "SurlRuins.FD",
-      "at": [0, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 924, 924, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 399, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       FightingDirty vol. 7"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 924, 924, 0]],
-            [0, "ChangeItems", "", [0, 0, 399, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       FightingDirty vol. 7", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 924
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 924
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 44
     },
     {
       "id": 15,
       "name": "Ruin2.KM7",
-      "at": [34, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 930, 930, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 404, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Half a Yo-Yo"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Dark5"},
+            {"code": "ChangeSkills", "parameters": [1, 32, 0, 0, 297]},
+            {"code": "ShowMessage", "string": "KERSH has been subjected"},
+            {"code": "ShowMessage_2", "string": "to MEMORIES OF DESPAIR!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 930, 930, 0]],
-            [0, "ChangeItems", "", [0, 0, 404, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Half a Yo-Yo", []],
-            [0, "Wait", "", [2]],
-            [0, "PlaySound", "Dark5", [100, 100, 50]],
-            [0, "ChangeSkills", "", [1, 32, 0, 0, 297]],
-            [0, "ShowMessage", "KERSH has been subjected", []],
-            [0, "ShowMessage_2", "to MEMORIES OF DESPAIR!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 930
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 930
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 2
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [34, 59],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 47, 0]],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 47, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 59
     }
-  ]
+  ],
+  "height": 60,
+  "save_count": 56,
+  "width": 35
 }

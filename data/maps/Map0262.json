@@ -1,77 +1,93 @@
 {
-  "id": 262,
-  "name": "Talan's Scenario Stairs",
-  "size": [20, 140],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0262.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 139],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [289, 25, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [289, 25, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 139
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [290, 9, 13]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [290, 9, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9
     },
     {
       "id": 3,
       "name": "AfterBattleMint",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [19, 139],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 139
     }
-  ]
+  ],
+  "height": 140,
+  "save_count": 38
 }

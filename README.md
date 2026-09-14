@@ -95,15 +95,22 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
 
 ### Piezas
 
-    tools/lcf.py          lector de .lmu/.ldb/.lmt (el formato binario de RM2k)
+    tools/lcf.py          el juego, leído del volcado a JSON de data/
+    tools/ditto_schema.py generado: los nombres, defaults y enums de ese JSON
+    tools/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
     tools/chipset.py      expansión del ChipSet a un atlas de tiles resueltos
     tools/charset.py      recorte de sprites de personaje
     tools/render_map.py   el render en sí
     tools/list_maps.py    inventario de mapas
-    tools/export_json.py  volcado a data/
+    tools/event_codes.py  generado: nombres de los opcodes de evento
+
+Y el lector de los binarios, que **ya no usa el port** y quedó sólo para el
+volcado viejo de Python —ver "Los datos en formato versionable"—:
+
+    tools/lcf_bin.py      lector de .lmu/.ldb/.lmt (el formato binario de RM2k)
+    tools/export_json.py  el volcado viejo, que ya no escribe data/
     tools/gen_schema.py   genera el esquema de los formatos LCF desde liblcf
     tools/lcf_schema.py   generado: 63 structs, 1268 campos
-    tools/event_codes.py  generado: nombres de los opcodes de evento
 
 Todo sale del juego original, que **no está en el repo**: vive en
 `/extras/abl-rm` y de ahí salen los `.lmu`, la `RPG_RT.ldb` —qué chipset usa
@@ -168,63 +175,55 @@ algo.
 
 ## Los datos en formato versionable
 
-    just export        # .lmu -> data/, y verifica releyendo
+    just datos         # el juego -> data/, con Ditto
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
-versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano.
+versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
+desde el 2026-09-14 **es de donde el port lee el juego**: `tools/lcf.py` sale
+de acá, así que el conversor, la referencia en Python y las pruebas están
+mirando estos archivos y no los binarios. Quién lo escribe es **Ditto**
+(`ditto/`), que además sabe volver: `ditto pack` rearma los 330 archivos byte
+por byte. El porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
+`data/README.md`.
 
+    data/ditto.json           la versión del volcado y el header de cada archivo
     data/maps.json            el árbol de mapas y la posición inicial
     data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
     data/maps/Map0001.tiles   las dos capas de tiles, una fila del mapa por línea
     data/db/*.json            la base de datos, una sección por archivo
 
-Son 17 MB: los 328 mapas con sus 4204 eventos y 46556 comandos, más la base de
-datos entera — 60 actores, 400 skills, 450 ítems, 175 enemigos, 300 tropas, 180
-animaciones, 60 eventos comunes, 1200 switches y 250 variables.
+Son 19,4 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
+base de datos entera — 60 actores, 400 skills, 450 ítems, 175 enemigos, 300
+tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 
 **Los tiles van en texto, no en binario.** En binario ocuparían la mitad, pero
-serían opacos para git; en texto, cambiar un tile cambia una línea. A 5
-caracteres por tile las columnas quedan alineadas y la grilla se lee como lo
-que es. El costo real son unos pocos MB que comprimen muy bien.
+serían opacos para git; en texto, cambiar un tile cambia una línea, en la fila
+y la columna en que está en el mapa.
 
-**Los scripts de los eventos van enteros.** El formato de los ~130 comandos de
-RM2k es uniforme — código, sangría, un string y una lista de enteros — así que
-se pueden leer todos sin saber qué hace cada uno. Los nombres de los opcodes
-salen de liblcf, y cada comando ocupa una línea:
+**Se omite lo que está en su valor por defecto**, que es exactamente lo que
+hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
+vale lo que dice el formato. Esa tabla es `tools/ditto_schema.py`, generada
+desde el esquema de Ditto, que se genera desde liblcf. Es la respuesta al bug
+que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
+dice 10, porque el default estaba escrito a mano y estaba mal.
 
-    "script": [
-      [0, "ShowMessage", "SHOPKEEPER", []],
-      [0, "ShowMessage_2", "I have a wide range of useful items.", []],
-      [0, "OpenShop", "", [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115]]
-    ]
-
-Interpretar los parámetros de cada comando es otro tema, y todavía no está
-hecho.
-
-**El esquema de la base de datos se genera, no se escribe.** La `RPG_RT.ldb`
-tiene 63 structs y 1268 campos tipados; escribir eso a mano sería tedioso y
-quedaría desactualizado. Pero liblcf ya lo tiene declarado en su código
-generado, así que `tools/gen_schema.py` cruza los IDs de chunk de `chunks.h`
-con los tipos de las declaraciones `TypedField` y escupe `tools/lcf_schema.py`.
-El decodificador de `lcf.py` es genérico y se guía por eso. Resultado: los 15
-grupos de la base salen enteros, sin un solo chunk que el esquema no cubra.
-
-**Verificación.** `--verify` relee los `.tiles` y los compara contra los `.lmu`,
-y revisa que ningún string tenga caracteres de control ni de reemplazo — que es
-como se ve un parseo desfasado. Los chunks que el esquema no conozca se
-exportan en hexa con su ID a la vista y se reportan al final: nada se pierde en
-silencio.
+**Y los enums salen como texto**: `"trigger": "auto_start"` en vez de
+`"trigger": 3`, `"code": "ShowMessage"` en vez de `10110`. Los nombres son los
+de liblcf.
 
 **Encoding.** El texto es cp1252, porque ABL se hizo con el RM2k de Don Miguel.
 Quedan un par de mensajes del RTP japonés que el autor nunca tocó y siguen en
-Shift-JIS; se detectan por los bytes que cp1252 no define.
+Shift-JIS: en el JSON salen como caracteres raros —decodificarlos adivinando le
+costaría a Ditto la vuelta exacta— y el que los interpreta es `tools/lcf.py`,
+por los bytes que cp1252 no define.
 
-**Se omite lo que está en su valor por defecto**, para que el diff muestre sólo
-lo que importa. Una página sin condiciones no tiene la clave `conditions`; un
-evento quieto no tiene `move`. Y los enums salen como texto: `"trigger":
-"auto_start"` en vez de `"trigger": 3`.
-
-Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
+**El volcado viejo, el de `tools/export_json.py`, sigue existiendo** y ya no
+escribe `data/`: escribe a `/extras/volcado-python` con `just export`. Lo que
+da y el de Ditto no es una *lectura* del juego —un comando de evento en una
+línea, sin los campos que al port no le sirven—; lo que no da es con qué volver
+a escribir el binario. Quedó sin dueño, y si se decide que esa lectura no hace
+falta se va con `tools/lcf_bin.py`, `gen_schema.py` y `lcf_schema.py`: está
+anotado en `DITTO.md`.
 
 ## El port a Super Nintendo
 

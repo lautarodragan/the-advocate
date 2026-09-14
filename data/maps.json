@@ -1,2465 +1,3463 @@
 {
-  "start": {
-    "map": 4,
-    "at": [10, 12]
-  },
+  "active_node": 1,
   "maps": [
+    {"encounter_steps": 0, "expanded_node": true, "name": "A Blurred Line", "type": "root"},
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 1,
+      "indentation": 1,
+      "music_type": "event",
       "name": "Introduction",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0001.json"
+      "save": "allow",
+      "scrollbar_x": 1618,
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 2,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Linkage Block",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0002.json"
+      "parent_map": 1,
+      "save": "allow",
+      "scrollbar_x": 886,
+      "scrollbar_y": 2113,
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 3,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Emitter Room",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0003.json"
+      "parent_map": 1,
+      "save": "allow",
+      "scrollbar_x": 1409,
+      "scrollbar_y": 656,
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 4,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Blank (Leave START here)",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0004.json"
+      "parent_map": 1,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 5,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Core Retrospective",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0005.json"
+      "parent_map": 1,
+      "save": "allow",
+      "scrollbar_y": 99,
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 6,
+      "indentation": 3,
       "name": "CoreRetro II",
-      "parent": 5,
-      "type": "map",
-      "file": "maps/Map0006.json"
+      "parent_map": 5,
+      "scrollbar_x": 232,
+      "scrollbar_y": 2202,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 7,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Talan's Pad",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0007.json"
+      "parent_map": 15,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 8,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Lashe City - 34,35",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0008.json"
+      "parent_map": 15,
+      "save": "allow",
+      "scrollbar_x": 928,
+      "scrollbar_y": 307,
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ03",
+      "background_type": "specific",
+      "encounter_steps": 0,
+      "escape": "allow",
       "id": 9,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Lashe City 33,36",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0009.json"
+      "parent_map": 15,
+      "save": "allow",
+      "scrollbar_x": 1370,
+      "scrollbar_y": 1114,
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 10,
+      "indentation": 2,
       "name": "Lashe City Interiors",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0010.json"
+      "parent_map": 15,
+      "scrollbar_x": 594,
+      "scrollbar_y": 308,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 11,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Lazer Teeth HQ",
-      "parent": 9,
-      "type": "map",
-      "file": "maps/Map0011.json"
+      "parent_map": 9,
+      "save": "allow",
+      "scrollbar_x": 372,
+      "scrollbar_y": 1192,
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 12,
+      "indentation": 3,
       "name": "Trash Dump 004",
-      "parent": 8,
-      "type": "map",
-      "file": "maps/Map0012.json"
+      "parent_map": 8,
+      "scrollbar_y": 612,
+      "type": "map"
     },
-    {
-      "id": 13,
-      "name": "Hover-Tram",
-      "parent": 9,
-      "type": "map",
-      "file": "maps/Map0013.json"
-    },
+    {"id": 13, "indentation": 3, "name": "Hover-Tram", "parent_map": 9, "type": "map"},
     {
       "id": 14,
+      "indentation": 2,
       "name": "NV Get Talan to Work",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0014.json"
+      "parent_map": 15,
+      "scrollbar_x": 1161,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 15,
+      "indentation": 1,
+      "music_type": "event",
       "name": "Lashe City",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0015.json"
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 16,
+      "indentation": 2,
+      "music": {"name": "hzbreach"},
+      "music_type": "specific",
       "name": "Running To Work Scene",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0016.json"
+      "parent_map": 15,
+      "scrollbar_x": 1223,
+      "scrollbar_y": 1430,
+      "type": "map"
     },
     {
       "id": 17,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Delcentric Factory",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0017.json"
+      "parent_map": 15,
+      "scrollbar_x": 736,
+      "scrollbar_y": 1224,
+      "type": "map"
     },
-    {
-      "id": 18,
-      "name": "Auditorium",
-      "parent": 17,
-      "type": "map",
-      "file": "maps/Map0018.json"
-    },
+    {"id": 18, "indentation": 3, "name": "Auditorium", "parent_map": 17, "type": "map"},
     {
       "id": 19,
+      "indentation": 3,
       "name": "Talan and the Director",
-      "parent": 17,
-      "type": "map",
-      "file": "maps/Map0019.json"
+      "parent_map": 17,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ03",
+      "background_type": "specific",
+      "encounter_steps": 80,
       "id": 20,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Sector 30 Back Alleys",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0020.json"
+      "parent_map": 15,
+      "scrollbar_x": 2424,
+      "scrollbar_y": 823,
+      "type": "map"
     },
     {
+      "encounter_steps": 70,
       "id": 21,
+      "indentation": 3,
+      "music": {"name": "KSSMKEND"},
+      "music_type": "specific",
       "name": "Rat Tracks B1",
-      "parent": 22,
-      "type": "map",
-      "file": "maps/Map0021.json"
+      "parent_map": 22,
+      "scrollbar_x": 787,
+      "scrollbar_y": 649,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ08",
+      "background_type": "specific",
       "id": 22,
+      "indentation": 2,
       "name": "The Rat Tracks",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0022.json"
+      "parent_map": 15,
+      "type": "map"
     },
     {
       "id": 23,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Beggar's Hideout",
-      "parent": 21,
-      "type": "map",
-      "file": "maps/Map0023.json"
+      "parent_map": 21,
+      "scrollbar_x": 192,
+      "scrollbar_y": 296,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 68, "l": 35, "r": 100, "t": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 88},
+        {"id": 2, "troop_id": 89},
+        {"id": 3, "troop_id": 90},
+        {"id": 4, "troop_id": 91},
+        {"id": 5, "troop_id": 92},
+        {"id": 6, "troop_id": 93}
+      ],
       "id": 24,
+      "indentation": 3,
       "name": "Sector30 Monsters",
-      "parent": 20,
-      "type": "folder",
-      "file": null
+      "parent_map": 20,
+      "scrollbar_x": 1765,
+      "scrollbar_y": 1092,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 50, "r": 50},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 94},
+        {"id": 2, "troop_id": 94},
+        {"id": 3, "troop_id": 94},
+        {"id": 4, "troop_id": 95},
+        {"id": 5, "troop_id": 96}
+      ],
       "id": 25,
+      "indentation": 4,
       "name": "Rat Tracks B1 Monsters",
-      "parent": 21,
-      "type": "folder",
-      "file": null
+      "parent_map": 21,
+      "scrollbar_x": 402,
+      "scrollbar_y": 482,
+      "type": "area"
     },
     {
+      "encounter_steps": 70,
       "id": 26,
+      "indentation": 3,
+      "music": {"name": "KSSMKEND"},
+      "music_type": "specific",
       "name": "Rat Tracks B2",
-      "parent": 22,
-      "type": "map",
-      "file": "maps/Map0026.json"
+      "parent_map": 22,
+      "scrollbar_x": 1083,
+      "scrollbar_y": 11,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 50, "r": 50, "t": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 94},
+        {"id": 2, "troop_id": 94},
+        {"id": 3, "troop_id": 94},
+        {"id": 4, "troop_id": 95},
+        {"id": 5, "troop_id": 96}
+      ],
       "id": 27,
+      "indentation": 4,
       "name": "Rat Tracks B2",
-      "parent": 26,
-      "type": "folder",
-      "file": null
+      "parent_map": 26,
+      "scrollbar_x": 425,
+      "scrollbar_y": 811,
+      "type": "area"
     },
     {
+      "background_name": "ABLBackdropSJ03",
+      "background_type": "specific",
+      "encounter_steps": 35,
       "id": 28,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Sector 27 Back Alleys",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0028.json"
+      "parent_map": 15,
+      "scrollbar_x": 708,
+      "scrollbar_y": 955,
+      "type": "map"
     },
+    {"id": 29, "indentation": 3, "name": "Sector 27 Item Shop", "parent_map": 28, "type": "map"},
+    {"id": 30, "indentation": 3, "name": "Sector 27 Workshop", "parent_map": 28, "type": "map"},
     {
-      "id": 29,
-      "name": "Sector 27 Item Shop",
-      "parent": 28,
-      "type": "map",
-      "file": "maps/Map0029.json"
-    },
-    {
-      "id": 30,
-      "name": "Sector 27 Workshop",
-      "parent": 28,
-      "type": "map",
-      "file": "maps/Map0030.json"
-    },
-    {
+      "area_rect": {"b": 50, "l": 8, "r": 37, "t": 17},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 99},
+        {"id": 2, "troop_id": 100},
+        {"id": 3, "troop_id": 101}
+      ],
       "id": 31,
+      "indentation": 3,
       "name": "Sector 27 Monsters",
-      "parent": 28,
-      "type": "folder",
-      "file": null
+      "parent_map": 28,
+      "scrollbar_x": 345,
+      "scrollbar_y": 763,
+      "type": "area"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 75,
       "id": 32,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Sector 27 Warehouse",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0032.json"
+      "parent_map": 15,
+      "scrollbar_x": 825,
+      "scrollbar_y": 336,
+      "type": "map"
     },
     {
       "id": 33,
+      "indentation": 3,
       "name": "Escape From 27 Scene",
-      "parent": 32,
-      "type": "map",
-      "file": "maps/Map0033.json"
+      "parent_map": 32,
+      "scrollbar_x": 259,
+      "type": "map"
     },
     {
       "id": 34,
+      "indentation": 2,
       "name": "AfterGettingCarCutscene",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0034.json"
+      "parent_map": 15,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 50, "l": 4, "r": 47, "t": 27},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 100},
+        {"id": 2, "troop_id": 101},
+        {"id": 3, "troop_id": 99}
+      ],
       "id": 35,
+      "indentation": 3,
       "name": "27 Warehouse Monsters",
-      "parent": 32,
-      "type": "folder",
-      "file": null
+      "parent_map": 32,
+      "scrollbar_x": 418,
+      "scrollbar_y": 914,
+      "type": "area"
     },
-    {
-      "id": 36,
-      "name": "LasheCityVehicle",
-      "parent": 34,
-      "type": "map",
-      "file": "maps/Map0036.json"
-    },
+    {"id": 36, "indentation": 3, "name": "LasheCityVehicle", "parent_map": 34, "type": "map"},
     {
       "id": 37,
+      "indentation": 2,
       "name": "Sector 35 With Car",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0037.json"
+      "parent_map": 15,
+      "scrollbar_x": 661,
+      "scrollbar_y": 699,
+      "type": "map"
     },
     {
       "id": 38,
+      "indentation": 2,
       "name": "Sector 34 With Car",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0038.json"
+      "parent_map": 15,
+      "scrollbar_x": 1405,
+      "scrollbar_y": 1431,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 39,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Talan's Pad With Car",
-      "parent": 37,
-      "type": "map",
-      "file": "maps/Map0039.json"
+      "parent_map": 37,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 40,
+      "indentation": 3,
       "name": "Boss Wick's Den",
-      "parent": 37,
-      "type": "map",
-      "file": "maps/Map0040.json"
+      "parent_map": 37,
+      "scrollbar_x": 889,
+      "scrollbar_y": 958,
+      "type": "map"
     },
     {
       "id": 41,
+      "indentation": 3,
       "name": "ScreenToneAdjuster",
-      "parent": 37,
-      "type": "map",
-      "file": "maps/Map0041.json"
+      "parent_map": 37,
+      "scrollbar_x": 96,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 42,
+      "indentation": 3,
       "name": "The Vidcasts (Factory)",
-      "parent": 37,
-      "type": "map",
-      "file": "maps/Map0042.json"
+      "parent_map": 37,
+      "type": "map"
     },
-    {
-      "id": 43,
-      "name": "Vidcasts (Office)",
-      "parent": 42,
-      "type": "map",
-      "file": "maps/Map0043.json"
-    },
+    {"id": 43, "indentation": 4, "name": "Vidcasts (Office)", "parent_map": 42, "type": "map"},
     {
       "id": 44,
+      "indentation": 4,
       "name": "Talan Stats",
-      "parent": 42,
-      "type": "map",
-      "file": "maps/Map0044.json"
+      "parent_map": 42,
+      "scrollbar_x": 160,
+      "scrollbar_y": 136,
+      "type": "map"
     },
-    {
-      "id": 45,
-      "name": "Security Footage",
-      "parent": 42,
-      "type": "map",
-      "file": "maps/Map0045.json"
-    },
-    {
-      "id": 46,
-      "name": "Security Footage 2",
-      "parent": 45,
-      "type": "map",
-      "file": "maps/Map0046.json"
-    },
+    {"id": 45, "indentation": 4, "name": "Security Footage", "parent_map": 42, "type": "map"},
+    {"id": 46, "indentation": 5, "name": "Security Footage 2", "parent_map": 45, "type": "map"},
     {
       "id": 47,
+      "indentation": 2,
       "name": "Sector 33 With Car",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0047.json"
+      "parent_map": 15,
+      "scrollbar_x": 332,
+      "scrollbar_y": 598,
+      "type": "map"
     },
     {
       "id": 48,
+      "indentation": 2,
       "name": "Sector 32 With Car",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0048.json"
+      "parent_map": 15,
+      "scrollbar_x": 104,
+      "scrollbar_y": 1128,
+      "type": "map"
     },
     {
       "id": 49,
+      "indentation": 3,
       "name": "Escape Lashe City - LV1",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0049.json"
+      "parent_map": 55,
+      "scrollbar_y": 428,
+      "type": "map"
     },
-    {
-      "id": 50,
-      "name": "ResetRace",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0050.json"
-    },
+    {"id": 50, "indentation": 3, "name": "ResetRace", "parent_map": 55, "type": "map"},
     {
       "id": 51,
+      "indentation": 3,
       "name": "Jumping the Bridge",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0051.json"
+      "parent_map": 55,
+      "scrollbar_x": 3337,
+      "scrollbar_y": 359,
+      "type": "map"
     },
     {
       "id": 52,
+      "indentation": 3,
       "name": "Escape Lashe City - LV2",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0052.json"
+      "parent_map": 55,
+      "scrollbar_x": 3024,
+      "scrollbar_y": 712,
+      "type": "map"
     },
-    {
-      "id": 53,
-      "name": "RaceFinished",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0053.json"
-    },
+    {"id": 53, "indentation": 3, "name": "RaceFinished", "parent_map": 55, "type": "map"},
     {
       "id": 54,
+      "indentation": 3,
       "name": "Escape Lashe City - LV3",
-      "parent": 55,
-      "type": "map",
-      "file": "maps/Map0054.json"
+      "parent_map": 55,
+      "scrollbar_x": 3546,
+      "scrollbar_y": 630,
+      "type": "map"
     },
     {
       "id": 55,
+      "indentation": 2,
       "name": "Escape From Lashe City",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0055.json"
+      "parent_map": 15,
+      "type": "map"
     },
     {
       "id": 56,
+      "indentation": 3,
       "name": "Sector 33 Discount Items",
-      "parent": 47,
-      "type": "map",
-      "file": "maps/Map0056.json"
+      "parent_map": 47,
+      "type": "map"
     },
+    {"id": 57, "indentation": 3, "name": "Stash's Emporium", "parent_map": 48, "type": "map"},
+    {"id": 58, "indentation": 3, "name": "Aura Tutorial", "parent_map": 161, "type": "map"},
     {
-      "id": 57,
-      "name": "Stash's Emporium",
-      "parent": 48,
-      "type": "map",
-      "file": "maps/Map0057.json"
-    },
-    {
-      "id": 58,
-      "name": "Aura Tutorial",
-      "parent": 161,
-      "type": "map",
-      "file": "maps/Map0058.json"
-    },
-    {
+      "background_name": "ABLBackdropSJ03",
+      "background_type": "specific",
+      "encounter_steps": 40,
       "id": 59,
+      "indentation": 3,
+      "music": {"name": "wb3shop"},
+      "music_type": "specific",
       "name": "Outside Recycling Plant",
-      "parent": 48,
-      "type": "map",
-      "file": "maps/Map0059.json"
+      "parent_map": 48,
+      "scrollbar_x": 371,
+      "scrollbar_y": 677,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 40,
       "id": 60,
+      "indentation": 4,
       "name": "Floor 1",
-      "parent": 59,
-      "type": "map",
-      "file": "maps/Map0060.json"
+      "parent_map": 59,
+      "scrollbar_x": -128,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 40,
       "id": 61,
+      "indentation": 4,
       "name": "Floor 0",
-      "parent": 59,
-      "type": "map",
-      "file": "maps/Map0061.json"
+      "parent_map": 59,
+      "scrollbar_x": 288,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 40,
       "id": 62,
+      "indentation": 4,
       "name": "Floor 2",
-      "parent": 59,
-      "type": "map",
-      "file": "maps/Map0062.json"
+      "parent_map": 59,
+      "type": "map"
     },
     {
       "id": 63,
+      "indentation": 3,
       "name": "Tunnel Into Lashe City",
-      "parent": 48,
-      "type": "map",
-      "file": "maps/Map0063.json"
+      "parent_map": 48,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 64,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Leaving Lashe City Scene",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0064.json"
+      "parent_map": 15,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 65,
+      "indentation": 1,
+      "music_type": "event",
       "name": "Northern World",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0065.json"
+      "save": "allow",
+      "scrollbar_x": 64,
+      "scrollbar_y": 200,
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "encounter_steps": 65,
+      "escape": "allow",
       "id": 66,
+      "indentation": 2,
+      "music": {"name": "T_ProjectJustice_DiscLoad"},
+      "music_type": "specific",
       "name": "Lashe Area",
-      "parent": 65,
-      "type": "map",
-      "file": "maps/Map0066.json"
+      "parent_map": 65,
+      "save": "allow",
+      "scrollbar_x": 171,
+      "type": "map"
     },
     {
       "id": 67,
+      "indentation": 3,
+      "music": {"name": "11h035"},
+      "music_type": "specific",
       "name": "Yun Town",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0067.json"
+      "parent_map": 66,
+      "scrollbar_x": 64,
+      "scrollbar_y": 260,
+      "type": "map"
     },
     {
+      "expanded_node": true,
       "id": 68,
+      "indentation": 3,
+      "music": {"name": "arc1_v2"},
+      "music_type": "specific",
       "name": "Drust Camp",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0068.json"
+      "parent_map": 66,
+      "scrollbar_x": 1082,
+      "type": "map"
     },
     {
       "id": 69,
+      "indentation": 3,
+      "music": {"name": "iknow"},
+      "music_type": "specific",
       "name": "Sorbe Village",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0069.json"
+      "parent_map": 66,
+      "scrollbar_x": 503,
+      "scrollbar_y": 66,
+      "type": "map"
     },
-    {
-      "id": 70,
-      "name": "Green Cuisine Deli",
-      "parent": 67,
-      "type": "map",
-      "file": "maps/Map0070.json"
-    },
+    {"id": 70, "indentation": 4, "name": "Green Cuisine Deli", "parent_map": 67, "type": "map"},
     {
       "id": 71,
+      "indentation": 4,
       "name": "Armor Shop",
-      "parent": 67,
-      "type": "map",
-      "file": "maps/Map0071.json"
+      "parent_map": 67,
+      "scrollbar_x": 122,
+      "type": "map"
     },
-    {
-      "id": 72,
-      "name": "Yun Inn",
-      "parent": 67,
-      "type": "map",
-      "file": "maps/Map0072.json"
-    },
+    {"id": 72, "indentation": 4, "name": "Yun Inn", "parent_map": 67, "type": "map"},
     {
       "id": 73,
+      "indentation": 4,
       "name": "Yun Mayor's House",
-      "parent": 67,
-      "type": "map",
-      "file": "maps/Map0073.json"
+      "parent_map": 67,
+      "scrollbar_x": 320,
+      "scrollbar_y": 296,
+      "type": "map"
     },
     {
       "id": 74,
+      "indentation": 3,
+      "music": {"name": "prepara"},
+      "music_type": "specific",
       "name": "Tasgarde Military Base",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0074.json"
+      "parent_map": 66,
+      "scrollbar_x": 907,
+      "scrollbar_y": 944,
+      "type": "map"
     },
     {
       "id": 75,
+      "indentation": 5,
       "name": "Battle Rink Ladder",
-      "parent": 199,
-      "type": "map",
-      "file": "maps/Map0075.json"
+      "parent_map": 199,
+      "scrollbar_y": 665,
+      "type": "map"
     },
     {
+      "background_name": "mroad4",
+      "background_type": "specific",
+      "encounter_steps": 55,
       "id": 76,
+      "indentation": 4,
+      "music": {"name": "bmlv2-sbl"},
+      "music_type": "specific",
       "name": "Sorbe Mountain",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0076.json"
+      "parent_map": 69,
+      "scrollbar_x": 293,
+      "scrollbar_y": 316,
+      "type": "map"
     },
-    {
-      "id": 77,
-      "name": "Health Spa",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0077.json"
-    },
-    {
-      "id": 78,
-      "name": "Sorbe Inn",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0078.json"
-    },
+    {"id": 77, "indentation": 4, "name": "Health Spa", "parent_map": 69, "type": "map"},
+    {"id": 78, "indentation": 4, "name": "Sorbe Inn", "parent_map": 69, "type": "map"},
     {
       "id": 79,
+      "indentation": 4,
       "name": "Weapon Shop",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0079.json"
+      "parent_map": 69,
+      "scrollbar_x": 128,
+      "scrollbar_y": 296,
+      "type": "map"
     },
-    {
-      "id": 80,
-      "name": "Sorbe Mayor's House",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0080.json"
-    },
-    {
-      "id": 81,
-      "name": "Dr. Vago's House",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0081.json"
-    },
+    {"id": 80, "indentation": 4, "name": "Sorbe Mayor's House", "parent_map": 69, "type": "map"},
+    {"id": 81, "indentation": 4, "name": "Dr. Vago's House", "parent_map": 69, "type": "map"},
     {
       "id": 82,
+      "indentation": 3,
+      "music": {"name": "prepara"},
+      "music_type": "specific",
       "name": "Director'sOfficeNextStep",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0082.json"
+      "parent_map": 66,
+      "type": "map"
     },
     {
       "id": 83,
+      "indentation": 2,
+      "music": {"name": "wb3mlair"},
+      "music_type": "specific",
       "name": "Dalia at the Factory",
-      "parent": 15,
-      "type": "map",
-      "file": "maps/Map0083.json"
+      "parent_map": 15,
+      "scrollbar_x": 683,
+      "scrollbar_y": 1634,
+      "type": "map"
     },
-    {
-      "id": 84,
-      "name": "OutsideFactory",
-      "parent": 83,
-      "type": "map",
-      "file": "maps/Map0084.json"
-    },
+    {"id": 84, "indentation": 3, "name": "OutsideFactory", "parent_map": 83, "type": "map"},
     {
       "id": 85,
+      "indentation": 4,
       "name": "Tasgarde Lab",
-      "parent": 74,
-      "type": "map",
-      "file": "maps/Map0085.json"
+      "parent_map": 74,
+      "scrollbar_y": 309,
+      "type": "map"
     },
     {
       "id": 86,
+      "indentation": 3,
+      "music": {"name": "juries", "volume": 70},
+      "music_type": "specific",
       "name": "Eisen's Story",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0086.json"
+      "parent_map": 66,
+      "type": "map"
     },
-    {
-      "id": 87,
-      "name": "Director's Proposal",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0087.json"
-    },
-    {
-      "id": 88,
-      "name": "Construction",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0088.json"
-    },
-    {
-      "id": 89,
-      "name": "Recoding",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0089.json"
-    },
+    {"id": 87, "indentation": 4, "name": "Director's Proposal", "parent_map": 86, "type": "map"},
+    {"id": 88, "indentation": 4, "name": "Construction", "parent_map": 86, "type": "map"},
+    {"id": 89, "indentation": 4, "name": "Recoding", "parent_map": 86, "type": "map"},
     {
       "id": 90,
+      "indentation": 4,
       "name": "Consolidation Speech",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0090.json"
+      "parent_map": 86,
+      "type": "map"
     },
-    {
-      "id": 91,
-      "name": "Advocate Online",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0091.json"
-    },
+    {"id": 91, "indentation": 4, "name": "Advocate Online", "parent_map": 86, "type": "map"},
     {
       "id": 92,
+      "indentation": 4,
       "name": "Surl Launching Missiles",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0092.json"
+      "parent_map": 86,
+      "type": "map"
     },
     {
       "id": 93,
+      "indentation": 4,
+      "music_type": "event",
       "name": "TasgardeIncomingMissiles",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0093.json"
+      "parent_map": 86,
+      "type": "map"
     },
     {
       "id": 94,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Missiles On Their Way1",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0094.json"
+      "parent_map": 86,
+      "type": "map"
     },
     {
       "id": 95,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Into The Machine",
-      "parent": 86,
-      "type": "map",
-      "file": "maps/Map0095.json"
+      "parent_map": 86,
+      "scrollbar_y": 968,
+      "type": "map"
     },
-    {
-      "id": 96,
-      "name": "Backup",
-      "parent": 19,
-      "type": "map",
-      "file": "maps/Map0096.json"
-    },
-    {
-      "id": 97,
-      "name": "Backup",
-      "parent": 34,
-      "type": "map",
-      "file": "maps/Map0097.json"
-    },
-    {
-      "id": 98,
-      "name": "Backup",
-      "parent": 45,
-      "type": "map",
-      "file": "maps/Map0098.json"
-    },
+    {"id": 96, "indentation": 4, "name": "Backup", "parent_map": 19, "type": "map"},
+    {"id": 97, "indentation": 3, "name": "Backup", "parent_map": 34, "type": "map"},
+    {"id": 98, "indentation": 5, "name": "Backup", "parent_map": 45, "type": "map"},
     {
       "id": 99,
+      "indentation": 5,
+      "music_type": "event",
       "name": "Missiles On Their Way2",
-      "parent": 94,
-      "type": "map",
-      "file": "maps/Map0099.json"
+      "parent_map": 94,
+      "type": "map"
     },
-    {
-      "id": 100,
-      "name": "General's Scheme",
-      "parent": 95,
-      "type": "map",
-      "file": "maps/Map0100.json"
-    },
+    {"id": 100, "indentation": 5, "name": "General's Scheme", "parent_map": 95, "type": "map"},
     {
       "id": 101,
+      "indentation": 4,
       "name": "Lab After Eisen's Story",
-      "parent": 74,
-      "type": "map",
-      "file": "maps/Map0101.json"
+      "parent_map": 74,
+      "scrollbar_y": 590,
+      "type": "map"
     },
     {
       "id": 102,
+      "indentation": 4,
+      "music": {"name": "GLlevel4"},
+      "music_type": "specific",
       "name": "Eisen's Sim - ThroneRoom",
-      "parent": 74,
-      "type": "map",
-      "file": "maps/Map0102.json"
+      "parent_map": 74,
+      "type": "map"
     },
     {
+      "background_name": "Cave1",
+      "background_type": "specific",
+      "encounter_steps": 70,
       "id": 103,
+      "indentation": 4,
+      "music": {"name": "piperdun"},
+      "music_type": "specific",
       "name": "Drust Mines",
-      "parent": 68,
-      "type": "map",
-      "file": "maps/Map0103.json"
+      "parent_map": 68,
+      "scrollbar_x": 262,
+      "scrollbar_y": 1452,
+      "type": "map"
     },
     {
       "id": 104,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Overlook Memory",
-      "parent": 219,
-      "type": "map",
-      "file": "maps/Map0104.json"
+      "parent_map": 219,
+      "type": "map"
     },
     {
+      "background_name": "mroad1",
+      "background_type": "specific",
+      "escape": "forbid",
       "id": 105,
+      "indentation": 3,
       "name": "Mountain Path",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0105.json"
+      "parent_map": 66,
+      "scrollbar_x": 259,
+      "scrollbar_y": 122,
+      "type": "map"
     },
     {
       "id": 106,
+      "indentation": 2,
       "name": "TalanGetsAmnesty",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0106.json"
+      "parent_map": 108,
+      "scrollbar_x": 160,
+      "scrollbar_y": 296,
+      "type": "map"
     },
     {
       "id": 107,
+      "indentation": 2,
+      "music": {"name": "KSSMKEND"},
+      "music_type": "specific",
       "name": "TunnelToParadise",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0107.json"
+      "parent_map": 108,
+      "scrollbar_x": 20,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 108,
+      "indentation": 1,
+      "music_type": "event",
       "name": "Distant Paradise",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0108.json"
+      "save": "allow",
+      "scrollbar_y": 1288,
+      "teleport": "allow",
+      "type": "map"
     },
-    {
-      "id": 109,
-      "name": "Paradise Overlook",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0109.json"
-    },
+    {"id": 109, "indentation": 2, "name": "Paradise Overlook", "parent_map": 108, "type": "map"},
     {
       "id": 110,
+      "indentation": 3,
       "name": "Council Chambers",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0110.json"
+      "parent_map": 112,
+      "scrollbar_y": 160,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 111,
+      "indentation": 2,
+      "music_type": "event",
       "name": "CustomMenuTest",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0111.json"
+      "parent_map": 1,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
-    {
-      "id": 112,
-      "name": "ParadiseInteriors",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0112.json"
-    },
-    {
-      "id": 113,
-      "name": "Emily's House",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0113.json"
-    },
+    {"id": 112, "indentation": 2, "name": "ParadiseInteriors", "parent_map": 108, "type": "map"},
+    {"id": 113, "indentation": 3, "name": "Emily's House", "parent_map": 112, "type": "map"},
     {
       "id": 114,
+      "indentation": 3,
       "name": "Talan's House",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0114.json"
+      "parent_map": 112,
+      "scrollbar_x": -96,
+      "scrollbar_y": 72,
+      "type": "map"
     },
     {
       "id": 115,
+      "indentation": 3,
       "name": "House1",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0115.json"
+      "parent_map": 112,
+      "scrollbar_x": 128,
+      "scrollbar_y": 296,
+      "type": "map"
     },
-    {
-      "id": 116,
-      "name": "House2",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0116.json"
-    },
+    {"id": 116, "indentation": 3, "name": "House2", "parent_map": 112, "type": "map"},
     {
       "id": 117,
+      "indentation": 3,
       "name": "House3",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0117.json"
+      "parent_map": 112,
+      "scrollbar_x": 128,
+      "scrollbar_y": 296,
+      "type": "map"
     },
-    {
-      "id": 118,
-      "name": "House4",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0118.json"
-    },
+    {"id": 118, "indentation": 3, "name": "House4", "parent_map": 112, "type": "map"},
     {
       "id": 119,
+      "indentation": 3,
       "name": "Weapons and Armor",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0119.json"
+      "parent_map": 112,
+      "scrollbar_x": 436,
+      "type": "map"
     },
-    {
-      "id": 120,
-      "name": "ConstructionTent",
-      "parent": 112,
-      "type": "map",
-      "file": "maps/Map0120.json"
-    },
+    {"id": 120, "indentation": 3, "name": "ConstructionTent", "parent_map": 112, "type": "map"},
     {
       "id": 121,
+      "indentation": 3,
+      "music": {"name": "T_ProjectJustice_DiscLoad"},
+      "music_type": "specific",
       "name": "Bandit Ambush",
-      "parent": 158,
-      "type": "map",
-      "file": "maps/Map0121.json"
+      "parent_map": 158,
+      "scrollbar_y": 273,
+      "type": "map"
     },
-    {
-      "id": 122,
-      "name": "DreamSequence",
-      "parent": 109,
-      "type": "map",
-      "file": "maps/Map0122.json"
-    },
-    {
-      "id": 123,
-      "name": "Talan'sDream1",
-      "parent": 109,
-      "type": "map",
-      "file": "maps/Map0123.json"
-    },
-    {
-      "id": 124,
-      "name": "Talan'sDream2",
-      "parent": 109,
-      "type": "map",
-      "file": "maps/Map0124.json"
-    },
-    {
-      "id": 125,
-      "name": "AG7 in the Rain",
-      "parent": 114,
-      "type": "map",
-      "file": "maps/Map0125.json"
-    },
+    {"id": 122, "indentation": 3, "name": "DreamSequence", "parent_map": 109, "type": "map"},
+    {"id": 123, "indentation": 3, "name": "Talan'sDream1", "parent_map": 109, "type": "map"},
+    {"id": 124, "indentation": 3, "name": "Talan'sDream2", "parent_map": 109, "type": "map"},
+    {"id": 125, "indentation": 4, "name": "AG7 in the Rain", "parent_map": 114, "type": "map"},
     {
       "id": 126,
+      "indentation": 3,
       "name": "OverlookAtDay",
-      "parent": 109,
-      "type": "map",
-      "file": "maps/Map0126.json"
+      "parent_map": 109,
+      "scrollbar_y": 102,
+      "type": "map"
     },
-    {
-      "id": 127,
-      "name": "ParadiseFarmland",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0127.json"
-    },
+    {"id": 127, "indentation": 2, "name": "ParadiseFarmland", "parent_map": 108, "type": "map"},
     {
       "id": 128,
+      "indentation": 3,
       "name": "Grove",
-      "parent": 127,
-      "type": "map",
-      "file": "maps/Map0128.json"
+      "parent_map": 127,
+      "scrollbar_x": 128,
+      "scrollbar_y": -88,
+      "type": "map"
     },
     {
       "id": 129,
+      "indentation": 3,
+      "music": {"name": "pn28year", "volume": 80},
+      "music_type": "specific",
       "name": "Theatre Ruins",
-      "parent": 158,
-      "type": "map",
-      "file": "maps/Map0129.json"
+      "parent_map": 158,
+      "type": "map"
     },
     {
+      "background_name": "Castle",
+      "background_type": "specific",
+      "encounter_steps": 65,
       "id": 130,
+      "indentation": 4,
       "name": "Ground Floor",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0130.json"
+      "parent_map": 129,
+      "scrollbar_y": 186,
+      "type": "map"
     },
     {
+      "background_name": "Castle",
+      "background_type": "specific",
+      "encounter_steps": 75,
       "id": 131,
+      "indentation": 4,
       "name": "Floor Two",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0131.json"
+      "parent_map": 129,
+      "type": "map"
     },
     {
+      "background_name": "Castle",
+      "background_type": "specific",
       "id": 132,
+      "indentation": 4,
       "name": "Stage",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0132.json"
+      "parent_map": 129,
+      "scrollbar_x": 103,
+      "scrollbar_y": 363,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 161},
+        {"id": 2, "troop_id": 159}
+      ],
       "id": 133,
+      "indentation": 5,
       "name": "Room1",
-      "parent": 130,
-      "type": "map",
-      "file": "maps/Map0133.json"
+      "parent_map": 130,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 159},
+        {"id": 2, "troop_id": 160}
+      ],
       "id": 134,
+      "indentation": 5,
       "name": "Room2",
-      "parent": 130,
-      "type": "map",
-      "file": "maps/Map0134.json"
+      "parent_map": 130,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 159},
+        {"id": 2, "troop_id": 158}
+      ],
       "id": 135,
+      "indentation": 5,
       "name": "Room3",
-      "parent": 130,
-      "type": "map",
-      "file": "maps/Map0135.json"
+      "parent_map": 130,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 161},
+        {"id": 2, "troop_id": 158}
+      ],
       "id": 136,
+      "indentation": 5,
       "name": "Room4",
-      "parent": 130,
-      "type": "map",
-      "file": "maps/Map0136.json"
+      "parent_map": 130,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 162},
+        {"id": 2, "troop_id": 165}
+      ],
       "id": 137,
+      "indentation": 5,
       "name": "Room5",
-      "parent": 131,
-      "type": "map",
-      "file": "maps/Map0137.json"
+      "parent_map": 131,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 163}
+      ],
       "id": 138,
+      "indentation": 5,
       "name": "Room6",
-      "parent": 131,
-      "type": "map",
-      "file": "maps/Map0138.json"
+      "parent_map": 131,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 164}
+      ],
       "id": 139,
+      "indentation": 5,
       "name": "Room7",
-      "parent": 131,
-      "type": "map",
-      "file": "maps/Map0139.json"
+      "parent_map": 131,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 164},
+        {"id": 2, "troop_id": 163}
+      ],
       "id": 140,
+      "indentation": 5,
       "name": "Room8",
-      "parent": 131,
-      "type": "map",
-      "file": "maps/Map0140.json"
+      "parent_map": 131,
+      "scrollbar_x": 64,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "background_name": "Castle",
+      "background_type": "specific",
       "id": 141,
+      "indentation": 4,
       "name": "Storage Room",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0141.json"
+      "parent_map": 129,
+      "type": "map"
     },
     {
       "id": 142,
+      "indentation": 4,
+      "music": {"name": "mboy", "volume": 70},
+      "music_type": "specific",
       "name": "SecondMonthRehearsal",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0142.json"
+      "parent_map": 129,
+      "scrollbar_x": 192,
+      "scrollbar_y": 264,
+      "type": "map"
     },
-    {
-      "id": 143,
-      "name": "Garagaraboren",
-      "parent": 142,
-      "type": "map",
-      "file": "maps/Map0143.json"
-    },
+    {"id": 143, "indentation": 5, "name": "Garagaraboren", "parent_map": 142, "type": "map"},
     {
       "id": 144,
+      "indentation": 5,
       "name": "Shop In Garagaraboren",
-      "parent": 142,
-      "type": "map",
-      "file": "maps/Map0144.json"
+      "parent_map": 142,
+      "scrollbar_x": 128,
+      "scrollbar_y": 296,
+      "type": "map"
     },
     {
       "id": 145,
+      "indentation": 4,
+      "music_type": "event",
       "name": "The Stage - fixed",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0145.json"
+      "parent_map": 129,
+      "scrollbar_x": 31,
+      "scrollbar_y": 207,
+      "type": "map"
     },
     {
       "id": 146,
+      "indentation": 4,
+      "music": {"name": "pn28year", "volume": 80},
+      "music_type": "specific",
       "name": "Entrance - fixed",
-      "parent": 129,
-      "type": "map",
-      "file": "maps/Map0146.json"
+      "parent_map": 129,
+      "type": "map"
     },
     {
       "id": 147,
+      "indentation": 2,
       "name": "AgencyComesToParadise",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0147.json"
+      "parent_map": 108,
+      "scrollbar_x": 192,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ10b",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "encounters": [
+        {"id": 1, "troop_id": 184}
+      ],
+      "escape": "allow",
       "id": 148,
+      "indentation": 3,
+      "music": {"name": "toprepare", "volume": 90},
+      "music_type": "specific",
       "name": "Paradise Burning",
-      "parent": 147,
-      "type": "map",
-      "file": "maps/Map0148.json"
+      "parent_map": 147,
+      "save": "allow",
+      "scrollbar_y": 316,
+      "teleport": "allow",
+      "type": "map"
     },
-    {
-      "id": 149,
-      "name": "DefendersOffDuty",
-      "parent": 147,
-      "type": "map",
-      "file": "maps/Map0149.json"
-    },
+    {"id": 149, "indentation": 3, "name": "DefendersOffDuty", "parent_map": 147, "type": "map"},
     {
       "id": 150,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Rock Quarry",
-      "parent": 158,
-      "type": "map",
-      "file": "maps/Map0150.json"
+      "parent_map": 158,
+      "scrollbar_y": 666,
+      "type": "map"
     },
     {
       "id": 151,
+      "indentation": 4,
+      "music": {"name": "eileen"},
+      "music_type": "specific",
       "name": "Inside The Rock Quarry",
-      "parent": 150,
-      "type": "map",
-      "file": "maps/Map0151.json"
+      "parent_map": 150,
+      "scrollbar_x": 32,
+      "scrollbar_y": 378,
+      "type": "map"
     },
     {
+      "expanded_node": true,
       "id": 152,
+      "indentation": 3,
+      "music": {"name": "wb3town", "volume": 80},
+      "music_type": "specific",
       "name": "Farmland Sheds",
-      "parent": 127,
-      "type": "map",
-      "file": "maps/Map0152.json"
+      "parent_map": 127,
+      "scrollbar_x": 251,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL05",
+      "background_type": "specific",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 152},
+        {"id": 2, "troop_id": 153},
+        {"id": 3, "troop_id": 154},
+        {"id": 4, "troop_id": 155},
+        {"id": 5, "troop_id": 156},
+        {"id": 6, "troop_id": 157}
+      ],
       "id": 153,
+      "indentation": 4,
+      "music": {"name": "worlds5", "volume": 70},
+      "music_type": "specific",
       "name": "Shed1",
-      "parent": 152,
-      "type": "map",
-      "file": "maps/Map0153.json"
+      "parent_map": 152,
+      "scrollbar_y": 34,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL05",
+      "background_type": "specific",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 152},
+        {"id": 2, "troop_id": 153},
+        {"id": 3, "troop_id": 154},
+        {"id": 4, "troop_id": 155},
+        {"id": 5, "troop_id": 156},
+        {"id": 6, "troop_id": 157}
+      ],
       "id": 154,
+      "indentation": 4,
+      "music": {"name": "worlds5", "volume": 70},
+      "music_type": "specific",
       "name": "Shed2",
-      "parent": 152,
-      "type": "map",
-      "file": "maps/Map0154.json"
+      "parent_map": 152,
+      "scrollbar_x": 128,
+      "scrollbar_y": 456,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL05",
+      "background_type": "specific",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 152},
+        {"id": 2, "troop_id": 153},
+        {"id": 3, "troop_id": 154},
+        {"id": 4, "troop_id": 155},
+        {"id": 5, "troop_id": 156},
+        {"id": 6, "troop_id": 157}
+      ],
       "id": 155,
+      "indentation": 4,
+      "music": {"name": "worlds5", "volume": 70},
+      "music_type": "specific",
       "name": "Shed3",
-      "parent": 152,
-      "type": "map",
-      "file": "maps/Map0155.json"
+      "parent_map": 152,
+      "scrollbar_x": 128,
+      "scrollbar_y": 456,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL05",
+      "background_type": "specific",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 152},
+        {"id": 2, "troop_id": 153},
+        {"id": 3, "troop_id": 154},
+        {"id": 4, "troop_id": 155},
+        {"id": 5, "troop_id": 156},
+        {"id": 6, "troop_id": 157}
+      ],
       "id": 156,
+      "indentation": 4,
+      "music": {"name": "worlds5", "volume": 70},
+      "music_type": "specific",
       "name": "Shed4",
-      "parent": 152,
-      "type": "map",
-      "file": "maps/Map0156.json"
+      "parent_map": 152,
+      "scrollbar_y": 184,
+      "type": "map"
     },
     {
       "id": 157,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Bandit Raid",
-      "parent": 127,
-      "type": "map",
-      "file": "maps/Map0157.json"
+      "parent_map": 127,
+      "scrollbar_x": 288,
+      "scrollbar_y": 488,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "encounter_steps": 55,
       "id": 158,
+      "indentation": 2,
+      "music": {"name": "T_ProjectJustice_DiscLoad"},
+      "music_type": "specific",
       "name": "Paradise Area",
-      "parent": 65,
-      "type": "map",
-      "file": "maps/Map0158.json"
+      "parent_map": 65,
+      "scrollbar_x": 301,
+      "scrollbar_y": 972,
+      "type": "map"
     },
     {
+      "background_name": "Swamp",
+      "background_type": "specific",
+      "encounter_steps": 75,
       "id": 159,
+      "indentation": 3,
+      "music": {"name": "TeramisSong2"},
+      "music_type": "specific",
       "name": "Ill Marshes",
-      "parent": 158,
-      "type": "map",
-      "file": "maps/Map0159.json"
+      "parent_map": 158,
+      "scrollbar_x": 260,
+      "scrollbar_y": 652,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ06",
+      "background_type": "specific",
       "id": 160,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Fighting Bandits in Farm",
-      "parent": 127,
-      "type": "map",
-      "file": "maps/Map0160.json"
+      "parent_map": 127,
+      "scrollbar_y": 139,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 161,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Tutorials",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0161.json"
+      "parent_map": 1,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 162,
+      "indentation": 3,
       "name": "Arden Tutorial",
-      "parent": 161,
-      "type": "map",
-      "file": "maps/Map0162.json"
+      "parent_map": 161,
+      "scrollbar_x": -32,
+      "scrollbar_y": 104,
+      "type": "map"
     },
+    {"id": 163, "indentation": 3, "name": "Saldra Tutorial", "parent_map": 161, "type": "map"},
+    {"id": 164, "indentation": 3, "name": "AG7-17 Tutorial", "parent_map": 161, "type": "map"},
     {
-      "id": 163,
-      "name": "Saldra Tutorial",
-      "parent": 161,
-      "type": "map",
-      "file": "maps/Map0163.json"
-    },
-    {
-      "id": 164,
-      "name": "AG7-17 Tutorial",
-      "parent": 161,
-      "type": "map",
-      "file": "maps/Map0164.json"
-    },
-    {
+      "background_name": "ABLBackdropSJ11mod",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "expanded_node": true,
       "id": 165,
+      "indentation": 4,
+      "music": {"name": "Wolfchild"},
+      "music_type": "specific",
       "name": "Bandit Hideout Inside",
-      "parent": 121,
-      "type": "map",
-      "file": "maps/Map0165.json"
+      "parent_map": 121,
+      "scrollbar_x": 259,
+      "scrollbar_y": 316,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ11mod",
+      "background_type": "specific",
+      "encounter_steps": 30,
+      "expanded_node": true,
       "id": 166,
+      "indentation": 5,
+      "music_type": "event",
       "name": "The Lair",
-      "parent": 165,
-      "type": "map",
-      "file": "maps/Map0166.json"
+      "parent_map": 165,
+      "scrollbar_x": 251,
+      "scrollbar_y": 35,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ11mod",
+      "background_type": "specific",
       "id": 167,
+      "indentation": 4,
+      "music": {"name": "Lunar_Pyramid"},
+      "music_type": "specific",
       "name": "Outside the Bandit HQ",
-      "parent": 121,
-      "type": "map",
-      "file": "maps/Map0167.json"
+      "parent_map": 121,
+      "scrollbar_y": 649,
+      "type": "map"
     },
     {
       "id": 168,
+      "indentation": 2,
+      "music": {"name": "Parallax-Loader", "volume": 60},
+      "music_type": "specific",
       "name": "The Line Narrows",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0168.json"
+      "parent_map": 108,
+      "scrollbar_y": 364,
+      "type": "map"
     },
     {
       "id": 169,
+      "indentation": 3,
       "name": "Eisen's Lab",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0169.json"
+      "parent_map": 168,
+      "scrollbar_y": 590,
+      "type": "map"
     },
-    {
-      "id": 170,
-      "name": "Vago Taken Away",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0170.json"
-    },
-    {
-      "id": 171,
-      "name": "The Tomb",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0171.json"
-    },
+    {"id": 170, "indentation": 3, "name": "Vago Taken Away", "parent_map": 168, "type": "map"},
+    {"id": 171, "indentation": 3, "name": "The Tomb", "parent_map": 168, "type": "map"},
     {
       "id": 172,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Freeing Dalia",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0172.json"
+      "parent_map": 168,
+      "type": "map"
     },
     {
       "id": 173,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Leaving the Tomb",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0173.json"
+      "parent_map": 168,
+      "type": "map"
     },
-    {
-      "id": 174,
-      "name": "Pierson and Kersh",
-      "parent": 168,
-      "type": "map",
-      "file": "maps/Map0174.json"
-    },
+    {"id": 174, "indentation": 3, "name": "Pierson and Kersh", "parent_map": 168, "type": "map"},
     {
       "id": 175,
+      "indentation": 4,
       "name": "Mountain Flashback",
-      "parent": 110,
-      "type": "map",
-      "file": "maps/Map0175.json"
+      "parent_map": 110,
+      "type": "map"
     },
-    {
-      "id": 176,
-      "name": "Overlook",
-      "parent": 110,
-      "type": "map",
-      "file": "maps/Map0176.json"
-    },
-    {
-      "id": 177,
-      "name": "Paradise Found ;)",
-      "parent": 110,
-      "type": "map",
-      "file": "maps/Map0177.json"
-    },
+    {"id": 176, "indentation": 4, "name": "Overlook", "parent_map": 110, "type": "map"},
+    {"id": 177, "indentation": 4, "name": "Paradise Found ;)", "parent_map": 110, "type": "map"},
     {
       "id": 178,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Bottom of the Pond",
-      "parent": 159,
-      "type": "map",
-      "file": "maps/Map0178.json"
+      "parent_map": 159,
+      "type": "map"
     },
     {
+      "background_name": "ABLBackdropSJ09",
+      "background_type": "specific",
+      "encounters": [
+        {"id": 1, "troop_id": 143},
+        {"id": 2, "troop_id": 145},
+        {"id": 3, "troop_id": 144},
+        {"id": 4, "troop_id": 185}
+      ],
       "id": 179,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Murgator Cave",
-      "parent": 159,
-      "type": "map",
-      "file": "maps/Map0179.json"
+      "parent_map": 159,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 45, "l": 13, "r": 39, "t": 21},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 108},
+        {"id": 2, "troop_id": 109},
+        {"id": 3, "troop_id": 110},
+        {"id": 4, "troop_id": 111}
+      ],
       "id": 180,
+      "indentation": 4,
       "name": "Monsters Outside Recycle",
-      "parent": 59,
-      "type": "folder",
-      "file": null
+      "parent_map": 59,
+      "scrollbar_x": 500,
+      "scrollbar_y": 749,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 15, "r": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 112},
+        {"id": 2, "troop_id": 114},
+        {"id": 3, "troop_id": 111},
+        {"id": 4, "troop_id": 114}
+      ],
       "id": 181,
+      "indentation": 5,
       "name": "Monsters Floor 1",
-      "parent": 60,
-      "type": "folder",
-      "file": null
+      "parent_map": 60,
+      "scrollbar_x": -34,
+      "scrollbar_y": -63,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 15, "r": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 114},
+        {"id": 2, "troop_id": 113},
+        {"id": 3, "troop_id": 108},
+        {"id": 4, "troop_id": 112}
+      ],
       "id": 182,
+      "indentation": 5,
       "name": "Monsters Floor 0",
-      "parent": 61,
-      "type": "folder",
-      "file": null
+      "parent_map": 61,
+      "scrollbar_x": -34,
+      "scrollbar_y": -63,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 15, "r": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 112},
+        {"id": 2, "troop_id": 114},
+        {"id": 3, "troop_id": 113},
+        {"id": 4, "troop_id": 112},
+        {"id": 5, "troop_id": 114},
+        {"id": 6, "troop_id": 111}
+      ],
       "id": 183,
+      "indentation": 5,
       "name": "Monsters Floor 2",
-      "parent": 62,
-      "type": "folder",
-      "file": null
+      "parent_map": 62,
+      "scrollbar_x": -34,
+      "scrollbar_y": -63,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 41, "l": 66, "r": 100},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 116},
+        {"id": 2, "troop_id": 121},
+        {"id": 3, "troop_id": 122},
+        {"id": 4, "troop_id": 123},
+        {"id": 5, "troop_id": 246},
+        {"id": 6, "troop_id": 246},
+        {"id": 7, "troop_id": 247},
+        {"id": 8, "troop_id": 247},
+        {"id": 9, "troop_id": 247}
+      ],
       "id": 184,
+      "indentation": 3,
       "name": "Lashe Area East Monsters",
-      "parent": 66,
-      "type": "folder",
-      "file": null
+      "parent_map": 66,
+      "scrollbar_x": 2397,
+      "scrollbar_y": 316,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 34, "r": 66},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 128},
+        {"id": 2, "troop_id": 129},
+        {"id": 3, "troop_id": 130},
+        {"id": 4, "troop_id": 131},
+        {"id": 5, "troop_id": 132},
+        {"id": 6, "troop_id": 133},
+        {"id": 7, "troop_id": 134},
+        {"id": 8, "troop_id": 135},
+        {"id": 9, "troop_id": 136},
+        {"id": 10, "troop_id": 137},
+        {"id": 11, "troop_id": 138},
+        {"id": 12, "troop_id": 139},
+        {"id": 13, "troop_id": 246},
+        {"id": 14, "troop_id": 246},
+        {"id": 15, "troop_id": 247},
+        {"id": 16, "troop_id": 247}
+      ],
       "id": 185,
+      "indentation": 3,
       "name": "LasheAreaNorthwestMonste",
-      "parent": 66,
-      "type": "folder",
-      "file": null
+      "parent_map": 66,
+      "scrollbar_x": 797,
+      "scrollbar_y": 228,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 75, "l": 33, "r": 100, "t": 34},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 116},
+        {"id": 2, "troop_id": 126},
+        {"id": 3, "troop_id": 137},
+        {"id": 4, "troop_id": 134},
+        {"id": 5, "troop_id": 132},
+        {"id": 6, "troop_id": 246},
+        {"id": 7, "troop_id": 246},
+        {"id": 8, "troop_id": 247},
+        {"id": 9, "troop_id": 247}
+      ],
       "id": 186,
+      "indentation": 3,
       "name": "Lashe Area South Monster",
-      "parent": 66,
-      "type": "folder",
-      "file": null
+      "parent_map": 66,
+      "scrollbar_x": 1869,
+      "scrollbar_y": 1428,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 75, "l": 1, "r": 33, "t": 27},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 133},
+        {"id": 2, "troop_id": 121},
+        {"id": 3, "troop_id": 135},
+        {"id": 4, "troop_id": 128},
+        {"id": 5, "troop_id": 120},
+        {"id": 6, "troop_id": 246},
+        {"id": 7, "troop_id": 246},
+        {"id": 8, "troop_id": 247},
+        {"id": 9, "troop_id": 247}
+      ],
       "id": 187,
+      "indentation": 3,
       "name": "Lashe Area Southwest Mon",
-      "parent": 66,
-      "type": "folder",
-      "file": null
+      "parent_map": 66,
+      "scrollbar_x": 285,
+      "scrollbar_y": 1316,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 75, "r": 75},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 140},
+        {"id": 2, "troop_id": 141},
+        {"id": 3, "troop_id": 142},
+        {"id": 4, "troop_id": 143},
+        {"id": 5, "troop_id": 144},
+        {"id": 6, "troop_id": 185}
+      ],
       "id": 188,
+      "indentation": 5,
       "name": "Drust Mines Monsters",
-      "parent": 103,
-      "type": "folder",
-      "file": null
+      "parent_map": 103,
+      "scrollbar_x": 866,
+      "scrollbar_y": 893,
+      "type": "area"
     },
     {
       "id": 189,
+      "indentation": 4,
+      "music_type": "event",
       "name": "ParadiseTunnel",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0189.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 50, "r": 30},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 116},
+        {"id": 2, "troop_id": 129},
+        {"id": 3, "troop_id": 115},
+        {"id": 4, "troop_id": 238},
+        {"id": 5, "troop_id": 237}
+      ],
       "id": 190,
+      "indentation": 5,
       "name": "Sorbe Mountain Monsters",
-      "parent": 76,
-      "type": "folder",
-      "file": null
+      "parent_map": 76,
+      "scrollbar_x": 218,
+      "scrollbar_y": 484,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 60, "r": 40},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 115},
+        {"id": 2, "troop_id": 117},
+        {"id": 3, "troop_id": 123},
+        {"id": 4, "troop_id": 130},
+        {"id": 5, "troop_id": 134},
+        {"id": 6, "troop_id": 138},
+        {"id": 7, "troop_id": 135},
+        {"id": 8, "troop_id": 132},
+        {"id": 9, "troop_id": 131},
+        {"id": 10, "troop_id": 124},
+        {"id": 11, "troop_id": 121},
+        {"id": 12, "troop_id": 124},
+        {"id": 13, "troop_id": 120},
+        {"id": 14, "troop_id": 120},
+        {"id": 15, "troop_id": 126},
+        {"id": 16, "troop_id": 247},
+        {"id": 17, "troop_id": 247},
+        {"id": 18, "troop_id": 247}
+      ],
       "id": 191,
+      "indentation": 3,
       "name": "Paradise Area Monsters",
-      "parent": 158,
-      "type": "folder",
-      "file": null
+      "parent_map": 158,
+      "scrollbar_x": 381,
+      "scrollbar_y": 644,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 40, "r": 30},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 159},
+        {"id": 2, "troop_id": 158},
+        {"id": 3, "troop_id": 160},
+        {"id": 4, "troop_id": 161}
+      ],
       "id": 192,
+      "indentation": 5,
       "name": "Ground Floor Monsters",
-      "parent": 130,
-      "type": "folder",
-      "file": null
+      "parent_map": 130,
+      "scrollbar_x": 218,
+      "scrollbar_y": 324,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 40, "r": 30},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 162},
+        {"id": 2, "troop_id": 163},
+        {"id": 3, "troop_id": 164},
+        {"id": 4, "troop_id": 165},
+        {"id": 5, "troop_id": 159},
+        {"id": 6, "troop_id": 160},
+        {"id": 7, "troop_id": 161},
+        {"id": 8, "troop_id": 158}
+      ],
       "id": 193,
+      "indentation": 5,
       "name": "Second Floor Monsters",
-      "parent": 131,
-      "type": "folder",
-      "file": null
+      "parent_map": 131,
+      "scrollbar_x": 108,
+      "scrollbar_y": 337,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 50, "r": 50},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 145},
+        {"id": 2, "troop_id": 146},
+        {"id": 3, "troop_id": 147},
+        {"id": 4, "troop_id": 148},
+        {"id": 5, "troop_id": 150},
+        {"id": 6, "troop_id": 149},
+        {"id": 7, "troop_id": 151},
+        {"id": 8, "troop_id": 157},
+        {"id": 9, "troop_id": 144}
+      ],
       "id": 194,
+      "indentation": 4,
       "name": "Ill Marsh Monsters",
-      "parent": 159,
-      "type": "folder",
-      "file": null
+      "parent_map": 159,
+      "scrollbar_x": 428,
+      "scrollbar_y": 497,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 50, "r": 80},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 167},
+        {"id": 2, "troop_id": 168},
+        {"id": 3, "troop_id": 169},
+        {"id": 4, "troop_id": 170},
+        {"id": 5, "troop_id": 171},
+        {"id": 6, "troop_id": 172},
+        {"id": 7, "troop_id": 173},
+        {"id": 8, "troop_id": 174},
+        {"id": 9, "troop_id": 177},
+        {"id": 10, "troop_id": 176}
+      ],
       "id": 195,
+      "indentation": 5,
       "name": "Bandit HQ Monsters1",
-      "parent": 165,
-      "type": "folder",
-      "file": null
+      "parent_map": 165,
+      "scrollbar_x": 909,
+      "scrollbar_y": 497,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 30, "l": 1, "r": 23, "t": 14},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 185},
+        {"id": 2, "troop_id": 175},
+        {"id": 3, "troop_id": 169}
+      ],
       "id": 196,
+      "indentation": 6,
       "name": "Lair Monsters",
-      "parent": 166,
-      "type": "folder",
-      "file": null
+      "parent_map": 166,
+      "scrollbar_x": 12,
+      "scrollbar_y": 401,
+      "type": "area"
     },
     {
+      "area_rect": {"b": 30, "r": 20},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 124},
+        {"id": 2, "troop_id": 120},
+        {"id": 3, "troop_id": 120}
+      ],
       "id": 197,
+      "indentation": 4,
       "name": "Farm Sequence Monsters",
-      "parent": 160,
-      "type": "folder",
-      "file": null
+      "parent_map": 160,
+      "scrollbar_x": -12,
+      "scrollbar_y": 173,
+      "type": "area"
     },
-    {
-      "id": 198,
-      "name": "BehindMayor'sHouse",
-      "parent": 69,
-      "type": "map",
-      "file": "maps/Map0198.json"
-    },
+    {"id": 198, "indentation": 4, "name": "BehindMayor'sHouse", "parent_map": 69, "type": "map"},
     {
       "id": 199,
+      "indentation": 4,
       "name": "Battle Rink",
-      "parent": 68,
-      "type": "map",
-      "file": "maps/Map0199.json"
+      "parent_map": 68,
+      "scrollbar_x": 128,
+      "scrollbar_y": 296,
+      "type": "map"
     },
-    {
-      "id": 200,
-      "name": "Drust Tavern",
-      "parent": 68,
-      "type": "map",
-      "file": "maps/Map0200.json"
-    },
+    {"id": 200, "indentation": 4, "name": "Drust Tavern", "parent_map": 68, "type": "map"},
     {
       "id": 201,
+      "indentation": 4,
       "name": "Net's Droid Emporium",
-      "parent": 68,
-      "type": "map",
-      "file": "maps/Map0201.json"
+      "parent_map": 68,
+      "scrollbar_x": 160,
+      "scrollbar_y": 296,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 202,
+      "indentation": 2,
+      "music_type": "event",
       "name": "The Flight From Paradise",
-      "parent": 108,
-      "type": "map",
-      "file": "maps/Map0202.json"
+      "parent_map": 108,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 203,
+      "indentation": 3,
+      "music": {"name": "Turrican_1_-_Loader", "volume": 50},
+      "music_type": "specific",
       "name": "Up The Overlook",
-      "parent": 202,
-      "type": "map",
-      "file": "maps/Map0203.json"
+      "parent_map": 202,
+      "scrollbar_y": 346,
+      "type": "map"
     },
     {
       "id": 204,
+      "indentation": 4,
       "name": "Splashdown",
-      "parent": 203,
-      "type": "map",
-      "file": "maps/Map0204.json"
+      "parent_map": 203,
+      "scrollbar_x": 288,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 205,
+      "indentation": 3,
       "name": "Beach Scene",
-      "parent": 202,
-      "type": "map",
-      "file": "maps/Map0205.json"
+      "parent_map": 202,
+      "scrollbar_x": 116,
+      "scrollbar_y": 328,
+      "type": "map"
     },
     {
+      "background_name": "SandyCaveback",
+      "background_type": "specific",
+      "encounter_steps": 75,
+      "encounters": [
+        {"id": 1, "troop_id": 192},
+        {"id": 2, "troop_id": 193},
+        {"id": 3, "troop_id": 194},
+        {"id": 4, "troop_id": 197},
+        {"id": 5, "troop_id": 198},
+        {"id": 6, "troop_id": 248},
+        {"id": 7, "troop_id": 249},
+        {"id": 8, "troop_id": 248},
+        {"id": 9, "troop_id": 248}
+      ],
       "id": 206,
+      "indentation": 4,
+      "music": {"name": "Sand_Ocean_-_Remix_V2", "volume": 70},
+      "music_type": "specific",
       "name": "Sandy Cave",
-      "parent": 205,
-      "type": "map",
-      "file": "maps/Map0206.json"
+      "parent_map": 205,
+      "type": "map"
     },
     {
       "id": 207,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Memnosyne's Adobe",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0207.json"
+      "parent_map": 210,
+      "type": "map"
     },
     {
       "id": 208,
+      "indentation": 3,
       "name": "Inside Memnosyne's Adobe",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0208.json"
+      "parent_map": 207,
+      "scrollbar_x": -32,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
       "id": 209,
+      "indentation": 4,
       "name": "Max Powertrain's Story",
-      "parent": 205,
-      "type": "map",
-      "file": "maps/Map0209.json"
+      "parent_map": 205,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 225},
+        {"id": 2, "troop_id": 224},
+        {"id": 3, "troop_id": 221},
+        {"id": 4, "troop_id": 208},
+        {"id": 5, "troop_id": 204},
+        {"id": 6, "troop_id": 200}
+      ],
+      "escape": "allow",
       "id": 210,
+      "indentation": 1,
+      "music": {"name": "MML2_MotherZone", "volume": 80},
+      "music_type": "specific",
       "name": "The Kingdom of Surl",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0210.json"
+      "save": "forbid",
+      "scrollbar_y": 316,
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 211,
+      "indentation": 3,
+      "music": {"name": "brcklayr"},
+      "music_type": "specific",
       "name": "Memories of Surl",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0211.json"
+      "parent_map": 207,
+      "scrollbar_x": 160,
+      "scrollbar_y": 104,
+      "type": "map"
     },
     {
       "id": 212,
+      "indentation": 4,
       "name": "Phone Call",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0212.json"
+      "parent_map": 211,
+      "scrollbar_x": 128,
+      "scrollbar_y": 232,
+      "type": "map"
     },
-    {
-      "id": 213,
-      "name": "Boy Running",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0213.json"
-    },
+    {"id": 213, "indentation": 4, "name": "Boy Running", "parent_map": 211, "type": "map"},
     {
       "id": 214,
+      "indentation": 4,
       "name": "Surl Graveyard",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0214.json"
+      "parent_map": 211,
+      "scrollbar_x": 64,
+      "scrollbar_y": 168,
+      "type": "map"
     },
     {
       "id": 215,
+      "indentation": 4,
       "name": "Agency Tanks - Before",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0215.json"
+      "parent_map": 211,
+      "scrollbar_x": 32,
+      "scrollbar_y": 168,
+      "type": "map"
     },
     {
       "id": 216,
+      "indentation": 4,
       "name": "Agency Tanks - After",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0216.json"
+      "parent_map": 211,
+      "type": "map"
     },
-    {
-      "id": 217,
-      "name": "Kersh's Mind",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0217.json"
-    },
+    {"id": 217, "indentation": 4, "name": "Kersh's Mind", "parent_map": 211, "type": "map"},
     {
       "id": 218,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Talan and Memnosyne",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0218.json"
+      "parent_map": 207,
+      "scrollbar_y": 8,
+      "type": "map"
     },
     {
       "id": 219,
+      "indentation": 3,
+      "music_type": "specific",
       "name": "Emily and Memnosyne",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0219.json"
+      "parent_map": 207,
+      "scrollbar_x": 128,
+      "scrollbar_y": 200,
+      "type": "map"
     },
     {
       "id": 220,
+      "indentation": 3,
+      "music_type": "specific",
       "name": "Lerle and Memnosyne",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0220.json"
+      "parent_map": 207,
+      "type": "map"
     },
     {
       "id": 221,
+      "indentation": 3,
+      "music_type": "specific",
       "name": "Radin and Memnosyne",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0221.json"
+      "parent_map": 207,
+      "type": "map"
     },
     {
       "id": 222,
+      "indentation": 3,
+      "music_type": "specific",
       "name": "Sern and Memnosyne",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0222.json"
+      "parent_map": 207,
+      "scrollbar_x": 160,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
       "id": 223,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Paradise Aflame",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0223.json"
+      "parent_map": 218,
+      "scrollbar_x": -64,
+      "scrollbar_y": 328,
+      "type": "map"
     },
     {
       "id": 224,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Overlook Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0224.json"
+      "parent_map": 218,
+      "scrollbar_y": 225,
+      "type": "map"
     },
     {
       "id": 225,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Paradise Tunnel Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0225.json"
+      "parent_map": 218,
+      "scrollbar_x": -64,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 226,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Sorbe Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0226.json"
+      "parent_map": 218,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 227,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Leaving Lashe Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0227.json"
+      "parent_map": 218,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 228,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Assassination Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0228.json"
+      "parent_map": 218,
+      "type": "map"
     },
     {
       "id": 229,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Work Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0229.json"
+      "parent_map": 218,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 230,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Apartment Memory",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0230.json"
+      "parent_map": 218,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 231,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Childhood",
-      "parent": 218,
-      "type": "map",
-      "file": "maps/Map0231.json"
+      "parent_map": 218,
+      "scrollbar_x": -64,
+      "scrollbar_y": 104,
+      "type": "map"
     },
     {
       "id": 232,
+      "indentation": 3,
       "name": "Party Sleeping",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0232.json"
+      "parent_map": 207,
+      "scrollbar_y": 232,
+      "type": "map"
     },
     {
+      "background_name": "Cave1",
+      "background_type": "specific",
+      "encounter_steps": 40,
+      "encounters": [
+        {"id": 1, "troop_id": 210},
+        {"id": 2, "troop_id": 211},
+        {"id": 3, "troop_id": 212},
+        {"id": 4, "troop_id": 213},
+        {"id": 5, "troop_id": 214},
+        {"id": 6, "troop_id": 215},
+        {"id": 7, "troop_id": 216},
+        {"id": 8, "troop_id": 217}
+      ],
       "id": 233,
+      "indentation": 2,
+      "music": {"name": "Laconia_-_Where_Land_Ends"},
+      "music_type": "specific",
       "name": "Sloping Tunnel",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0233.json"
+      "parent_map": 210,
+      "scrollbar_x": 349,
+      "type": "map"
     },
-    {
-      "id": 234,
-      "name": "Memnosyne's Story",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0234.json"
-    },
+    {"id": 234, "indentation": 3, "name": "Memnosyne's Story", "parent_map": 207, "type": "map"},
     {
       "id": 235,
+      "indentation": 3,
       "name": "Sloping Tunnel Entrance",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0235.json"
+      "parent_map": 207,
+      "type": "map"
     },
     {
       "id": 236,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Kersh On The Overlook",
-      "parent": 203,
-      "type": "map",
-      "file": "maps/Map0236.json"
+      "parent_map": 203,
+      "type": "map"
     },
     {
+      "background_name": "Cave1",
+      "background_type": "specific",
       "id": 237,
+      "indentation": 3,
       "name": "Humanoid's Lair",
-      "parent": 233,
-      "type": "map",
-      "file": "maps/Map0237.json"
+      "parent_map": 233,
+      "scrollbar_x": 116,
+      "type": "map"
     },
-    {
-      "id": 238,
-      "name": "KershClimbingPath",
-      "parent": 207,
-      "type": "map",
-      "file": "maps/Map0238.json"
-    },
+    {"id": 238, "indentation": 3, "name": "KershClimbingPath", "parent_map": 207, "type": "map"},
     {
       "id": 239,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Kersh and Little Sally",
-      "parent": 211,
-      "type": "map",
-      "file": "maps/Map0239.json"
+      "parent_map": 211,
+      "type": "map"
     },
     {
       "id": 240,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Emily As Child",
-      "parent": 219,
-      "type": "map",
-      "file": "maps/Map0240.json"
+      "parent_map": 219,
+      "scrollbar_x": -96,
+      "scrollbar_y": 72,
+      "type": "map"
     },
     {
       "id": 241,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Tram to Prima",
-      "parent": 288,
-      "type": "map",
-      "file": "maps/Map0241.json"
+      "parent_map": 288,
+      "type": "map"
     },
     {
       "id": 242,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Dorm Hallway",
-      "parent": 222,
-      "type": "map",
-      "file": "maps/Map0242.json"
+      "parent_map": 222,
+      "scrollbar_y": 601,
+      "type": "map"
     },
     {
       "id": 243,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Emily Sick",
-      "parent": 219,
-      "type": "map",
-      "file": "maps/Map0243.json"
+      "parent_map": 219,
+      "type": "map"
     },
     {
       "id": 244,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Isabella's Dorm Room",
-      "parent": 222,
-      "type": "map",
-      "file": "maps/Map0244.json"
+      "parent_map": 222,
+      "type": "map"
     },
     {
+      "background_name": "mroad2",
+      "background_type": "specific",
+      "encounter_steps": 80,
+      "encounters": [
+        {"id": 1, "troop_id": 200},
+        {"id": 2, "troop_id": 201},
+        {"id": 3, "troop_id": 202},
+        {"id": 4, "troop_id": 203},
+        {"id": 5, "troop_id": 204},
+        {"id": 6, "troop_id": 205},
+        {"id": 7, "troop_id": 206},
+        {"id": 8, "troop_id": 207},
+        {"id": 9, "troop_id": 208},
+        {"id": 10, "troop_id": 250}
+      ],
       "id": 245,
+      "indentation": 2,
+      "music": {"name": "Turrican2_bath"},
+      "music_type": "specific",
       "name": "Northern Surl Road",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0245.json"
+      "parent_map": 210,
+      "scrollbar_x": 170,
+      "type": "map"
     },
     {
       "id": 246,
+      "indentation": 2,
+      "music": {"name": "Turrican2_bath"},
+      "music_type": "specific",
       "name": "Northern Surl Camp",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0246.json"
+      "parent_map": 210,
+      "scrollbar_x": 116,
+      "type": "map"
     },
     {
       "id": 247,
+      "indentation": 2,
+      "music": {"name": "Turrican2_bath"},
+      "music_type": "specific",
       "name": "PathToMemnosyne",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0247.json"
+      "parent_map": 210,
+      "type": "map"
     },
     {
+      "background_name": "SandyCaveback",
+      "background_type": "specific",
+      "encounter_steps": 65,
+      "encounters": [
+        {"id": 1, "troop_id": 198},
+        {"id": 2, "troop_id": 209},
+        {"id": 3, "troop_id": 197},
+        {"id": 4, "troop_id": 196},
+        {"id": 5, "troop_id": 193},
+        {"id": 6, "troop_id": 248},
+        {"id": 7, "troop_id": 248},
+        {"id": 8, "troop_id": 249}
+      ],
       "id": 248,
+      "indentation": 5,
       "name": "Lower Level Sandy",
-      "parent": 206,
-      "type": "map",
-      "file": "maps/Map0248.json"
+      "parent_map": 206,
+      "type": "map"
     },
     {
+      "background_name": "forest6",
+      "background_type": "specific",
+      "encounter_steps": 80,
+      "encounters": [
+        {"id": 1, "troop_id": 200},
+        {"id": 2, "troop_id": 201},
+        {"id": 3, "troop_id": 202},
+        {"id": 4, "troop_id": 203},
+        {"id": 5, "troop_id": 204},
+        {"id": 6, "troop_id": 205},
+        {"id": 7, "troop_id": 206},
+        {"id": 8, "troop_id": 207},
+        {"id": 9, "troop_id": 208},
+        {"id": 10, "troop_id": 250}
+      ],
       "id": 249,
+      "indentation": 2,
+      "music": {"name": "Turrican2_bath"},
+      "music_type": "specific",
       "name": "PathToParadiseRuins",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0249.json"
+      "parent_map": 210,
+      "scrollbar_x": 1134,
+      "type": "map"
     },
     {
+      "background_name": "WasteRuins",
+      "background_type": "specific",
+      "encounter_steps": 50,
+      "escape": "allow",
       "id": 250,
+      "indentation": 2,
+      "music": {"name": "ec2vents"},
+      "music_type": "specific",
       "name": "Return to Paradise",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0250.json"
+      "parent_map": 210,
+      "save": "allow",
+      "scrollbar_x": 1144,
+      "scrollbar_y": 840,
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 251,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Inside Storage",
-      "parent": 250,
-      "type": "map",
-      "file": "maps/Map0251.json"
+      "parent_map": 250,
+      "scrollbar_x": 122,
+      "scrollbar_y": 328,
+      "type": "map"
     },
     {
       "id": 252,
+      "indentation": 3,
+      "music": {"name": "1_-_The_Story_of_a_Lost_Love"},
+      "music_type": "specific",
       "name": "The Fate of Pierson",
-      "parent": 250,
-      "type": "map",
-      "file": "maps/Map0252.json"
+      "parent_map": 250,
+      "scrollbar_x": 128,
+      "scrollbar_y": 328,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 253,
+      "indentation": 1,
+      "music": {"name": "md-scene6"},
+      "music_type": "specific",
       "name": "The Agency and Advocate",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0253.json"
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_name": "Cave1",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "encounters": [
+        {"id": 1, "troop_id": 210},
+        {"id": 2, "troop_id": 210},
+        {"id": 3, "troop_id": 211},
+        {"id": 4, "troop_id": 212},
+        {"id": 5, "troop_id": 213},
+        {"id": 6, "troop_id": 214},
+        {"id": 7, "troop_id": 215},
+        {"id": 8, "troop_id": 216},
+        {"id": 9, "troop_id": 217}
+      ],
       "id": 254,
+      "indentation": 3,
       "name": "Emily Depths",
-      "parent": 233,
-      "type": "map",
-      "file": "maps/Map0254.json"
+      "parent_map": 233,
+      "scrollbar_x": 457,
+      "scrollbar_y": 492,
+      "type": "map"
     },
     {
       "id": 255,
+      "indentation": 4,
+      "music": {"name": "Tnt07"},
+      "music_type": "specific",
       "name": "Under the Bridge",
-      "parent": 259,
-      "type": "map",
-      "file": "maps/Map0255.json"
+      "parent_map": 259,
+      "scrollbar_x": 2112,
+      "scrollbar_y": 104,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 256,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Teaser Trailer",
-      "parent": 1,
-      "type": "map",
-      "file": "maps/Map0256.json"
+      "parent_map": 1,
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
+      "encounter_steps": 75,
+      "encounters": [
+        {"id": 1, "troop_id": 227},
+        {"id": 2, "troop_id": 226},
+        {"id": 3, "troop_id": 225},
+        {"id": 4, "troop_id": 224},
+        {"id": 5, "troop_id": 223},
+        {"id": 6, "troop_id": 222},
+        {"id": 7, "troop_id": 221},
+        {"id": 8, "troop_id": 220},
+        {"id": 9, "troop_id": 219}
+      ],
       "id": 257,
+      "indentation": 2,
+      "music": {"name": "MML2_MotherZone", "volume": 80},
+      "music_type": "specific",
       "name": "Surl Ruins 1",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0257.json"
+      "parent_map": 210,
+      "scrollbar_x": 201,
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
+      "encounter_steps": 85,
+      "encounters": [
+        {"id": 1, "troop_id": 219},
+        {"id": 2, "troop_id": 220},
+        {"id": 3, "troop_id": 221},
+        {"id": 4, "troop_id": 222},
+        {"id": 5, "troop_id": 227},
+        {"id": 6, "troop_id": 205},
+        {"id": 7, "troop_id": 207},
+        {"id": 8, "troop_id": 208},
+        {"id": 9, "troop_id": 202},
+        {"id": 10, "troop_id": 201},
+        {"id": 11, "troop_id": 200}
+      ],
       "id": 258,
+      "indentation": 2,
+      "music": {"name": "MML2_MotherZone", "volume": 80},
+      "music_type": "specific",
       "name": "Surl Ruins 2",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0258.json"
+      "parent_map": 210,
+      "scrollbar_x": 462,
+      "type": "map"
     },
     {
+      "expanded_node": true,
       "id": 259,
+      "indentation": 3,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Northern Highway Bridge",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0259.json"
+      "parent_map": 66,
+      "scrollbar_x": 1464,
+      "scrollbar_y": 200,
+      "type": "map"
     },
     {
+      "background_name": "desert2",
+      "background_type": "specific",
       "id": 260,
+      "indentation": 2,
       "name": "Surl Highway",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0260.json"
+      "parent_map": 210,
+      "scrollbar_x": 396,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 35,
       "id": 261,
+      "indentation": 2,
+      "music": {"name": "Deflector1"},
+      "music_type": "specific",
       "name": "\"Refinery\"",
-      "parent": 210,
-      "type": "map",
-      "file": "maps/Map0261.json"
+      "parent_map": 210,
+      "scrollbar_x": 330,
+      "scrollbar_y": 554,
+      "type": "map"
     },
     {
+      "background_name": "StairsBack",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "encounters": [
+        {"id": 1, "troop_id": 235},
+        {"id": 2, "troop_id": 232},
+        {"id": 3, "troop_id": 233},
+        {"id": 4, "troop_id": 236},
+        {"id": 5, "troop_id": 228},
+        {"id": 6, "troop_id": 229}
+      ],
       "id": 262,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Talan's Scenario Stairs",
-      "parent": 263,
-      "type": "map",
-      "file": "maps/Map0262.json"
+      "parent_map": 263,
+      "scrollbar_y": 3214,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 65,
+      "encounters": [
+        {"id": 1, "troop_id": 233},
+        {"id": 2, "troop_id": 230},
+        {"id": 3, "troop_id": 228},
+        {"id": 4, "troop_id": 232},
+        {"id": 5, "troop_id": 235}
+      ],
       "id": 263,
+      "indentation": 3,
+      "music": {"name": "DeflectorModded1"},
+      "music_type": "specific",
       "name": "Talan's Scenario",
-      "parent": 261,
-      "type": "map",
-      "file": "maps/Map0263.json"
+      "parent_map": 261,
+      "scrollbar_x": 302,
+      "scrollbar_y": 30,
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
       "id": 264,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Surl Ruins 1 at Night",
-      "parent": 257,
-      "type": "map",
-      "file": "maps/Map0264.json"
+      "parent_map": 257,
+      "type": "map"
     },
     {
       "id": 265,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Kersh Tampering",
-      "parent": 264,
-      "type": "map",
-      "file": "maps/Map0265.json"
+      "parent_map": 264,
+      "type": "map"
     },
     {
       "id": 266,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Kills Guards",
-      "parent": 264,
-      "type": "map",
-      "file": "maps/Map0266.json"
+      "parent_map": 264,
+      "type": "map"
     },
     {
       "id": 267,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Kersh and the Droid Army",
-      "parent": 264,
-      "type": "map",
-      "file": "maps/Map0267.json"
+      "parent_map": 264,
+      "type": "map"
     },
+    {"id": 268, "indentation": 3, "name": "Emitter Room", "parent_map": 256, "type": "map"},
     {
-      "id": 268,
-      "name": "Emitter Room",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0268.json"
-    },
-    {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "encounters": [
+        {"id": 1, "troop_id": 219},
+        {"id": 2, "troop_id": 220},
+        {"id": 3, "troop_id": 221},
+        {"id": 4, "troop_id": 222},
+        {"id": 5, "troop_id": 223},
+        {"id": 6, "troop_id": 224},
+        {"id": 7, "troop_id": 225},
+        {"id": 8, "troop_id": 226},
+        {"id": 9, "troop_id": 227}
+      ],
       "id": 269,
+      "indentation": 3,
+      "music": {"name": "MML2_MotherZone", "volume": 80},
+      "music_type": "specific",
       "name": "Surl Ruins 1 Rightside",
-      "parent": 257,
-      "type": "map",
-      "file": "maps/Map0269.json"
+      "parent_map": 257,
+      "scrollbar_x": 374,
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
+      "encounter_steps": 50,
+      "encounters": [
+        {"id": 1, "troop_id": 226},
+        {"id": 2, "troop_id": 223},
+        {"id": 3, "troop_id": 221},
+        {"id": 4, "troop_id": 220},
+        {"id": 5, "troop_id": 219}
+      ],
       "id": 270,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Surl Ruins 1 Bend",
-      "parent": 257,
-      "type": "map",
-      "file": "maps/Map0270.json"
+      "parent_map": 257,
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
+      "encounter_steps": 80,
+      "encounters": [
+        {"id": 1, "troop_id": 200},
+        {"id": 2, "troop_id": 201},
+        {"id": 3, "troop_id": 203},
+        {"id": 4, "troop_id": 202},
+        {"id": 5, "troop_id": 204},
+        {"id": 6, "troop_id": 205},
+        {"id": 7, "troop_id": 219},
+        {"id": 8, "troop_id": 220},
+        {"id": 9, "troop_id": 222},
+        {"id": 10, "troop_id": 223},
+        {"id": 11, "troop_id": 226}
+      ],
       "id": 271,
+      "indentation": 3,
       "name": "Surl Ruins 2 Southside",
-      "parent": 258,
-      "type": "map",
-      "file": "maps/Map0271.json"
+      "parent_map": 258,
+      "scrollbar_x": 942,
+      "type": "map"
     },
     {
+      "background_name": "stone_walls",
+      "background_type": "specific",
+      "encounter_steps": 85,
+      "encounters": [
+        {"id": 1, "troop_id": 227},
+        {"id": 2, "troop_id": 226},
+        {"id": 3, "troop_id": 223},
+        {"id": 4, "troop_id": 221},
+        {"id": 5, "troop_id": 220},
+        {"id": 6, "troop_id": 219},
+        {"id": 7, "troop_id": 217},
+        {"id": 8, "troop_id": 206},
+        {"id": 9, "troop_id": 208},
+        {"id": 10, "troop_id": 201},
+        {"id": 11, "troop_id": 202}
+      ],
       "id": 272,
+      "indentation": 3,
       "name": "Surl Ruins 2 Broken City",
-      "parent": 258,
-      "type": "map",
-      "file": "maps/Map0272.json"
+      "parent_map": 258,
+      "scrollbar_x": 40,
+      "scrollbar_y": 650,
+      "type": "map"
     },
     {
+      "background_name": "SurlBattleBack",
+      "background_type": "specific",
       "id": 273,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Surl Ruins 2 Exit",
-      "parent": 258,
-      "type": "map",
-      "file": "maps/Map0273.json"
+      "parent_map": 258,
+      "type": "map"
     },
-    {
-      "id": 274,
-      "name": "Ship Flash",
-      "parent": 273,
-      "type": "map",
-      "file": "maps/Map0274.json"
-    },
+    {"id": 274, "indentation": 4, "name": "Ship Flash", "parent_map": 273, "type": "map"},
     {
       "id": 275,
+      "indentation": 2,
       "name": "Eisen's Simulation",
-      "parent": 253,
-      "type": "map",
-      "file": "maps/Map0275.json"
+      "parent_map": 253,
+      "type": "map"
     },
     {
       "id": 276,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Throne Room",
-      "parent": 275,
-      "type": "map",
-      "file": "maps/Map0276.json"
+      "parent_map": 275,
+      "type": "map"
     },
     {
       "id": 277,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Eisen's Lab",
-      "parent": 253,
-      "type": "map",
-      "file": "maps/Map0277.json"
+      "parent_map": 253,
+      "scrollbar_y": 345,
+      "type": "map"
     },
     {
       "id": 278,
+      "indentation": 3,
+      "music": {"name": "u7indoors", "volume": 80},
+      "music_type": "specific",
       "name": "The Castle",
-      "parent": 275,
-      "type": "map",
-      "file": "maps/Map0278.json"
+      "parent_map": 275,
+      "scrollbar_x": 566,
+      "scrollbar_y": 648,
+      "type": "map"
     },
     {
       "id": 279,
+      "indentation": 4,
       "name": "Castle Dungeon",
-      "parent": 278,
-      "type": "map",
-      "file": "maps/Map0279.json"
+      "parent_map": 278,
+      "scrollbar_x": 1082,
+      "type": "map"
     },
-    {
-      "id": 280,
-      "name": "Area 1 Catacombs",
-      "parent": 279,
-      "type": "map",
-      "file": "maps/Map0280.json"
-    },
+    {"id": 280, "indentation": 5, "name": "Area 1 Catacombs", "parent_map": 279, "type": "map"},
     {
       "id": 281,
+      "indentation": 6,
+      "music": {"name": "StatsScreen"},
+      "music_type": "specific",
       "name": "Room A",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0281.json"
+      "parent_map": 280,
+      "scrollbar_x": 288,
+      "scrollbar_y": 424,
+      "type": "map"
     },
     {
       "id": 282,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room B",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0282.json"
+      "parent_map": 280,
+      "scrollbar_x": 64,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 283,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room C",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0283.json"
+      "parent_map": 280,
+      "scrollbar_x": 288,
+      "scrollbar_y": 204,
+      "type": "map"
     },
     {
       "id": 284,
+      "indentation": 2,
+      "music_type": "event",
       "name": "Eisen Trapped",
-      "parent": 253,
-      "type": "map",
-      "file": "maps/Map0284.json"
+      "parent_map": 253,
+      "type": "map"
     },
     {
       "id": 285,
+      "indentation": 2,
+      "music": {"name": "light2"},
+      "music_type": "specific",
       "name": "Tasgarde Mainframe",
-      "parent": 253,
-      "type": "map",
-      "file": "maps/Map0285.json"
+      "parent_map": 253,
+      "type": "map"
     },
-    {
-      "id": 286,
-      "name": "Reset Game",
-      "parent": 285,
-      "type": "map",
-      "file": "maps/Map0286.json"
-    },
+    {"id": 286, "indentation": 3, "name": "Reset Game", "parent_map": 285, "type": "map"},
     {
       "id": 287,
+      "indentation": 2,
+      "music_type": "event",
       "name": "The Advocate Escapes",
-      "parent": 253,
-      "type": "map",
-      "file": "maps/Map0287.json"
+      "parent_map": 253,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
       "id": 288,
+      "indentation": 3,
+      "music": {"name": "Hawkeye_-_Title"},
+      "music_type": "specific",
       "name": "A Gain... and a Loss",
-      "parent": 261,
-      "type": "map",
-      "file": "maps/Map0288.json"
+      "parent_map": 261,
+      "scrollbar_y": 648,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 65,
+      "encounters": [
+        {"id": 1, "troop_id": 228},
+        {"id": 2, "troop_id": 229},
+        {"id": 3, "troop_id": 230},
+        {"id": 4, "troop_id": 231},
+        {"id": 5, "troop_id": 232},
+        {"id": 6, "troop_id": 233},
+        {"id": 7, "troop_id": 235}
+      ],
       "id": 289,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Talan's Scenario Floor 3",
-      "parent": 263,
-      "type": "map",
-      "file": "maps/Map0289.json"
+      "parent_map": 263,
+      "scrollbar_x": 302,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
       "id": 290,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Talan Computer Room",
-      "parent": 263,
-      "type": "map",
-      "file": "maps/Map0290.json"
+      "parent_map": 263,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
       "id": 291,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Talan Upperlevel Room",
-      "parent": 263,
-      "type": "map",
-      "file": "maps/Map0291.json"
+      "parent_map": 263,
+      "scrollbar_y": 1610,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 65,
+      "encounters": [
+        {"id": 1, "troop_id": 235},
+        {"id": 2, "troop_id": 236},
+        {"id": 3, "troop_id": 234},
+        {"id": 4, "troop_id": 232},
+        {"id": 5, "troop_id": 230}
+      ],
       "id": 292,
+      "indentation": 3,
+      "music": {"name": "DeflectorModded1"},
+      "music_type": "specific",
       "name": "Emily's Scenario",
-      "parent": 261,
-      "type": "map",
-      "file": "maps/Map0292.json"
+      "parent_map": 261,
+      "scrollbar_x": 376,
+      "scrollbar_y": 16,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
+      "encounter_steps": 65,
+      "encounters": [
+        {"id": 1, "troop_id": 230},
+        {"id": 2, "troop_id": 234},
+        {"id": 3, "troop_id": 235},
+        {"id": 4, "troop_id": 236},
+        {"id": 5, "troop_id": 232}
+      ],
       "id": 293,
+      "indentation": 4,
+      "music": {"name": "DeflectorModded1"},
+      "music_type": "specific",
       "name": "Emily's Scenario Pipes",
-      "parent": 292,
-      "type": "map",
-      "file": "maps/Map0293.json"
+      "parent_map": 292,
+      "scrollbar_x": 302,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
       "id": 294,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Emily Warehouse Annex",
-      "parent": 292,
-      "type": "map",
-      "file": "maps/Map0294.json"
+      "parent_map": 292,
+      "type": "map"
     },
     {
+      "background_name": "SJBackdropABL01",
+      "background_type": "specific",
       "id": 295,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Emily Lowerlevel Room",
-      "parent": 292,
-      "type": "map",
-      "file": "maps/Map0295.json"
+      "parent_map": 292,
+      "scrollbar_y": 1868,
+      "type": "map"
     },
     {
       "id": 296,
+      "indentation": 3,
       "name": "Quarry II",
-      "parent": 249,
-      "type": "map",
-      "file": "maps/Map0296.json"
+      "parent_map": 249,
+      "scrollbar_x": 116,
+      "scrollbar_y": 14,
+      "type": "map"
     },
     {
+      "background_type": "terrain",
+      "escape": "allow",
       "id": 297,
+      "indentation": 1,
+      "music_type": "event",
       "name": "Skill Systems",
-      "parent": 0,
-      "type": "map",
-      "file": "maps/Map0297.json"
+      "save": "allow",
+      "teleport": "allow",
+      "type": "map"
     },
     {
       "id": 298,
+      "indentation": 2,
       "name": "Radin Chemistry",
-      "parent": 297,
-      "type": "map",
-      "file": "maps/Map0298.json"
+      "parent_map": 297,
+      "scrollbar_x": 160,
+      "scrollbar_y": 264,
+      "type": "map"
     },
-    {
-      "id": 299,
-      "name": "AgentMob",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0299.json"
-    },
+    {"id": 299, "indentation": 3, "name": "AgentMob", "parent_map": 256, "type": "map"},
     {
       "id": 300,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Missiles2",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0300.json"
+      "parent_map": 256,
+      "type": "map"
     },
-    {
-      "id": 301,
-      "name": "The Overlook",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0301.json"
-    },
-    {
-      "id": 302,
-      "name": "Screen Adjust",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0302.json"
-    },
+    {"id": 301, "indentation": 3, "name": "The Overlook", "parent_map": 256, "type": "map"},
+    {"id": 302, "indentation": 3, "name": "Screen Adjust", "parent_map": 256, "type": "map"},
     {
       "id": 303,
+      "indentation": 3,
+      "music_type": "event",
       "name": "Tram to Prima",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0303.json"
+      "parent_map": 256,
+      "type": "map"
     },
-    {
-      "id": 304,
-      "name": "Army Marches",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0304.json"
-    },
+    {"id": 304, "indentation": 3, "name": "Army Marches", "parent_map": 256, "type": "map"},
     {
       "id": 305,
+      "indentation": 3,
       "name": "Agency Prison",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0305.json"
+      "parent_map": 256,
+      "scrollbar_y": 345,
+      "type": "map"
     },
-    {
-      "id": 306,
-      "name": "Outside Ship",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0306.json"
-    },
+    {"id": 306, "indentation": 3, "name": "Outside Ship", "parent_map": 256, "type": "map"},
     {
       "id": 307,
+      "indentation": 3,
       "name": "Shadow Over Paradise",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0307.json"
+      "parent_map": 256,
+      "scrollbar_x": 192,
+      "scrollbar_y": 168,
+      "type": "map"
     },
-    {
-      "id": 308,
-      "name": "One Month",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0308.json"
-    },
+    {"id": 308, "indentation": 3, "name": "One Month", "parent_map": 256, "type": "map"},
     {
       "id": 309,
+      "indentation": 3,
       "name": "DestructionBlock",
-      "parent": 256,
-      "type": "map",
-      "file": "maps/Map0309.json"
+      "parent_map": 256,
+      "scrollbar_y": 120,
+      "type": "map"
     },
     {
+      "background_name": "forest3",
+      "background_type": "specific",
+      "encounter_steps": 70,
+      "encounters": [
+        {"id": 1, "troop_id": 238},
+        {"id": 2, "troop_id": 115},
+        {"id": 3, "troop_id": 118},
+        {"id": 4, "troop_id": 120},
+        {"id": 5, "troop_id": 126},
+        {"id": 6, "troop_id": 131},
+        {"id": 7, "troop_id": 135},
+        {"id": 8, "troop_id": 124},
+        {"id": 9, "troop_id": 247},
+        {"id": 10, "troop_id": 247},
+        {"id": 11, "troop_id": 247}
+      ],
+      "expanded_node": true,
       "id": 310,
+      "indentation": 3,
+      "music": {"name": "KSSMKEND"},
+      "music_type": "specific",
       "name": "New Tangle Forest",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0310.json"
+      "parent_map": 66,
+      "scrollbar_x": 1376,
+      "scrollbar_y": 388,
+      "type": "map"
     },
     {
+      "background_name": "forest5",
+      "background_type": "specific",
       "id": 311,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Clearing",
-      "parent": 310,
-      "type": "map",
-      "file": "maps/Map0311.json"
+      "parent_map": 310,
+      "scrollbar_x": 116,
+      "type": "map"
     },
     {
+      "background_name": "burning_forest_2",
+      "background_type": "specific",
       "id": 312,
+      "indentation": 4,
+      "music": {"name": "Lunar_Pyramid"},
+      "music_type": "specific",
       "name": "Burning Forest",
-      "parent": 310,
-      "type": "map",
-      "file": "maps/Map0312.json"
+      "parent_map": 310,
+      "scrollbar_x": 956,
+      "scrollbar_y": 1132,
+      "type": "map"
     },
     {
       "id": 313,
+      "indentation": 5,
+      "music_type": "event",
       "name": "Agency Tram",
-      "parent": 311,
-      "type": "map",
-      "file": "maps/Map0313.json"
+      "parent_map": 311,
+      "type": "map"
     },
     {
       "id": 314,
+      "indentation": 4,
+      "music_type": "event",
       "name": "DefenderFail",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0314.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
       "id": 315,
+      "indentation": 4,
+      "music_type": "event",
       "name": "FarmerFail",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0315.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
       "id": 316,
+      "indentation": 4,
+      "music_type": "event",
       "name": "LawyerFail",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0316.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
       "id": 317,
+      "indentation": 4,
+      "music_type": "event",
       "name": "OutsideActing",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0317.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
       "id": 318,
+      "indentation": 4,
+      "music_type": "event",
       "name": "The Show",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0318.json"
+      "parent_map": 220,
+      "scrollbar_x": 242,
+      "scrollbar_y": 54,
+      "type": "map"
     },
     {
       "id": 319,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Grove",
-      "parent": 220,
-      "type": "map",
-      "file": "maps/Map0319.json"
+      "parent_map": 220,
+      "type": "map"
     },
     {
       "id": 320,
+      "indentation": 2,
+      "music": {"name": "3D-Galax"},
+      "music_type": "specific",
       "name": "PortableConsole Test",
-      "parent": 297,
-      "type": "map",
-      "file": "maps/Map0320.json"
+      "parent_map": 297,
+      "type": "map"
     },
-    {
-      "id": 321,
-      "name": "Sern Forging",
-      "parent": 297,
-      "type": "map",
-      "file": "maps/Map0321.json"
-    },
+    {"id": 321, "indentation": 2, "name": "Sern Forging", "parent_map": 297, "type": "map"},
     {
       "id": 322,
+      "indentation": 5,
       "name": "Area 2 Dark Catacombs",
-      "parent": 279,
-      "type": "map",
-      "file": "maps/Map0322.json"
+      "parent_map": 279,
+      "type": "map"
     },
     {
       "id": 323,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Dalia Die In Sim",
-      "parent": 278,
-      "type": "map",
-      "file": "maps/Map0323.json"
+      "parent_map": 278,
+      "type": "map"
     },
     {
       "id": 324,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room D",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0324.json"
+      "parent_map": 280,
+      "scrollbar_x": 288,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 325,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room E",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0325.json"
+      "parent_map": 280,
+      "scrollbar_x": 288,
+      "scrollbar_y": 220,
+      "type": "map"
     },
     {
       "id": 326,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room F",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0326.json"
+      "parent_map": 280,
+      "scrollbar_x": 437,
+      "scrollbar_y": 327,
+      "type": "map"
     },
     {
       "id": 327,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room G",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0327.json"
+      "parent_map": 280,
+      "scrollbar_x": 512,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 328,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room H",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0328.json"
+      "parent_map": 280,
+      "scrollbar_x": 143,
+      "scrollbar_y": 185,
+      "type": "map"
     },
     {
       "id": 329,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room I",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0329.json"
+      "parent_map": 280,
+      "scrollbar_x": 197,
+      "scrollbar_y": 21,
+      "type": "map"
     },
     {
       "id": 330,
+      "indentation": 6,
+      "music_type": "event",
       "name": "Room J",
-      "parent": 280,
-      "type": "map",
-      "file": "maps/Map0330.json"
+      "parent_map": 280,
+      "scrollbar_y": 78,
+      "type": "map"
     },
     {
       "id": 331,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room A",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0331.json"
+      "parent_map": 322,
+      "scrollbar_x": 288,
+      "scrollbar_y": 424,
+      "type": "map"
     },
     {
       "id": 332,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room B",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0332.json"
+      "parent_map": 322,
+      "scrollbar_x": 288,
+      "scrollbar_y": 424,
+      "type": "map"
     },
     {
       "id": 333,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room C",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0333.json"
+      "parent_map": 322,
+      "scrollbar_x": 288,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 334,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room D",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0334.json"
+      "parent_map": 322,
+      "scrollbar_x": 288,
+      "scrollbar_y": 136,
+      "type": "map"
     },
     {
       "id": 335,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room E",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0335.json"
+      "parent_map": 322,
+      "scrollbar_x": 64,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 336,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room F",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0336.json"
+      "parent_map": 322,
+      "scrollbar_x": 512,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 337,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room G",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0337.json"
+      "parent_map": 322,
+      "scrollbar_x": 512,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 338,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room H",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0338.json"
+      "parent_map": 322,
+      "scrollbar_x": 480,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 339,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room I",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0339.json"
+      "parent_map": 322,
+      "scrollbar_x": 438,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 340,
+      "indentation": 6,
+      "music": {"name": "Story Music"},
+      "music_type": "specific",
       "name": "Room J",
-      "parent": 322,
-      "type": "map",
-      "file": "maps/Map0340.json"
+      "parent_map": 322,
+      "scrollbar_x": 288,
+      "scrollbar_y": 136,
+      "type": "map"
     },
-    {
-      "id": 341,
-      "name": "Area 3 Aqueduct",
-      "parent": 279,
-      "type": "map",
-      "file": "maps/Map0341.json"
-    },
+    {"id": 341, "indentation": 5, "name": "Area 3 Aqueduct", "parent_map": 279, "type": "map"},
     {
       "id": 342,
+      "indentation": 6,
+      "music": {"name": "TRoboW1"},
+      "music_type": "specific",
       "name": "Room A",
-      "parent": 341,
-      "type": "map",
-      "file": "maps/Map0342.json"
+      "parent_map": 341,
+      "scrollbar_x": 64,
+      "scrollbar_y": 264,
+      "type": "map"
     },
     {
       "id": 343,
+      "indentation": 6,
+      "music": {"name": "TRoboW1"},
+      "music_type": "specific",
       "name": "Room B",
-      "parent": 341,
-      "type": "map",
-      "file": "maps/Map0343.json"
+      "parent_map": 341,
+      "scrollbar_x": 166,
+      "scrollbar_y": 371,
+      "type": "map"
     },
     {
       "id": 344,
+      "indentation": 6,
+      "music": {"name": "TRoboW1"},
+      "music_type": "specific",
       "name": "Room C",
-      "parent": 341,
-      "type": "map",
-      "file": "maps/Map0344.json"
+      "parent_map": 341,
+      "scrollbar_x": 166,
+      "scrollbar_y": 97,
+      "type": "map"
     },
     {
       "id": 345,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Squad Postings",
-      "parent": 222,
-      "type": "map",
-      "file": "maps/Map0345.json"
+      "parent_map": 222,
+      "type": "map"
     },
     {
+      "area_rect": {"b": 35, "l": 28, "r": 60, "t": 1},
+      "encounter_steps": 0,
+      "encounters": [
+        {"id": 1, "troop_id": 236},
+        {"id": 2, "troop_id": 235},
+        {"id": 3, "troop_id": 234},
+        {"id": 4, "troop_id": 232}
+      ],
       "id": 346,
+      "indentation": 3,
       "name": "Emily'sArea",
-      "parent": 261,
-      "type": "folder",
-      "file": null
+      "parent_map": 261,
+      "scrollbar_x": 1078,
+      "scrollbar_y": 269,
+      "type": "area"
     },
     {
       "id": 347,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Squad Test",
-      "parent": 222,
-      "type": "map",
-      "file": "maps/Map0347.json"
+      "parent_map": 222,
+      "scrollbar_y": 328,
+      "type": "map"
     },
     {
       "id": 348,
+      "indentation": 3,
       "name": "Small General Store",
-      "parent": 66,
-      "type": "map",
-      "file": "maps/Map0348.json"
+      "parent_map": 66,
+      "type": "map"
     },
     {
       "id": 349,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Walking in Paradise",
-      "parent": 221,
-      "type": "map",
-      "file": "maps/Map0349.json"
+      "parent_map": 221,
+      "type": "map"
     },
     {
       "id": 350,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Farmland",
-      "parent": 221,
-      "type": "map",
-      "file": "maps/Map0350.json"
+      "parent_map": 221,
+      "type": "map"
     },
     {
       "id": 351,
+      "indentation": 4,
+      "music_type": "event",
       "name": "Meeting With Bandits",
-      "parent": 221,
-      "type": "map",
-      "file": "maps/Map0351.json"
+      "parent_map": 221,
+      "type": "map"
     }
+  ],
+  "start": {"party_map_id": 4, "party_x": 10, "party_y": 12},
+  "tree_order": [
+    0, 1, 4, 2, 3, 5, 6, 111, 161, 58, 162, 163, 164, 256, 268, 299, 300, 301, 303, 302, 304,
+    305, 306, 307, 308, 309, 15, 9, 13, 11, 8, 12, 7, 10, 14, 16, 17, 18, 19, 96, 20, 24, 22,
+    21, 25, 23, 26, 27, 28, 29, 30, 31, 32, 33, 35, 34, 36, 97, 37, 39, 40, 41, 42, 43, 44, 45,
+    46, 98, 38, 47, 56, 48, 57, 59, 60, 181, 61, 182, 62, 183, 180, 63, 55, 49, 52, 54, 50, 51,
+    53, 64, 83, 84, 65, 66, 67, 70, 71, 72, 73, 68, 199, 75, 200, 201, 103, 188, 69, 76, 190,
+    77, 78, 79, 80, 81, 198, 74, 85, 101, 102, 82, 86, 87, 88, 89, 90, 91, 92, 93, 94, 99, 95,
+    100, 105, 184, 185, 186, 187, 259, 255, 310, 311, 313, 312, 348, 158, 129, 130, 133, 134,
+    135, 136, 192, 131, 137, 138, 139, 140, 193, 132, 141, 145, 146, 142, 143, 144, 150, 151,
+    159, 178, 179, 194, 121, 165, 166, 196, 195, 167, 191, 108, 109, 122, 123, 124, 126, 106,
+    107, 112, 113, 114, 125, 110, 175, 176, 177, 115, 116, 117, 118, 119, 120, 127, 128, 152,
+    153, 154, 155, 156, 157, 160, 197, 147, 148, 149, 168, 169, 170, 171, 172, 173, 174, 202,
+    203, 204, 236, 205, 209, 206, 248, 210, 245, 246, 247, 207, 208, 211, 212, 213, 214, 215,
+    216, 217, 239, 218, 223, 224, 225, 226, 227, 228, 229, 230, 231, 219, 240, 243, 104, 220,
+    189, 314, 315, 316, 317, 318, 319, 221, 349, 350, 351, 222, 242, 244, 345, 347, 234, 235,
+    238, 232, 233, 237, 254, 249, 296, 250, 251, 252, 257, 264, 265, 266, 267, 269, 270, 258,
+    271, 272, 273, 274, 260, 261, 288, 241, 263, 289, 262, 290, 291, 292, 293, 294, 295, 346,
+    253, 275, 276, 278, 279, 280, 281, 282, 283, 324, 325, 326, 327, 328, 329, 330, 322, 331,
+    332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 323, 277, 284, 285, 286,
+    287, 297, 298, 320, 321
   ]
 }

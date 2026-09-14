@@ -1,2559 +1,2908 @@
 {
-  "id": 11,
-  "name": "Lazer Teeth HQ",
-  "size": [100, 100],
-  "chipset": [10, "lasheint"],
-  "tiles": "Map0011.tiles",
+  "chipset_id": 10,
   "events": [
     {
       "id": 4,
       "name": "EV0004",
-      "at": [15, 51],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [9, 44, 38]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [9, 44, 38]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 51
     },
     {
       "id": 7,
       "name": "TheIdol",
-      "at": [11, 38],
       "pages": [
         {
-          "tile": 65,
+          "character_index": 65,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [10005, 0, 95, 98]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Glass"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [101, 10005, 1, 0]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [32, 8, 0, 0, 24, 25, 3, 3]},
+            {"code": "Wait", "indent": 2, "parameters": [7]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "The Idol of the Streets!!"},
+            {"code": "MoveEvent", "indent": 2, "parameters": [32, 8, 0, 0, 14, 23]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Something tells me I shouldn't have"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "done that..."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 33, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "ChangeEventLocation", "", [10005, 0, 95, 98]],
-            [2, "PlaySound", "Glass", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [101, 10005, 1, 0]],
-            [2, "MoveEvent", "", [32, 8, 0, 0, 24, 25, 3, 3]],
-            [2, "Wait", "", [7]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "The Idol of the Streets!!", []],
-            [2, "MoveEvent", "", [32, 8, 0, 0, 14, 23]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Something tells me I shouldn't have", []],
-            [2, "ShowMessage_2", "done that...", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [2, "CallEvent", "", [1, 33, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 38
     },
     {
       "id": 8,
       "name": "Light1",
-      "at": [2, 48],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [8, 0, 98, 97]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [73, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [74, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [75, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [76, 0, 55, 82]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 49, 49, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "ChangeEventLocation", "", [8, 0, 98, 97]],
-            [2, "ChangeEventLocation", "", [73, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [74, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [75, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [76, 0, 55, 82]],
-            [2, "ControlSwitches", "", [0, 49, 49, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 48
     },
     {
       "id": 9,
       "name": "Light2",
-      "at": [5, 50],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [9, 0, 98, 97]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [83, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [82, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [84, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [85, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [86, 0, 55, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [87, 0, 55, 82]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 52, 52, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "ChangeEventLocation", "", [9, 0, 98, 97]],
-            [2, "ChangeEventLocation", "", [83, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [82, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [84, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [85, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [86, 0, 55, 82]],
-            [2, "ChangeEventLocation", "", [87, 0, 55, 82]],
-            [2, "ControlSwitches", "", [0, 52, 52, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 50
     },
     {
       "id": 10,
       "name": "Light3",
-      "at": [8, 37],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Uh oh - the light didn't break!"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Uh oh - the light didn't break!", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 37
     },
     {
       "id": 11,
       "name": "Light4",
-      "at": [15, 42],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [11, 0, 98, 97]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [61, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [62, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [63, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [64, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [65, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [66, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [67, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [68, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [69, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [70, 0, 54, 82]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 47, 47, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "ChangeEventLocation", "", [11, 0, 98, 97]],
-            [2, "ChangeEventLocation", "", [61, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [62, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [63, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [64, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [65, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [66, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [67, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [68, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [69, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [70, 0, 54, 82]],
-            [2, "ControlSwitches", "", [0, 47, 47, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 47
+          "character_index": 53,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 47
           },
-          "tile": 53,
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
+          "move_type": "stationary",
           "overlap_forbidden": true
         }
-      ]
+      ],
+      "x": 15,
+      "y": 42
     },
     {
       "id": 12,
       "name": "Light5",
-      "at": [22, 43],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 0, 22, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 0, 43, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 12, 1, 0]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [12, 0, 26, 37]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [15, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [19, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [20, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [21, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [26, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [25, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [22, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [24, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [23, 0, 54, 82]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [27, 0, 54, 82]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 44, 44, 0]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [18, 0, 98, 98]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
+          "move_type": "stationary",
           "overlap_forbidden": true,
-          "script": [
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 0, 22, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 0, 43, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 12, 1, 0]],
-            [2, "ChangeEventLocation", "", [12, 0, 26, 37]],
-            [2, "ChangeEventLocation", "", [15, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [19, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [20, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [21, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [26, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [25, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [22, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [24, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [23, 0, 54, 82]],
-            [2, "ChangeEventLocation", "", [27, 0, 54, 82]],
-            [2, "ControlSwitches", "", [0, 44, 44, 0]],
-            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 44
+          "character_index": 53,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 44
           },
-          "tile": 53,
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
+          "move_type": "stationary",
           "overlap_forbidden": true
         }
-      ]
+      ],
+      "x": 22,
+      "y": 43
     },
     {
       "id": 13,
       "name": "Light6",
-      "at": [20, 39],
       "pages": [
         {
-          "tile": 73,
+          "character_index": 73,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Uh oh - the light didn't break!"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Uh oh - the light didn't break!", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 39
     },
     {
       "id": 14,
       "name": "LTSentry1",
-      "at": [7, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Blow2"},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [18, 0, 98, 98]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10005, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "What the %@$#?! Who threw that?!"},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Get back in there!"},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Maybe if I were closer I could knock him"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "out..."},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 33, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Blow2", [100, 100, 50]],
-            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
-            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
-            [2, "Wait", "", [3]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
-            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [2, "ShowMessage_2", "Get back in there!", []],
-            [2, "Wait", "", [2]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [2, "Wait", "", [2]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
-            [2, "ShowMessage_2", "out...", []],
-            [2, "CallEvent", "", [1, 33, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 45
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 45
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "How did you get out?! Next time you"},
+            {"code": "ShowMessage_2", "string": "won't be so lucky!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<sigh> Next time maybe I won't bump"},
+            {"code": "ShowMessage_2", "string": "into any guards..."},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "What was that?!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Nothing..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "How did you get out?! Next time you", []],
-            [0, "ShowMessage_2", "won't be so lucky!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<sigh> Next time maybe I won't bump", []],
-            [0, "ShowMessage_2", "into any guards...", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "What was that?!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Nothing...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 1
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "What was that noise? I'd better go check"},
+            {"code": "ShowMessage_2", "string": "it out..."},
+            {"code": "ControlSwitches", "parameters": [0, 46, 46, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 51, 51, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "parameters": [14, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 0, 0, 29]
+            },
+            {"code": "ControlVars", "parameters": [0, 19, 19, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 20, 20, 0, 6, 10001, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 19, 0, 18, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 20, 0, 48, 0, 1]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 19, 0, 19, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 20, 0, 48, 0, 1]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 19, 0, 19, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 20, 0, 47, 0, 1]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 19, 0, 20, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 20, 0, 48, 0, 1]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 19, 0, 21, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 20, 0, 48, 0, 1]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 51, 51, 1]}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "What was that noise? I'd better go check", []],
-            [0, "ShowMessage_2", "it out...", []],
-            [0, "ControlSwitches", "", [0, 46, 46, 0]],
-            [0, "ControlSwitches", "", [0, 51, 51, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 0, 0, 29]],
-            [0, "ControlVars", "", [0, 19, 19, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 20, 20, 0, 6, 10001, 2]],
-            [0, "ConditionalBranch", "", [1, 19, 0, 18, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
-            [2, "CallEvent", "", [1, 15, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 19, 0, 19, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
-            [2, "CallEvent", "", [1, 15, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 19, 0, 19, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 20, 0, 47, 0, 1]],
-            [2, "CallEvent", "", [1, 15, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 19, 0, 20, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
-            [2, "CallEvent", "", [1, 15, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 19, 0, 21, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
-            [2, "CallEvent", "", [1, 15, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 51, 51, 1]]
-          ]
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 45
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 45
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "How did you get out?! Next time you"},
+            {"code": "ShowMessage_2", "string": "won't be so lucky!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<sigh> Next time maybe I won't bump"},
+            {"code": "ShowMessage_2", "string": "into any guards..."},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "What was that?!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Nothing..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 4,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "How did you get out?! Next time you", []],
-            [0, "ShowMessage_2", "won't be so lucky!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<sigh> Next time maybe I won't bump", []],
-            [0, "ShowMessage_2", "into any guards...", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "What was that?!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Nothing...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 53,
-            "switch_b": 1
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 53
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {
+              "code": "MoveEvent",
+              "parameters": [14, 8, 0, 0, 28, 15, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+            },
+            {"code": "ChangeEventLocation", "parameters": [39, 0, 15, 57]},
+            {"code": "MoveEvent", "parameters": [39, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]}
+          ],
+          "id": 5,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 15, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "ChangeEventLocation", "", [39, 0, 15, 57]],
-            [0, "MoveEvent", "", [39, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 48
     },
     {
       "id": 15,
       "name": "A1",
-      "at": [21, 48],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 48
     },
     {
       "id": 16,
       "name": "Grate1",
-      "at": [26, 51],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's a bunch of small rocks inside this"},
+            {"code": "ShowMessage_2", "string": "grate. I can... almost..."},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN got three small stones."},
+            {"code": "ShowMessage_2", "string": "    (Press the OK button, followed by a"},
+            {"code": "ShowMessage_2", "string": "      direction, to throw the stones.)"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I won't be able to talk to anyone"},
+            {"code": "ShowMessage_2", "string": "or examine anything while I am"},
+            {"code": "ShowMessage_2", "string": "carrying these stones."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'll have to be careful about pressing"},
+            {"code": "ShowMessage_2", "string": "the OK button... I wouldn't want to"},
+            {"code": "ShowMessage_2", "string": "throw one of these by accident..."},
+            {"code": "ControlVars", "parameters": [0, 4, 4, 0, 0, 3, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 43, 43, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's a bunch of small rocks inside this", []],
-            [0, "ShowMessage_2", "grate. I can... almost...", []],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN got three small stones.", []],
-            [0, "ShowMessage_2", "    (Press the OK button, followed by a", []],
-            [0, "ShowMessage_2", "      direction, to throw the stones.)", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I won't be able to talk to anyone", []],
-            [0, "ShowMessage_2", "or examine anything while I am", []],
-            [0, "ShowMessage_2", "carrying these stones.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'll have to be careful about pressing", []],
-            [0, "ShowMessage_2", "the OK button... I wouldn't want to", []],
-            [0, "ShowMessage_2", "throw one of these by accident...", []],
-            [0, "ControlVars", "", [0, 4, 4, 0, 0, 3, 0]],
-            [0, "ControlSwitches", "", [0, 43, 43, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 43
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 43,
+            "variable_id": 4
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing else within the grate."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing else within the grate.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 51
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [45, 67],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 43,
-            "variable": [4, "greater_equal", 0]
+          "character_index": 13,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": true
+            },
+            "switch_a_id": 43,
+            "variable_id": 4
           },
-          "tile": 13,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 4, 4, 2, 0, 1, 0]],
-            [0, "KeyInputProc", "", [5, 1, 0, 1, 0]],
-            [0, "MoveEvent", "", [18, 8, 0, 0, 36]],
-            [0, "ControlVars", "", [0, 6, 6, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 7, 7, 0, 6, 10001, 2]],
-            [0, "ChangeEventLocation", "", [18, 1, 6, 7]],
-            [0, "ControlVars", "", [0, 11, 11, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 11, 11, 2, 0, 1, 0]],
-            [0, "ChangeEventLocation", "", [28, 1, 6, 11]],
-            [0, "ControlVars", "", [0, 12, 12, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 12, 12, 1, 0, 1, 0]],
-            [0, "ChangeEventLocation", "", [29, 1, 6, 12]],
-            [0, "ControlVars", "", [0, 13, 13, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 13, 13, 2, 0, 1, 0]],
-            [0, "ChangeEventLocation", "", [30, 1, 13, 7]],
-            [0, "ControlVars", "", [0, 14, 14, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 14, 14, 1, 0, 1, 0]],
-            [0, "ChangeEventLocation", "", [31, 1, 14, 7]],
-            [0, "KeyInputProc", "", [8, 1, 1, 0, 0]],
-            [0, "ConditionalBranch", "", [1, 8, 0, 1, 0, 1]],
-            [1, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 29, 29]],
-            [1, "Wait", "", [10]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [1, 8, 0, 2, 0, 1]],
-            [2, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 29, 29]],
-            [2, "Wait", "", [10]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [1, 8, 0, 3, 0, 1]],
-            [3, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29, 29]],
-            [3, "Wait", "", [10]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ConditionalBranch", "", [1, 8, 0, 4, 0, 1]],
-            [4, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 29]],
-            [4, "Wait", "", [10]],
-            [4, "END", "", []],
-            [3, "ElseBranch", "", []],
-            [4, "END", "", []],
-            [3, "EndBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ChangeEventLocation", "", [28, 0, 32, 55]],
-            [0, "ChangeEventLocation", "", [29, 0, 32, 56]],
-            [0, "ChangeEventLocation", "", [30, 0, 31, 56]],
-            [0, "ChangeEventLocation", "", [31, 0, 33, 56]],
-            [0, "ChangeEventLocation", "", [18, 0, 95, 97]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 4, 4, 2, 0, 1, 0]},
+            {"code": "KeyInputProc", "parameters": [5, 1, 0, 1, 0]},
+            {"code": "MoveEvent", "parameters": [18, 8, 0, 0, 36]},
+            {"code": "ControlVars", "parameters": [0, 6, 6, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 7, 7, 0, 6, 10001, 2]},
+            {"code": "ChangeEventLocation", "parameters": [18, 1, 6, 7]},
+            {"code": "ControlVars", "parameters": [0, 11, 11, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 11, 11, 2, 0, 1, 0]},
+            {"code": "ChangeEventLocation", "parameters": [28, 1, 6, 11]},
+            {"code": "ControlVars", "parameters": [0, 12, 12, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 12, 12, 1, 0, 1, 0]},
+            {"code": "ChangeEventLocation", "parameters": [29, 1, 6, 12]},
+            {"code": "ControlVars", "parameters": [0, 13, 13, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 13, 13, 2, 0, 1, 0]},
+            {"code": "ChangeEventLocation", "parameters": [30, 1, 13, 7]},
+            {"code": "ControlVars", "parameters": [0, 14, 14, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 14, 14, 1, 0, 1, 0]},
+            {"code": "ChangeEventLocation", "parameters": [31, 1, 14, 7]},
+            {"code": "KeyInputProc", "parameters": [8, 1, 1, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [1, 8, 0, 1, 0, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [18, 8, 0, 0, 36, 28, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 29, 29]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 8, 0, 2, 0, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [18, 8, 0, 0, 36, 28, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 29, 29]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [1, 8, 0, 3, 0, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 3,
+              "parameters": [18, 8, 0, 0, 36, 28, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29, 29]
+            },
+            {"code": "Wait", "indent": 3, "parameters": [10]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ConditionalBranch", "indent": 3, "parameters": [1, 8, 0, 4, 0, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 4,
+              "parameters": [
+                18, 8, 0, 0, 36, 28, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 29, 29
+              ]
+            },
+            {"code": "Wait", "indent": 4, "parameters": [10]},
+            {"code": "END", "indent": 4},
+            {"code": "ElseBranch", "indent": 3},
+            {"code": "END", "indent": 4},
+            {"code": "EndBranch", "indent": 3},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ChangeEventLocation", "parameters": [28, 0, 32, 55]},
+            {"code": "ChangeEventLocation", "parameters": [29, 0, 32, 56]},
+            {"code": "ChangeEventLocation", "parameters": [30, 0, 31, 56]},
+            {"code": "ChangeEventLocation", "parameters": [31, 0, 33, 56]},
+            {"code": "ChangeEventLocation", "parameters": [18, 0, 95, 97]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 45,
+      "y": 67
     },
     {
       "id": 18,
       "name": "Stone",
-      "at": [45, 75],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object2",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "Object2",
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [18, 8, 0, 0, 21]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "overlap_forbidden": true,
-          "script": [
-            [0, "MoveEvent", "", [18, 8, 0, 0, 21]]
-          ]
+          "move_type": "stationary",
+          "overlap_forbidden": true
         }
-      ]
+      ],
+      "x": 45,
+      "y": 75
     },
     {
       "id": 19,
       "name": "A2",
-      "at": [21, 47],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 47
     },
     {
       "id": 20,
       "name": "A3",
-      "at": [21, 46],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 46
     },
     {
       "id": 21,
       "name": "A4",
-      "at": [21, 45],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 45
     },
     {
       "id": 22,
       "name": "A7",
-      "at": [22, 45],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 22,
+      "y": 45
     },
     {
       "id": 23,
       "name": "A9",
-      "at": [23, 45],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 23,
+      "y": 45
     },
     {
       "id": 24,
       "name": "A8",
-      "at": [23, 46],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 23,
+      "y": 46
     },
     {
       "id": 25,
       "name": "A6",
-      "at": [22, 46],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 22,
+      "y": 46
     },
     {
       "id": 26,
       "name": "A5",
-      "at": [22, 47],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 22,
+      "y": 47
     },
     {
       "id": 27,
       "name": "A10",
-      "at": [24, 45],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 24,
+      "y": 45
     },
     {
       "id": 28,
       "name": "BlockNorth",
-      "at": [32, 55],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 32,
+      "y": 55
     },
     {
       "id": 29,
       "name": "BlockSouth",
-      "at": [32, 56],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 32,
+      "y": 56
     },
     {
       "id": 30,
       "name": "BlockWest",
-      "at": [31, 56],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 31,
+      "y": 56
     },
     {
       "id": 31,
       "name": "BlockEast",
-      "at": [33, 56],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 33,
+      "y": 56
     },
     {
       "id": 32,
       "name": "LTSentry2",
-      "at": [13, 40],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Blow2"},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [18, 0, 98, 98]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10005, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "What the %@$#?! Who threw that?!"},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Get back in there!"},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Maybe if I were closer I could knock him"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "out..."},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 33, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 3
+          "move_route": {
+            "move_commands": [
+              {"command_id": "face_left"},
+              {"command_id": "move_left"},
+              {"command_id": "face_down"},
+              {"command_id": "wait"},
+              {"command_id": "wait"},
+              {"command_id": "wait"},
+              {"command_id": "wait"},
+              {"command_id": "face_right"},
+              {"command_id": "move_right"},
+              {"command_id": "face_down"},
+              {"command_id": "wait"},
+              {"command_id": "wait"},
+              {"command_id": "face_right"},
+              {"command_id": "wait"},
+              {"command_id": "face_down"},
+              {"command_id": "face_left"},
+              {"command_id": "wait"},
+              {"command_id": "face_down"}
+            ]
           },
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Blow2", [100, 100, 50]],
-            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
-            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
-            [2, "Wait", "", [3]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
-            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [2, "ShowMessage_2", "Get back in there!", []],
-            [2, "Wait", "", [2]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [2, "Wait", "", [2]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
-            [2, "ShowMessage_2", "out...", []],
-            [2, "CallEvent", "", [1, 33, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "custom",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 40
     },
     {
       "id": 33,
       "name": "ResetPuzzle",
-      "at": [45, 72],
       "pages": [
         {
-          "tile": 33,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "HaltAllMovement", "", []],
-            [0, "ControlVars", "", [0, 17, 17, 0, 7, 1, 0]],
-            [0, "ControlVars", "", [0, 17, 17, 2, 0, 60, 0]],
-            [0, "TimerOperation", "", [0, 1, 17, 0, 0]],
-            [0, "ShowMessage", "TALAN wasted a minute!", []],
-            [0, "ShowMessage_2", "[conditions in the hideout return", []],
-            [0, "ShowMessage_2", "to normal]", []],
-            [0, "ConditionalBranch", "", [0, 68, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 17, 0, 1, 2, 1]],
-            [2, "ControlSwitches", "", [0, 67, 67, 1]],
-            [2, "TimerOperation", "", [2, 0, 0, 0, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Well... it's official. I'm late.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Maybe if I get there soon I can keep", []],
-            [2, "ShowMessage_2", "my job... <sigh>", []],
-            [2, "ControlSwitches", "", [0, 68, 68, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 43, 43, 1]],
-            [0, "ControlVars", "", [0, 4, 4, 0, 0, 0, 0]],
-            [0, "ControlSwitches", "", [0, 44, 44, 1]],
-            [0, "ControlSwitches", "", [0, 45, 45, 1]],
-            [0, "ControlSwitches", "", [0, 47, 47, 1]],
-            [0, "ControlSwitches", "", [0, 46, 46, 1]],
-            [0, "ControlSwitches", "", [0, 48, 48, 1]],
-            [0, "ControlSwitches", "", [0, 49, 49, 1]],
-            [0, "ControlSwitches", "", [0, 50, 50, 1]],
-            [0, "ControlSwitches", "", [0, 52, 52, 1]],
-            [0, "ControlSwitches", "", [0, 53, 53, 1]],
-            [0, "ChangeEventLocation", "", [14, 0, 7, 48]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 13]],
-            [0, "ChangeEventLocation", "", [15, 0, 21, 48]],
-            [0, "ChangeEventLocation", "", [19, 0, 21, 47]],
-            [0, "ChangeEventLocation", "", [20, 0, 21, 46]],
-            [0, "ChangeEventLocation", "", [21, 0, 21, 45]],
-            [0, "ChangeEventLocation", "", [26, 0, 22, 47]],
-            [0, "ChangeEventLocation", "", [25, 0, 22, 46]],
-            [0, "ChangeEventLocation", "", [22, 0, 22, 45]],
-            [0, "ChangeEventLocation", "", [24, 0, 23, 46]],
-            [0, "ChangeEventLocation", "", [23, 0, 23, 45]],
-            [0, "ChangeEventLocation", "", [27, 0, 24, 45]],
-            [0, "ChangeEventLocation", "", [12, 0, 22, 43]],
-            [0, "ChangeEventLocation", "", [39, 0, 22, 70]],
-            [0, "ChangeEventLocation", "", [61, 0, 12, 44]],
-            [0, "ChangeEventLocation", "", [62, 0, 12, 43]],
-            [0, "ChangeEventLocation", "", [63, 0, 12, 42]],
-            [0, "ChangeEventLocation", "", [64, 0, 12, 41]],
-            [0, "ChangeEventLocation", "", [65, 0, 13, 44]],
-            [0, "ChangeEventLocation", "", [66, 0, 13, 43]],
-            [0, "ChangeEventLocation", "", [67, 0, 13, 42]],
-            [0, "ChangeEventLocation", "", [68, 0, 13, 41]],
-            [0, "ChangeEventLocation", "", [69, 0, 14, 43]],
-            [0, "ChangeEventLocation", "", [70, 0, 14, 42]],
-            [0, "ChangeEventLocation", "", [11, 0, 15, 42]],
-            [0, "ChangeEventLocation", "", [8, 0, 2, 48]],
-            [0, "ChangeEventLocation", "", [73, 0, 3, 48]],
-            [0, "ChangeEventLocation", "", [74, 0, 4, 48]],
-            [0, "ChangeEventLocation", "", [75, 0, 5, 48]],
-            [0, "ChangeEventLocation", "", [76, 0, 6, 48]],
-            [0, "ChangeEventLocation", "", [32, 0, 13, 40]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 14]],
-            [0, "ChangeEventLocation", "", [83, 0, 4, 52]],
-            [0, "ChangeEventLocation", "", [82, 0, 5, 52]],
-            [0, "ChangeEventLocation", "", [84, 0, 6, 52]],
-            [0, "ChangeEventLocation", "", [85, 0, 4, 53]],
-            [0, "ChangeEventLocation", "", [86, 0, 5, 53]],
-            [0, "ChangeEventLocation", "", [87, 0, 6, 53]],
-            [0, "ChangeEventLocation", "", [9, 0, 5, 50]],
-            [0, "ChangeEventLocation", "", [7, 0, 11, 38]],
-            [0, "ChangeEventLocation", "", [89, 0, 89, 97]],
-            [0, "ChangeEventLocation", "", [88, 0, 95, 98]],
-            [0, "ChangeEventLocation", "", [18, 0, 93, 97]],
-            [0, "ChangeEventLocation", "", [71, 0, 11, 53]],
-            [0, "ControlSwitches", "", [0, 51, 51, 1]],
-            [0, "Teleport", "", [11, 26, 47]]
-          ]
+          "character_index": 33,
+          "event_commands": [
+            {"code": "HaltAllMovement"},
+            {"code": "ControlVars", "parameters": [0, 17, 17, 0, 7, 1, 0]},
+            {"code": "ControlVars", "parameters": [0, 17, 17, 2, 0, 60, 0]},
+            {"code": "TimerOperation", "parameters": [0, 1, 17, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN wasted a minute!"},
+            {"code": "ShowMessage_2", "string": "[conditions in the hideout return"},
+            {"code": "ShowMessage_2", "string": "to normal]"},
+            {"code": "ConditionalBranch", "parameters": [0, 68, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 17, 0, 1, 2, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 67, 67, 1]},
+            {"code": "TimerOperation", "indent": 2, "parameters": [2, 0, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Well... it's official. I'm late."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Maybe if I get there soon I can keep"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "my job... <sigh>"},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 68, 68, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 43, 43, 1]},
+            {"code": "ControlVars", "parameters": [0, 4, 4, 0, 0, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 44, 44, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 45, 45, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 47, 47, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 46, 46, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 48, 48, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 49, 49, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 50, 50, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 52, 52, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 53, 53, 1]},
+            {"code": "ChangeEventLocation", "parameters": [14, 0, 7, 48]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 13]},
+            {"code": "ChangeEventLocation", "parameters": [15, 0, 21, 48]},
+            {"code": "ChangeEventLocation", "parameters": [19, 0, 21, 47]},
+            {"code": "ChangeEventLocation", "parameters": [20, 0, 21, 46]},
+            {"code": "ChangeEventLocation", "parameters": [21, 0, 21, 45]},
+            {"code": "ChangeEventLocation", "parameters": [26, 0, 22, 47]},
+            {"code": "ChangeEventLocation", "parameters": [25, 0, 22, 46]},
+            {"code": "ChangeEventLocation", "parameters": [22, 0, 22, 45]},
+            {"code": "ChangeEventLocation", "parameters": [24, 0, 23, 46]},
+            {"code": "ChangeEventLocation", "parameters": [23, 0, 23, 45]},
+            {"code": "ChangeEventLocation", "parameters": [27, 0, 24, 45]},
+            {"code": "ChangeEventLocation", "parameters": [12, 0, 22, 43]},
+            {"code": "ChangeEventLocation", "parameters": [39, 0, 22, 70]},
+            {"code": "ChangeEventLocation", "parameters": [61, 0, 12, 44]},
+            {"code": "ChangeEventLocation", "parameters": [62, 0, 12, 43]},
+            {"code": "ChangeEventLocation", "parameters": [63, 0, 12, 42]},
+            {"code": "ChangeEventLocation", "parameters": [64, 0, 12, 41]},
+            {"code": "ChangeEventLocation", "parameters": [65, 0, 13, 44]},
+            {"code": "ChangeEventLocation", "parameters": [66, 0, 13, 43]},
+            {"code": "ChangeEventLocation", "parameters": [67, 0, 13, 42]},
+            {"code": "ChangeEventLocation", "parameters": [68, 0, 13, 41]},
+            {"code": "ChangeEventLocation", "parameters": [69, 0, 14, 43]},
+            {"code": "ChangeEventLocation", "parameters": [70, 0, 14, 42]},
+            {"code": "ChangeEventLocation", "parameters": [11, 0, 15, 42]},
+            {"code": "ChangeEventLocation", "parameters": [8, 0, 2, 48]},
+            {"code": "ChangeEventLocation", "parameters": [73, 0, 3, 48]},
+            {"code": "ChangeEventLocation", "parameters": [74, 0, 4, 48]},
+            {"code": "ChangeEventLocation", "parameters": [75, 0, 5, 48]},
+            {"code": "ChangeEventLocation", "parameters": [76, 0, 6, 48]},
+            {"code": "ChangeEventLocation", "parameters": [32, 0, 13, 40]},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 14]},
+            {"code": "ChangeEventLocation", "parameters": [83, 0, 4, 52]},
+            {"code": "ChangeEventLocation", "parameters": [82, 0, 5, 52]},
+            {"code": "ChangeEventLocation", "parameters": [84, 0, 6, 52]},
+            {"code": "ChangeEventLocation", "parameters": [85, 0, 4, 53]},
+            {"code": "ChangeEventLocation", "parameters": [86, 0, 5, 53]},
+            {"code": "ChangeEventLocation", "parameters": [87, 0, 6, 53]},
+            {"code": "ChangeEventLocation", "parameters": [9, 0, 5, 50]},
+            {"code": "ChangeEventLocation", "parameters": [7, 0, 11, 38]},
+            {"code": "ChangeEventLocation", "parameters": [89, 0, 89, 97]},
+            {"code": "ChangeEventLocation", "parameters": [88, 0, 95, 98]},
+            {"code": "ChangeEventLocation", "parameters": [18, 0, 93, 97]},
+            {"code": "ChangeEventLocation", "parameters": [71, 0, 11, 53]},
+            {"code": "ControlSwitches", "parameters": [0, 51, 51, 1]},
+            {"code": "Teleport", "parameters": [11, 26, 47]}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 45,
+      "y": 72
     },
     {
       "id": 34,
       "name": "EV0034",
-      "at": [11, 39],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 74, 74, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "It's sort of ugly. There's a plaque on it that"
+            },
+            {"code": "ShowMessage_2", "string": "says \"IDOL of the STREETS\"."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Someone has scribbled \"Lazer Teeth Are"},
+            {"code": "ShowMessage_2", "string": "Number One!!!\" on it with red paint."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well, prisoners can't be choosy,"},
+            {"code": "ShowMessage_2", "string": "I guess. I'll just take this thing"},
+            {"code": "ShowMessage_2", "string": "and get out of here."},
+            {"code": "ControlSwitches", "parameters": [0, 53, 53, 0]},
+            {"code": "ChangeEventLocation", "parameters": [7, 0, 97, 97]},
+            {"code": "ChangeItems", "parameters": [0, 0, 90, 0, 1]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Item1"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN got the IDOL OF THE STREETS!!"},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 36, 14]},
+            {"code": "ChangeEventLocation", "parameters": [32, 0, 14, 37]},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 2, 2, 15, 24, 25]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "The prisoner is taking the Idol!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 23, 23, 14]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I think that's my cue to leave!"},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "rshinld"},
+            {"code": "ChangeEventLocation", "parameters": [88, 0, 15, 37]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 12, 14]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ChangeEventLocation", "parameters": [89, 0, 14, 37]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]
+            },
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "MoveEvent", "parameters": [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "MoveEvent", "parameters": [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "CallEvent", "parameters": [1, 14, 5]},
+            {"code": "Wait", "parameters": [16]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow2"},
+            {"code": "ShowBattleAnimation", "parameters": [9, 39, 1, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]},
+            {
+              "code": "MoveEvent",
+              "parameters": [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [9, 44, 38]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ControlSwitches", "", [0, 74, 74, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's sort of ugly. There's a plaque on it that", []],
-            [0, "ShowMessage_2", "says \"IDOL of the STREETS\".", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Someone has scribbled \"Lazer Teeth Are", []],
-            [0, "ShowMessage_2", "Number One!!!\" on it with red paint.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well, prisoners can't be choosy,", []],
-            [0, "ShowMessage_2", "I guess. I'll just take this thing", []],
-            [0, "ShowMessage_2", "and get out of here.", []],
-            [0, "ControlSwitches", "", [0, 53, 53, 0]],
-            [0, "ChangeEventLocation", "", [7, 0, 97, 97]],
-            [0, "ChangeItems", "", [0, 0, 90, 0, 1]],
-            [0, "PlaySound", "Item1", [100, 100, 50]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN got the IDOL OF THE STREETS!!", []],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 36, 14]],
-            [0, "ChangeEventLocation", "", [32, 0, 14, 37]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 2, 2, 15, 24, 25]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "The prisoner is taking the Idol!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 23, 14]],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I think that's my cue to leave!", []],
-            [0, "PlayBGM", "rshinld", [0, 100, 100, 50]],
-            [0, "ChangeEventLocation", "", [88, 0, 15, 37]],
-            [0, "Wait", "", [3]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 12, 14]],
-            [0, "Wait", "", [3]],
-            [0, "ChangeEventLocation", "", [89, 0, 14, 37]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "MoveEvent", "", [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "MoveEvent", "", [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "CallEvent", "", [1, 14, 5]],
-            [0, "Wait", "", [16]],
-            [0, "PlaySound", "Blow2", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [9, 39, 1, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
-            [0, "MoveEvent", "", [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [9, 44, 38]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 37
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 37
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 74, 74, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 53, 53, 0]},
+            {"code": "ChangeEventLocation", "parameters": [7, 0, 97, 97]},
+            {"code": "ChangeItems", "parameters": [0, 0, 90, 0, 1]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Item1"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN got the IDOL OF THE STREETS!!"},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 36, 14]},
+            {"code": "ChangeEventLocation", "parameters": [32, 0, 14, 37]},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 2, 2, 15, 24, 25]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "The prisoner is taking the Idol!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 23, 23, 14]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I think that's my cue to leave!"},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "rshinld"},
+            {"code": "ChangeEventLocation", "parameters": [88, 0, 15, 37]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 12, 14]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ChangeEventLocation", "parameters": [89, 0, 14, 37]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]
+            },
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "MoveEvent", "parameters": [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "MoveEvent", "parameters": [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]},
+            {"code": "CallEvent", "parameters": [1, 14, 5]},
+            {"code": "Wait", "parameters": [16]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow2"},
+            {"code": "ShowBattleAnimation", "parameters": [9, 39, 1, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]},
+            {
+              "code": "MoveEvent",
+              "parameters": [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [9, 44, 38]}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ControlSwitches", "", [0, 74, 74, 0]],
-            [0, "ControlSwitches", "", [0, 53, 53, 0]],
-            [0, "ChangeEventLocation", "", [7, 0, 97, 97]],
-            [0, "ChangeItems", "", [0, 0, 90, 0, 1]],
-            [0, "PlaySound", "Item1", [100, 100, 50]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN got the IDOL OF THE STREETS!!", []],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 36, 14]],
-            [0, "ChangeEventLocation", "", [32, 0, 14, 37]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 2, 2, 15, 24, 25]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "The prisoner is taking the Idol!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 23, 14]],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I think that's my cue to leave!", []],
-            [0, "PlayBGM", "rshinld", [0, 100, 100, 50]],
-            [0, "ChangeEventLocation", "", [88, 0, 15, 37]],
-            [0, "Wait", "", [3]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 12, 14]],
-            [0, "Wait", "", [3]],
-            [0, "ChangeEventLocation", "", [89, 0, 14, 37]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "MoveEvent", "", [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "MoveEvent", "", [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
-            [0, "CallEvent", "", [1, 14, 5]],
-            [0, "Wait", "", [16]],
-            [0, "PlaySound", "Blow2", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [9, 39, 1, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
-            [0, "MoveEvent", "", [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [9, 44, 38]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 39
     },
     {
       "id": 35,
       "name": "LTComputer",
-      "at": [19, 44],
       "pages": [
         {
-          "tile": 49,
+          "character_index": 49,
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [1, 10005, 1, 0]},
+            {"code": "Wait", "indent": 2, "parameters": [1]},
+            {
+              "code": "PlaySound",
+              "indent": 2,
+              "parameters": [100, 100, 50],
+              "string": "Cursor2"
+            },
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Dark1"},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 45, 45, 0]},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 14, 3]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "parallel",
+          "move_type": "stationary",
           "overlap_forbidden": true,
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Holy3", [100, 100, 50]],
-            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
-            [2, "Wait", "", [1]],
-            [2, "PlaySound", "Cursor2", [100, 100, 50]],
-            [2, "Wait", "", [2]],
-            [2, "PlaySound", "Dark1", [100, 100, 50]],
-            [2, "ControlSwitches", "", [0, 45, 45, 0]],
-            [2, "CallEvent", "", [1, 14, 3]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 44
     },
     {
       "id": 36,
       "name": "B1",
-      "at": [17, 48],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 46
-          },
-          "tile": 80,
-          "layer": "below",
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 51
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 46
           },
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "being seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
+        },
+        {
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 51
+          },
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "being seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 48
     },
     {
       "id": 37,
       "name": "B2",
-      "at": [18, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 46
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 46
           },
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Something behind me?!", []],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 21]],
-            [0, "CallEvent", "", [1, 15, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Something behind me?!"},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 21]},
+            {"code": "CallEvent", "parameters": [1, 15, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 51
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 51
           },
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "being seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "being seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 47
     },
     {
       "id": 38,
       "name": "B3",
-      "at": [19, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 51
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 51
           },
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "being seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "being seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 46
     },
     {
       "id": 39,
       "name": "LTSentry3",
-      "at": [22, 70],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 70
     },
     {
       "id": 40,
       "name": "EV0040",
-      "at": [15, 49],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I think I'd like to stay and see what", []],
-            [1, "ShowMessage_2", "this Idol thing is all about, as long", []],
-            [1, "ShowMessage_2", "as I'm here.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This thing could be worth some", []],
-            [1, "ShowMessage_2", "serious creds...", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Especially if I lose my job for being", []],
-            [1, "ShowMessage_2", "late this morning... those creds could", []],
-            [1, "ShowMessage_2", "come in useful. <sigh>", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ChangeEventLocation", "", [39, 0, 15, 57]],
-            [1, "MoveEvent", "", [39, 8, 0, 0, 0, 0, 0, 0, 0]],
-            [1, "Wait", "", [12]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "The prisoner is trying to escape!", []],
-            [1, "CallEvent", "", [1, 15, 1]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "condition": {"switch_a_id": 37},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 37, 1, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think I'd like to stay and see what"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "this Idol thing is all about, as long"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "as I'm here."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "This thing could be worth some"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "serious creds..."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Especially if I lose my job for being"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "late this morning... those creds could"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "come in useful. <sigh>"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [39, 0, 15, 57]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [39, 8, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [12]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The prisoner is trying to escape!"
+            },
+            {"code": "CallEvent", "indent": 1, "parameters": [1, 15, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 49
     },
     {
       "id": 41,
       "name": "B3",
-      "at": [18, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 46
     },
     {
       "id": 42,
       "name": "B3",
-      "at": [18, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 45
     },
     {
       "id": 43,
       "name": "B3",
-      "at": [17, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 45
     },
     {
       "id": 44,
       "name": "B3",
-      "at": [17, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 46
     },
     {
       "id": 45,
       "name": "B3",
-      "at": [16, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 46
     },
     {
       "id": 46,
       "name": "B3",
-      "at": [16, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 45
     },
     {
       "id": 47,
       "name": "B3",
-      "at": [15, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 45
     },
     {
       "id": 48,
       "name": "B3",
-      "at": [14, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 45
     },
     {
       "id": 49,
       "name": "B3",
-      "at": [15, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 46
     },
     {
       "id": 50,
       "name": "B3",
-      "at": [14, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 46
     },
     {
       "id": 51,
       "name": "B2",
-      "at": [17, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 46
+          "character_index": 80,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 46
           },
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Something behind me?!", []],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 21]],
-            [0, "CallEvent", "", [1, 15, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Something behind me?!"},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 21]},
+            {"code": "CallEvent", "parameters": [1, 15, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 47
     },
     {
       "id": 52,
       "name": "B3",
-      "at": [16, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 47
     },
     {
       "id": 53,
       "name": "B3",
-      "at": [15, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 47
     },
     {
       "id": 54,
       "name": "B3",
-      "at": [14, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 47
     },
     {
       "id": 55,
       "name": "B3",
-      "at": [13, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 46
     },
     {
       "id": 56,
       "name": "B3",
-      "at": [12, 46],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 46
     },
     {
       "id": 57,
       "name": "B3",
-      "at": [12, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 45
     },
     {
       "id": 58,
       "name": "B3",
-      "at": [13, 45],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 45
     },
     {
       "id": 59,
       "name": "B3",
-      "at": [13, 47],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [0, "ShowMessage_2", "Get back in there!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "string": "Get back in there!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 47
     },
     {
       "id": 60,
       "name": "EV0060",
-      "at": [22, 44],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The light is mounted high up on the wall,"},
+            {"code": "ShowMessage_2", "string": "and I can't reach it."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The light is mounted high up on the wall,", []],
-            [0, "ShowMessage_2", "and I can't reach it.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 44
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 44
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well, that certainly took care of the"},
+            {"code": "ShowMessage_2", "string": "light... now I just need to make good"},
+            {"code": "ShowMessage_2", "string": "use of the darkness."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well, that certainly took care of the", []],
-            [0, "ShowMessage_2", "light... now I just need to make good", []],
-            [0, "ShowMessage_2", "use of the darkness.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 44
     },
     {
       "id": 61,
       "name": "C1",
-      "at": [12, 44],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 44
     },
     {
       "id": 62,
       "name": "C2",
-      "at": [12, 43],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 43
     },
     {
       "id": 63,
       "name": "C3",
-      "at": [12, 42],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 42
     },
     {
       "id": 64,
       "name": "C4",
-      "at": [12, 41],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 41
     },
     {
       "id": 65,
       "name": "C5",
-      "at": [13, 44],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 44
     },
     {
       "id": 66,
       "name": "C6",
-      "at": [13, 43],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 43
     },
     {
       "id": 67,
       "name": "C7",
-      "at": [13, 42],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 42
     },
     {
       "id": 68,
       "name": "C8",
-      "at": [13, 41],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 41
     },
     {
       "id": 69,
       "name": "C9",
-      "at": [14, 43],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 43
     },
     {
       "id": 70,
       "name": "C10",
-      "at": [14, 42],
       "pages": [
         {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
-            [0, "ShowMessage_2", "the light, or not be seen...", []],
-            [0, "CallEvent", "", [1, 33, 1]]
-          ]
+          "character_index": 80,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I see you there! Back to the cell with you!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If only there was a way I could avoid"},
+            {"code": "ShowMessage_2", "string": "the light, or not be seen..."},
+            {"code": "CallEvent", "parameters": [1, 33, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 42
     },
     {
       "id": 71,
       "name": "NVSpy",
-      "at": [11, 53],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {"switch_a_id": 37},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 58, 1, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Who's there? Is someone there?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "<freeze>"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 3, 0, 0, 0, 0, 14]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I don't think I'll go into that little room."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The guard inside has sharp hearing."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Who's there?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Uh oh..."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [71, 8, 0, 0, 3, 3, 3, 3, 12]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "<pssst> Are you the prisoner? Come over"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "here..."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [71, 8, 0, 0, 1, 1, 1, 1, 15]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2, 1, 2, 1]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Don't worry, I won't give you away."
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "I'm a spy for the Neon Vipers."},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [2]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Jump1"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0, 23]
+            },
+            {"code": "ShowBattleAnimation", "indent": 1, "parameters": [132, 71, 1, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [7]},
+            {"code": "ShowMessage", "indent": 1, "string": "SPY"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "See?"},
+            {"code": "ShowMessage", "indent": 1, "string": "SPY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Are you trying to steal the Idol?"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Good luck!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Thanks. Where are they keeping it?"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "SPY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You'll find it on a stand at the northern"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "part of the hideout."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "OK - I'll do my best."},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [2]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Jump1"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6]
+            },
+            {"code": "ShowBattleAnimation", "indent": 1, "parameters": [132, 71, 1, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 48, 48, 0]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 3, 0, 3, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 38, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I wonder if this is what the Vipers"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "wanted me to do?"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 58, 1, 0, 0, 1]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Who's there? Is someone there?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "<freeze>", []],
-            [1, "MoveEvent", "", [10001, 3, 0, 0, 0, 0, 14]],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I don't think I'll go into that little room.", []],
-            [1, "ShowMessage_2", "The guard inside has sharp hearing.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "MessageOptions", "", [0, 0, 0, 0]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Who's there?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Uh oh...", []],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 3, 3, 3, 3, 12]],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "<pssst> Are you the prisoner? Come over", []],
-            [1, "ShowMessage_2", "here...", []],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 1, 1, 1, 1, 15]],
-            [1, "Wait", "", [10]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 2, 1, 2, 1]],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Don't worry, I won't give you away.", []],
-            [1, "ShowMessage_2", "I'm a spy for the Neon Vipers.", []],
-            [1, "Wait", "", [5]],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]],
-            [1, "Wait", "", [2]],
-            [1, "PlaySound", "Jump1", [100, 100, 50]],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0, 23]],
-            [1, "ShowBattleAnimation", "", [132, 71, 1, 0]],
-            [1, "Wait", "", [7]],
-            [1, "ShowMessage", "SPY", []],
-            [1, "ShowMessage_2", "See?", []],
-            [1, "ShowMessage", "SPY", []],
-            [1, "ShowMessage_2", "Are you trying to steal the Idol?", []],
-            [1, "ShowMessage_2", "Good luck!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Thanks. Where are they keeping it?", []],
-            [1, "ShowMessage", "SPY", []],
-            [1, "ShowMessage_2", "You'll find it on a stand at the northern", []],
-            [1, "ShowMessage_2", "part of the hideout.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "OK - I'll do my best.", []],
-            [1, "Wait", "", [5]],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]],
-            [1, "Wait", "", [2]],
-            [1, "PlaySound", "Jump1", [100, 100, 50]],
-            [1, "MoveEvent", "", [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6]],
-            [1, "ShowBattleAnimation", "", [132, 71, 1, 0]],
-            [1, "ControlSwitches", "", [0, 48, 48, 0]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 3, 0, 0]],
-            [1, "Wait", "", [10]],
-            [1, "ConditionalBranch", "", [0, 38, 0, 0, 0, 1]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I wonder if this is what the Vipers", []],
-            [2, "ShowMessage_2", "wanted me to do?", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 15, 15, 0, 6, 10005, 1]},
+            {"code": "ControlVars", "parameters": [0, 16, 16, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 9, 9, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 10, 10, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 9, 1, 15, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 10, 1, 16, 0, 1]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 100, 50], "string": "Blow2"},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [18, 0, 98, 98]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10005, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "What the %@$#?! Who threw that?!"},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "You're not going anywhere, man!"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Get back in there!"},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "indent": 2, "parameters": [2]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Maybe if I were closer I could knock him"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "out..."},
+            {"code": "CallEvent", "indent": 2, "parameters": [1, 33, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
-            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
-            [2, "PlaySound", "Blow2", [100, 100, 50]],
-            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
-            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
-            [2, "Wait", "", [3]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
-            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
-            [2, "ShowMessage_2", "Get back in there!", []],
-            [2, "Wait", "", [2]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [2, "Wait", "", [2]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
-            [2, "ShowMessage_2", "out...", []],
-            [2, "CallEvent", "", [1, 33, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 48
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 48
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SPY"},
+            {"code": "ShowMessage_2", "string": "Good luck! We deserve the Idol of the"},
+            {"code": "ShowMessage_2", "string": "Streets more than the Lazer Teeth do."},
+            {"code": "ShowMessage_2", "string": "Plus, our outfits are better."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SPY", []],
-            [0, "ShowMessage_2", "Good luck! We deserve the Idol of the", []],
-            [0, "ShowMessage_2", "Streets more than the Lazer Teeth do.", []],
-            [0, "ShowMessage_2", "Plus, our outfits are better.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 53
     },
     {
       "id": 72,
       "name": "EV0072",
-      "at": [7, 51],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "CallEvent", "", [1, 71, 1]]
-          ]
+          "condition": {"switch_a_id": 37},
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [1, 71, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 48
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 48
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 51
     },
     {
       "id": 73,
       "name": "D1",
-      "at": [3, 48],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 3,
+      "y": 48
     },
     {
       "id": 74,
       "name": "D2",
-      "at": [4, 48],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 4,
+      "y": 48
     },
     {
       "id": 75,
       "name": "D3",
-      "at": [5, 48],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 5,
+      "y": 48
     },
     {
       "id": 76,
       "name": "D4",
-      "at": [6, 48],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 6,
+      "y": 48
     },
     {
       "id": 77,
       "name": "EV0077",
-      "at": [11, 44],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 47
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 47
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Wow - it sure is dark all of a sudden.", []],
-            [0, "ShowMessage_2", "I'd better get a replacement battery", []],
-            [0, "ShowMessage_2", "for that light.", []],
-            [0, "MoveEvent", "", [32, 8, 0, 0, 1, 1, 0, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [32, 0, 98, 99]],
-            [0, "ControlSwitches", "", [0, 50, 50, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Wow - it sure is dark all of a sudden."},
+            {"code": "ShowMessage_2", "string": "I'd better get a replacement battery"},
+            {"code": "ShowMessage_2", "string": "for that light."},
+            {"code": "MoveEvent", "parameters": [32, 8, 0, 0, 1, 1, 0, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [32, 0, 98, 99]},
+            {"code": "ControlSwitches", "parameters": [0, 50, 50, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 50
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 50
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 44
     },
     {
       "id": 78,
       "name": "EV0078",
-      "at": [3, 51],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing in the grate, except"},
+            {"code": "ShowMessage_2", "string": "for a lot of dirt."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing in the grate, except", []],
-            [0, "ShowMessage_2", "for a lot of dirt.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 51
     },
     {
       "id": 79,
       "name": "EV0079",
-      "at": [6, 38],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing in the grate, except"},
+            {"code": "ShowMessage_2", "string": "for a lot of dirt."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing in the grate, except", []],
-            [0, "ShowMessage_2", "for a lot of dirt.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 38
     },
     {
       "id": 80,
       "name": "EV0080",
-      "at": [14, 38],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No way am I going up there. The rest of", []],
-            [0, "ShowMessage_2", "the Lazer Teeth are probably upstairs.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No way am I going up there. The rest of"},
+            {"code": "ShowMessage_2", "string": "the Lazer Teeth are probably upstairs."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 38
     },
     {
       "id": 81,
       "name": "EV0081",
-      "at": [15, 38],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No way am I going up there. The rest of", []],
-            [0, "ShowMessage_2", "the Lazer Teeth are probably upstairs.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No way am I going up there. The rest of"},
+            {"code": "ShowMessage_2", "string": "the Lazer Teeth are probably upstairs."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 38
     },
     {
       "id": 82,
       "name": "E2",
-      "at": [5, 52],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 5,
+      "y": 52
     },
     {
       "id": 83,
       "name": "E1",
-      "at": [4, 52],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 4,
+      "y": 52
     },
     {
       "id": 84,
       "name": "E3",
-      "at": [6, 52],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 6,
+      "y": 52
     },
     {
       "id": 85,
       "name": "E4",
-      "at": [4, 53],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 4,
+      "y": 53
     },
     {
       "id": 86,
       "name": "E5",
-      "at": [5, 53],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 5,
+      "y": 53
     },
     {
       "id": 87,
       "name": "E6",
-      "at": [6, 53],
       "pages": [
-        {
-          "tile": 80,
-          "layer": "below",
-          "trigger": "touched"
-        }
-      ]
+        {"character_index": 80, "id": 1, "move_type": "stationary", "trigger": "touched"}
+      ],
+      "x": 6,
+      "y": 53
     },
     {
       "id": 88,
       "name": "LTCutsceneGuy1",
-      "at": [92, 97],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 92,
+      "y": 97
     },
     {
       "id": 89,
       "name": "LTCutsceneGuy2",
-      "at": [93, 97],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 93,
+      "y": 97
     }
-  ]
+  ],
+  "height": 100,
+  "save_count": 200,
+  "width": 100
 }

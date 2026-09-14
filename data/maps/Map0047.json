@@ -1,788 +1,1015 @@
 {
-  "id": 47,
-  "name": "Sector 33 With Car",
-  "size": [75, 75],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0047.tiles",
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [8, 37],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 130
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 130,
+            "switch_b_id": 148
           },
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 148, 148, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 149, 149, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [36, 10, 9]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ControlSwitches", "", [0, 148, 148, 1]],
-            [0, "ControlSwitches", "", [0, 149, 149, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [36, 10, 9]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 37
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 37],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 131
+          "animation_type": "fixed_graphic",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 131,
+            "switch_b_id": 148
           },
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 148, 148, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 149, 149, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [36, 10, 9]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ControlSwitches", "", [0, 148, 148, 1]],
-            [0, "ControlSwitches", "", [0, 149, 149, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [36, 10, 9]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 37
     },
     {
       "id": 3,
       "name": "SaveInSector33",
-      "at": [2, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 2,
+      "y": 35
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [0, 35],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't want to get too far away from", []],
-            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
+            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 35
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 36],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't want to get too far away from", []],
-            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
+            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 36
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [19, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't want to get too far away from", []],
-            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
+            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 16
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [19, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't want to get too far away from", []],
-            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
+            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 15
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [26, 36],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't want to get too far away from", []],
-            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
+            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 36
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [5, 34],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "SECTOR 33 DISCOUNT ITEMS"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "SECTOR 33 DISCOUNT ITEMS", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 34
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [3, 34],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [56, 9, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [56, 9, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 34
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [28, 28],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing in the grate."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing in the grate.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 28
     },
     {
       "id": 12,
       "name": "Agency Guard1",
-      "at": [29, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "left"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "character_pattern": "left",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 22
     },
     {
       "id": 13,
       "name": "AgencyGuard3",
-      "at": [27, 19],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "left"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "character_pattern": "left",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 19
     },
     {
       "id": 14,
       "name": "Agency Guard2",
-      "at": [33, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 18
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [32, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "MessageOptions", "", [0, 2, 0, 0]],
-            [1, "PanScreen", "", [2, 0, 4, 4, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Whoa - Agency Guards!", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "What are they doing here? Are they", []],
-            [1, "ShowMessage_2", "going after the Lazer Teeth? This is", []],
-            [1, "ShowMessage_2", "their sector, after all...", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I don't think we should wait to find", []],
-            [1, "ShowMessage_2", "out...", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Good point. Let's get out of here!", []],
-            [1, "PanScreen", "", [2, 2, 4, 4, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [1, "Wait", "", [5]],
-            [1, "ControlSwitches", "", [0, 181, 181, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "PlayBGM", "vswar", [0, 100, 100, 50]],
-            [1, "MessageOptions", "", [0, 2, 0, 0]],
-            [1, "PanScreen", "", [2, 0, 4, 4, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Whoa - Agency Guards!", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "What?", []],
-            [1, "MoveEvent", "", [16, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [17, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [18, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [19, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [20, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [21, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "MoveEvent", "", [22, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [1, "Wait", "", [35]],
-            [1, "MessageOptions", "", [0, 2, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This doesn't look good, Saldra...", []],
-            [1, "MessageOptions", "", [0, 0, 0, 0]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "No!", []],
-            [1, "ChangeEventLocation", "", [23, 0, 32, 28]],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 0]],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "No, don't! That won't help them!", []],
-            [1, "Wait", "", [10]],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 13]],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "What do you know about it?", []],
-            [1, "ShowMessage_2", "You're just a coward, anyway.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "... ... ...", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "These are my friends, man! They're", []],
-            [1, "ShowMessage_2", "my family!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Saldra...", []],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 14]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Promise me that once I'm stronger,", []],
-            [1, "ShowMessage_2", "once I'm more than a match for the", []],
-            [1, "ShowMessage_2", "whole Agency combined...", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "...promise me that you'll help me pay", []],
-            [1, "ShowMessage_2", "back the Agency for this. 'Cuz if", []],
-            [1, "ShowMessage_2", "you don't, I'm gonna charge up there", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "and take at least one of those Guards", []],
-            [1, "ShowMessage_2", "with me.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Then you'd be throwing your life away.", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 12]],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I'll do it! I really will!", []],
-            [1, "Wait", "", [5]],
-            [1, "MessageOptions", "", [0, 1, 0, 0]],
-            [1, "ShowMessage", "AGENCY GUARD", []],
-            [1, "ShowMessage_2", "Did you hear something?", []],
-            [1, "MessageOptions", "", [0, 0, 0, 0]],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 12]],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Oh, damn.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I'll come back for you guys - I won't let", []],
-            [1, "ShowMessage_2", "the Agency get away with this...", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I swear it!", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "LAZER, LAZER TEETH! ZZZZZAAAAP!!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [1, "MoveEvent", "", [12, 8, 0, 0, 24, 25]],
-            [1, "MoveEvent", "", [14, 8, 0, 0, 24, 25]],
-            [1, "MoveEvent", "", [13, 8, 0, 0, 24, 25]],
-            [1, "Wait", "", [5]],
-            [1, "Teleport", "", [47, 5, 36]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 15]],
-            [1, "ChangeEventLocation", "", [23, 0, 6, 36]],
-            [1, "PanScreen", "", [2, 2, 4, 4, 1]],
-            [1, "PlayBGM", "golden_axe-turtlevillage2", [0, 50, 100, 50]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "You didn't have to shout.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "We got away, didn't we?", []],
-            [1, "MoveEvent", "", [23, 8, 0, 0, 36, 3, 37]],
-            [1, "Wait", "", [5]],
-            [1, "ChangeEventLocation", "", [23, 0, 73, 0]],
-            [1, "ControlSwitches", "", [0, 181, 181, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [2, "ConditionalBranch", "", [0, 150, 1, 0, 0, 1]],
-            [3, "MessageOptions", "", [0, 2, 0, 0]],
-            [3, "PanScreen", "", [2, 0, 4, 4, 1]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "Whoa - Agency Guards!", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I shouldn't press my luck, there's just too", []],
-            [3, "ShowMessage_2", "many of them.", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I wonder what the Agency is doing in", []],
-            [3, "ShowMessage_2", "Sector 33? Are they looking for me here?", []],
-            [3, "PanScreen", "", [2, 2, 4, 4, 1]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [3, "Wait", "", [5]],
-            [3, "ControlSwitches", "", [0, 181, 181, 0]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [2, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [3, "MessageOptions", "", [0, 2, 0, 0]],
-            [3, "PanScreen", "", [2, 0, 4, 4, 1]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "Whoa - Agency Guards!", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I shouldn't press my luck, there's just too", []],
-            [3, "ShowMessage_2", "many of them.", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I wonder what the Agency is doing in", []],
-            [3, "ShowMessage_2", "Sector 33? Are they looking for me here?", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "What do you think, AG7?", []],
-            [3, "ShowMessage", "AG7-17", []],
-            [3, "ShowMessage_2", "... ... ...", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "Let's get out of here.", []],
-            [3, "PanScreen", "", [2, 2, 4, 4, 1]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [3, "Wait", "", [5]],
-            [3, "ControlSwitches", "", [0, 181, 181, 0]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
+            {"code": "PanScreen", "indent": 1, "parameters": [2, 0, 4, 4, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Whoa - Agency Guards!"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "What are they doing here? Are they"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "going after the Lazer Teeth? This is"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "their sector, after all..."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I don't think we should wait to find"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "out..."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Good point. Let's get out of here!"
+            },
+            {"code": "PanScreen", "indent": 1, "parameters": [2, 2, 4, 4, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 181, 181, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "PlayBGM", "indent": 1, "parameters": [0, 100, 100, 50], "string": "vswar"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
+            {"code": "PanScreen", "indent": 1, "parameters": [2, 0, 4, 4, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Whoa - Agency Guards!"},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                16, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 3,
+                3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                17, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3,
+                3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                18, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0,
+                3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                19, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0,
+                0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                20, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0,
+                0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                21, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0,
+                0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                22, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0,
+                0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+              ]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [35]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This doesn't look good, Saldra..."
+            },
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "No!"},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [23, 0, 32, 28]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "No, don't! That won't help them!"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 13]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What do you know about it?"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "You're just a coward, anyway."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "These are my friends, man! They're"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "my family!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Saldra..."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Promise me that once I'm stronger,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "once I'm more than a match for the"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "whole Agency combined..."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "...promise me that you'll help me pay"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "back the Agency for this. 'Cuz if"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "you don't, I'm gonna charge up there"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "and take at least one of those Guards"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "with me."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Then you'd be throwing your life away."
+            },
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2, 2, 12]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I'll do it! I really will!"},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Did you hear something?"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 12]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Oh, damn."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'll come back for you guys - I won't let"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "the Agency get away with this..."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I swear it!"},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "LAZER, LAZER TEETH! ZZZZZAAAAP!!"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [12, 8, 0, 0, 24, 25]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [14, 8, 0, 0, 24, 25]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [13, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "Teleport", "indent": 1, "parameters": [47, 5, 36]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 15]},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [23, 0, 6, 36]},
+            {"code": "PanScreen", "indent": 1, "parameters": [2, 2, 4, 4, 1]},
+            {
+              "code": "PlayBGM",
+              "indent": 1,
+              "parameters": [0, 50, 100, 50],
+              "string": "golden_axe-turtlevillage2"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "You didn't have to shout."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "We got away, didn't we?"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [23, 8, 0, 0, 36, 3, 37]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [23, 0, 73, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 181, 181, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 150, 1, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 3, "parameters": [0, 2, 0, 0]},
+            {"code": "PanScreen", "indent": 3, "parameters": [2, 0, 4, 4, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "Whoa - Agency Guards!"},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I shouldn't press my luck, there's just too"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "many of them."},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I wonder what the Agency is doing in"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Sector 33? Are they looking for me here?"
+            },
+            {"code": "PanScreen", "indent": 3, "parameters": [2, 2, 4, 4, 1]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "indent": 3, "parameters": [5]},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 181, 181, 0]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 3, "parameters": [0, 2, 0, 0]},
+            {"code": "PanScreen", "indent": 3, "parameters": [2, 0, 4, 4, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "Whoa - Agency Guards!"},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I shouldn't press my luck, there's just too"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "many of them."},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I wonder what the Agency is doing in"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Sector 33? Are they looking for me here?"
+            },
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "What do you think, AG7?"},
+            {"code": "ShowMessage", "indent": 3, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "... ... ..."},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "Let's get out of here."},
+            {"code": "PanScreen", "indent": 3, "parameters": [2, 2, 4, 4, 1]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "indent": 3, "parameters": [5]},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 181, 181, 0]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 181
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 181
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's just too many guards!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's just too many guards!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 28
     },
     {
       "id": 16,
       "name": "LeadingAgent",
-      "at": [46, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 46,
+      "y": 21
     },
     {
       "id": 17,
       "name": "LT1",
-      "at": [47, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 47,
+      "y": 21
     },
     {
       "id": 18,
       "name": "LT2",
-      "at": [48, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 21
     },
     {
       "id": 19,
       "name": "LT3",
-      "at": [49, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 21
     },
     {
       "id": 20,
       "name": "LT4",
-      "at": [50, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 50,
+      "y": 21
     },
     {
       "id": 21,
       "name": "LT5",
-      "at": [51, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 51,
+      "y": 21
     },
     {
       "id": 22,
       "name": "RearAgent",
-      "at": [52, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 52,
+      "y": 21
     },
     {
       "id": 23,
       "name": "Saldra",
-      "at": [74, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 74
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [1, 32],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 3, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 3, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 32
     },
     {
       "id": 25,
       "name": "EV0025",
-      "at": [18, 35],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The door is locked."},
+            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "OK, let's see if I can pick the lock on"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "this door... just give me a minute..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it'll do me no good, man."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't know how to pick locks, man."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Let me try to pick the lock, Talan..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it doesn't matter."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't really know how to pick locks."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The door is locked.", []],
-            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
-            [3, "ShowMessage_2", "this door... just give me a minute...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "ARDEN", []],
-            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 35
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [23, 35],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The door is locked."},
+            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "OK, let's see if I can pick the lock on"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "this door... just give me a minute..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it'll do me no good, man."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't know how to pick locks, man."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Let me try to pick the lock, Talan..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it doesn't matter."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't really know how to pick locks."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The door is locked.", []],
-            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
-            [3, "ShowMessage_2", "this door... just give me a minute...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "ARDEN", []],
-            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 35
     }
-  ]
+  ],
+  "height": 75,
+  "save_count": 38,
+  "width": 75
 }

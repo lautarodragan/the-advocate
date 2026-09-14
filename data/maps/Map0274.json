@@ -1,24 +1,20 @@
 {
-  "id": 274,
-  "name": "Ship Flash",
-  "size": [20, 15],
-  "chipset": [41, "tech7"],
-  "tiles": "Map0274.tiles",
+  "chipset_id": 41,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "TintScreen", "", [200, 170, 130, 100, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [200, 170, 130, 100, 0, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 7
 }

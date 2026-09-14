@@ -1,137 +1,150 @@
 {
-  "id": 23,
-  "name": "Beggar's Hideout",
-  "size": [20, 15],
-  "chipset": [43, "caveD"],
-  "tiles": "Map0023.tiles",
+  "chipset_id": 43,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [11, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [21, 41, 4]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [21, 41, 4]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 13
     },
     {
       "id": 2,
       "name": "Life Bucket",
-      "at": [14, 4],
       "pages": [
         {
-          "tile": 25,
+          "character_index": 25,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "FullHeal", "parameters": [0, 0]},
+            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
+            {"code": "ShowMessage_2", "string": "I wonder if I could bring some of it"},
+            {"code": "ShowMessage_2", "string": "with me?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Recovery4", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "FullHeal", "", [0, 0]],
-            [0, "ShowMessage", "HP and SP completely recovered!", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
-            [0, "ShowMessage_2", "I wonder if I could bring some of it", []],
-            [0, "ShowMessage_2", "with me?", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "item": 106
+          "character_index": 25,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 106
           },
-          "tile": 25,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "FullHeal", "parameters": [0, 0]},
+            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Should I fill up an empty bottle?"},
+            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [1, 0, 106, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 107, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Water3"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN filled an empty bottle with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "the healing liquid."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think I'll hold onto my empty bottle."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Recovery4", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "FullHeal", "", [0, 0]],
-            [0, "ShowMessage", "HP and SP completely recovered!", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Should I fill up an empty bottle?", []],
-            [0, "ShowChoice", "Yes/No", [2]],
-            [0, "ShowChoiceOption", "Yes", [0]],
-            [1, "ChangeItems", "", [1, 0, 106, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "PlaySound", "Water3", [100, 100, 50]],
-            [1, "ShowMessage", "TALAN filled an empty bottle with", []],
-            [1, "ShowMessage_2", "the healing liquid.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I think I'll hold onto my empty bottle.", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 4
     },
     {
       "id": 3,
       "name": "SaveInBeggarsHideout",
-      "at": [9, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 9,
+      "y": 4
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [8, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 3, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 3, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 8
     }
-  ]
+  ],
+  "save_count": 36
 }

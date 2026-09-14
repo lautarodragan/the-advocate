@@ -1,1437 +1,1595 @@
 {
-  "id": 255,
-  "name": "Under the Bridge",
-  "size": [75, 25],
-  "chipset": [45, "underbridge"],
-  "tiles": "Map0255.tiles",
-  "parallax": {
-    "name": "undrbrdgpan",
-    "loop_x": true,
-    "loop_y": true,
-    "scroll_x": 1,
-    "scroll_y": 1
-  },
+  "chipset_id": 45,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 1, 1, 0]],
-            [0, "ShowMessage", "BRIDGE OVER THE RIVER LASHE", []],
-            [0, "ShowMessage_2", "The undercarriage of the bridge isn't", []],
-            [0, "ShowMessage_2", "terribly sturdy, and whole sections may", []],
-            [0, "ShowMessage_2", "creak underfoot.", []],
-            [0, "ShowMessage", "BRIDGE OVER THE RIVER LASHE", []],
-            [0, "ShowMessage_2", "Make as little noise as possible!", []],
-            [0, "ShowMessage_2", "If you hear the girders beneath your", []],
-            [0, "ShowMessage_2", "feet creaking, move off them quickly!", []],
-            [0, "ControlSwitches", "", [0, 848, 848, 0]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 1, 1, 0]},
+            {"code": "ShowMessage", "string": "BRIDGE OVER THE RIVER LASHE"},
+            {"code": "ShowMessage_2", "string": "The undercarriage of the bridge isn't"},
+            {"code": "ShowMessage_2", "string": "terribly sturdy, and whole sections may"},
+            {"code": "ShowMessage_2", "string": "creak underfoot."},
+            {"code": "ShowMessage", "string": "BRIDGE OVER THE RIVER LASHE"},
+            {"code": "ShowMessage_2", "string": "Make as little noise as possible!"},
+            {"code": "ShowMessage_2", "string": "If you hear the girders beneath your"},
+            {"code": "ShowMessage_2", "string": "feet creaking, move off them quickly!"},
+            {"code": "ControlSwitches", "parameters": [0, 848, 848, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 848
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 848
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [68, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 5
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [66, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 66,
+      "y": 8
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [65, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 65,
+      "y": 8
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [60, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 60,
+      "y": 5
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [59, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 5
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [59, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 10
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [58, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 58,
+      "y": 10
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [56, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 56,
+      "y": 10
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [74, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "ConditionalBranch", "", [1, 165, 0, 7, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 241, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 13, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 241, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 20, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 244, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 26, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 242, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 34, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 241, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 42, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 245, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 54, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 243, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 165, 0, 66, 0, 1]],
-            [1, "EnemyEncounter", "underbridgeback", [0, 245, 1, 0, 0, 0]],
-            [1, "ControlVars", "", [0, 165, 165, 0, 0, 0, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 7, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 241, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 13, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 241, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 20, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 244, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 26, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 242, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 34, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 241, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 42, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 245, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 54, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 243, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 165, 0, 66, 0, 1]},
+            {
+              "code": "EnemyEncounter",
+              "indent": 1,
+              "parameters": [0, 245, 1, 0, 0, 0],
+              "string": "underbridgeback"
+            },
+            {"code": "ControlVars", "indent": 1, "parameters": [0, 165, 165, 0, 0, 0, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 74
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [63, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 63,
+      "y": 15
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [66, 18],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 66,
+      "y": 18
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [62, 23],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 62,
+      "y": 23
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [61, 23],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 61,
+      "y": 23
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [46, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 46,
+      "y": 15
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [55, 17],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 55,
+      "y": 17
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [54, 17],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 54,
+      "y": 17
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [57, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 57,
+      "y": 16
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [46, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 46,
+      "y": 20
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [39, 22],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 22
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [42, 23],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 42,
+      "y": 23
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [38, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 20
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [37, 21],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 21
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [36, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 15
     },
     {
       "id": 25,
       "name": "EV0025",
-      "at": [37, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 15
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [34, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 15
     },
     {
       "id": 27,
       "name": "EV0027",
-      "at": [31, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 16
     },
     {
       "id": 28,
       "name": "EV0028",
-      "at": [31, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 15
     },
     {
       "id": 29,
       "name": "EV0029",
-      "at": [30, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 13
     },
     {
       "id": 30,
       "name": "EV0030",
-      "at": [30, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 12
     },
     {
       "id": 31,
       "name": "EV0031",
-      "at": [25, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 20
     },
     {
       "id": 32,
       "name": "EV0032",
-      "at": [24, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 20
     },
     {
       "id": 33,
       "name": "EV0033",
-      "at": [27, 21],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 21
     },
     {
       "id": 34,
       "name": "EV0034",
-      "at": [26, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 15
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [27, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 13
     },
     {
       "id": 36,
       "name": "EV0036",
-      "at": [29, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 6
     },
     {
       "id": 37,
       "name": "EV0037",
-      "at": [11, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 5
     },
     {
       "id": 38,
       "name": "EV0038",
-      "at": [11, 4],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 4
     },
     {
       "id": 39,
       "name": "EV0039",
-      "at": [8, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 7
     },
     {
       "id": 40,
       "name": "EV0040",
-      "at": [8, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 10
     },
     {
       "id": 41,
       "name": "EV0041",
-      "at": [9, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 12
     },
     {
       "id": 42,
       "name": "EV0042",
-      "at": [1, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 6
     },
     {
       "id": 43,
       "name": "EV0043",
-      "at": [2, 4],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 4
     },
     {
       "id": 44,
       "name": "EV0044",
-      "at": [2, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 8
     },
     {
       "id": 45,
       "name": "EV0045",
-      "at": [4, 18],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 18
     },
     {
       "id": 46,
       "name": "EV0046",
-      "at": [17, 11],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 11
     },
     {
       "id": 47,
       "name": "EV0047",
-      "at": [17, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 12
     },
     {
       "id": 48,
       "name": "EV0048",
-      "at": [16, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 6
     },
     {
       "id": 49,
       "name": "EV0049",
-      "at": [42, 11],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 42,
+      "y": 11
     },
     {
       "id": 50,
       "name": "EV0050",
-      "at": [43, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 43,
+      "y": 6
     },
     {
       "id": 51,
       "name": "EV0051",
-      "at": [45, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 45,
+      "y": 3
     },
     {
       "id": 52,
       "name": "EV0052",
-      "at": [46, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 46,
+      "y": 5
     },
     {
       "id": 53,
       "name": "EV0053",
-      "at": [40, 1],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 1
     },
     {
       "id": 54,
       "name": "EV0054",
-      "at": [31, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 6
     },
     {
       "id": 55,
       "name": "EV0055",
-      "at": [32, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 7
     },
     {
       "id": 56,
       "name": "EV0056",
-      "at": [31, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 8
     },
     {
       "id": 57,
       "name": "EV0057",
-      "at": [34, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 3
     },
     {
       "id": 58,
       "name": "EV0058",
-      "at": [22, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 2
     },
     {
       "id": 59,
       "name": "EV0059",
-      "at": [12, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 2
     },
     {
       "id": 60,
       "name": "EV0060",
-      "at": [14, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 61,
       "name": "EV0061",
-      "at": [18, 17],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 17
     },
     {
       "id": 62,
       "name": "EV0062",
-      "at": [23, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 13
     },
     {
       "id": 63,
       "name": "EV0063",
-      "at": [1, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 165, 165, 1, 0, 1, 0]],
-            [0, "PlaySound", "Sword3", [100, 50, 50]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 165, 165, 1, 0, 1, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Sword3"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 2
     },
     {
       "id": 64,
       "name": "EV0064",
-      "at": [1, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ControlSwitches", "", [0, 849, 849, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<phew>! We're safely past the checkpoint.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [66, 73, 7]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 849, 849, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<phew>! We're safely past the checkpoint."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [66, 73, 7]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1
     },
     {
       "id": 65,
       "name": "AfterBattleMint",
-      "at": [74, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 74,
+      "y": 24
     },
     {
       "id": 66,
       "name": "Bridge.1",
-      "at": [60, 20],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 921, 921, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       FightingDirty vol. 3"},
+            {"code": "ChangeItems", "parameters": [0, 0, 395, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 921, 921, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       FightingDirty vol. 3", []],
-            [0, "ChangeItems", "", [0, 0, 395, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 921
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 921
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 60,
+      "y": 20
     },
     {
       "id": 67,
       "name": "Bridge.2",
-      "at": [66, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 939, 939, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Water Battery"},
+            {"code": "ChangeItems", "parameters": [0, 0, 330, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 939, 939, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Water Battery", []],
-            [0, "ChangeItems", "", [0, 0, 330, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 939
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 939
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 66,
+      "y": 10
     },
     {
       "id": 68,
       "name": "Bridge.3",
-      "at": [52, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 940, 940, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       DefensiveMatrix-!O"},
+            {"code": "ChangeItems", "parameters": [0, 0, 294, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 940, 940, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       DefensiveMatrix-!O", []],
-            [0, "ChangeItems", "", [0, 0, 294, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 940
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 940
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 52,
+      "y": 12
     },
     {
       "id": 69,
       "name": "Bridge.4",
-      "at": [23, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 941, 941, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Liquid Staff-RL"},
+            {"code": "ChangeItems", "parameters": [0, 0, 175, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 941, 941, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Liquid Staff-RL", []],
-            [0, "ChangeItems", "", [0, 0, 175, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 941
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 941
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 18
     },
     {
       "id": 70,
       "name": "Bridge.5",
-      "at": [15, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 942, 942, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Liquid Knife-R"},
+            {"code": "ChangeItems", "parameters": [0, 0, 160, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 942, 942, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Liquid Knife-R", []],
-            [0, "ChangeItems", "", [0, 0, 160, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 942
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 942
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 5
     },
     {
       "id": 71,
       "name": "Bridge.6",
-      "at": [3, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 943, 943, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Pungent Elixir-LIFE x4"},
+            {"code": "ChangeItems", "parameters": [0, 0, 115, 0, 4]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 943, 943, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Pungent Elixir-LIFE x4", []],
-            [0, "ChangeItems", "", [0, 0, 115, 0, 4]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 943
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 943
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 6
     },
     {
       "id": 72,
       "name": "Bridge.7",
-      "at": [46, 1],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 944, 944, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Fresh Pita-HP x3"},
+            {"code": "ChangeItems", "parameters": [0, 0, 114, 0, 3]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 944, 944, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Fresh Pita-HP x3", []],
-            [0, "ChangeItems", "", [0, 0, 114, 0, 3]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 944
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 944
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 46,
+      "y": 1
     }
-  ]
+  ],
+  "height": 25,
+  "parallax_auto_loop_x": true,
+  "parallax_auto_loop_y": true,
+  "parallax_flag": true,
+  "parallax_loop_x": true,
+  "parallax_loop_y": true,
+  "parallax_name": "undrbrdgpan",
+  "parallax_sx": 1,
+  "parallax_sy": 1,
+  "save_count": 37,
+  "width": 75
 }

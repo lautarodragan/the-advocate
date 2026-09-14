@@ -1,1645 +1,1670 @@
 {
-  "id": 148,
-  "name": "Paradise Burning",
-  "size": [60, 60],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0148.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "DeadAgencyGuard",
-      "at": [4, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 7
     },
     {
       "id": 2,
       "name": "DeadAgencyGuard",
-      "at": [11, 15],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 15
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [2, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 44
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [6, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 44
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [7, 43],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 43
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [7, 42],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 42
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [21, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 37
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [9, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 39
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [4, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 44
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [22, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 37
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [21, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 35
     },
     {
       "id": 12,
       "name": "DeadDefender",
-      "at": [8, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 36
     },
     {
       "id": 13,
       "name": "DeadAgencyGuard",
-      "at": [9, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 34
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [4, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 34
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [1, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 37
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [12, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 29
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [19, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 17
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [16, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 17
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [20, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 22
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [20, 20],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 20
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [16, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 28
     },
     {
       "id": 22,
       "name": "EmilyToStorage",
-      "at": [19, 41],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 41
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [18, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily!", []],
-            [0, "PanScreen", "", [2, 2, 10, 5, 1]],
-            [0, "PanScreen", "", [2, 1, 6, 4, 0]],
-            [0, "MoveEvent", "", [22, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 23, 23, 15, 23, 23, 13, 23, 23, 0, 29]],
-            [0, "Wait", "", [30]],
-            [0, "PanScreen", "", [3, 2, 10, 5, 1]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily! Where are you going?", []],
-            [0, "ChangeEventLocation", "", [22, 0, 59, 56]],
-            [0, "ControlSwitches", "", [0, 478, 478, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily!"},
+            {"code": "PanScreen", "parameters": [2, 2, 10, 5, 1]},
+            {"code": "PanScreen", "parameters": [2, 1, 6, 4, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                22, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 23, 23, 15, 23, 23, 13, 23, 23,
+                0, 29
+              ]
+            },
+            {"code": "Wait", "parameters": [30]},
+            {"code": "PanScreen", "parameters": [3, 2, 10, 5, 1]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily! Where are you going?"},
+            {"code": "ChangeEventLocation", "parameters": [22, 0, 59, 56]},
+            {"code": "ControlSwitches", "parameters": [0, 478, 478, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 478
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 478
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 28
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [21, 43],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 43
     },
     {
       "id": 25,
       "name": "EV0025",
-      "at": [22, 42],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 42
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [27, 32],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 32
     },
     {
       "id": 27,
       "name": "EV0027",
-      "at": [29, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 28
     },
     {
       "id": 28,
       "name": "EV0028",
-      "at": [23, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 26
     },
     {
       "id": 29,
       "name": "EV0029",
-      "at": [29, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 25
     },
     {
       "id": 30,
       "name": "EV0030",
-      "at": [30, 30],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 30
     },
     {
       "id": 31,
       "name": "EV0031",
-      "at": [31, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 26
     },
     {
       "id": 32,
       "name": "EV0032",
-      "at": [26, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 35
     },
     {
       "id": 33,
       "name": "DeadAgencyGuard",
-      "at": [25, 30],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 30
     },
     {
       "id": 34,
       "name": "EV0034",
-      "at": [25, 31],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 31
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [29, 55],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 55
     },
     {
       "id": 36,
       "name": "EV0036",
-      "at": [29, 58],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 58
     },
     {
       "id": 37,
       "name": "EV0037",
-      "at": [28, 57],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 57
     },
     {
       "id": 38,
       "name": "EV0038",
-      "at": [38, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 48
     },
     {
       "id": 39,
       "name": "EV0039",
-      "at": [8, 15],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 15
     },
     {
       "id": 40,
       "name": "EV0040",
-      "at": [37, 50],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 50
     },
     {
       "id": 41,
       "name": "EV0041",
-      "at": [40, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 49
     },
     {
       "id": 42,
       "name": "EV0042",
-      "at": [39, 47],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 47
     },
     {
       "id": 43,
       "name": "EV0043",
-      "at": [29, 45],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 45
     },
     {
       "id": 44,
       "name": "EV0044",
-      "at": [29, 47],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 47
     },
     {
       "id": 45,
       "name": "EV0045",
-      "at": [28, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 49
     },
     {
       "id": 46,
       "name": "EV0046",
-      "at": [26, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 49
     },
     {
       "id": 47,
       "name": "EV0047",
-      "at": [25, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 48
     },
     {
       "id": 48,
       "name": "EV0048",
-      "at": [30, 41],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 41
     },
     {
       "id": 49,
       "name": "Radin",
-      "at": [59, 46],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 46
     },
     {
       "id": 50,
       "name": "EV0050",
-      "at": [11, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 17
     },
     {
       "id": 51,
       "name": "EV0051",
-      "at": [14, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 52,
       "name": "EV0052",
-      "at": [0, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 17
     },
     {
       "id": 53,
       "name": "EV0053",
-      "at": [3, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 17
     },
     {
       "id": 54,
       "name": "EV0054",
-      "at": [2, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 14
     },
     {
       "id": 55,
       "name": "EV0055",
-      "at": [10, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 16
     },
     {
       "id": 56,
       "name": "EV0056",
-      "at": [9, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 24
     },
     {
       "id": 57,
       "name": "EV0057",
-      "at": [12, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 25
     },
     {
       "id": 58,
       "name": "EV0058",
-      "at": [14, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 27
     },
     {
       "id": 59,
       "name": "EV0059",
-      "at": [10, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 27
     },
     {
       "id": 60,
       "name": "EV0060",
-      "at": [1, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 28
     },
     {
       "id": 61,
       "name": "EV0061",
-      "at": [2, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 26
     },
     {
       "id": 62,
       "name": "EV0062",
-      "at": [0, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 25
     },
     {
       "id": 63,
       "name": "EV0063",
-      "at": [5, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 24
     },
     {
       "id": 64,
       "name": "EV0064",
-      "at": [1, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 22
     },
     {
       "id": 65,
       "name": "ParadiseBurning1",
-      "at": [0, 1],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangeSystemBGM", "toprepare", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "toprepare", [1, 0, 100, 100, 50]],
-            [0, "TintScreen", "", [80, 0, 20, 100, 5, 1]],
-            [0, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [1, "ChangeEventLocation", "", [49, 0, 1, 41]],
-            [1, "MoveEvent", "", [49, 8, 0, 0, 2, 13]],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "RADIN", []],
-            [1, "ShowMessage_2", "This is terrible! Who could have done this?!", []],
-            [1, "ShowMessage_2", "Not... not the bandits?!", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This is too destructive for bandits - it had", []],
-            [1, "ShowMessage_2", "to be the Agency!", []],
-            [1, "MoveEvent", "", [49, 8, 0, 0, 12]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "RADIN", []],
-            [1, "ShowMessage_2", "The Agency... that must have been the", []],
-            [1, "ShowMessage_2", "deal that Saren was talking about!", []],
-            [1, "Wait", "", [5]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "What?", []],
-            [1, "MoveEvent", "", [49, 8, 0, 0, 24, 25]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "RADIN", []],
-            [1, "ShowMessage_2", "I'll bring the antidote to Isabella - you look", []],
-            [1, "ShowMessage_2", "for survivors, Talan! And stay alive!", []],
-            [1, "Wait", "", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I will! You too, Radin!", []],
-            [1, "MoveEvent", "", [49, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [1, "ChangePartyMembers", "", [1, 0, 27]],
-            [1, "Wait", "", [20]],
-            [1, "ChangeEventLocation", "", [49, 0, 59, 55]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [2, "ChangeEventLocation", "", [78, 0, 1, 41]],
-            [2, "ChangeEventLocation", "", [79, 0, 1, 41]],
-            [2, "MoveEvent", "", [78, 8, 0, 0, 1]],
-            [2, "MoveEvent", "", [79, 8, 0, 0, 2, 13]],
-            [2, "Wait", "", [5]],
-            [2, "ShowMessage", "DRAGO", []],
-            [2, "ShowMessage_2", "This is terrible!", []],
-            [2, "ShowMessage", "SERN", []],
-            [2, "ShowMessage_2", "We're too late! Damn!", []],
-            [2, "Wait", "", [10]],
-            [2, "MoveEvent", "", [78, 8, 0, 0, 15]],
-            [2, "Wait", "", [3]],
-            [2, "ShowMessage", "DRAGO", []],
-            [2, "ShowMessage_2", "Talan, I need to see if the Farmers were", []],
-            [2, "ShowMessage_2", "able to get the antidote for Isabella...", []],
-            [2, "ShowMessage_2", "I...", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I'm sure they did, Drago... but hurry!", []],
-            [2, "MoveEvent", "", [78, 8, 0, 0, 28, 28, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [2, "MoveEvent", "", [79, 8, 0, 0, 12]],
-            [2, "Wait", "", [5]],
-            [2, "ShowMessage", "SERN", []],
-            [2, "ShowMessage_2", "We need to look for survivors, boy!", []],
-            [2, "MoveEvent", "", [79, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [2, "ChangePartyMembers", "", [1, 0, 28]],
-            [2, "ChangePartyMembers", "", [1, 0, 29]],
-            [2, "Wait", "", [20]],
-            [2, "ChangeEventLocation", "", [79, 0, 59, 56]],
-            [2, "ChangeEventLocation", "", [78, 0, 58, 56]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ChangeEventLocation", "", [80, 0, 1, 41]],
-            [3, "MoveEvent", "", [80, 8, 0, 0, 2, 13]],
-            [3, "Wait", "", [5]],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "This is terrible! Talan, we have to do", []],
-            [3, "ShowMessage_2", "something!", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "There have to be survivors - there", []],
-            [3, "ShowMessage_2", "just have to be!", []],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "Let's split up - good luck, Talan!", []],
-            [3, "MoveEvent", "", [80, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [3, "ChangePartyMembers", "", [1, 0, 26]],
-            [3, "Wait", "", [20]],
-            [3, "ChangeEventLocation", "", [80, 0, 59, 54]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 447, 447, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "toprepare"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "toprepare"
+            },
+            {"code": "TintScreen", "parameters": [80, 0, 20, 100, 5, 1]},
+            {"code": "ConditionalBranch", "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [49, 0, 1, 41]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [49, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This is terrible! Who could have done this?!"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Not... not the bandits?!"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This is too destructive for bandits - it had"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "to be the Agency!"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [49, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The Agency... that must have been the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "deal that Saren was talking about!"
+            },
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [49, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'll bring the antidote to Isabella - you look"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "for survivors, Talan! And stay alive!"
+            },
+            {"code": "Wait", "indent": 1, "parameters": [1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I will! You too, Radin!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [49, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [1, 0, 27]},
+            {"code": "Wait", "indent": 1, "parameters": [20]},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [49, 0, 59, 55]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [78, 0, 1, 41]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [79, 0, 1, 41]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [78, 8, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [79, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "indent": 2, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 2, "string": "DRAGO"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "This is terrible!"},
+            {"code": "ShowMessage", "indent": 2, "string": "SERN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "We're too late! Damn!"},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [78, 8, 0, 0, 15]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 2, "string": "DRAGO"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Talan, I need to see if the Farmers were"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "able to get the antidote for Isabella..."
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "I..."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I'm sure they did, Drago... but hurry!"
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [78, 8, 0, 0, 28, 28, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {"code": "MoveEvent", "indent": 2, "parameters": [79, 8, 0, 0, 12]},
+            {"code": "Wait", "indent": 2, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 2, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "We need to look for survivors, boy!"
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [79, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 29]},
+            {"code": "Wait", "indent": 2, "parameters": [20]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [79, 0, 59, 56]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [78, 0, 58, 56]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ChangeEventLocation", "indent": 3, "parameters": [80, 0, 1, 41]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [80, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "indent": 3, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "This is terrible! Talan, we have to do"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "something!"},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "There have to be survivors - there"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "just have to be!"},
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Let's split up - good luck, Talan!"
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 3,
+              "parameters": [80, 8, 0, 0, 28, 28, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 26]},
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {"code": "ChangeEventLocation", "indent": 3, "parameters": [80, 0, 59, 54]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 447, 447, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 447
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 447
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 1
     },
     {
       "id": 66,
       "name": "EV0066",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "Wait", "", [5]],
-            [0, "FlashScreen", "", [31, 7, 0, 31, 2, 0]],
-            [0, "Wait", "", [5]],
-            [0, "FlashScreen", "", [31, 0, 11, 0, 3, 0]],
-            [0, "Wait", "", [7]],
-            [0, "FlashScreen", "", [31, 7, 0, 31, 2, 0]],
-            [0, "Wait", "", [4]],
-            [0, "FlashScreen", "", [31, 0, 11, 0, 3, 0]],
-            [0, "Wait", "", [3]]
-          ]
+          "event_commands": [
+            {"code": "Wait", "parameters": [5]},
+            {"code": "FlashScreen", "parameters": [31, 7, 0, 31, 2, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "FlashScreen", "parameters": [31, 0, 11, 0, 3, 0]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "FlashScreen", "parameters": [31, 7, 0, 31, 2, 0]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "FlashScreen", "parameters": [31, 0, 11, 0, 3, 0]},
+            {"code": "Wait", "parameters": [3]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
       ]
     },
     {
       "id": 67,
       "name": "DeadDefender",
-      "at": [6, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 12
     },
     {
       "id": 68,
       "name": "DeadDefender",
-      "at": [2, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 10
     },
     {
       "id": 69,
       "name": "DeadDefender",
-      "at": [10, 19],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 19
     },
     {
       "id": 70,
       "name": "EV0070",
-      "at": [3, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 24
     },
     {
       "id": 71,
       "name": "EV0071",
-      "at": [12, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 27
     },
     {
       "id": 72,
       "name": "EV0072",
-      "at": [14, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 38
     },
     {
       "id": 73,
       "name": "EV0073",
-      "at": [16, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 33
     },
     {
       "id": 74,
       "name": "EV0074",
-      "at": [12, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 36
     },
     {
       "id": 75,
       "name": "DeadDefender",
-      "at": [29, 50],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 50
     },
     {
       "id": 76,
       "name": "DeadAgencyGuard",
-      "at": [29, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 48
     },
     {
       "id": 77,
       "name": "EV0077",
-      "at": [28, 40],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This is the entrance to Storage... did", []],
-            [0, "ShowMessage_2", "she go inside?", []],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [15]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [168, 10, 29]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This is the entrance to Storage... did"},
+            {"code": "ShowMessage_2", "string": "she go inside?"},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [168, 10, 29]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 40
     },
     {
       "id": 78,
       "name": "Drago",
-      "at": [59, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 49
     },
     {
       "id": 79,
       "name": "Sern",
-      "at": [59, 50],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 50
     },
     {
       "id": 80,
       "name": "Lerle",
-      "at": [59, 47],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 47
     },
     {
       "id": 81,
       "name": "AfterBattleMint",
-      "at": [1, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 1
     },
     {
       "id": 82,
       "name": "EV0082",
-      "at": [2, 40],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "<--- Farmland and Town Limits"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "<--- Farmland and Town Limits", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 40
     }
-  ]
+  ],
+  "height": 60,
+  "save_count": 187,
+  "width": 60
 }

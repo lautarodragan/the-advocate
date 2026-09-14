@@ -1,436 +1,529 @@
 {
-  "id": 254,
-  "name": "Emily Depths",
-  "size": [40, 45],
-  "chipset": [37, "shrine1"],
-  "tiles": "Map0254.tiles",
+  "chipset_id": 37,
   "events": [
     {
       "id": 1,
       "name": "Emily",
-      "at": [30, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "emily",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Talan! You're all right!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't like this tunnel - I'm not sure that"},
+            {"code": "ShowMessage_2", "string": "it's a good idea for us to be here."},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Let's just find Sern and get out of here."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "We can find some other way to evade"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "the Agency."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Let's just find Radin and get out of here."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "We can find some other way to evade"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "the Agency."},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Let's just find Lerle and get out of here."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "We can find some other way to evade"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "the Agency."},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 25]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                1, 8, 0, 0, 36, 1, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
+                0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 878, 878, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Talan! You're all right!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't like this tunnel - I'm not sure that", []],
-            [0, "ShowMessage_2", "it's a good idea for us to be here.", []],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ShowMessage", "EMILY", []],
-            [1, "ShowMessage_2", "Let's just find Sern and get out of here.", []],
-            [1, "ShowMessage_2", "We can find some other way to evade", []],
-            [1, "ShowMessage_2", "the Agency.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ShowMessage", "EMILY", []],
-            [2, "ShowMessage_2", "Let's just find Radin and get out of here.", []],
-            [2, "ShowMessage_2", "We can find some other way to evade", []],
-            [2, "ShowMessage_2", "the Agency.", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ShowMessage", "EMILY", []],
-            [3, "ShowMessage_2", "Let's just find Lerle and get out of here.", []],
-            [3, "ShowMessage_2", "We can find some other way to evade", []],
-            [3, "ShowMessage_2", "the Agency.", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ChangePartyMembers", "", [0, 0, 25]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 878, 878, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 878
+          "character_direction": "left",
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 878
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 37
     },
     {
       "id": 2,
       "name": "AfterBattleMint",
-      "at": [39, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 39
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [18, 36],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [237, 10, 13]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [237, 10, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 36
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [39, 44],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 44
     },
     {
       "id": 5,
       "name": "SlopingTunnel.9",
-      "at": [14, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 953, 953, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 335, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Rejuve Field-HP"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 953, 953, 0]],
-            [0, "ChangeItems", "", [0, 0, 335, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Rejuve Field-HP", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 953
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 953
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 5
     },
     {
       "id": 6,
       "name": "SlopingTunnel.10",
-      "at": [1, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 954, 954, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 329, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Carbon Battery x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 954, 954, 0]],
-            [0, "ChangeItems", "", [0, 0, 329, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Carbon Battery x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 954
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 954
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 26
     },
     {
       "id": 7,
       "name": "SlopingTunnel.11",
-      "at": [8, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 955, 955, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 243, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Electric Armor-B"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 955, 955, 0]],
-            [0, "ChangeItems", "", [0, 0, 243, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Electric Armor-B", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 955
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 955
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 33
     },
     {
       "id": 8,
       "name": "SlopingTunnel.12",
-      "at": [20, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 956, 956, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 301, 0, 3]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Vial of Sight x3"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 956, 956, 0]],
-            [0, "ChangeItems", "", [0, 0, 301, 0, 3]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Vial of Sight x3", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 956
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 956
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 28
     },
     {
       "id": 9,
       "name": "SlopingTunnel.13",
-      "at": [38, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 957, 957, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 315, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Black Fungus"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 957, 957, 0]],
-            [0, "ChangeItems", "", [0, 0, 315, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Black Fungus", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 957
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 957
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 18
     },
     {
       "id": 10,
       "name": "SlopingTunnel.14",
-      "at": [24, 32],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 958, 958, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 329, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Carbon Battery x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 958, 958, 0]],
-            [0, "ChangeItems", "", [0, 0, 329, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Carbon Battery x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 958
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 958
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 32
     },
     {
       "id": 11,
       "name": "RadinBox.20",
-      "at": [28, 18],
       "pages": [
         {
-          "conditions": {
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 998, 998, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 315, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Black Fungus"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 998, 998, 0]],
-            [0, "ChangeItems", "", [0, 0, 315, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Black Fungus", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 998,
-            "switch_b": 386
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 998,
+            "switch_b_id": 386
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 18
     }
-  ]
+  ],
+  "height": 45,
+  "save_count": 49,
+  "width": 40
 }

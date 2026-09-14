@@ -1,94 +1,112 @@
 {
-  "id": 348,
-  "name": "Small General Store",
-  "size": [20, 15],
-  "chipset": [40, "ABLForestTown"],
-  "tiles": "Map0348.tiles",
+  "chipset_id": 40,
   "events": [
     {
       "id": 1,
       "name": "Store Owner",
-      "at": [9, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "STORE OWNER"},
+            {"code": "ShowMessage_2", "string": "I'm sorry, I'm just closing up shop."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Could you just tell me if I'm on the"},
+            {"code": "ShowMessage_2", "string": "right road for Paradise?"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "STORE OWNER"},
+            {"code": "ShowMessage_2", "string": "Ah, yep, just stay on the road."},
+            {"code": "ShowMessage_2", "string": "Winds up into the mountains for a bit."},
+            {"code": "ShowMessage", "string": "STORE OWNER"},
+            {"code": "ShowMessage_2", "string": "If you're heading to Paradise, maybe you"},
+            {"code": "ShowMessage_2", "string": "want to buy some supplies?"},
+            {"code": "ControlSwitches", "parameters": [0, 975, 975, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "STORE OWNER", []],
-            [0, "ShowMessage_2", "I'm sorry, I'm just closing up shop.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Could you just tell me if I'm on the", []],
-            [0, "ShowMessage_2", "right road for Paradise?", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "STORE OWNER", []],
-            [0, "ShowMessage_2", "Ah, yep, just stay on the road.", []],
-            [0, "ShowMessage_2", "Winds up into the mountains for a bit.", []],
-            [0, "ShowMessage", "STORE OWNER", []],
-            [0, "ShowMessage_2", "If you're heading to Paradise, maybe you", []],
-            [0, "ShowMessage_2", "want to buy some supplies?", []],
-            [0, "ControlSwitches", "", [0, 975, 975, 0]]
-          ]
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 975
+          "character_index": 2,
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 975
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {
+              "code": "ShowChoice",
+              "parameters": [4],
+              "string": "Would you like to buy something?/Would you like to rest awhile?"
+            },
+            {
+              "code": "ShowChoiceOption",
+              "parameters": [0],
+              "string": "Would you like to buy something?"
+            },
+            {
+              "code": "OpenShop",
+              "indent": 1,
+              "parameters": [0, 1, 0, 0, 299, 300, 301, 302, 103, 124, 114, 125, 115, 129, 130]
+            },
+            {"code": "END", "indent": 1},
+            {
+              "code": "ShowChoiceOption",
+              "parameters": [1],
+              "string": "Would you like to rest awhile?"
+            },
+            {"code": "ShowInn", "indent": 1, "parameters": [0, 100, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowChoice", "Would you like to buy something?/Would you like to rest awhile?", [4]],
-            [0, "ShowChoiceOption", "Would you like to buy something?", [0]],
-            [1, "OpenShop", "", [0, 1, 0, 0, 299, 300, 301, 302, 103, 124, 114, 125, 115, 129, 130]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "Would you like to rest awhile?", [1]],
-            [1, "ShowInn", "", [0, 100, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 8
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [19, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 22, 56]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 22, 56]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 13
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 22, 56]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 22, 56]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 13
     }
-  ]
+  ],
+  "save_count": 5
 }

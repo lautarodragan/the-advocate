@@ -19,37 +19,66 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-14: `just snes-hitos-foto` son **169 casos, todos en verde** —el que
-se agregó es `texto-cruza`— y `just pruebas` son **159 en verde y 1 `xfail`,
-sin rojos**; las dos nuevas son las del tope de columna del compositor
-—`test_compositor.py`—.
-El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
+Al 2026-09-14: `just snes-hitos-foto` son **170 casos, todos en verde** y `just
+pruebas` son **169 en verde y 1 `xfail`, sin rojos**. El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
-**Ditto** (`ditto/`) ya hace `.ldb`/`.lmu`/`.lmt` ⇄ JSON en los dos sentidos,
-con la vuelta byte por byte en **330 de 330** archivos del juego (`just
-ditto-vuelta-entera`); todavía no reemplaza a `tools/lcf.py` ni al conversor.
-Desde el 2026-09-14 es un **proyecto independiente en inglés**: adentro de
-`ditto/` no hay una sola mención a ABL, a la SNES ni al port, el corpus se lo
-pasa el justfile en `DITTO_CORPUS` —sin esa variable las pruebas que lo
-necesitan se saltean con un mensaje— y lo que ata a Ditto con este repo está en
-**`DITTO.md`**, en la raíz y en castellano. Lo que le falta a la herramienta
-está en `ditto/README.md`, ya en inglés. El default de cada campo va **una sola
-vez y al lado del campo** en el esquema generado, y está medido hasta dónde
-aguanta la regla de omisión: un chunk escrito con su valor default se pierde
-—son 3 bytes—, pero ni RPG Maker 2000 ni EasyRPG lo escriben, así que no se
-tocó el esquema. La salida barata, por si aparece una tercera herramienta, está
-anotada en `ditto/README.md` y sin implementar.
+**Ditto** (`ditto/`) hace `.ldb`/`.lmu`/`.lmt` ⇄ JSON en los dos sentidos, con
+la vuelta byte por byte en **330 de 330** archivos del juego (`just
+ditto-vuelta-entera`), y desde el 2026-09-14 **es de donde sale `data/`**, que
+es lo que lee el conversor. También es un **proyecto independiente en inglés**:
+adentro de `ditto/` no hay una sola mención a ABL, a la SNES ni al port, el
+corpus se lo pasa el justfile en `DITTO_CORPUS` —sin esa variable las pruebas
+que lo necesitan se saltean con un mensaje— y lo que ata a Ditto con este repo
+está en **`DITTO.md`**, en la raíz y en castellano. Lo que le falta a la
+herramienta está en `ditto/README.md`, ya en inglés. El default de cada campo
+va **una sola vez y al lado del campo** en el esquema generado, y está medido
+hasta dónde aguanta la regla de omisión: un chunk escrito con su valor default
+se pierde —son 3 bytes—, pero ni RPG Maker 2000 ni EasyRPG lo escriben, así que
+no se tocó el esquema. La salida barata, por si aparece una tercera
+herramienta, está anotada en `ditto/README.md` y sin implementar.
 
-Y desde el 2026-09-14, Ditto **omite los defaults también en el JSON** y sabe
-volcar **un juego entero como árbol de archivos**: `ditto unpack <juego> <dir>`
-y `ditto pack <dir> <juego>`, con la misma estructura que `data/` —`maps.json`,
-`maps/Map0001.json` + `.tiles`, `db/*.json`—. La vuelta desde el árbol da otros
-**330 de 330** (`ditto/tests/directory_dump.rs`). Es el paso 1 de los tres que
-están en `DITTO.md`; **no toca `data/` ni `tools/export_json.py`**, que siguen
-siendo los que mandan. Los pesos, para el paso 2: el volcado de Ditto son
-19.506.490 bytes en 674 archivos contra los 16.121.259 del de hoy, y el `.ldb`
-suelto bajó de 25.675.888 a 17.569.229 sólo por omitir defaults.
+Y desde el 2026-09-14, **los tres pasos del plan de Ditto están hechos**: Ditto
+omite los defaults también en el JSON, vuelca el juego entero como árbol de
+archivos, **`data/` es ese volcado** y **`tools/lcf.py` lo lee**. El conversor,
+la referencia en Python y las pruebas ya no abren un solo `.lmu` para armar una
+ROM; del juego original siguen saliendo los PNG y los MIDI, que es lo que
+`--game-dir` nombra. `just datos` regenera `data/` —674 archivos, 19.445.521
+bytes— y el que manda después es el `git diff`: si el juego no cambió, da
+vacío.
+
+Los defaults **ya no se escriben en `lcf.py`**: salen de
+`tools/ditto_schema.py`, que genera `tools/gen_ditto_schema.py` desde el
+esquema de Ditto, con el chunk, el default, el enum, el `PersistIfDefault` y el
+struct anidado de cada campo. Los 51 llamadores de
+`lcf.Map`/`Database`/`TreeMap` quedaron **intactos**; los tres que cambiaron
+—`eventos.py`, `destraba.py` y `test_encuentros.py`— metían la mano por debajo
+de la capa, a los chunks crudos de `db.fields`.
+
+**El criterio de aceptación se cumplió con una diferencia, y es un arreglo.**
+`demo-ciudad` y `demo-titulo`, armadas antes y después, difieren en **dos
+bytes** de la tabla `sabe_hab`: `Learning.skill_id` vale 1 y no 0 cuando el
+archivo no lo trae, y le pasa a Alex —el actor 1, del RTP, que este juego no
+usa—. Con ese default puesto de vuelta en 0 el `mapdata.inc` sale byte por byte
+idéntico, así que **ningún otro dato se movió**. Todo esto, con sus números,
+está en **`DITTO.md`**.
+
+Dos cosas más de esa vuelta. Una: `Music::name` y `Sound::name` tenían en Ditto
+el default `"(OFF)"` **con las comillas**, porque el generador citaba dos veces
+un literal de C++ que ya venía citado del CSV; arreglado, son 61 KB menos de
+volcado, y la vuelta sigue en 330 de 330 —los dos campos son
+`PersistIfDefault`, por eso no se había notado—. Y dos: apareció que
+`test_ninguna_tropa_filtra_por_terreno` **no medía nada** —leía el chunk 0x13
+de la base, que es `animations` y no `troops`— y que **doce tropas de los
+encuentros al azar sí filtran por terreno**. La simplificación del port aguanta
+igual, pero por otro motivo: ninguna excluye un terreno que su mapa pise de
+verdad. La prueba ahora mide eso.
+
+`tools/export_json.py` quedó sin dueño: ya no escribe `data/` —escribe a
+`/extras/volcado-python`— y lo único que aporta es una lectura más corta del
+juego. **Si taro decide que no hace falta**, se va con `tools/lcf_bin.py` —el
+lector de binarios, que es el `lcf.py` de antes—, `tools/gen_schema.py` y
+`tools/lcf_schema.py`.
 
 **La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
 con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho

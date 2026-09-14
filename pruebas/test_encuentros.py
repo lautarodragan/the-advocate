@@ -32,12 +32,9 @@ import eventos                                               # noqa: E402
 import lcf                                                   # noqa: E402
 from render_map import GAME_DIR                               # noqa: E402
 
-# El chunk de los terrenos en el LDB y el de `encounter_rate` adentro de cada
-# uno, de `lcf/ldb/chunks.h`. Se leen crudos porque `lcf.Database` no los
-# modela: el port no necesita el terreno para nada más.
-DB_TERRENOS = 0x10
-TERRENO_RATE = 0x03
-TROPA_TERRAIN_SET = 0x05
+# Los terrenos y el `terrain_set` de cada tropa salen de `db.decode()`, que es
+# la base entera como la volcó Ditto: el port no los modela porque no los
+# necesita para nada más, y acá se los mira una sola vez.
 
 
 @pytest.fixture(scope="module")
@@ -82,8 +79,8 @@ def test_todos_los_terrenos_de_esos_mapas_valen_cien(juego):
     caso es el que lo avisa.
     """
     db, tree = juego
-    terrenos = lcf.Reader(db.fields.get(DB_TERRENOS, b"\x00")).read_struct_array()
-    rate = {i: lcf.to_int(f.get(TERRENO_RATE, b"\x64"))
+    terrenos = db.decode()["terrains"]
+    rate = {i: f.get("encounter_rate", lcf.CAMPOS["Terrain"]["encounter_rate"][1])
             for i, f in terrenos.items()}
     todos, _propias, _areas = mapas_con_encuentros(tree)
     vistos = set()
@@ -100,24 +97,53 @@ def test_todos_los_terrenos_de_esos_mapas_valen_cien(juego):
         % (eventos.ENC_RATE, distintos, eventos.ENC_RATE))
 
 
-def test_ninguna_tropa_filtra_por_terreno(juego):
+def test_ninguna_tropa_queda_afuera_por_el_terreno(juego):
     """La segunda: `GetEncountersAt` acepta todas las tropas de la lista.
 
-    En RM2k una tropa puede decir en qué terrenos aparece; en este juego
-    ninguna lo dice —el chunk ni existe— y vacío quiere decir "en todos".
+    En RM2k una tropa puede decir en qué terrenos aparece, y vacío quiere decir
+    "en todos". **Doce de las tropas de este juego lo dicen**, así que la
+    simplificación no se sostiene por ahí: se sostiene porque ninguna de ellas
+    excluye un terreno que su mapa pise de verdad. Eso es lo que se mide acá,
+    mapa por mapa y celda por celda, y no que el `terrain_set` esté vacío.
+
+    Hasta el 2026-09-14 esta prueba decía lo segundo y **no medía nada**: leía
+    el `terrain_set` del chunk 0x13 de la base, que es `animations` y no
+    `troops` —el de las tropas es el 0x0F—, así que preguntaba por un chunk que
+    ninguna animación tiene y siempre daba vacío. Lo destapó la mudanza a los
+    JSON de Ditto, que ya no se leen por número de chunk. Es el caso de manual
+    del repo: un camino que ninguna prueba ejecuta, con la prueba puesta.
     """
     db, tree = juego
-    crudas = lcf.Reader(db.fields.get(0x13, b"\x00")).read_struct_array()
+    crudas = db.decode()["troops"]
     todos, _propias, areas = mapas_con_encuentros(tree)
-    usadas = set()
-    for nodo in list(todos) + list(areas):
-        usadas |= set(tree.encounters[nodo])
-    assert usadas, "ninguna tropa: la medición no midió nada"
-    conjunto = {n: crudas.get(n, {}).get(TROPA_TERRAIN_SET, b"").hex()
-                for n in sorted(usadas)}
-    filtran = {n: v for n, v in conjunto.items() if v}
-    assert not filtran, (
-        "estas tropas filtran por terreno y el port no lo modela: %s" % filtran)
+
+    # Qué tropas puede sacar cada mapa: las suyas y las de sus áreas.
+    tropas_de = {}
+    for map_id in todos:
+        tropas = set(tree.encounters[map_id])
+        for area in areas:
+            if tree.map_parents[area] == map_id:
+                tropas |= set(tree.encounters[area])
+        tropas_de[map_id] = sorted(tropas)
+    assert any(tropas_de.values()), "ninguna tropa: la medición no midió nada"
+
+    afuera = []
+    for map_id, tropas in tropas_de.items():
+        game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
+        terrenos = {tag_de_celda(db, game_map, i)
+                    for i in range(len(game_map.lower_layer))}
+        for tropa in tropas:
+            conjunto = crudas.get(tropa, {}).get("terrain_set") or []
+            if not conjunto:
+                continue
+            for terreno in sorted(terrenos):
+                permitido = (conjunto[terreno - 1]
+                             if 0 < terreno <= len(conjunto) else True)
+                if not permitido:
+                    afuera.append((map_id, tropa, terreno))
+    assert not afuera, (
+        "estas tropas no salen en un terreno que su mapa pisa, y el port las "
+        "saca igual —(mapa, tropa, terreno)—: %s" % afuera)
 
 
 def test_ningun_mapa_tiene_tropas_propias_y_areas(juego):

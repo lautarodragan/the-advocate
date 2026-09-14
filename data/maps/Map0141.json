@@ -1,144 +1,178 @@
 {
-  "id": 141,
-  "name": "Storage Room",
-  "size": [20, 15],
-  "chipset": [25, "sd3_castle_inside_2"],
-  "tiles": "Map0141.tiles",
+  "chipset_id": 25,
   "events": [
     {
       "id": 1,
       "name": "ChairLeft",
-      "at": [8, 7],
       "pages": [
+        {"character_index": 82, "id": 1, "move_type": "stationary"},
         {
-          "tile": 82,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 426
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 426
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 7
     },
     {
       "id": 2,
       "name": "ChairRight",
-      "at": [12, 7],
       "pages": [
+        {"character_index": 82, "id": 1, "move_type": "stationary"},
         {
-          "tile": 82,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 426
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 426
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 7
     },
     {
       "id": 3,
       "name": "ChairBottom",
-      "at": [7, 11],
       "pages": [
+        {"character_index": 82, "id": 1, "move_type": "stationary"},
         {
-          "tile": 82,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 426
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 426
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 11
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [4, 2],
       "pages": [
         {
-          "tile": 134,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Candles! Just what Auleen wanted!", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Let's grab a handful and get out of here.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 29, 1, 1, 28]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 29, 3, 28]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 29, 4, 4, 0, 0, 28]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Uh... Talan...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I see them...", []],
-            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 426, 426, 0]],
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "EnemyEncounter", "", [0, 186, 0, 1, 0, 0]],
-            [0, "ChangeEscapeAccess", "", [1]],
-            [0, "CallEvent", "", [0, 35, 0]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Grab those candles!", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ControlSwitches", "", [0, 425, 425, 0]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Item1", [90, 70, 50]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ChangeItems", "", [0, 0, 153, 0, 1]],
-            [0, "ShowMessage", "TALAN received THEATRE CANDLES.", []],
-            [0, "Teleport", "", [131, 5, 2]],
-            [0, "PlaySound", "Earth4", [70, 70, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Look!", []],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 13, 23, 14]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Nothing about this place surprises me", []],
-            [0, "ShowMessage_2", "anymore. Let's get going.", []]
-          ]
+          "character_index": 134,
+          "event_commands": [
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Candles! Just what Auleen wanted!"},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Let's grab a handful and get out of here."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 29, 1, 1, 28]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 29, 3, 28]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 29, 4, 4, 0, 0, 28]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Uh... Talan..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I see them..."},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {"code": "ControlSwitches", "parameters": [0, 426, 426, 0]},
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {"code": "EnemyEncounter", "parameters": [0, 186, 0, 1, 0, 0]},
+            {"code": "ChangeEscapeAccess", "parameters": [1]},
+            {"code": "CallEvent", "parameters": [0, 35, 0]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Grab those candles!"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 425, 425, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [90, 70, 50], "string": "Item1"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 153, 0, 1]},
+            {"code": "ShowMessage", "string": "TALAN received THEATRE CANDLES."},
+            {"code": "Teleport", "parameters": [131, 5, 2]},
+            {"code": "PlaySound", "parameters": [70, 70, 50], "string": "Earth4"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Look!"},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15, 23, 13, 23, 14]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Nothing about this place surprises me"},
+            {"code": "ShowMessage_2", "string": "anymore. Let's get going."}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 2
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 21
 }

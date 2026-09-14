@@ -1,138 +1,130 @@
 {
-  "id": 175,
-  "name": "Mountain Flashback",
-  "size": [20, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0175.tiles",
-  "parallax": {
-    "name": "Night1",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [5, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 8
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 8
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [6, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 8
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [13, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara4",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara4",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 9
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "PlayBGM", "human4", [0, 50, 100, 50]],
-            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Many years ago, I and several others came", []],
-            [0, "ShowMessage_2", "to this place amongst the mountains, fleeing", []],
-            [0, "ShowMessage_2", "for our lives.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "There was... let us say, \"turmoil,\" within the", []],
-            [0, "ShowMessage_2", "upper ranks of the Agency, and we fled with", []],
-            [0, "ShowMessage_2", "their best troops in hot pursuit.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "For weeks we hid among the caves and", []],
-            [0, "ShowMessage_2", "rocky peaks of the mountains, living on", []],
-            [0, "ShowMessage_2", "what we could scavenge.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "The Agency troops hunted for us, and although", []],
-            [0, "ShowMessage_2", "we lost one of our number, the rest of us made", []],
-            [0, "ShowMessage_2", "it safely... here.", []],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [176, 4, 7]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "PlayBGM", "parameters": [0, 50, 100, 50], "string": "human4"},
+            {"code": "TintScreen", "parameters": [60, 60, 60, 0, 10, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Many years ago, I and several others came"},
+            {"code": "ShowMessage_2", "string": "to this place amongst the mountains, fleeing"},
+            {"code": "ShowMessage_2", "string": "for our lives."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "string": "There was... let us say, \"turmoil,\" within the"
+            },
+            {"code": "ShowMessage_2", "string": "upper ranks of the Agency, and we fled with"},
+            {"code": "ShowMessage_2", "string": "their best troops in hot pursuit."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "For weeks we hid among the caves and"},
+            {"code": "ShowMessage_2", "string": "rocky peaks of the mountains, living on"},
+            {"code": "ShowMessage_2", "string": "what we could scavenge."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "The Agency troops hunted for us, and although"},
+            {
+              "code": "ShowMessage_2",
+              "string": "we lost one of our number, the rest of us made"
+            },
+            {"code": "ShowMessage_2", "string": "it safely... here."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [176, 4, 7]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 6,
       "name": "Pierson",
-      "at": [2, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 7
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "Night1",
+  "save_count": 11
 }

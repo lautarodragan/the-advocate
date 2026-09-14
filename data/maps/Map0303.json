@@ -1,88 +1,80 @@
 {
-  "id": 303,
-  "name": "Tram to Prima",
-  "size": [20, 15],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0303.tiles",
-  "parallax": {
-    "name": "PrimaTunnel2",
-    "loop_x": true,
-    "loop_y": false,
-    "scroll_x": -7,
-    "scroll_y": 0
-  },
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1, 1, 1, 23, 12, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "Then what is it you want?!\\|\\^", []],
-            [0, "PlaySound", "Holy9", [100, 70, 50]],
-            [0, "Teleport", "", [302, 4, 9]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 1, 23, 12, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "Then what is it you want?!\\|\\^"},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Holy9"},
+            {"code": "Teleport", "parameters": [302, 4, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [1, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ShakeScreen", "", [5, 5, 10, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShakeScreen", "parameters": [5, 5, 10, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 1
     },
     {
       "id": 3,
       "name": "Kersh",
-      "at": [12, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 7
     },
     {
       "id": 4,
       "name": "Emily",
-      "at": [15, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 6
     }
-  ]
+  ],
+  "parallax_auto_loop_x": true,
+  "parallax_flag": true,
+  "parallax_loop_x": true,
+  "parallax_name": "PrimaTunnel2",
+  "parallax_sx": -7,
+  "save_count": 31
 }

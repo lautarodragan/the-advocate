@@ -1,247 +1,291 @@
 {
-  "id": 63,
-  "name": "Tunnel Into Lashe City",
-  "size": [50, 25],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0063.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
-            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
-            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I should head back to Stash's with this"},
+            {"code": "ShowMessage_2", "string": "Motivator Chip and get my battle droid!"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yeah, the AG7-17 used to be hot stuff!"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think they're illegal now, though..."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 5
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
-            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
-            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I should head back to Stash's with this"},
+            {"code": "ShowMessage_2", "string": "Motivator Chip and get my battle droid!"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yeah, the AG7-17 used to be hot stuff!"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think they're illegal now, though..."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 6
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
-            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
-            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I should head back to Stash's with this"},
+            {"code": "ShowMessage_2", "string": "Motivator Chip and get my battle droid!"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yeah, the AG7-17 used to be hot stuff!"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think they're illegal now, though..."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 7
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [0, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
-            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
-            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I should head back to Stash's with this"},
+            {"code": "ShowMessage_2", "string": "Motivator Chip and get my battle droid!"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yeah, the AG7-17 used to be hot stuff!"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think they're illegal now, though..."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 8
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [31, 5],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I think it's the other way, man.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Now, is Stash's place this way? Hmmm..."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I think it's the other way, man."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 5
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [31, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I think it's the other way, man.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Now, is Stash's place this way? Hmmm..."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I think it's the other way, man."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 6
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [31, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I think it's the other way, man.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Now, is Stash's place this way? Hmmm..."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I think it's the other way, man."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 7
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [31, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "I think it's the other way, man.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Now, is Stash's place this way? Hmmm..."},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I think it's the other way, man."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 8
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [4, 2],
       "pages": [
         {
-          "conditions": {
-            "item": 126
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 126
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [48, 43, 51]],
-            [0, "PlaySound", "Close2", [100, 70, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "The hatch closes with a bang and", []],
-            [0, "ShowMessage_2", "seals itself from the inside.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well, I guess I'm not leaving that way.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [48, 43, 51]},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Close2"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "The hatch closes with a bang and"},
+            {"code": "ShowMessage_2", "string": "seals itself from the inside."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well, I guess I'm not leaving that way."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 2
     }
-  ]
+  ],
+  "height": 25,
+  "save_count": 12,
+  "width": 50
 }

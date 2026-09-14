@@ -1,364 +1,349 @@
 {
-  "id": 200,
-  "name": "Drust Tavern",
-  "size": [20, 15],
-  "chipset": [44, "ABLForestTownInner"],
-  "tiles": "Map0200.tiles",
+  "chipset_id": 44,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [4, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WORKER"},
+            {"code": "ShowMessage_2", "string": "The ale here tastes like motor oil."},
+            {"code": "ShowMessage_2", "string": "But there's plenty of it, so who am"},
+            {"code": "ShowMessage_2", "string": "I to complain?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "WORKER", []],
-            [0, "ShowMessage_2", "The ale here tastes like motor oil.", []],
-            [0, "ShowMessage_2", "But there's plenty of it, so who am", []],
-            [0, "ShowMessage_2", "I to complain?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 7
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MINER"},
+            {"code": "ShowMessage_2", "string": "Paradise? Never heard of it. It's not"},
+            {"code": "ShowMessage_2", "string": "here, that's for sure."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "MINER", []],
-            [0, "ShowMessage_2", "Paradise? Never heard of it. It's not", []],
-            [0, "ShowMessage_2", "here, that's for sure.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 4
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [5, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WORKER"},
+            {"code": "ShowMessage_2", "string": "I grew up in Yun Town, but if you don't"},
+            {"code": "ShowMessage_2", "string": "work for the Agency, Drust Camp is the"},
+            {"code": "ShowMessage_2", "string": "only place to make any creds these days."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "WORKER", []],
-            [0, "ShowMessage_2", "I grew up in Yun Town, but if you don't", []],
-            [0, "ShowMessage_2", "work for the Agency, Drust Camp is the", []],
-            [0, "ShowMessage_2", "only place to make any creds these days.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 2
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [3, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "I got to the second rank in the Battle"},
+            {"code": "ShowMessage_2", "string": "Rink - but those monsters are tough"},
+            {"code": "ShowMessage_2", "string": "opponents!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "I got to the second rank in the Battle", []],
-            [0, "ShowMessage_2", "Rink - but those monsters are tough", []],
-            [0, "ShowMessage_2", "opponents!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 2
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [5, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DRINKING MAN"},
+            {"code": "ShowMessage_2", "string": "Leave me alone."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "DRINKING MAN", []],
-            [0, "ShowMessage_2", "Leave me alone.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 9
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [5, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Future2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "The Battle Rink is a great place to"},
+            {"code": "ShowMessage_2", "string": "lose money, if you're not careful."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "The Battle Rink is a great place to", []],
-            [0, "ShowMessage_2", "lose money, if you're not careful.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 4
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [3, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LARGE MAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LARGE MAN", []],
-            [0, "ShowMessage_2", "... ... ...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 4
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [6, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BEARDED MAN"},
+            {"code": "ShowMessage_2", "string": "Get out of here."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BEARDED MAN", []],
-            [0, "ShowMessage_2", "Get out of here.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 7
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [8, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WOMAN"},
+            {"code": "ShowMessage_2", "string": "If you explore Tangle Forest, be sure"},
+            {"code": "ShowMessage_2", "string": "to keep track of the way out - there's"},
+            {"code": "ShowMessage_2", "string": "something funny about that place..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "WOMAN", []],
-            [0, "ShowMessage_2", "If you explore Tangle Forest, be sure", []],
-            [0, "ShowMessage_2", "to keep track of the way out - there's", []],
-            [0, "ShowMessage_2", "something funny about that place...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 6
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [10, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MINER"},
+            {"code": "ShowMessage_2", "string": "The Agency caravans charge an arm and"},
+            {
+              "code": "ShowMessage_2",
+              "string": "a leg for our Iron - I'm barely scraping by..."
+            },
+            {"code": "ShowMessage_2", "string": "maybe I need a new profession."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MINER", []],
-            [0, "ShowMessage_2", "The Agency caravans charge an arm and", []],
-            [0, "ShowMessage_2", "a leg for our Iron - I'm barely scraping by...", []],
-            [0, "ShowMessage_2", "maybe I need a new profession.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 6
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [17, 4],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "BARKEEPER", []],
-            [0, "ShowMessage_2", "Stay on yer own side!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEPER"},
+            {"code": "ShowMessage_2", "string": "Stay on yer own side!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 4
     },
     {
       "id": 12,
       "name": "Barkeep",
-      "at": [15, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People5",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "People5",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 3
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WORKER"},
+            {"code": "ShowMessage_2", "string": "The Iron from the mines is perfect for"},
+            {"code": "ShowMessage_2", "string": "making high quality weapons and armor."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "WORKER", []],
-            [0, "ShowMessage_2", "The Iron from the mines is perfect for", []],
-            [0, "ShowMessage_2", "making high quality weapons and armor.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WORKER"},
+            {"code": "ShowMessage_2", "string": "If I can save up enough creds, I think"},
+            {"code": "ShowMessage_2", "string": "I might move to Circuit Reef. I hear"},
+            {"code": "ShowMessage_2", "string": "the casinos there are second-to-none."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "WORKER", []],
-            [0, "ShowMessage_2", "If I can save up enough creds, I think", []],
-            [0, "ShowMessage_2", "I might move to Circuit Reef. I hear", []],
-            [0, "ShowMessage_2", "the casinos there are second-to-none.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [9, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [68, 43, 11]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [68, 43, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 13
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [15, 4],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 14]},
+            {"code": "ShowInn", "parameters": [0, 150, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [12, 8, 0, 0, 14]],
-            [0, "ShowInn", "", [0, 150, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 4
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [14, 3],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 15]},
+            {"code": "ShowInn", "parameters": [0, 150, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [12, 8, 0, 0, 15]],
-            [0, "ShowInn", "", [0, 150, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 3
     }
-  ]
+  ],
+  "save_count": 20
 }

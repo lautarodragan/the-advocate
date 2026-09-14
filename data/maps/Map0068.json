@@ -1,519 +1,529 @@
 {
-  "id": 68,
-  "name": "Drust Camp",
-  "size": [50, 20],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0068.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [49, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 30, 7]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 30, 7]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [49, 15],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 30, 7]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 30, 7]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 15
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [21, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SURLY MAN"},
+            {"code": "ShowMessage_2", "string": "This way to the Drust Mines. You'd"},
+            {"code": "ShowMessage_2", "string": "best watch your step. Wouldn't want"},
+            {"code": "ShowMessage_2", "string": "anything to happen to ya..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Oh, right. Uh... thanks."},
+            {"code": "ShowMessage_2", "string": "<shudder>"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SURLY MAN", []],
-            [0, "ShowMessage_2", "This way to the Drust Mines. You'd", []],
-            [0, "ShowMessage_2", "best watch your step. Wouldn't want", []],
-            [0, "ShowMessage_2", "anything to happen to ya...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Oh, right. Uh... thanks.", []],
-            [0, "ShowMessage_2", "<shudder>", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 2
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [12, 1],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [103, 11, 73]],
-            [0, "TintScreen", "", [50, 50, 50, 100, 1, 0]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [103, 11, 73]},
+            {"code": "TintScreen", "parameters": [50, 50, 50, 100, 1, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 1
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [28, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "ROGUE"},
+            {"code": "ShowMessage_2", "string": "Stranger, you seem a little soft for this"},
+            {"code": "ShowMessage_2", "string": "camp - maybe you should run back to"},
+            {"code": "ShowMessage_2", "string": "Yun or Sorbe, where you'd be safe."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "ROGUE", []],
-            [0, "ShowMessage_2", "Stranger, you seem a little soft for this", []],
-            [0, "ShowMessage_2", "camp - maybe you should run back to", []],
-            [0, "ShowMessage_2", "Yun or Sorbe, where you'd be safe.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 12
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [47, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "People4",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "People4",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "<scowl>"},
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "Do I look like I want to chat? I just lost"},
+            {"code": "ShowMessage_2", "string": "some major creds at the Battle Rink,"},
+            {"code": "ShowMessage_2", "string": "so I'd suggest you leave me alone!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Sorry!"},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This encampment is a lot different than"},
+            {"code": "ShowMessage_2", "string": "Sorbe Village... actually, it reminds me"},
+            {"code": "ShowMessage_2", "string": "quite a bit of Lashe City..."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "Get out of here, punk!"},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's scary how much like Lashe this is!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 530, 530, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "<scowl>", []],
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "Do I look like I want to chat? I just lost", []],
-            [0, "ShowMessage_2", "some major creds at the Battle Rink,", []],
-            [0, "ShowMessage_2", "so I'd suggest you leave me alone!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Sorry!", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This encampment is a lot different than", []],
-            [0, "ShowMessage_2", "Sorbe Village... actually, it reminds me", []],
-            [0, "ShowMessage_2", "quite a bit of Lashe City...", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "Get out of here, punk!", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's scary how much like Lashe this is!", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ControlSwitches", "", [0, 530, 530, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 530
+          "character_index": 4,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 530
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "Damn Battle Rink."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "Damn Battle Rink.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 47,
+      "y": 7
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [18, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SHADY WOMAN"},
+            {"code": "ShowMessage_2", "string": "I've got nothing to say to you."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SHADY WOMAN", []],
-            [0, "ShowMessage_2", "I've got nothing to say to you.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "actor": 18
+          "character_index": 5,
+          "character_name": "Chara2",
+          "condition": {
+            "actor_id": 18,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SHADY WOMAN"},
+            {"code": "ShowMessage_2", "string": "You lookin' for parts for that Battle Droid?"},
+            {"code": "ShowMessage_2", "string": "I might know of a joint where you could"},
+            {"code": "ShowMessage_2", "string": "pick some up - no questions asked."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Really?"},
+            {"code": "ShowMessage", "string": "SHADY WOMAN"},
+            {"code": "ShowMessage_2", "string": "Just tell Malrick the password: 035421."},
+            {"code": "ShowMessage_2", "string": "He'll let you in and you can shop to"},
+            {"code": "ShowMessage_2", "string": "your heart's content."},
+            {"code": "ControlSwitches", "parameters": [0, 531, 531, 0]}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SHADY WOMAN", []],
-            [0, "ShowMessage_2", "You lookin' for parts for that Battle Droid?", []],
-            [0, "ShowMessage_2", "I might know of a joint where you could", []],
-            [0, "ShowMessage_2", "pick some up - no questions asked.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Really?", []],
-            [0, "ShowMessage", "SHADY WOMAN", []],
-            [0, "ShowMessage_2", "Just tell Malrick the password: 035421.", []],
-            [0, "ShowMessage_2", "He'll let you in and you can shop to", []],
-            [0, "ShowMessage_2", "your heart's content.", []],
-            [0, "ControlSwitches", "", [0, 531, 531, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 531
+          "character_index": 5,
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 531
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SHADY WOMAN"},
+            {"code": "ShowMessage_2", "string": "The password's still 035421. Don't forget;"},
+            {"code": "ShowMessage_2", "string": "you won't find a better place to pick up..."},
+            {"code": "ShowMessage_2", "string": "certain components..."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SHADY WOMAN", []],
-            [0, "ShowMessage_2", "The password's still 035421. Don't forget;", []],
-            [0, "ShowMessage_2", "you won't find a better place to pick up...", []],
-            [0, "ShowMessage_2", "certain components...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 10
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [14, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BIG MAN"},
+            {"code": "ShowMessage_2", "string": "I heard that the Agency is planning to"},
+            {"code": "ShowMessage_2", "string": "pump even more energy from the"},
+            {"code": "ShowMessage_2", "string": "Catch Colony."},
+            {"code": "ShowMessage", "string": "BIG MAN"},
+            {"code": "ShowMessage_2", "string": "Doesn't make a difference to me -"},
+            {"code": "ShowMessage_2", "string": "As long as there's Iron to haul and"},
+            {"code": "ShowMessage_2", "string": "creds to earn, I don't care 'bout anything."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BIG MAN", []],
-            [0, "ShowMessage_2", "I heard that the Agency is planning to", []],
-            [0, "ShowMessage_2", "pump even more energy from the", []],
-            [0, "ShowMessage_2", "Catch Colony.", []],
-            [0, "ShowMessage", "BIG MAN", []],
-            [0, "ShowMessage_2", "Doesn't make a difference to me -", []],
-            [0, "ShowMessage_2", "As long as there's Iron to haul and", []],
-            [0, "ShowMessage_2", "creds to earn, I don't care 'bout anything.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 2
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [49, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "Teleport", "", [199, 9, 13]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Teleport", "parameters": [199, 9, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 2
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [0, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "What's the password?", []],
-            [0, "InputNumber", "", [6, 143]],
-            [0, "ConditionalBranch", "", [1, 143, 0, 35421, 0, 1]],
-            [1, "ShowMessage", "VOICE", []],
-            [1, "ShowMessage_2", "Fine... come on in.", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [1, "Teleport", "", [201, 10, 13]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "What's the password?"},
+            {"code": "InputNumber", "parameters": [6, 143]},
+            {"code": "ConditionalBranch", "parameters": [1, 143, 0, 35421, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "VOICE"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Fine... come on in."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Teleport", "indent": 1, "parameters": [201, 10, 13]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 3
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [24, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "Crown2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RUSTY DROID"},
+            {"code": "ShowMessage_2", "string": "<whirrr> No one may enter."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "RUSTY DROID", []],
-            [0, "ShowMessage_2", "<whirrr> No one may enter.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 10
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [5, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLPeople",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "BLPeople",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SOLDIER"},
+            {"code": "ShowMessage_2", "string": "No admittance."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "SOLDIER", []],
-            [0, "ShowMessage_2", "No admittance.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 14
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [43, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [200, 9, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [200, 9, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 43,
+      "y": 10
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [40, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara2",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DIRTY MAN"},
+            {"code": "ShowMessage_2", "string": "I think the Battle Rink is rigged."},
+            {"code": "ShowMessage_2", "string": "The monster groups they match you"},
+            {"code": "ShowMessage_2", "string": "up against are just too strong!"},
+            {"code": "ShowMessage", "string": "DIRTY MAN"},
+            {"code": "ShowMessage_2", "string": "Prove me wrong, and I'll give you the"},
+            {"code": "ShowMessage_2", "string": "key to my secret stash of treasure!"},
+            {"code": "ShowMessage_2", "string": "But I don't think you even have a chance!"},
+            {"code": "ControlSwitches", "parameters": [0, 534, 534, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DIRTY MAN", []],
-            [0, "ShowMessage_2", "I think the Battle Rink is rigged.", []],
-            [0, "ShowMessage_2", "The monster groups they match you", []],
-            [0, "ShowMessage_2", "up against are just too strong!", []],
-            [0, "ShowMessage", "DIRTY MAN", []],
-            [0, "ShowMessage_2", "Prove me wrong, and I'll give you the", []],
-            [0, "ShowMessage_2", "key to my secret stash of treasure!", []],
-            [0, "ShowMessage_2", "But I don't think you even have a chance!", []],
-            [0, "ControlSwitches", "", [0, 534, 534, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 534
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 534
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DIRTY MAN"},
+            {"code": "ShowMessage_2", "string": "You haven't gotten all the way through"},
+            {"code": "ShowMessage_2", "string": "the ranks in the Battle Rink yet, have"},
+            {"code": "ShowMessage_2", "string": "you? I didn't think so."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DIRTY MAN", []],
-            [0, "ShowMessage_2", "You haven't gotten all the way through", []],
-            [0, "ShowMessage_2", "the ranks in the Battle Rink yet, have", []],
-            [0, "ShowMessage_2", "you? I didn't think so.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 3
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [2, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara4",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Chara4",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SCUZZY-LOOKING GIRL"},
+            {"code": "ShowMessage_2", "string": "Hurry up, I haven't got all day."},
+            {"code": "OpenShop", "parameters": [0, 0, 0, 0, 113, 112, 118, 117, 157, 173, 390]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "SCUZZY-LOOKING GIRL", []],
-            [0, "ShowMessage_2", "Hurry up, I haven't got all day.", []],
-            [0, "OpenShop", "", [0, 0, 0, 0, 113, 112, 118, 117, 157, 173, 390]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 17
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [37, 14],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This door is boarded up."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This door is boarded up.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 14
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [11, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MAN"},
+            {"code": "ShowMessage_2", "string": "Leave me alone! I've got nothing"},
+            {"code": "ShowMessage_2", "string": "for you!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MAN", []],
-            [0, "ShowMessage_2", "Leave me alone! I've got nothing", []],
-            [0, "ShowMessage_2", "for you!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 14
     },
     {
       "id": 18,
       "name": "SaveByDrustMines",
-      "at": [11, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 11,
+      "y": 2
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [10, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 18, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 18, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 18, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 18, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 10
     }
-  ]
+  ],
+  "height": 20,
+  "save_count": 57,
+  "width": 50
 }

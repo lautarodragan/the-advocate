@@ -1,549 +1,806 @@
 {
-  "id": 208,
-  "name": "Inside Memnosyne's Adobe",
-  "size": [20, 15],
-  "chipset": [35, "odinsTOP"],
-  "tiles": "Map0208.tiles",
+  "chipset_id": 35,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [207, 21, 5]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [207, 21, 5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "Memnosyne",
-      "at": [1, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 618
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 618
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 624
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 624
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 656
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 656
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 4,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 6
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "aolulumod", [0, 90, 100, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "ELDERLY WOMAN", []],
-            [0, "ShowMessage_2", "Visitors? Forgive me for asking...", []],
-            [0, "ShowMessage_2", "But you are... real... aren't you?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Yes, we're real. To tell you the truth,", []],
-            [0, "ShowMessage_2", "we're also in real trouble...", []],
-            [0, "ShowMessage", "ELDERLY WOMAN", []],
-            [0, "ShowMessage_2", "That's nice.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 1, 1, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Excuse me?", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "ELDERLY WOMAN", []],
-            [0, "ShowMessage_2", "I so rarely get visitors. It was nice", []],
-            [0, "ShowMessage_2", "of you to stop by. I'm sorry that I", []],
-            [0, "ShowMessage_2", "don't have any tea ready for you.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We've got bigger problems than", []],
-            [0, "ShowMessage_2", "a lack of tea, um...", []],
-            [0, "ShowMessage", "ELDERLY WOMAN", []],
-            [0, "ShowMessage_2", "My name is Memnosyne. Let me just", []],
-            [0, "ShowMessage_2", "get this pot boiling and I'll fix you up", []],
-            [0, "ShowMessage_2", "a nice steaming cup of tea.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I'm sorry about not having it ready,", []],
-            [0, "ShowMessage_2", "but then I didn't know you were", []],
-            [0, "ShowMessage_2", "coming, so you'll have to forgive me.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Uh... no problem...", []],
-            [0, "Wait", "", [30]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We didn't mean to intrude, but we saw", []],
-            [0, "ShowMessage_2", "the smoke from your fire and thought", []],
-            [0, "ShowMessage_2", "we might -", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Here you go, dearie. Water should be", []],
-            [0, "ShowMessage_2", "ready in a moment.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We won't find any help here...", []],
-            [0, "ShowMessage_2", "I think she's a little slow...", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I heard that, dearie. You'd best not be", []],
-            [0, "ShowMessage_2", "making judgments of people you've just", []],
-            [0, "ShowMessage_2", "met - you can get in a heap o' trouble.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 12]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I didn't mean -", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I'll give you shelter from whatever it", []],
-            [0, "ShowMessage_2", "is you're hiding from for the night. But", []],
-            [0, "ShowMessage_2", "in the morning you'll have to leave.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "This old woman has seen more than her", []],
-            [0, "ShowMessage_2", "share of troubles, dearie. I doubt yours", []],
-            [0, "ShowMessage_2", "would amount to much in comparison.", []],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Memnosyne, I didn't -", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 2]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Here we are.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I hope it's warm enough for you.", []],
-            [0, "ShowMessage_2", "Brewing proper tea is an art that", []],
-            [0, "ShowMessage_2", "one learns and forgets with the moon.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "So... now that you have your tea, let's see", []],
-            [0, "ShowMessage_2", "how you are at weaving a yarn.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "What brings you this close to the border", []],
-            [0, "ShowMessage_2", "of poor, forgotten Surl?", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "ControlSwitches", "", [0, 617, 617, 0]],
-            [0, "Teleport", "", [207, 10, 9]],
-            [0, "PlayBGM", "aolulumod", [0, 80, 100, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I think she knows more than she lets on.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "TintScreen", "", [60, 60, 60, 100, 6, 1]],
-            [0, "ConditionalBranch", "", [5, 26, 0, 0, 0, 1]],
-            [1, "ShowMessage", "LERLE", []],
-            [1, "ShowMessage_2", "What do you mean?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "She just... on the surface, she seems to be", []],
-            [1, "ShowMessage_2", "sort of... well, flaky. Bustling around making", []],
-            [1, "ShowMessage_2", "tea, not really listening to what we're saying.", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "But then every once in awhile, her", []],
-            [1, "ShowMessage_2", "tone of voice changes and you can", []],
-            [1, "ShowMessage_2", "almost, I don't know...", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "LERLE", []],
-            [1, "ShowMessage_2", "\"And finally he knew the truth he had", []],
-            [1, "ShowMessage_2", "been seeking: in the heart of Woman", []],
-            [1, "ShowMessage_2", "lies a tiny frozen diamond, colder than", []],
-            [1, "ShowMessage", "LERLE", []],
-            [1, "ShowMessage_2", "the furthest reaches of space, sharper", []],
-            [1, "ShowMessage_2", "than the sharpest knives, and more", []],
-            [1, "ShowMessage_2", "dangerous than the fiery pits of Hell.\"", []],
-            [1, "Wait", "", [30]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Not everything requires you to quote", []],
-            [1, "ShowMessage_2", "from a play, Lerle. You could have just", []],
-            [1, "ShowMessage_2", "said, \"Yeah, Talan, I think you're right.\"", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "LERLE", []],
-            [1, "ShowMessage_2", "I didn't think I'd remember all of that", []],
-            [1, "ShowMessage_2", "passage. It's from one of the first plays", []],
-            [1, "ShowMessage_2", "we did when I came to Paradise...", []],
-            [1, "Wait", "", [15]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [1, "Wait", "", [25]],
-            [1, "ShowMessage", "LERLE", []],
-            [1, "ShowMessage_2", "... ... ...", []],
-            [1, "Wait", "", [25]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'm glad we're leaving tomorrow.", []],
-            [1, "ShowMessage_2", "Memnosyne makes me nervous.", []],
-            [1, "Wait", "", [25]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [5, 27, 0, 0, 0, 1]],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "What do you mean?", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "She just... on the surface, she seems to be", []],
-            [2, "ShowMessage_2", "sort of... well, flaky. Bustling around making", []],
-            [2, "ShowMessage_2", "tea, not really listening to what we're saying.", []],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "But then every once in awhile, her", []],
-            [2, "ShowMessage_2", "tone of voice changes and you can", []],
-            [2, "ShowMessage_2", "almost, I don't know...", []],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "She gets a look in her eye that seems", []],
-            [2, "ShowMessage_2", "almost... haunted. As if she's seen things", []],
-            [2, "ShowMessage_2", "that would make our blood run cold.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "But she's just an old woman! I don't", []],
-            [2, "ShowMessage_2", "understand how she could be so muddled", []],
-            [2, "ShowMessage_2", "on the outside... and cold on the inside.", []],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "Maybe it's all an act, like one of those", []],
-            [2, "ShowMessage_2", "brightly colored flowers that smells", []],
-            [2, "ShowMessage_2", "nice but has poison-tipped thorns.", []],
-            [2, "Wait", "", [15]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I'm glad we're leaving tomorrow.", []],
-            [2, "ShowMessage_2", "Memnosyne makes me nervous.", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [5, 28, 0, 0, 0, 1]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "What do you mean?", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "She just... on the surface, she seems to be", []],
-            [3, "ShowMessage_2", "sort of... well, flaky. Bustling around making", []],
-            [3, "ShowMessage_2", "tea, not really listening to what we're saying.", []],
-            [3, "Wait", "", [10]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "But then every once in awhile, her", []],
-            [3, "ShowMessage_2", "tone of voice changes and you can", []],
-            [3, "ShowMessage_2", "almost, I don't know...", []],
-            [3, "Wait", "", [10]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "You sound scared, boy. She's just a", []],
-            [3, "ShowMessage_2", "woman. What can she do to us?", []],
-            [3, "Wait", "", [20]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I guess... but underneath her muddled", []],
-            [3, "ShowMessage_2", "exterior, she seems really... I don't know", []],
-            [3, "ShowMessage_2", "what word I'm looking for.", []],
-            [3, "Wait", "", [15]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "Aware.", []],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [3, "Wait", "", [2]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "What?", []],
-            [3, "Wait", "", [2]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "She frightens you because for all her", []],
-            [3, "ShowMessage_2", "empty-headed mannerisms, it seems as", []],
-            [3, "ShowMessage_2", "if she's watching, always watching...", []],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "...just waiting for you to let something", []],
-            [3, "ShowMessage_2", "slip. She should be just an empty-headed", []],
-            [3, "ShowMessage_2", "old woman with a teapot... but she's not.", []],
-            [3, "Wait", "", [20]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "So you did notice.", []],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "Of course I noticed. But realizing that", []],
-            [3, "ShowMessage_2", "someone is not as they appear is not the", []],
-            [3, "ShowMessage_2", "same as being frightened of them.", []],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "You'd do well to learn that, boy.", []],
-            [3, "Wait", "", [20]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [3, "Wait", "", [20]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "I'm glad we're leaving tomorrow.", []],
-            [3, "ShowMessage_2", "Memnosyne makes me nervous.", []],
-            [3, "Wait", "", [25]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 618, 618, 0]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 618
-          },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 90, 100, 50], "string": "aolulumod"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 14]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "ELDERLY WOMAN"},
+            {"code": "ShowMessage_2", "string": "Visitors? Forgive me for asking..."},
+            {"code": "ShowMessage_2", "string": "But you are... real... aren't you?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Yes, we're real. To tell you the truth,"},
+            {"code": "ShowMessage_2", "string": "we're also in real trouble..."},
+            {"code": "ShowMessage", "string": "ELDERLY WOMAN"},
+            {"code": "ShowMessage_2", "string": "That's nice."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 1, 1, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Excuse me?"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "ELDERLY WOMAN"},
+            {"code": "ShowMessage_2", "string": "I so rarely get visitors. It was nice"},
+            {"code": "ShowMessage_2", "string": "of you to stop by. I'm sorry that I"},
+            {"code": "ShowMessage_2", "string": "don't have any tea ready for you."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We've got bigger problems than"},
+            {"code": "ShowMessage_2", "string": "a lack of tea, um..."},
+            {"code": "ShowMessage", "string": "ELDERLY WOMAN"},
+            {"code": "ShowMessage_2", "string": "My name is Memnosyne. Let me just"},
+            {"code": "ShowMessage_2", "string": "get this pot boiling and I'll fix you up"},
+            {"code": "ShowMessage_2", "string": "a nice steaming cup of tea."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I'm sorry about not having it ready,"},
+            {"code": "ShowMessage_2", "string": "but then I didn't know you were"},
+            {"code": "ShowMessage_2", "string": "coming, so you'll have to forgive me."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Uh... no problem..."},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We didn't mean to intrude, but we saw"},
+            {"code": "ShowMessage_2", "string": "the smoke from your fire and thought"},
+            {"code": "ShowMessage_2", "string": "we might -"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Here you go, dearie. Water should be"},
+            {"code": "ShowMessage_2", "string": "ready in a moment."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We won't find any help here..."},
+            {"code": "ShowMessage_2", "string": "I think she's a little slow..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I heard that, dearie. You'd best not be"},
+            {"code": "ShowMessage_2", "string": "making judgments of people you've just"},
+            {"code": "ShowMessage_2", "string": "met - you can get in a heap o' trouble."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I didn't mean -"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I'll give you shelter from whatever it"},
+            {"code": "ShowMessage_2", "string": "is you're hiding from for the night. But"},
+            {"code": "ShowMessage_2", "string": "in the morning you'll have to leave."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "This old woman has seen more than her"},
+            {"code": "ShowMessage_2", "string": "share of troubles, dearie. I doubt yours"},
+            {"code": "ShowMessage_2", "string": "would amount to much in comparison."},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Memnosyne, I didn't -"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Here we are."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I hope it's warm enough for you."},
+            {"code": "ShowMessage_2", "string": "Brewing proper tea is an art that"},
+            {"code": "ShowMessage_2", "string": "one learns and forgets with the moon."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "So... now that you have your tea, let's see"},
+            {"code": "ShowMessage_2", "string": "how you are at weaving a yarn."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "What brings you this close to the border"},
+            {"code": "ShowMessage_2", "string": "of poor, forgotten Surl?"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 617, 617, 0]},
+            {"code": "Teleport", "parameters": [207, 10, 9]},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "aolulumod"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I think she knows more than she lets on."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "TintScreen", "parameters": [60, 60, 60, 100, 6, 1]},
+            {"code": "ConditionalBranch", "parameters": [5, 26, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "LERLE"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What do you mean?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "She just... on the surface, she seems to be"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "sort of... well, flaky. Bustling around making"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "tea, not really listening to what we're saying."
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "But then every once in awhile, her"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "tone of voice changes and you can"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "almost, I don't know..."},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "\"And finally he knew the truth he had"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "been seeking: in the heart of Woman"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "lies a tiny frozen diamond, colder than"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "the furthest reaches of space, sharper"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "than the sharpest knives, and more"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "dangerous than the fiery pits of Hell.\""
+            },
+            {"code": "Wait", "indent": 1, "parameters": [30]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Not everything requires you to quote"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "from a play, Lerle. You could have just"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "said, \"Yeah, Talan, I think you're right.\""
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I didn't think I'd remember all of that"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "passage. It's from one of the first plays"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "we did when I came to Paradise..."
+            },
+            {"code": "Wait", "indent": 1, "parameters": [15]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "indent": 1, "parameters": [25]},
+            {"code": "ShowMessage", "indent": 1, "string": "LERLE"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
+            {"code": "Wait", "indent": 1, "parameters": [25]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I'm glad we're leaving tomorrow."},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Memnosyne makes me nervous."},
+            {"code": "Wait", "indent": 1, "parameters": [25]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 27, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "What do you mean?"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "She just... on the surface, she seems to be"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "sort of... well, flaky. Bustling around making"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "tea, not really listening to what we're saying."
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "But then every once in awhile, her"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "tone of voice changes and you can"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "almost, I don't know..."},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "She gets a look in her eye that seems"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "almost... haunted. As if she's seen things"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "that would make our blood run cold."
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "But she's just an old woman! I don't"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "understand how she could be so muddled"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "on the outside... and cold on the inside."
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Maybe it's all an act, like one of those"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "brightly colored flowers that smells"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "nice but has poison-tipped thorns."
+            },
+            {"code": "Wait", "indent": 2, "parameters": [15]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "I'm glad we're leaving tomorrow."},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Memnosyne makes me nervous."},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 28, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "What do you mean?"},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "She just... on the surface, she seems to be"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "sort of... well, flaky. Bustling around making"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "tea, not really listening to what we're saying."
+            },
+            {"code": "Wait", "indent": 3, "parameters": [10]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "But then every once in awhile, her"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "tone of voice changes and you can"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "almost, I don't know..."},
+            {"code": "Wait", "indent": 3, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "You sound scared, boy. She's just a"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "woman. What can she do to us?"},
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I guess... but underneath her muddled"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "exterior, she seems really... I don't know"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "what word I'm looking for."},
+            {"code": "Wait", "indent": 3, "parameters": [15]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "Aware."},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "indent": 3, "parameters": [2]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "What?"},
+            {"code": "Wait", "indent": 3, "parameters": [2]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "She frightens you because for all her"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "empty-headed mannerisms, it seems as"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "if she's watching, always watching..."
+            },
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "...just waiting for you to let something"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "slip. She should be just an empty-headed"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "old woman with a teapot... but she's not."
+            },
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "So you did notice."},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Of course I noticed. But realizing that"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "someone is not as they appear is not the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "same as being frightened of them."
+            },
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "You'd do well to learn that, boy."
+            },
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "I'm glad we're leaving tomorrow."},
+            {"code": "ShowMessage_2", "indent": 3, "string": "Memnosyne makes me nervous."},
+            {"code": "Wait", "indent": 3, "parameters": [25]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 618, 618, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 624
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 618
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 656
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 624
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I'm \"Emily.\" Can you say your name?", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "... rrrrrrrrrr.... rrrrrrrrrsssss...", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Is that your name? Who are you? Can", []],
-            [0, "ShowMessage_2", "you tell me who you are?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "... kkkkkkkrrrrrrrr....", []],
-            [0, "Wait", "", [2]],
-            [0, "Wait", "", [4]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "... kkkkkrrrrrrrrssssssshhhhh...", []],
-            [0, "Wait", "", [2]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Kkkkeeeeeeeerrrrrrrrsssshhh...", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Your name is Kersh? It's a pleasure to", []],
-            [0, "ShowMessage_2", "meet you, Kersh! Can you say my name?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Emmiillyy...", []],
-            [0, "Wait", "", [7]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Emmmily...", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "That's it! I think you're getting better,", []],
-            [0, "ShowMessage_2", "Kersh! We'll have you chatting up a", []],
-            [0, "ShowMessage_2", "storm in no time!", []],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We're leaving.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "What?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Paradise is empty.", []],
-            [0, "ShowMessage_2", "There... weren't any survivors.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "The Agency just left? They killed everyone", []],
-            [0, "ShowMessage_2", "and didn't even want the town?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That's... what it looks like.", []],
-            [0, "ShowMessage_2", "Emily, about before -", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Talan, it's all right.", []],
-            [0, "ShowMessage_2", "I hate the Agency as much as you do.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "But Kersh isn't with the Agency anymore!", []],
-            [0, "ShowMessage_2", "He's with us now, and he can help us make", []],
-            [0, "ShowMessage_2", "them pay for what they've done!", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "He has a name now?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Hhhead huurtss...", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We're going to head south. Surl might be", []],
-            [0, "ShowMessage_2", "dangerous, but it should also be deserted, which", []],
-            [0, "ShowMessage_2", "is better than any other place we might go.", []],
-            [0, "Wait", "", [4]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Voicesss...", []],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "If he's coming, you'd better keep him quiet.", []],
-            [0, "ShowMessage_2", "I'm not going to put up with his whining.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Whhooo... iss ssshee...?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Are you ready to go? Here, I'll help", []],
-            [0, "ShowMessage_2", "you up... there, there...", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "You won't find anyone in Surl - the place", []],
-            [0, "ShowMessage_2", "has been deserted for years. But don't let", []],
-            [0, "ShowMessage_2", "your guard down - it is still dangerous.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Keep your eyes especially on this \"Kersh.\"", []],
-            [0, "ShowMessage_2", "His mind may have been devastated, but he", []],
-            [0, "ShowMessage_2", "was capable of great evil once...", []],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "You've been a great help, Memnosyne;", []],
-            [0, "ShowMessage_2", "and not just because you neutralized the", []],
-            [0, "ShowMessage_2", "threat Kersh posed to us.", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "The memories of Surl that now lie within", []],
-            [0, "ShowMessage_2", "his mind have affected him differently than", []],
-            [0, "ShowMessage_2", "they did me: do not underestimate him!", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Those memories seem to have traumatized", []],
-            [0, "ShowMessage_2", "him in some way... but I don't know whether", []],
-            [0, "ShowMessage_2", "the effect is permanent.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Stay alert.", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Goodbye, Memnosyne.", []],
-            [0, "ShowMessage_2", "I'm sorry we couldn't bring you", []],
-            [0, "ShowMessage_2", "much happiness. ", []],
-            [0, "ChangeItems", "", [1, 0, 182, 0, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "The unhappiness of Surl is already fading", []],
-            [0, "ShowMessage_2", "from my mind... that alone is enough to", []],
-            [0, "ShowMessage_2", "give me joy.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "May you all have safe journeys ahead!", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 25]],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 28]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ChangePartyMembers", "", [0, 0, 27]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ChangePartyMembers", "", [0, 0, 26]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 18]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ChangePartyMembers", "", [0, 0, 32]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "FullHeal", "", [0, 0]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]],
-            [0, "Teleport", "", [210, 11, 4]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ControlSwitches", "", [0, 662, 662, 0]]
-          ]
+          "id": 3,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 662
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 656
           },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I'm \"Emily.\" Can you say your name?"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "... rrrrrrrrrr.... rrrrrrrrrsssss..."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Is that your name? Who are you? Can"},
+            {"code": "ShowMessage_2", "string": "you tell me who you are?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "... kkkkkkkrrrrrrrr...."},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "... kkkkkrrrrrrrrssssssshhhhh..."},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Kkkkeeeeeeeerrrrrrrrsssshhh..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Your name is Kersh? It's a pleasure to"},
+            {"code": "ShowMessage_2", "string": "meet you, Kersh! Can you say my name?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Emmiillyy..."},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Emmmily..."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "That's it! I think you're getting better,"},
+            {"code": "ShowMessage_2", "string": "Kersh! We'll have you chatting up a"},
+            {"code": "ShowMessage_2", "string": "storm in no time!"},
+            {"code": "Wait", "parameters": [8]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 12, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We're leaving."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "What?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Paradise is empty."},
+            {"code": "ShowMessage_2", "string": "There... weren't any survivors."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "The Agency just left? They killed everyone"},
+            {"code": "ShowMessage_2", "string": "and didn't even want the town?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That's... what it looks like."},
+            {"code": "ShowMessage_2", "string": "Emily, about before -"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Talan, it's all right."},
+            {"code": "ShowMessage_2", "string": "I hate the Agency as much as you do."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "But Kersh isn't with the Agency anymore!"},
+            {"code": "ShowMessage_2", "string": "He's with us now, and he can help us make"},
+            {"code": "ShowMessage_2", "string": "them pay for what they've done!"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "He has a name now?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Hhhead huurtss..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We're going to head south. Surl might be"},
+            {
+              "code": "ShowMessage_2",
+              "string": "dangerous, but it should also be deserted, which"
+            },
+            {"code": "ShowMessage_2", "string": "is better than any other place we might go."},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Voicesss..."},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "If he's coming, you'd better keep him quiet."},
+            {"code": "ShowMessage_2", "string": "I'm not going to put up with his whining."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 14, 23, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
+                0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Whhooo... iss ssshee...?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Are you ready to go? Here, I'll help"},
+            {"code": "ShowMessage_2", "string": "you up... there, there..."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "You won't find anyone in Surl - the place"},
+            {"code": "ShowMessage_2", "string": "has been deserted for years. But don't let"},
+            {"code": "ShowMessage_2", "string": "your guard down - it is still dangerous."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Keep your eyes especially on this \"Kersh.\""},
+            {"code": "ShowMessage_2", "string": "His mind may have been devastated, but he"},
+            {"code": "ShowMessage_2", "string": "was capable of great evil once..."},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "You've been a great help, Memnosyne;"},
+            {"code": "ShowMessage_2", "string": "and not just because you neutralized the"},
+            {"code": "ShowMessage_2", "string": "threat Kersh posed to us."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "The memories of Surl that now lie within"},
+            {"code": "ShowMessage_2", "string": "his mind have affected him differently than"},
+            {"code": "ShowMessage_2", "string": "they did me: do not underestimate him!"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Those memories seem to have traumatized"},
+            {"code": "ShowMessage_2", "string": "him in some way... but I don't know whether"},
+            {"code": "ShowMessage_2", "string": "the effect is permanent."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Stay alert."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Goodbye, Memnosyne."},
+            {"code": "ShowMessage_2", "string": "I'm sorry we couldn't bring you"},
+            {"code": "ShowMessage_2", "string": "much happiness. "},
+            {"code": "ChangeItems", "parameters": [1, 0, 182, 0, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "The unhappiness of Surl is already fading"},
+            {"code": "ShowMessage_2", "string": "from my mind... that alone is enough to"},
+            {"code": "ShowMessage_2", "string": "give me joy."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "May you all have safe journeys ahead!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 25]},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 28]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 27]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 26]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 18]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 32]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "FullHeal", "parameters": [0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]},
+            {"code": "Teleport", "parameters": [210, 11, 4]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 662, 662, 0]}
+          ],
+          "id": 4,
+          "move_type": "stationary",
+          "trigger": "auto_start"
+        },
+        {
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 662
+          },
+          "id": 5,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
       ]
@@ -551,260 +808,334 @@
     {
       "id": 4,
       "name": "Memnosyne2",
-      "at": [5, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 624
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 624
           },
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "You should be able to follow that"},
+            {"code": "ShowMessage_2", "string": "tunnel under the mountains to the"},
+            {"code": "ShowMessage_2", "string": "west."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "But be careful, dearies... it's very"},
+            {"code": "ShowMessage_2", "string": "old, and is probably unstable."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "You should be able to follow that", []],
-            [0, "ShowMessage_2", "tunnel under the mountains to the", []],
-            [0, "ShowMessage_2", "west.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "But be careful, dearies... it's very", []],
-            [0, "ShowMessage_2", "old, and is probably unstable.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 656
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 656
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 8
     },
     {
       "id": 5,
       "name": "EmilyAfterPierson",
-      "at": [8, 10],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 656
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "emily",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 656
           },
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 10
     },
     {
       "id": 6,
       "name": "Kersh",
-      "at": [9, 10],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 656
+          "character_index": 5,
+          "character_name": "Future1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 656
           },
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 10
     },
     {
       "id": 7,
       "name": "Emily",
-      "at": [11, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 618
+          "character_direction": "up",
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 618
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 13
     },
     {
       "id": 8,
       "name": "ParadiseCharacter",
-      "at": [7, 13],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 386
+          "character_direction": "up",
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 386
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 388
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 388
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 385
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 385
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 3,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 618
+          "character_direction": "up",
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 618
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 4,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 13
     },
     {
       "id": 9,
       "name": "Disabled",
-      "at": [10, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "static", [100, 100, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 0, 1]],
-            [0, "Wait", "", [7]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
-            [0, "ShowPicture", "GTest4", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 6]],
-            [0, "MovePicture", "", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 1, 5, 1]],
-            [0, "MovePicture", "", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 4, 5, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "APPARITION", []],
-            [0, "ShowMessage_2", "Kersh.\\|\\^", []],
-            [0, "Wait", "", [5]],
-            [0, "ErasePicture", "", [1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 1]],
-            [0, "Comment", "BREAK", []],
-            [0, "PlaySound", "static", [100, 100, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 0, 1]],
-            [0, "Wait", "", [7]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
-            [0, "ShowPicture", "GTest4", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 8]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "APPARITION", []],
-            [0, "ShowMessage_2", "Anash'na go'rel amno Kersh!\\|\\|\\^", []],
-            [0, "Wait", "", [3]],
-            [0, "ErasePicture", "", [1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 1]],
-            [0, "Comment", "BREAK", []],
-            [0, "PlaySound", "static", [100, 100, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 0, 1]],
-            [0, "Wait", "", [5]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
-            [0, "ShowPicture", "GTest4", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 8]],
-            [0, "Wait", "", [5]],
-            [0, "ErasePicture", "", [1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 1]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "static"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 0, 1]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+            {
+              "code": "ShowPicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 6],
+              "string": "GTest4"
+            },
+            {
+              "code": "MovePicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 1, 5, 1]
+            },
+            {
+              "code": "MovePicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 4, 5, 1]
+            },
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "APPARITION"},
+            {"code": "ShowMessage_2", "string": "Kersh.\\|\\^"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ErasePicture", "parameters": [1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]},
+            {"code": "Comment", "string": "BREAK"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "static"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 0, 1]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+            {
+              "code": "ShowPicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 8],
+              "string": "GTest4"
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "APPARITION"},
+            {"code": "ShowMessage_2", "string": "Anash'na go'rel amno Kersh!\\|\\|\\^"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ErasePicture", "parameters": [1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]},
+            {"code": "Comment", "string": "BREAK"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "static"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 0, 1]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+            {
+              "code": "ShowPicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 8],
+              "string": "GTest4"
+            },
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ErasePicture", "parameters": [1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [1, 5],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "The plaque is faded and what may"},
+            {"code": "ShowMessage_2", "string": "once have been words are completely"},
+            {"code": "ShowMessage_2", "string": "unreadable."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "The plaque is faded and what may", []],
-            [0, "ShowMessage_2", "once have been words are completely", []],
-            [0, "ShowMessage_2", "unreadable.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 5
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     }
-  ]
+  ],
+  "save_count": 162
 }

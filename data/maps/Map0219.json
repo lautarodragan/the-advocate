@@ -1,204 +1,228 @@
 {
-  "id": 219,
-  "name": "Emily and Memnosyne",
-  "size": [30, 20],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0219.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 26]],
-            [0, "ChangePartyMembers", "", [1, 0, 27]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "ChangePartyMembers", "", [1, 0, 25]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Hello, Memnosyne. Are you having", []],
-            [0, "ShowMessage_2", "trouble sleeping?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I thought you might like some company,", []],
-            [0, "ShowMessage_2", "dear girl.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Isn't it just like a man to make", []],
-            [0, "ShowMessage_2", "the only girl in the group stay on", []],
-            [0, "ShowMessage_2", "watch while he sleeps?", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Oh, Talan didn't mean anything by it.", []],
-            [0, "ShowMessage_2", "He just wanted to take the later shift", []],
-            [0, "ShowMessage_2", "for himself, when I'd be more tired.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "How long have you known Talan?", []],
-            [0, "ShowMessage_2", "He told me how you two fled your home,", []],
-            [0, "ShowMessage_2", "but for how long did you know him before?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Just for a few months. It seems like forever,", []],
-            [0, "ShowMessage_2", "now - it's amazing how much can happen", []],
-            [0, "ShowMessage_2", "in so short a time...", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Oh, don't I know it, child.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [4]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "You look so tired! Here, close your", []],
-            [0, "ShowMessage_2", "eyes... let me keep watch for you", []],
-            [0, "ShowMessage_2", "for a little while. You need your rest.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Oh, I couldn't - ", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE places her fingertips", []],
-            [0, "ShowMessage_2", "on EMILY's eyelids.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "PlaySound", "Holy7", [100, 50, 50]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "What... what is this?", []],
-            [0, "ShowMessage_2", "Memnosyne! What's going on?!", []],
-            [0, "PlayBGM", "1_-_The_Story_of_a_Lost_Love", [0, 100, 100, 50]],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Relax, child... just let yourself slip away", []],
-            [0, "ShowMessage_2", "into peaceful slumber... that's right...", []],
-            [0, "ShowMessage_2", "let your memories surface as dreams...", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "EMILY, asleep", []],
-            [0, "ShowMessage_2", "... dreams...", []],
-            [0, "Teleport", "", [240, 2, 6]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 26]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 27]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 25]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                3, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3,
+                3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Hello, Memnosyne. Are you having"},
+            {"code": "ShowMessage_2", "string": "trouble sleeping?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I thought you might like some company,"},
+            {"code": "ShowMessage_2", "string": "dear girl."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Isn't it just like a man to make"},
+            {"code": "ShowMessage_2", "string": "the only girl in the group stay on"},
+            {"code": "ShowMessage_2", "string": "watch while he sleeps?"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Oh, Talan didn't mean anything by it."},
+            {"code": "ShowMessage_2", "string": "He just wanted to take the later shift"},
+            {"code": "ShowMessage_2", "string": "for himself, when I'd be more tired."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "How long have you known Talan?"},
+            {"code": "ShowMessage_2", "string": "He told me how you two fled your home,"},
+            {"code": "ShowMessage_2", "string": "but for how long did you know him before?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Just for a few months. It seems like forever,"},
+            {"code": "ShowMessage_2", "string": "now - it's amazing how much can happen"},
+            {"code": "ShowMessage_2", "string": "in so short a time..."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Oh, don't I know it, child."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "You look so tired! Here, close your"},
+            {"code": "ShowMessage_2", "string": "eyes... let me keep watch for you"},
+            {"code": "ShowMessage_2", "string": "for a little while. You need your rest."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Oh, I couldn't - "},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE places her fingertips"},
+            {"code": "ShowMessage_2", "string": "on EMILY's eyelids."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Holy7"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "What... what is this?"},
+            {"code": "ShowMessage_2", "string": "Memnosyne! What's going on?!"},
+            {
+              "code": "PlayBGM",
+              "parameters": [0, 100, 100, 50],
+              "string": "1_-_The_Story_of_a_Lost_Love"
+            },
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Relax, child... just let yourself slip away"},
+            {"code": "ShowMessage_2", "string": "into peaceful slumber... that's right..."},
+            {"code": "ShowMessage_2", "string": "let your memories surface as dreams..."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY, asleep"},
+            {"code": "ShowMessage_2", "string": "... dreams..."},
+            {"code": "Teleport", "parameters": [240, 2, 6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 701
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 701
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I... I didn't know, Emily.", []],
-            [0, "ShowMessage_2", "I'm sorry my Memory Pathway caused", []],
-            [0, "ShowMessage_2", "you to relive painful memories.", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Rest well, Emily.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13, 23, 23, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "That Talan will be awake for his shift", []],
-            [0, "ShowMessage_2", "soon... I should get back.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Then I'll see what happiness his", []],
-            [0, "ShowMessage_2", "memory might hold...", []],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "Teleport", "", [232, 5, 11]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I... I didn't know, Emily."},
+            {"code": "ShowMessage_2", "string": "I'm sorry my Memory Pathway caused"},
+            {"code": "ShowMessage_2", "string": "you to relive painful memories."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Rest well, Emily."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13, 23, 23, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "That Talan will be awake for his shift"},
+            {"code": "ShowMessage_2", "string": "soon... I should get back."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Then I'll see what happiness his"},
+            {"code": "ShowMessage_2", "string": "memory might hold..."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1]},
+            {"code": "ProceedWithMovement"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "Teleport", "parameters": [232, 5, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Emily",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 701
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "emily",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 701
           },
-          "sprite": {
-            "charset": "emily",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 3,
       "name": "Memnosyne",
-      "at": [21, 5],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 5
     },
     {
       "id": 4,
       "name": "Memnosyne2",
-      "at": [10, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 701
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 701
           },
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     }
-  ]
+  ],
+  "height": 20,
+  "save_count": 98,
+  "width": 30
 }

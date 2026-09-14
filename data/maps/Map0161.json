@@ -1,8 +1,1 @@
-{
-  "id": 161,
-  "name": "Tutorials",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0161.tiles",
-  "events": []
-}
+{"save_count": 2}

@@ -1,112 +1,110 @@
 {
-  "id": 34,
-  "name": "AfterGettingCarCutscene",
-  "size": [20, 15],
-  "chipset": [18, "Inside"],
-  "tiles": "Map0034.tiles",
-  "parallax": {
-    "name": "OfficeView",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 18,
   "events": [
     {
       "id": 1,
       "name": "Agency Captain",
-      "at": [7, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 4
     },
     {
       "id": 2,
       "name": "Director",
-      "at": [6, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 4
     },
     {
       "id": 3,
       "name": "RunTheScene",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "There was a... reaction, of some sort.", []],
-            [0, "ShowMessage_2", "It was unexpected.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "VOICE BEHIND BOOKSHELF", []],
-            [0, "ShowMessage_2", "These curtains are all tangled.", []],
-            [0, "ShowMessage_2", "You can never have too many", []],
-            [0, "ShowMessage_2", "bookshelves, but these curtains...", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Sir? This might be a problem for", []],
-            [0, "ShowMessage_2", "my men. They aren't accustomed -", []],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "It was gracious of him to give me", []],
-            [0, "ShowMessage_2", "this office, but these curtains", []],
-            [0, "ShowMessage_2", "will have to go.", []],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "Nice view, though, eh, Captain?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Sir. My report is complete.", []],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "Yes, Captain. You know how to", []],
-            [0, "ShowMessage_2", "proceed. This should not change", []],
-            [0, "ShowMessage_2", "the Schedule at all.", []],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "No, Sir.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 28, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2]],
-            [0, "Wait", "", [21]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 4]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Run, Talan, run.", []],
-            [0, "ShowMessage_2", "The very dogs of Hell are after you.", []],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "I really need to do something about", []],
-            [0, "ShowMessage_2", "that crack in the glass.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 20, 1]],
-            [0, "ControlSwitches", "", [0, 133, 133, 0]],
-            [0, "ControlSwitches", "", [0, 148, 148, 0]],
-            [0, "Teleport", "", [36, 10, 8]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "There was a... reaction, of some sort."},
+            {"code": "ShowMessage_2", "string": "It was unexpected."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "VOICE BEHIND BOOKSHELF"},
+            {"code": "ShowMessage_2", "string": "These curtains are all tangled."},
+            {"code": "ShowMessage_2", "string": "You can never have too many"},
+            {"code": "ShowMessage_2", "string": "bookshelves, but these curtains..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Sir? This might be a problem for"},
+            {"code": "ShowMessage_2", "string": "my men. They aren't accustomed -"},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "It was gracious of him to give me"},
+            {"code": "ShowMessage_2", "string": "this office, but these curtains"},
+            {"code": "ShowMessage_2", "string": "will have to go."},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "Nice view, though, eh, Captain?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Sir. My report is complete."},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "Yes, Captain. You know how to"},
+            {"code": "ShowMessage_2", "string": "proceed. This should not change"},
+            {"code": "ShowMessage_2", "string": "the Schedule at all."},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "No, Sir."},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 28, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2]
+            },
+            {"code": "Wait", "parameters": [21]},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 4]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Run, Talan, run."},
+            {"code": "ShowMessage_2", "string": "The very dogs of Hell are after you."},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "I really need to do something about"},
+            {"code": "ShowMessage_2", "string": "that crack in the glass."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 20, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 133, 133, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 148, 148, 0]},
+            {"code": "Teleport", "parameters": [36, 10, 8]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "OfficeView",
+  "save_count": 35
 }

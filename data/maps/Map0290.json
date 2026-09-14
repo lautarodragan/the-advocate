@@ -1,112 +1,130 @@
 {
-  "id": 290,
-  "name": "Talan Computer Room",
-  "size": [20, 15],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0290.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [262, 9, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [262, 9, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [19, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [291, 0, 34]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [291, 0, 34]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 7
     },
     {
       "id": 3,
       "name": "AfterBattleMint",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [19, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 14
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [9, 4],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This door is locked."},
+            {"code": "ShowMessage_2", "string": "I wonder where it goes?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This door is locked.", []],
-            [0, "ShowMessage_2", "I wonder where it goes?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 4
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [10, 4],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This door is locked."},
+            {"code": "ShowMessage_2", "string": "I wonder where it goes?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This door is locked.", []],
-            [0, "ShowMessage_2", "I wonder where it goes?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 4
     }
-  ]
+  ],
+  "save_count": 22
 }

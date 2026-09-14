@@ -1,180 +1,167 @@
 {
-  "id": 102,
-  "name": "Eisen's Sim - ThroneRoom",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0102.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [4, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 5
     },
     {
       "id": 2,
       "name": "StopGuard",
-      "at": [4, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 8
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [4, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 11
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [15, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 11
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [15, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 5
     },
     {
       "id": 7,
       "name": "Dalia",
-      "at": [8, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 3
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "What is this? Professor Eisen, what's", []],
-            [0, "ShowMessage_2", "going on?!", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 28, 2, 2, 2, 2, 2, 29]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1]],
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "Your Highness, I'm afraid you must", []],
-            [0, "ShowMessage_2", "stay here. Your protection is of paramount", []],
-            [0, "ShowMessage_2", "import.", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 24, 25, 15]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "What?", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 13]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Eisen! I demand that you release me", []],
-            [0, "ShowMessage_2", "at once and explain yourself! The Agency -", []],
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "Your Highness, I'm afraid you must", []],
-            [0, "ShowMessage_2", "stay here. Your protection is of paramount", []],
-            [0, "ShowMessage_2", "import.", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 15]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I am on a mission for the most powerful -", []],
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "Your Highness, I'm afraid you must", []],
-            [0, "ShowMessage_2", "stay here. Your protection is of paramount", []],
-            [0, "ShowMessage_2", "import.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Stop saying that!", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 14]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "EISEN!!!", []],
-            [0, "ControlSwitches", "", [0, 309, 309, 0]],
-            [0, "Teleport", "", [101, 8, 19]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "What is this? Professor Eisen, what's"},
+            {"code": "ShowMessage_2", "string": "going on?!"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 28, 2, 2, 2, 2, 2, 29]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 1]},
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "Your Highness, I'm afraid you must"},
+            {"code": "ShowMessage_2", "string": "stay here. Your protection is of paramount"},
+            {"code": "ShowMessage_2", "string": "import."},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 24, 25, 15]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "What?"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Eisen! I demand that you release me"},
+            {"code": "ShowMessage_2", "string": "at once and explain yourself! The Agency -"},
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "Your Highness, I'm afraid you must"},
+            {"code": "ShowMessage_2", "string": "stay here. Your protection is of paramount"},
+            {"code": "ShowMessage_2", "string": "import."},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I am on a mission for the most powerful -"},
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "Your Highness, I'm afraid you must"},
+            {"code": "ShowMessage_2", "string": "stay here. Your protection is of paramount"},
+            {"code": "ShowMessage_2", "string": "import."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Stop saying that!"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "EISEN!!!"},
+            {"code": "ControlSwitches", "parameters": [0, 309, 309, 0]},
+            {"code": "Teleport", "parameters": [101, 8, 19]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 9
 }

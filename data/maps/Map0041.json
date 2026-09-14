@@ -1,117 +1,139 @@
 {
-  "id": 41,
-  "name": "ScreenToneAdjuster",
-  "size": [20, 15],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0041.tiles",
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [15, 10],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "Teleport", "", [40, 21, 39]],
-            [0, "TintScreen", "", [40, 40, 30, 70, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [40, 21, 39]},
+            {"code": "TintScreen", "parameters": [40, 40, 30, 70, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 162
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 162
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 15]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 17]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 18]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 163, 163, 0]],
-            [0, "ConditionalBranch", "", [0, 162, 0, 0, 0, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 29]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "PlayBGM", "golden_axe-turtlevillage2", [0, 50, 100, 50]],
-            [0, "Teleport", "", [37, 29, 31]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 15]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 17]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 18]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 163, 163, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 162, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 29]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {
+              "code": "PlayBGM",
+              "parameters": [0, 50, 100, 50],
+              "string": "golden_axe-turtlevillage2"
+            },
+            {"code": "Teleport", "parameters": [37, 29, 31]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 164
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 164
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 15]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 17]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 18]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 163, 163, 0]],
-            [0, "ConditionalBranch", "", [0, 162, 0, 0, 0, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 29]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "PlayBGM", "golden_axe-turtlevillage2", [0, 50, 100, 50]],
-            [0, "Teleport", "", [37, 29, 31]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 15]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 17]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 18]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 163, 163, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 162, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 29]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {
+              "code": "PlayBGM",
+              "parameters": [0, 50, 100, 50],
+              "string": "golden_axe-turtlevillage2"
+            },
+            {"code": "Teleport", "parameters": [37, 29, 31]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 10
     }
-  ]
+  ],
+  "save_count": 33
 }

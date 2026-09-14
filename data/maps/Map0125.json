@@ -1,76 +1,66 @@
 {
-  "id": 125,
-  "name": "AG7 in the Rain",
-  "size": [20, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0125.tiles",
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [30]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [30]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
       ]
     },
     {
       "id": 2,
       "name": "AG7-17",
-      "at": [12, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 8
     },
     {
       "id": 5,
       "name": "Drago",
-      "at": [7, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 6
     },
     {
       "id": 6,
       "name": "Isabella",
-      "at": [6, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 6
     }
-  ]
+  ],
+  "save_count": 33
 }

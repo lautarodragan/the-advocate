@@ -1,936 +1,1222 @@
 {
-  "id": 26,
-  "name": "Rat Tracks B2",
-  "size": [50, 50],
-  "chipset": [43, "caveD"],
-  "tiles": "Map0026.tiles",
+  "chipset_id": 43,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [13, 49],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [21, 20, 3]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [21, 20, 3]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 49
     },
     {
       "id": 2,
       "name": "RatTrackChest7c",
-      "at": [3, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [2, 3]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Empty Bottle"},
+            {"code": "ChangeItems", "parameters": [0, 0, 106, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 116, 116, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [2, 3]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Empty Bottle", []],
-            [0, "ChangeItems", "", [0, 0, 106, 0, 1]],
-            [0, "ControlSwitches", "", [0, 116, 116, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 116
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 116
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 35
     },
     {
       "id": 3,
       "name": "RatTrackChest7o",
-      "at": [49, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 49
     },
     {
       "id": 4,
       "name": "RatTrackChest8c",
-      "at": [35, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [4, 5]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Iron Staff-RL"},
+            {"code": "ChangeItems", "parameters": [0, 0, 108, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 117, 117, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [4, 5]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Iron Staff-RL", []],
-            [0, "ChangeItems", "", [0, 0, 108, 0, 1]],
-            [0, "ControlSwitches", "", [0, 117, 117, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 117
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 117
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 44
     },
     {
       "id": 5,
       "name": "RatTrackChest8o",
-      "at": [49, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 48
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [41, 18],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This looks like a lair of some sort...", []],
-            [0, "PlaySound", "Monster2", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Here it comes!", []],
-            [0, "ChangeEventLocation", "", [10005, 0, 49, 47]],
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
-            [0, "EnemyEncounter", "ABLBackdropSJ08", [0, 97, 1, 0, 0, 0]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<gasp> You want <pant> some more", []],
-            [0, "ShowMessage_2", "of this? Huh?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Guess I'm the new head honcho in", []],
-            [0, "ShowMessage_2", "these parts now, huh?", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'd better keep moving. I'm not out", []],
-            [0, "ShowMessage_2", "of the Rat Tracks yet.", []],
-            [0, "ControlSwitches", "", [0, 137, 137, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This looks like a lair of some sort..."},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Monster2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Here it comes!"},
+            {"code": "ChangeEventLocation", "parameters": [10005, 0, 49, 47]},
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "EnemyEncounter",
+              "parameters": [0, 97, 1, 0, 0, 0],
+              "string": "ABLBackdropSJ08"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<gasp> You want <pant> some more"},
+            {"code": "ShowMessage_2", "string": "of this? Huh?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Guess I'm the new head honcho in"},
+            {"code": "ShowMessage_2", "string": "these parts now, huh?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'd better keep moving. I'm not out"},
+            {"code": "ShowMessage_2", "string": "of the Rat Tracks yet."},
+            {"code": "ControlSwitches", "parameters": [0, 137, 137, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 54
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 54
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangeEventLocation", "", [7, 0, 43, 7]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That looks like a Neon Viper! What's", []],
-            [0, "ShowMessage_2", "she doing here?", []],
-            [0, "PlaySound", "Monster2", [100, 50, 50]],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Oh no! I've got to help!", []],
-            [0, "ChangeEventLocation", "", [10005, 0, 49, 47]],
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
-            [0, "EnemyEncounter", "ABLBackdropSJ08", [0, 97, 1, 0, 0, 0]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 14]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<gasp> You want <pant> some more", []],
-            [0, "ShowMessage_2", "of this? Huh?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "NEON VIPER", []],
-            [0, "ShowMessage_2", "That was pretty...impressive... ugh...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 1]],
-            [0, "Wait", "", [15]],
-            [0, "ConditionalBranch", "", [0, 48, 0, 0, 0, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "You're the spy I saw in the Lazer", []],
-            [1, "ShowMessage_2", "Teeth Hideout, aren't you?", []],
-            [1, "ShowMessage", "NEON VIPER", []],
-            [1, "ShowMessage_2", "Ugh... yeah... sorry. The KingRat got", []],
-            [1, "ShowMessage_2", "me pretty good...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "She's hurt pretty bad.", []],
-            [0, "ConditionalBranch", "", [4, 97, 0, 0, 0, 1]],
-            [1, "ShowChoice", "Give her a healing Sandwich?/Don't bother", [2]],
-            [1, "ShowChoiceOption", "Give her a healing Sandwich?", [0]],
-            [2, "ChangeItems", "", [1, 0, 97, 0, 1]],
-            [2, "PlaySound", "Recovery4", [100, 100, 50]],
-            [2, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [2, "Wait", "", [15]],
-            [2, "ControlSwitches", "", [0, 97, 97, 0]],
-            [2, "END", "", []],
-            [1, "ShowChoiceOption", "Don't bother", [1]],
-            [2, "ShowMessage", "NEON VIPER", []],
-            [2, "ShowMessage_2", "There should be a bottle of healing", []],
-            [2, "ShowMessage_2", "liquid by the entrance - I dropped it", []],
-            [2, "ShowMessage_2", "when the KingRat attacked me...", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2]],
-            [2, "Wait", "", [10]],
-            [2, "MessageOptions", "", [1, 1, 0, 0]],
-            [2, "ShowMessage", "TALAN found a BOTTLE.", []],
-            [2, "MessageOptions", "", [0, 2, 1, 0]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 13]],
-            [2, "Wait", "", [10]],
-            [2, "MessageOptions", "", [1, 1, 0, 0]],
-            [2, "ShowMessage", "TALAN gave the BOTTLE to the", []],
-            [2, "ShowMessage_2", "NEON VIPER.", []],
-            [2, "MessageOptions", "", [0, 2, 1, 0]],
-            [2, "PlaySound", "Recovery4", [100, 100, 50]],
-            [2, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [2, "Wait", "", [15]],
-            [2, "END", "", []],
-            [1, "ShowChoiceEnd", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "NEON VIPER", []],
-            [1, "ShowMessage_2", "There should be a bottle of healing", []],
-            [1, "ShowMessage_2", "liquid by the entrance - I dropped it", []],
-            [1, "ShowMessage_2", "when the KingRat attacked me...", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2]],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "ShowMessage", "TALAN found a BOTTLE.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 13]],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "ShowMessage", "TALAN gave the BOTTLE to the", []],
-            [1, "ShowMessage_2", "NEON VIPER.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "PlaySound", "Recovery4", [100, 100, 50]],
-            [1, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [1, "Wait", "", [15]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 15]],
-            [0, "ShowMessage", "NEON VIPER", []],
-            [0, "ShowMessage_2", "Thanks, Talan. It's a good thing for me", []],
-            [0, "ShowMessage_2", "you came along when you did!", []],
-            [0, "ShowMessage", "NEON VIPER", []],
-            [0, "ShowMessage_2", "My name's Arden.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Hi, Arden. It's a pleasure to meet you,", []],
-            [0, "ShowMessage_2", "but I'm in a bit of a hurry... the Agency", []],
-            [0, "ShowMessage_2", "could come pouring down here", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "any minute now.", []],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "The Agency? What for?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's a long story, but I really have to", []],
-            [0, "ShowMessage_2", "be going...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3, 3, 3, 3]],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "Talan, wait!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "I'm coming with you. You're a friend", []],
-            [0, "ShowMessage_2", "of the Vipers, and we owe you a debt", []],
-            [0, "ShowMessage_2", "of gratitude. If you're in trouble -", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Look, Arden, I appreciate the", []],
-            [0, "ShowMessage_2", "\"Camaraderie of the Streets\" deal,", []],
-            [0, "ShowMessage_2", "really I do, but you can't come with me.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "I've got a throwing knife trained on", []],
-            [0, "ShowMessage_2", "you, Talan - I'm coming with you,", []],
-            [0, "ShowMessage_2", "whether you like it or not.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Sure you do.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 3]],
-            [0, "PlaySound", "Wind4", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [136, 10001, 1, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [4]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "You were serious!", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "I'm always serious. Let's get moving.", []],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "The Vipers would have my hide if I", []],
-            [0, "ShowMessage_2", "let the Agency get you now.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "So, what's the deal? Where are", []],
-            [0, "ShowMessage_2", "we heading?", []],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<sigh> Someone told me these", []],
-            [0, "ShowMessage_2", "tunnels would take me to Sector", []],
-            [0, "ShowMessage_2", "27, out from under the searching", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "eyes of the Agency Guards. Hopefully", []],
-            [0, "ShowMessage_2", "they're concentrating on 30, and won't", []],
-            [0, "ShowMessage_2", "expect me to have gotten this far yet.", []],
-            [0, "ShowMessage", "ARDEN", []],
-            [0, "ShowMessage_2", "All right. Lead on!", []],
-            [0, "ConditionalBranch", "", [0, 97, 0, 0, 0, 1]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Wait a second - I dropped something", []],
-            [1, "ShowMessage_2", "when the KingRat attacked me...", []],
-            [1, "MoveEvent", "", [7, 8, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 12, 14, 15, 2, 2, 13, 1, 1, 14]],
-            [1, "Wait", "", [50]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Found it!", []],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "PlaySound", "Wind4", [100, 70, 100]],
-            [1, "ShowMessage", "ARDEN threw TALAN a", []],
-            [1, "ShowMessage_2", "       BOTTLE OF HEALTH.", []],
-            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "MoveEvent", "", [7, 8, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3]],
-            [1, "Wait", "", [50]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "OK - let's go!", []],
-            [1, "ChangeEventLocation", "", [7, 0, 48, 47]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ChangeEventLocation", "", [7, 0, 48, 47]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ChangePartyMembers", "", [0, 0, 15]],
-            [0, "PlayBGM", "KSSMKEND", [0, 100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 137, 137, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [7, 0, 43, 7]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That looks like a Neon Viper! What's"},
+            {"code": "ShowMessage_2", "string": "she doing here?"},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Monster2"},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Oh no! I've got to help!"},
+            {"code": "ChangeEventLocation", "parameters": [10005, 0, 49, 47]},
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "EnemyEncounter",
+              "parameters": [0, 97, 1, 0, 0, 0],
+              "string": "ABLBackdropSJ08"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<gasp> You want <pant> some more"},
+            {"code": "ShowMessage_2", "string": "of this? Huh?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "NEON VIPER"},
+            {"code": "ShowMessage_2", "string": "That was pretty...impressive... ugh..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ConditionalBranch", "parameters": [0, 48, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You're the spy I saw in the Lazer"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Teeth Hideout, aren't you?"},
+            {"code": "ShowMessage", "indent": 1, "string": "NEON VIPER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Ugh... yeah... sorry. The KingRat got"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "me pretty good..."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "She's hurt pretty bad."},
+            {"code": "ConditionalBranch", "parameters": [4, 97, 0, 0, 0, 1]},
+            {
+              "code": "ShowChoice",
+              "indent": 1,
+              "parameters": [2],
+              "string": "Give her a healing Sandwich?/Don't bother"
+            },
+            {
+              "code": "ShowChoiceOption",
+              "indent": 1,
+              "parameters": [0],
+              "string": "Give her a healing Sandwich?"
+            },
+            {"code": "ChangeItems", "indent": 2, "parameters": [1, 0, 97, 0, 1]},
+            {
+              "code": "PlaySound",
+              "indent": 2,
+              "parameters": [100, 100, 50],
+              "string": "Recovery4"
+            },
+            {"code": "FlashScreen", "indent": 2, "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "Wait", "indent": 2, "parameters": [15]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 97, 97, 0]},
+            {"code": "END", "indent": 2},
+            {
+              "code": "ShowChoiceOption",
+              "indent": 1,
+              "parameters": [1],
+              "string": "Don't bother"
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "NEON VIPER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "There should be a bottle of healing"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "liquid by the entrance - I dropped it"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "when the KingRat attacked me..."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN found a BOTTLE."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [0, 2, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 13]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN gave the BOTTLE to the"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "NEON VIPER."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [0, 2, 1, 0]},
+            {
+              "code": "PlaySound",
+              "indent": 2,
+              "parameters": [100, 100, 50],
+              "string": "Recovery4"
+            },
+            {"code": "FlashScreen", "indent": 2, "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "Wait", "indent": 2, "parameters": [15]},
+            {"code": "END", "indent": 2},
+            {"code": "ShowChoiceEnd", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "NEON VIPER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "There should be a bottle of healing"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "liquid by the entrance - I dropped it"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "when the KingRat attacked me..."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN found a BOTTLE."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 13]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN gave the BOTTLE to the"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "NEON VIPER."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {
+              "code": "PlaySound",
+              "indent": 1,
+              "parameters": [100, 100, 50],
+              "string": "Recovery4"
+            },
+            {"code": "FlashScreen", "indent": 1, "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "Wait", "indent": 1, "parameters": [15]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "NEON VIPER"},
+            {"code": "ShowMessage_2", "string": "Thanks, Talan. It's a good thing for me"},
+            {"code": "ShowMessage_2", "string": "you came along when you did!"},
+            {"code": "ShowMessage", "string": "NEON VIPER"},
+            {"code": "ShowMessage_2", "string": "My name's Arden."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Hi, Arden. It's a pleasure to meet you,"},
+            {"code": "ShowMessage_2", "string": "but I'm in a bit of a hurry... the Agency"},
+            {"code": "ShowMessage_2", "string": "could come pouring down here"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "any minute now."},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "The Agency? What for?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's a long story, but I really have to"},
+            {"code": "ShowMessage_2", "string": "be going..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "Talan, wait!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "I'm coming with you. You're a friend"},
+            {"code": "ShowMessage_2", "string": "of the Vipers, and we owe you a debt"},
+            {"code": "ShowMessage_2", "string": "of gratitude. If you're in trouble -"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Look, Arden, I appreciate the"},
+            {"code": "ShowMessage_2", "string": "\"Camaraderie of the Streets\" deal,"},
+            {"code": "ShowMessage_2", "string": "really I do, but you can't come with me."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "I've got a throwing knife trained on"},
+            {"code": "ShowMessage_2", "string": "you, Talan - I'm coming with you,"},
+            {"code": "ShowMessage_2", "string": "whether you like it or not."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Sure you do."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 3]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Wind4"},
+            {"code": "ShowBattleAnimation", "parameters": [136, 10001, 1, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "You were serious!"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 3, 3, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "I'm always serious. Let's get moving."},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "The Vipers would have my hide if I"},
+            {"code": "ShowMessage_2", "string": "let the Agency get you now."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "So, what's the deal? Where are"},
+            {"code": "ShowMessage_2", "string": "we heading?"},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<sigh> Someone told me these"},
+            {"code": "ShowMessage_2", "string": "tunnels would take me to Sector"},
+            {"code": "ShowMessage_2", "string": "27, out from under the searching"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "eyes of the Agency Guards. Hopefully"},
+            {"code": "ShowMessage_2", "string": "they're concentrating on 30, and won't"},
+            {"code": "ShowMessage_2", "string": "expect me to have gotten this far yet."},
+            {"code": "ShowMessage", "string": "ARDEN"},
+            {"code": "ShowMessage_2", "string": "All right. Lead on!"},
+            {"code": "ConditionalBranch", "parameters": [0, 97, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Wait a second - I dropped something"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "when the KingRat attacked me..."},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [7, 8, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 12, 14, 15, 2, 2, 13, 1, 1, 14]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [50]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Found it!"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 70, 100], "string": "Wind4"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN threw TALAN a"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "       BOTTLE OF HEALTH."},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 107, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [7, 8, 0, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 0, 3, 3, 3, 3]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [50]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "OK - let's go!"},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [7, 0, 48, 47]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [7, 0, 48, 47]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 15]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "KSSMKEND"},
+            {"code": "ControlSwitches", "parameters": [0, 137, 137, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 56
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 56
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangeEventLocation", "", [8, 0, 43, 7]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 0]],
-            [0, "PlaySound", "Kill3", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [1, 8, 1, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 26, 38, 2, 39, 27]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 0]],
-            [0, "PlaySound", "Kill3", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [1, 8, 1, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 26, 38, 2, 39, 27]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That looks like one of the Lazer", []],
-            [0, "ShowMessage_2", "Teeth! And he's in big trouble!", []],
-            [0, "PlaySound", "Monster2", [100, 50, 50]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 0]],
-            [0, "PlaySound", "Kill3", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [1, 8, 1, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 26, 38, 2, 39, 27]],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I've got to help!", []],
-            [0, "ChangePartyMembers", "", [0, 0, 16]],
-            [0, "ChangeEventLocation", "", [10005, 0, 49, 47]],
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
-            [0, "EnemyEncounter", "ABLBackdropSJ08", [0, 97, 1, 0, 0, 0]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "ChangePartyMembers", "", [1, 0, 16]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "PlaySound", "Recovery4", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "GANG MEMBER used recovery items.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Thanks, man! Wait a second -", []],
-            [0, "ShowMessage_2", "you're Talan, aren't you?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 1]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Yeah.", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "I'm Saldra. What are you doing down", []],
-            [0, "ShowMessage_2", "here, anyway? Did you ever get to", []],
-            [0, "ShowMessage_2", "work?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's sort of a long story. I did, and now", []],
-            [0, "ShowMessage_2", "I wish I hadn't! The Agency is after", []],
-            [0, "ShowMessage_2", "me, because... well, just because.", []],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "Man, that sucks.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Yeah... uh, I'd better be going.", []],
-            [0, "ShowMessage_2", "The Agency Guards could be here", []],
-            [0, "ShowMessage_2", "any minute now.", []],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "You think so? Damn... I'd better not", []],
-            [0, "ShowMessage_2", "risk going back out that way. It's not", []],
-            [0, "ShowMessage_2", "worth getting killed over!", []],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "I'll go with you for a little bit. You", []],
-            [0, "ShowMessage_2", "could use my help; I'll just take", []],
-            [0, "ShowMessage_2", "the long way back to 33.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "But - ", []],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "Nope, sorry, end of discussion.", []],
-            [0, "ShowMessage_2", "You've got yourself a teammate!", []],
-            [0, "ChangePartyMembers", "", [0, 0, 17]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "So, where we goin'?", []],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Someone told me these tunnels would", []],
-            [0, "ShowMessage_2", "take me to Sector 27, out from under", []],
-            [0, "ShowMessage_2", "the searching eyes of the Agency.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Hopefully they're concentrating on 30,", []],
-            [0, "ShowMessage_2", "and won't expect me to have gotten", []],
-            [0, "ShowMessage_2", "this far yet.", []],
-            [0, "ShowMessage", "SALDRA", []],
-            [0, "ShowMessage_2", "OK - let's go!", []],
-            [0, "ChangeEventLocation", "", [8, 0, 49, 46]],
-            [0, "PlayBGM", "KSSMKEND", [0, 100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 137, 137, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [8, 0, 43, 7]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Kill3"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 8, 1, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 26, 38, 2, 39, 27]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Kill3"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 8, 1, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 26, 38, 2, 39, 27]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That looks like one of the Lazer"},
+            {"code": "ShowMessage_2", "string": "Teeth! And he's in big trouble!"},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Monster2"},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Kill3"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 8, 1, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 26, 38, 2, 39, 27]},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I've got to help!"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 16]},
+            {"code": "ChangeEventLocation", "parameters": [10005, 0, 49, 47]},
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "EnemyEncounter",
+              "parameters": [0, 97, 1, 0, 0, 0],
+              "string": "ABLBackdropSJ08"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 16]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "GANG MEMBER used recovery items."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Thanks, man! Wait a second -"},
+            {"code": "ShowMessage_2", "string": "you're Talan, aren't you?"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Yeah."},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "I'm Saldra. What are you doing down"},
+            {"code": "ShowMessage_2", "string": "here, anyway? Did you ever get to"},
+            {"code": "ShowMessage_2", "string": "work?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's sort of a long story. I did, and now"},
+            {"code": "ShowMessage_2", "string": "I wish I hadn't! The Agency is after"},
+            {"code": "ShowMessage_2", "string": "me, because... well, just because."},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "Man, that sucks."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Yeah... uh, I'd better be going."},
+            {"code": "ShowMessage_2", "string": "The Agency Guards could be here"},
+            {"code": "ShowMessage_2", "string": "any minute now."},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "You think so? Damn... I'd better not"},
+            {"code": "ShowMessage_2", "string": "risk going back out that way. It's not"},
+            {"code": "ShowMessage_2", "string": "worth getting killed over!"},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "I'll go with you for a little bit. You"},
+            {"code": "ShowMessage_2", "string": "could use my help; I'll just take"},
+            {"code": "ShowMessage_2", "string": "the long way back to 33."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "But - "},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "Nope, sorry, end of discussion."},
+            {"code": "ShowMessage_2", "string": "You've got yourself a teammate!"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 17]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "So, where we goin'?"},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Someone told me these tunnels would"},
+            {"code": "ShowMessage_2", "string": "take me to Sector 27, out from under"},
+            {"code": "ShowMessage_2", "string": "the searching eyes of the Agency."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Hopefully they're concentrating on 30,"},
+            {"code": "ShowMessage_2", "string": "and won't expect me to have gotten"},
+            {"code": "ShowMessage_2", "string": "this far yet."},
+            {"code": "ShowMessage", "string": "SALDRA"},
+            {"code": "ShowMessage_2", "string": "OK - let's go!"},
+            {"code": "ChangeEventLocation", "parameters": [8, 0, 49, 46]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "KSSMKEND"},
+            {"code": "ControlSwitches", "parameters": [0, 137, 137, 0]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 137
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 137
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 4,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 41,
+      "y": 18
     },
     {
       "id": 7,
       "name": "Arden",
-      "at": [48, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 49
     },
     {
       "id": 8,
       "name": "Saldra",
-      "at": [48, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 48
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [18, 24],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "PlaySound", "Monster2", [90, 60, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That came from ahead! Something's", []],
-            [0, "ShowMessage_2", "down here...", []],
-            [0, "ControlSwitches", "", [0, 96, 96, 0]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [90, 60, 50], "string": "Monster2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That came from ahead! Something's"},
+            {"code": "ShowMessage_2", "string": "down here..."},
+            {"code": "ControlSwitches", "parameters": [0, 96, 96, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 96
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 96
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 24
     },
     {
       "id": 10,
       "name": "BossChestLockedc",
-      "at": [43, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This container is locked. If I had a"},
+            {"code": "ShowMessage_2", "string": "CONTAINER KEY, I might be able to"},
+            {"code": "ShowMessage_2", "string": "open it."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This container is locked. If I had a", []],
-            [0, "ShowMessage_2", "CONTAINER KEY, I might be able to", []],
-            [0, "ShowMessage_2", "open it.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "item": 105
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 105
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Should I use my Container Key?"},
+            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [1, 0, 105, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "The CONTAINER KEY broke off in"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "the lock, but the container is now"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "unlocked."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "indent": 1, "parameters": [10, 11]},
+            {"code": "ShowMessage", "indent": 1, "string": "You found:"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "       Cheap Wine x2"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "       Agility Pill"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "       FightingDirty vol. 1"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 103, 0, 2]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 109, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 123, 0, 1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 118, 118, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think I'll hang onto my Container"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Key for the time being."},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Should I use my Container Key?", []],
-            [0, "ShowChoice", "Yes/No", [2]],
-            [0, "ShowChoiceOption", "Yes", [0]],
-            [1, "ChangeItems", "", [1, 0, 105, 0, 1]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "ShowMessage", "The CONTAINER KEY broke off in", []],
-            [1, "ShowMessage_2", "the lock, but the container is now", []],
-            [1, "ShowMessage_2", "unlocked.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "PlaySound", "Bow2", [100, 100, 50]],
-            [1, "TradeEventLocations", "", [10, 11]],
-            [1, "ShowMessage", "You found:", []],
-            [1, "ShowMessage_2", "       Cheap Wine x2", []],
-            [1, "ShowMessage_2", "       Agility Pill", []],
-            [1, "ShowMessage_2", "       FightingDirty vol. 1", []],
-            [1, "ChangeItems", "", [0, 0, 103, 0, 2]],
-            [1, "ChangeItems", "", [0, 0, 109, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 123, 0, 1]],
-            [1, "ControlSwitches", "", [0, 118, 118, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I think I'll hang onto my Container", []],
-            [1, "ShowMessage_2", "Key for the time being.", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 118
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 118
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 43,
+      "y": 5
     },
     {
       "id": 11,
       "name": "BossChestLockedo",
-      "at": [49, 47],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 47
     },
     {
       "id": 12,
       "name": "SaveByKingRat",
-      "at": [39, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 39,
+      "y": 29
     },
     {
       "id": 13,
       "name": "ResetBattleSwitches",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 145
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 145
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 145, 145, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 145, 145, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 142
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 142
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 142, 142, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 142, 142, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "variable": [28, "greater_equal", 1]
+          "character_index": 13,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": true
+            },
+            "variable_id": 28,
+            "variable_value": 1
           },
-          "tile": 13,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlVars", "", [0, 28, 28, 0, 0, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 28, 28, 0, 0, 0, 0]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [11, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "PlayBGM", "vswar", [0, 100, 100, 50]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "ControlSwitches", "", [0, 119, 119, 0]],
-            [0, "PanScreen", "", [2, 1, 10, 3, 1]],
-            [0, "Teleport", "", [20, 48, 37]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "vswar"},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "ControlSwitches", "parameters": [0, 119, 119, 0]},
+            {"code": "PanScreen", "parameters": [2, 1, 10, 3, 1]},
+            {"code": "Teleport", "parameters": [20, 48, 37]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 120
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 120
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [28, 17, 29]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [28, 17, 29]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [8, 3],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 1
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ControlSwitches", "", [0, 4, 4, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ControlSwitches", "parameters": [0, 4, 4, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 4
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 4
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 3
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [38, 26],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 12, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 12, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 12, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 12, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 26
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [41, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 120
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 120
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I don't think I should head back", []],
-            [2, "ShowMessage_2", "through the Rat Tracks. That", []],
-            [2, "ShowMessage_2", "would just be a waste of time!", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [2, "Wait", "", [10]],
-            [2, "ControlSwitches", "", [0, 121, 121, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Talan, why bother going back? I", []],
-            [1, "ShowMessage_2", "thought we were in a hurry!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Correction: *I* was in a hurry.", []],
-            [1, "ShowMessage_2", "I don't need you to tag along and", []],
-            [1, "ShowMessage_2", "play chaperone!", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Well, didn't someone get out on the", []],
-            [1, "ShowMessage_2", "wrong side of the bed this morning!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "If you only knew, Arden. If you", []],
-            [1, "ShowMessage_2", "only knew...", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [1, "Wait", "", [10]],
-            [1, "ControlSwitches", "", [0, 121, 121, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Man, what are you doing?", []],
-            [1, "ShowMessage_2", "Why are we going back this way?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "That's a good point - it would just", []],
-            [1, "ShowMessage_2", "be a waste of time to go back", []],
-            [1, "ShowMessage_2", "through the Rat Tracks.", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [1, "Wait", "", [10]],
-            [1, "ControlSwitches", "", [0, 121, 121, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "I don't think I should head back"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "through the Rat Tracks. That"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "would just be a waste of time!"},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 121, 121, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Talan, why bother going back? I"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "thought we were in a hurry!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Correction: *I* was in a hurry."},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I don't need you to tag along and"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "play chaperone!"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Well, didn't someone get out on the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "wrong side of the bed this morning!"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "If you only knew, Arden. If you"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "only knew..."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 121, 121, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Man, what are you doing?"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Why are we going back this way?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "That's a good point - it would just"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "be a waste of time to go back"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "through the Rat Tracks."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 121, 121, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 121,
-            "switch_b": 120
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 121,
+            "switch_b_id": 120
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No more wasting time.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No more wasting time."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 41,
+      "y": 22
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [1, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 1
     }
-  ]
+  ],
+  "height": 50,
+  "save_count": 141,
+  "width": 50
 }

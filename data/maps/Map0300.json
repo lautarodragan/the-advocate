@@ -1,90 +1,115 @@
 {
-  "id": 300,
-  "name": "Missiles2",
-  "size": [20, 15],
-  "chipset": [15, "crashchp"],
-  "tiles": "Map0300.tiles",
-  "parallax": {
-    "name": "pan2",
-    "loop_x": false,
-    "loop_y": true,
-    "scroll_x": 0,
-    "scroll_y": 8
-  },
+  "chipset_id": 15,
   "events": [
     {
       "id": 2,
       "name": "Missile3",
-      "at": [9, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "ShquaMissiles",
-            "index": 2,
-            "direction": "up",
-            "pattern": "right"
-          },
+          "animation_type": "continuous",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "ShquaMissiles",
+          "character_pattern": "right",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_frequency": 2,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "lock_facing"},
+              {"command_id": "move_down"},
+              {},
+              {"command_id": "unlock_facing"}
+            ]
+          },
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 11
     },
     {
       "id": 3,
       "name": "Missile5",
-      "at": [14, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "ShquaMissiles",
-            "index": 2,
-            "direction": "up",
-            "pattern": "right"
-          },
+          "animation_type": "continuous",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "ShquaMissiles",
+          "character_pattern": "right",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_frequency": 4,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "lock_facing"},
+              {"command_id": "move_down"},
+              {},
+              {"command_id": "unlock_facing"}
+            ]
+          },
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 13
     },
     {
       "id": 5,
       "name": "Missile1",
-      "at": [3, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "ShquaMissiles",
-            "index": 2,
-            "direction": "up",
-            "pattern": "right"
-          },
+          "animation_type": "continuous",
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "ShquaMissiles",
+          "character_pattern": "right",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_frequency": 2,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "lock_facing"},
+              {},
+              {"command_id": "move_down"},
+              {"command_id": "unlock_facing"}
+            ]
+          },
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 13
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
-            [0, "PlaySound", "misslesnd", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "PlaySound", "Thunder5", [100, 70, 50]],
-            [0, "Teleport", "", [301, 2, 9]]
-          ]
+          "condition": {"switch_a_id": 292},
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "misslesnd"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Thunder5"},
+            {"code": "Teleport", "parameters": [301, 2, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "parallax_auto_loop_y": true,
+  "parallax_flag": true,
+  "parallax_loop_y": true,
+  "parallax_name": "pan2",
+  "parallax_sy": 8,
+  "save_count": 38
 }

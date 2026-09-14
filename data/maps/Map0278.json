@@ -1,742 +1,872 @@
 {
-  "id": 278,
-  "name": "The Castle",
-  "size": [50, 40],
-  "chipset": [3, "inner"],
-  "tiles": "Map0278.tiles",
+  "chipset_id": 3,
   "events": [
     {
       "id": 1,
       "name": "Tower Guard",
-      "at": [40, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TOWER GUARD"},
+            {"code": "ShowMessage_2", "string": "The tower is dangerous, Princess!"},
+            {"code": "ShowMessage_2", "string": "I can't let you up until you are at least"},
+            {"code": "ShowMessage_2", "string": "level 5!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I hate computer games."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TOWER GUARD", []],
-            [0, "ShowMessage_2", "The tower is dangerous, Princess!", []],
-            [0, "ShowMessage_2", "I can't let you up until you are at least", []],
-            [0, "ShowMessage_2", "level 5!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I hate computer games.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 10
     },
     {
       "id": 2,
       "name": "Knight",
-      "at": [26, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "Princess, do not wander far!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I'll wander wherever I like!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "??"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "Princess, do not wander far!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I'll wander wherever I like!", []],
-            [0, "Wait", "", [2]],
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "??", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 9
     },
     {
       "id": 3,
       "name": "Dungeon Guard",
-      "at": [10, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DUNGEON GUARD"},
+            {"code": "ShowMessage_2", "string": "Critical read error at 2912."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "What?"},
+            {"code": "ShowMessage", "string": "DUNGEON GUARD"},
+            {"code": "ShowMessage_2", "string": "Unable to set Player_Has_Sigil."},
+            {"code": "ShowMessage_2", "string": "Critical error. Stack overflow."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                3, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 0, 23, 34, 7, 80, 101, 111,
+                112, 108, 101, 51, 5, 23, 34, 7, 80, 101, 111, 112, 108, 101, 49, 2, 23, 34, 8,
+                77, 111, 110, 115, 116, 101, 114, 50, 1, 23, 34, 8, 77, 111, 110, 115, 116, 101,
+                114, 50, 5, 15, 36, 3, 3, 3, 3, 37
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Great. Not only do I have to play some"},
+            {"code": "ShowMessage_2", "string": "stupid computer game to get out of this"},
+            {"code": "ShowMessage_2", "string": "simulation... but it doesn't even work right."},
+            {"code": "ControlSwitches", "parameters": [0, 670, 670, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DUNGEON GUARD", []],
-            [0, "ShowMessage_2", "Critical read error at 2912.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "What?", []],
-            [0, "ShowMessage", "DUNGEON GUARD", []],
-            [0, "ShowMessage_2", "Unable to set Player_Has_Sigil.", []],
-            [0, "ShowMessage_2", "Critical error. Stack overflow.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 0, 23, 34, 7, 80, 101, 111, 112, 108, 101, 51, 5, 23, 34, 7, 80, 101, 111, 112, 108, 101, 49, 2, 23, 34, 8, 77, 111, 110, 115, 116, 101, 114, 50, 1, 23, 34, 8, 77, 111, 110, 115, 116, 101, 114, 50, 5, 15, 36, 3, 3, 3, 3, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Great. Not only do I have to play some", []],
-            [0, "ShowMessage_2", "stupid computer game to get out of this", []],
-            [0, "ShowMessage_2", "simulation... but it doesn't even work right.", []],
-            [0, "ControlSwitches", "", [0, 670, 670, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 670
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 670
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 10
     },
     {
       "id": 4,
       "name": "Dungeon Guard Spot 2",
-      "at": [6, 10],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 670
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "Monster2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 670
           },
-          "sprite": {
-            "charset": "Monster2",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "The Dragon of Tenemar Keep has"},
+            {"code": "ShowMessage_2", "string": "20,000 HP, and can only be hurt by"},
+            {"code": "ShowMessage_2", "string": "Starfire. I need to balance it. -Eisen"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "COMMENT", []],
-            [0, "ShowMessage_2", "The Dragon of Tenemar Keep has", []],
-            [0, "ShowMessage_2", "20,000 HP, and can only be hurt by", []],
-            [0, "ShowMessage_2", "Starfire. I need to balance it. -Eisen", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 10
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [25, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I just came from the throne room.", []],
-            [0, "ShowMessage_2", "The \"code snippets\" Manta mentioned", []],
-            [0, "ShowMessage_2", "weren't inside, so I don't need to go back.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "ProceedWithMovement", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I just came from the throne room."},
+            {"code": "ShowMessage_2", "string": "The \"code snippets\" Manta mentioned"},
+            {"code": "ShowMessage_2", "string": "weren't inside, so I don't need to go back."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "ProceedWithMovement"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 8
     },
     {
       "id": 6,
       "name": "Woman",
-      "at": [5, 23],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "People1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "WOMAN"},
+            {"code": "ShowMessage_2", "string": "Princess, beware of the Evil Wizard!"},
+            {"code": "ShowMessage_2", "string": "His tower is a den of tricks and traps"},
+            {"code": "ShowMessage_2", "string": "to ensnare the most heroic adventurer!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Uh huh. Great."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "WOMAN", []],
-            [0, "ShowMessage_2", "Princess, beware of the Evil Wizard!", []],
-            [0, "ShowMessage_2", "His tower is a den of tricks and traps", []],
-            [0, "ShowMessage_2", "to ensnare the most heroic adventurer!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Uh huh. Great.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 23
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [10, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [279, 5, 5]],
-            [0, "TintScreen", "", [70, 70, 70, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [279, 5, 5]},
+            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 6
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [20, 8],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Emergency_Exit();"},
+            {"code": "ShowMessage_2", "string": "Enter password."},
+            {"code": "InputNumber", "parameters": [4, 201]},
+            {"code": "ConditionalBranch", "parameters": [1, 201, 0, 727, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "Emergency_Exit := TRUE;"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "COMMENT"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I should never need to use this, but"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "this code is here just in case. -Eisen"
+            },
+            {
+              "code": "PlaySound",
+              "indent": 1,
+              "parameters": [100, 70, 50],
+              "string": "Absorption2"
+            },
+            {"code": "TintScreen", "indent": 1, "parameters": [200, 200, 200, 100, 10, 1]},
+            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [1, 0, 30]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 21]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 671, 671, 0]},
+            {"code": "Teleport", "indent": 1, "parameters": [277, 5, 16]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "Emergency_Exit := FALSE"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I don't know what the password is."
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Maybe this isn't what Manta was"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "talking about, but something else instead."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Emergency_Exit();", []],
-            [0, "ShowMessage_2", "Enter password.", []],
-            [0, "InputNumber", "", [4, 201]],
-            [0, "ConditionalBranch", "", [1, 201, 0, 727, 0, 1]],
-            [1, "ShowMessage", "Emergency_Exit := TRUE;", []],
-            [1, "ShowMessage_2", "COMMENT", []],
-            [1, "ShowMessage_2", "I should never need to use this, but", []],
-            [1, "ShowMessage_2", "this code is here just in case. -Eisen", []],
-            [1, "PlaySound", "Absorption2", [100, 70, 50]],
-            [1, "TintScreen", "", [200, 200, 200, 100, 10, 1]],
-            [1, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [1, "ChangePartyMembers", "", [1, 0, 30]],
-            [1, "ChangePartyMembers", "", [0, 0, 21]],
-            [1, "ControlSwitches", "", [0, 671, 671, 0]],
-            [1, "Teleport", "", [277, 5, 16]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "Emergency_Exit := FALSE", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I don't know what the password is.", []],
-            [1, "ShowMessage_2", "Maybe this isn't what Manta was", []],
-            [1, "ShowMessage_2", "talking about, but something else instead.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 8
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [43, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Open1"},
+            {"code": "ControlSwitches", "parameters": [0, 673, 673, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 676, 676, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Silver Key"},
+            {"code": "ChangeItems", "parameters": [0, 0, 305, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Open1", [70, 100, 50]],
-            [0, "ControlSwitches", "", [0, 673, 673, 0]],
-            [0, "ControlSwitches", "", [0, 676, 676, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Silver Key", []],
-            [0, "ChangeItems", "", [0, 0, 305, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 673
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 673
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "The chest is empty. Stupid game."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "The chest is empty. Stupid game.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 43,
+      "y": 7
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [25, 34],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit( inputs) = FALSE;", []],
-            [0, "ShowMessage_2", "Sim_Door = REMAIN_CLOSED;", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I must need to activate the code snippets", []],
-            [0, "ShowMessage_2", "Manta mentioned to pass through here.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "But... how will I know what these", []],
-            [0, "ShowMessage_2", "code snippets are?", []]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit( inputs) = FALSE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = REMAIN_CLOSED;"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I must need to activate the code snippets"},
+            {"code": "ShowMessage_2", "string": "Manta mentioned to pass through here."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "But... how will I know what these"},
+            {"code": "ShowMessage_2", "string": "code snippets are?"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 675,
-            "switch_b": 676,
-            "item": 306
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 306,
+            "switch_a_id": 675,
+            "switch_b_id": 676
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit(three_keys) = TRUE;", []],
-            [0, "ShowMessage_2", "Sim_Door = OPEN_DOOR;", []],
-            [0, "PlaySound", "Absorption2", [100, 70, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 10, 1]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 30]],
-            [0, "ChangePartyMembers", "", [0, 0, 21]],
-            [0, "ControlSwitches", "", [0, 671, 671, 0]],
-            [0, "Teleport", "", [277, 5, 16]]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit(three_keys) = TRUE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = OPEN_DOOR;"},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Absorption2"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 10, 1]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 30]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 21]},
+            {"code": "ControlSwitches", "parameters": [0, 671, 671, 0]},
+            {"code": "Teleport", "parameters": [277, 5, 16]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 34
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [24, 34],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit( inputs) = FALSE;", []],
-            [0, "ShowMessage_2", "Sim_Door = REMAIN_CLOSED;", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I must need to activate the code snippets", []],
-            [0, "ShowMessage_2", "Manta mentioned to pass through here.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "But... how will I know what these", []],
-            [0, "ShowMessage_2", "code snippets are?", []]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit( inputs) = FALSE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = REMAIN_CLOSED;"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I must need to activate the code snippets"},
+            {"code": "ShowMessage_2", "string": "Manta mentioned to pass through here."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "But... how will I know what these"},
+            {"code": "ShowMessage_2", "string": "code snippets are?"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 675,
-            "switch_b": 676,
-            "item": 306
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 306,
+            "switch_a_id": 675,
+            "switch_b_id": 676
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit(three_keys) = TRUE;", []],
-            [0, "ShowMessage_2", "Sim_Door = OPEN_DOOR;", []],
-            [0, "PlaySound", "Absorption2", [100, 70, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 10, 1]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 30]],
-            [0, "ChangePartyMembers", "", [0, 0, 21]],
-            [0, "ControlSwitches", "", [0, 671, 671, 0]],
-            [0, "Teleport", "", [277, 5, 16]]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit(three_keys) = TRUE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = OPEN_DOOR;"},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Absorption2"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 10, 1]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 30]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 21]},
+            {"code": "ControlSwitches", "parameters": [0, 671, 671, 0]},
+            {"code": "Teleport", "parameters": [277, 5, 16]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 34
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [26, 34],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit( inputs) = FALSE;", []],
-            [0, "ShowMessage_2", "Sim_Door = REMAIN_CLOSED;", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I must need to activate the code snippets", []],
-            [0, "ShowMessage_2", "Manta mentioned to pass through here.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "But... how will I know what these", []],
-            [0, "ShowMessage_2", "code snippets are?", []]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit( inputs) = FALSE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = REMAIN_CLOSED;"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I must need to activate the code snippets"},
+            {"code": "ShowMessage_2", "string": "Manta mentioned to pass through here."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "But... how will I know what these"},
+            {"code": "ShowMessage_2", "string": "code snippets are?"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 675,
-            "switch_b": 676,
-            "item": 306
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 306,
+            "switch_a_id": 675,
+            "switch_b_id": 676
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "Exit(three_keys) = TRUE;", []],
-            [0, "ShowMessage_2", "Sim_Door = OPEN_DOOR;", []],
-            [0, "PlaySound", "Absorption2", [100, 70, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 10, 1]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 30]],
-            [0, "ChangePartyMembers", "", [0, 0, 21]],
-            [0, "ControlSwitches", "", [0, 671, 671, 0]],
-            [0, "Teleport", "", [277, 5, 16]]
-          ]
+          "event_commands": [
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "Exit(three_keys) = TRUE;"},
+            {"code": "ShowMessage_2", "string": "Sim_Door = OPEN_DOOR;"},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Absorption2"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 10, 1]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 30]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 21]},
+            {"code": "ControlSwitches", "parameters": [0, 671, 671, 0]},
+            {"code": "Teleport", "parameters": [277, 5, 16]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 34
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [35, 24],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 24
     },
     {
       "id": 14,
       "name": "SaveSimulation",
-      "at": [24, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 24,
+      "y": 9
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [22, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 14, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 14, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 14, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 14, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 7
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [35, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 25
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [35, 26],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 26
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [36, 24],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 24
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [36, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 25
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [36, 26],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"item_id": 381},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [5, 30, 5, 381, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "The WATER WINGS glow with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "magical energy!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "DALIA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I can't cross water - even in a simulation."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
-            [1, "ShowMessage", "The WATER WINGS glow with", []],
-            [1, "ShowMessage_2", "magical energy!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 29, 29, 37]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "DALIA", []],
-            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 26
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [13, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "People1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "Remember to finish coding the"},
+            {"code": "ShowMessage_2", "string": "Aqueduct region in the dungeon."},
+            {"code": "ShowMessage_2", "string": "It's too small right now. -Eisen"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "COMMENT", []],
-            [0, "ShowMessage_2", "Remember to finish coding the", []],
-            [0, "ShowMessage_2", "Aqueduct region in the dungeon.", []],
-            [0, "ShowMessage_2", "It's too small right now. -Eisen", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 10
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [25, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DRUNK"},
+            {"code": "ShowMessage_2", "string": "*Burp*"},
+            {"code": "ShowMessage_2", "string": "Buy me some ale?"},
+            {"code": "ShowMessage", "string": "DRUNK"},
+            {"code": "ShowMessage_2", "string": "Buy me some ale?"},
+            {"code": "ShowMessage", "string": "DRUNK"},
+            {"code": "ShowMessage_2", "string": "Buy me some ale?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I think Eisen has a lot of work left"},
+            {"code": "ShowMessage_2", "string": "to do on this simulation. It's sort of..."},
+            {"code": "ShowMessage_2", "string": "crappy."},
+            {"code": "ControlSwitches", "parameters": [0, 933, 933, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DRUNK", []],
-            [0, "ShowMessage_2", "*Burp*", []],
-            [0, "ShowMessage_2", "Buy me some ale?", []],
-            [0, "ShowMessage", "DRUNK", []],
-            [0, "ShowMessage_2", "Buy me some ale?", []],
-            [0, "ShowMessage", "DRUNK", []],
-            [0, "ShowMessage_2", "Buy me some ale?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I think Eisen has a lot of work left", []],
-            [0, "ShowMessage_2", "to do on this simulation. It's sort of...", []],
-            [0, "ShowMessage_2", "crappy.", []],
-            [0, "ControlSwitches", "", [0, 933, 933, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 933
+          "character_index": 6,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 933
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "Did this fix the recursion? I should"},
+            {"code": "ShowMessage_2", "string": "test it again after lunch. -Eisen"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "COMMENT", []],
-            [0, "ShowMessage_2", "Did this fix the recursion? I should", []],
-            [0, "ShowMessage_2", "test it again after lunch. -Eisen", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 17
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [37, 11],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "Armor_Shop = InStockInitialize();"},
+            {"code": "ShowMessage_2", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "The prices don't work very well yet."},
+            {"code": "ShowMessage_2", "string": "I need to change quest rewards. - Eisen"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "Armor_Shop = InStockInitialize();", []],
-            [0, "ShowMessage_2", "COMMENT", []],
-            [0, "ShowMessage_2", "The prices don't work very well yet.", []],
-            [0, "ShowMessage_2", "I need to change quest rewards. - Eisen", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 11
     },
     {
       "id": 24,
       "name": "Plaque",
-      "at": [34, 23],
       "pages": [
         {
-          "tile": 78,
+          "character_index": 78,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "I'll put the Water Wings in Level 1"},
+            {"code": "ShowMessage_2", "string": "of the dungeon, and then passage"},
+            {"code": "ShowMessage_2", "string": "across this channel will work."},
+            {"code": "ShowMessage", "string": "COMMENT"},
+            {"code": "ShowMessage_2", "string": "I'd better code it so that the Water"},
+            {"code": "ShowMessage_2", "string": "Wings will only let you pass over water"},
+            {"code": "ShowMessage_2", "string": "when equipped. -Eisen"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "COMMENT", []],
-            [0, "ShowMessage_2", "I'll put the Water Wings in Level 1", []],
-            [0, "ShowMessage_2", "of the dungeon, and then passage", []],
-            [0, "ShowMessage_2", "across this channel will work.", []],
-            [0, "ShowMessage", "COMMENT", []],
-            [0, "ShowMessage_2", "I'd better code it so that the Water", []],
-            [0, "ShowMessage_2", "Wings will only let you pass over water", []],
-            [0, "ShowMessage_2", "when equipped. -Eisen", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 23
     }
-  ]
+  ],
+  "height": 40,
+  "save_count": 69,
+  "width": 50
 }

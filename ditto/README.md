@@ -133,7 +133,7 @@ and there are 65,596 of them in the battle events of the measured game alone—.
 Objects that hold other objects always go one key per line: that nesting is the
 shape of the data, and it is what a diff is read for.
 
-Over that game it is the difference between a 29.5 MB dump and a 19.5 MB one.
+Over that game it is the difference between a 29.5 MB dump and a 19.4 MB one.
 
 ## The names are not ours
 
@@ -164,6 +164,16 @@ Three things are generated, and all three come from the CSV and from no
 judgement of ours: the structs and the enums, the default of every field, and
 the codec —which field is which chunk, how it is encoded, and whether it is
 emitted when it holds the default—.
+
+**A text default in the CSV is a C++ literal, quotes and all.** `Music,name`
+holds `"(OFF)"` and the name is the five characters inside it. The generator
+used to quote it a second time, so the default was seven characters long: a
+value no file can ever hold, which means the field was never recognised as
+holding its default and the name was written into every JSON. The round trip
+never noticed, because `Music::name` and `Sound::name` are the only two fields
+this hit and both are `PersistIfDefault`, so the binary carries them either
+way. It is exactly the kind of wrong default this project exists to remove, and
+it cost 61 KB of a 19.5 MB dump.
 
 ### The default goes next to the field, written once
 

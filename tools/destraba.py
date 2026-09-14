@@ -57,8 +57,6 @@ from render_map import GAME_DIR
 NOMBRES = event_codes.EVENT_CODES
 
 CALL_EVENT = 12330
-DB_COMMON_EVENTS = 0x19          # el chunk de la base; el 0x16 de cada uno son
-COMMON_COMMANDS = 0x16           # sus comandos, con el formato de una página
 MAX_ANIDADO = 4                  # por si dos eventos comunes se llaman entre sí
 
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
@@ -158,9 +156,7 @@ CANDIDATOS = [
 def cargar(game_dir):
     """Las páginas automáticas con comandos, y los eventos comunes."""
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
-    comunes = {i: lcf.read_commands(f.get(COMMON_COMMANDS, b""))
-               for i, f in lcf.Reader(
-                   db.fields[DB_COMMON_EVENTS]).read_struct_array().items()}
+    comunes = db.common_events
     paginas = []
     for nombre in sorted(os.listdir(game_dir)):
         if not (nombre.startswith("Map") and nombre.endswith(".lmu")):

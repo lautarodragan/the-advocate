@@ -1,1380 +1,1803 @@
 {
-  "id": 145,
-  "name": "The Stage - fixed",
-  "size": [30, 30],
-  "chipset": [25, "sd3_castle_inside_2"],
-  "tiles": "Map0145.tiles",
+  "chipset_id": 25,
   "events": [
     {
       "id": 1,
       "name": "Sewell",
-      "at": [18, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 443
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 14
     },
     {
       "id": 2,
       "name": "Lerle",
-      "at": [14, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 443
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 12
     },
     {
       "id": 3,
       "name": "Auleen",
-      "at": [16, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 443
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 12
     },
     {
       "id": 4,
       "name": "Emily",
-      "at": [15, 15],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 443
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 15
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [7, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "There you are, Talan. Ready for the big", []],
-            [0, "ShowMessage_2", "night?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I think so.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 13, 23, 15, 23]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AULEEN", []],
-            [0, "ShowMessage_2", "I'm still not very happy about doing this", []],
-            [0, "ShowMessage_2", "here - I always hear strange noises...", []],
-            [0, "ShowMessage_2", "The whole place is creepy.", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "I haven't seen anything strange here since", []],
-            [0, "ShowMessage_2", "Talan and I got the script - maybe whatever", []],
-            [0, "ShowMessage_2", "was haunting this place has moved on.", []],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "Tonight we've got something even creepier", []],
-            [0, "ShowMessage_2", "to worry about... an AUDIENCE! So", []],
-            [0, "ShowMessage_2", "everyone concentrate, and just do it like", []],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "we've been practicing. And no whispering", []],
-            [0, "ShowMessage_2", "backstage - the acoustics here are so good", []],
-            [0, "ShowMessage_2", "that the audience will hear every word!", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Here comes the first of the audience!", []],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "ControlSwitches", "", [0, 443, 443, 0]],
-            [0, "Teleport", "", [146, 9, 8]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "There you are, Talan. Ready for the big"},
+            {"code": "ShowMessage_2", "string": "night?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I think so."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 13, 23, 15, 23]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AULEEN"},
+            {"code": "ShowMessage_2", "string": "I'm still not very happy about doing this"},
+            {"code": "ShowMessage_2", "string": "here - I always hear strange noises..."},
+            {"code": "ShowMessage_2", "string": "The whole place is creepy."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "I haven't seen anything strange here since"},
+            {"code": "ShowMessage_2", "string": "Talan and I got the script - maybe whatever"},
+            {"code": "ShowMessage_2", "string": "was haunting this place has moved on."},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "Tonight we've got something even creepier"},
+            {"code": "ShowMessage_2", "string": "to worry about... an AUDIENCE! So"},
+            {"code": "ShowMessage_2", "string": "everyone concentrate, and just do it like"},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "we've been practicing. And no whispering"},
+            {"code": "ShowMessage_2", "string": "backstage - the acoustics here are so good"},
+            {"code": "ShowMessage_2", "string": "that the audience will hear every word!"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Here comes the first of the audience!"},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "ControlSwitches", "parameters": [0, 443, 443, 0]},
+            {"code": "Teleport", "parameters": [146, 9, 8]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 443
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 7
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [4, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 26
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [7, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 25
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [12, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 26
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [18, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 26
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [1, 15],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 15
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [1, 21],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 21
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [27, 18],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 18
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [27, 20],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 20
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [10, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 26
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [1, 17],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 17
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [2, 20],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 20
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [2, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 14
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [1, 23],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 23
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [8, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 26
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [21, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 25
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [24, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 24
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [27, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 14
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [27, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 16
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [28, 21],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 21
     },
     {
       "id": 25,
       "name": "EV0025",
-      "at": [20, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 26
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [23, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 25
     },
     {
       "id": 27,
       "name": "EV0027",
-      "at": [6, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 26
     },
     {
       "id": 28,
       "name": "EV0028",
-      "at": [9, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 25
     },
     {
       "id": 29,
       "name": "EV0029",
-      "at": [1, 19],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 19
     },
     {
       "id": 30,
       "name": "EV0030",
-      "at": [2, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 16
     },
     {
       "id": 31,
       "name": "EV0031",
-      "at": [2, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 22
     },
     {
       "id": 32,
       "name": "EV0032",
-      "at": [5, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 25
     },
     {
       "id": 33,
       "name": "EV0033",
-      "at": [11, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 25
     },
     {
       "id": 34,
       "name": "EV0034",
-      "at": [22, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 26
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [25, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 25
     },
     {
       "id": 36,
       "name": "EV0036",
-      "at": [28, 15],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 15
     },
     {
       "id": 37,
       "name": "EV0037",
-      "at": [27, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 22
     },
     {
       "id": 38,
       "name": "EV0038",
-      "at": [28, 19],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 19
     },
     {
       "id": 39,
       "name": "EV0039",
-      "at": [28, 17],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 17
     },
     {
       "id": 40,
       "name": "EV0040",
-      "at": [19, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 25
     },
     {
       "id": 41,
       "name": "EV0041",
-      "at": [2, 18],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 18
     },
     {
       "id": 42,
       "name": "Pierson",
-      "at": [18, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 6,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 24
     },
     {
       "id": 43,
       "name": "EV0043",
-      "at": [12, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 24
     },
     {
       "id": 44,
       "name": "EV0044",
-      "at": [6, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 24
     },
     {
       "id": 45,
       "name": "EV0045",
-      "at": [4, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 24
     },
     {
       "id": 46,
       "name": "EV0046",
-      "at": [8, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 24
     },
     {
       "id": 47,
       "name": "EV0047",
-      "at": [26, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 26
     },
     {
       "id": 48,
       "name": "EV0048",
-      "at": [10, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 24
     },
     {
       "id": 49,
       "name": "EV0049",
-      "at": [14, 17],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "PanScreen", "parameters": [2, 2, 20, 3, 1]},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "Ladies and gentlemen! The Actors of"},
+            {"code": "ShowMessage_2", "string": "Paradise are pleased to welcome you"},
+            {"code": "ShowMessage_2", "string": "to our latest performance, and our first"},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {
+              "code": "ShowMessage_2",
+              "string": "in this magnificent building: our new Theatre!"
+            },
+            {"code": "ShowMessage_2", "string": "So sit back, and enjoy this tale of woe from"},
+            {"code": "ShowMessage_2", "string": "a forgotten era:"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "\"The Tragedy of Captain Ellis!\""},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "clap"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "PanScreen", "parameters": [3, 0, 20, 6, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "Meanwhile..."},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "WW2_Water"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [147, 11, 6]},
+            {"code": "ControlSwitches", "parameters": [0, 444, 444, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "auto_start",
-          "script": [
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "PanScreen", "", [2, 2, 20, 3, 1]],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "Ladies and gentlemen! The Actors of", []],
-            [0, "ShowMessage_2", "Paradise are pleased to welcome you", []],
-            [0, "ShowMessage_2", "to our latest performance, and our first", []],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "in this magnificent building: our new Theatre!", []],
-            [0, "ShowMessage_2", "So sit back, and enjoy this tale of woe from", []],
-            [0, "ShowMessage_2", "a forgotten era:", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "\"The Tragedy of Captain Ellis!\"", []],
-            [0, "PlaySound", "clap", [100, 100, 50]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "PanScreen", "", [3, 0, 20, 6, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "Meanwhile...", []],
-            [0, "PlayBGM", "WW2_Water", [0, 80, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [147, 11, 6]],
-            [0, "ControlSwitches", "", [0, 444, 444, 0]]
-          ]
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 444
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 444
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 17
     },
     {
       "id": 50,
       "name": "Drago",
-      "at": [20, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 24
     },
     {
       "id": 51,
       "name": "Isabella",
-      "at": [22, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 24
     },
     {
       "id": 52,
       "name": "EV0052",
-      "at": [26, 24],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Crown2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 24
     },
     {
       "id": 53,
       "name": "EV0053",
-      "at": [24, 26],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 443
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 443
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 26
     },
     {
       "id": 54,
       "name": "Lerle2",
-      "at": [10, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 445
+          "character_index": 2,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 445
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 16
     },
     {
       "id": 55,
       "name": "Auleen2",
-      "at": [12, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 445
+          "character_index": 3,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 445
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 16
     },
     {
       "id": 56,
       "name": "Sewell2",
-      "at": [14, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 445
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 445
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 446, 446, 0]},
+            {"code": "PanScreen", "parameters": [2, 3, 5, 6, 1]},
+            {"code": "PanScreen", "parameters": [2, 2, 3, 6, 1]},
+            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 15, 1]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "ACTORS"},
+            {"code": "ShowMessage_2", "string": "Thank you, thank you!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 436, 0, 0, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 211, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 257, 0, 3]},
+            {"code": "ShowMessage", "indent": 1, "string": "For TALAN's excellent performance,"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "he receives:"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "     Crimson Sword-RL"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "      Healing Draught-HP x3"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 437, 0, 0, 0, 1]},
+            {"code": "ChangeItems", "indent": 2, "parameters": [0, 0, 210, 0, 1]},
+            {"code": "ChangeItems", "indent": 2, "parameters": [0, 0, 257, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "For TALAN's good  performance,"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "he receives:"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "     Two-Handed Sword-RL"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "     Healing Draught-HP"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 438, 0, 0, 0, 1]},
+            {"code": "ChangeItems", "indent": 3, "parameters": [0, 0, 239, 0, 1]},
+            {"code": "ChangeItems", "indent": 3, "parameters": [0, 0, 258, 0, 1]},
+            {
+              "code": "ShowMessage",
+              "indent": 3,
+              "string": "For TALAN's lackluster  performance,"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "he receives:"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "     Heavy Jacket-B"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "     Recharge Draught-SP"},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ConditionalBranch", "indent": 3, "parameters": [0, 439, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 4, "string": "For TALAN's abysmal performance,"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "he receives:"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "     Nothing..."},
+            {"code": "END", "indent": 4},
+            {"code": "ElseBranch", "indent": 3},
+            {"code": "END", "indent": 4},
+            {"code": "EndBranch", "indent": 3},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "Thank you very much for your time!"},
+            {"code": "ShowMessage_2", "string": "You've been a wonderful audience!"},
+            {"code": "ControlSwitches", "parameters": [0, 446, 446, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "I must speak with the Council!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PanScreen", "parameters": [2, 2, 5, 6, 1]},
+            {"code": "MoveEvent", "parameters": [42, 8, 0, 0, 24, 25, 3, 3, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "What? What's going on?"},
+            {"code": "MoveEvent", "parameters": [59, 8, 0, 0, 28, 0, 0, 0, 29]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "toprepare"},
+            {"code": "ShowMessage", "string": "DEFENDER"},
+            {"code": "ShowMessage_2", "string": "It's the Agency! The Agency is attacking"},
+            {"code": "ShowMessage_2", "string": "Paradise!"},
+            {"code": "MoveEvent", "parameters": [42, 8, 0, 0, 24, 25]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "What?!? Impossible! They wouldn't dare -"},
+            {"code": "PanScreen", "parameters": [3, 2, 5, 6, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [50, 8, 0, 0, 28, 36, 0, 0, 0, 0, 24, 0, 0, 0, 25, 14, 29]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Defenders! Back to Paradise! Our home"},
+            {"code": "ShowMessage_2", "string": "is in danger!"},
+            {"code": "PanScreen", "parameters": [2, 2, 2, 6, 1]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Damn! I knew we should have left more"},
+            {"code": "ShowMessage_2", "string": "Defenders to stand guard!"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Everyone! Follow me!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [50, 8, 0, 0, 28, 36, 24, 2, 2, 2, 25, 2, 2, 2, 29]
+            },
+            {"code": "Wait", "parameters": [6]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "PanScreen", "parameters": [3, 2, 5, 6, 1]},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 492, 492, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 26]},
+            {"code": "Teleport", "parameters": [158, 15, 37]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 446, 446, 0]],
-            [0, "PanScreen", "", [2, 3, 5, 6, 1]],
-            [0, "PanScreen", "", [2, 2, 3, 6, 1]],
-            [0, "TintScreen", "", [70, 70, 70, 100, 15, 1]],
-            [0, "Wait", "", [30]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "ACTORS", []],
-            [0, "ShowMessage_2", "Thank you, thank you!", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ConditionalBranch", "", [0, 436, 0, 0, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 211, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 257, 0, 3]],
-            [1, "ShowMessage", "For TALAN's excellent performance,", []],
-            [1, "ShowMessage_2", "he receives:", []],
-            [1, "ShowMessage_2", "     Crimson Sword-RL", []],
-            [1, "ShowMessage_2", "      Healing Draught-HP x3", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 437, 0, 0, 0, 1]],
-            [2, "ChangeItems", "", [0, 0, 210, 0, 1]],
-            [2, "ChangeItems", "", [0, 0, 257, 0, 1]],
-            [2, "ShowMessage", "For TALAN's good  performance,", []],
-            [2, "ShowMessage_2", "he receives:", []],
-            [2, "ShowMessage_2", "     Two-Handed Sword-RL", []],
-            [2, "ShowMessage_2", "     Healing Draught-HP", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 438, 0, 0, 0, 1]],
-            [3, "ChangeItems", "", [0, 0, 239, 0, 1]],
-            [3, "ChangeItems", "", [0, 0, 258, 0, 1]],
-            [3, "ShowMessage", "For TALAN's lackluster  performance,", []],
-            [3, "ShowMessage_2", "he receives:", []],
-            [3, "ShowMessage_2", "     Heavy Jacket-B", []],
-            [3, "ShowMessage_2", "     Recharge Draught-SP", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ConditionalBranch", "", [0, 439, 0, 0, 0, 1]],
-            [4, "ShowMessage", "For TALAN's abysmal performance,", []],
-            [4, "ShowMessage_2", "he receives:", []],
-            [4, "ShowMessage_2", "     Nothing...", []],
-            [4, "END", "", []],
-            [3, "ElseBranch", "", []],
-            [4, "END", "", []],
-            [3, "EndBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "Thank you very much for your time!", []],
-            [0, "ShowMessage_2", "You've been a wonderful audience!", []],
-            [0, "ControlSwitches", "", [0, 446, 446, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "I must speak with the Council!", []],
-            [0, "Wait", "", [5]],
-            [0, "PanScreen", "", [2, 2, 5, 6, 1]],
-            [0, "MoveEvent", "", [42, 8, 0, 0, 24, 25, 3, 3, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "What? What's going on?", []],
-            [0, "MoveEvent", "", [59, 8, 0, 0, 28, 0, 0, 0, 29]],
-            [0, "Wait", "", [6]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "PlayBGM", "toprepare", [0, 100, 100, 50]],
-            [0, "ShowMessage", "DEFENDER", []],
-            [0, "ShowMessage_2", "It's the Agency! The Agency is attacking", []],
-            [0, "ShowMessage_2", "Paradise!", []],
-            [0, "MoveEvent", "", [42, 8, 0, 0, 24, 25]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "What?!? Impossible! They wouldn't dare -", []],
-            [0, "PanScreen", "", [3, 2, 5, 6, 0]],
-            [0, "MoveEvent", "", [50, 8, 0, 0, 28, 36, 0, 0, 0, 0, 24, 0, 0, 0, 25, 14, 29]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Defenders! Back to Paradise! Our home", []],
-            [0, "ShowMessage_2", "is in danger!", []],
-            [0, "PanScreen", "", [2, 2, 2, 6, 1]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Damn! I knew we should have left more", []],
-            [0, "ShowMessage_2", "Defenders to stand guard!", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Everyone! Follow me!", []],
-            [0, "MoveEvent", "", [50, 8, 0, 0, 28, 36, 24, 2, 2, 2, 25, 2, 2, 2, 29]],
-            [0, "Wait", "", [6]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "PanScreen", "", [3, 2, 5, 6, 1]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 1, 0]],
-            [0, "ControlSwitches", "", [0, 492, 492, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 26]],
-            [0, "Teleport", "", [158, 15, 37]]
-          ]
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 57,
       "name": "Emily2",
-      "at": [16, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 445
+          "character_index": 4,
+          "character_name": "emily",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 445
           },
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 16
     },
     {
       "id": 58,
       "name": "ApplauseMeter",
-      "at": [7, 15],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 446
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 446
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "PlaySound", "clap", [100, 90, 50]],
-            [0, "Wait", "", [17]],
-            [0, "PlaySound", "clap", [100, 90, 50]],
-            [0, "Wait", "", [14]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "clap"},
+            {"code": "Wait", "parameters": [17]},
+            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "clap"},
+            {"code": "Wait", "parameters": [14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 15
     },
     {
       "id": 59,
       "name": "RunningDefender",
-      "at": [16, 29],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 445
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 445
           },
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 29
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 74,
+  "width": 30
 }

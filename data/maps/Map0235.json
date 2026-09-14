@@ -1,201 +1,224 @@
 {
-  "id": 235,
-  "name": "Sloping Tunnel Entrance",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0235.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [8, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "Teleport", "", [207, 11, 1]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "Teleport", "parameters": [207, 11, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "Teleport", "", [207, 11, 1]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "Teleport", "parameters": [207, 11, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [9, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [233, 65, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [233, 65, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 7
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [233, 65, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [233, 65, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     },
     {
       "id": 5,
       "name": "Life Bucket",
-      "at": [12, 10],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "FullHeal", "parameters": [0, 0]},
+            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
+            {"code": "ShowMessage_2", "string": "I wonder if I could bring some of it"},
+            {"code": "ShowMessage_2", "string": "with me?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Recovery4", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "FullHeal", "", [0, 0]],
-            [0, "ShowMessage", "HP and SP completely recovered!", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
-            [0, "ShowMessage_2", "I wonder if I could bring some of it", []],
-            [0, "ShowMessage_2", "with me?", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "item": 106
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 106
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "FullHeal", "parameters": [0, 0]},
+            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Should I fill up an empty bottle?"},
+            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [1, 0, 106, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 107, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Water3"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN filled an empty bottle with"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "the healing liquid."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think I'll hold onto my empty bottle."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Recovery4", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "FullHeal", "", [0, 0]],
-            [0, "ShowMessage", "HP and SP completely recovered!", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Should I fill up an empty bottle?", []],
-            [0, "ShowChoice", "Yes/No", [2]],
-            [0, "ShowChoiceOption", "Yes", [0]],
-            [1, "ChangeItems", "", [1, 0, 106, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "PlaySound", "Water3", [100, 100, 50]],
-            [1, "ShowMessage", "TALAN filled an empty bottle with", []],
-            [1, "ShowMessage_2", "the healing liquid.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I think I'll hold onto my empty bottle.", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 10
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 25]],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 28]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ChangePartyMembers", "", [0, 0, 27]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ChangePartyMembers", "", [0, 0, 26]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 13]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "This tunnel was built long ago, by", []],
-            [0, "ShowMessage_2", "whatever race of people used to live", []],
-            [0, "ShowMessage_2", "in these mountains.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I don't know how stable it is anymore,", []],
-            [0, "ShowMessage_2", "but it should lead you in the direction", []],
-            [0, "ShowMessage_2", "you want to go.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thank you, Memnosyne.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I know we didn't really get off to", []],
-            [0, "ShowMessage_2", "a good start, but... I understand how", []],
-            [0, "ShowMessage_2", "it feels to carry such a burden.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I know you do, dearie.", []],
-            [0, "ShowMessage_2", "Good luck.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 3, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "ControlSwitches", "", [0, 625, 625, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 25]},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 28]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 27]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 26]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 13]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "This tunnel was built long ago, by"},
+            {"code": "ShowMessage_2", "string": "whatever race of people used to live"},
+            {"code": "ShowMessage_2", "string": "in these mountains."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I don't know how stable it is anymore,"},
+            {"code": "ShowMessage_2", "string": "but it should lead you in the direction"},
+            {"code": "ShowMessage_2", "string": "you want to go."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thank you, Memnosyne."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I know we didn't really get off to"},
+            {"code": "ShowMessage_2", "string": "a good start, but... I understand how"},
+            {"code": "ShowMessage_2", "string": "it feels to carry such a burden."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I know you do, dearie."},
+            {"code": "ShowMessage_2", "string": "Good luck."},
+            {"code": "Wait", "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "parameters": [7, 8, 0, 0, 2, 3, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ControlSwitches", "parameters": [0, 625, 625, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 625
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 625
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
       ]
@@ -203,103 +226,118 @@
     {
       "id": 7,
       "name": "Memnosyne",
-      "at": [10, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 625
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 625
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 11
     },
     {
       "id": 8,
       "name": "SaveSlopingEntrance",
-      "at": [8, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 8,
+      "y": 10
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [6, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 8, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 8, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 8, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 8, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 6
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "The soil here is not very good for", []],
-            [0, "ShowMessage_2", "finding ingredients. I should try", []],
-            [0, "ShowMessage_2", "elsewhere.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "The soil here is not very good for"},
+            {"code": "ShowMessage_2", "string": "finding ingredients. I should try"},
+            {"code": "ShowMessage_2", "string": "elsewhere."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     }
-  ]
+  ],
+  "save_count": 39
 }

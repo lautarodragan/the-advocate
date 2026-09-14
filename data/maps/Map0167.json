@@ -1,364 +1,367 @@
 {
-  "id": 167,
-  "name": "Outside the Bandit HQ",
-  "size": [20, 40],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0167.tiles",
-  "parallax": {
-    "name": "Evening1",
-    "loop_x": false,
-    "loop_y": true,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [12, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 38
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [10, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 37
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [14, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 36
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [8, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 36
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [6, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 37
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [8, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 38
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [4, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 35
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [4, 37],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 37
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [12, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 35
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [15, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 38
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [7, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 39
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [11, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 39
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [3, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 38
     },
     {
       "id": 14,
       "name": "DefenderSpokesman",
-      "at": [9, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 34
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [3, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We made it! We're outside - now we need", []],
-            [0, "ShowMessage_2", "to get back to Paradise and warn everyone!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 24, 25]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Oh no...", []],
-            [0, "PlayBGM", "dgate008", [0, 80, 100, 50]],
-            [0, "PanScreen", "", [2, 2, 30, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [30]],
-            [0, "ChangeEventLocation", "", [16, 0, 9, 27]],
-            [0, "ChangeEventLocation", "", [17, 0, 9, 27]],
-            [0, "ControlSwitches", "", [0, 477, 477, 0]],
-            [0, "MoveEvent", "", [16, 8, 0, 0, 1, 14]],
-            [0, "MoveEvent", "", [17, 8, 0, 0, 3, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Defenders! What are you doing here?", []],
-            [0, "ShowMessage_2", "Why are you not guarding Paradise?", []],
-            [0, "ShowMessage", "DEFENDER", []],
-            [0, "ShowMessage_2", "You're alive?! The bandits sent us a", []],
-            [0, "ShowMessage_2", "messenger saying you'd all been killed!", []],
-            [0, "ShowMessage", "DEFENDER", []],
-            [0, "ShowMessage_2", "We came as fast as we could to raze their", []],
-            [0, "ShowMessage_2", "stronghold to the ground!", []],
-            [0, "MoveEvent", "", [17, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "That means...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... the city is defenseless!", []],
-            [0, "MoveEvent", "", [16, 8, 0, 0, 24, 25, 23, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Defenders! Back to Paradise, on the double!", []],
-            [0, "ShowMessage_2", "We've been had!", []],
-            [0, "FadeOutBGM", "", [1000]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "ChangePartyMembers", "", [1, 0, 29]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "PanScreen", "", [3, 0, 20, 6, 1]],
-            [0, "PlayBGM", "WW2_Water", [0, 80, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [147, 11, 6]],
-            [0, "ControlSwitches", "", [0, 476, 476, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We made it! We're outside - now we need"},
+            {"code": "ShowMessage_2", "string": "to get back to Paradise and warn everyone!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 24, 25]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Oh no..."},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "dgate008"},
+            {"code": "PanScreen", "parameters": [2, 2, 30, 5, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+            },
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ChangeEventLocation", "parameters": [16, 0, 9, 27]},
+            {"code": "ChangeEventLocation", "parameters": [17, 0, 9, 27]},
+            {"code": "ControlSwitches", "parameters": [0, 477, 477, 0]},
+            {"code": "MoveEvent", "parameters": [16, 8, 0, 0, 1, 14]},
+            {"code": "MoveEvent", "parameters": [17, 8, 0, 0, 3, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Defenders! What are you doing here?"},
+            {"code": "ShowMessage_2", "string": "Why are you not guarding Paradise?"},
+            {"code": "ShowMessage", "string": "DEFENDER"},
+            {"code": "ShowMessage_2", "string": "You're alive?! The bandits sent us a"},
+            {"code": "ShowMessage_2", "string": "messenger saying you'd all been killed!"},
+            {"code": "ShowMessage", "string": "DEFENDER"},
+            {"code": "ShowMessage_2", "string": "We came as fast as we could to raze their"},
+            {"code": "ShowMessage_2", "string": "stronghold to the ground!"},
+            {"code": "MoveEvent", "parameters": [17, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "That means..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... the city is defenseless!"},
+            {"code": "MoveEvent", "parameters": [16, 8, 0, 0, 24, 25, 23, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Defenders! Back to Paradise, on the double!"},
+            {"code": "ShowMessage_2", "string": "We've been had!"},
+            {"code": "FadeOutBGM", "parameters": [1000]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 29]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "PanScreen", "parameters": [3, 0, 20, 6, 1]},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "WW2_Water"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [147, 11, 6]},
+            {"code": "ControlSwitches", "parameters": [0, 476, 476, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 476
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 476
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 6
     },
     {
       "id": 16,
       "name": "Drago",
-      "at": [10, 27],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 477
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 477
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 27
     },
     {
       "id": 17,
       "name": "Sern",
-      "at": [8, 27],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 477
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 477
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 27
     }
-  ]
+  ],
+  "height": 40,
+  "parallax_flag": true,
+  "parallax_loop_y": true,
+  "parallax_name": "Evening1",
+  "save_count": 30
 }

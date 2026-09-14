@@ -1,1337 +1,1562 @@
 {
-  "id": 2,
-  "name": "Linkage Block",
-  "size": [100, 100],
-  "chipset": [6, "ChipSet3"],
-  "tiles": "Map0002.tiles",
-  "parallax": {
-    "name": "screen",
-    "loop_x": false,
-    "loop_y": true,
-    "scroll_x": 0,
-    "scroll_y": 4
-  },
+  "chipset_id": 6,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [7, 77],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 1
+          "character_index": 45,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 45,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [0, 0, 11]],
-            [0, "ChangePartyMembers", "", [0, 0, 12]],
-            [0, "ChangePartyMembers", "", [0, 0, 13]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ShowMessage", "Starting Party fixed.", []],
-            [0, "ControlSwitches", "", [0, 4, 4, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 12]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 13]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ShowMessage", "string": "Starting Party fixed."},
+            {"code": "ControlSwitches", "parameters": [0, 4, 4, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 4
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 4
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 77
     },
     {
       "id": 2,
       "name": "LBDoorBottom",
-      "at": [4, 53],
       "pages": [
         {
-          "tile": 37,
+          "character_index": 37,
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 4, 54]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 1, 1]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 4, 54]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 12]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "How can we get through here?"},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "He must have triggered the alarms after"},
+            {"code": "ShowMessage_2", "string": "he came through."},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Manta, handle it."},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Leave it to me, Boss."},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 0, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot2"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot2"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot1"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 12]},
+            {"code": "TradeEventLocations", "parameters": [10005, 21]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ChangeEventLocation", "parameters": [5, 0, 94, 97]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 36, 0, 37]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 95, 98]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 0, 36, 3, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 94, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 5, 5, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ChangeEventLocation", "", [3, 0, 4, 54]],
-            [0, "MoveEvent", "", [3, 4, 0, 1, 1]],
-            [0, "ChangeEventLocation", "", [4, 0, 4, 54]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 12]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "How can we get through here?", []],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "He must have triggered the alarms after", []],
-            [0, "ShowMessage_2", "he came through.", []],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Manta, handle it.", []],
-            [0, "MoveEvent", "", [3, 4, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Leave it to me, Boss.", []],
-            [0, "MoveEvent", "", [3, 4, 0, 0, 12]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Shot2", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Shot2", [100, 100, 50]],
-            [0, "Wait", "", [3]],
-            [0, "PlaySound", "Shot1", [100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 12]],
-            [0, "TradeEventLocations", "", [10005, 21]],
-            [0, "PlaySound", "Holy3", [100, 100, 50]],
-            [0, "ChangeEventLocation", "", [5, 0, 94, 97]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 36, 0, 37]],
-            [0, "ChangeEventLocation", "", [4, 0, 95, 98]],
-            [0, "MoveEvent", "", [3, 4, 0, 0, 36, 3, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [3, 0, 94, 98]],
-            [0, "ControlSwitches", "", [0, 5, 5, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 5
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 5
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [2, 87, 88]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [2, 87, 88]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 53
     },
     {
       "id": 3,
       "name": "Manta",
-      "at": [94, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 94,
+      "y": 98
     },
     {
       "id": 4,
       "name": "Core",
-      "at": [95, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 95,
+      "y": 98
     },
     {
       "id": 5,
       "name": "LBDoorTop",
-      "at": [4, 52],
       "pages": [
-        {
-          "tile": 31,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 31, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 4,
+      "y": 52
     },
     {
       "id": 6,
       "name": "LBKeycardLeft",
-      "at": [5, 53],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 3, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 4, 54]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 1, 1]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 4, 54]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 12]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "How can we get through here?"},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "He must have triggered the alarms after"},
+            {"code": "ShowMessage_2", "string": "he came through."},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Manta, handle it."},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Leave it to me, Boss."},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 0, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot2"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot2"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Shot1"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "TradeEventLocations", "parameters": [2, 21]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Holy3"},
+            {"code": "ChangeEventLocation", "parameters": [5, 0, 94, 97]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 1, 36, 0, 37]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 95, 98]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 1, 36, 3, 37]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 94, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 5, 5, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 3, 12]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [3, 0, 4, 54]],
-            [0, "MoveEvent", "", [3, 4, 0, 1, 1]],
-            [0, "ChangeEventLocation", "", [4, 0, 4, 54]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 12]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "How can we get through here?", []],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "He must have triggered the alarms after", []],
-            [0, "ShowMessage_2", "he came through.", []],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Manta, handle it.", []],
-            [0, "MoveEvent", "", [3, 4, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Leave it to me, Boss.", []],
-            [0, "MoveEvent", "", [3, 4, 0, 0, 12]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Shot2", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Shot2", [100, 100, 50]],
-            [0, "Wait", "", [3]],
-            [0, "PlaySound", "Shot1", [100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "TradeEventLocations", "", [2, 21]],
-            [0, "PlaySound", "Holy3", [100, 100, 50]],
-            [0, "ChangeEventLocation", "", [5, 0, 94, 97]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [4, 4, 0, 1, 36, 0, 37]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [4, 0, 95, 98]],
-            [0, "MoveEvent", "", [3, 4, 0, 1, 36, 3, 37]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [3, 0, 94, 98]],
-            [0, "ControlSwitches", "", [0, 5, 5, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 5
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 5
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "The door is already open, Boss."},
+            {"code": "ShowMessage_2", "string": "What more do you want?"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "The door is already open, Boss.", []],
-            [0, "ShowMessage_2", "What more do you want?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 53
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [9, 81],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Time is running out. There's no turning back.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Time is running out. There's no turning back."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 81
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [10, 81],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Time is running out. There's no turning back.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Time is running out. There's no turning back."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 81
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [35, 54],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 1, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 36, 55]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 1, 3, 12]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 36, 55]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 2, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Buzzer2"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "He didn't come this way."},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Can you be sure?"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "I'm a Slicer. If I can't find my way"},
+            {"code": "ShowMessage_2", "string": "around a computer console, I don't"},
+            {"code": "ShowMessage_2", "string": "deserve the title."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "We must find another route."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 36, 1, 37]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 0, 37]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 94, 98]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 95, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 6, 6, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 1, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [3, 0, 36, 55]],
-            [0, "MoveEvent", "", [3, 8, 0, 1, 3, 12]],
-            [0, "ChangeEventLocation", "", [4, 0, 36, 55]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 2, 12]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Buzzer2", [100, 100, 50]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "He didn't come this way.", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Can you be sure?", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "I'm a Slicer. If I can't find my way", []],
-            [0, "ShowMessage_2", "around a computer console, I don't", []],
-            [0, "ShowMessage_2", "deserve the title.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "We must find another route.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 1, 37]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 0, 37]],
-            [0, "Wait", "", [6]],
-            [0, "ChangeEventLocation", "", [3, 0, 94, 98]],
-            [0, "ChangeEventLocation", "", [4, 0, 95, 98]],
-            [0, "ControlSwitches", "", [0, 6, 6, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 6
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 6
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "I already told you. He didn't go this way."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "I already told you. He didn't go this way.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 54
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [36, 54],
       "pages": [
         {
-          "tile": 37,
+          "character_index": 37,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "It's locked."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "It's locked.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 6
+          "character_index": 37,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 6
           },
-          "tile": 37,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "We can't waste any more time."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "We can't waste any more time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 54
     },
     {
       "id": 11,
       "name": "LBScreenLeft",
-      "at": [39, 70],
       "pages": [
-        {
-          "tile": 16,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 16, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 39,
+      "y": 70
     },
     {
       "id": 12,
       "name": "LBScreenRight",
-      "at": [40, 70],
       "pages": [
-        {
-          "tile": 16,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 16, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 40,
+      "y": 70
     },
     {
       "id": 13,
       "name": "LBScreenTopLeft",
-      "at": [39, 69],
       "pages": [
-        {
-          "tile": 22,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 22, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 39,
+      "y": 69
     },
     {
       "id": 14,
       "name": "LBScreenTopRight",
-      "at": [40, 69],
       "pages": [
-        {
-          "tile": 22,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 22, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 40,
+      "y": 69
     },
     {
       "id": 15,
       "name": "SeeCompPanelTop",
-      "at": [35, 73],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangeEventLocation", "", [3, 0, 35, 73]],
-            [0, "MoveEvent", "", [3, 4, 0, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "This looks like the central security bank", []],
-            [0, "ShowMessage_2", "for the Block.", []],
-            [0, "ChangeEventLocation", "", [4, 0, 35, 73]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "This must be how he deactivated all the", []],
-            [0, "ShowMessage_2", "security drones, right?", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Yeah.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1, 1, 1, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Every second you waste with that machine", []],
-            [0, "ShowMessage_2", "gives our adversary more time to sever the", []],
-            [0, "ShowMessage_2", "Link.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 23, 23, 13]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Manta, he's right. Thousands of workers in", []],
-            [0, "ShowMessage_2", "the Catch Colony could be -", []],
-            [0, "PlaySound", "Decision1", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Decision1", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Got it! I'm in.", []],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [12, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [13, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "According to this, the Catch Colony is connected", []],
-            [0, "ShowMessage_2", "to the Block by an electromagnetic Link, which", []],
-            [0, "ShowMessage_2", "keeps the Colony from drifting into space.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "I thought we knew that.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "We did. This is a waste of time.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 15, 23, 23]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "What we didn't know is that there's a cargo", []],
-            [0, "ShowMessage_2", "lift that can take us straight up to the", []],
-            [0, "ShowMessage_2", "Emitter Room -", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "- where the Link is projected!", []],
-            [0, "PlaySound", "Cansel1", [100, 100, 50]],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [12, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [13, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 3, 3, 3, 3]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "You're welcome.", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Core, this way. We have an elevator to", []],
-            [0, "ShowMessage_2", "catch.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 12, 15, 23, 3, 0, 37]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [3, 0, 94, 98]],
-            [0, "ChangeEventLocation", "", [4, 0, 95, 98]],
-            [0, "ControlSwitches", "", [0, 7, 7, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 35, 73]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "This looks like the central security bank"},
+            {"code": "ShowMessage_2", "string": "for the Block."},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 35, 73]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "This must be how he deactivated all the"},
+            {"code": "ShowMessage_2", "string": "security drones, right?"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Yeah."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 1, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Every second you waste with that machine"},
+            {"code": "ShowMessage_2", "string": "gives our adversary more time to sever the"},
+            {"code": "ShowMessage_2", "string": "Link."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15, 23, 23, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Manta, he's right. Thousands of workers in"},
+            {"code": "ShowMessage_2", "string": "the Catch Colony could be -"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Decision1"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Decision1"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Got it! I'm in."},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {
+              "code": "ShowMessage_2",
+              "string": "According to this, the Catch Colony is connected"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "to the Block by an electromagnetic Link, which"
+            },
+            {"code": "ShowMessage_2", "string": "keeps the Colony from drifting into space."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "I thought we knew that."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "We did. This is a waste of time."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15, 23, 23]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "What we didn't know is that there's a cargo"},
+            {"code": "ShowMessage_2", "string": "lift that can take us straight up to the"},
+            {"code": "ShowMessage_2", "string": "Emitter Room -"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "- where the Link is projected!"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cansel1"},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "You're welcome."},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Core, this way. We have an elevator to"},
+            {"code": "ShowMessage_2", "string": "catch."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 12, 15, 23, 3, 0, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 36, 3, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 94, 98]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 95, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 7, 7, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 7
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 7
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 73
     },
     {
       "id": 16,
       "name": "SeeCompPanelTop",
-      "at": [35, 74],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [3, 0, 35, 73]],
-            [0, "MoveEvent", "", [3, 4, 0, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "This looks like the central security bank", []],
-            [0, "ShowMessage_2", "for the Block.", []],
-            [0, "ChangeEventLocation", "", [4, 0, 35, 73]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "This must be how he deactivated all the", []],
-            [0, "ShowMessage_2", "security drones, right?", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Yeah.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1, 1, 1, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Every second you waste with that machine", []],
-            [0, "ShowMessage_2", "gives our adversary more time to sever", []],
-            [0, "ShowMessage_2", "the Link.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 23, 23, 13]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Manta, he's right. Thousands of workers in", []],
-            [0, "ShowMessage_2", "the Catch Colony could be -", []],
-            [0, "PlaySound", "Decision1", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Decision1", [100, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Got it! I'm in.", []],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [12, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [13, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 40, 40, 40, 40, 40]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "According to this, the Catch Colony is connected", []],
-            [0, "ShowMessage_2", "to the Block by an electromagnetic Link, which", []],
-            [0, "ShowMessage_2", "keeps the Colony from drifting into space.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "I thought we knew that.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "We did. This is a waste of time.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 15, 23, 23]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "What we didn't know is that there's a cargo", []],
-            [0, "ShowMessage_2", "lift that can take us straight up to the", []],
-            [0, "ShowMessage_2", "Emitter Room -", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "- where the Link is projected!", []],
-            [0, "PlaySound", "Cansel1", [100, 100, 50]],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [12, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [13, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 41, 41, 41, 41, 41]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 3, 3, 3, 3]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "You're welcome.", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Core, this way. We have an elevator to", []],
-            [0, "ShowMessage_2", "catch.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 12, 15, 23, 3, 0, 37]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [3, 0, 94, 98]],
-            [0, "ChangeEventLocation", "", [4, 0, 95, 98]],
-            [0, "ControlSwitches", "", [0, 7, 7, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 35, 73]},
+            {"code": "MoveEvent", "parameters": [3, 4, 0, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "This looks like the central security bank"},
+            {"code": "ShowMessage_2", "string": "for the Block."},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 35, 73]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "This must be how he deactivated all the"},
+            {"code": "ShowMessage_2", "string": "security drones, right?"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Yeah."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 1, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Every second you waste with that machine"},
+            {"code": "ShowMessage_2", "string": "gives our adversary more time to sever"},
+            {"code": "ShowMessage_2", "string": "the Link."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15, 23, 23, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Manta, he's right. Thousands of workers in"},
+            {"code": "ShowMessage_2", "string": "the Catch Colony could be -"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Decision1"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Decision1"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Got it! I'm in."},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 40, 40, 40, 40, 40]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {
+              "code": "ShowMessage_2",
+              "string": "According to this, the Catch Colony is connected"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "to the Block by an electromagnetic Link, which"
+            },
+            {"code": "ShowMessage_2", "string": "keeps the Colony from drifting into space."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "I thought we knew that."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "We did. This is a waste of time."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15, 23, 23]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "What we didn't know is that there's a cargo"},
+            {"code": "ShowMessage_2", "string": "lift that can take us straight up to the"},
+            {"code": "ShowMessage_2", "string": "Emitter Room -"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "- where the Link is projected!"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cansel1"},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 41, 41, 41, 41, 41]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "You're welcome."},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Core, this way. We have an elevator to"},
+            {"code": "ShowMessage_2", "string": "catch."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 12, 15, 23, 3, 0, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 36, 3, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 94, 98]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 95, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 7, 7, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 7
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 7
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 74
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [39, 71],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Our target knows his way around a security"},
+            {"code": "ShowMessage_2", "string": "system, that's for sure."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Our target knows his way around a security", []],
-            [0, "ShowMessage_2", "system, that's for sure.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 71
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [40, 71],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Our target knows his way around a security"},
+            {"code": "ShowMessage_2", "string": "system, that's for sure."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Our target knows his way around a security", []],
-            [0, "ShowMessage_2", "system, that's for sure.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 71
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [44, 69],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "I wonder where this pipe goes?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "It doesn't matter."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "I wonder where this pipe goes?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "It doesn't matter.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 44,
+      "y": 69
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [87, 89],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [2, 4, 54]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [2, 4, 54]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 87,
+      "y": 89
     },
     {
       "id": 21,
       "name": "MovinDoor",
-      "at": [96, 98],
       "pages": [
         {
-          "tile": 16,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "PlaySound", "Earth2", [100, 100, 50]],
-            [0, "ShakeScreen", "", [3, 3, 2, 1]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "It's happening. He has begun to unfasten the", []],
-            [0, "ShowMessage_2", "Link. This place won't be standing for long.", []],
-            [0, "ControlSwitches", "", [0, 8, 8, 0]],
-            [0, "Teleport", "", [2, 87, 88]]
-          ]
+          "character_index": 16,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth2"},
+            {"code": "ShakeScreen", "parameters": [3, 3, 2, 1]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "It's happening. He has begun to unfasten the"},
+            {"code": "ShowMessage_2", "string": "Link. This place won't be standing for long."},
+            {"code": "ControlSwitches", "parameters": [0, 8, 8, 0]},
+            {"code": "Teleport", "parameters": [2, 87, 88]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 8
+          "character_index": 16,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 8
           },
-          "tile": 16,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [2, 87, 88]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [2, 87, 88]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 96,
+      "y": 98
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [87, 75],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "ChangeEventLocation", "", [3, 0, 87, 71]],
-            [0, "ChangeEventLocation", "", [4, 0, 87, 71]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "This way is blocked. There must be", []],
-            [0, "ShowMessage_2", "a quicker way to the Emitter Room.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 37]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [4, 0, 94, 99]],
-            [0, "ChangeEventLocation", "", [3, 0, 95, 99]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2]],
-            [0, "ControlSwitches", "", [0, 9, 9, 0]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 9
-          },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 87, 71]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 87, 71]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "This way is blocked. There must be"},
+            {"code": "ShowMessage_2", "string": "a quicker way to the Emitter Room."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 36, 3, 37]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 1, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 94, 99]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 95, 99]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2]},
+            {"code": "ControlSwitches", "parameters": [0, 9, 9, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 7
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 9
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "ChangeEventLocation", "", [3, 0, 87, 71]],
-            [0, "ChangeEventLocation", "", [4, 0, 87, 71]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 0, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "The elevator we want should be beyond", []],
-            [0, "ShowMessage_2", "the security door to the left.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Core - get us through this door.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "No sweat, Boss! You want a door removed,", []],
-            [0, "ShowMessage_2", "I'm your MAN!!", []],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 15, 3]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Explosion3", [100, 100, 50]],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 28, 28, 28, 28, 28, 3]],
-            [0, "Wait", "", [2]],
-            [0, "PlaySound", "Flame4", [100, 100, 50]],
-            [0, "ShowBattleAnimation", "", [78, 23, 1, 0]],
-            [0, "FlashScreen", "", [31, 0, 0, 31, 5, 1]],
-            [0, "ControlSwitches", "", [0, 10, 10, 0]],
-            [0, "ShowMessage", "", []],
-            [0, "ShowMessage_2", "CORE performs FURY PUNCH!", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "OK... let's go get him!", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 29, 29, 29, 36, 2, 1, 1, 37]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 2, 2, 37]],
-            [0, "Wait", "", [15]],
-            [0, "ChangeEventLocation", "", [4, 0, 94, 98]],
-            [0, "ChangeEventLocation", "", [3, 0, 95, 98]]
-          ]
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 10
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 7
           },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 87, 71]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 87, 71]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 0, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "The elevator we want should be beyond"},
+            {"code": "ShowMessage_2", "string": "the security door to the left."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 3]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Core - get us through this door."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "No sweat, Boss! You want a door removed,"},
+            {"code": "ShowMessage_2", "string": "I'm your MAN!!"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 15, 3]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Explosion3"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 28, 28, 28, 28, 28, 3]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Flame4"},
+            {"code": "ShowBattleAnimation", "parameters": [78, 23, 1, 0]},
+            {"code": "FlashScreen", "parameters": [31, 0, 0, 31, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 10, 10, 0]},
+            {"code": "ShowMessage"},
+            {"code": "ShowMessage_2", "string": "CORE performs FURY PUNCH!"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "OK... let's go get him!"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 29, 29, 29, 36, 2, 1, 1, 37]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 36, 2, 2, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 94, 98]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 95, 98]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "touched"
+        },
+        {
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 10
+          },
+          "id": 4,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 87,
+      "y": 75
     },
     {
       "id": 23,
       "name": "SecurityDoor23",
-      "at": [83, 71],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 10
+          "character_index": 111,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 10
           },
-          "tile": 111,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 83,
+      "y": 71
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [82, 85],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What is this?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Nothing significant. We are wasting time."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What is this?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Nothing significant. We are wasting time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 82,
+      "y": 85
     },
     {
       "id": 25,
       "name": "EV0025",
-      "at": [83, 82],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What is this?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Nothing significant. We are wasting time."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What is this?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Nothing significant. We are wasting time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 83,
+      "y": 82
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [86, 81],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What is this?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Nothing significant. We are wasting time."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What is this?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Nothing significant. We are wasting time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 86,
+      "y": 81
     },
     {
       "id": 27,
       "name": "EV0027",
-      "at": [86, 80],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What is this?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Nothing significant. We are wasting time."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What is this?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Nothing significant. We are wasting time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 86,
+      "y": 80
     },
     {
       "id": 28,
       "name": "EV0028",
-      "at": [86, 75],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What is this?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Nothing significant. We are wasting time."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What is this?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Nothing significant. We are wasting time.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 86,
+      "y": 75
     },
     {
       "id": 29,
       "name": "EV0029",
-      "at": [70, 71],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Nice punch, Core."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "I told you I was good!"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Stop wasting time. The elevator is"},
+            {"code": "ShowMessage_2", "string": "this way."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Nice punch, Core.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "I told you I was good!", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Stop wasting time. The elevator is", []],
-            [0, "ShowMessage_2", "this way.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 70,
+      "y": 71
     },
     {
       "id": 30,
       "name": "EV0030",
-      "at": [71, 69],
       "pages": [
         {
-          "tile": 25,
+          "character_index": 25,
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 11, 11, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 11, 11, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 28,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 28,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [2, 77, 31]],
-            [0, "PlaySound", "Close2", [100, 100, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "ShakeScreen", "", [1, 1, 1000, 0]],
-            [0, "ChangeEventLocation", "", [3, 0, 77, 31]],
-            [0, "ChangeEventLocation", "", [4, 0, 77, 31]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 1, 1, 14]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 3, 13]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Do you think we'll make it, Boss?", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "I mean... we've got my strength, and", []],
-            [0, "ShowMessage_2", "Manta's brains, but...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "The target will pay. That's all that matters.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "What will REALLY happen if he releases", []],
-            [0, "ShowMessage_2", "the Link?", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 15, 3]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "The Link keeps the Catch Colony", []],
-            [0, "ShowMessage_2", "fastened to earth.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "The Catch Colony captures and refines", []],
-            [0, "ShowMessage_2", "the energy of the cosmos into a form", []],
-            [0, "ShowMessage_2", "utilized by everything on the planet.", []],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Thousands of workers live in the Colony,", []],
-            [0, "ShowMessage_2", "operating and maintaining it. If the Link", []],
-            [0, "ShowMessage_2", "were to go...", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Not only would all those lives be lost,", []],
-            [0, "ShowMessage_2", "but so would our primary energy", []],
-            [0, "ShowMessage_2", "source!", []],
-            [0, "PlaySound", "Darkness", [70, 100, 50]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [20]],
-            [0, "PlaySound", "Holy5", [100, 100, 50]],
-            [0, "ShakeScreen", "", [1, 1, 5, 0]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Get ready. This could get very unpleasant,", []],
-            [0, "ShowMessage_2", "very quickly.", []],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [3, 67, 69]],
-            [0, "PlayBGM", "TF3_1_awe", [0, 80, 100, 50]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [2, 77, 31]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Close2"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "ShakeScreen", "parameters": [1, 1, 1000, 0]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 77, 31]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 77, 31]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 14]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 3, 13]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Do you think we'll make it, Boss?"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "I mean... we've got my strength, and"},
+            {"code": "ShowMessage_2", "string": "Manta's brains, but..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "The target will pay. That's all that matters."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "What will REALLY happen if he releases"},
+            {"code": "ShowMessage_2", "string": "the Link?"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15, 3]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "The Link keeps the Catch Colony"},
+            {"code": "ShowMessage_2", "string": "fastened to earth."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "The Catch Colony captures and refines"},
+            {"code": "ShowMessage_2", "string": "the energy of the cosmos into a form"},
+            {"code": "ShowMessage_2", "string": "utilized by everything on the planet."},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Thousands of workers live in the Colony,"},
+            {"code": "ShowMessage_2", "string": "operating and maintaining it. If the Link"},
+            {"code": "ShowMessage_2", "string": "were to go..."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Not only would all those lives be lost,"},
+            {"code": "ShowMessage_2", "string": "but so would our primary energy"},
+            {"code": "ShowMessage_2", "string": "source!"},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Darkness"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Holy5"},
+            {"code": "ShakeScreen", "parameters": [1, 1, 5, 0]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Get ready. This could get very unpleasant,"},
+            {"code": "ShowMessage_2", "string": "very quickly."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [3, 67, 69]},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "TF3_1_awe"}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 71,
+      "y": 69
     },
     {
       "id": 31,
       "name": "EV0031",
-      "at": [70, 69],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 27,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 27,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 70,
+      "y": 69
     },
     {
       "id": 32,
       "name": "EV0032",
-      "at": [72, 69],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 29,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 29,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 72,
+      "y": 69
     },
     {
       "id": 33,
       "name": "EV0033",
-      "at": [72, 68],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 23,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 23,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 72,
+      "y": 68
     },
     {
       "id": 34,
       "name": "EV0034",
-      "at": [71, 68],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 22,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 22,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 71,
+      "y": 68
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [70, 68],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 11
+          "character_index": 21,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 11
           },
-          "tile": 21,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 70,
+      "y": 68
     },
     {
       "id": 36,
       "name": "EV0036",
-      "at": [37, 78],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Maybe I'll just push some buttons."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Core - don't touch anything!"},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Geez, I was just kidding..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Maybe I'll just push some buttons.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Core - don't touch anything!", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Geez, I was just kidding...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 78
     },
     {
       "id": 37,
       "name": "EV0037",
-      "at": [39, 78],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Maybe I'll just push some buttons."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Core - don't touch anything!"},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Geez, I was just kidding..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Maybe I'll just push some buttons.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Core - don't touch anything!", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Geez, I was just kidding...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 78
     },
     {
       "id": 38,
       "name": "EV0038",
-      "at": [41, 78],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Maybe I'll just push some buttons."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Core - don't touch anything!"},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Geez, I was just kidding..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Maybe I'll just push some buttons.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Core - don't touch anything!", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Geez, I was just kidding...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 41,
+      "y": 78
     },
     {
       "id": 39,
       "name": "FightableDroid",
-      "at": [30, 55],
       "pages": [
         {
-          "sprite": {
-            "charset": "Vehicle",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 5,
+          "character_name": "Vehicle",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "This one isn't deactivated."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Get ready everyone!"},
+            {
+              "code": "EnemyEncounter",
+              "parameters": [0, 82, 1, 2, 1, 0],
+              "string": "SJBackdropABL04"
+            },
+            {"code": "VictoryHandler"},
+            {"code": "ShowBattleAnimation", "indent": 1, "parameters": [62, 39, 1, 0]},
+            {
+              "code": "PlaySound",
+              "indent": 1,
+              "parameters": [100, 100, 50],
+              "string": "Explosion2"
+            },
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [10005, 0, 35, 34]},
+            {"code": "ShowMessage", "indent": 1, "string": "CORE"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah! Take that!"},
+            {"code": "ShowMessage", "indent": 1, "string": "KERSH"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
+            {"code": "END", "indent": 1},
+            {"code": "EscapeHandler"},
+            {"code": "ShowMessage", "indent": 1, "string": "KERSH"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "We're not here to tangle with security"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "drones. Let's keep moving."},
+            {"code": "ShowMessage", "indent": 1, "string": "CORE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Manta, if we can't even handle a single"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "security drone, how are we gonna"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "be able to nullify the target?"},
+            {"code": "ShowMessage", "indent": 1, "string": "MANTA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
+            {"code": "END", "indent": 1},
+            {"code": "DefeatHandler"},
+            {"code": "ShowMessage", "indent": 1, "string": "KERSH"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Pathetic. Must I handle everything"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "myself?"},
+            {"code": "ShowBattleAnimation", "indent": 1, "parameters": [3, 10005, 1, 0]},
+            {
+              "code": "PlaySound",
+              "indent": 1,
+              "parameters": [100, 100, 50],
+              "string": "Explosion2"
+            },
+            {"code": "ChangeEventLocation", "indent": 1, "parameters": [10005, 0, 35, 34]},
+            {"code": "ChangeHP", "indent": 1, "parameters": [0, 0, 0, 0, 1, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBattle"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 3
+          "move_route": {
+            "move_commands": [
+              {"command_id": "decrease_movement_speed"},
+              {"command_id": "move_left"},
+              {"command_id": "move_down"},
+              {"command_id": "move_down"},
+              {"command_id": "move_down"},
+              {"command_id": "move_left"},
+              {},
+              {"command_id": "move_right"},
+              {},
+              {"command_id": "move_right"},
+              {},
+              {"command_id": "increase_movement_speed"}
+            ]
           },
-          "animation": "continuous",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "This one isn't deactivated.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Get ready everyone!", []],
-            [0, "EnemyEncounter", "SJBackdropABL04", [0, 82, 1, 2, 1, 0]],
-            [0, "VictoryHandler", "", []],
-            [1, "ShowBattleAnimation", "", [62, 39, 1, 0]],
-            [1, "PlaySound", "Explosion2", [100, 100, 50]],
-            [1, "ChangeEventLocation", "", [10005, 0, 35, 34]],
-            [1, "ShowMessage", "CORE", []],
-            [1, "ShowMessage_2", "Yeah! Take that!", []],
-            [1, "ShowMessage", "KERSH", []],
-            [1, "ShowMessage_2", "... ... ...", []],
-            [1, "END", "", []],
-            [0, "EscapeHandler", "", []],
-            [1, "ShowMessage", "KERSH", []],
-            [1, "ShowMessage_2", "We're not here to tangle with security", []],
-            [1, "ShowMessage_2", "drones. Let's keep moving.", []],
-            [1, "ShowMessage", "CORE", []],
-            [1, "ShowMessage_2", "Manta, if we can't even handle a single", []],
-            [1, "ShowMessage_2", "security drone, how are we gonna", []],
-            [1, "ShowMessage_2", "be able to nullify the target?", []],
-            [1, "ShowMessage", "MANTA", []],
-            [1, "ShowMessage_2", "... ... ...", []],
-            [1, "END", "", []],
-            [0, "DefeatHandler", "", []],
-            [1, "ShowMessage", "KERSH", []],
-            [1, "ShowMessage_2", "Pathetic. Must I handle everything", []],
-            [1, "ShowMessage_2", "myself?", []],
-            [1, "ShowBattleAnimation", "", [3, 10005, 1, 0]],
-            [1, "PlaySound", "Explosion2", [100, 100, 50]],
-            [1, "ChangeEventLocation", "", [10005, 0, 35, 34]],
-            [1, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
-            [1, "END", "", []],
-            [0, "EndBattle", "", []]
-          ]
+          "move_type": "custom"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 55
     },
     {
       "id": 40,
       "name": "EV0040",
-      "at": [7, 72],
       "pages": [
         {
-          "sprite": {
-            "charset": "Vehicle",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Vehicle",
+          "condition": {"switch_a_id": 22},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "This drone's attack mode has been"},
+            {"code": "ShowMessage_2", "string": "deactivated."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "And without that, it's really stupid."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "There's a moral in there somewhere,"},
+            {"code": "ShowMessage_2", "string": "but I don't like it so I'm not going to"},
+            {"code": "ShowMessage_2", "string": "mention it again."},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Good. We're wasting time."},
+            {"code": "ControlSwitches", "parameters": [0, 22, 22, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 6
+          "move_frequency": 6,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "increase_movement_speed"},
+              {},
+              {
+                "command_id": "play_sound_effect",
+                "parameter_a": 100,
+                "parameter_b": 100,
+                "parameter_c": 50,
+                "parameter_string": "Blow7"
+              },
+              {"command_id": "begin_jump"},
+              {"command_id": "move_down"},
+              {"command_id": "end_jump"},
+              {"command_id": "decrease_movement_speed"},
+              {"command_id": "wait"},
+              {"command_id": "wait"},
+              {"command_id": "wait"}
+            ]
           },
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "This drone's attack mode has been", []],
-            [0, "ShowMessage_2", "deactivated.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "And without that, it's really stupid.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "There's a moral in there somewhere,", []],
-            [0, "ShowMessage_2", "but I don't like it so I'm not going to", []],
-            [0, "ShowMessage_2", "mention it again.", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Good. We're wasting time.", []],
-            [0, "ControlSwitches", "", [0, 22, 22, 0]]
-          ]
+          "move_type": "custom"
         },
         {
-          "conditions": {
-            "switch_a": 22
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Vehicle",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 22
           },
-          "sprite": {
-            "charset": "Vehicle",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Oops... I think I broke it."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 6
+          "move_frequency": 6,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "increase_movement_speed"},
+              {"command_id": "increase_movement_speed"},
+              {"command_id": "face_up"},
+              {"command_id": "face_left"},
+              {"command_id": "face_down"},
+              {"command_id": "face_right"},
+              {"command_id": "decrease_movement_speed"},
+              {"command_id": "decrease_movement_speed"}
+            ]
           },
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Oops... I think I broke it.", []]
-          ]
+          "move_type": "custom"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 72
     },
     {
       "id": 41,
       "name": "EV0041",
-      "at": [17, 63],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 22, 22, 0]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 22, 22, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 63
     },
     {
       "id": 42,
       "name": "EV0042",
-      "at": [17, 64],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 22, 22, 0]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 22, 22, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 64
     }
-  ]
+  ],
+  "height": 100,
+  "parallax_auto_loop_y": true,
+  "parallax_flag": true,
+  "parallax_loop_y": true,
+  "parallax_name": "screen",
+  "parallax_sy": 4,
+  "save_count": 155,
+  "width": 100
 }

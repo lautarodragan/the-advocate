@@ -1,170 +1,185 @@
 {
-  "id": 228,
-  "name": "Assassination Memory",
-  "size": [20, 15],
-  "chipset": [18, "Inside"],
-  "tiles": "Map0228.tiles",
-  "parallax": {
-    "name": "OfficeView",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 18,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [10, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     },
     {
       "id": 2,
       "name": "FirstShot",
-      "at": [10, 2],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 129,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 129,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 2
     },
     {
       "id": 3,
       "name": "FirstShot",
-      "at": [10, 1],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 123,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 123,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 1
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 13],
       "pages": [
         {
-          "tile": 32,
+          "character_index": 32,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't think unlocking the door and"},
+            {"code": "ShowMessage_2", "string": "letting in the Agency guards would"},
+            {"code": "ShowMessage_2", "string": "be wise at this juncture!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I mean it!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't think unlocking the door and", []],
-            [0, "ShowMessage_2", "letting in the Agency guards would", []],
-            [0, "ShowMessage_2", "be wise at this juncture!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I mean it!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 13
     },
     {
       "id": 5,
       "name": "DoorLower",
-      "at": [10, 14],
       "pages": [
-        {
-          "tile": 38,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"character_index": 38, "id": 1, "move_type": "stationary"}
+      ],
+      "x": 10,
+      "y": 14
     },
     {
       "id": 6,
       "name": "FirstShot",
-      "at": [9, 4],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 130,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 130,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 4
     },
     {
       "id": 7,
       "name": "FirstShot",
-      "at": [11, 4],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 130,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 130,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 4
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Sir, c'mon wake up! PLEASE wake up!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's no use. He's dead.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 1, 12, 24, 36, 0, 0, 25, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
-            [0, "Teleport", "", [229, 6, 6]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Sir, c'mon wake up! PLEASE wake up!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's no use. He's dead."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 0, 0, 0, 0, 1, 12, 24, 36, 0, 0, 25, 34, 10, 110, 111, 98, 111,
+                100, 121, 104, 101, 114, 101, 0, 37
+              ]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Rebirth3"},
+            {"code": "Teleport", "parameters": [229, 6, 6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "OfficeView",
+  "save_count": 107
 }

@@ -13,9 +13,15 @@ maps:
 check:
   python3 tools/list_maps.py --render
 
-# Vuelca los .lmu a data/ como JSON + grillas de tiles en texto, versionables.
-export:
-  python3 tools/export_json.py --verify
+# El volcado viejo, el de Python. **Ya no escribe `data/`**: eso lo hace Ditto
+# desde el 2026-09-14 (`just datos`), y esto quedó sin dueño, escribiendo afuera
+# del repo para no pisarlo. Sigue acá porque lo que da es una *lectura* del
+# juego —un comando de evento por línea, sin lo que al port no le sirve— y esa
+# vista no la da Ditto, que tiene que poder volver a escribir el binario. Si se
+# decide que no hace falta, se va junto con `tools/lcf_bin.py`, `gen_schema.py`
+# y `lcf_schema.py`. Ver DITTO.md.
+export dir="/extras/volcado-python":
+  python3 tools/export_json.py --verify -o {{dir}}
 
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
@@ -35,15 +41,24 @@ ditto-pruebas:
 ditto-vuelta-entera:
   cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
 
-# El volcado del juego entero como árbol de archivos, para mirarlo.
+# **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
+# lee `tools/lcf.py` y de ahí el conversor. Es derivado —se puede volver a
+# sacar en cualquier momento— y va a git igual, porque es la única forma de
+# *leer* el juego y de que un cambio se vea en un diff.
 #
-# Va **fuera del repo** a propósito: el volcado que manda sigue siendo el de
-# `just datos` en `data/`, y elegir cuál gana es el paso 2 de DITTO.md, con los
-# dos a la vista. Un `ditto unpack` sobre `data/` pisaría el que usa el
-# conversor.
-ditto-volcado DIR="/extras/volcado-ditto":
+# `unpack` vacía `maps/` y `db/` antes de escribir —si no, un `Map0400.json`
+# que sobró de un volcado viejo volvería a meter un mapa en el juego— y no toca
+# nada más de `data/`, así que el README de ahí sobrevive.
+#
+# Después de correrlo, lo que manda es el `git diff`: si el juego no cambió,
+# tiene que dar vacío.
+datos DIR="data":
   cd ditto && cargo build --release
   ./ditto/target/release/ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{DIR}}
+
+# Lo mismo pero a otro lado, para mirarlo sin tocar el del repo.
+ditto-volcado DIR="/extras/volcado-ditto":
+  just datos {{DIR}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. Todo el toolchain son dos cosas: python y un core de libretro. El

@@ -1,354 +1,531 @@
 {
-  "id": 51,
-  "name": "Jumping the Bridge",
-  "size": [200, 40],
-  "chipset": [13, "BLchp1"],
-  "tiles": "Map0051.tiles",
-  "parallax": {
-    "name": "lashepan",
-    "loop_x": true,
-    "loop_y": false,
-    "scroll_x": -4,
-    "scroll_y": 0
-  },
+  "chipset_id": 13,
   "events": [
     {
       "id": 1,
       "name": "RaceController1",
-      "at": [5, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
-            [0, "PanScreen", "", [2, 1, 7, 5, 1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
-            [0, "ControlVars", "", [0, 34, 34, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 35, 35, 0, 6, 10001, 1]],
-            [0, "ConditionalBranch", "", [0, 130, 0, 0, 0, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 13, 26]],
-            [1, "Wait", "", [5]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 131, 0, 0, 0, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 14, 26]],
-            [1, "Wait", "", [5]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 28, 28]],
-            [0, "ControlSwitches", "", [0, 170, 170, 0]]
-          ]
+          "condition": {"switch_a_id": 171},
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 1, 0]},
+            {"code": "PanScreen", "parameters": [2, 1, 7, 5, 1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 1, 0]},
+            {"code": "ControlVars", "parameters": [0, 34, 34, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 35, 35, 0, 6, 10001, 1]},
+            {"code": "ConditionalBranch", "parameters": [0, 130, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 13, 26]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 131, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14, 26]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 28, 28, 28]},
+            {"code": "ControlSwitches", "parameters": [0, 170, 170, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 170
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 170
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 20
     },
     {
       "id": 2,
       "name": "RaceController2",
-      "at": [6, 20],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 170
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 170
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 28, 1, 29]},
+            {"code": "ControlVars", "parameters": [0, 34, 34, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 35, 35, 0, 6, 10001, 1]},
+            {"code": "KeyInputProc", "parameters": [33, 0, 1, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [1, 33, 0, 1, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 34, 0, 27, 2, 1]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {
+              "code": "PlaySound",
+              "indent": 2,
+              "parameters": [100, 150, 50],
+              "string": "Annihilation2"
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [1, 33, 0, 4, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 34, 0, 24, 1, 1]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {
+              "code": "PlaySound",
+              "indent": 2,
+              "parameters": [100, 150, 50],
+              "string": "Annihilation2"
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "overlap_forbidden": true,
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 1, 29]],
-            [0, "ControlVars", "", [0, 34, 34, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 35, 35, 0, 6, 10001, 1]],
-            [0, "KeyInputProc", "", [33, 0, 1, 0, 0]],
-            [0, "ConditionalBranch", "", [1, 33, 0, 1, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 34, 0, 27, 2, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "PlaySound", "Annihilation2", [100, 150, 50]],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [1, 33, 0, 4, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 34, 0, 24, 1, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "PlaySound", "Annihilation2", [100, 150, 50]],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 172
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 172
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
+          "id": 2,
+          "move_type": "stationary",
           "overlap_forbidden": true
         }
-      ]
+      ],
+      "x": 6,
+      "y": 20
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [75, 24],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50,
+                1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 24
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [75, 25],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50,
+                1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 25
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [75, 26],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50,
+                1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 26
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [75, 27],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50,
+                1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 27
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [75, 23],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100,
+                50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87,
+                105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 23
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [75, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
-            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
-            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
-            [2, "ControlSwitches", "", [0, 172, 172, 0]],
-            [2, "PanScreen", "", [2, 3, 7, 6, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108, 97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-            [2, "Wait", "", [30]],
-            [2, "Teleport", "", [53, 11, 10]],
-            [2, "ControlSwitches", "", [0, 176, 176, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "character_direction": "right",
+          "condition": {"variable_id": 35},
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 36, 36, 0, 6, 10005, 2]},
+            {"code": "ControlVars", "parameters": [0, 37, 37, 0, 6, 10005, 1]},
+            {"code": "ConditionalBranch", "parameters": [1, 36, 1, 34, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 37, 1, 35, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 172, 172, 0]},
+            {"code": "PanScreen", "indent": 2, "parameters": [2, 3, 7, 6, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100,
+                50, 50, 1, 0, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 0, 1, 1, 35, 5, 87,
+                105, 110, 100, 55, 100, 50, 50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50,
+                50, 1, 1, 1, 35, 5, 87, 105, 110, 100, 55, 100, 50, 50, 1, 2, 1, 35, 5, 87, 105,
+                110, 100, 55, 100, 50, 50, 2, 1, 2, 35, 13, 65, 110, 110, 105, 104, 105, 108,
+                97, 116, 105, 111, 110, 50, 100, 80, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "Teleport", "indent": 2, "parameters": [53, 11, 10]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 176, 176, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         },
         {
-          "conditions": {
-            "switch_a": 176
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 176
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 75,
+      "y": 28
     }
-  ]
+  ],
+  "height": 40,
+  "parallax_auto_loop_x": true,
+  "parallax_flag": true,
+  "parallax_loop_x": true,
+  "parallax_name": "lashepan",
+  "parallax_sx": -4,
+  "save_count": 54,
+  "width": 200
 }

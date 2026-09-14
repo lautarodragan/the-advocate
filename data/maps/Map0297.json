@@ -1,8 +1,1 @@
-{
-  "id": 297,
-  "name": "Skill Systems",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0297.tiles",
-  "events": []
-}
+{"save_count": 2}

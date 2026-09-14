@@ -1,94 +1,114 @@
 {
-  "id": 211,
-  "name": "Memories of Surl",
-  "size": [20, 15],
-  "chipset": [36, "townQ"],
-  "tiles": "Map0211.tiles",
+  "chipset_id": 36,
   "events": [
     {
       "id": 1,
       "name": "Man1",
-      "at": [3, 1],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 1
     },
     {
       "id": 2,
       "name": "Man2",
-      "at": [18, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 14
     },
     {
       "id": 3,
       "name": "Woman3",
-      "at": [0, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_frequency": 6,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"}
+            ],
+            "skippable": true
+          },
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 13
     },
     {
       "id": 4,
       "name": "Woman4",
-      "at": [7, 8],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Crown1",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Crown1", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 7,
+      "y": 8
     },
     {
       "id": 5,
       "name": "Girl5",
-      "at": [3, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 10
     }
-  ]
+  ],
+  "save_count": 15
 }

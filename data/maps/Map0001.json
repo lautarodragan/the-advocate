@@ -1,411 +1,437 @@
 {
-  "id": 1,
-  "name": "Introduction",
-  "size": [100, 100],
-  "chipset": [6, "ChipSet3"],
-  "tiles": "Map0001.tiles",
-  "parallax": {
-    "name": "Night1",
-    "loop_x": true,
-    "loop_y": false,
-    "scroll_x": 3,
-    "scroll_y": 0
-  },
+  "chipset_id": 6,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [38, 74],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 20,
-            "actor": 10
+          "character_index": 45,
+          "condition": {
+            "actor_id": 10,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 20
           },
-          "tile": 45,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "escape_newyork", [0, 100, 100, 50]],
-            [0, "WeatherEffects", "", [1, 1]],
-            [0, "Wait", "", [60]],
-            [0, "Teleport", "", [1, 23, 49]],
-            [0, "MoveEvent", "", [8, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "WeatherEffects", "", [1, 0]],
-            [0, "Teleport", "", [1, 59, 49]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 11]],
-            [0, "ChangePartyMembers", "", [0, 0, 12]],
-            [0, "ChangePartyMembers", "", [0, 0, 13]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0]],
-            [0, "ControlSwitches", "", [0, 20, 20, 1]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "escape_newyork"},
+            {"code": "WeatherEffects", "parameters": [1, 1]},
+            {"code": "Wait", "parameters": [60]},
+            {"code": "Teleport", "parameters": [1, 23, 49]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "WeatherEffects", "parameters": [1, 0]},
+            {"code": "Teleport", "parameters": [1, 59, 49]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 12]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 13]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 20, 20, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 74
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [59, 46],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 14, 14, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "ChangeEventLocation", "", [3, 0, 59, 46]],
-            [0, "MoveEvent", "", [3, 8, 0, 1, 1]],
-            [0, "ChangeEventLocation", "", [4, 0, 59, 46]],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 3]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 21]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "That climb wasn't such a big deal. I", []],
-            [0, "ShowMessage_2", "thought this place was supposed to", []],
-            [0, "ShowMessage_2", "be falling apart?", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 21]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "We still have some time. It looks as if", []],
-            [0, "ShowMessage_2", "he hasn't started unfastening the Link", []],
-            [0, "ShowMessage_2", "yet.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "And he's not gonna be able to - cuz", []],
-            [0, "ShowMessage_2", "Core and Manta are on the job!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "Quiet. Something's coming.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 1, 1, 1, 1, 1, 0, 0, 15]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1, 1, 1, 0, 15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 1, 1, 1, 15]],
-            [0, "Wait", "", [30]],
-            [0, "ChangeEventLocation", "", [5, 0, 59, 41]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 13, 23, 23, 15, 23, 23, 0, 0]],
-            [0, "Wait", "", [25]],
-            [0, "ChangeEventLocation", "", [5, 0, 70, 98]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3, 3, 12]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "That security droid has been deactivated.", []],
-            [0, "ShowMessage_2", "Its attack mode has been switched off.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13, 23, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "That means we shouldn't have to deal", []],
-            [0, "ShowMessage_2", "with the security system - he must have", []],
-            [0, "ShowMessage_2", "deactivated everything on his way up.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 2, 3]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Awwwwww.... that's no fun.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Core, we're not here to fight drones.", []],
-            [0, "ShowMessage_2", "We're here to prevent a disaster.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "Remember, my alias for this operation is", []],
-            [0, "ShowMessage_2", "\"Kersh.\" We should have the element of", []],
-            [0, "ShowMessage_2", "surprise.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Won't he recognize you anyway, Boss?", []],
-            [0, "MoveEvent", "", [10001, 4, 0, 0, 15, 3, 23]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "It doesn't matter.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "But... what about your wife?", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 24, 38, 0, 2, 39, 25]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "  CORE!!!", []],
-            [0, "Wait", "", [12]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "I think Emily was... an accident.", []],
-            [0, "ShowMessage_2", "And that makes it worse.", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "No, he won't recognize me. Let's go.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 1, 36, 3, 3, 3, 37]],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 36, 2, 3, 3, 3, 3, 37]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "ChangeEventLocation", "", [3, 0, 72, 98]],
-            [0, "ChangeEventLocation", "", [4, 0, 71, 98]],
-            [0, "ControlSwitches", "", [0, 3, 3, 0]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 14, 14, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 59, 46]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 1, 1]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 59, 46]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 3]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "That climb wasn't such a big deal. I"},
+            {"code": "ShowMessage_2", "string": "thought this place was supposed to"},
+            {"code": "ShowMessage_2", "string": "be falling apart?"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "We still have some time. It looks as if"},
+            {"code": "ShowMessage_2", "string": "he hasn't started unfastening the Link"},
+            {"code": "ShowMessage_2", "string": "yet."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "And he's not gonna be able to - cuz"},
+            {"code": "ShowMessage_2", "string": "Core and Manta are on the job!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "Quiet. Something's coming."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 1, 1, 1, 1, 1, 0, 0, 15]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 1, 1, 1, 1, 1, 0, 15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 1, 1, 1, 15]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ChangeEventLocation", "parameters": [5, 0, 59, 41]},
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 0, 2, 2, 13, 23, 23, 15, 23, 23, 0, 0]
+            },
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ChangeEventLocation", "parameters": [5, 0, 70, 98]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 3, 3, 12]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "That security droid has been deactivated."},
+            {"code": "ShowMessage_2", "string": "Its attack mode has been switched off."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13, 23, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "That means we shouldn't have to deal"},
+            {"code": "ShowMessage_2", "string": "with the security system - he must have"},
+            {"code": "ShowMessage_2", "string": "deactivated everything on his way up."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 2, 3]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Awwwwww.... that's no fun."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Core, we're not here to fight drones."},
+            {"code": "ShowMessage_2", "string": "We're here to prevent a disaster."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "Remember, my alias for this operation is"},
+            {"code": "ShowMessage_2", "string": "\"Kersh.\" We should have the element of"},
+            {"code": "ShowMessage_2", "string": "surprise."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Won't he recognize you anyway, Boss?"},
+            {"code": "MoveEvent", "parameters": [10001, 4, 0, 0, 15, 3, 23]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "It doesn't matter."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "But... what about your wife?"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15, 24, 38, 0, 2, 39, 25]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "  CORE!!!"},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "I think Emily was... an accident."},
+            {"code": "ShowMessage_2", "string": "And that makes it worse."},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "No, he won't recognize me. Let's go."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 1, 36, 3, 3, 3, 37]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 36, 2, 3, 3, 3, 3, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ChangeEventLocation", "parameters": [3, 0, 72, 98]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 71, 98]},
+            {"code": "ControlSwitches", "parameters": [0, 3, 3, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 3
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 3
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 46
     },
     {
       "id": 3,
       "name": "Core",
-      "at": [72, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 72,
+      "y": 98
     },
     {
       "id": 4,
       "name": "Manta",
-      "at": [71, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 71,
+      "y": 98
     },
     {
       "id": 5,
       "name": "Droid",
-      "at": [70, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Vehicle",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "Vehicle",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 70,
+      "y": 98
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [59, 48],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "I have pressing business within the Linkage", []],
-            [0, "ShowMessage_2", "Block. No turning back.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Sure, Boss. No problem! I, uh... don't", []],
-            [0, "ShowMessage_2", "know what I was thinking...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "I have pressing business within the Linkage"},
+            {"code": "ShowMessage_2", "string": "Block. No turning back."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Sure, Boss. No problem! I, uh... don't"},
+            {"code": "ShowMessage_2", "string": "know what I was thinking..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 12]},
+            {"code": "ProceedWithMovement"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 3
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 3
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "I have pressing business within the Linkage", []],
-            [0, "ShowMessage_2", "Block. No turning back.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Sure, Boss. No problem! I, uh... don't", []],
-            [0, "ShowMessage_2", "know what I was thinking...", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "I have pressing business within the Linkage"},
+            {"code": "ShowMessage_2", "string": "Block. No turning back."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Sure, Boss. No problem! I, uh... don't"},
+            {"code": "ShowMessage_2", "string": "know what I was thinking..."}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 48
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [59, 41],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "WeatherEffects", "", [0, 0]],
-            [0, "Teleport", "", [2, 9, 80]]
-          ]
+          "event_commands": [
+            {"code": "WeatherEffects", "parameters": [0, 0]},
+            {"code": "Teleport", "parameters": [2, 9, 80]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 41
     },
     {
       "id": 8,
       "name": "DummyKersh",
-      "at": [23, 58],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "left"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "character_pattern": "left",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 58
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [83, 53],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 14
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 14
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "PlaySound", "Rain1", [60, 100, 50]],
-            [0, "Wait", "", [35]],
-            [0, "PlaySound", "Rain1", [60, 100, 50]],
-            [0, "Wait", "", [25]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [60, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [35]},
+            {"code": "PlaySound", "parameters": [60, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [25]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 83,
+      "y": 53
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [60, 48],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 60,
+      "y": 48
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [58, 48],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 58,
+      "y": 48
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [59, 49],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 59,
+      "y": 49
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [69, 35],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [40]],
-            [0, "PlaySound", "Thunder9", [100, 80, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 12, 1]],
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [40]],
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [40]],
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [40]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [40]},
+            {"code": "PlaySound", "parameters": [100, 80, 50], "string": "Thunder9"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 12, 1]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [40]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [40]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [40]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 69,
+      "y": 35
     },
     {
       "id": 14,
       "name": "Kersh",
-      "at": [73, 98],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 73,
+      "y": 98
     },
     {
       "id": 15,
       "name": "Stored Narration",
-      "at": [37, 80],
       "pages": [
         {
-          "tile": 96,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "In the beginning, life was simple.", []],
-            [0, "ShowMessage_2", "Perhaps, for the computers, it still is.", []],
-            [0, "ShowMessage_2", "Imagination is not easily represented", []],
-            [0, "ShowMessage_2", "with ones and zeroes.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "As society grew more complex, an", []],
-            [0, "ShowMessage_2", "immense bureaucracy was formed.", []],
-            [0, "ShowMessage_2", "Social freedom is now a relic", []],
-            [0, "ShowMessage_2", "of the past.", []],
-            [0, "Wait", "", [20]],
-            [0, "Teleport", "", [1, 7, 49]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "Little in this world is what it seems.", []],
-            [0, "ShowMessage_2", "One man is about to discover this", []],
-            [0, "ShowMessage_2", "for himself, walking the fine line", []],
-            [0, "ShowMessage_2", "between Good and Evil.", []]
-          ]
+          "character_index": 96,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "In the beginning, life was simple."},
+            {"code": "ShowMessage_2", "string": "Perhaps, for the computers, it still is."},
+            {"code": "ShowMessage_2", "string": "Imagination is not easily represented"},
+            {"code": "ShowMessage_2", "string": "with ones and zeroes."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "As society grew more complex, an"},
+            {"code": "ShowMessage_2", "string": "immense bureaucracy was formed."},
+            {"code": "ShowMessage_2", "string": "Social freedom is now a relic"},
+            {"code": "ShowMessage_2", "string": "of the past."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "Teleport", "parameters": [1, 7, 49]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "Little in this world is what it seems."},
+            {"code": "ShowMessage_2", "string": "One man is about to discover this"},
+            {"code": "ShowMessage_2", "string": "for himself, walking the fine line"},
+            {"code": "ShowMessage_2", "string": "between Good and Evil."}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 80
     }
-  ]
+  ],
+  "height": 100,
+  "parallax_auto_loop_x": true,
+  "parallax_flag": true,
+  "parallax_loop_x": true,
+  "parallax_name": "Night1",
+  "parallax_sx": 3,
+  "save_count": 162,
+  "width": 100
 }

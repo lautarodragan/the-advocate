@@ -1,5353 +1,3581 @@
 [
   {
-    "id": 1,
-    "name": "Slime",
-    "battler_name": "Slime",
-    "max_hp": 16,
-    "max_sp": 0,
-    "attack": 12,
-    "defense": 4,
-    "spirit": 8,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param1": 5,
+        "condition_param2": 50,
+        "condition_type": "party_lvl",
+        "id": 2,
+        "skill_id": 68
+      }
+    ],
     "agility": 8,
+    "attack": 12,
+    "attribute_ranks": [2, 2, 2, 2, 1, 1, 2, 2, 1, 1],
+    "battler_name": "Slime",
+    "defense": 4,
     "exp": 3,
     "gold": 5,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 1, 1, 2, 2, 1, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 6,
-        "skill_id": 68,
-        "condition_type": 6,
-        "condition_param1": 5,
-        "condition_param2": 50
-      }
-    ]
+    "id": 1,
+    "max_hp": 16,
+    "max_sp": 0,
+    "name": "Slime",
+    "spirit": 8
   },
   {
-    "id": 2,
-    "name": "Bat",
-    "battler_name": "Bat",
-    "max_hp": 20,
-    "max_sp": 0,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "defense", "id": 2, "kind": "skill", "rating": 42, "skill_id": 20}
+    ],
     "attack": 14,
+    "attribute_ranks": [2, 2, 2, 1, 1, 2, 2, 2, 3, 1, 1],
+    "battler_name": "Bat",
     "defense": 6,
-    "spirit": 9,
     "exp": 5,
     "gold": 10,
+    "id": 2,
     "levitate": true,
-    "state_ranks": [1, 1, 4, 1, 1, 1, 1, 1, 4, 2],
-    "attribute_ranks": [2, 2, 2, 1, 1, 2, 2, 2, 3, 1, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 2,
-        "skill_id": 20,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "max_hp": 20,
+    "max_sp": 0,
+    "name": "Bat",
+    "spirit": 9,
+    "state_ranks": [1, 1, 4, 1, 1, 1, 1, 1, 4, 2]
   },
   {
-    "id": 3,
-    "name": "Spider",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "defense",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "rating": 42,
+        "skill_id": 32
+      }
+    ],
+    "agility": 15,
+    "attack": 16,
+    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 3, 1],
     "battler_name": "Spider",
+    "defense": 7,
+    "exp": 8,
+    "gold": 15,
+    "id": 3,
+    "levitate": true,
     "max_hp": 28,
     "max_sp": 0,
-    "attack": 16,
-    "defense": 7,
+    "name": "Spider",
     "spirit": 12,
-    "agility": 15,
-    "exp": 8,
-    "gold": 15,
-    "levitate": true,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 2,
-        "skill_id": 32,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 4]
   },
   {
-    "id": 4,
-    "name": "Snake",
-    "battler_name": "Snake",
-    "max_hp": 32,
-    "max_sp": 0,
-    "attack": 18,
-    "defense": 8,
-    "spirit": 14,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 42},
+      {
+        "basic": "observe",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 3,
+        "rating": 42,
+        "skill_id": 32
+      }
+    ],
     "agility": 16,
+    "attack": 18,
+    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_name": "Snake",
+    "defense": 8,
     "exp": 13,
     "gold": 25,
-    "state_ranks": [1, 2, 1, 1, 1, 1, 2],
-    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 42
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 3,
-        "skill_id": 32,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 4,
+    "max_hp": 32,
+    "max_sp": 0,
+    "name": "Snake",
+    "spirit": 14,
+    "state_ranks": [1, 2, 1, 1, 1, 1, 2]
   },
   {
-    "id": 5,
-    "name": "Big Snake",
-    "battler_name": "Hydra",
-    "max_hp": 40,
-    "max_sp": 0,
-    "attack": 20,
-    "defense": 9,
-    "spirit": 18,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 42},
+      {
+        "basic": "observe",
+        "condition_param1": 1,
+        "condition_param2": 10,
+        "id": 3,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 28
+      },
+      {
+        "basic": "escape",
+        "condition_param1": 9,
+        "condition_param2": 50,
+        "condition_type": "party_lvl",
+        "id": 4,
+        "skill_id": 68
+      }
+    ],
     "agility": 22,
+    "attack": 20,
+    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_name": "Hydra",
+    "defense": 9,
     "exp": 19,
     "gold": 40,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 42
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 3,
-        "skill_id": 28,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 10,
-        "rating": 42
-      },
-      {
-        "id": 4,
-        "kind": 0,
-        "basic": 6,
-        "skill_id": 68,
-        "condition_type": 6,
-        "condition_param1": 9,
-        "condition_param2": 50
-      }
-    ]
+    "id": 5,
+    "max_hp": 40,
+    "max_sp": 0,
+    "name": "Big Snake",
+    "spirit": 18
   },
   {
-    "id": 6,
-    "name": "Mystic Knight",
-    "battler_name": "Samurai",
-    "max_hp": 50,
-    "max_sp": 0,
-    "attack": 30,
-    "defense": 20,
-    "spirit": 25,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 42}
+    ],
     "agility": 25,
+    "attack": 30,
+    "attribute_ranks": [2, 1, 2, 2, 2, 1, 2, 1],
+    "battler_name": "Samurai",
+    "defense": 20,
     "exp": 26,
     "gold": 50,
-    "state_ranks": [1, 4, 1, 1, 1, 1, 4],
-    "attribute_ranks": [2, 1, 2, 2, 2, 1, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 6,
+    "max_hp": 50,
+    "max_sp": 0,
+    "name": "Mystic Knight",
+    "spirit": 25,
+    "state_ranks": [1, 4, 1, 1, 1, 1, 4]
   },
   {
-    "id": 7,
-    "name": "Ghost",
-    "battler_name": "Ghost",
-    "max_hp": 60,
-    "max_sp": 5,
-    "attack": 28,
-    "defense": 22,
-    "spirit": 40,
-    "agility": 30,
-    "exp": 34,
-    "gold": 70,
-    "levitate": true,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
     "actions": [
+      {"basic": "attack", "id": 1},
       {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 61,
-        "condition_type": 3,
         "condition_param1": 2,
         "condition_param2": 10,
-        "rating": 44
+        "condition_type": "actors",
+        "id": 2,
+        "kind": "skill",
+        "rating": 44,
+        "skill_id": 61
       }
-    ]
+    ],
+    "agility": 30,
+    "attack": 28,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
+    "battler_name": "Ghost",
+    "defense": 22,
+    "exp": 34,
+    "gold": 70,
+    "id": 7,
+    "levitate": true,
+    "max_hp": 60,
+    "max_sp": 5,
+    "name": "Ghost",
+    "spirit": 40,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 8,
-    "name": "Ice Flame",
-    "battler_name": "FireScull",
-    "battler_hue": 180,
-    "max_hp": 70,
-    "max_sp": 0,
-    "attack": 35,
-    "defense": 25,
-    "spirit": 35,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "defense",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 33
+      }
+    ],
     "agility": 35,
+    "attack": 35,
+    "battler_hue": 180,
+    "battler_name": "FireScull",
+    "defense": 25,
     "exp": 43,
     "gold": 90,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 2,
-        "skill_id": 33,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 45
-      }
-    ]
+    "id": 8,
+    "max_hp": 70,
+    "max_sp": 0,
+    "name": "Ice Flame",
+    "spirit": 35
   },
   {
-    "id": 9,
-    "name": "Mystic Fish",
-    "battler_name": "Fish",
-    "max_hp": 80,
-    "max_sp": 0,
-    "attack": 40,
-    "defense": 15,
-    "spirit": 35,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"id": 2, "rating": 45, "skill_id": 74}
+    ],
     "agility": 40,
+    "attack": 40,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1, 0, 3, 3, 3],
+    "battler_name": "Fish",
+    "defense": 15,
     "exp": 53,
     "gold": 105,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 4],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1, 0, 3, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 74,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 9,
+    "max_hp": 80,
+    "max_sp": 0,
+    "name": "Mystic Fish",
+    "spirit": 35,
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 4]
   },
   {
-    "id": 10,
-    "name": "Will-o'-the-wisp",
-    "battler_name": "FireScull",
-    "battler_hue": 20,
-    "max_hp": 90,
-    "max_sp": 0,
-    "attack": 45,
-    "defense": 17,
-    "spirit": 40,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "autodestruction",
+        "condition_param2": 50,
+        "condition_type": "hp",
+        "id": 2,
+        "rating": 55
+      }
+    ],
     "agility": 45,
+    "attack": 45,
+    "attribute_ranks": [2, 2, 2, 2, 4, 0, 3, 0, 3, 1],
+    "battler_hue": 20,
+    "battler_name": "FireScull",
+    "defense": 17,
     "exp": 63,
     "gold": 130,
+    "id": 10,
     "levitate": true,
-    "state_ranks": [1, 4, 2, 1, 2, 2, 1, 2, 4],
-    "attribute_ranks": [2, 2, 2, 2, 4, 0, 3, 0, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 5,
-        "condition_type": 4,
-        "condition_param2": 50,
-        "rating": 55
-      }
-    ]
+    "max_hp": 90,
+    "max_sp": 0,
+    "name": "Will-o'-the-wisp",
+    "spirit": 40,
+    "state_ranks": [1, 4, 2, 1, 2, 2, 1, 2, 4]
   },
   {
-    "id": 11,
-    "name": "Messenger Demon",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "autodestruction",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 48,
+        "skill_id": 81
+      }
+    ],
+    "agility": 50,
+    "attack": 50,
+    "attribute_ranks": [1, 2, 2, 2, 2, 3, 2, 2, 2, 2, 1, 3],
     "battler_name": "Imp",
+    "defense": 20,
+    "exp": 75,
+    "gold": 150,
+    "id": 11,
     "max_hp": 100,
     "max_sp": 8,
-    "attack": 50,
-    "defense": 20,
+    "name": "Messenger Demon",
     "spirit": 50,
-    "agility": 50,
-    "exp": 75,
-    "gold": 150,
-    "state_ranks": [2, 1, 2, 1, 2, 2, 1, 2, 1, 0],
-    "attribute_ranks": [1, 2, 2, 2, 2, 3, 2, 2, 2, 2, 1, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 5,
-        "skill_id": 81,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 48
-      }
-    ]
+    "state_ranks": [2, 1, 2, 1, 2, 2, 1, 2, 1, 0]
   },
   {
-    "id": 12,
-    "name": "Skeleton",
-    "battler_name": "Skeleton",
-    "max_hp": 110,
-    "max_sp": 0,
-    "attack": 55,
-    "defense": 25,
-    "spirit": 40,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "autodestruction",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 46,
+        "skill_id": 2
+      }
+    ],
     "agility": 55,
+    "attack": 55,
+    "attribute_ranks": [2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1, 4],
+    "battler_name": "Skeleton",
+    "critical_hit": true,
+    "defense": 25,
     "exp": 87,
     "gold": 180,
-    "critical_hit": true,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 1, 4],
-    "attribute_ranks": [2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 5,
-        "skill_id": 2,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 46
-      }
-    ]
+    "id": 12,
+    "max_hp": 110,
+    "max_sp": 0,
+    "name": "Skeleton",
+    "spirit": 40,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 1, 4]
   },
   {
-    "id": 13,
-    "name": "Phosphorous Gobu",
-    "battler_name": "Octopus",
-    "battler_hue": 180,
-    "max_hp": 120,
-    "max_sp": 0,
-    "attack": 70,
-    "defense": 30,
-    "spirit": 65,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 46,
+        "skill_id": 32
+      }
+    ],
     "agility": 60,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 1],
+    "battler_hue": 180,
+    "battler_name": "Octopus",
+    "critical_hit": true,
+    "defense": 30,
     "exp": 99,
     "gold": 200,
-    "critical_hit": true,
+    "id": 13,
+    "max_hp": 120,
+    "max_sp": 0,
     "miss": true,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 4,
-        "skill_id": 32,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 46
-      }
-    ]
+    "name": "Phosphorous Gobu",
+    "spirit": 65
   },
   {
-    "id": 14,
-    "name": "Zombie",
-    "battler_name": "Zombie",
-    "battler_hue": 120,
-    "max_hp": 130,
-    "max_sp": 0,
-    "attack": 65,
-    "defense": 32,
-    "spirit": 50,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "observe",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "rating": 42,
+        "skill_id": 32
+      }
+    ],
     "agility": 65,
+    "attack": 65,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
+    "battler_hue": 120,
+    "battler_name": "Zombie",
+    "defense": 32,
     "exp": 113,
     "gold": 220,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 0, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 3,
-        "skill_id": 32,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 14,
+    "max_hp": 130,
+    "max_sp": 0,
+    "name": "Zombie",
+    "spirit": 50,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 0, 4]
   },
   {
-    "id": 15,
-    "name": "Oak",
-    "battler_name": "Oak",
-    "max_hp": 140,
-    "max_sp": 0,
-    "attack": 70,
-    "defense": 35,
-    "spirit": 80,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 46,
+        "skill_id": 3
+      }
+    ],
     "agility": 70,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "Oak",
+    "critical_hit": true,
+    "defense": 35,
     "exp": 127,
     "gold": 250,
-    "critical_hit": true,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 4,
-        "skill_id": 3,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 46
-      }
-    ]
+    "id": 15,
+    "max_hp": 140,
+    "max_sp": 0,
+    "name": "Oak",
+    "spirit": 80
   },
   {
-    "id": 16,
-    "name": "Golem",
-    "battler_name": "Golem",
-    "max_hp": 150,
-    "max_sp": 20,
-    "attack": 75,
-    "defense": 40,
-    "spirit": 70,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 31
+      }
+    ],
     "agility": 75,
+    "attack": 75,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
+    "battler_name": "Golem",
+    "defense": 40,
     "exp": 143,
     "gold": 280,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 0, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 31,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 16,
+    "max_hp": 150,
+    "max_sp": 20,
+    "name": "Golem",
+    "spirit": 70,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 0, 4]
   },
   {
-    "id": 17,
-    "name": "Wolf",
-    "battler_name": "Wolf",
-    "max_hp": 160,
-    "max_sp": 0,
-    "attack": 80,
-    "defense": 40,
-    "spirit": 85,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 34
+      }
+    ],
     "agility": 80,
+    "attack": 80,
+    "battler_name": "Wolf",
+    "critical_hit": true,
+    "defense": 40,
     "exp": 159,
     "gold": 320,
-    "critical_hit": true,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 4,
-        "skill_id": 34,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 17,
+    "max_hp": 160,
+    "max_sp": 0,
+    "name": "Wolf",
+    "spirit": 85
   },
   {
-    "id": 18,
-    "name": "Mimic",
-    "battler_name": "OgreChest",
-    "max_hp": 185,
-    "max_sp": 40,
-    "attack": 95,
-    "defense": 50,
-    "spirit": 80,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 42, "skill_id": 27},
+      {"id": 3, "kind": "skill", "rating": 42, "skill_id": 68}
+    ],
     "agility": 90,
+    "attack": 95,
+    "attribute_ranks": [2, 2, 2, 2, 3, 3],
+    "battler_name": "OgreChest",
+    "defense": 50,
     "exp": 265,
     "gold": 500,
-    "state_ranks": [2, 4, 1, 1, 2, 2, 2, 3, 3, 3],
-    "attribute_ranks": [2, 2, 2, 2, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 27,
-        "condition_type": 0,
-        "rating": 42
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 68,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 18,
+    "max_hp": 185,
+    "max_sp": 40,
+    "name": "Mimic",
+    "spirit": 80,
+    "state_ranks": [2, 4, 1, 1, 2, 2, 2, 3, 3, 3]
   },
   {
-    "id": 19,
-    "name": "Rich",
-    "battler_name": "HellHound",
-    "battler_hue": 90,
-    "max_hp": 190,
-    "max_sp": 32,
-    "attack": 95,
-    "defense": 45,
-    "spirit": 100,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "autodestruction",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 119
+      }
+    ],
     "agility": 95,
+    "attack": 95,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 3, 2, 1, 4],
+    "battler_hue": 90,
+    "battler_name": "HellHound",
+    "defense": 45,
     "exp": 197,
     "gold": 400,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 3, 2, 1, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 5,
-        "skill_id": 119,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      }
-    ]
+    "id": 19,
+    "max_hp": 190,
+    "max_sp": 32,
+    "name": "Rich",
+    "spirit": 100,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 20,
-    "name": "Lizadrman",
-    "battler_name": "Lizardmen",
-    "max_hp": 200,
-    "max_sp": 0,
-    "attack": 100,
-    "defense": 50,
-    "spirit": 90,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 8
+      }
+    ],
     "agility": 100,
+    "attack": 100,
+    "attribute_ranks": [1, 2, 2, 2, 3, 1, 2, 3],
+    "battler_name": "Lizardmen",
+    "critical_hit": true,
+    "defense": 50,
     "exp": 218,
     "gold": 440,
-    "critical_hit": true,
-    "state_ranks": [],
-    "attribute_ranks": [1, 2, 2, 2, 3, 1, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 4,
-        "skill_id": 8,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 20,
+    "max_hp": 200,
+    "max_sp": 0,
+    "name": "Lizadrman",
+    "spirit": 90
   },
   {
-    "id": 21,
-    "name": "Ghoul",
-    "battler_name": "Ghost",
-    "battler_hue": 200,
-    "max_hp": 210,
-    "max_sp": 0,
-    "attack": 105,
-    "defense": 50,
-    "spirit": 110,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 21
+      }
+    ],
     "agility": 105,
+    "attack": 105,
+    "attribute_ranks": [2, 1, 2, 2, 3, 1, 0, 3, 3, 3],
+    "battler_hue": 200,
+    "battler_name": "Ghost",
+    "defense": 50,
     "exp": 242,
     "gold": 480,
-    "state_ranks": [],
-    "attribute_ranks": [2, 1, 2, 2, 3, 1, 0, 3, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 4,
-        "skill_id": 21,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 21,
+    "max_hp": 210,
+    "max_sp": 0,
+    "name": "Ghoul",
+    "spirit": 110
   },
   {
-    "id": 22,
-    "name": "Scythe Demon",
-    "battler_name": "Death",
-    "battler_hue": 300,
-    "max_hp": 220,
-    "max_sp": 0,
-    "attack": 110,
-    "defense": 55,
-    "spirit": 125,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 30}
+    ],
     "agility": 110,
+    "attack": 110,
+    "attribute_ranks": [2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 0, 4],
+    "battler_hue": 300,
+    "battler_name": "Death",
+    "defense": 55,
     "exp": 268,
     "gold": 520,
-    "state_ranks": [2, 2, 1, 1, 2, 2, 1, 2],
-    "attribute_ranks": [2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 0, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 30,
-        "condition_type": 0
-      }
-    ]
+    "id": 22,
+    "max_hp": 220,
+    "max_sp": 0,
+    "name": "Scythe Demon",
+    "spirit": 125,
+    "state_ranks": [2, 2, 1, 1, 2, 2, 1, 2]
   },
   {
-    "id": 23,
-    "name": "Knight",
-    "battler_name": "Warrior",
-    "battler_hue": 340,
-    "max_hp": 230,
-    "max_sp": 0,
-    "attack": 115,
-    "defense": 55,
-    "spirit": 110,
+    "actions": [
+      {"id": 1},
+      {"id": 2, "kind": "skill", "rating": 45, "skill_id": 5}
+    ],
     "agility": 115,
+    "attack": 115,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1],
+    "battler_hue": 340,
+    "battler_name": "Warrior",
+    "critical_hit": true,
+    "defense": 55,
     "exp": 297,
     "gold": 600,
-    "critical_hit": true,
-    "state_ranks": [2, 1, 1, 1, 1, 1, 1, 2],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 5,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 23,
+    "max_hp": 230,
+    "max_sp": 0,
+    "name": "Knight",
+    "spirit": 110,
+    "state_ranks": [2, 1, 1, 1, 1, 1, 1, 2]
   },
   {
-    "id": 24,
-    "name": "Medusa",
-    "battler_name": "Medusa",
-    "max_hp": 240,
-    "max_sp": 0,
-    "attack": 120,
-    "defense": 60,
-    "spirit": 130,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 29}
+    ],
     "agility": 120,
+    "attack": 120,
+    "battler_name": "Medusa",
+    "defense": 60,
     "exp": 329,
     "gold": 700,
-    "state_ranks": [2, 1, 1, 1, 2, 2, 1, 2, 2, 2],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 29,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 24,
+    "max_hp": 240,
+    "max_sp": 0,
+    "name": "Medusa",
+    "spirit": 130,
+    "state_ranks": [2, 1, 1, 1, 2, 2, 1, 2, 2, 2]
   },
   {
-    "id": 25,
-    "name": "Purple Dragon",
-    "battler_name": "BlueDragon",
-    "battler_hue": 120,
-    "max_hp": 320,
-    "max_sp": 0,
-    "attack": 150,
-    "defense": 60,
-    "spirit": 140,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 14
+      }
+    ],
     "agility": 125,
+    "attack": 150,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 3],
+    "battler_hue": 120,
+    "battler_name": "BlueDragon",
+    "defense": 60,
     "exp": 546,
     "gold": 1101,
-    "state_ranks": [2, 2, 1, 1, 2, 1, 3, 2, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 14,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 45
-      }
-    ]
+    "id": 25,
+    "max_hp": 320,
+    "max_sp": 0,
+    "name": "Purple Dragon",
+    "spirit": 140,
+    "state_ranks": [2, 2, 1, 1, 2, 1, 3, 2, 4]
   },
   {
-    "id": 26,
-    "name": "Hell Knight",
-    "battler_name": "DarkKnight",
-    "battler_hue": 180,
-    "max_hp": 260,
-    "max_sp": 0,
-    "attack": 130,
-    "defense": 65,
-    "spirit": 120,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param1": 1, "condition_param2": 50, "id": 2, "kind": "skill"},
+      {"condition_param1": 1, "condition_param2": 50, "id": 3, "kind": "skill", "skill_id": 29}
+    ],
     "agility": 130,
+    "attack": 130,
+    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 2, 1],
+    "battler_hue": 180,
+    "battler_name": "DarkKnight",
+    "critical_hit": true,
+    "defense": 65,
     "exp": 404,
     "gold": 900,
-    "critical_hit": true,
-    "state_ranks": [2, 4, 1, 1, 1, 1, 1, 1, 2, 2],
-    "attribute_ranks": [2, 2, 2, 2, 2, 1, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 29,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50
-      }
-    ]
+    "id": 26,
+    "max_hp": 260,
+    "max_sp": 0,
+    "name": "Hell Knight",
+    "spirit": 120,
+    "state_ranks": [2, 4, 1, 1, 1, 1, 1, 1, 2, 2]
   },
   {
-    "id": 27,
-    "name": "Thief",
-    "battler_name": "Thief",
-    "max_hp": 270,
-    "max_sp": 40,
-    "attack": 135,
-    "defense": 65,
-    "spirit": 140,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 55
+      }
+    ],
     "agility": 135,
+    "attack": 135,
+    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
+    "battler_name": "Thief",
+    "defense": 65,
     "exp": 449,
     "gold": 1000,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 55,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 42
-      }
-    ]
+    "id": 27,
+    "max_hp": 270,
+    "max_sp": 40,
+    "name": "Thief",
+    "spirit": 140,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 28,
-    "name": "Chimera",
-    "battler_name": "Chimera",
-    "max_hp": 280,
-    "max_sp": 0,
-    "attack": 140,
-    "defense": 70,
-    "spirit": 120,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 42, "skill_id": 29}
+    ],
     "agility": 140,
+    "attack": 140,
+    "battler_name": "Chimera",
+    "critical_hit": true,
+    "defense": 70,
     "exp": 500,
     "gold": 1200,
-    "critical_hit": true,
-    "state_ranks": [2, 1, 1, 2, 2, 1, 1, 2],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 29,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 28,
+    "max_hp": 280,
+    "max_sp": 0,
+    "name": "Chimera",
+    "spirit": 120,
+    "state_ranks": [2, 1, 1, 2, 2, 1, 1, 2]
   },
   {
-    "id": 29,
-    "name": "Dark Elf",
-    "battler_name": "DarkElf",
-    "max_hp": 300,
-    "max_sp": 80,
-    "attack": 150,
-    "defense": 70,
-    "spirit": 130,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 42,
+        "skill_id": 55
+      }
+    ],
     "agility": 145,
+    "attack": 150,
+    "attribute_ranks": [1],
+    "battler_name": "DarkElf",
+    "defense": 70,
     "exp": 557,
     "gold": 1400,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 2, 2],
-    "attribute_ranks": [1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 55,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "id": 29,
+    "max_hp": 300,
+    "max_sp": 80,
+    "name": "Dark Elf",
+    "spirit": 130,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 2, 2]
   },
   {
-    "id": 30,
-    "name": "Gargoyle",
-    "battler_name": "Gargoyle",
-    "max_hp": 350,
-    "max_sp": 40,
-    "attack": 160,
-    "defense": 70,
-    "spirit": 150,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 6
+      },
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 42, "skill_id": 60}
+    ],
     "agility": 150,
+    "attack": 160,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "Gargoyle",
+    "defense": 70,
     "exp": 622,
     "gold": 1600,
-    "state_ranks": [2, 2, 2, 1, 2, 2, 1, 3],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 6,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 60,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 30,
+    "max_hp": 350,
+    "max_sp": 40,
+    "name": "Gargoyle",
+    "spirit": 150,
+    "state_ranks": [2, 2, 2, 1, 2, 2, 1, 3]
   },
   {
-    "id": 31,
-    "name": "Harpy",
-    "battler_name": "Harpy",
-    "battler_hue": 230,
-    "max_hp": 400,
-    "max_sp": 0,
-    "attack": 170,
-    "defense": 75,
-    "spirit": 150,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 7
+      }
+    ],
     "agility": 170,
+    "attack": 170,
+    "battler_hue": 230,
+    "battler_name": "Harpy",
+    "defense": 75,
     "exp": 695,
     "gold": 1800,
-    "state_ranks": [3, 1, 1, 1, 1, 1, 2, 4, 2, 2],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 7,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 45
-      }
-    ]
+    "id": 31,
+    "max_hp": 400,
+    "max_sp": 0,
+    "name": "Harpy",
+    "spirit": 150,
+    "state_ranks": [3, 1, 1, 1, 1, 1, 2, 4, 2, 2]
   },
   {
-    "id": 32,
-    "name": "Minotaur",
-    "battler_name": "Minotaur",
-    "max_hp": 500,
-    "max_sp": 0,
-    "attack": 180,
-    "defense": 60,
-    "spirit": 100,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "charge",
+        "condition_param1": 1,
+        "condition_param2": 50,
+        "id": 2,
+        "rating": 42,
+        "skill_id": 34
+      }
+    ],
     "agility": 160,
-    "exp": 1168,
-    "gold": 2400,
+    "attack": 180,
+    "attribute_ranks": [2, 2, 1, 2, 2, 2, 1],
+    "battler_name": "Minotaur",
     "critical_hit": true,
     "critical_hit_chance": 15,
+    "defense": 60,
+    "exp": 1168,
+    "gold": 2400,
+    "id": 32,
+    "max_hp": 500,
+    "max_sp": 0,
     "miss": true,
-    "state_ranks": [3, 1, 1, 1, 1, 1, 1, 2],
-    "attribute_ranks": [2, 2, 1, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 4,
-        "skill_id": 34,
-        "condition_type": 0,
-        "condition_param1": 1,
-        "condition_param2": 50,
-        "rating": 42
-      }
-    ]
+    "name": "Minotaur",
+    "spirit": 100,
+    "state_ranks": [3, 1, 1, 1, 1, 1, 1, 2]
   },
   {
-    "id": 33,
-    "name": "Unholy angel",
-    "battler_name": "Angel",
-    "battler_hue": 30,
-    "max_hp": 600,
-    "max_sp": 0,
-    "attack": 190,
-    "defense": 80,
-    "spirit": 140,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 10}
+    ],
     "agility": 180,
+    "attack": 190,
+    "attribute_ranks": [2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 3],
+    "battler_hue": 30,
+    "battler_name": "Angel",
+    "critical_hit": true,
+    "defense": 80,
     "exp": 1312,
     "gold": 3200,
-    "critical_hit": true,
+    "id": 33,
     "levitate": true,
-    "state_ranks": [3, 1, 1, 1, 1, 1, 1, 2],
-    "attribute_ranks": [2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 10,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "max_hp": 600,
+    "max_sp": 0,
+    "name": "Unholy angel",
+    "spirit": 140,
+    "state_ranks": [3, 1, 1, 1, 1, 1, 1, 2]
   },
   {
-    "id": 34,
-    "name": "Red Scorpion",
-    "battler_name": "Redscorpion",
-    "max_hp": 800,
-    "attack": 190,
-    "defense": 90,
-    "spirit": 170,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 1,
+        "condition_type": "turn",
+        "id": 2,
+        "kind": "skill",
+        "rating": 58,
+        "skill_id": 53
+      }
+    ],
     "agility": 190,
+    "attack": 190,
+    "battler_name": "Redscorpion",
+    "critical_hit": true,
+    "defense": 90,
     "exp": 1476,
     "gold": 4000,
-    "critical_hit": true,
-    "state_ranks": [3, 1, 1, 1, 2, 2, 1, 2],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 53,
-        "condition_type": 2,
-        "condition_param2": 1,
-        "rating": 58
-      }
-    ]
+    "id": 34,
+    "max_hp": 800,
+    "name": "Red Scorpion",
+    "spirit": 170,
+    "state_ranks": [3, 1, 1, 1, 2, 2, 1, 2]
   },
   {
-    "id": 35,
-    "name": "Dragon",
-    "battler_name": "GreenDragon1",
-    "max_hp": 1000,
-    "max_sp": 0,
-    "attack": 220,
-    "defense": 100,
-    "spirit": 190,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 5}
+    ],
     "agility": 200,
+    "attack": 220,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3],
+    "battler_name": "GreenDragon1",
+    "critical_hit": true,
+    "defense": 100,
     "exp": 1665,
     "gold": 4800,
-    "critical_hit": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 5,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 35,
+    "max_hp": 1000,
+    "max_sp": 0,
+    "name": "Dragon",
+    "spirit": 190,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3]
   },
   {
-    "id": 36,
-    "name": "Wraith",
-    "battler_name": "DarkRider",
-    "battler_hue": 240,
-    "max_hp": 1200,
-    "max_sp": 0,
-    "attack": 200,
-    "defense": 100,
-    "spirit": 180,
-    "agility": 210,
-    "exp": 2510,
-    "gold": 5600,
-    "critical_hit": true,
-    "levitate": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 2],
-    "attribute_ranks": [2, 2, 2, 1, 2, 2, 2, 2, 3, 1],
     "actions": [
+      {"basic": "attack", "id": 1},
       {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 6,
-        "condition_type": 0,
+        "basic": "escape",
         "condition_param1": 1,
         "condition_param2": 50,
-        "rating": 45
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 6
       }
-    ]
+    ],
+    "agility": 210,
+    "attack": 200,
+    "attribute_ranks": [2, 2, 2, 1, 2, 2, 2, 2, 3, 1],
+    "battler_hue": 240,
+    "battler_name": "DarkRider",
+    "critical_hit": true,
+    "defense": 100,
+    "exp": 2510,
+    "gold": 5600,
+    "id": 36,
+    "levitate": true,
+    "max_hp": 1200,
+    "max_sp": 0,
+    "name": "Wraith",
+    "spirit": 180,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 2]
   },
   {
-    "id": 37,
-    "name": "Levithan",
-    "battler_name": "GreenDragon2",
-    "battler_hue": 120,
-    "max_hp": 1400,
-    "max_sp": 0,
-    "attack": 250,
-    "defense": 110,
-    "spirit": 170,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 9}
+    ],
     "agility": 220,
+    "attack": 250,
+    "battler_hue": 120,
+    "battler_name": "GreenDragon2",
+    "critical_hit": true,
+    "defense": 110,
     "exp": 2846,
     "gold": 6400,
-    "critical_hit": true,
-    "state_ranks": [4, 4, 1, 1, 2, 2, 1, 4, 4, 4],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 9,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 37,
+    "max_hp": 1400,
+    "max_sp": 0,
+    "name": "Levithan",
+    "spirit": 170,
+    "state_ranks": [4, 4, 1, 1, 2, 2, 1, 4, 4, 4]
   },
   {
-    "id": 38,
-    "name": "Dark Knight",
-    "battler_name": "DarkKnight",
-    "max_hp": 1600,
-    "max_sp": 50,
-    "attack": 270,
-    "defense": 120,
-    "spirit": 190,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"id": 2},
+      {"basic": "charge", "id": 3, "rating": 45},
+      {"basic": "attack", "id": 4, "kind": "skill", "rating": 42, "skill_id": 60}
+    ],
     "agility": 230,
+    "attack": 270,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3],
+    "battler_name": "DarkKnight",
+    "critical_hit": true,
+    "defense": 120,
     "exp": 3236,
     "gold": 8000,
-    "critical_hit": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 4,
-        "condition_type": 0,
-        "rating": 45
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 60,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 38,
+    "max_hp": 1600,
+    "max_sp": 50,
+    "name": "Dark Knight",
+    "spirit": 190,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3]
   },
   {
-    "id": 39,
-    "name": "Blue Dragon",
-    "battler_name": "BlueDragon",
-    "max_hp": 1800,
-    "max_sp": 0,
-    "attack": 300,
-    "defense": 120,
-    "spirit": 210,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 7}
+    ],
     "agility": 240,
+    "attack": 300,
+    "attribute_ranks": [2, 2, 2, 1, 2, 2, 3, 3, 3, 1],
+    "battler_name": "BlueDragon",
+    "critical_hit": true,
+    "defense": 120,
     "exp": 3690,
     "gold": 10000,
-    "critical_hit": true,
+    "id": 39,
     "levitate": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 1, 2, 2, 3, 3, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 7,
-        "condition_type": 0
-      }
-    ]
+    "max_hp": 1800,
+    "max_sp": 0,
+    "name": "Blue Dragon",
+    "spirit": 210,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3]
   },
   {
-    "id": 40,
-    "name": "Demon",
-    "battler_name": "CloakDemon",
-    "max_hp": 2000,
-    "max_sp": 0,
-    "attack": 320,
-    "defense": 120,
-    "spirit": 240,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 10}
+    ],
     "agility": 250,
+    "attack": 320,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 3, 1, 1, 3],
+    "battler_name": "CloakDemon",
+    "critical_hit": true,
+    "defense": 120,
     "exp": 5275,
     "gold": 12000,
-    "critical_hit": true,
+    "id": 40,
     "levitate": true,
-    "state_ranks": [4, 4, 1, 1, 2, 2, 2, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 3, 1, 1, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 10,
-        "condition_type": 0
-      }
-    ]
-  },
-  {
-    "id": 41,
-    "name": "Mistress",
-    "battler_name": "Hero2",
-    "battler_hue": 20,
     "max_hp": 2000,
     "max_sp": 0,
-    "attack": 340,
-    "defense": 130,
-    "spirit": 230,
+    "name": "Demon",
+    "spirit": 240,
+    "state_ranks": [4, 4, 1, 1, 2, 2, 2, 4, 4, 3]
+  },
+  {
+    "actions": [
+      {"id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 8}
+    ],
     "agility": 260,
+    "attack": 340,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1, 0, 3, 3, 3],
+    "battler_hue": 20,
+    "battler_name": "Hero2",
+    "critical_hit": true,
+    "defense": 130,
     "exp": 6500,
     "gold": 14000,
-    "critical_hit": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1, 0, 3, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 8,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
-  },
-  {
-    "id": 42,
-    "name": "Cobra",
-    "battler_name": "Snake",
-    "battler_hue": 90,
+    "id": 41,
     "max_hp": 2000,
     "max_sp": 0,
-    "attack": 360,
-    "defense": 130,
-    "spirit": 220,
+    "name": "Mistress",
+    "spirit": 230,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3]
+  },
+  {
+    "actions": [
+      {"id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 45, "skill_id": 5}
+    ],
     "agility": 270,
+    "attack": 360,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3, 2, 3],
+    "battler_hue": 90,
+    "battler_name": "Snake",
+    "critical_hit": true,
+    "defense": 130,
     "exp": 9000,
     "gold": 20000,
-    "critical_hit": true,
-    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 5,
-        "condition_type": 0,
-        "rating": 45
-      }
-    ]
+    "id": 42,
+    "max_hp": 2000,
+    "max_sp": 0,
+    "name": "Cobra",
+    "spirit": 220,
+    "state_ranks": [4, 1, 1, 1, 2, 2, 1, 4, 4, 3]
   },
   {
-    "id": 43,
-    "name": "Knight Dragon",
-    "battler_name": "DragonKnight",
-    "max_hp": 2200,
-    "max_sp": 100,
-    "attack": 420,
-    "defense": 140,
-    "spirit": 240,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 46, "skill_id": 5},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 42, "skill_id": 58},
+      {"basic": "attack", "id": 4, "kind": "skill", "rating": 42, "skill_id": 60}
+    ],
     "agility": 280,
+    "attack": 420,
+    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3],
+    "battler_name": "DragonKnight",
+    "critical_hit": true,
+    "defense": 140,
     "exp": 12000,
     "gold": 24000,
-    "critical_hit": true,
-    "state_ranks": [4, 2, 2, 3, 3, 3, 3, 3, 2, 2],
-    "attribute_ranks": [2, 2, 2, 2, 3, 1, 2, 2, 1, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 5,
-        "condition_type": 0,
-        "rating": 46
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 58,
-        "condition_type": 0,
-        "rating": 42
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 60,
-        "condition_type": 0,
-        "rating": 42
-      }
-    ]
+    "id": 43,
+    "max_hp": 2200,
+    "max_sp": 100,
+    "name": "Knight Dragon",
+    "spirit": 240,
+    "state_ranks": [4, 2, 2, 3, 3, 3, 3, 3, 2, 2]
   },
   {
-    "id": 44,
-    "name": "Demon King",
-    "battler_name": "Satan",
-    "max_hp": 3000,
-    "max_sp": 4000,
-    "attack": 360,
-    "defense": 150,
-    "spirit": 280,
+    "actions": [
+      {"basic": "attack", "id": 1, "rating": 55},
+      {"id": 2, "rating": 55},
+      {"id": 3, "kind": "skill", "skill_id": 79},
+      {"id": 4, "kind": "skill", "skill_id": 85},
+      {"id": 5, "kind": "skill", "skill_id": 91},
+      {"id": 6, "kind": "skill", "skill_id": 97},
+      {"id": 7, "kind": "skill", "skill_id": 103},
+      {"id": 8, "kind": "skill", "skill_id": 109},
+      {"id": 9, "kind": "skill", "skill_id": 121}
+    ],
     "agility": 290,
+    "attack": 360,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 4],
+    "battler_name": "Satan",
+    "critical_hit": true,
+    "defense": 150,
     "exp": 15000,
     "gold": 30000,
-    "critical_hit": true,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 55
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0,
-        "rating": 55
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 79,
-        "condition_type": 0
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 85,
-        "condition_type": 0
-      },
-      {
-        "id": 5,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 91,
-        "condition_type": 0
-      },
-      {
-        "id": 6,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 97,
-        "condition_type": 0
-      },
-      {
-        "id": 7,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 103,
-        "condition_type": 0
-      },
-      {
-        "id": 8,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 109,
-        "condition_type": 0
-      },
-      {
-        "id": 9,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 121,
-        "condition_type": 0
-      }
-    ]
+    "id": 44,
+    "max_hp": 3000,
+    "max_sp": 4000,
+    "name": "Demon King",
+    "spirit": 280,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 45,
-    "name": "Witch",
-    "battler_name": "Witch2",
-    "battler_hue": 300,
-    "max_hp": 4000,
-    "max_sp": 5000,
-    "attack": 400,
-    "defense": 150,
-    "spirit": 320,
+    "actions": [
+      {"id": 1, "rating": 55},
+      {"id": 2, "rating": 55},
+      {"id": 3, "kind": "skill", "skill_id": 127},
+      {"id": 4, "kind": "skill", "skill_id": 127},
+      {"id": 5, "kind": "skill", "skill_id": 5},
+      {"id": 6, "kind": "skill", "skill_id": 6},
+      {"id": 7, "kind": "skill", "skill_id": 19},
+      {"id": 8, "kind": "skill", "skill_id": 21},
+      {"id": 9, "kind": "skill", "skill_id": 27}
+    ],
     "agility": 300,
-    "exp": 25000,
-    "gold": 50000,
+    "attack": 400,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 4],
+    "battler_hue": 300,
+    "battler_name": "Witch2",
     "critical_hit": true,
     "critical_hit_chance": 20,
-    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0,
-        "rating": 55
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0,
-        "rating": 55
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 127,
-        "condition_type": 0
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 127,
-        "condition_type": 0
-      },
-      {
-        "id": 5,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 5,
-        "condition_type": 0
-      },
-      {
-        "id": 6,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 6,
-        "condition_type": 0
-      },
-      {
-        "id": 7,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 19,
-        "condition_type": 0
-      },
-      {
-        "id": 8,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 21,
-        "condition_type": 0
-      },
-      {
-        "id": 9,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 27,
-        "condition_type": 0
-      }
-    ]
+    "defense": 150,
+    "exp": 25000,
+    "gold": 50000,
+    "id": 45,
+    "max_hp": 4000,
+    "max_sp": 5000,
+    "name": "Witch",
+    "spirit": 320,
+    "state_ranks": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "id": 46,
-    "name": "----BLURREDLINE----",
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "name": "----BLURREDLINE----"
   },
   {
-    "id": 47,
-    "name": "Sentry Drone",
-    "battler_name": "sentry drone",
-    "max_hp": 450,
-    "attack": 100,
-    "defense": 68,
-    "spirit": 25,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 50,
+    "attack": 100,
+    "battler_name": "sentry drone",
+    "defense": 68,
     "exp": 90,
+    "id": 47,
     "levitate": true,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "max_hp": 450,
+    "name": "Sentry Drone",
+    "spirit": 25
   },
   {
-    "id": 48,
-    "name": "Mounted Cannon",
-    "battler_name": "mounted turret",
-    "max_hp": 1000,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 350,
+    "battler_name": "mounted turret",
     "exp": 250,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 48,
+    "max_hp": 1000,
+    "name": "Mounted Cannon"
   },
   {
-    "id": 49,
-    "name": "GangMember LT",
-    "battler_name": "Sgangmem",
-    "max_hp": 15,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 15,
+    "battler_name": "Sgangmem",
     "exp": 20,
     "gold": 50,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 49,
+    "max_hp": 15,
+    "name": "GangMember LT"
   },
   {
-    "id": 50,
-    "name": "SalvagePup",
-    "battler_name": "Ssalvgep",
-    "max_hp": 14,
-    "attack": 15,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 12,
+    "attack": 15,
+    "battler_name": "Ssalvgep",
     "exp": 3,
     "gold": 2,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 50,
+    "max_hp": 14,
+    "name": "SalvagePup"
   },
   {
-    "id": 51,
-    "name": "AlleyMuck",
-    "battler_name": "Salleym",
-    "battler_hue": 280,
-    "max_hp": 22,
-    "attack": 17,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 8,
+    "attack": 17,
+    "battler_hue": 280,
+    "battler_name": "Salleym",
     "exp": 5,
     "gold": 3,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 51,
+    "max_hp": 22,
+    "name": "AlleyMuck"
   },
   {
-    "id": 52,
-    "name": "DirtShadow",
-    "battler_name": "dirtshadow2",
-    "attack": 16,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 14,
+    "attack": 16,
+    "battler_name": "dirtshadow2",
     "exp": 4,
     "gold": 4,
+    "id": 52,
     "levitate": true,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "name": "DirtShadow"
   },
   {
-    "id": 53,
-    "name": "GiantRat",
-    "battler_name": "BLmouse",
-    "max_hp": 20,
-    "attack": 18,
-    "defense": 8,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 7,
+    "attack": 18,
+    "battler_name": "BLmouse",
+    "defense": 8,
     "exp": 6,
     "gold": 6,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 53,
+    "max_hp": 20,
+    "name": "GiantRat"
   },
   {
-    "id": 54,
-    "name": "MutantMouse",
-    "battler_name": "BLmouse",
-    "battler_hue": 300,
-    "max_hp": 25,
-    "attack": 16,
-    "defense": 9,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 5,
+    "attack": 16,
+    "battler_hue": 300,
+    "battler_name": "BLmouse",
+    "defense": 9,
     "exp": 8,
     "gold": 6,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 54,
+    "max_hp": 25,
+    "name": "MutantMouse"
   },
   {
-    "id": 55,
-    "name": "HairyVermin",
-    "battler_name": "BLmouse",
-    "battler_hue": 240,
-    "max_hp": 40,
-    "attack": 20,
-    "defense": 6,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 4,
+    "attack": 20,
+    "battler_hue": 240,
+    "battler_name": "BLmouse",
+    "defense": 6,
     "exp": 10,
     "gold": 12,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 55,
+    "max_hp": 40,
+    "name": "HairyVermin"
   },
   {
-    "id": 56,
-    "name": "KingRat",
-    "battler_name": "kobold",
-    "battler_hue": 20,
-    "max_hp": 170,
-    "attack": 24,
-    "defense": 5,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 132},
+      {"condition_param1": 5, "condition_type": "turn", "id": 3, "rating": 100, "skill_id": 132}
+    ],
     "agility": 5,
+    "attack": 24,
+    "battler_hue": 20,
+    "battler_name": "kobold",
+    "defense": 5,
     "exp": 50,
     "gold": 150,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 132,
-        "condition_type": 0
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 132,
-        "condition_type": 2,
-        "condition_param1": 5,
-        "rating": 100
-      }
-    ]
+    "id": 56,
+    "max_hp": 170,
+    "name": "KingRat"
   },
   {
-    "id": 57,
-    "name": "DecayingShambler",
-    "battler_name": "dshambler",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "charge", "id": 2}
+    ],
+    "agility": 6,
+    "attack": 24,
     "battler_hue": 340,
+    "battler_name": "dshambler",
+    "defense": 12,
+    "id": 57,
     "max_hp": 40,
     "max_sp": 30,
-    "attack": 24,
-    "defense": 12,
-    "agility": 6,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 4,
-        "condition_type": 0
-      }
-    ]
+    "name": "DecayingShambler"
   },
   {
-    "id": 58,
-    "name": "Agency Guard",
-    "battler_name": "Sagencyg",
-    "max_hp": 175,
-    "max_sp": 40,
-    "attack": 34,
-    "defense": 15,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"id": 2, "rating": 35, "skill_id": 132}
+    ],
     "agility": 13,
+    "attack": 34,
+    "battler_name": "Sagencyg",
+    "defense": 15,
     "exp": 75,
     "gold": 250,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 132,
-        "condition_type": 0,
-        "rating": 35
-      }
-    ]
+    "id": 58,
+    "max_hp": 175,
+    "max_sp": 40,
+    "name": "Agency Guard"
   },
   {
-    "id": 59,
-    "name": "Dr. Vago",
-    "battler_name": "Man5",
-    "battler_hue": 320,
-    "max_hp": 150,
-    "attack": 20,
-    "defense": 12,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"id": 2, "rating": 25}
+    ],
     "agility": 8,
+    "attack": 20,
+    "battler_hue": 320,
+    "battler_name": "Man5",
+    "defense": 12,
     "exp": 150,
     "gold": 350,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "id": 59,
+    "max_hp": 150,
+    "name": "Dr. Vago"
   },
   {
-    "id": 60,
-    "name": "Wylden",
-    "battler_name": "Hog",
-    "battler_hue": 30,
-    "max_hp": 325,
-    "attack": 35,
-    "defense": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 5,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "attack": 35,
+    "battler_hue": 30,
+    "battler_name": "Hog",
+    "defense": 14,
+    "id": 60,
+    "max_hp": 325,
+    "name": "Wylden"
   },
   {
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "id": 61,
-    "name": " -THE LINE NARROWS-",
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "name": " -THE LINE NARROWS-"
   },
   {
-    "id": 62,
-    "name": "Scrapped Droid",
-    "battler_name": "ABLScrappedRobo",
-    "max_hp": 55,
-    "max_sp": 12,
-    "attack": 16,
-    "defense": 7,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 10, "skill_id": 188}
+    ],
     "agility": 6,
+    "attack": 16,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 4, 1, 2, 3],
+    "battler_name": "ABLScrappedRobo",
+    "defense": 7,
     "exp": 10,
     "gold": 15,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 4, 1, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 188,
-        "condition_type": 0,
-        "rating": 10
-      }
-    ]
+    "id": 62,
+    "max_hp": 55,
+    "max_sp": 12,
+    "name": "Scrapped Droid"
   },
   {
-    "id": 63,
-    "name": "HairyVermin",
-    "battler_name": "BLmouse",
-    "battler_hue": 240,
-    "max_hp": 40,
-    "attack": 20,
-    "defense": 6,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 4,
+    "attack": 20,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 240,
+    "battler_name": "BLmouse",
+    "defense": 6,
     "exp": 10,
     "gold": 12,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 63,
+    "max_hp": 40,
+    "name": "HairyVermin"
   },
   {
-    "id": 64,
-    "name": "GiantRat",
-    "battler_name": "BLmouse",
-    "max_hp": 20,
-    "attack": 18,
-    "defense": 8,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 7,
+    "attack": 18,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "BLmouse",
+    "defense": 8,
     "exp": 6,
     "gold": 6,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 64,
+    "max_hp": 20,
+    "name": "GiantRat"
   },
   {
-    "id": 65,
-    "name": "Trash Hauler",
-    "battler_name": "4handrobo",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 188}
+    ],
+    "agility": 3,
+    "attack": 28,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3],
     "battler_hue": 180,
+    "battler_name": "4handrobo",
+    "defense": 14,
+    "exp": 15,
+    "gold": 25,
+    "id": 65,
     "max_hp": 70,
     "max_sp": 24,
-    "attack": 28,
-    "defense": 14,
-    "agility": 3,
-    "exp": 15,
-    "gold": 25,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 188,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "name": "Trash Hauler"
   },
   {
-    "id": 66,
-    "name": "Junkbot",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 188}
+    ],
+    "agility": 4,
+    "attack": 25,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 3, 2, 2, 1, 2, 2, 3],
     "battler_name": "junkbot2",
+    "defense": 17,
+    "exp": 15,
+    "gold": 25,
+    "id": 66,
     "max_hp": 60,
     "max_sp": 24,
-    "attack": 25,
-    "defense": 17,
-    "agility": 4,
-    "exp": 15,
-    "gold": 25,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 3, 2, 2, 1, 2, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 188,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "name": "Junkbot"
   },
   {
-    "id": 67,
-    "name": "Tangle Wire",
-    "battler_name": "ABLTangleWire",
-    "max_hp": 23,
-    "max_sp": 36,
-    "attack": 30,
-    "defense": 5,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 188}
+    ],
     "agility": 5,
+    "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3, 1],
+    "battler_name": "ABLTangleWire",
+    "defense": 5,
     "exp": 14,
     "gold": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 188,
-        "condition_type": 0
-      }
-    ]
+    "id": 67,
+    "max_hp": 23,
+    "max_sp": 36,
+    "name": "Tangle Wire"
   },
   {
-    "id": 68,
-    "name": "Snarling Wolf",
-    "battler_name": "Hound",
-    "battler_hue": 320,
-    "max_hp": 55,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 178}
+    ],
     "attack": 28,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 320,
+    "battler_name": "Hound",
     "defense": 13,
     "exp": 15,
     "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 178,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "id": 68,
+    "max_hp": 55,
+    "name": "Snarling Wolf"
   },
   {
-    "id": 69,
-    "name": "Small Gogre",
-    "battler_name": "Hippopotamus",
-    "battler_hue": 330,
-    "max_hp": 65,
-    "max_sp": 5,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 20, "skill_id": 178}
+    ],
     "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3],
+    "battler_hue": 330,
+    "battler_name": "Hippopotamus",
     "defense": 20,
     "exp": 17,
     "gold": 76,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 178,
-        "condition_type": 0,
-        "rating": 20
-      }
-    ]
+    "id": 69,
+    "max_hp": 65,
+    "max_sp": 5,
+    "name": "Small Gogre"
   },
   {
-    "id": 70,
-    "name": "Obling",
-    "battler_name": "Troll",
-    "max_hp": 28,
-    "max_sp": 6,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 163}
+    ],
     "attack": 25,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "Troll",
     "defense": 12,
     "exp": 7,
     "gold": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 163,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "id": 70,
+    "max_hp": 28,
+    "max_sp": 6,
+    "name": "Obling"
   },
   {
-    "id": 71,
-    "name": "Dirt Dweller",
-    "battler_name": "DesertSpirit",
-    "max_hp": 70,
-    "max_sp": 8,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 178},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 10, "skill_id": 179}
+    ],
     "attack": 32,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "DesertSpirit",
     "defense": 20,
     "exp": 15,
     "gold": 50,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 178,
-        "condition_type": 0,
-        "rating": 25
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 179,
-        "condition_type": 0,
-        "rating": 10
-      }
-    ]
+    "id": 71,
+    "max_hp": 70,
+    "max_sp": 8,
+    "name": "Dirt Dweller"
   },
   {
-    "id": 72,
-    "name": "Rogue Bandit",
-    "battler_name": "newbie",
-    "max_hp": 65,
-    "max_sp": 12,
-    "attack": 35,
-    "defense": 16,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 155}
+    ],
     "agility": 20,
+    "attack": 35,
+    "battler_name": "newbie",
+    "defense": 16,
     "exp": 18,
     "gold": 75,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 155,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "id": 72,
+    "max_hp": 65,
+    "max_sp": 12,
+    "name": "Rogue Bandit"
   },
   {
-    "id": 73,
-    "name": "Nomadic Droid",
-    "battler_name": "nomadicdroid",
-    "max_hp": 50,
-    "max_sp": 12,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 186}
+    ],
     "attack": 19,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "nomadicdroid",
     "defense": 15,
     "exp": 8,
     "gold": 56,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 186,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "id": 73,
+    "max_hp": 50,
+    "max_sp": 12,
+    "name": "Nomadic Droid"
   },
   {
-    "id": 74,
-    "name": "Malfunctioning Bot",
-    "battler_name": "ABLScrappedRobo",
-    "battler_hue": 180,
-    "max_hp": 55,
-    "max_sp": 12,
-    "attack": 21,
-    "defense": 7,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 10, "skill_id": 188}
+    ],
     "agility": 6,
+    "attack": 21,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 180,
+    "battler_name": "ABLScrappedRobo",
+    "defense": 7,
     "exp": 10,
     "gold": 120,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 188,
-        "condition_type": 0,
-        "rating": 10
-      }
-    ]
+    "id": 74,
+    "max_hp": 55,
+    "max_sp": 12,
+    "name": "Malfunctioning Bot"
   },
   {
-    "id": 75,
-    "name": "Green Wylden",
-    "battler_name": "Orc",
-    "battler_hue": 70,
-    "max_hp": 43,
-    "attack": 24,
-    "defense": 13,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "rating": 15,
+        "skill_id": 181
+      }
+    ],
     "agility": 5,
+    "attack": 24,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 70,
+    "battler_name": "Orc",
+    "defense": 13,
     "exp": 10,
     "gold": 58,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 6,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 15
-      }
-    ]
+    "id": 75,
+    "max_hp": 43,
+    "name": "Green Wylden"
   },
   {
-    "id": 76,
-    "name": "Thieving Brigand",
-    "battler_name": "vicarious",
-    "max_hp": 65,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 27,
+    "battler_name": "vicarious",
     "defense": 14,
     "exp": 26,
     "gold": 95,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 76,
+    "max_hp": 65,
+    "name": "Thieving Brigand"
   },
   {
-    "id": 77,
-    "name": "Wall Clinger",
-    "battler_name": "clampus",
-    "battler_hue": 310,
-    "max_hp": 55,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 171}
+    ],
     "attack": 20,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 310,
+    "battler_name": "clampus",
     "defense": 14,
     "exp": 13,
     "gold": 24,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 171,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "id": 77,
+    "max_hp": 55,
+    "name": "Wall Clinger"
   },
   {
-    "id": 78,
-    "name": "Deceptive Flower",
-    "battler_name": "docaden",
-    "battler_hue": 90,
-    "max_hp": 50,
-    "max_sp": 20,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 90,
+    "battler_name": "docaden",
     "defense": 15,
     "exp": 15,
     "gold": 18,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 78,
+    "max_hp": 50,
+    "max_sp": 20,
+    "name": "Deceptive Flower"
   },
   {
-    "id": 79,
-    "name": "Thorn Shooter",
-    "battler_name": "trilobiter",
-    "battler_hue": 300,
-    "max_hp": 48,
-    "max_sp": 15,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 32,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 300,
+    "battler_name": "trilobiter",
     "defense": 12,
     "exp": 14,
     "gold": 12,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 79,
+    "max_hp": 48,
+    "max_sp": 15,
+    "name": "Thorn Shooter"
   },
   {
-    "id": 80,
-    "name": "Rolling Boulder",
-    "battler_name": "crusher",
-    "battler_hue": 300,
-    "max_hp": 58,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 38,
+    "battler_hue": 300,
+    "battler_name": "crusher",
     "defense": 18,
     "exp": 16,
     "gold": 25,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 80,
+    "max_hp": 58,
+    "name": "Rolling Boulder"
   },
   {
-    "id": 81,
-    "name": "Lumbering Giant",
-    "battler_name": "Cyclops",
-    "max_hp": 125,
-    "max_sp": 28,
-    "attack": 52,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 40, "skill_id": 180}
+    ],
     "agility": 14,
+    "attack": 52,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 3, 1],
+    "battler_name": "Cyclops",
     "exp": 30,
     "gold": 150,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 180,
-        "condition_type": 0,
-        "rating": 40
-      }
-    ]
+    "id": 81,
+    "max_hp": 125,
+    "max_sp": 28,
+    "name": "Lumbering Giant"
   },
   {
-    "id": 82,
-    "name": "Red Wylden",
-    "battler_name": "Orc",
-    "battler_hue": 330,
-    "max_hp": 80,
-    "max_sp": 6,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 20, "skill_id": 163}
+    ],
     "attack": 42,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 3],
+    "battler_hue": 330,
+    "battler_name": "Orc",
     "defense": 17,
     "exp": 20,
     "gold": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 163,
-        "condition_type": 0,
-        "rating": 20
-      }
-    ]
+    "id": 82,
+    "max_hp": 80,
+    "max_sp": 6,
+    "name": "Red Wylden"
   },
   {
-    "id": 83,
-    "name": "Dr. Vago",
-    "battler_name": "Man5",
-    "battler_hue": 320,
-    "max_hp": 150,
-    "max_sp": 16,
-    "attack": 35,
-    "defense": 12,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param1": 4, "condition_type": "turn", "id": 2, "rating": 100},
+      {
+        "basic": "attack",
+        "condition_param2": 25,
+        "condition_type": "hp",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 157
+      },
+      {"condition_type": "turn", "id": 4, "kind": "skill", "rating": 100, "skill_id": 383}
+    ],
     "agility": 8,
+    "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1],
+    "battler_hue": 320,
+    "battler_name": "Man5",
+    "defense": 12,
     "exp": 150,
     "gold": 350,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 2,
-        "condition_param1": 4,
-        "rating": 100
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 157,
-        "condition_type": 4,
-        "condition_param2": 25,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 383,
-        "condition_type": 2,
-        "rating": 100
-      }
-    ]
+    "id": 83,
+    "max_hp": 150,
+    "max_sp": 16,
+    "name": "Dr. Vago",
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 84,
-    "name": "Ravenous Wylden",
-    "battler_name": "Orc",
-    "battler_hue": 40,
-    "max_hp": 325,
-    "max_sp": 18,
-    "attack": 35,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 25,
+        "condition_type": "hp",
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 163
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 1,
+        "condition_type": "turn",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 165
+      }
+    ],
     "agility": 5,
+    "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 40,
+    "battler_name": "Orc",
+    "defense": 20,
     "exp": 125,
     "gold": 250,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 163,
-        "condition_type": 4,
-        "condition_param2": 25,
-        "rating": 30
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 165,
-        "condition_type": 2,
-        "condition_param2": 1,
-        "rating": 100
-      }
-    ]
+    "id": 84,
+    "max_hp": 325,
+    "max_sp": 18,
+    "name": "Ravenous Wylden",
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 85,
-    "name": "Lost Scouting Probe",
-    "battler_name": "lostscout",
-    "max_hp": 80,
-    "max_sp": 18,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 186}
+    ],
     "attack": 26,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "lostscout",
     "defense": 18,
     "exp": 23,
     "gold": 33,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 186,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "id": 85,
+    "max_hp": 80,
+    "max_sp": 18,
+    "name": "Lost Scouting Probe"
   },
   {
-    "id": 86,
-    "name": "Dark Wolf",
-    "battler_name": "Hound",
-    "max_hp": 100,
-    "max_sp": 12,
-    "attack": 34,
-    "defense": 21,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 10,
+        "skill_id": 186
+      }
+    ],
     "agility": 18,
+    "attack": 34,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "Hound",
+    "defense": 21,
     "exp": 27,
     "gold": 46,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 186,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 10
-      }
-    ]
+    "id": 86,
+    "max_hp": 100,
+    "max_sp": 12,
+    "name": "Dark Wolf"
   },
   {
-    "id": 87,
-    "name": "Obling Warrior",
-    "battler_name": "Hog",
-    "battler_hue": 20,
-    "max_hp": 70,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 28,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 20,
+    "battler_name": "Hog",
     "defense": 21,
     "exp": 28,
     "gold": 46,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 87,
+    "max_hp": 70,
+    "name": "Obling Warrior"
   },
   {
-    "id": 88,
-    "name": "Obling Shaman",
-    "battler_name": "Troll",
-    "battler_hue": 20,
-    "max_hp": 65,
-    "max_sp": 50,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 75,
+        "skill_id": 163
+      },
+      {"basic": "attack", "condition_param2": 100, "id": 3, "kind": "skill", "skill_id": 165}
+    ],
     "attack": 20,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 20,
+    "battler_name": "Troll",
     "defense": 15,
     "exp": 35,
     "gold": 26,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 163,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 75
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 165,
-        "condition_type": 0,
-        "condition_param2": 100
-      }
-    ]
+    "id": 88,
+    "max_hp": 65,
+    "max_sp": 50,
+    "name": "Obling Shaman"
   },
   {
-    "id": 89,
-    "name": "Obling Scout",
-    "battler_name": "Hog",
-    "battler_hue": 340,
-    "max_hp": 67,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 20,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 340,
+    "battler_name": "Hog",
     "defense": 14,
     "exp": 18,
     "gold": 28,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 89,
+    "max_hp": 67,
+    "name": "Obling Scout"
   },
   {
-    "id": 90,
-    "name": "Slime Coater",
-    "battler_name": "Slime2",
-    "battler_hue": 330,
-    "max_hp": 80,
-    "max_sp": 6,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 171
+      }
+    ],
     "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 330,
+    "battler_name": "Slime2",
     "defense": 21,
     "exp": 25,
     "gold": 15,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 171,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      }
-    ]
+    "id": 90,
+    "max_hp": 80,
+    "max_sp": 6,
+    "name": "Slime Coater"
   },
   {
-    "id": 91,
-    "name": "Clicker",
-    "battler_name": "spider",
-    "battler_hue": 230,
-    "max_hp": 100,
-    "max_sp": 8,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 187
+      }
+    ],
     "attack": 34,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 230,
+    "battler_name": "spider",
     "defense": 18,
     "exp": 32,
     "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 187,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 91,
+    "max_hp": 100,
+    "max_sp": 8,
+    "name": "Clicker"
   },
   {
-    "id": 92,
-    "name": "Crawler",
-    "battler_name": "krawlie",
-    "battler_hue": 210,
-    "max_hp": 90,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 23,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 210,
+    "battler_name": "krawlie",
     "defense": 18,
     "exp": 35,
     "gold": 48,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 92,
+    "max_hp": 90,
+    "name": "Crawler"
   },
   {
-    "id": 93,
-    "name": "Scampering Lizard",
-    "battler_name": "anima",
-    "max_hp": 55,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 30,
+        "condition_type": "hp",
+        "id": 2,
+        "kind": "skill",
+        "rating": 75,
+        "skill_id": 194
+      }
+    ],
     "attack": 32,
+    "battler_name": "anima",
     "defense": 14,
     "exp": 16,
     "gold": 24,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 194,
-        "condition_type": 4,
-        "condition_param2": 30,
-        "rating": 75
-      }
-    ]
+    "id": 93,
+    "max_hp": 55,
+    "name": "Scampering Lizard"
   },
   {
-    "id": 94,
-    "name": "Aerobat",
-    "battler_name": "bat",
-    "battler_hue": 200,
-    "max_hp": 30,
-    "attack": 18,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 28,
+    "attack": 18,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 200,
+    "battler_name": "bat",
     "exp": 11,
     "gold": 12,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 94,
+    "max_hp": 30,
+    "name": "Aerobat"
   },
   {
-    "id": 95,
-    "name": "Actual Viper",
-    "battler_name": "snake",
-    "max_hp": 80,
-    "attack": 42,
-    "defense": 22,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 171
+      }
+    ],
     "agility": 14,
+    "attack": 42,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "snake",
+    "defense": 22,
     "exp": 26,
     "gold": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 171,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 95,
+    "max_hp": 80,
+    "name": "Actual Viper"
   },
   {
-    "id": 96,
-    "name": "Marshile",
-    "battler_name": "biotrooper",
-    "max_hp": 110,
-    "max_sp": 12,
-    "attack": 45,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 40,
+        "skill_id": 156
+      }
+    ],
     "agility": 25,
+    "attack": 45,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "biotrooper",
     "exp": 30,
     "gold": 60,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 156,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 40
-      }
-    ]
+    "id": 96,
+    "max_hp": 110,
+    "max_sp": 12,
+    "name": "Marshile"
   },
   {
-    "id": 97,
-    "name": "Evolving Marshile",
-    "battler_name": "bioscyther",
-    "max_hp": 150,
-    "attack": 52,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 2,
+        "kind": "skill",
+        "rating": 40,
+        "skill_id": 156
+      }
+    ],
     "agility": 28,
+    "attack": 52,
+    "battler_name": "bioscyther",
+    "defense": 20,
     "exp": 60,
     "gold": 120,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 156,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 40
-      }
-    ]
+    "id": 97,
+    "max_hp": 150,
+    "name": "Evolving Marshile"
   },
   {
-    "id": 98,
-    "name": "FangToad",
-    "battler_name": "Frog",
-    "max_hp": 95,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 37,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "Frog",
     "defense": 23,
     "exp": 27,
     "gold": 44,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 98,
+    "max_hp": 95,
+    "name": "FangToad"
   },
   {
-    "id": 99,
-    "name": "Erpillcater",
-    "battler_name": "krawlie",
-    "battler_hue": 90,
-    "max_hp": 45,
-    "attack": 35,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 50,
+        "condition_type": "hp",
+        "id": 2,
+        "kind": "skill",
+        "rating": 75,
+        "skill_id": 194
+      }
+    ],
     "agility": 7,
+    "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 90,
+    "battler_name": "krawlie",
     "exp": 15,
     "gold": 25,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 194,
-        "condition_type": 4,
-        "condition_param2": 50,
-        "rating": 75
-      }
-    ]
+    "id": 99,
+    "max_hp": 45,
+    "name": "Erpillcater"
   },
   {
-    "id": 100,
-    "name": "Stoic Toad",
-    "battler_name": "toad",
-    "max_hp": 120,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 35,
+        "condition_type": "hp",
+        "id": 2,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 154
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 3,
+        "kind": "skill",
+        "rating": 20,
+        "skill_id": 156
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "id": 4,
+        "kind": "skill",
+        "rating": 10,
+        "skill_id": 155
+      }
+    ],
     "attack": 28,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "toad",
     "defense": 16,
     "exp": 33,
     "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 154,
-        "condition_type": 4,
-        "condition_param2": 35,
-        "rating": 100
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 156,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 20
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 155,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 10
-      }
-    ]
+    "id": 100,
+    "max_hp": 120,
+    "name": "Stoic Toad"
   },
   {
-    "id": 101,
-    "name": "Insect Warrior",
-    "battler_name": "insect",
-    "battler_hue": 230,
-    "max_hp": 50,
-    "attack": 40,
-    "defense": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 27,
+    "attack": 40,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 230,
+    "battler_name": "insect",
+    "defense": 14,
     "exp": 30,
     "gold": 10,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 101,
+    "max_hp": 50,
+    "name": "Insect Warrior"
   },
   {
-    "id": 102,
-    "name": "Insect Drone",
-    "battler_name": "insect",
-    "max_hp": 40,
-    "attack": 30,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "rating": 15,
+        "skill_id": 181
+      }
+    ],
     "agility": 25,
+    "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "insect",
     "exp": 25,
     "gold": 12,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 6,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 15
-      }
-    ]
+    "id": 102,
+    "max_hp": 40,
+    "name": "Insect Drone"
   },
   {
-    "id": 103,
-    "name": "Insect Cocoon",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 4,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "transformation",
+        "rating": 100,
+        "skill_id": 155
+      }
+    ],
+    "attack": 1,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
     "battler_name": "lightgazer",
+    "exp": 40,
+    "gold": 45,
+    "id": 103,
     "max_hp": 550,
     "max_sp": 0,
-    "attack": 1,
-    "exp": 40,
-    "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 2,
-        "basic": 0,
-        "skill_id": 155,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param2": 4,
-        "rating": 100
-      }
-    ]
+    "name": "Insect Cocoon"
   },
   {
-    "id": 104,
-    "name": "Insect Shaman",
-    "battler_name": "insect",
-    "battler_hue": 80,
-    "max_hp": 85,
-    "max_sp": 60,
-    "attack": 22,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 85,
+        "skill_id": 155
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 40,
+        "condition_type": "hp",
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 154
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 4,
+        "kind": "skill",
+        "skill_id": 157
+      }
+    ],
     "agility": 16,
+    "attack": 22,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 80,
+    "battler_name": "insect",
     "exp": 60,
     "gold": 55,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 155,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 85
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 154,
-        "enemy_id": 104,
-        "condition_type": 4,
-        "condition_param2": 40,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 157,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100
-      }
-    ]
+    "id": 104,
+    "max_hp": 85,
+    "max_sp": 60,
+    "name": "Insect Shaman"
   },
   {
-    "id": 105,
-    "name": "Risen Dead",
-    "battler_name": "skeletonwarrior",
-    "max_hp": 110,
-    "max_sp": 18,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 186
+      }
+    ],
     "attack": 48,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "skeletonwarrior",
     "exp": 32,
     "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 186,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      }
-    ]
+    "id": 105,
+    "max_hp": 110,
+    "max_sp": 18,
+    "name": "Risen Dead"
   },
   {
-    "id": 106,
-    "name": "Skeletal Warrior",
-    "battler_name": "skeleton",
-    "battler_hue": 220,
-    "max_hp": 100,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 50,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 220,
+    "battler_name": "skeleton",
     "exp": 35,
     "gold": 55,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 106,
+    "max_hp": 100,
+    "name": "Skeletal Warrior"
   },
   {
-    "id": 107,
-    "name": "Slime Horatio",
-    "battler_name": "Slime1",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 187
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 45,
+        "skill_id": 186
+      }
+    ],
+    "agility": 22,
+    "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     "battler_hue": 20,
+    "battler_name": "Slime1",
+    "exp": 40,
+    "gold": 45,
+    "id": 107,
     "max_hp": 85,
     "max_sp": 50,
-    "attack": 30,
-    "agility": 22,
-    "exp": 40,
-    "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 187,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 186,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      }
-    ]
+    "name": "Slime Horatio"
   },
   {
-    "id": 108,
-    "name": "Spear Carrier",
-    "battler_name": "Wolfman",
-    "battler_hue": 350,
-    "max_hp": 105,
-    "max_sp": 8,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 179
+      }
+    ],
     "attack": 40,
-    "transparent": true,
+    "battler_hue": 350,
+    "battler_name": "Wolfman",
     "exp": 34,
     "gold": 45,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 179,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 108,
+    "max_hp": 105,
+    "max_sp": 8,
+    "name": "Spear Carrier",
+    "transparent": true
   },
   {
-    "id": 109,
-    "name": "Phantom",
-    "battler_name": "DarkSpirit",
-    "battler_hue": 250,
-    "max_hp": 87,
-    "max_sp": 16,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 195
+      }
+    ],
     "attack": 48,
-    "transparent": true,
+    "battler_hue": 250,
+    "battler_name": "DarkSpirit",
     "exp": 40,
     "gold": 65,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 109,
+    "max_hp": 87,
+    "max_sp": 16,
+    "name": "Phantom",
+    "transparent": true
   },
   {
-    "id": 110,
-    "name": "Horny Beast",
-    "battler_name": "a-animal",
-    "max_hp": 200,
-    "max_sp": 30,
-    "attack": 57,
-    "defense": 30,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 180
+      }
+    ],
     "agility": 8,
+    "attack": 57,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "a-animal",
+    "defense": 30,
     "exp": 43,
     "gold": 120,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 180,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 110,
+    "max_hp": 200,
+    "max_sp": 30,
+    "name": "Horny Beast"
   },
   {
-    "id": 111,
-    "name": "Swift Bat",
-    "battler_name": "bat",
-    "battler_hue": 130,
-    "max_hp": 40,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+    "battler_hue": 130,
+    "battler_name": "bat",
     "exp": 27,
     "gold": 40,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 111,
+    "max_hp": 40,
+    "name": "Swift Bat"
   },
   {
-    "id": 112,
-    "name": "Cave Dweller",
-    "battler_name": "Cyclops",
-    "battler_hue": 10,
-    "max_hp": 180,
-    "max_sp": 40,
-    "attack": 58,
-    "defense": 30,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 180
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 181
+      },
+      {"condition_param2": 100, "enemy_id": 104, "id": 4, "rating": 10, "skill_id": 181}
+    ],
     "agility": 7,
+    "attack": 58,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 10,
+    "battler_name": "Cyclops",
+    "defense": 30,
     "exp": 75,
     "gold": 250,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 180,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      },
-      {
-        "id": 4,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 10
-      }
-    ]
+    "id": 112,
+    "max_hp": 180,
+    "max_sp": 40,
+    "name": "Cave Dweller"
   },
   {
-    "id": 113,
-    "name": "Ursalimnicus",
-    "battler_name": "dregs",
-    "max_hp": 125,
-    "max_sp": 22,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 20,
+        "skill_id": 181
+      }
+    ],
     "attack": 49,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "dregs",
     "defense": 28,
     "exp": 55,
     "gold": 68,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 20
-      }
-    ]
+    "id": 113,
+    "max_hp": 125,
+    "max_sp": 22,
+    "name": "Ursalimnicus"
   },
   {
-    "id": 114,
-    "name": "Lightning Wolf",
-    "battler_name": "Hound",
-    "battler_hue": 160,
-    "max_hp": 86,
-    "max_sp": 16,
-    "attack": 45,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 195
+      }
+    ],
     "agility": 30,
+    "attack": 45,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 160,
+    "battler_name": "Hound",
+    "defense": 20,
     "exp": 48,
     "gold": 65,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      }
-    ]
+    "id": 114,
+    "max_hp": 86,
+    "max_sp": 16,
+    "name": "Lightning Wolf"
   },
   {
-    "id": 115,
-    "name": "Skilled Bandit",
-    "battler_name": "newbie",
-    "battler_hue": 230,
-    "max_hp": 120,
-    "attack": 49,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 195
+      },
+      {
+        "basic": "escape",
+        "condition_param2": 30,
+        "condition_type": "hp",
+        "enemy_id": 104,
+        "id": 3,
+        "rating": 40,
+        "skill_id": 195
+      },
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 4,
+        "kind": "skill",
+        "rating": 20,
+        "skill_id": 194
+      }
+    ],
     "agility": 28,
+    "attack": 49,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 230,
+    "battler_name": "newbie",
     "exp": 65,
     "gold": 70,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 6,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 4,
-        "condition_param2": 30,
-        "rating": 40
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 194,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 20
-      }
-    ]
+    "id": 115,
+    "max_hp": 120,
+    "name": "Skilled Bandit"
   },
   {
-    "id": 116,
-    "name": "Coiled Serpent",
-    "battler_name": "snake",
-    "battler_hue": 320,
-    "max_hp": 80,
-    "attack": 38,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 20,
+        "skill_id": 171
+      }
+    ],
     "agility": 18,
+    "attack": 38,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 320,
+    "battler_name": "snake",
+    "defense": 20,
     "exp": 43,
     "gold": 52,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 171,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 20
-      }
-    ]
+    "id": 116,
+    "max_hp": 80,
+    "name": "Coiled Serpent"
   },
   {
-    "id": 117,
-    "name": "The Lair",
-    "battler_name": "Minotaur",
-    "battler_hue": 330,
-    "max_hp": 625,
-    "max_sp": 85,
-    "attack": 70,
-    "defense": 28,
-    "agility": 25,
-    "exp": 400,
-    "gold": 1250,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
     "actions": [
+      {"basic": "attack", "id": 1},
       {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 181,
-        "enemy_id": 104,
-        "condition_type": 7,
+        "basic": "escape",
         "condition_param1": 80,
         "condition_param2": 100,
-        "rating": 40
+        "condition_type": "party_fatigue",
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 40,
+        "skill_id": 181
       },
       {
-        "id": 3,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 180,
-        "enemy_id": 104,
-        "condition_type": 0,
+        "basic": "escape",
         "condition_param2": 100,
-        "rating": 35
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 35,
+        "skill_id": 180
       },
       {
+        "basic": "escape",
+        "condition_param2": 20,
+        "condition_type": "hp",
+        "enemy_id": 104,
         "id": 4,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 160,
-        "enemy_id": 104,
-        "condition_type": 4,
-        "condition_param2": 20
+        "kind": "skill",
+        "skill_id": 160
       },
       {
-        "id": 5,
-        "kind": 0,
-        "basic": 4,
-        "skill_id": 180,
-        "enemy_id": 104,
-        "condition_type": 2,
+        "basic": "charge",
         "condition_param1": 5,
-        "rating": 100
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 5,
+        "rating": 100,
+        "skill_id": 180
       }
-    ]
+    ],
+    "agility": 25,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_hue": 330,
+    "battler_name": "Minotaur",
+    "defense": 28,
+    "exp": 400,
+    "gold": 1250,
+    "id": 117,
+    "max_hp": 625,
+    "max_sp": 85,
+    "name": "The Lair",
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 118,
-    "name": "Poltergeist",
-    "battler_name": "StrangeGuy",
-    "max_hp": 400,
-    "max_sp": 65,
-    "attack": 65,
-    "defense": 25,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "escape",
+        "condition_param1": 4,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "rating": 75,
+        "skill_id": 186
+      },
+      {
+        "basic": "escape",
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 30,
+        "skill_id": 195
+      },
+      {
+        "condition_param2": 2,
+        "condition_type": "turn",
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 366
+      }
+    ],
     "agility": 30,
-    "transparent": true,
+    "attack": 65,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 1, 4, 4, 2, 2, 4],
+    "battler_name": "StrangeGuy",
+    "defense": 25,
     "exp": 350,
     "gold": 1100,
+    "id": 118,
     "levitate": true,
+    "max_hp": 400,
+    "max_sp": 65,
+    "name": "Poltergeist",
     "state_ranks": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 3, 1, 4, 4, 2, 2, 4],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 186,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param1": 4,
-        "rating": 75
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 6,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 30
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 366,
-        "condition_type": 2,
-        "condition_param2": 2,
-        "rating": 100
-      }
-    ]
+    "transparent": true
   },
   {
-    "id": 119,
-    "name": "Murgator",
-    "battler_name": "GreenDragon2",
-    "battler_hue": 310,
-    "max_hp": 350,
-    "max_sp": 75,
-    "attack": 78,
-    "defense": 25,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param2": 100, "enemy_id": 104, "id": 2, "skill_id": 195},
+      {
+        "condition_param2": 2,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 175
+      },
+      {
+        "condition_param1": 6,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 155
+      },
+      {
+        "condition_param2": 1,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 5,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 156
+      },
+      {
+        "condition_param2": 100,
+        "enemy_id": 104,
+        "id": 6,
+        "kind": "skill",
+        "rating": 35,
+        "skill_id": 351
+      }
+    ],
     "agility": 26,
+    "attack": 78,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 3, 3, 1],
+    "battler_hue": 310,
+    "battler_name": "GreenDragon2",
+    "defense": 25,
     "exp": 250,
     "gold": 750,
-    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 4, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 3, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 195,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 175,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param2": 2,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 155,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param1": 6,
-        "rating": 100
-      },
-      {
-        "id": 5,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 156,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param2": 1,
-        "rating": 100
-      },
-      {
-        "id": 6,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 351,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 35
-      }
-    ]
+    "id": 119,
+    "max_hp": 350,
+    "max_sp": 75,
+    "name": "Murgator",
+    "state_ranks": [1, 1, 1, 1, 1, 1, 1, 4, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 120,
-    "name": "Injured Murgator",
-    "battler_name": "GreenDragon2",
-    "battler_hue": 310,
-    "max_hp": 250,
-    "max_sp": 35,
-    "attack": 70,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param2": 30,
+        "condition_type": "hp",
+        "enemy_id": 104,
+        "id": 2,
+        "kind": "skill",
+        "skill_id": 155
+      },
+      {
+        "condition_param2": 3,
+        "condition_type": "turn",
+        "enemy_id": 104,
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 156
+      },
+      {
+        "condition_param2": 25,
+        "condition_type": "hp",
+        "id": 4,
+        "kind": "skill",
+        "skill_id": 353
+      }
+    ],
     "agility": 23,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 3, 3, 1],
+    "battler_hue": 310,
+    "battler_name": "GreenDragon2",
+    "defense": 20,
     "exp": 200,
     "gold": 500,
-    "state_ranks": [1, 4, 4, 1, 1, 1, 1, 4, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 3, 3, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 155,
-        "enemy_id": 104,
-        "condition_type": 4,
-        "condition_param2": 30
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 156,
-        "enemy_id": 104,
-        "condition_type": 2,
-        "condition_param2": 3,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 353,
-        "condition_type": 4,
-        "condition_param2": 25
-      }
-    ]
+    "id": 120,
+    "max_hp": 250,
+    "max_sp": 35,
+    "name": "Injured Murgator",
+    "state_ranks": [1, 4, 4, 1, 1, 1, 1, 4, 1, 1, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4]
   },
   {
-    "id": 121,
-    "name": "Agency Guard",
-    "battler_name": "Sagencyg",
-    "max_hp": 100,
-    "attack": 40,
-    "defense": 27,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param2": 100, "enemy_id": 104, "id": 2, "rating": 25, "skill_id": 156}
+    ],
     "agility": 25,
+    "attack": 40,
+    "battler_name": "Sagencyg",
+    "defense": 27,
     "exp": 40,
     "gold": 120,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 156,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 25
-      }
-    ]
+    "id": 121,
+    "max_hp": 100,
+    "name": "Agency Guard"
   },
   {
-    "id": 122,
-    "name": "Defender",
-    "battler_name": "Hero1",
-    "max_hp": 120,
-    "attack": 36,
-    "defense": 32,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param2": 100, "enemy_id": 104, "id": 2, "rating": 35, "skill_id": 156}
+    ],
     "agility": 25,
+    "attack": 36,
+    "battler_name": "Hero1",
+    "defense": 32,
     "exp": 55,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 156,
-        "enemy_id": 104,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 35
-      }
-    ]
+    "id": 122,
+    "max_hp": 120,
+    "name": "Defender"
   },
   {
-    "id": 123,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 123
   },
   {
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "id": 124,
-    "name": "ABL 2.0 Monsters",
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "name": "ABL 2.0 Monsters"
   },
   {
-    "id": 125,
-    "name": "Para Guard",
-    "battler_name": "hangguardtest",
-    "max_hp": 250,
-    "max_sp": 40,
-    "attack": 40,
-    "defense": 30,
-    "spirit": 16,
-    "agility": 17,
-    "exp": 165,
-    "gold": 425,
-    "drop_id": 335,
-    "critical_hit": true,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
     "actions": [
+      {"basic": "attack", "id": 1},
       {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 3,
         "condition_param1": 1,
         "condition_param2": 1,
+        "condition_type": "actors",
+        "id": 2,
         "rating": 75
       },
       {
+        "condition_param2": 20,
+        "condition_type": "hp",
         "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 376,
-        "condition_type": 4,
-        "condition_param2": 20
+        "kind": "skill",
+        "skill_id": 376
       },
       {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 384,
-        "condition_type": 2,
         "condition_param2": 3,
-        "rating": 100
+        "condition_type": "turn",
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 384
       }
-    ]
+    ],
+    "agility": 17,
+    "attack": 40,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_name": "hangguardtest",
+    "critical_hit": true,
+    "defense": 30,
+    "drop_id": 335,
+    "exp": 165,
+    "gold": 425,
+    "id": 125,
+    "max_hp": 250,
+    "max_sp": 40,
+    "name": "Para Guard",
+    "spirit": 16
   },
   {
-    "id": 126,
-    "name": "Sand Miser",
-    "battler_name": "DesertSpirit",
-    "battler_hue": 40,
-    "max_hp": 110,
-    "max_sp": 8,
-    "attack": 50,
-    "defense": 4,
-    "spirit": 21,
+    "actions": [
+      {"basic": "attack", "id": 1, "rating": 75},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 75, "skill_id": 178},
+      {
+        "basic": "attack",
+        "condition_param2": 3,
+        "condition_type": "turn",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 330
+      }
+    ],
     "agility": 20,
-    "exp": 55,
-    "gold": 40,
-    "drop_id": 300,
-    "drop_prob": 30,
+    "attack": 50,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 40,
+    "battler_name": "DesertSpirit",
     "critical_hit": true,
     "critical_hit_chance": 10,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 75
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 178,
-        "condition_type": 0,
-        "rating": 75
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 330,
-        "condition_type": 2,
-        "condition_param2": 3,
-        "rating": 100
-      }
-    ]
+    "defense": 4,
+    "drop_id": 300,
+    "drop_prob": 30,
+    "exp": 55,
+    "gold": 40,
+    "id": 126,
+    "max_hp": 110,
+    "max_sp": 8,
+    "name": "Sand Miser",
+    "spirit": 21
   },
   {
-    "id": 127,
-    "name": "Spindlesect",
-    "battler_name": "insect",
-    "battler_hue": 300,
-    "max_hp": 85,
-    "attack": 55,
-    "defense": 8,
-    "spirit": 18,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 26,
-    "exp": 60,
-    "gold": 35,
+    "attack": 55,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 300,
+    "battler_name": "insect",
+    "defense": 8,
     "drop_id": 310,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 60,
+    "gold": 35,
+    "id": 127,
+    "max_hp": 85,
+    "name": "Spindlesect",
+    "spirit": 18
   },
   {
-    "id": 128,
-    "name": "StoneVisage",
-    "battler_name": "zGolem1",
-    "max_hp": 130,
-    "max_sp": 80,
-    "attack": 48,
-    "defense": 50,
-    "spirit": 19,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 1,
-    "exp": 83,
-    "gold": 120,
+    "attack": 48,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 2, 1],
+    "battler_name": "zGolem1",
+    "defense": 50,
     "drop_id": 311,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 83,
+    "gold": 120,
+    "id": 128,
+    "max_hp": 130,
+    "max_sp": 80,
+    "name": "StoneVisage",
+    "spirit": 19
   },
   {
-    "id": 129,
-    "name": "TwirlingSand",
-    "battler_name": "dirtshadow2",
-    "max_hp": 94,
-    "max_sp": 30,
-    "attack": 58,
-    "defense": 25,
-    "spirit": 16,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 22,
-    "exp": 44,
-    "gold": 40,
+    "attack": 58,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "dirtshadow2",
+    "defense": 25,
     "drop_id": 312,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 44,
+    "gold": 40,
+    "id": 129,
+    "max_hp": 94,
+    "max_sp": 30,
+    "name": "TwirlingSand",
+    "spirit": 16
   },
   {
-    "id": 130,
-    "name": "Burrower",
-    "battler_name": "GiantWorm",
-    "max_hp": 350,
-    "max_sp": 70,
-    "attack": 80,
-    "defense": 30,
-    "spirit": 22,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param2": 40,
+        "condition_type": "hp",
+        "id": 2,
+        "kind": "skill",
+        "skill_id": 330
+      },
+      {
+        "condition_param1": 5,
+        "condition_type": "turn",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 331
+      },
+      {"condition_param2": 100, "id": 4, "kind": "skill", "rating": 45, "skill_id": 344},
+      {"condition_param2": 20, "condition_type": "hp", "id": 5, "skill_id": 344}
+    ],
     "agility": 16,
-    "exp": 500,
-    "gold": 800,
+    "attack": 80,
+    "battler_name": "GiantWorm",
+    "defense": 30,
     "drop_id": 245,
     "drop_prob": 75,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 330,
-        "condition_type": 4,
-        "condition_param2": 40
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 331,
-        "condition_type": 2,
-        "condition_param1": 5,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 344,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 45
-      },
-      {
-        "id": 5,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 344,
-        "condition_type": 4,
-        "condition_param2": 20
-      }
-    ]
+    "exp": 500,
+    "gold": 800,
+    "id": 130,
+    "max_hp": 350,
+    "max_sp": 70,
+    "name": "Burrower",
+    "spirit": 22
   },
   {
-    "id": 131,
-    "name": "Matted Wolf",
-    "battler_name": "Hound",
-    "battler_hue": 180,
-    "max_hp": 85,
-    "attack": 56,
-    "defense": 26,
-    "spirit": 18,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 26,
-    "exp": 67,
-    "gold": 30,
+    "attack": 56,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 180,
+    "battler_name": "Hound",
+    "defense": 26,
     "drop_id": 115,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 67,
+    "gold": 30,
+    "id": 131,
+    "max_hp": 85,
+    "name": "Matted Wolf",
+    "spirit": 18
   },
   {
-    "id": 132,
-    "name": "Wasper",
-    "battler_name": "Bee",
-    "max_hp": 60,
-    "attack": 48,
-    "defense": 16,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 28,
+    "attack": 48,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1],
+    "battler_name": "Bee",
+    "defense": 16,
     "exp": 40,
     "gold": 25,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 132,
+    "max_hp": 60,
+    "name": "Wasper"
   },
   {
-    "id": 133,
-    "name": "Roaming Marshile",
-    "battler_name": "biotrooper",
-    "max_hp": 86,
-    "attack": 67,
-    "defense": 28,
-    "spirit": 30,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 24,
-    "exp": 78,
-    "gold": 35,
+    "attack": 67,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "biotrooper",
+    "defense": 28,
     "drop_id": 315,
     "drop_prob": 15,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 78,
+    "gold": 35,
+    "id": 133,
+    "max_hp": 86,
+    "name": "Roaming Marshile",
+    "spirit": 30
   },
   {
-    "id": 134,
-    "name": "Grub",
-    "battler_name": "krawlie",
-    "battler_hue": 270,
-    "max_hp": 40,
-    "attack": 38,
-    "defense": 15,
-    "spirit": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 14,
+    "attack": 38,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_hue": 270,
+    "battler_name": "krawlie",
+    "defense": 15,
     "exp": 30,
     "gold": 5,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 134,
+    "max_hp": 40,
+    "name": "Grub",
+    "spirit": 14
   },
   {
-    "id": 135,
-    "name": "Lost Brigand",
-    "battler_name": "vicarious",
-    "max_hp": 90,
-    "max_sp": 20,
-    "attack": 58,
-    "defense": 32,
-    "spirit": 25,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 33,
+    "attack": 58,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "vicarious",
+    "defense": 32,
     "exp": 46,
     "gold": 250,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 135,
+    "max_hp": 90,
+    "max_sp": 20,
+    "name": "Lost Brigand",
+    "spirit": 25
   },
   {
-    "id": 136,
-    "name": "Lurking Denizen",
-    "battler_name": "Demon1",
-    "battler_hue": 90,
-    "max_hp": 140,
-    "max_sp": 30,
-    "attack": 75,
-    "defense": 33,
-    "spirit": 30,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 27,
+    "attack": 75,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
+    "battler_hue": 90,
+    "battler_name": "Demon1",
+    "defense": 33,
+    "drop_id": 258,
+    "drop_prob": 35,
     "exp": 80,
     "gold": 75,
-    "drop_id": 258,
-    "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 136,
+    "max_hp": 140,
+    "max_sp": 30,
+    "name": "Lurking Denizen",
+    "spirit": 30
   },
   {
-    "id": 137,
-    "name": "Noyance",
-    "battler_name": "warlorian",
-    "max_hp": 85,
-    "attack": 42,
-    "defense": 21,
-    "spirit": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 36,
+    "attack": 42,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "warlorian",
+    "defense": 21,
     "exp": 45,
     "gold": 27,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 137,
+    "max_hp": 85,
+    "name": "Noyance",
+    "spirit": 14
   },
   {
-    "id": 138,
-    "name": "Living Mold",
-    "battler_name": "Salleym",
-    "battler_hue": 220,
-    "max_hp": 90,
-    "max_sp": 25,
-    "attack": 70,
-    "defense": 30,
-    "spirit": 12,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 5,
-    "exp": 68,
-    "gold": 36,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 220,
+    "battler_name": "Salleym",
+    "defense": 30,
     "drop_id": 315,
     "drop_prob": 15,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 68,
+    "gold": 36,
+    "id": 138,
+    "max_hp": 90,
+    "max_sp": 25,
+    "name": "Living Mold",
+    "spirit": 12
   },
   {
-    "id": 139,
-    "name": "Deep Snake",
-    "battler_name": "snake",
-    "battler_hue": 300,
-    "max_hp": 75,
-    "attack": 70,
-    "defense": 30,
-    "spirit": 40,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 21,
-    "exp": 55,
-    "gold": 41,
+    "attack": 70,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
+    "battler_hue": 300,
+    "battler_name": "snake",
+    "defense": 30,
     "drop_id": 341,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 55,
+    "gold": 41,
+    "id": 139,
+    "max_hp": 75,
+    "name": "Deep Snake",
+    "spirit": 40
   },
   {
-    "id": 140,
-    "name": "ForgottenCarving",
-    "battler_name": "zGolem1",
-    "battler_hue": 180,
-    "max_hp": 200,
-    "attack": 46,
-    "defense": 50,
-    "spirit": 15,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 1,
-    "exp": 90,
-    "gold": 110,
+    "attack": 46,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 2, 1],
+    "battler_hue": 180,
+    "battler_name": "zGolem1",
+    "defense": 50,
     "drop_id": 253,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 90,
+    "gold": 110,
+    "id": 140,
+    "max_hp": 200,
+    "name": "ForgottenCarving",
+    "spirit": 15
   },
   {
-    "id": 141,
-    "name": "Devolving Humanoid",
-    "battler_name": "GoodLookingBoss",
-    "max_hp": 550,
-    "attack": 89,
-    "defense": 40,
-    "spirit": 20,
+    "actions": [
+      {"id": 1},
+      {
+        "basic": "attack",
+        "condition_param1": 5,
+        "condition_type": "turn",
+        "id": 2,
+        "kind": "skill",
+        "rating": 75,
+        "skill_id": 355
+      },
+      {
+        "condition_param2": 1,
+        "condition_type": "turn",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 367
+      },
+      {
+        "condition_param2": 4,
+        "condition_type": "turn",
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 354
+      },
+      {"basic": "attack", "id": 5}
+    ],
     "agility": 16,
+    "attack": 89,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "GoodLookingBoss",
+    "defense": 40,
+    "drop_id": 260,
     "exp": 660,
     "gold": 1100,
-    "drop_id": 260,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 355,
-        "condition_type": 2,
-        "condition_param1": 5,
-        "rating": 75
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 367,
-        "condition_type": 2,
-        "condition_param2": 1,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 354,
-        "condition_type": 2,
-        "condition_param2": 4,
-        "rating": 100
-      },
-      {
-        "id": 5,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 141,
+    "max_hp": 550,
+    "name": "Devolving Humanoid",
+    "spirit": 20
   },
   {
-    "id": 142,
-    "name": "Vengeful Spirit",
-    "battler_name": "ClawMan",
-    "max_hp": 160,
-    "attack": 60,
-    "defense": 40,
-    "spirit": 40,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 366},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 25, "skill_id": 367}
+    ],
     "agility": 25,
-    "transparent": true,
-    "exp": 80,
-    "gold": 56,
+    "attack": 60,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "ClawMan",
+    "defense": 40,
     "drop_id": 353,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 366,
-        "condition_type": 0,
-        "rating": 25
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 367,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "exp": 80,
+    "gold": 56,
+    "id": 142,
+    "max_hp": 160,
+    "name": "Vengeful Spirit",
+    "spirit": 40,
+    "transparent": true
   },
   {
-    "id": 143,
-    "name": "Shadow of Pain",
-    "battler_name": "gorva",
-    "battler_hue": 300,
-    "max_hp": 155,
-    "attack": 56,
-    "defense": 30,
-    "spirit": 40,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 367},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 25, "skill_id": 368}
+    ],
     "agility": 20,
-    "transparent": true,
-    "exp": 90,
-    "gold": 60,
+    "attack": 56,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 300,
+    "battler_name": "gorva",
+    "defense": 30,
     "drop_id": 352,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 367,
-        "condition_type": 0,
-        "rating": 25
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 368,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "exp": 90,
+    "gold": 60,
+    "id": 143,
+    "max_hp": 155,
+    "name": "Shadow of Pain",
+    "spirit": 40,
+    "transparent": true
   },
   {
-    "id": 144,
-    "name": "Crazed Marauder",
-    "battler_name": "new_pa3",
-    "max_hp": 95,
-    "attack": 65,
-    "defense": 33,
-    "spirit": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 28,
-    "exp": 78,
-    "gold": 95,
+    "attack": 65,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1],
+    "battler_name": "new_pa3",
+    "defense": 33,
     "drop_id": 257,
     "drop_prob": 35,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 78,
+    "gold": 95,
+    "id": 144,
+    "max_hp": 95,
+    "name": "Crazed Marauder",
+    "spirit": 14
   },
   {
-    "id": 145,
-    "name": "Rhinaur",
-    "battler_name": "a-animal",
-    "battler_hue": 330,
-    "max_hp": 180,
-    "attack": 78,
-    "defense": 55,
-    "spirit": 2,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 369},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 30, "skill_id": 370}
+    ],
     "agility": 15,
-    "exp": 85,
-    "gold": 85,
+    "attack": 78,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 330,
+    "battler_name": "a-animal",
+    "defense": 55,
     "drop_id": 334,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 369,
-        "condition_type": 0,
-        "rating": 30
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 370,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "exp": 85,
+    "gold": 85,
+    "id": 145,
+    "max_hp": 180,
+    "name": "Rhinaur",
+    "spirit": 2
   },
   {
-    "id": 146,
-    "name": "Ruins Dancer",
-    "battler_name": "avant",
-    "battler_hue": 100,
-    "max_hp": 140,
-    "attack": 80,
-    "defense": 38,
-    "spirit": 45,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 42,
-    "transparent": true,
-    "exp": 69,
-    "gold": 72,
+    "attack": 80,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 100,
+    "battler_name": "avant",
+    "defense": 38,
     "drop_id": 351,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "exp": 69,
+    "gold": 72,
+    "id": 146,
+    "max_hp": 140,
+    "name": "Ruins Dancer",
+    "spirit": 45,
+    "transparent": true
   },
   {
-    "id": 147,
-    "name": "Securibot Type I",
-    "battler_name": "4handrobo",
-    "battler_hue": 60,
-    "max_hp": 160,
-    "attack": 75,
-    "defense": 35,
-    "spirit": 14,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "skill_id": 323}
+    ],
     "agility": 28,
-    "exp": 67,
-    "gold": 55,
+    "attack": 75,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 60,
+    "battler_name": "4handrobo",
+    "defense": 35,
     "drop_id": 332,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 323,
-        "condition_type": 0
-      }
-    ]
+    "exp": 67,
+    "gold": 55,
+    "id": 147,
+    "max_hp": 160,
+    "name": "Securibot Type I",
+    "spirit": 14
   },
   {
-    "id": 148,
-    "name": "Securibot Type II",
-    "battler_name": "ABLScrappedRobo",
-    "battler_hue": 130,
-    "max_hp": 150,
-    "attack": 68,
-    "defense": 50,
-    "spirit": 12,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 25, "skill_id": 322},
+      {"basic": "attack", "id": 3, "kind": "skill", "rating": 25, "skill_id": 323}
+    ],
     "agility": 21,
-    "exp": 60,
-    "gold": 48,
+    "attack": 68,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_hue": 130,
+    "battler_name": "ABLScrappedRobo",
+    "defense": 50,
     "drop_id": 335,
     "drop_prob": 30,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 322,
-        "condition_type": 0,
-        "rating": 25
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 323,
-        "condition_type": 0,
-        "rating": 25
-      }
-    ]
+    "exp": 60,
+    "gold": 48,
+    "id": 148,
+    "max_hp": 150,
+    "name": "Securibot Type II",
+    "spirit": 12
   },
   {
-    "id": 149,
-    "name": "Spider Drone",
-    "battler_name": "lostscout",
-    "battler_hue": 250,
-    "max_hp": 80,
-    "attack": 43,
-    "defense": 15,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "attack", "id": 2, "kind": "skill", "rating": 30, "skill_id": 321}
+    ],
     "agility": 60,
-    "exp": 55,
-    "gold": 38,
+    "attack": 43,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+    "battler_hue": 250,
+    "battler_name": "lostscout",
+    "defense": 15,
     "drop_id": 333,
     "drop_prob": 15,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 321,
-        "condition_type": 0,
-        "rating": 30
-      }
-    ]
+    "exp": 55,
+    "gold": 38,
+    "id": 149,
+    "max_hp": 80,
+    "name": "Spider Drone"
   },
   {
-    "id": 150,
-    "name": "Agency Tram",
-    "battler_name": "TramMonsterGraphic",
-    "max_hp": 350,
-    "max_sp": 150,
-    "attack": 60,
-    "defense": 30,
-    "spirit": 12,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "condition_param1": 6,
+        "condition_type": "turn",
+        "id": 2,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 385
+      },
+      {"condition_param2": 100, "id": 3, "kind": "skill", "rating": 25, "skill_id": 386},
+      {
+        "condition_param2": 1,
+        "condition_type": "turn",
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 387
+      }
+    ],
     "agility": 15,
+    "attack": 60,
+    "battler_name": "TramMonsterGraphic",
+    "defense": 30,
+    "drop_id": 260,
     "exp": 280,
     "gold": 510,
-    "drop_id": 260,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 385,
-        "condition_type": 2,
-        "condition_param1": 6,
-        "rating": 100
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 386,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 25
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 387,
-        "condition_type": 2,
-        "condition_param2": 1,
-        "rating": 100
-      }
-    ]
+    "id": 150,
+    "max_hp": 350,
+    "max_sp": 150,
+    "name": "Agency Tram",
+    "spirit": 12
   },
   {
-    "id": 151,
-    "name": "Agency Captain",
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {
+        "basic": "attack",
+        "condition_param2": 6,
+        "condition_type": "turn",
+        "id": 2,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 381
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 4,
+        "condition_type": "turn",
+        "id": 3,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 379
+      },
+      {
+        "basic": "attack",
+        "condition_param2": 2,
+        "condition_type": "turn",
+        "id": 4,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 380
+      },
+      {"condition_param2": 100, "id": 5, "skill_id": 380},
+      {
+        "condition_param1": 5,
+        "condition_type": "turn",
+        "id": 6,
+        "kind": "skill",
+        "rating": 100,
+        "skill_id": 377
+      }
+    ],
+    "agility": 45,
+    "attack": 85,
     "battler_name": "Kersh",
+    "defense": 60,
+    "id": 151,
     "max_hp": 9999,
     "max_sp": 9999,
-    "attack": 85,
-    "defense": 60,
-    "spirit": 60,
-    "agility": 45,
-    "state_ranks": [],
-    "attribute_ranks": [],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 381,
-        "condition_type": 2,
-        "condition_param2": 6,
-        "rating": 100
-      },
-      {
-        "id": 3,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 379,
-        "condition_type": 2,
-        "condition_param2": 4,
-        "rating": 100
-      },
-      {
-        "id": 4,
-        "kind": 1,
-        "basic": 0,
-        "skill_id": 380,
-        "condition_type": 2,
-        "condition_param2": 2,
-        "rating": 100
-      },
-      {
-        "id": 5,
-        "kind": 0,
-        "basic": 1,
-        "skill_id": 380,
-        "condition_type": 0,
-        "condition_param2": 100
-      },
-      {
-        "id": 6,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 377,
-        "condition_type": 2,
-        "condition_param1": 5,
-        "rating": 100
-      }
-    ]
+    "name": "Agency Captain",
+    "spirit": 60
   },
   {
-    "id": 152,
-    "name": "Security Walker",
-    "battler_name": "lostscout",
-    "battler_hue": 250,
-    "max_hp": 45,
-    "max_sp": 20,
-    "attack": 30,
-    "defense": 14,
+    "actions": [
+      {"basic": "attack", "id": 1}
+    ],
     "agility": 14,
+    "attack": 30,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+    "battler_hue": 250,
+    "battler_name": "lostscout",
+    "defense": 14,
     "exp": 30,
     "gold": 43,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+    "id": 152,
+    "max_hp": 45,
+    "max_sp": 20,
+    "name": "Security Walker"
   },
   {
-    "id": 153,
-    "name": "Upgraded Walker",
-    "battler_name": "4handrobo",
-    "battler_hue": 290,
-    "max_hp": 70,
-    "max_sp": 20,
-    "attack": 35,
-    "defense": 20,
+    "actions": [
+      {"basic": "attack", "id": 1, "rating": 75},
+      {"condition_param2": 100, "id": 2, "kind": "skill", "rating": 25, "skill_id": 321}
+    ],
     "agility": 14,
+    "attack": 35,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+    "battler_hue": 290,
+    "battler_name": "4handrobo",
+    "defense": 20,
     "exp": 40,
     "gold": 64,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0,
-        "rating": 75
-      },
-      {
-        "id": 2,
-        "kind": 1,
-        "basic": 1,
-        "skill_id": 321,
-        "condition_type": 0,
-        "condition_param2": 100,
-        "rating": 25
-      }
-    ]
+    "id": 153,
+    "max_hp": 70,
+    "max_sp": 20,
+    "name": "Upgraded Walker"
   },
   {
-    "id": 154,
-    "name": "Shellosk",
-    "battler_name": "cancer",
-    "max_hp": 20,
-    "max_sp": 16,
-    "attack": 22,
-    "defense": 12,
-    "spirit": 11,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"basic": "defense", "condition_param2": 30, "condition_type": "hp", "id": 2}
+    ],
     "agility": 13,
-    "exp": 9,
-    "gold": 120,
+    "attack": 22,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 3, 3, 3, 3],
+    "battler_name": "cancer",
+    "defense": 12,
     "drop_id": 125,
     "drop_prob": 40,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 3, 3, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 2,
-        "condition_type": 4,
-        "condition_param2": 30
-      }
-    ]
+    "exp": 9,
+    "gold": 120,
+    "id": 154,
+    "max_hp": 20,
+    "max_sp": 16,
+    "name": "Shellosk",
+    "spirit": 11
   },
   {
-    "id": 155,
-    "name": "Sandmar",
-    "battler_name": "m_01",
-    "max_hp": 85,
-    "max_sp": 60,
-    "attack": 46,
-    "defense": 8,
-    "spirit": 18,
-    "agility": 20,
-    "exp": 60,
-    "gold": 35,
-    "drop_id": 257,
-    "drop_prob": 40,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
     "actions": [
       {
-        "id": 1,
-        "kind": 0,
-        "basic": 6,
-        "condition_type": 2,
+        "basic": "escape",
         "condition_param2": 3,
+        "condition_type": "turn",
+        "id": 1,
         "rating": 100
       },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 2,
-        "condition_type": 0,
-        "condition_param2": 100
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0,
-        "condition_param2": 100
-      }
-    ]
+      {"basic": "defense", "condition_param2": 100, "id": 2},
+      {"basic": "attack", "condition_param2": 100, "id": 3}
+    ],
+    "agility": 20,
+    "attack": 46,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "battler_name": "m_01",
+    "defense": 8,
+    "drop_id": 257,
+    "drop_prob": 40,
+    "exp": 60,
+    "gold": 35,
+    "id": 155,
+    "max_hp": 85,
+    "max_sp": 60,
+    "name": "Sandmar",
+    "spirit": 18
   },
   {
-    "id": 156,
-    "name": "Mighty Shellosk",
-    "battler_name": "cancer",
-    "battler_hue": 90,
-    "max_hp": 230,
-    "max_sp": 16,
-    "attack": 95,
-    "defense": 18,
-    "spirit": 26,
+    "actions": [
+      {"basic": "attack", "id": 1},
+      {"condition_param1": 4, "condition_type": "turn", "id": 2},
+      {"basic": "charge", "condition_param2": 30, "condition_type": "hp", "id": 3}
+    ],
     "agility": 18,
-    "exp": 260,
-    "gold": 320,
+    "attack": 95,
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 3, 3, 3, 3],
+    "battler_hue": 90,
+    "battler_name": "cancer",
+    "defense": 18,
     "drop_id": 258,
     "drop_prob": 50,
-    "state_ranks": [],
-    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 3, 3, 3, 3],
-    "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      },
-      {
-        "id": 2,
-        "kind": 0,
-        "basic": 1,
-        "condition_type": 2,
-        "condition_param1": 4
-      },
-      {
-        "id": 3,
-        "kind": 0,
-        "basic": 4,
-        "condition_type": 4,
-        "condition_param2": 30
-      }
-    ]
+    "exp": 260,
+    "gold": 320,
+    "id": 156,
+    "max_hp": 230,
+    "max_sp": 16,
+    "name": "Mighty Shellosk",
+    "spirit": 26
   },
   {
-    "id": 157,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 157
   },
   {
-    "id": 158,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 158
   },
   {
-    "id": 159,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 159
   },
   {
-    "id": 160,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 160
   },
   {
-    "id": 161,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 161
   },
   {
-    "id": 162,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 162
   },
   {
-    "id": 163,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 163
   },
   {
-    "id": 164,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 164
   },
   {
-    "id": 165,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 165
   },
   {
-    "id": 166,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 166
   },
   {
-    "id": 167,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 167
   },
   {
-    "id": 168,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 168
   },
   {
-    "id": 169,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 169
   },
   {
-    "id": 170,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 170
   },
   {
-    "id": 171,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 171
   },
   {
-    "id": 172,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 172
   },
   {
-    "id": 173,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 173
   },
   {
-    "id": 174,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 174
   },
   {
-    "id": 175,
-    "state_ranks": [],
-    "attribute_ranks": [],
     "actions": [
-      {
-        "id": 1,
-        "kind": 0,
-        "basic": 0,
-        "condition_type": 0
-      }
-    ]
+      {"basic": "attack", "id": 1}
+    ],
+    "id": 175
   }
 ]

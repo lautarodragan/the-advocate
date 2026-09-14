@@ -1,8 +1,1 @@
-{
-  "id": 55,
-  "name": "Escape From Lashe City",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0055.tiles",
-  "events": []
-}
+{"save_count": 2}

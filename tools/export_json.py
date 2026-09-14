@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """Exporta los mapas de A Blurred Line a JSON + una grilla de tiles en texto.
 
-La idea es tener los datos del juego en un formato que git pueda versionar de
-verdad: diffeable, revisable y editable a mano, sin depender del editor de RM2k
-ni de un parser binario para ver qué cambió.
+**Ya no es el volcado que manda.** Desde el 2026-09-14 `data/` lo escribe Ditto
+y lo lee `tools/lcf.py`; esto quedó sin dueño y escribe **afuera del repo**,
+para que no lo pise. Lo que da y el de Ditto no es una *lectura* del juego —un
+comando de evento en una línea, sin los campos que al port no le sirven—; lo
+que no da es con qué volver a escribir el binario. Si se decide que esa lectura
+no hace falta, esto se va junto con `tools/lcf_bin.py`, `tools/gen_schema.py` y
+`tools/lcf_schema.py`, que son lo único que quedó usándolo. Ver DITTO.md.
 
 Por mapa salen dos archivos:
 
-    data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
-    data/maps/Map0001.tiles   las dos capas de tiles, una fila por línea
+    maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
+    maps/Map0001.tiles   las dos capas de tiles, una fila por línea
 
-Más dos archivos compartidos, data/maps.json (el árbol de mapas y la posición
-inicial) y data/chipsets.json (la tabla de chipsets con su passability).
+Más dos archivos compartidos, maps.json (el árbol de mapas y la posición
+inicial) y chipsets.json (la tabla de chipsets con su passability).
 
 Uso:
-    python3 tools/export_json.py            # todo a data/
+    python3 tools/export_json.py            # todo a /extras/volcado-python
     python3 tools/export_json.py --verify   # además, releer y comparar
 """
 
@@ -26,9 +30,9 @@ import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import lcf
+import lcf_bin as lcf
 from event_codes import EVENT_CODES
-from render_map import GAME_DIR, REPO
+from render_map import GAME_DIR
 
 TILE_WIDTH = 5  # los IDs llegan a 10143, y alineados en columnas se leen mejor
 
@@ -317,7 +321,7 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--maps-dir", default=GAME_DIR)
-    parser.add_argument("-o", "--out-dir", default=os.path.join(REPO, "data"))
+    parser.add_argument("-o", "--out-dir", default="/extras/volcado-python")
     parser.add_argument("--verify", action="store_true",
                         help="releer lo exportado y comparar contra los .lmu")
     args = parser.parse_args()

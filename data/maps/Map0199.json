@@ -1,456 +1,488 @@
 {
-  "id": 199,
-  "name": "Battle Rink",
-  "size": [20, 15],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0199.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [4, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 2
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [14, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 2
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [12, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 2
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [5, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 13
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [13, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 13
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [7, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 13
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [14, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 13
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [13, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 2
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [6, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 2
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [9, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 2
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [12, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 7,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 7,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 13
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [11, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 13
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [8, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 2
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [6, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 13
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [11, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 2
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [5, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 2
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [2, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 6
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [3, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 7
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [17, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 7
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [2, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 7
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [17, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "Monster2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 6
     },
     {
       "id": 22,
       "name": "RunningObling",
-      "at": [6, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Monster1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 8
-          }
+          "move_frequency": 8,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {},
+              {},
+              {},
+              {},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_down"},
+              {"command_id": "move_down"},
+              {"command_id": "move_down"},
+              {"command_id": "move_down"}
+            ]
+          },
+          "move_type": "custom"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 8
     },
     {
       "id": 23,
       "name": "Blue Flyer",
-      "at": [12, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Monster2",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Monster2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "move": {
-            "type": "custom",
-            "speed": "half",
-            "frequency": 6
-          }
+          "move_frequency": 6,
+          "move_route": {
+            "move_commands": [
+              {"command_id": "increase_movement_speed"},
+              {"command_id": "increase_movement_speed"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_left"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "move_right"},
+              {"command_id": "decrease_movement_speed"},
+              {"command_id": "decrease_movement_speed"}
+            ]
+          },
+          "move_type": "custom"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 7
     },
     {
       "id": 24,
       "name": "Operator",
-      "at": [9, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 6,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "character_index": 6,
+          "character_name": "Crown7",
+          "character_pattern": "left",
+          "condition": {"switch_a_id": 601},
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 601, 0, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "OPERATOR"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Care to tackle some critters in the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Battle Rink? Big rewards if you win!"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "(Death if you lose...)"},
+            {
+              "code": "ShowChoice",
+              "indent": 1,
+              "parameters": [1],
+              "string": "No - I don't want to fight./Yes - I'm ready for the Rink!"
+            },
+            {
+              "code": "ShowChoiceOption",
+              "indent": 1,
+              "parameters": [0],
+              "string": "No - I don't want to fight."
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "OPERATOR"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Wimp."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "indent": 2, "parameters": [68, 48, 2]},
+            {"code": "END", "indent": 2},
+            {
+              "code": "ShowChoiceOption",
+              "indent": 1,
+              "parameters": [1],
+              "string": "Yes - I'm ready for the Rink!"
+            },
+            {"code": "END", "indent": 2},
+            {"code": "ShowChoiceEnd", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "OPERATOR"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "We're not accepting any more challenges"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "this week - come back later if you want"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "to fight!"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "indent": 1, "parameters": [68, 48, 2]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ConditionalBranch", "", [0, 601, 0, 0, 0, 1]],
-            [1, "MessageOptions", "", [0, 0, 0, 0]],
-            [1, "ShowMessage", "OPERATOR", []],
-            [1, "ShowMessage_2", "Care to tackle some critters in the", []],
-            [1, "ShowMessage_2", "Battle Rink? Big rewards if you win!", []],
-            [1, "ShowMessage_2", "(Death if you lose...)", []],
-            [1, "ShowChoice", "No - I don't want to fight./Yes - I'm ready for the Rink!", [1]],
-            [1, "ShowChoiceOption", "No - I don't want to fight.", [0]],
-            [2, "ShowMessage", "OPERATOR", []],
-            [2, "ShowMessage_2", "Wimp.", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [2, "Teleport", "", [68, 48, 2]],
-            [2, "END", "", []],
-            [1, "ShowChoiceOption", "Yes - I'm ready for the Rink!", [1]],
-            [2, "END", "", []],
-            [1, "ShowChoiceEnd", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "OPERATOR", []],
-            [1, "ShowMessage_2", "We're not accepting any more challenges", []],
-            [1, "ShowMessage_2", "this week - come back later if you want", []],
-            [1, "ShowMessage_2", "to fight!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [1, "Teleport", "", [68, 48, 2]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 12
     }
-  ]
+  ],
+  "save_count": 15
 }

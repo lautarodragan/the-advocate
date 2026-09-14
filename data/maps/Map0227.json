@@ -1,94 +1,107 @@
 {
-  "id": 227,
-  "name": "Leaving Lashe Memory",
-  "size": [20, 15],
-  "chipset": [15, "crashchp"],
-  "tiles": "Map0227.tiles",
-  "parallax": {
-    "name": "lashepan",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 15,
   "events": [
     {
       "id": 1,
       "name": "Arden/Saldra",
-      "at": [11, 13],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 54
+          "character_direction": "right",
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 54,
+            "switch_b_id": 207
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 56,
-            "switch_b": 207
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 56,
+            "switch_b_id": 207
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 13
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 92, 92, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I guess this is goodbye, Lashe City.", []],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
-            [0, "Teleport", "", [228, 9, 8]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 92, 92, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I guess this is goodbye, Lashe City."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Rebirth3"},
+            {"code": "Teleport", "parameters": [228, 9, 8]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 3,
       "name": "AG7-17",
-      "at": [12, 13],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 150
+          "animation_type": "spin",
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 150,
+            "switch_b_id": 207
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "spin"
+          "move_speed": "eighth",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 13
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "lashepan",
+  "save_count": 60
 }

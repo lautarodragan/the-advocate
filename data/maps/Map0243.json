@@ -1,185 +1,217 @@
 {
-  "id": 243,
-  "name": "Emily Sick",
-  "size": [20, 15],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0243.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "Emily",
-      "at": [4, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 700
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "emily",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 700
           },
-          "sprite": {
-            "charset": "emily",
-            "index": 5,
-            "direction": "right",
-            "pattern": "left"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 853
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "emily",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 853
           },
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 5
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "PIERSON, shouting", []],
-            [0, "ShowMessage_2", "Don't say that! She'll be fine!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY'S MOTHER, shouting", []],
-            [0, "ShowMessage_2", "How do you know? Her temperature", []],
-            [0, "ShowMessage_2", "hasn't gone down - it's only gotten worse!", []],
-            [0, "ShowMessage_2", "She won't eat!", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "PIERSON, shouting", []],
-            [0, "ShowMessage_2", "That crackpot farmer doesn't know", []],
-            [0, "ShowMessage_2", "what he's talking about! She'll be fine!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY'S MOTHER", []],
-            [0, "ShowMessage_2", "Vago is a great man! If you had listened", []],
-            [0, "ShowMessage_2", "to him at the beginning, maybe Emily", []],
-            [0, "ShowMessage_2", "wouldn't be so sick now!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 15, 23, 23, 13, 23, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ControlSwitches", "", [0, 700, 700, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "Wait", "", [30]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Blow2", [60, 80, 50]],
-            [0, "ControlSwitches", "", [0, 834, 834, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [3, 8, 0, 1, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 36, 2, 2, 2, 2, 2, 2, 37, 29]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ControlSwitches", "", [0, 853, 853, 0]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "...Mom?", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 12, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Where did your mother go, Emily?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY, asleep", []],
-            [0, "ShowMessage_2", "... away... somewhere far away...", []],
-            [0, "Teleport", "", [104, 10, 5]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "PIERSON, shouting"},
+            {"code": "ShowMessage_2", "string": "Don't say that! She'll be fine!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY'S MOTHER, shouting"},
+            {"code": "ShowMessage_2", "string": "How do you know? Her temperature"},
+            {"code": "ShowMessage_2", "string": "hasn't gone down - it's only gotten worse!"},
+            {"code": "ShowMessage_2", "string": "She won't eat!"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "PIERSON, shouting"},
+            {"code": "ShowMessage_2", "string": "That crackpot farmer doesn't know"},
+            {"code": "ShowMessage_2", "string": "what he's talking about! She'll be fine!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY'S MOTHER"},
+            {"code": "ShowMessage_2", "string": "Vago is a great man! If you had listened"},
+            {"code": "ShowMessage_2", "string": "to him at the beginning, maybe Emily"},
+            {"code": "ShowMessage_2", "string": "wouldn't be so sick now!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15, 23, 23, 13, 23, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ControlSwitches", "parameters": [0, 700, 700, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [60, 80, 50], "string": "Blow2"},
+            {"code": "ControlSwitches", "parameters": [0, 834, 834, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "parameters": [3, 8, 0, 1, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 36, 2, 2, 2, 2, 2, 2, 37, 29]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 853, 853, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 36, 1]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "...Mom?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12, 37]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Where did your mother go, Emily?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY, asleep"},
+            {"code": "ShowMessage_2", "string": "... away... somewhere far away..."},
+            {"code": "Teleport", "parameters": [104, 10, 5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 3,
       "name": "Emily's Mom",
-      "at": [6, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 700
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 700
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "Comment", "string": "Anyone interested enough to delve this"},
+            {"code": "Comment_2", "string": "deeply into ABL deserves to receive a"},
+            {"code": "Comment_2", "string": "SPOILER!!"},
+            {"code": "Comment", "string": "YES this IS Memnosyne!  :)"},
+            {"code": "Comment_2"},
+            {"code": "Comment_2", "string": "-Lys"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "Comment", "Anyone interested enough to delve this", []],
-            [0, "Comment_2", "deeply into ABL deserves to receive a", []],
-            [0, "Comment_2", "SPOILER!!", []],
-            [0, "Comment", "YES this IS Memnosyne!  :)", []],
-            [0, "Comment_2", "", []],
-            [0, "Comment_2", "-Lys", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 853
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 853
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 5
     },
     {
       "id": 4,
       "name": "Radio",
-      "at": [6, 4],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 834
+          "animation_type": "fixed_graphic",
+          "character_index": 4,
+          "character_name": "radio",
+          "character_pattern": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 834
           },
-          "sprite": {
-            "charset": "radio",
-            "index": 4,
-            "direction": "down",
-            "pattern": "right"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 4
     }
-  ]
+  ],
+  "save_count": 44
 }

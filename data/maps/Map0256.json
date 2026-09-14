@@ -1,45 +1,41 @@
 {
-  "id": 256,
-  "name": "Teaser Trailer",
-  "size": [20, 15],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0256.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [2, "ControlSwitches", "", [0, 54, 54, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "Wait", "", [30]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "For the past two years, the BLURRED LINE", []],
-            [0, "ShowMessage_2", "saga has told the story of Talan's escape", []],
-            [0, "ShowMessage_2", "from the all-powerful Agency and its", []],
-            [0, "ShowMessage_2", "intense desire to find and capture him.", []],
-            [0, "ShowMessage", "But all things must come to an end.", []],
-            [0, "ShowMessage_2", "For Talan, that end approaches.", []],
-            [0, "ShowMessage", "Next winter, Talan stops running.\\|\\|\\^", []],
-            [0, "PlayBGM", "ExplosForTeaser", [0, 100, 100, 50]],
-            [0, "Teleport", "", [268, 0, 9]]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 54, 54, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "For the past two years, the BLURRED LINE"},
+            {"code": "ShowMessage_2", "string": "saga has told the story of Talan's escape"},
+            {"code": "ShowMessage_2", "string": "from the all-powerful Agency and its"},
+            {"code": "ShowMessage_2", "string": "intense desire to find and capture him."},
+            {"code": "ShowMessage", "string": "But all things must come to an end."},
+            {"code": "ShowMessage_2", "string": "For Talan, that end approaches."},
+            {"code": "ShowMessage", "string": "Next winter, Talan stops running.\\|\\|\\^"},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "ExplosForTeaser"},
+            {"code": "Teleport", "parameters": [268, 0, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 44
 }

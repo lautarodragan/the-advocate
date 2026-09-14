@@ -1,107 +1,100 @@
 {
-  "id": 170,
-  "name": "Vago Taken Away",
-  "size": [20, 15],
-  "chipset": [40, "ABLForestTown"],
-  "tiles": "Map0170.tiles",
+  "chipset_id": 40,
   "events": [
     {
       "id": 1,
       "name": "Dr. Vago",
-      "at": [5, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People5",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "People5",
+          "condition": {"switch_a_id": 310},
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 8
     },
     {
       "id": 4,
       "name": "Agent3",
-      "at": [14, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 14
     },
     {
       "id": 5,
       "name": "Agent4",
-      "at": [15, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 14
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 0, 0, 0, 0, 15]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 0, 0, 0, 3]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 1, 1, 1, 1, 1]],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Dr. Vago?", []],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Yes... that's me.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Is... is there a problem?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "You'll need to come with us, Doctor.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 14, 23, 23, 15, 23, 23, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "This isn't really a good time, I'm afraid...", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "We apologize for the inconvenience -", []],
-            [0, "ShowMessage_2", "but you really have very little choice in", []],
-            [0, "ShowMessage_2", "the matter, Doctor.", []],
-            [0, "Wait", "", [16]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I see.", []],
-            [0, "Wait", "", [12]],
-            [0, "MoveEvent", "", [1, 8, 0, 1, 1, 1, 1, 1]],
-            [0, "Wait", "", [8]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [171, 10, 14]],
-            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 0, 0, 0, 0, 0, 15]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 0, 0, 0, 0, 3]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 2, 1, 1, 1, 1, 1]},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Dr. Vago?"},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Yes... that's me."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Is... is there a problem?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "You'll need to come with us, Doctor."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14, 23, 23, 15, 23, 23, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "This isn't really a good time, I'm afraid..."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "We apologize for the inconvenience -"},
+            {"code": "ShowMessage_2", "string": "but you really have very little choice in"},
+            {"code": "ShowMessage_2", "string": "the matter, Doctor."},
+            {"code": "Wait", "parameters": [16]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I see."},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 1, 1, 1, 1, 1]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [171, 10, 14]},
+            {"code": "TintScreen", "parameters": [70, 70, 40, 100, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 19
 }

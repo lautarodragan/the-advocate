@@ -1,128 +1,243 @@
 {
-  "id": 50,
-  "name": "ResetRace",
-  "size": [20, 15],
-  "chipset": [13, "BLchp1"],
-  "tiles": "Map0050.tiles",
+  "chipset_id": 13,
   "events": [
     {
       "id": 1,
       "name": "RecetRaceControllers",
-      "at": [16, 11],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
-            [0, "ControlSwitches", "", [0, 171, 171, 0]],
-            [0, "ControlSwitches", "", [0, 170, 170, 1]],
-            [0, "ControlSwitches", "", [0, 175, 175, 1]],
-            [0, "ControlSwitches", "", [0, 177, 177, 1]],
-            [0, "ControlSwitches", "", [0, 172, 172, 1]],
-            [0, "PanScreen", "", [2, 3, 7, 4, 0]],
-            [0, "ControlVars", "", [0, 38, 38, 1, 0, 1, 0]],
-            [0, "ConditionalBranch", "", [1, 38, 0, 5, 1, 1]],
-            [1, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "My driving skills aren't up to this... should", []],
-            [2, "ShowMessage_2", "I just have Arden drive?", []],
-            [2, "ShowMessage", "Hand over the steering wheel?", []],
-            [2, "ShowChoice", "No, I can do this!/Yes, I'm just not good enough.", [2]],
-            [2, "ShowChoiceOption", "No, I can do this!", [0]],
-            [3, "END", "", []],
-            [2, "ShowChoiceOption", "Yes, I'm just not good enough.", [1]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "Oh no! They're raising the bridge!", []],
-            [3, "Wait", "", [20]],
-            [3, "ChangeSpriteAssociation", "BLVehicles", [20, 2, 0]],
-            [3, "ChangeSpriteAssociation", "BLVehicles", [19, 2, 0]],
-            [3, "Teleport", "", [51, 1, 25]],
-            [3, "ControlSwitches", "", [0, 173, 173, 0]],
-            [3, "END", "", []],
-            [2, "ShowChoiceEnd", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "My driving skills aren't up to this... should", []],
-            [3, "ShowMessage_2", "I just have Saldra drive?", []],
-            [3, "ShowMessage", "Hand over the steering wheel?", []],
-            [3, "ShowChoice", "No, I can do this!/Yes, I'm just not good enough.", [2]],
-            [3, "ShowChoiceOption", "No, I can do this!", [0]],
-            [4, "END", "", []],
-            [3, "ShowChoiceOption", "Yes, I'm just not good enough.", [1]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "Oh no! They're raising the bridge!", []],
-            [4, "Wait", "", [20]],
-            [4, "ChangeSpriteAssociation", "BLVehicles", [20, 2, 0]],
-            [4, "ChangeSpriteAssociation", "BLVehicles", [19, 2, 0]],
-            [4, "Teleport", "", [51, 1, 25]],
-            [4, "ControlSwitches", "", [0, 173, 173, 0]],
-            [4, "END", "", []],
-            [3, "ShowChoiceEnd", "", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "TALAN", []],
-            [3, "ShowMessage_2", "My driving skills aren't up to this... should", []],
-            [3, "ShowMessage_2", "I just have AG7-17 drive?", []],
-            [3, "ShowMessage", "Hand over the steering wheel?", []],
-            [3, "ShowChoice", "No, I can do this!/Yes, I'm just not good enough.", [2]],
-            [3, "ShowChoiceOption", "No, I can do this!", [0]],
-            [4, "END", "", []],
-            [3, "ShowChoiceOption", "Yes, I'm just not good enough.", [1]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "Oh no! They're raising the bridge!", []],
-            [4, "Wait", "", [20]],
-            [4, "ChangeSpriteAssociation", "BLVehicles", [20, 2, 0]],
-            [4, "ChangeSpriteAssociation", "BLVehicles", [19, 2, 0]],
-            [4, "Teleport", "", [51, 1, 25]],
-            [4, "ControlSwitches", "", [0, 173, 173, 0]],
-            [4, "END", "", []],
-            [3, "ShowChoiceEnd", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 173, 1, 0, 0, 1]],
-            [1, "MessageOptions", "", [0, 1, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Let's try that again...", []],
-            [1, "ChangeSpriteAssociation", "BLVehicles", [20, 2, 0]],
-            [1, "ChangeSpriteAssociation", "BLVehicles", [19, 2, 0]],
-            [1, "ConditionalBranch", "", [0, 174, 0, 0, 0, 1]],
-            [2, "ConditionalBranch", "", [0, 178, 0, 0, 0, 1]],
-            [3, "Teleport", "", [54, 2, 26]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "Teleport", "", [52, 2, 26]],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "Teleport", "", [49, 2, 26]],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 171, 171, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 170, 170, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 175, 175, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 177, 177, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 172, 172, 1]},
+            {"code": "PanScreen", "parameters": [2, 3, 7, 4, 0]},
+            {"code": "ControlVars", "parameters": [0, 38, 38, 1, 0, 1, 0]},
+            {"code": "ConditionalBranch", "parameters": [1, 38, 0, 5, 1, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "My driving skills aren't up to this... should"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "I just have Arden drive?"},
+            {"code": "ShowMessage", "indent": 2, "string": "Hand over the steering wheel?"},
+            {
+              "code": "ShowChoice",
+              "indent": 2,
+              "parameters": [2],
+              "string": "No, I can do this!/Yes, I'm just not good enough."
+            },
+            {
+              "code": "ShowChoiceOption",
+              "indent": 2,
+              "parameters": [0],
+              "string": "No, I can do this!"
+            },
+            {"code": "END", "indent": 3},
+            {
+              "code": "ShowChoiceOption",
+              "indent": 2,
+              "parameters": [1],
+              "string": "Yes, I'm just not good enough."
+            },
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Oh no! They're raising the bridge!"
+            },
+            {"code": "Wait", "indent": 3, "parameters": [20]},
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 3,
+              "parameters": [20, 2, 0],
+              "string": "BLVehicles"
+            },
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 3,
+              "parameters": [19, 2, 0],
+              "string": "BLVehicles"
+            },
+            {"code": "Teleport", "indent": 3, "parameters": [51, 1, 25]},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 173, 173, 0]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceEnd", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "My driving skills aren't up to this... should"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "I just have Saldra drive?"},
+            {"code": "ShowMessage", "indent": 3, "string": "Hand over the steering wheel?"},
+            {
+              "code": "ShowChoice",
+              "indent": 3,
+              "parameters": [2],
+              "string": "No, I can do this!/Yes, I'm just not good enough."
+            },
+            {
+              "code": "ShowChoiceOption",
+              "indent": 3,
+              "parameters": [0],
+              "string": "No, I can do this!"
+            },
+            {"code": "END", "indent": 4},
+            {
+              "code": "ShowChoiceOption",
+              "indent": 3,
+              "parameters": [1],
+              "string": "Yes, I'm just not good enough."
+            },
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "Oh no! They're raising the bridge!"
+            },
+            {"code": "Wait", "indent": 4, "parameters": [20]},
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 4,
+              "parameters": [20, 2, 0],
+              "string": "BLVehicles"
+            },
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 4,
+              "parameters": [19, 2, 0],
+              "string": "BLVehicles"
+            },
+            {"code": "Teleport", "indent": 4, "parameters": [51, 1, 25]},
+            {"code": "ControlSwitches", "indent": 4, "parameters": [0, 173, 173, 0]},
+            {"code": "END", "indent": 4},
+            {"code": "ShowChoiceEnd", "indent": 3},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "My driving skills aren't up to this... should"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "I just have AG7-17 drive?"},
+            {"code": "ShowMessage", "indent": 3, "string": "Hand over the steering wheel?"},
+            {
+              "code": "ShowChoice",
+              "indent": 3,
+              "parameters": [2],
+              "string": "No, I can do this!/Yes, I'm just not good enough."
+            },
+            {
+              "code": "ShowChoiceOption",
+              "indent": 3,
+              "parameters": [0],
+              "string": "No, I can do this!"
+            },
+            {"code": "END", "indent": 4},
+            {
+              "code": "ShowChoiceOption",
+              "indent": 3,
+              "parameters": [1],
+              "string": "Yes, I'm just not good enough."
+            },
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "Oh no! They're raising the bridge!"
+            },
+            {"code": "Wait", "indent": 4, "parameters": [20]},
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 4,
+              "parameters": [20, 2, 0],
+              "string": "BLVehicles"
+            },
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 4,
+              "parameters": [19, 2, 0],
+              "string": "BLVehicles"
+            },
+            {"code": "Teleport", "indent": 4, "parameters": [51, 1, 25]},
+            {"code": "ControlSwitches", "indent": 4, "parameters": [0, 173, 173, 0]},
+            {"code": "END", "indent": 4},
+            {"code": "ShowChoiceEnd", "indent": 3},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 173, 1, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Let's try that again..."},
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 1,
+              "parameters": [20, 2, 0],
+              "string": "BLVehicles"
+            },
+            {
+              "code": "ChangeSpriteAssociation",
+              "indent": 1,
+              "parameters": [19, 2, 0],
+              "string": "BLVehicles"
+            },
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 174, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 178, 0, 0, 0, 1]},
+            {"code": "Teleport", "indent": 3, "parameters": [54, 2, 26]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "Teleport", "indent": 3, "parameters": [52, 2, 26]},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "Teleport", "indent": 2, "parameters": [49, 2, 26]},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 173
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 173
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 11
     }
-  ]
+  ],
+  "save_count": 43
 }

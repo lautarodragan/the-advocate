@@ -1,83 +1,82 @@
 {
-  "id": 84,
-  "name": "OutsideFactory",
-  "size": [20, 15],
-  "chipset": [20, "BLchp1"],
-  "tiles": "Map0084.tiles",
+  "chipset_id": 20,
   "events": [
     {
       "id": 1,
       "name": "Transport",
-      "at": [9, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 5,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 5,
+          "character_name": "BLVehicles",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TRANSPORT DRIVER"},
+            {"code": "ShowMessage_2", "string": "Corporal, I have orders to get you"},
+            {"code": "ShowMessage_2", "string": "to Tasgarde Military Base as soon"},
+            {"code": "ShowMessage_2", "string": "as possible."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Do your duty, driver."},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [66, 59, 20]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TRANSPORT DRIVER", []],
-            [0, "ShowMessage_2", "Corporal, I have orders to get you", []],
-            [0, "ShowMessage_2", "to Tasgarde Military Base as soon", []],
-            [0, "ShowMessage_2", "as possible.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Do your duty, driver.", []],
-            [0, "ChangePartyMembers", "", [1, 0, 21]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [66, 59, 20]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 13
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 9],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [83, 35, 73]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [83, 35, 73]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 9
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [8, 9],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [83, 35, 73]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [83, 35, 73]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 9
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 9],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [83, 35, 73]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [83, 35, 73]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     }
-  ]
+  ],
+  "save_count": 9
 }

@@ -1,57 +1,54 @@
 {
-  "id": 162,
-  "name": "Arden Tutorial",
-  "size": [20, 15],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0162.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "RunArdenTutorial",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MemorizeBGM", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "Arden is a member of the Neon Vipers", []],
-            [0, "ShowMessage_2", "street gang.", []],
-            [0, "ShowMessage", "Her weapon of choice is the Dagger, and", []],
-            [0, "ShowMessage_2", "she is also skilled with specially-weighted", []],
-            [0, "ShowMessage_2", "throwing knives.", []],
-            [0, "ShowMessage", "Arden learns her Streetwise skills at", []],
-            [0, "ShowMessage_2", "set increments while gaining levels.", []],
-            [0, "ShowMessage_2", "She can learn additional skills by taking", []],
-            [0, "ShowMessage_2", "certain actions.", []],
-            [0, "PlayMemorizedBGM", "", []],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "RecallToLocation", "", [127, 128, 129]]
-          ]
+          "character_direction": "right",
+          "event_commands": [
+            {"code": "MemorizeBGM"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "Arden is a member of the Neon Vipers"},
+            {"code": "ShowMessage_2", "string": "street gang."},
+            {"code": "ShowMessage", "string": "Her weapon of choice is the Dagger, and"},
+            {"code": "ShowMessage_2", "string": "she is also skilled with specially-weighted"},
+            {"code": "ShowMessage_2", "string": "throwing knives."},
+            {"code": "ShowMessage", "string": "Arden learns her Streetwise skills at"},
+            {"code": "ShowMessage_2", "string": "set increments while gaining levels."},
+            {"code": "ShowMessage_2", "string": "She can learn additional skills by taking"},
+            {"code": "ShowMessage_2", "string": "certain actions."},
+            {"code": "PlayMemorizedBGM"},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "RecallToLocation", "parameters": [127, 128, 129]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [10, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     }
-  ]
+  ],
+  "save_count": 30
 }

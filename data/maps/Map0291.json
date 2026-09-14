@@ -1,568 +1,571 @@
 {
-  "id": 291,
-  "name": "Talan Upperlevel Room",
-  "size": [20, 80],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0291.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 30],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 23, 1, 23, 12, 23, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What IS this place?", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This room is full of charging stations for", []],
-            [1, "ShowMessage_2", "battledroids!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Hey... these alcoves look like they", []],
-            [1, "ShowMessage_2", "were used to repair and service", []],
-            [1, "ShowMessage_2", "battledroids, AG7!", []],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "6%@rw2j^@# {", []],
-            [1, "ShowMessage_2", "Recharge_Repair = TRUE", []],
-            [1, "ShowMessage_2", "}", []],
-            [1, "MoveEvent", "", [2, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 14, 29]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This is no mere refinery. This place was", []],
-            [1, "ShowMessage_2", "built for war!", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This room is full of charging stations for", []],
-            [1, "ShowMessage_2", "battledroids!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "This is no mere refinery. This place was", []],
-            [1, "ShowMessage_2", "built for war!", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "PanScreen", "", [2, 0, 20, 4, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 20, 1]],
-            [0, "ControlSwitches", "", [0, 693, 693, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ControlSwitches", "", [0, 693, 693, 0]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 26]],
-            [0, "ChangePartyMembers", "", [1, 0, 27]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 25]],
-            [0, "ChangePartyMembers", "", [0, 0, 32]],
-            [0, "Teleport", "", [261, 27, 21]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 1, 23, 1, 23, 12, 23, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What IS this place?"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This room is full of charging stations for"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "battledroids!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Hey... these alcoves look like they"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "were used to repair and service"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "battledroids, AG7!"},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "6%@rw2j^@# {"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Recharge_Repair = TRUE"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "}"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [2, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 14, 29]
+            },
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This is no mere refinery. This place was"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "built for war!"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This room is full of charging stations for"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "battledroids!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "This is no mere refinery. This place was"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "built for war!"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "PanScreen", "parameters": [2, 0, 20, 4, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 20, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 693, 693, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ControlSwitches", "parameters": [0, 693, 693, 0]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 26]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 27]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 25]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 32]},
+            {"code": "Teleport", "parameters": [261, 27, 21]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "y": 30
     },
     {
       "id": 2,
       "name": "AG7-17 From Party",
-      "at": [0, 35],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 150
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 150
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 35
     },
     {
       "id": 3,
       "name": "AfterBattleMint",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 7,
       "name": "Battledroid",
-      "at": [2, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 22
     },
     {
       "id": 8,
       "name": "Battledroid",
-      "at": [8, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 22
     },
     {
       "id": 9,
       "name": "Battledroid",
-      "at": [14, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 22
     },
     {
       "id": 10,
       "name": "Battledroid",
-      "at": [14, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 11,
       "name": "Battledroid",
-      "at": [11, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 16
     },
     {
       "id": 12,
       "name": "Battledroid",
-      "at": [5, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 16
     },
     {
       "id": 13,
       "name": "Battledroid",
-      "at": [17, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 29
     },
     {
       "id": 14,
       "name": "Battledroid",
-      "at": [14, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 29
     },
     {
       "id": 15,
       "name": "Battledroid",
-      "at": [11, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 22
     },
     {
       "id": 16,
       "name": "Battledroid",
-      "at": [5, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 22
     },
     {
       "id": 17,
       "name": "Battledroid",
-      "at": [17, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 22
     },
     {
       "id": 18,
       "name": "Battledroid",
-      "at": [2, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 29
     },
     {
       "id": 19,
       "name": "Battledroid",
-      "at": [2, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 16
     },
     {
       "id": 20,
       "name": "Battledroid",
-      "at": [17, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 16
     },
     {
       "id": 21,
       "name": "Battledroid",
-      "at": [8, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 16
     },
     {
       "id": 22,
       "name": "Battledroid",
-      "at": [5, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 9
     },
     {
       "id": 23,
       "name": "Battledroid",
-      "at": [11, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 9
     },
     {
       "id": 24,
       "name": "Battledroid",
-      "at": [14, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 9
     },
     {
       "id": 25,
       "name": "Battledroid",
-      "at": [17, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 9
     },
     {
       "id": 26,
       "name": "Battledroid",
-      "at": [8, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 2
     },
     {
       "id": 27,
       "name": "Battledroid",
-      "at": [2, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 2
     },
     {
       "id": 28,
       "name": "Battledroid",
-      "at": [5, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 2
     },
     {
       "id": 29,
       "name": "Battledroid",
-      "at": [8, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 9
     },
     {
       "id": 30,
       "name": "Battledroid",
-      "at": [2, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 9
     },
     {
       "id": 31,
       "name": "Battledroid",
-      "at": [11, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 2
     },
     {
       "id": 32,
       "name": "Battledroid",
-      "at": [14, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 2
     },
     {
       "id": 33,
       "name": "Battledroid",
-      "at": [17, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 2
     }
-  ]
+  ],
+  "height": 80,
+  "save_count": 73
 }

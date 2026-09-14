@@ -1,399 +1,546 @@
 {
-  "id": 12,
-  "name": "Trash Dump 004",
-  "size": [50, 50],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0012.tiles",
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [1, 47],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I might be able to climb over the fence here.", []],
-            [0, "ShowChoice", "Climb the Fence/Don't Bother", [2]],
-            [0, "ShowChoiceOption", "Climb the Fence", [0]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 36, 2, 2, 25]],
-            [1, "Wait", "", [6]],
-            [1, "Teleport", "", [8, 40, 51]],
-            [1, "ControlSwitches", "", [0, 39, 39, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 2, 2, 2, 25, 37]],
-            [1, "Wait", "", [10]],
-            [1, "ControlSwitches", "", [0, 36, 36, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "Don't Bother", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'm too old to be climbing around fences", []],
-            [1, "ShowMessage_2", "and stuff! What a crazy idea!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [1, "Wait", "", [3]],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I might be able to climb over the fence here."},
+            {"code": "ShowChoice", "parameters": [2], "string": "Climb the Fence/Don't Bother"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Climb the Fence"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 36, 2, 2, 25]},
+            {"code": "Wait", "indent": 1, "parameters": [6]},
+            {"code": "Teleport", "indent": 1, "parameters": [8, 40, 51]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 39, 39, 1]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 2, 2, 25, 37]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 36, 36, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "Don't Bother"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'm too old to be climbing around fences"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "and stuff! What a crazy idea!"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [3]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 47
     },
     {
       "id": 2,
       "name": "NV Lookout1",
-      "at": [14, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 3,
       "name": "NV Lookout",
-      "at": [13, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 33
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [9, 13],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 38, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 29, 39, 37]],
-            [0, "ControlSwitches", "", [0, 39, 39, 0]]
-          ]
+          "event_commands": [
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 36, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 38, 28, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 29, 39, 37
+              ]
+            },
+            {"code": "ControlSwitches", "parameters": [0, 39, 39, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 39
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 39
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 13
     },
     {
       "id": 5,
       "name": "Conda",
-      "at": [12, 45],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 45
     },
     {
       "id": 6,
       "name": "NVone",
-      "at": [15, 42],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 42
     },
     {
       "id": 7,
       "name": "NVtwo",
-      "at": [14, 36],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Chara2", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 14,
+      "y": 36
     },
     {
       "id": 8,
       "name": "NVthree",
-      "at": [18, 40],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Chara2", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 18,
+      "y": 40
     },
     {
       "id": 9,
       "name": "NV hotplate",
-      "at": [5, 39],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 24
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 24
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 58, 58, 0]],
-            [0, "FadeOutBGM", "", [1000]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 2, 2, 1]],
-            [0, "Wait", "", [10]],
-            [0, "PlayBGM", "cd2", [0, 100, 100, 50]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Hold it!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 3, 3, 3]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 36, 24, 2, 2, 25, 37, 15]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I, uh... took a wrong turn... I'll just be", []],
-            [0, "ShowMessage_2", "leaving now...", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "This turf belongs to the Neon Vipers.", []],
-            [0, "ShowMessage_2", "No one may enter OR leave without", []],
-            [0, "ShowMessage_2", "our permission!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Look, I'm sorry to intrude... it's just that", []],
-            [0, "ShowMessage_2", "I need to get to Sector 30, and -", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "The Lazer Teeth have blocked off 33. You", []],
-            [0, "ShowMessage_2", "won't be able to get through that way.", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Hmmm... we might have a use for you.", []],
-            [0, "ShowMessage_2", "Will you carry out a mission for us?", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "If you succeed, we'll get you to Sector 30.", []],
-            [0, "ShowMessage_2", "What do you say?", []],
-            [0, "ShowChoice", "Yes, I'll do it!/No, it's a waste of time!", [2]],
-            [0, "ShowChoiceOption", "Yes, I'll do it!", [0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Yes, I'll do it. What am I doing, exactly?", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Our arch-rivals, the Lazer Teeth, have", []],
-            [1, "ShowMessage_2", "possession of the Idol of the Streets, a", []],
-            [1, "ShowMessage_2", "sign of Gang Superiority.", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "If we had the Idol, the Neon Vipers would", []],
-            [1, "ShowMessage_2", "truly be Number One!!", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Retrieve the Idol of the Streets from the", []],
-            [1, "ShowMessage_2", "Lazer Teeth in 33, and we'll get you to 30.", []],
-            [1, "ConditionalBranch", "", [0, 53, 0, 0, 0, 1]],
-            [2, "MessageOptions", "", [1, 1, 0, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I wonder if I should tell them I already", []],
-            [2, "ShowMessage_2", "got the Idol? Nah...", []],
-            [2, "MessageOptions", "", [0, 2, 1, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "All right. But you'd better keep your word!", []],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "As had you, my \"friend\".", []],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "Conda will lead you out.", []],
-            [2, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [2, "Wait", "", [3]],
-            [2, "ControlSwitches", "", [0, 37, 37, 0]],
-            [2, "ControlSwitches", "", [0, 41, 41, 0]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [2, "Teleport", "", [8, 44, 13]],
-            [2, "PlayBGM", "hzstream", [0, 100, 100, 50]],
-            [2, "ControlSwitches", "", [0, 39, 39, 1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "All right. But you'd better keep your word!", []],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "As had you, my \"friend\".", []],
-            [2, "ShowMessage", "GANG MEMBER", []],
-            [2, "ShowMessage_2", "Conda will lead you out.", []],
-            [2, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [2, "Wait", "", [3]],
-            [2, "ControlSwitches", "", [0, 37, 37, 0]],
-            [2, "ControlSwitches", "", [0, 41, 41, 0]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [2, "Teleport", "", [8, 44, 13]],
-            [2, "PlayBGM", "hzstream", [0, 100, 100, 50]],
-            [2, "ControlSwitches", "", [0, 39, 39, 1]],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No, it's a waste of time!", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "No, it's a waste of time!", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "What?! You can't refuse us! We're the", []],
-            [1, "ShowMessage_2", "Neon Vipers!", []],
-            [1, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [1, "Wait", "", [3]],
-            [1, "ShowMessage", "CONDA", []],
-            [1, "ShowMessage_2", "Do you think he's one of the Lazer Teeth?", []],
-            [1, "ShowMessage_2", "Maybe they found out about our spy...", []],
-            [1, "MoveEvent", "", [6, 8, 0, 0, 14]],
-            [1, "Wait", "", [3]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Conda!!! Be quiet!!", []],
-            [1, "ShowMessage", "CONDA", []],
-            [1, "ShowMessage_2", "But.. I mean... oops..", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'd better make a quick exit...", []],
-            [1, "ControlSwitches", "", [0, 38, 38, 0]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2]],
-            [1, "Wait", "", [30]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 36, 2, 2, 25]],
-            [1, "FadeOutBGM", "", [1000]],
-            [1, "Wait", "", [6]],
-            [1, "ControlSwitches", "", [0, 39, 39, 1]],
-            [1, "Teleport", "", [8, 40, 51]],
-            [1, "PlayBGM", "hzstream", [0, 100, 100, 50]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 2, 2, 2, 25, 37]],
-            [1, "Wait", "", [10]],
-            [1, "ControlSwitches", "", [0, 36, 36, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 58, 58, 0]},
+            {"code": "FadeOutBGM", "parameters": [1000]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 2, 2, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "cd2"},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Hold it!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 3, 3, 3]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 2, 36, 24, 2, 2, 25, 37, 15]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 1, 1, 1, 1, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I, uh... took a wrong turn... I'll just be"},
+            {"code": "ShowMessage_2", "string": "leaving now..."},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "This turf belongs to the Neon Vipers."},
+            {"code": "ShowMessage_2", "string": "No one may enter OR leave without"},
+            {"code": "ShowMessage_2", "string": "our permission!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Look, I'm sorry to intrude... it's just that"},
+            {"code": "ShowMessage_2", "string": "I need to get to Sector 30, and -"},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "The Lazer Teeth have blocked off 33. You"},
+            {"code": "ShowMessage_2", "string": "won't be able to get through that way."},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Hmmm... we might have a use for you."},
+            {"code": "ShowMessage_2", "string": "Will you carry out a mission for us?"},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "If you succeed, we'll get you to Sector 30."},
+            {"code": "ShowMessage_2", "string": "What do you say?"},
+            {
+              "code": "ShowChoice",
+              "parameters": [2],
+              "string": "Yes, I'll do it!/No, it's a waste of time!"
+            },
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes, I'll do it!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yes, I'll do it. What am I doing, exactly?"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Our arch-rivals, the Lazer Teeth, have"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "possession of the Idol of the Streets, a"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "sign of Gang Superiority."},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "If we had the Idol, the Neon Vipers would"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "truly be Number One!!"},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Retrieve the Idol of the Streets from the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Lazer Teeth in 33, and we'll get you to 30."
+            },
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 53, 0, 0, 0, 1]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I wonder if I should tell them I already"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "got the Idol? Nah..."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "All right. But you'd better keep your word!"
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "As had you, my \"friend\"."},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Conda will lead you out."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 12]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 37, 37, 0]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 41, 41, 0]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "indent": 2, "parameters": [8, 44, 13]},
+            {
+              "code": "PlayBGM",
+              "indent": 2,
+              "parameters": [0, 100, 100, 50],
+              "string": "hzstream"
+            },
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 39, 39, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "All right. But you'd better keep your word!"
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "As had you, my \"friend\"."},
+            {"code": "ShowMessage", "indent": 2, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Conda will lead you out."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 12]},
+            {"code": "Wait", "indent": 2, "parameters": [3]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 37, 37, 0]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 41, 41, 0]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "indent": 2, "parameters": [8, 44, 13]},
+            {
+              "code": "PlayBGM",
+              "indent": 2,
+              "parameters": [0, 100, 100, 50],
+              "string": "hzstream"
+            },
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 39, 39, 1]},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {
+              "code": "ShowChoiceOption",
+              "parameters": [1],
+              "string": "No, it's a waste of time!"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "No, it's a waste of time!"},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "What?! You can't refuse us! We're the"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Neon Vipers!"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 12]},
+            {"code": "Wait", "indent": 1, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 1, "string": "CONDA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Do you think he's one of the Lazer Teeth?"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Maybe they found out about our spy..."
+            },
+            {"code": "MoveEvent", "indent": 1, "parameters": [6, 8, 0, 0, 14]},
+            {"code": "Wait", "indent": 1, "parameters": [3]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Conda!!! Be quiet!!"},
+            {"code": "ShowMessage", "indent": 1, "string": "CONDA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "But.. I mean... oops.."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I'd better make a quick exit..."},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 38, 38, 0]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 3, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [30]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 36, 2, 2, 25]},
+            {"code": "FadeOutBGM", "indent": 1, "parameters": [1000]},
+            {"code": "Wait", "indent": 1, "parameters": [6]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 39, 39, 1]},
+            {"code": "Teleport", "indent": 1, "parameters": [8, 40, 51]},
+            {
+              "code": "PlayBGM",
+              "indent": 1,
+              "parameters": [0, 100, 100, 50],
+              "string": "hzstream"
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 2, 2, 25, 37]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 36, 36, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 37,
-            "switch_b": 24
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 37,
+            "switch_b_id": 24
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "FadeOutBGM", "", [1000]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 2, 2, 1]],
-            [0, "Wait", "", [10]],
-            [0, "PlayBGM", "cd2", [0, 100, 100, 50]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 3, 3, 3]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "You haven't found the Idol of the Streets", []],
-            [0, "ShowMessage_2", "yet? The Lazer Teeth have it in 33! Conda!!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [0, "Wait", "", [3]],
-            [0, "ControlSwitches", "", [0, 41, 41, 0]],
-            [0, "Teleport", "", [8, 44, 13]],
-            [0, "ControlSwitches", "", [0, 39, 39, 1]],
-            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]]
-          ]
+          "event_commands": [
+            {"code": "FadeOutBGM", "parameters": [1000]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 2, 2, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "cd2"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 3, 3, 3]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "You haven't found the Idol of the Streets"},
+            {"code": "ShowMessage_2", "string": "yet? The Lazer Teeth have it in 33! Conda!!"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ControlSwitches", "parameters": [0, 41, 41, 0]},
+            {"code": "Teleport", "parameters": [8, 44, 13]},
+            {"code": "ControlSwitches", "parameters": [0, 39, 39, 1]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "hzstream"}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_b": 53,
-            "item": 90
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 90,
+            "switch_a_id": 37,
+            "switch_b_id": 53
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 2, 2, 2, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 3, 3, 3]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Unbelievable! To think that you have", []],
-            [0, "ShowMessage_2", "succeeded at a task the Neon Vipers", []],
-            [0, "ShowMessage_2", "were unable to complete...", []],
-            [0, "ConditionalBranch", "", [0, 37, 0, 0, 0, 1]],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "As promised, we will get you to Sector 30.", []],
-            [1, "ShowMessage_2", "Furthermore, from this day forward you", []],
-            [1, "ShowMessage_2", "will be an honorary Neon Viper!", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Is there anything at all we can do", []],
-            [1, "ShowMessage_2", "to repay you for giving us the Idol?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Wait... \"giving\" you the Idol? I thought", []],
-            [1, "ShowMessage_2", "maybe -", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "<arches eyebrow> Anything at all.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Well... I sort of need to get to work,", []],
-            [1, "ShowMessage_2", "but all the routes are pretty much", []],
-            [1, "ShowMessage_2", "inaccessable.", []],
-            [1, "ShowMessage", "GANG MEMBER", []],
-            [1, "ShowMessage_2", "Very well! We will do this small task", []],
-            [1, "ShowMessage_2", "for you. From now on, consider yourself", []],
-            [1, "ShowMessage_2", "a friend of the Neon Vipers!", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "PlaySound", "Success2", [100, 100, 50]],
-            [0, "ShowMessage", "TALAN made an ALLY: the Neon Vipers!", []],
-            [0, "ControlSwitches", "", [0, 54, 54, 0]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Let's move on out! We have to get a", []],
-            [0, "ShowMessage_2", "fellow Viper to his destination!", []],
-            [0, "ShowMessage", "ALL", []],
-            [0, "ShowMessage_2", "Like a snake in the dark, the Neon", []],
-            [0, "ShowMessage_2", "Vipers poise to strike!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well, OK - can we go?", []],
-            [0, "ShowMessage", "GANG MEMBER", []],
-            [0, "ShowMessage_2", "Move out!", []],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
-            [0, "ChangeItems", "", [1, 0, 90, 0, 1]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "Teleport", "", [14, 44, 13]],
-            [0, "ControlSwitches", "", [0, 37, 37, 1]],
-            [0, "ControlSwitches", "", [0, 53, 53, 1]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 2, 2, 2, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 3, 3, 3]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 36, 0, 24, 0, 25, 37, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Unbelievable! To think that you have"},
+            {"code": "ShowMessage_2", "string": "succeeded at a task the Neon Vipers"},
+            {"code": "ShowMessage_2", "string": "were unable to complete..."},
+            {"code": "ConditionalBranch", "parameters": [0, 37, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "As promised, we will get you to Sector 30."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Furthermore, from this day forward you"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "will be an honorary Neon Viper!"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Is there anything at all we can do"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "to repay you for giving us the Idol?"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Wait... \"giving\" you the Idol? I thought"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "maybe -"},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "<arches eyebrow> Anything at all."
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Well... I sort of need to get to work,"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "but all the routes are pretty much"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "inaccessable."},
+            {"code": "ShowMessage", "indent": 1, "string": "GANG MEMBER"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Very well! We will do this small task"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "for you. From now on, consider yourself"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "a friend of the Neon Vipers!"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Success2"},
+            {"code": "ShowMessage", "string": "TALAN made an ALLY: the Neon Vipers!"},
+            {"code": "ControlSwitches", "parameters": [0, 54, 54, 0]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Let's move on out! We have to get a"},
+            {"code": "ShowMessage_2", "string": "fellow Viper to his destination!"},
+            {"code": "ShowMessage", "string": "ALL"},
+            {"code": "ShowMessage_2", "string": "Like a snake in the dark, the Neon"},
+            {"code": "ShowMessage_2", "string": "Vipers poise to strike!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well, OK - can we go?"},
+            {"code": "ShowMessage", "string": "GANG MEMBER"},
+            {"code": "ShowMessage_2", "string": "Move out!"},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]
+            },
+            {"code": "ChangeItems", "parameters": [1, 0, 90, 0, 1]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "Teleport", "parameters": [14, 44, 13]},
+            {"code": "ControlSwitches", "parameters": [0, 37, 37, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 53, 53, 1]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 39
     }
-  ]
+  ],
+  "height": 50,
+  "save_count": 54,
+  "width": 50
 }

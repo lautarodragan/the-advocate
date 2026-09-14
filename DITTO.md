@@ -14,7 +14,8 @@ propio repositorio, lo de acá se quedaría y lo de allá se iría con él.
 ## El bug que lo originó
 
 Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,
-con un lector propio en Python (`tools/lcf.py`), y el volcado a `data/*.json`
+con un lector propio en Python —el `tools/lcf.py` de entonces, que hoy es
+`tools/lcf_bin.py`—, y el volcado a `data/*.json`
 era un camino paralelo con su propio decodificador. Dos caminos para el mismo
 formato, y los dos con los defaults escritos a mano.
 
@@ -34,14 +35,81 @@ El formato de RM2k se lee **una sola vez**, en Ditto, y de ahí sale el JSON que
 el resto del toolchain consume. No se lee el binario en cada build ni se
 mantienen dos decodificadores.
 
-**Todavía no pasó.** Ditto no reemplaza a nadie: convive con `tools/lcf.py` y
-con el conversor, que siguen leyendo los binarios. La decisión está tomada y el
-cambio son tres pasos, decididos con taro:
+**Ya pasó.** Desde el 2026-09-14, `data/` es el volcado de Ditto y
+`tools/lcf.py` lo lee: el conversor, la referencia en Python y las pruebas
+están todas mirando esos archivos, y ningún `.lmu` se abre para armar una ROM.
+Los tres pasos, decididos con taro:
 
 1. Que Ditto **omita los defaults** al serializar y emita **la estructura de
-   `data/`**. Hecho el 2026-09-14; es lo que cuenta la sección de abajo.
-2. **Volcar los JSON una vez y versionarlos.**
-3. Que **`tools/lcf.py` los lea**, con sus 51 consumidores intactos.
+   `data/`**. Hecho; es la sección de abajo.
+2. **Volcar los JSON una vez y versionarlos.** Hecho: `just datos` escribe
+   `data/`, y el volcado que ganó fue el de Ditto —lo eligió taro—.
+3. Que **`tools/lcf.py` los lea**, con sus 51 consumidores intactos. Hecho, y
+   los 51 quedaron intactos.
+
+### Paso 3: cómo quedó `tools/lcf.py`, y qué costó
+
+Las clases —`Map`, `Database`, `TreeMap` y todo lo que cuelga— tienen los
+mismos atributos que antes, con los mismos tipos, y siguen recibiendo la ruta a
+un `.lmu` o a un `RPG_RT.ldb`. De esa ruta ahora sólo se usa **el nombre**, y
+el directorio sólo si tiene adentro un volcado propio (un `ditto.json`): así un
+juego que no es éste se lee pasándole su propio volcado, y `--game-dir` sigue
+queriendo decir de dónde salen los PNG y los MIDI, que no se mudaron.
+
+**Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** El
+JSON omite todo campo que valga el suyo, la misma regla que el binario, así que
+leerlo es saber qué vale un campo ausente. Eso sale de `tools/ditto_schema.py`,
+que **se genera desde el esquema de Ditto** —`tools/gen_ditto_schema.py`— y
+trae, por campo: su chunk, su default, su enum si tiene, si el formato lo
+escribe aunque valga el default (`PersistIfDefault`) y qué struct lleva
+adentro. Es la misma idea que `gen_schema.py` con la fuente corrida un lugar:
+liblcf genera el esquema de Ditto y Ditto genera éste.
+
+Los enums vienen por nombre —`"same"`, `"auto_start"`, `"ShowMessage"`— y
+vuelven al número con las tablas de ese mismo archivo.
+
+**Tres consumidores tuvieron que cambiar, y ninguno de los 51.** Los que
+cambiaron no llamaban a `lcf.Map`: metían la mano **por debajo** de la capa, a
+los chunks crudos de `db.fields`, que ya no existen porque no hay binario.
+
+* `tools/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
+  el chunk 0x19 de la base y el 0x16 de cada uno; ahora es `db.common_events`,
+  que la capa arma.
+* `pruebas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
+  tropas igual; ahora salen de `db.decode()`.
+
+`db.terminos` —los términos por número de chunk, que es como los pide la
+tienda— **no** cambió: la capa lo sigue dando en bytes.
+
+### Y el único dato del juego que cambió
+
+**Uno, medido, y es un arreglo.** `Learning.skill_id` —qué habilidad aprende un
+actor en tal nivel— vale **1** cuando el archivo no lo trae, que es lo que dice
+`fields.csv`; en `lcf.py` estaba escrito 0. Le pasa a un solo actor, **Alex, el
+1**, que es del RTP y este juego no usa: aprende la habilidad 1 en el nivel 1,
+y antes eso llegaba como la 0 y se caía. Son **dos bytes** en la tabla
+`sabe_hab`.
+
+Está medido con el criterio que pidió taro: se armaron `demo-ciudad` y
+`demo-titulo` antes y después. Con ese default puesto de vuelta en 0, el
+`mapdata.inc` de `demo-ciudad` sale **byte por byte idéntico** al de antes
+—mismo md5—; con el default del formato, la única diferencia en las 148.686
+líneas es esa tabla. Así que la migración no movió ningún otro dato.
+
+### Lo que la mudanza destapó
+
+**Una prueba que no medía nada.** `test_ninguna_tropa_filtra_por_terreno` leía
+el `terrain_set` del chunk **0x13** de la base, que es `animations` y no
+`troops` —el de las tropas es el 0x0F—: preguntaba por un chunk que ninguna
+animación tiene, siempre daba vacío y siempre pasaba. Con los JSON, que se leen
+por nombre, apareció lo que había: **doce de las tropas que salen en encuentros
+al azar sí filtran por terreno**.
+
+La simplificación del port se sostiene igual, pero por otra razón que la que
+decía la prueba: ninguna de esas doce excluye un terreno que su mapa **pise de
+verdad** —medido mapa por mapa y celda por celda; los mapas con encuentros
+pisan el terreno 1 casi siempre, y el 12, el 13, el 14 y los del 15 al 25 en
+seis mapas—. La prueba ahora mide eso, que es lo que hay que cuidar.
 
 ## Paso 1: el volcado por directorios, y cuánto pesa
 
@@ -52,29 +120,25 @@ tiles aparte en `maps/Map0001.tiles`, y las 15 secciones de la base en `db/`.
 El porqué de cada decisión está en `ditto/README.md`, en inglés; acá va lo que
 es de este repo.
 
-**Ditto no reemplaza a `tools/export_json.py` en esta vuelta, y no escribió una
-sola línea en `data/`.** Cuál de los dos gana es el paso 2 y lo decide taro con
-los dos volcados a la vista. Lo que sí se puede comparar ya son los números,
-sobre el mismo juego:
+Los pesos, sobre el mismo juego:
 
     17.569.229   el .ldb como un solo JSON, omitiendo defaults
     25.675.888   el .ldb como un solo JSON, como estaba antes
-    19.506.490   el volcado de Ditto entero, 674 archivos
-    16.121.259   el volcado de hoy, el de tools/export_json.py
+    19.445.521   el volcado de Ditto entero, 674 archivos: lo que hoy es data/
+    16.121.259   el volcado que reemplazó, el de tools/export_json.py
 
-O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y el volcado
-completo de Ditto queda **21% por encima** del de hoy. La diferencia no es
-grasa: el de Python es una *lectura* del juego —un comando de evento entra en
-una línea, y los campos que al port no le sirven no están—, y el de Ditto tiene
-que poder volver a escribir el binario, así que lleva todo. Un mapa concreto,
-el 8, pasó de 439.222 bytes como un JSON suelto a 99.915 de JSON más 67.902 de
-`.tiles`.
+O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y `data/` pesa
+**21% más** que el volcado de Python que reemplazó. La diferencia no es grasa:
+el de Python era una *lectura* del juego —un comando de evento en una línea, y
+los campos que al port no le sirven no estaban—, y el de Ditto tiene que poder
+volver a escribir el binario, así que lleva todo. Un mapa concreto, el 8, pasó
+de 439.222 bytes como un JSON suelto a 99.915 de JSON más 67.902 de `.tiles`.
 
-**Lo que hay que mirar al elegir en el paso 2** es que los dos volcados no
-dicen lo mismo: `data/maps.json` de hoy trae `file`, `size` y nombres que el
-conversor usa, y el de Ditto trae el `.lmt` tal cual. El paso 3 —que
-`tools/lcf.py` lea JSON— es el que va a decir cuál de las dos formas le sirve a
-los 51 consumidores.
+Y `tools/export_json.py` quedó sin dueño: ya no escribe `data/` —escribe a
+`/extras/volcado-python`, para no pisarlo— y lo único que aporta es esa lectura
+más corta. Si se decide que no hace falta, se va con `tools/lcf_bin.py` —el
+lector de binarios, que es el `lcf.py` de antes—, `tools/gen_schema.py` y
+`tools/lcf_schema.py`, que son lo único que quedó usándolo.
 
 ## El corpus
 
