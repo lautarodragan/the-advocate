@@ -42,7 +42,7 @@ def abrir(una, tope=60):
     raise AssertionError("B no abrió el menú en %d cuadros" % tope)
 
 
-def comparar(una, elegida, guardar=True, nombre="menu"):
+def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     import lcf
     import titulo
     import ventana
@@ -53,7 +53,7 @@ def comparar(una, elegida, guardar=True, nombre="menu"):
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
-                                  None, GAME_DIR)
+                                  None, GAME_DIR, hp)
     distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
                     if x != y)
     if distintos:
@@ -195,3 +195,64 @@ def test_el_permiso_de_escapar_viaja_en_la_partida(partida):
     assert una.acceso() & 4
     una.reiniciar()
     assert una.acceso() & 4, "el permiso de escapar no volvió de la SRAM"
+
+
+# --- los HP de ahora, que no son los del bloque ------------------------------
+
+def poner_hp(una, cuanto):
+    """Los HP del grupo en la RAM lejana, como los deja una pelea."""
+    for actor, valor in cuanto.items():
+        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
+                                 [valor & 0xFF, valor >> 8])
+    return una
+
+
+# Talan con dos cifras y Kersh con tres: las tres cifras se escriben alineadas
+# a la derecha, así que un número corto tiene que **borrar** la celda que
+# quedaba a su izquierda. Con un solo largo el caso pasaría igual con la ROM
+# escribiendo basura ahí.
+HP_DE_PELEA = {14: 7, 11: 103}
+
+
+def test_el_menu_muestra_los_hp_que_dejo_la_pelea(partida):
+    """Lo que taro reportó jugando: el número del menú no se movía nunca.
+
+    Hasta el 2026-09-13 los HP iban horneados adentro del bloque de la fila del
+    actor, que el conversor dibuja una vez y la ROM sube tal cual, así que el
+    menú mostraba siempre el máximo del nivel —"siempre se muestra en 40", que
+    es el de Talan— por más que la pelea los hubiera bajado. Ahora las tres
+    cifras las escribe la ROM desde `FAR_HP`, con las mismas celdas que el oro.
+
+    **Comprobado en rojo con la ROM de antes**: 111 pixeles de diferencia, los
+    de las tres cifras que la ROM no escribía.
+    """
+    una = con_grupo(partida())
+    poner_hp(una, HP_DE_PELEA)
+    abrir(una)
+    comparar(una, 0, nombre="menu-hp", hp=HP_DE_PELEA)
+
+
+def test_los_hp_del_menu_cambian_de_verdad():
+    """Y el control de que el caso de arriba mide algo: la referencia con los
+    HP de la pelea **no** es la misma imagen que con los HP llenos.
+
+    Sin esto, una ROM que siguiera horneando el máximo pasaría el caso de
+    arriba el día que la referencia se equivocara igual, que es la forma de
+    falla que AGENTS.md nombra primero.
+    """
+    import lcf
+    import titulo
+    import ventana
+    from render_map import GAME_DIR
+    from snes_compare import quantize
+    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    skin = ventana.skin(GAME_DIR, db.system_name)
+    llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
+                               None, GAME_DIR)
+    herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
+                                None, GAME_DIR, HP_DE_PELEA)
+    distintos = sum(1 for x, y in zip(quantize(llena), quantize(herida))
+                    if x != y)
+    assert distintos > 50, (
+        "la referencia dibuja lo mismo con el grupo entero y con el grupo "
+        "herido: %d pixeles de diferencia" % distintos)

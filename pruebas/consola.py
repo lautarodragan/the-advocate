@@ -585,7 +585,7 @@ def huella():
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
           rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False,
-          batalla=0, game_over=False):
+          batalla=0, game_over=False, encuentros=0, grupo=None):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -610,7 +610,8 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     actual = huella() + "\n" + repr((
         map_id, tuple(mapas), con_ventana, tuple(rama), descartar, guardar,
         titulo, tema, tuple(variables), tuple(rama_var), tuple(items),
-        tuple(acceso), tuple(tecla), espera, timer, batalla, game_over))
+        tuple(acceso), tuple(tecla), espera, timer, batalla, game_over,
+        encuentros, tuple(grupo or ())))
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
             with open(sello) as archivo:
@@ -620,7 +621,8 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
             pass
 
     convertir = [sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py"),
-                 "--grupo", GRUPO, "--map-id", str(map_id)]
+                 "--grupo"] + [str(a) for a in (grupo or GRUPO.split())] + [
+                 "--map-id", str(map_id)]
     if mapas:
         convertir += ["--mapas"] + [str(m) for m in mapas]
     if rama:
@@ -651,6 +653,11 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
                       "--pagina-de-prueba", str(espera)]
         if game_over:
             convertir.append("--batalla-game-over")
+    if encuentros:
+        # Los encuentros al azar cada `encuentros` pasos, en vez de los del
+        # árbol de mapas: sin esto una prueba tendría que caminar hasta que le
+        # tocara, y en Rat Tracks B1 son ochenta pasos por encuentro.
+        convertir += ["--encuentros-de-prueba", str(encuentros)]
     if guardar:
         # La página de prueba espera `guardar` ticks y recién ahí guarda la
         # partida. La espera es lo que le deja a la prueba mover el mundo antes

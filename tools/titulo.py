@@ -713,8 +713,17 @@ MENU_ACTOR_COLS = COLS - MENU_ACTOR_COL
 MENU_ACTOR_FILAS = 7
 MENU_TEXTO_X = MENU_ACTOR_COL * CELL + CARA + 8     # 152
 MENU_ESTADO_DX = 42             # "Normal" va a 42 del nivel, como en RM2k
-MENU_HP_DX = 12                 # y los números de HP a 12 del "HP"
 MENU_FILAS_GRUPO = 4
+# Los HP de ahora: tres cifras **de a una celda cada una**, por lo mismo que
+# el oro —que la ROM las escriba de a una sin rearmar tiles—. Van en la
+# tercera línea de la fila del actor, o sea las filas 4 y 5 del bloque, que es
+# donde las cifras del oro caen alineadas: las dos se dibujan a dos pixeles
+# del borde de arriba de su celda. El máximo va detrás, con la barra, y ése sí
+# se hornea: no cambia nunca.
+MENU_HP_CIFRAS = 3              # ningún actor del juego pasa de 999
+MENU_HP_COL = 21                # x = 168, pegado al "HP" de la izquierda
+MENU_HP_FILA = 4                # la tercera línea, adentro del bloque
+MENU_MAX_X = (MENU_HP_COL + MENU_HP_CIFRAS) * CELL      # 192
 
 
 # --- la pantalla de ítems -----------------------------------------------------
@@ -839,9 +848,19 @@ def pantalla_items(sys_img, font_id=None):
 
 
 def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
-    """El texto de un actor en el menú, en la fila de arriba de todo: nombre,
-    nivel y estado, y HP. Los HP son los máximos del nivel, llenos: sin
-    batallas nadie los baja todavía."""
+    """El texto **fijo** de un actor en el menú: nombre, nivel, estado, el
+    término de HP y el máximo detrás de la barra.
+
+    Los HP de ahora **no** van acá, y ése es todo el arreglo del 2026-09-13:
+    este bloque se hornea al convertir y se sube tal cual, así que el número
+    que llevara adentro no podía cambiar nunca. taro lo reportó jugando —"el
+    hp se reduce en batalla, pero en el menú siempre se muestra en 40"—; los
+    40 son el máximo de Talan, que es quien lidera la intro.
+
+    Las tres cifras de ahora las escribe la ROM en `MENU_HP_COL`, de a una
+    celda cada una, con los mismos bloques que el oro. El precio es el mismo
+    que ya paga el oro: van a 8 pixeles y no a los 6 de la fuente.
+    """
     import ventana as ventana_mod
 
     def escribir(x, y, texto, color=0):
@@ -854,13 +873,41 @@ def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
                     actor)
     escribir(MENU_TEXTO_X + MENU_ESTADO_DX, 2 + LINEA, db.term_normal_status)
     escribir(MENU_TEXTO_X, 2 + 2 * LINEA, db.term_hp_short, color=1)
-    hp = parametro_de(a, "maxhp")
-    escribir(MENU_TEXTO_X + MENU_HP_DX, 2 + 2 * LINEA, "%3d/%3d" % (hp, hp))
+    escribir(MENU_MAX_X, 2 + 2 * LINEA, "/%d" % parametro_de(a, "maxhp"))
+
+
+def cifras_de(valor, cuantas):
+    """Las cifras de un número topado a `cuantas`, sin ceros adelante.
+
+    Es `cifras_del_oro` generalizada: la usan el oro del menú y los HP de cada
+    actor, que la ROM escribe con los mismos bloques de una celda.
+    """
+    return [int(c) for c in str(max(0, min(valor, 10 ** cuantas - 1)))]
+
+
+def hp_de_menu(db, actor, hp=None):
+    """Los HP que la fila del actor tiene que mostrar: los de `hp` si están,
+    y si no los máximos de su nivel, que es con lo que arranca la partida."""
+    if hp is not None and actor in hp:
+        return hp[actor]
+    return parametro_de(db.actors[actor], "maxhp")
+
+
+def _pegar_hp(pegar, menu, fila, cuanto):
+    """Las cifras de los HP de una fila del grupo, alineadas a la derecha.
+
+    Es lo que la ROM hace en `menu_hp_escribir`, con las mismas celdas y en
+    las mismas columnas; lo que sobra a la izquierda queda en blanco.
+    """
+    cifras = cifras_de(cuanto, MENU_HP_CIFRAS)
+    for n, cifra in enumerate(cifras):
+        pegar(menu["cifras"][cifra], fila * MENU_ACTOR_FILAS + MENU_HP_FILA,
+              MENU_HP_COL + MENU_HP_CIFRAS - len(cifras) + n, 1)
 
 
 def cifras_del_oro(oro):
     """Las cifras que se escriben, sin ceros adelante: el 0 es "0"."""
-    return [int(c) for c in str(max(0, min(oro, 10 ** MENU_ORO_CIFRAS - 1)))]
+    return cifras_de(oro, MENU_ORO_CIFRAS)
 
 
 def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
@@ -1092,7 +1139,7 @@ def _pintor(fuera, tiles, paletas):
 
 def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
                 guardar_permitido=True, font_id=None, actores=None,
-                game_dir=None):
+                game_dir=None, hp=None):
     """El menú de pausa como lo tiene que mostrar la consola.
 
     `grupo` son los actores en orden, `oro` el oro, `elegida` la orden con el
@@ -1100,6 +1147,10 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     la lista de la ROM —los que pueden entrar al grupo, `miembros_posibles`
     en el conversor—, que decide el banco de tiles; sin ella, el grupo.
     Se arma con los mismos bloques que sube la ROM, como `render_ranuras`.
+
+    `hp` es lo que la partida tiene en `FAR_HP`, de actor a HP: sin ella se
+    supone que están llenos, que es con lo que arranca. Va aparte del bloque
+    del actor porque el bloque se hornea y esto cambia con cada pelea.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
@@ -1125,6 +1176,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
         if actor in menu["actores"]:
             pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
                   MENU_ACTOR_COL, MENU_ACTOR_COLS)
+            _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
     return fuera
 
 
@@ -1141,8 +1193,13 @@ OBJETIVO_CURSOR_FILA = 2        # adentro de la fila del actor
 
 
 def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
-                    actores=None, game_dir=None):
-    """La elección de actor como la tiene que mostrar la consola."""
+                    actores=None, game_dir=None, hp=None):
+    """La elección de actor como la tiene que mostrar la consola.
+
+    Comparte el panel del grupo con el menú, así que también le escribe los
+    HP: los pinta `menu_grupo_pintar`, que es la misma rutina de los dos
+    lados.
+    """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
     tiles, paletas, _, _, _, _, menu = pantalla_ranuras(
@@ -1153,6 +1210,7 @@ def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
         if actor in menu["actores"]:
             pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
                   MENU_ACTOR_COL, MENU_ACTOR_COLS)
+            _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
     pegar(menu["cursor"], elegida * MENU_ACTOR_FILAS + OBJETIVO_CURSOR_FILA,
           OBJETIVO_CURSOR_COL, 1)
     return fuera

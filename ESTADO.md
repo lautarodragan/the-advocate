@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-13.
+Última vez que se tocó: 2026-09-14.
 
 
 ## El objetivo, y dónde estamos
@@ -19,21 +19,26 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **168 casos, todos en verde** y `just
-pruebas` son **159 en verde y 1 `xfail`, sin rojos**; las dos últimas son las
-del Game Over que cuelga —`test_game_over.py`—.
-El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
-defecto de la **página de prueba** de guardado y no del juego, y está abajo.
+Al 2026-09-14: `just snes-hitos-foto` son **168 casos, todos en verde** —sobre
+la foto `151599a`— y `just pruebas` son **164 en verde y 1 `xfail`, sin
+rojos**; las siete últimas son las de los HP del menú y el Game Over de los
+encuentros al azar, y antes de ésas las nueve de los encuentros y las dos del
+save point. El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién
+es: es un defecto de la **página de prueba** de guardado y no del juego, y está
+abajo.
 
-**Y el banco 0 tiene 69 bytes libres** con `demo-ciudad`, que son 85 menos los
-16 que costó mandar al SPC700 de vuelta al IPL. Medido por bisección; ver
-AGENTS.md, "Trampas del entorno".
+**Al banco 0 le sobran 49 bytes con `demo-ciudad`**, medidos el 2026-09-14 por
+bisección con un `.res` en `TABLAS`; venían 85, y los 36 que faltan se los
+llevaron el enganche del menú a los HP y la comprobación de derrota del
+encuentro al azar.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/cofre-trampa/`: el cofre que
-colgaba el juego, con un cartucho que arranca pegado a él. Su `LEEME.txt` dice
-qué apretar y qué mirar al volver.
+**La ROM de esta vuelta** está en `pruebas-manuales/hp-y-game-over/`: los dos
+defectos del sistema de batalla que taro reportó, con `demo-titulo` y
+`demo-ciudad`. Su `LEEME.txt` dice qué mirar —el HP del menú después de
+pelear, perder a propósito, y dos peleas seguidas— y qué sigue sin poder
+hacerse (curar).
 
-**La anterior** está en `pruebas-manuales/piedras/`: el minijuego de
+**La de la vuelta anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
@@ -845,6 +850,63 @@ Lo que queda abierto:
   podría dejar de entrar con `--switch 171` a mano. No se cambió: eso es la
   carrera y no el minijuego, y cambiarlo pide volver a mirar toda esa escena.
 
+### El sistema de batalla que taro dio por inservible: eran dos causas (2026-09-13)
+
+taro jugó `pruebas-manuales/2026-09-13-2a75142/demo-titulo.sfc` y reportó
+cuatro síntomas. Medidos, son **dos defectos y una confusión**, y conviene que
+quede escrito cuál es cuál porque el reporte los ordenaba al revés.
+
+**Uno: el número de HP del menú estaba horneado en el bloque del actor.** El
+panel del grupo lo dibuja el conversor y la ROM lo sube tal cual, así que el
+número no podía cambiar nunca; los 40 que taro veía son el máximo de Talan,
+que es quien lidera la intro. Ahora las tres cifras las escribe
+`menu_hp_escribir` desde `FAR_HP`, de a una celda cada una y con los mismos
+bloques que el oro; el máximo y la barra siguen horneados. **Cuesta que las
+cifras vayan a 8 pixeles y no a los 6 de la fuente**, que es el mismo precio
+que el oro y la pantalla de ítems ya pagan, y que la columna del máximo se
+corrió a x=192.
+
+**Dos: perder un encuentro al azar no era Game Over**, y de ahí salían los
+otros dos síntomas del reporte. `op_batalla` mira `BA_RESULT` y resuelve el
+destino de la derrota; el encuentro al azar arranca la pelea sin bytecode
+—`pelea_arrancar` desde `move_hero`— y nadie miraba el resultado. Como
+`modo_fin` guarda los HP de la pelea en `FAR_HP`, después de una derrota el
+grupo quedaba en cero **para siempre** y toda pelea siguiente se perdía sola
+antes de abrirse. Medido antes del arreglo, mapa 21 con
+`--encuentros-de-prueba 8`: `BA_RESULT` en 2 y trescientos cuadros después la
+partida seguía en el mapa; con el arreglo reinicia veintiún cuadros después.
+
+**Y la confusión: los enemigos con HP bajo no eran un defecto.** `ba_armar`
+vacía las doce ranuras y rellena los HP desde `enemigo_hp` del cartucho en
+cada pelea; medido con dos y tres encuentros seguidos, cada enemigo arranca
+siempre en su máximo. Lo que taro vio son los datos del juego: las tropas de
+Rat Tracks B1 son GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la
+pantalla de la pelea muestra el HP de cada enemigo sin su máximo —`BA_CONMAX`
+en cero—, así que un GiantRat dice "20" porque tiene 20.
+
+Verificado el 2026-09-14 sobre la foto `151599a`: `just snes-hitos-foto 4` da
+**168 casos en verde**, `just pruebas` **164 y 1 xfail**, y `just snes-demo
+demo-ciudad` arma con **49 bytes libres** en el banco 0.
+
+Lo cubren, todos comprobados en rojo antes:
+
+    test_menu.py              el menú con los HP que deja una pelea (111 px)
+    test_hp_de_batalla.py     pelear, volver al mapa, abrir el menú y mirar
+                              el número; y dos encuentros seguidos mirando
+                              con qué HP arrancan los enemigos
+    test_game_over.py         perder un encuentro al azar reinicia, y el
+                              control que gana y no reinicia
+
+**Lo que sigue sin poder hacerse: curar.** Es la otra mitad de *"así que no
+puedo curar"* y **no** es del menú: en el mapa, `objetivo_pantalla` con una
+medicina ignora A a propósito —"`UseItem` sólo la gasta si sube algo, y fuera
+de batalla nadie tiene los HP por debajo del máximo"—, que era cierto hasta
+que las peleas empezaron a bajarlos. La cuenta ya está escrita del lado de la
+pelea (`ba_item_cura`, con `item_cura_rate` e `item_cura_hp` que el conversor
+emite), así que lo que falta es aplicarla sobre `FAR_HP`, gastar el ítem y
+repintar la fila. **Sin eso el grupo no se recupera nunca**, porque tampoco
+hay posadas ni `ChangeHP` de página que suba.
+
 ### Las habilidades: entraron las siete (2026-09-13)
 
 Lo último que taro reportó como faltante de la batalla. Los cinco pasos que la
@@ -1345,13 +1407,11 @@ que hoy no compilan:
     FlashSprite               51     ChangeSystemBGM                     39
     KeyInputProc              31     ShowMessage (los escapes)           18
 
-<<<<<<< HEAD
-Los 31 de `KeyInputProc` son de antes del 2026-09-13: desde ese día sólo corta
-la forma que **no espera**, que son 4 páginas.
-=======
 **El renglón de `FlashSprite` ya no vale**: desde el 2026-09-13 es **cero**, y
 las 51 páginas compilan. Ver arriba.
->>>>>>> worktree-agent-a1719b85baf4f7497
+
+Los 31 de `KeyInputProc` son de antes del 2026-09-13: desde ese día sólo corta
+la forma que **no espera**, que son 4 páginas.
 
 Las dos columnas de `ConditionalBranch` **ya no valen**: desde el 2026-09-13
 "del héroe" es **cero** —las tres preguntas que el juego usa están hechas— y

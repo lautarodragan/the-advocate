@@ -715,7 +715,24 @@ título sin reiniciar el SPC700.
 256x224 sobre fondo negro como la pantalla de ranuras, sin el título del
 actor, la experiencia ni los SP, y el oro con una cifra por celda y no a los 6
 pixeles de la fuente, para que la ROM las escriba de a una sin armar tiles. Es
-cosmético y está declarado. Todo lo demás sale de `titulo.py`: `render_menu`
+cosmético y está declarado.
+
+**Los HP de ahora se escriben corriendo, y el máximo va horneado.** La fila de
+cada actor es un bloque de celdas que el conversor dibuja una vez, así que
+cualquier número que lleve adentro es el del día que se convirtió: hasta el
+2026-09-13 los HP iban ahí y el menú mostraba siempre el máximo del nivel por
+más que una pelea los bajara. Era invisible para la comparación de pixeles
+porque `render_menu` horneaba el mismo número: **los dos lados se equivocaban
+igual**, que es la forma de falla que AGENTS.md nombra primero. Ahora las tres
+cifras las escribe `menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de
+una por cifra que el oro y por la misma razón; el "/máximo" de al lado sigue
+horneado, que ése no cambia. Vale para las dos pantallas que comparten el
+panel, el menú y la elección de actor, porque las dos pasan por
+`menu_grupo_pintar`.
+
+Las cifras caen alineadas con las del oro sin tocar nada: las dos líneas se
+dibujan a dos pixeles del borde de arriba de su celda. Y el precio de las
+celdas de 8 pixeles es el mismo que ya se paga en el oro. Todo lo demás sale de `titulo.py`: `render_menu`
 es la referencia y el conversor emite **los mismos bloques de celdas**, en el
 mismo banco de tiles y la misma paleta que la pantalla de ranuras —las caras
 son las mismas y guardar se abre desde el menú—. Las órdenes en gris llevan su
@@ -942,6 +959,17 @@ Ese camino **la tanda de pixeles no lo puede ver**: del lado de la referencia
 Lo cobra `pruebas/test_game_over.py`, que pone el grupo entero en cero HP —con
 nadie en pie `batalla_correr` contesta derrota sin abrir la pantalla— y exige
 que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
+
+**Y el encuentro al azar pierde por el mismo camino.** Una pelea que arranca
+del azar de los pasos no tiene bytecode detrás —la abre `pelea_arrancar` desde
+`move_hero`— así que no hay destino que resolver ni manejadores que emitir:
+perderla es siempre `Scene_Gameover`. Hasta el 2026-09-13 nadie miraba
+`BA_RESULT` en ese camino y la derrota devolvía el control al mapa, y eso
+encadenaba el resto: `modo_fin` guarda los HP de la pelea en `FAR_HP`, así que
+el grupo quedaba en cero **para siempre** y toda pelea siguiente se perdía sola
+antes de abrirse. Ahora el llamador compara con `BA_DERROTA` y hace el mismo
+`jml reset`. Lo cobran dos casos más de `test_game_over.py`, con el mapa 21 y
+`--encuentros-de-prueba`.
 
 Y una aproximación declarada: las 24 peleas de esta forma traen `escape_mode` 0,
 o sea huir prohibido, y la ROM deja huir igual porque el permiso no viaja en el

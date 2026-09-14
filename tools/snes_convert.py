@@ -4283,13 +4283,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_FILAS_GRUPO  = %d\n"
             "MENU_ACTORES_N    = %d\n"
             "OBJETIVO_CURSOR_DESPL = %d\n"
+            "MENU_HP_CIFRAS    = %d\n"
+            "MENU_HP_DESPL     = %d\n"
             % (T.MENU_OPCIONES, T.MENU_GUARDAR, bloque_menu_opcion,
                bloque_menu_moneda, T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
                celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
                menu_actores_n,
                T.OBJETIVO_CURSOR_FILA * 32
-               + T.OBJETIVO_CURSOR_COL - T.MENU_ACTOR_COL))
+               + T.OBJETIVO_CURSOR_COL - T.MENU_ACTOR_COL,
+               # Y a cuántas celdas de la primera del bloque del actor cae la
+               # de las centenas de sus HP, que es lo que `menu_hp_escribir`
+               # le suma a `menu_fila_vram`.
+               T.MENU_HP_CIFRAS,
+               T.MENU_HP_FILA * 32 + T.MENU_HP_COL - T.MENU_ACTOR_COL))
         # Qué órdenes hacen algo: 1 sí, 0 no. La de guardar además mira el
         # permiso, en la ROM.
         handle.write("menu_hecha:\n    .byte %s\n" % ", ".join(
