@@ -14,8 +14,8 @@ propio repositorio, lo de acá se quedaría y lo de allá se iría con él.
 ## El bug que lo originó
 
 Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,
-con un lector propio en Python —el `tools/lcf.py` de entonces, que hoy es
-`tools/lcf_bin.py`—, y el volcado a `data/*.json`
+con un lector propio en Python —el `tools/lcf.py` de entonces—, y el volcado a
+`data/*.json`
 era un camino paralelo con su propio decodificador. Dos caminos para el mismo
 formato, y los dos con los defaults escritos a mano.
 
@@ -62,8 +62,9 @@ leerlo es saber qué vale un campo ausente. Eso sale de `tools/ditto_schema.py`,
 que **se genera desde el esquema de Ditto** —`tools/gen_ditto_schema.py`— y
 trae, por campo: su chunk, su default, su enum si tiene, si el formato lo
 escribe aunque valga el default (`PersistIfDefault`) y qué struct lleva
-adentro. Es la misma idea que `gen_schema.py` con la fuente corrida un lugar:
-liblcf genera el esquema de Ditto y Ditto genera éste.
+adentro. Es la misma idea con la que se generaba el esquema del lector viejo,
+con la fuente corrida un lugar: liblcf genera el esquema de Ditto y Ditto genera
+éste.
 
 Los enums vienen por nombre —`"same"`, `"auto_start"`, `"ShowMessage"`— y
 vuelven al número con las tablas de ese mismo archivo.
@@ -134,11 +135,12 @@ los campos que al port no le sirven no estaban—, y el de Ditto tiene que poder
 volver a escribir el binario, así que lleva todo. Un mapa concreto, el 8, pasó
 de 439.222 bytes como un JSON suelto a 99.915 de JSON más 67.902 de `.tiles`.
 
-Y `tools/export_json.py` quedó sin dueño: ya no escribe `data/` —escribe a
-`/extras/volcado-python`, para no pisarlo— y lo único que aporta es esa lectura
-más corta. Si se decide que no hace falta, se va con `tools/lcf_bin.py` —el
-lector de binarios, que es el `lcf.py` de antes—, `tools/gen_schema.py` y
-`tools/lcf_schema.py`, que son lo único que quedó usándolo.
+Ese 21% se pagó a propósito. El volcado viejo —`tools/export_json.py`, con su
+lector de binarios `lcf_bin.py` y el esquema que `gen_schema.py` sacaba de
+liblcf— **se borró el 2026-09-14**, 3.133 líneas: quedó sin dueño el día que
+`data/` pasó a ser el volcado de Ditto, y lo único que aportaba era esa lectura
+más corta. Tener dos lectores del mismo formato, cada uno con sus defaults
+escritos a mano, es exactamente el bug que abre este archivo.
 
 ## El corpus
 

@@ -13,16 +13,6 @@ maps:
 check:
   python3 tools/list_maps.py --render
 
-# El volcado viejo, el de Python. **Ya no escribe `data/`**: eso lo hace Ditto
-# desde el 2026-09-14 (`just datos`), y esto quedó sin dueño, escribiendo afuera
-# del repo para no pisarlo. Sigue acá porque lo que da es una *lectura* del
-# juego —un comando de evento por línea, sin lo que al port no le sirve— y esa
-# vista no la da Ditto, que tiene que poder volver a escribir el binario. Si se
-# decide que no hace falta, se va junto con `tools/lcf_bin.py`, `gen_schema.py`
-# y `lcf_schema.py`. Ver DITTO.md.
-export dir="/extras/volcado-python":
-  python3 tools/export_json.py --verify -o {{dir}}
-
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
 # conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este

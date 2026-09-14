@@ -8,9 +8,9 @@ que para leerlo hay que conocer los defaults; y guarda los enums **por nombre**
 tablas. Las dos cosas están declaradas en `ditto/src/schema/mod.rs`, que es el
 código que escribió el JSON, y de ahí salen: no se copian a mano.
 
-Es la misma idea que `gen_schema.py` —leer el esquema de quien lo tiene en vez
-de transcribirlo—, con la fuente corrida un lugar: liblcf genera el esquema de
-Ditto y Ditto genera éste. Un nombre o un default que cambien allá aparecen acá
+Es la misma idea con la que se generaba el esquema del lector viejo —leer el
+esquema de quien lo tiene en vez de transcribirlo—, con la fuente corrida un
+lugar: liblcf genera el esquema de Ditto y Ditto genera éste. Un nombre o un default que cambien allá aparecen acá
 como un diff que se lee, no como un dato que llega distinto.
 
 Uso:

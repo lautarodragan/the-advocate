@@ -74,11 +74,12 @@ encuentros al azar sí filtran por terreno**. La simplificación del port aguant
 igual, pero por otro motivo: ninguna excluye un terreno que su mapa pise de
 verdad. La prueba ahora mide eso.
 
-`tools/export_json.py` quedó sin dueño: ya no escribe `data/` —escribe a
-`/extras/volcado-python`— y lo único que aporta es una lectura más corta del
-juego. **Si taro decide que no hace falta**, se va con `tools/lcf_bin.py` —el
-lector de binarios, que es el `lcf.py` de antes—, `tools/gen_schema.py` y
-`tools/lcf_schema.py`.
+Y con eso se borró el volcado viejo de Python: `tools/export_json.py`,
+`tools/lcf_bin.py` —el lector de binarios, que es el `lcf.py` de antes—,
+`tools/gen_schema.py` y `tools/lcf_schema.py`. Son 3.133 líneas que quedaron
+sin dueño el día que `data/` pasó a ser el volcado de Ditto: lo único que
+aportaban era una lectura más corta del juego, y lo que no daban es con qué
+volver a escribir el binario. **Ya no hay un segundo lector del formato.**
 
 **La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
 con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho

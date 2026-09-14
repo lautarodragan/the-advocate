@@ -104,13 +104,8 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
     tools/list_maps.py    inventario de mapas
     tools/event_codes.py  generado: nombres de los opcodes de evento
 
-Y el lector de los binarios, que **ya no usa el port** y quedó sólo para el
-volcado viejo de Python —ver "Los datos en formato versionable"—:
-
-    tools/lcf_bin.py      lector de .lmu/.ldb/.lmt (el formato binario de RM2k)
-    tools/export_json.py  el volcado viejo, que ya no escribe data/
-    tools/gen_schema.py   genera el esquema de los formatos LCF desde liblcf
-    tools/lcf_schema.py   generado: 63 structs, 1268 campos
+El formato binario de RM2k ya no lo lee ningún Python de acá: lo lee Ditto, una
+sola vez, y lo deja en `data/`. Ver "Los datos en formato versionable".
 
 Todo sale del juego original, que **no está en el repo**: vive en
 `/extras/abl-rm` y de ahí salen los `.lmu`, la `RPG_RT.ldb` —qué chipset usa
@@ -217,13 +212,15 @@ Shift-JIS: en el JSON salen como caracteres raros —decodificarlos adivinando l
 costaría a Ditto la vuelta exacta— y el que los interpreta es `tools/lcf.py`,
 por los bytes que cp1252 no define.
 
-**El volcado viejo, el de `tools/export_json.py`, sigue existiendo** y ya no
-escribe `data/`: escribe a `/extras/volcado-python` con `just export`. Lo que
-da y el de Ditto no es una *lectura* del juego —un comando de evento en una
-línea, sin los campos que al port no le sirven—; lo que no da es con qué volver
-a escribir el binario. Quedó sin dueño, y si se decide que esa lectura no hace
-falta se va con `tools/lcf_bin.py`, `gen_schema.py` y `lcf_schema.py`: está
-anotado en `DITTO.md`.
+**El volcado viejo, el de Python, se borró el 2026-09-14.** Eran cuatro
+archivos y 3.133 líneas —`export_json.py`, `lcf_bin.py` (el lector de binarios),
+`gen_schema.py` y `lcf_schema.py`— que quedaron sin dueño el día que `data/`
+pasó a ser el volcado de Ditto. Daba una *lectura* más corta del juego —un
+comando de evento en una línea, sin los campos que al port no le sirven—, y ésa
+es toda la razón por la que se dudó en borrarlo; lo que no daba es con qué
+volver a escribir el binario, que es lo que hace útil al volcado. Dos caminos
+para el mismo formato es justamente lo que costó caro (ver `DITTO.md`), así que
+queda uno.
 
 ## El port a Super Nintendo
 

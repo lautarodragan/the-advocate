@@ -1,7 +1,7 @@
 """El juego, leído del volcado a JSON de `data/`.
 
 Hasta el 2026-09-14 esto parseaba los binarios de RPG Maker 2000 en cada build
-—ese lector sigue existiendo, en `lcf_bin.py`, y ya no lo usa el port—. Desde
+—ese lector se borró cuando dejó de tener quien lo usara—. Desde
 entonces el formato se lee **una sola vez**, en Ditto, y lo que hay en `data/`
 es el resultado: `maps/MapNNNN.json` con su `.tiles` al lado, `maps.json` con el
 árbol y `db/*.json` con las quince secciones de la base. El porqué está en
