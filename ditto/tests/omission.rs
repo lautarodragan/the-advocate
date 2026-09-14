@@ -1,114 +1,131 @@
-//! Hasta dónde llega la regla de omisión, medido.
+//! How far the omission rule goes, measured.
 //!
-//! La vuelta exacta se sostiene sobre **"un campo que vale su default no se
-//! escribe"**. Eso no es una decisión nuestra: es lo que hace el editor. Pero
-//! es una decisión *del que escribe*, así que un archivo que guardara
-//! explícitamente un campo con su valor default saldría de nuestra vuelta sin
-//! ese chunk, y el binario no sería idéntico.
+//! The exact round trip rests on **"a field holding its default is not
+//! written"**. That is not a decision of ours: it is what the editor does. But
+//! it is a decision *of whoever writes*, so a file that did store a field with
+//! its default value explicitly would come out of our round trip without that
+//! chunk, and the binary would not be identical.
 //!
-//! Estas dos pruebas fijan los dos lados del número: cuánto se pierde si pasa,
-//! y cuántas veces el editor de verdad eligió omitir en el juego real. Ver
-//! `README.md`, "El límite de la regla de omisión, medido".
+//! These two tests pin down both sides of the number: how much is lost if it
+//! happens, and how many times the real editor chose to omit in a real game.
+//! See `README.md`, "The limit of the omission rule, measured".
+
+mod common;
 
 use std::path::PathBuf;
 
-fn juego() -> PathBuf {
-    PathBuf::from(std::env::var("GAME_DIR").unwrap_or_else(|_| "/extras/abl-rm".into()))
-}
-
-/// Parte un `.lmu` en (encabezado crudo, chunks de primer nivel).
-fn partir(d: &[u8]) -> (Vec<u8>, Vec<(u32, Vec<u8>)>) {
-    let mut l = ditto::lcf::Lector::nuevo(d);
+/// Splits a `.lmu` into (raw header, top-level chunks).
+fn split(d: &[u8]) -> (Vec<u8>, Vec<(u32, Vec<u8>)>) {
+    let mut l = ditto::lcf::Reader::new(d);
     let n = l.ber().unwrap() as usize;
     l.bytes(n).unwrap();
-    let cab = d[..l.pos].to_vec();
+    let head = d[..l.pos].to_vec();
     let mut chunks = Vec::new();
     loop {
         let id = l.ber().unwrap() as u32;
         if id == 0 {
             break;
         }
-        let largo = l.ber().unwrap() as usize;
-        chunks.push((id, l.bytes(largo).unwrap().to_vec()));
+        let length = l.ber().unwrap() as usize;
+        chunks.push((id, l.bytes(length).unwrap().to_vec()));
     }
-    (cab, chunks)
+    (head, chunks)
 }
 
-fn armar(cab: &[u8], chunks: &[(u32, Vec<u8>)]) -> Vec<u8> {
-    let mut e = ditto::lcf::Escritor::nuevo();
-    e.bytes(cab);
-    e.volcar(chunks.to_vec(), &[]);
+fn assemble(head: &[u8], chunks: &[(u32, Vec<u8>)]) -> Vec<u8> {
+    let mut e = ditto::lcf::Writer::new();
+    e.bytes(head);
+    e.dump(chunks.to_vec(), &[]);
     e.ber(0);
     e.b
 }
 
-fn vuelta(bin: &[u8]) -> Vec<u8> {
-    let doc = ditto::archivo::leer(bin).unwrap();
-    ditto::archivo::escribir(&doc).unwrap()
+fn round_trip(bin: &[u8]) -> Vec<u8> {
+    let doc = ditto::file::read(bin).unwrap();
+    ditto::file::write(&doc).unwrap()
 }
 
-/// **El límite conocido, no un bug que se coló.** Un chunk escrito a mano con
-/// el valor default del campo no sobrevive la vuelta: se pierden exactamente
-/// sus tres bytes —id, largo y cuerpo— y todo lo que viene atrás se corre.
+/// `generator_surround` is field 0x33 of `Map` and its default is `True`, so a
+/// map written by the editor never carries it.
+const FIELD: u32 = 0x33;
+
+/// **The known limit, not a bug that slipped in.** A chunk written by hand with
+/// the field's default value does not survive the round trip: exactly its three
+/// bytes —id, length and body— are lost and everything behind it shifts.
 ///
-/// Si algún día se cubre, esta prueba es la que hay que dar vuelta.
+/// If it is ever covered, this is the test to turn around.
 #[test]
-fn un_default_escrito_a_mano_se_pierde() {
-    let orig = std::fs::read(juego().join("Map0001.lmu")).unwrap();
-    let (cab, chunks) = partir(&orig);
-    assert_eq!(armar(&cab, &chunks), orig, "el rearmado crudo no da el original");
-    assert_eq!(vuelta(&orig), orig, "la vuelta normal ya falla");
+fn a_hand_written_default_is_lost() {
+    let Some(dir) = common::dir() else { return };
+    let maps = common::maps(&dir);
+    if maps.is_empty() {
+        println!("SKIPPED: {dir:?} has no .lmu files.");
+        return;
+    }
+    // Any map that does not already carry the field will do for the measurement.
+    let Some((map, head, chunks)) = maps.iter().find_map(|p| {
+        let d = std::fs::read(p).ok()?;
+        let (head, chunks) = split(&d);
+        (!chunks.iter().any(|c| c.0 == FIELD)).then_some((p.clone(), head, chunks))
+    }) else {
+        println!("SKIPPED: every map in {dir:?} already carries chunk {FIELD:#04x}.");
+        return;
+    };
+    let original = std::fs::read(&map).unwrap();
 
-    // `generator_surround` es el campo 0x33 de `Map` y su default es `True`.
-    // No está en ningún mapa de ABL, justamente porque vale el default.
-    assert!(
-        !chunks.iter().any(|c| c.0 == 0x33),
-        "0x33 ya estaba: elegí otro campo para la medición"
-    );
-    let mut con = chunks.clone();
-    con.push((0x33, vec![0x01]));
-    con.sort_by_key(|c| c.0);
-
-    let entrada = armar(&cab, &con);
-    assert_eq!(entrada.len(), orig.len() + 3);
-    let salida = vuelta(&entrada);
     assert_eq!(
-        salida.len(),
-        entrada.len() - 3,
-        "el chunk explícito tendría que perderse: son sus 3 bytes"
+        assemble(&head, &chunks),
+        original,
+        "the raw reassembly does not give the original"
     );
-    assert_eq!(salida, orig, "lo que sale es el archivo sin ese chunk");
+    assert_eq!(round_trip(&original), original, "the plain round trip already fails");
+
+    let mut with = chunks.clone();
+    with.push((FIELD, vec![0x01]));
+    with.sort_by_key(|c| c.0);
+
+    let input = assemble(&head, &with);
+    assert_eq!(input.len(), original.len() + 3);
+    let output = round_trip(&input);
+    assert_eq!(
+        output.len(),
+        input.len() - 3,
+        "the explicit chunk should be lost: those are its 3 bytes"
+    );
+    assert_eq!(output, original, "what comes out is the file without that chunk");
 }
 
-/// La otra mitad del número: el editor **sí** omite. Sobre los 328 mapas, de
-/// los 33 chunks que `Map` puede escribir en su primer nivel hay 2.363
-/// presentes de 10.824 posibles: RPG Maker omitió 8.461 veces. Con eso, que
-/// los 330 archivos vuelvan byte por byte deja de ser suerte y pasa a ser la
-/// prueba de que el editor de verdad sigue la misma regla que Ditto.
+/// The other half of the number: the editor **does** omit. Over a real game,
+/// only a fraction of the chunks `Map` could write at its top level are
+/// actually present. With that, the whole corpus coming back byte for byte
+/// stops being luck and becomes proof that the real editor follows the same
+/// rule as Ditto.
 #[test]
-fn el_editor_omite_los_defaults() {
-    let mut mapas: Vec<PathBuf> = std::fs::read_dir(juego())
-        .unwrap()
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map_or(false, |x| x.eq_ignore_ascii_case("lmu")))
-        .collect();
-    mapas.sort();
+fn the_editor_omits_the_defaults() {
+    let Some(dir) = common::dir() else { return };
+    let maps: Vec<PathBuf> = common::maps(&dir);
+    if maps.is_empty() {
+        println!("SKIPPED: {dir:?} has no .lmu files.");
+        return;
+    }
 
-    let posibles_por_mapa = 33usize;
-    let presentes: usize = mapas
+    // How many top-level chunks a `Map` can write, per `fields.csv`.
+    let possible_per_map = 33usize;
+    let present: usize = maps
         .iter()
-        .map(|a| partir(&std::fs::read(a).unwrap()).1.len())
+        .map(|a| split(&std::fs::read(a).unwrap()).1.len())
         .sum();
-    let posibles = posibles_por_mapa * mapas.len();
+    let possible = possible_per_map * maps.len();
     println!(
-        "{} mapas: {} chunks presentes de {} posibles; el editor omitió {}",
-        mapas.len(),
-        presentes,
-        posibles,
-        posibles - presentes
+        "{} maps: {} chunks present of {} possible; the editor omitted {}",
+        maps.len(),
+        present,
+        possible,
+        possible.saturating_sub(present)
     );
     assert!(
-        posibles - presentes > 8000,
-        "si esto baja mucho, la evidencia de que el editor omite se debilitó"
+        present * 2 < possible,
+        "most of the possible chunks should be omitted; if this drops, the \
+         evidence that the editor omits got weaker"
     );
 }

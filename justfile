@@ -19,17 +19,21 @@ export:
 
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
-# conversor: convive con ellos.
+# conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este
+# port; adentro de ditto/ no hay ni una referencia a nosotros, a propósito.
+#
+# El juego con el que se mide **se lo pasa el repo**, no lo sabe la herramienta:
+# sin DITTO_CORPUS las pruebas que lo necesitan se saltean con un mensaje.
 #
 # La tanda corta va sobre una muestra de mapas y tarda un segundo; la larga son
 # los 328 mapas, el LDB y el árbol, y mide lo único que hace útil a la
 # herramienta: que el binario vuelva **byte por byte**. Va aparte porque es la
 # que uno quiere ver con el número, no la que corre callada.
 ditto-pruebas:
-  cd ditto && cargo test
+  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test
 
 ditto-vuelta-entera:
-  cd ditto && cargo test --release -- --ignored --nocapture
+  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --ignored --nocapture
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. Todo el toolchain son dos cosas: python y un core de libretro. El

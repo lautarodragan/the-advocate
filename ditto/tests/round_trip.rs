@@ -1,158 +1,153 @@
-//! La prueba que hace valiosa a Ditto: leer un archivo de RPG Maker, volcarlo
-//! a JSON, escribirlo de nuevo desde el JSON, y que el binario sea **idéntico**
-//! al original.
+//! The test that makes Ditto worth anything: read an RPG Maker file, dump it
+//! to JSON, write it back from the JSON, and get a binary **identical** to the
+//! original.
 //!
-//! Un "casi" no sirve: la idea es abrir el juego con el editor de verdad y
-//! volver, y un byte de más rompe el juego de otro.
+//! "Almost" is no good: the idea is to open the game with the real editor and
+//! come back, and one byte too many breaks somebody else's game.
 //!
-//! Por omisión corre sobre una muestra chica para que `cargo test` siga siendo
-//! algo que uno corre sin pensarlo. La tanda entera —los 328 mapas, el LDB y el
-//! árbol— va detrás de una variable de entorno:
+//! By default it runs over a small sample so that `cargo test` stays something
+//! one runs without thinking about it. The whole corpus —every map, the LDB and
+//! the tree— sits behind an environment variable:
 //!
-//!     DITTO_TODO=1 cargo test --release -- --nocapture
+//!     DITTO_ALL=1 cargo test --release -- --nocapture
+//!
+//! Every test here needs a game to measure against; see `tests/common/mod.rs`
+//! for how it is found and why it skips instead of failing when there is none.
+
+mod common;
 
 use std::path::{Path, PathBuf};
 
-/// De dónde sale el juego. `/extras/abl-rm` adentro del contenedor.
-fn juego() -> PathBuf {
-    PathBuf::from(std::env::var("GAME_DIR").unwrap_or_else(|_| "/extras/abl-rm".into()))
-}
+/// Reads, dumps to JSON, comes back, and compares. Says where the difference is.
+fn round_trip(path: &Path) -> Result<(), String> {
+    let original = std::fs::read(path).map_err(|e| format!("could not read: {e}"))?;
+    let doc = ditto::file::read(&original).map_err(|e| format!("while reading: {e}"))?;
 
-/// Lee, vuelca a JSON, vuelve, y compara. Devuelve dónde está la diferencia.
-fn vuelta(ruta: &Path) -> Result<(), String> {
-    let original = std::fs::read(ruta).map_err(|e| format!("no pude leer: {e}"))?;
-    let doc = ditto::archivo::leer(&original).map_err(|e| format!("al leer: {e}"))?;
-
-    // El JSON no es un intermedio decorativo: si no cierra, no se puede tener
-    // el juego en el repo como JSON, que es el punto de todo esto.
-    let json = serde_json::to_vec(&doc).map_err(|e| format!("al serializar: {e}"))?;
-    let devuelto: ditto::archivo::Documento =
-        serde_json::from_slice(&json).map_err(|e| format!("al deserializar: {e}"))?;
-    if devuelto != doc {
-        return Err("el JSON no devuelve la misma estructura".into());
+    // The JSON is not a decorative middle step: if it does not close, the game
+    // cannot live in a repository as JSON, which is the point of all this.
+    let json = serde_json::to_vec(&doc).map_err(|e| format!("while serializing: {e}"))?;
+    let back: ditto::file::Document =
+        serde_json::from_slice(&json).map_err(|e| format!("while deserializing: {e}"))?;
+    if back != doc {
+        return Err("the JSON does not give back the same structure".into());
     }
 
-    let binario = ditto::archivo::escribir(&devuelto).map_err(|e| format!("al escribir: {e}"))?;
-    if binario == original {
+    let binary = ditto::file::write(&back).map_err(|e| format!("while writing: {e}"))?;
+    if binary == original {
         return Ok(());
     }
-    let n = binario
+    let n = binary
         .iter()
         .zip(original.iter())
         .position(|(a, b)| a != b)
-        .unwrap_or(binario.len().min(original.len()));
+        .unwrap_or(binary.len().min(original.len()));
     Err(format!(
-        "difiere en el byte {n} (de {} originales, salieron {}): {:02x?} en vez de {:02x?}",
+        "differs at byte {n} (of {} original bytes, {} came out): {:02x?} instead of {:02x?}",
         original.len(),
-        binario.len(),
-        &binario[n.saturating_sub(4)..(n + 4).min(binario.len())],
+        binary.len(),
+        &binary[n.saturating_sub(4)..(n + 4).min(binary.len())],
         &original[n.saturating_sub(4)..(n + 4).min(original.len())],
     ))
 }
 
-fn mapas() -> Vec<PathBuf> {
-    let mut v: Vec<PathBuf> = std::fs::read_dir(juego())
-        .expect("no encontré el juego; poné GAME_DIR")
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map_or(false, |x| x.eq_ignore_ascii_case("lmu")))
-        .collect();
-    v.sort();
-    v
-}
-
-/// El corpus entero: los 328 `.lmu`, el `RPG_RT.ldb` y el `RPG_RT.lmt`.
-fn corpus() -> Vec<PathBuf> {
-    let mut v = vec![juego().join("RPG_RT.ldb"), juego().join("RPG_RT.lmt")];
-    v.extend(mapas());
-    v
-}
-
-fn tanda(archivos: &[PathBuf]) {
-    let mut fallados = Vec::new();
-    for a in archivos {
-        if let Err(e) = vuelta(a) {
-            fallados.push(format!("{}: {e}", a.file_name().unwrap().to_string_lossy()));
+fn batch(files: &[PathBuf]) {
+    let mut failed = Vec::new();
+    for a in files {
+        if let Err(e) = round_trip(a) {
+            failed.push(format!("{}: {e}", a.file_name().unwrap().to_string_lossy()));
         }
     }
     println!(
-        "ida y vuelta byte por byte: {} de {}",
-        archivos.len() - fallados.len(),
-        archivos.len()
+        "byte-for-byte round trip: {} of {}",
+        files.len() - failed.len(),
+        files.len()
     );
-    for f in &fallados {
+    for f in &failed {
         println!("  {f}");
     }
-    assert!(fallados.is_empty(), "{} archivos no vuelven iguales", fallados.len());
+    assert!(failed.is_empty(), "{} files do not come back equal", failed.len());
 }
 
 #[test]
-fn el_ldb_y_el_arbol_vuelven_iguales() {
-    tanda(&[juego().join("RPG_RT.ldb"), juego().join("RPG_RT.lmt")]);
+fn the_database_and_the_tree_come_back_equal() {
+    let Some(dir) = common::dir() else { return };
+    let Some(files) = common::files(&dir) else { return };
+    batch(&files[..2]);
 }
 
 #[test]
-fn una_muestra_de_mapas_vuelve_igual() {
-    let todos = mapas();
-    assert!(!todos.is_empty(), "no encontré ningún .lmu en {:?}", juego());
-    if std::env::var("DITTO_TODO").is_ok() {
-        tanda(&todos);
+fn a_sample_of_maps_comes_back_equal() {
+    let Some(dir) = common::dir() else { return };
+    let Some(_) = common::files(&dir) else { return };
+    let all = common::maps(&dir);
+    if std::env::var("DITTO_ALL").is_ok() {
+        batch(&all);
         return;
     }
-    // Uno de cada veinte, más el primero y el último: alcanza para que una
-    // regresión en el códec se vea sin pagar los 328 en cada `cargo test`.
-    let muestra: Vec<PathBuf> = todos
+    // One in twenty, plus the first and the last: enough for a regression in
+    // the codec to show without paying for the whole corpus on every
+    // `cargo test`.
+    let sample: Vec<PathBuf> = all
         .iter()
         .step_by(20)
-        .chain(todos.last())
+        .chain(all.last())
         .cloned()
         .collect();
-    tanda(&muestra);
+    batch(&sample);
 }
 
-/// El corpus completo. Es el número que se reporta.
+/// The whole corpus. This is the number that gets reported.
 #[test]
-#[ignore = "la tanda larga: `cargo test --release -- --ignored --nocapture`"]
-fn el_juego_entero_vuelve_igual() {
-    tanda(&corpus());
+#[ignore = "the long batch: `cargo test --release -- --ignored --nocapture`"]
+fn the_whole_game_comes_back_equal() {
+    let Some(dir) = common::dir() else { return };
+    let Some(files) = common::files(&dir) else { return };
+    batch(&files);
 }
 
-/// El bug que originó todo esto, de los dos lados: un campo que no está —en el
-/// binario o en el JSON— vale lo que dice `fields.csv`, y no el cero del tipo.
-/// El `max_hp` de un enemigo es 10; nuestro lector de Python lo tenía en 1 y un
-/// enemigo del juego moría de un golpe.
+/// The bug that started all of this, from both sides: a field that is not there
+/// —in the binary or in the JSON— holds what `fields.csv` says, and not the
+/// zero of its type. An `Enemy`'s `max_hp` is 10; a reader that defaulted it to
+/// 1 gave an enemy that died in one hit.
+///
+/// This one needs no corpus: it is about the generated schema.
 #[test]
-fn un_campo_que_falta_vale_el_default_del_formato() {
-    let e: ditto::esquema::Enemy = serde_json::from_str("{}").unwrap();
-    assert_eq!(e.max_hp, 10, "max_hp de un Enemy sin datos");
-    assert_eq!(e.max_sp, 10, "max_sp de un Enemy sin datos");
+fn a_missing_field_holds_the_format_default() {
+    let e: ditto::schema::Enemy = serde_json::from_str("{}").unwrap();
+    assert_eq!(e.max_hp, 10, "max_hp of an Enemy with no data");
+    assert_eq!(e.max_sp, 10, "max_sp of an Enemy with no data");
     assert_eq!(e.attack, 10);
-    // Y lo mismo leyendo el binario: un chunk ausente no es un cero.
-    let vacio = ditto::lcf::dec_struct::<ditto::esquema::Enemy>(&[]).unwrap();
-    assert_eq!(vacio.max_hp, 10);
+    // And the same when reading the binary: an absent chunk is not a zero.
+    let empty = ditto::lcf::dec_struct::<ditto::schema::Enemy>(&[]).unwrap();
+    assert_eq!(empty.max_hp, 10);
 
-    let a: ditto::esquema::Actor = serde_json::from_str(r#"{"name":"Kersh"}"#).unwrap();
-    assert_eq!(a.name, "Kersh");
+    let a: ditto::schema::Actor = serde_json::from_str(r#"{"name":"Alex"}"#).unwrap();
+    assert_eq!(a.name, "Alex");
     assert_eq!(a.initial_level, 1);
-    assert_eq!(a.final_level, 50, "en RPG Maker 2000, no 99");
+    assert_eq!(a.final_level, 50, "in RPG Maker 2000, not 99");
     assert_eq!(a.exp_base, 30);
-    assert!(a.critical_hit, "el default declarado es True");
+    assert!(a.critical_hit, "the declared default is True");
 }
 
-/// La ida y vuelta sola no alcanza como prueba: un lector que no entendiera
-/// **nada** y guardara cada chunk crudo también daría byte por byte, y el JSON
-/// no serviría para nada. Así que además se exige que no quede ni un chunk sin
-/// nombre. `desconocidos` sólo aparece en el JSON cuando tiene algo adentro.
+/// The round trip alone is not enough as a test: a reader that understood
+/// **nothing** and kept every chunk raw would also come back byte for byte, and
+/// the JSON would be useless. So it is also required that not a single chunk
+/// goes unnamed. `unknown` only shows up in the JSON when it has something in
+/// it.
 #[test]
-fn ningun_chunk_queda_sin_nombre() {
-    for a in [juego().join("RPG_RT.ldb"), juego().join("RPG_RT.lmt")]
-        .into_iter()
-        .chain(mapas().into_iter().step_by(20))
+fn no_chunk_goes_unnamed() {
+    let Some(dir) = common::dir() else { return };
+    let Some(files) = common::files(&dir) else { return };
+    for a in files[..2]
+        .iter()
+        .cloned()
+        .chain(common::maps(&dir).into_iter().step_by(20))
     {
-        let doc = ditto::archivo::leer(&std::fs::read(&a).unwrap()).unwrap();
+        let doc = ditto::file::read(&std::fs::read(&a).unwrap()).unwrap();
         let json = serde_json::to_string(&doc).unwrap();
         assert!(
-            !json.contains("desconocidos"),
-            "{:?} tiene chunks que el esquema no nombra",
+            !json.contains("\"unknown\""),
+            "{:?} has chunks the schema does not name",
             a.file_name().unwrap()
         );
     }
