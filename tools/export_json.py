@@ -268,17 +268,46 @@ def database_json(database, unknown):
 
 # --- Los archivos compartidos ---------------------------------------------
 
+def nodo_del_arbol(tree, i, exported):
+    """Un nodo del árbol: un mapa o un **área de encuentros**.
+
+    El tipo 2 no es una carpeta del editor, que es lo que este volcado decía
+    hasta el 2026-09-14: es un **área**, o sea un rectángulo dentro del mapa
+    padre con su propia lista de tropas y su propio contador de pasos. taro las
+    buscó ese día y no las encontró en ningún lado —ni acá ni en los
+    `MapNNNN.json`— porque viven en el árbol, `RPG_RT.lmt`, y este volcado
+    exportaba nada más que el nombre y el padre.
+
+    `encounters`, `encounter_steps` y `area_rect` los trae **cualquier** nodo,
+    mapa o área: un mapa puede tener sus propias tropas además de las de las
+    áreas que lo tapan. Se exportan sólo cuando dicen algo, para no llenar de
+    ceros los 328 nodos.
+    """
+    nodo = {"id": i,
+            "name": tree.map_names[i],
+            "parent": tree.map_parents[i],
+            "type": "area" if tree.map_types[i] == 2 else "map",
+            "file": "maps/Map%04d.json" % i if i in exported else None}
+    tropas = tree.encounters.get(i) or []
+    if tropas:
+        nodo["encounters"] = [Inline([t]) if not isinstance(t, (list, tuple))
+                              else Inline(list(t)) for t in tropas]
+        nodo["encounter_steps"] = tree.encounter_steps.get(i, 25)
+    rect = tree.area_rect.get(i)
+    if rect and any(rect):
+        nodo["area_rect"] = Inline(list(rect))
+    return nodo
+
+
 def tree_json(tree, exported):
+
+
     # tree_order (el orden de los nodos en el árbol del editor) no se exporta:
     # es estado de UI, y la jerarquía ya está en "parent".
     return {
         "start": {"map": tree.start_map_id,
                   "at": Inline([tree.start_x, tree.start_y])},
-        "maps": [{"id": i,
-                  "name": tree.map_names[i],
-                  "parent": tree.map_parents[i],
-                  "type": "folder" if tree.map_types[i] == 2 else "map",
-                  "file": "maps/Map%04d.json" % i if i in exported else None}
+        "maps": [nodo_del_arbol(tree, i, exported)
                  for i in sorted(tree.map_names) if i != 0],
     }
 

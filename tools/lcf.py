@@ -858,12 +858,22 @@ class Enemy:
         # lleva lo usa— y si apareciera uno habría que rotarle el tono acá y en
         # la referencia con la misma función.
         self.battler_name = to_string(fields.get(ENEMY_BATTLER_NAME, b""))
-        self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x01"))
-        self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x00"))
-        self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x01"))
-        self.defense = to_int(fields.get(ENEMY_DEFENSE, b"\x01"))
-        self.spirit = to_int(fields.get(ENEMY_SPIRIT, b"\x01"))
-        self.agility = to_int(fields.get(ENEMY_AGILITY, b"\x01"))
+        # **Los seis van con 10 y no con 1**, que es lo que dice liblcf
+        # (`generator/csv/fields.csv`, columna del default). Acá estaban en 1 y
+        # 0, y no era una diferencia teórica: el LDB **no guarda el campo
+        # cuando vale el default**, así que un enemigo que en el editor tiene
+        # los valores de fábrica llegaba con 1 de HP. taro lo encontró el
+        # 2026-09-14 jugando —el `DirtShadow` moría de un golpe— y mirando el
+        # volcado a JSON, donde el campo directamente no aparece.
+        #
+        # Son 24 enemigos de los 175, casi todos separadores del editor, pero
+        # el DirtShadow es uno de verdad.
+        self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x0A"))
+        self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x0A"))
+        self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x0A"))
+        self.defense = to_int(fields.get(ENEMY_DEFENSE, b"\x0A"))
+        self.spirit = to_int(fields.get(ENEMY_SPIRIT, b"\x0A"))
+        self.agility = to_int(fields.get(ENEMY_AGILITY, b"\x0A"))
         self.exp = to_int(fields.get(ENEMY_EXP, b"\x00"))
         self.gold = to_int(fields.get(ENEMY_GOLD, b"\x00"))
         self.critical_hit = to_bool(fields.get(ENEMY_CRITICAL_HIT, b"\x00"))
