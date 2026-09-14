@@ -76,11 +76,32 @@ DRUM_VOICES = 2
 # sintetizada suena fea. Las pistas las arma `tools/msu.py` desde los mismos
 # MIDI, con el soundfont con que sonaba el juego original en la PC.
 #
-# Son los ocho temas que llevan las demos. `escape_newyork` se queda en la 1,
-# que es el número con el que se armó la primera pista: cambiarlo obligaría a
-# renombrar archivos que ya están en la tarjeta. Los temas del juego son 43 en
-# total —91 minutos, 923 MB de PCM—, así que el resto entra el día que haya
-# una ROM que los toque.
+# **Son los 21 temas que suenan hasta salir de Lashe City**, que es el alcance
+# que pidió taro el 2026-09-14: *"tal vez no sea factible usar PCM para todo,
+# pero sí o sí quiero todos los temas que suenan hasta salir de Lashe City"*.
+# Los del juego entero son 43 —91 minutos, 923 MB— y ésos entran el día que
+# haya una ROM que los toque.
+#
+# **Los números del 1 al 8 no se tocan nunca**: son los que ya están en la
+# tarjeta de taro, y cambiarlos obligaría a renombrar archivos. Por eso los
+# catorce que se agregaron el 2026-09-14 van del 9 en adelante y en un orden
+# que no dice nada: el orden acá no significa nada para la ROM, que lee
+# `tema_msu` por índice de tema.
+#
+# El del **título** (8) y el de **batalla** (9) no son de ningún mapa: salen de
+# `title_music` y `battle_music` del LDB. El de batalla suena en todas las
+# peleas y es el más caro del cartucho —226 s y 156.520 B de stream, el doble
+# que el siguiente—; que tenga pista es lo que más se oye por tema emitido.
+#
+# **Lo que NO arregla darle pista al de batalla**, medido el 2026-09-14 porque
+# parecía que sí: sacarlo del banco compartido libera 4 muestras y 565 B, sube
+# la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los nueve
+# recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
+#
+# Y el tamaño: 16 bits estéreo a 44,1 kHz son 10,6 MB por minuto, así que los
+# 21 son unos 423 MB por ROM. Recortarlos por loop tampoco da: de los 21, el
+# **único** que repite exacto a la mitad es `C3classi` —medido comparando las
+# notas de las dos mitades— y son 8,6 MB de 423.
 PISTAS_MSU = {
     "escape_newyork": 1,
     "hzstream": 2,
@@ -90,6 +111,20 @@ PISTAS_MSU = {
     "cd4": 6,
     "C3classi": 7,
     "Fantasia_Of_The_Wind": 8,
+    "T_VGFighterMAX_Masako": 9,
+    "rshinld": 10,
+    "cd2": 11,
+    "hzbreach": 12,
+    "wb3mlair": 13,
+    "Astpgmarch": 14,
+    "Gaden": 15,
+    "3D-Galax": 16,
+    "wb3shop": 17,
+    "KSSMKEND": 18,
+    "vswar": 19,
+    "Lunar_Pyramid": 20,
+    "dcbest": 21,
+    "golden_axe-turtlevillage2": 22,
 }
 
 

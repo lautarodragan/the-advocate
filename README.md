@@ -1522,10 +1522,26 @@ consola sino una extensión que soportan el FX Pak Pro y los emuladores, con la
 música en archivos PCM al lado de la ROM. El tema sale de un archivo de 44,1
 kHz estéreo en vez de las ocho voces del SPC700.
 
-Lo usan **los ocho temas de las demos**: `PISTAS_MSU` en `snes_music.py` dice
-cuáles tienen pista y con qué número, y el conversor emite `tema_msu`, un byte
-por tema —`$FF` el que no tiene—. Los del juego entero son 43, noventa y un
-minutos, 923 MB de PCM; entran el día que haya una ROM que los toque.
+Lo usan **los 21 temas que suenan hasta salir de Lashe City**, más el del
+título: `PISTAS_MSU` en `snes_music.py` dice cuáles tienen pista y con qué
+número, y el conversor emite `tema_msu`, un byte por tema —`$FF` el que no
+tiene—. Los del juego entero son 43, noventa y un minutos, 923 MB de PCM;
+entran el día que haya una ROM que los toque.
+
+Eran ocho hasta el 2026-09-14, y los otros catorce entraron porque taro los
+pidió por su nombre después de jugar: los temas sin pista sonaban por el SPC700
+y a nueve de ellos les faltaban entre el 28% y el 88% de las notas (ver "Varios
+temas en el cartucho"). **Los números del 1 al 8 no se mueven nunca**: son los
+que ya están en la tarjeta, y renumerarlos obligaría a renombrar archivos.
+
+Dos de los temas **no son de ningún mapa** y por eso se escapan de cualquier
+barrido de `PlayBGM`: salen del LDB. `title_music` es el de la pantalla de
+título y `battle_music` el de **todas** las peleas —`T_VGFighterMAX_Masako`—.
+
+Cuestan 10,6 MB por minuto, o sea unos **423 MB por cartucho** para los 21. Y
+no hay atajo por el loop: de los 21 el único que repite exacto a la mitad es
+`C3classi`, medido nota por nota sobre las dos mitades del MIDI, y son 8,6 MB
+de 423.
 
 Cómo funciona, del lado de la ROM:
 

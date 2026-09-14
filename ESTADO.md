@@ -176,8 +176,35 @@ menos `Astpgmarch` (88,6%) y `vswar` (82,2%), que pierden golpes de percusión
 porque el presupuesto de la batería es lo que sobra.
 
 **Cuál de las dos suena peor lo tiene que decir taro**, y para eso están las
-ROMs de `pruebas-manuales/audio/`. La tercera salida —pistas de MSU-1 para esos
-nueve temas— son unos 280 MB más de PCM por cartucho y no se hizo.
+ROMs de `pruebas-manuales/audio/`.
+
+#### Y la salida que taro eligió: pista de MSU-1 para los 21
+
+El 2026-09-14 decidió el alcance: *"El juego tiene mucha música. Tal vez no sea
+factible usar PCM para todo, pero sí o sí quiero todos los temas que suenan
+hasta salir de Lashe City"*. Hecho: `PISTAS_MSU` pasó de 8 a **22** entradas y
+cubre los 21 temas de `demo-ciudad` más el del título. **Los números del 1 al 8
+no se movieron**, que es lo que deja válidos los `.pcm` que ya están en la
+tarjeta; los catorce nuevos van del 9 en adelante.
+
+Dos de los catorce no son de ningún mapa y por eso se habían escapado de todo
+barrido anterior: salen del LDB, no de un `PlayBGM`. `title_music` —que ya
+tenía la 8— y **`battle_music`, `T_VGFighterMAX_Masako`**, que suena en todas
+las peleas.
+
+**Lo que darle pista al de batalla NO arregla, medido porque parecía que sí:**
+sacarlo del banco compartido libera **4 muestras y 565 B**, sube la tasa
+mediana de 11521 a 12496 Hz y **no devuelve ni uno** de los nueve temas
+recortados —siguen siendo los mismos nueve—. Y a dos de ellos los deja peor
+(`vswar` 69,2→68,6%, `golden_axe` 12,2→8,3%), porque se apoyaban en programas
+que ponía él. Su peso es de **stream** —156.520 B, el doble que el siguiente—
+y el stream vive en el cartucho, no en la ARAM.
+
+Lo que cuesta: 10,6 MB por minuto, o sea **unos 423 MB de PCM por cartucho**
+para los 21. **Recortar por loop no ayuda**: de los 21, el único que repite
+exacto a la mitad es `C3classi` —medido comparando nota por nota las dos
+mitades del MIDI— y son 8,6 MB de 423. `3D-Galax`, que es el más largo con 267
+s, **no** se repite.
 
 Dos cosas que costaron al armar esas ROMs y conviene no volver a descubrir:
 
