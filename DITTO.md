@@ -151,8 +151,40 @@ lo sabe: se lo pasa el justfile.
 
 Las dos recetas exportan `DITTO_CORPUS=/extras/abl-rm`. Corrido a mano sin esa
 variable, las pruebas que necesitan el juego **se saltean con un mensaje** en
-vez de fallar; las que no lo necesitan —los defaults del esquema— corren
-siempre.
+vez de fallar; las que no lo necesitan —los defaults del esquema, y el corpus
+sintético— corren siempre.
+
+### El corpus que Ditto se escribe solo
+
+`ditto/tests/synthetic.rs` no necesita juego: arma los archivos él mismo. Está
+para que un clon sin corpus —el día que Ditto viva en su propio repo— mida algo
+de verdad en vez de saltear todo.
+
+La mitad de ese archivo **no es una vuelta ida y vuelta**, y es a propósito:
+una vuelta sólo prueba que el lector y el escritor se entienden entre ellos, y
+si los dos se equivocan igual la comparación da cero —la regla de `AGENTS.md`,
+otra vez—. Así que esas pruebas escriben **los bytes a mano** —un entero BER y
+los límites donde crece, un chunk `(id, largo, cuerpo)`, un mapa entero byte por
+byte— y afirman qué valor es cada uno. Un lector que se inventara el formato
+las rompe.
+
+La otra mitad arma documentos con lo que un juego real casi no tiene: los
+extremos del BER, texto en el rango donde cp1252 se separa de Latin-1, vectores
+vacíos al lado de llenos, un campo puesto en su default a propósito, y un chunk
+que el esquema no nombra.
+
+Los dos corpus contestan preguntas distintas y ninguno reemplaza al otro: el
+sintético prueba que la implementación es consistente; el juego real prueba que
+el formato es el que el RPG Maker escribe de verdad. Un proyecto recién creado
+con el editor vale más acá que un juego terminado, porque tiene casi todo en el
+valor de fábrica, que es justo de lo que se trata la regla de omisión.
+
+De paso salió un límite que no sabíamos: **un comando de código 0 termina la
+lista**. La lista de comandos de un evento no lleva cuenta —cierra con cuatro
+bytes en cero, que es un comando de código 0—, así que un JSON editado a mano
+que meta uno en el medio **pierde todo lo que sigue**, y en silencio, porque el
+archivo que sale es válido. Está fijado en
+`a_command_of_code_zero_ends_the_list`.
 
 Al 2026-09-14 la vuelta da **330 de 330** archivos idénticos: los 328 `.lmu`,
 el `RPG_RT.ldb` y el `RPG_RT.lmt`. Y desde el volcado por directorios, otros
