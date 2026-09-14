@@ -74,9 +74,34 @@ Conceptualmente el CSV es una **dependencia** de Ditto: subirle la versión es
 un cambio que se revisa como cualquier otro.
 
 Lo que se genera son tres cosas, y las tres salen del CSV y de ningún criterio
-nuestro: los structs y los enums, el `Default` de cada struct, y el códec
-—qué campo es qué chunk, cómo se codifica, y si se emite cuando vale el
-default—.
+nuestro: los structs y los enums, el default de cada campo, y el códec —qué
+campo es qué chunk, cómo se codifica, y si se emite cuando vale el default—.
+
+### El default va al lado del campo, una sola vez
+
+    pub max_hp: i32 = 10,
+
+No es estética. El default es lo que rellena al leer **y** lo que decide omitir
+al escribir: son la misma cosa o la vuelta deja de ser byte por byte. Escrito
+dos veces —como estaba: un comentario `/// default: 10` y un `impl Default` al
+final del struct— se pueden separar sin que nada avise. La macro
+`esquema_struct!` (`src/lcf.rs`, 40 líneas, sin dependencias) arma el `Default`
+desde ahí, y el `#[serde(default)]` del struct lo usa para el JSON. Sacó 61
+bloques `impl Default` y 1.889 líneas del generado.
+
+El `= <valor>` es **obligatorio en todos los campos**, incluso en los que
+`fields.csv` no declara default: si fuera opcional, un campo sin default caería
+al cero del tipo por la puerta de atrás, que es el bug que originó Ditto. Al
+ser parte de la gramática de la macro, olvidarse es un error de compilación.
+
+Y por eso **no** se usa `#[serde(default)]` campo por campo ni
+`serde-inline-default`. El primero rellena con el cero del *tipo* y reintroduce
+el bug. El segundo —evaluado: 1.0.2 en crates.io, sin deps nuevas, syn 3 que ya
+está— sólo emite `#[serde(default = "fn")]`: **no implementa
+`std::default::Default`**, que es justo el que necesita el códec para decidir
+la omisión y el que pide `trait Chunked: Default`. O sea que no sacaría ningún
+`impl Default`: dejaría el default escrito dos veces igual, con una dependencia
+de proc-macro encima.
 
 ## El formato, y las cuatro cosas que hacen difícil la vuelta exacta
 
