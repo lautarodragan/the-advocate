@@ -26,6 +26,11 @@ sin rojos**; las dos nuevas son las del tope de columna del compositor
 El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
+**Ditto** (`ditto/`) ya hace `.ldb`/`.lmu`/`.lmt` ⇄ JSON en los dos sentidos,
+con la vuelta byte por byte en **330 de 330** archivos del juego (`just
+ditto-vuelta-entera`); todavía no reemplaza a `tools/lcf.py` ni al conversor, y
+lo que le falta está en `ditto/README.md`.
+
 **La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
 con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho
 de un mapa— para ver esa escena sin caminar media Lashe City. Su `LEEME.txt`
