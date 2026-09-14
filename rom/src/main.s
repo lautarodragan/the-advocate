@@ -46,6 +46,10 @@ APUIO1   = $2141
 APUIO2   = $2142
 APUIO3   = $2143
 
+; El comando del driver del SPC700 que lo manda de vuelta a la ROM del IPL.
+; Ver `DRIVER` en tools/snes_music.py y el lazo de `reset` que lo usa.
+APU_CMD_IPL = 4
+
 ; La consola multiplica y divide por hardware, que es lo único que hace falta
 ; para el tinte de pantalla: escala cada canal por un valor de 0 a 200 con 100
 ; como neutro, o sea multiplicar y dividir por cien. Las dos son exactas y con
@@ -1150,6 +1154,24 @@ cargar:
     ; La subida al SPC700 va después de prender la pantalla, no antes: son casi
     ; siete décimas de segundo, y así el mapa aparece de entrada en vez de
     ; hacerte mirar una pantalla negra hasta que termine.
+    ;
+    ; Y antes de subir nada, el comando 4: **que el SPC700 vuelva a su ROM del
+    ; IPL**. Acá se llega de dos maneras y sólo una de las dos deja al SPC700
+    ; como recién encendido. Con el botón de reset de la consola la línea les
+    ; llega a los dos procesadores y el IPL arranca solo; con el `jml reset`
+    ; del Game Over de `op_batalla`, no: el SPC700 sigue corriendo el driver y
+    ; el saludo $AA/$BB que `spc_upload` espera no llega **nunca**. Ése era el
+    ; cuelgue del cofre trampa de los Rat Tracks —pantalla encendida, mapa
+    ; dibujado y el juego clavado—, y el mismo lo tenía cualquier Game Over.
+    ;
+    ; Con el IPL corriendo esto no molesta: mientras espera el $CC mira el
+    ; puerto 0, y acá se escriben el 2 y el 3. El testigo se incrementa sin
+    ; esperar acuse, porque del otro lado ya no queda quién lo devuelva.
+    lda #APU_CMD_IPL
+    sta APUIO2
+    inc token
+    lda token
+    sta APUIO3
     jsr spc_upload
     ; El puerto 2 es el comando del driver, y `spc_upload` lo deja con lo que
     ; haya mandado último: en cero, el driver lee pares del DSP.

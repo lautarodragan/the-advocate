@@ -16,7 +16,8 @@ El mapa de memoria que importa:
 
 # (mnemónico, operandos) -> (opcode, cuántos bytes de operando)
 #
-# Los operandos son: dp = página cero, imm = inmediato, rel = salto relativo.
+# Los operandos son: dp = página cero, imm = inmediato, rel = salto relativo,
+# abs = una dirección de dieciséis bits, que se emite en little endian.
 OPCODES = {
     ("mov", "a,dp"):    (0xE4, 1),   # A <- (dp)
     ("mov", "a,imm"):   (0xE8, 1),   # A <- inmediato
@@ -35,6 +36,7 @@ OPCODES = {
     ("beq", "rel"):     (0xF0, 1),   # salta si iguales
     ("bne", "rel"):     (0xD0, 1),   # salta si distintos
     ("bra", "rel"):     (0x2F, 1),   # salto incondicional
+    ("jmp", "abs"):     (0x5F, 2),   # salto largo, a cualquier dirección
     ("nop", ""):        (0x00, 0),
 }
 
@@ -77,6 +79,10 @@ class Assembler:
                 continue
             if size == 0:
                 return bytes([opcode])
+            if shape == "abs":
+                # La única de dos bytes, y va en little endian como todo lo
+                # demás del SPC700.
+                return bytes([opcode, value & 0xFF, (value >> 8) & 0xFF])
             if shape == "rel":
                 # Los saltos son relativos al final de la instrucción.
                 offset = value - (address + 2)
@@ -97,6 +103,8 @@ class Assembler:
 
         if shape == "y":                    # el registro Y
             return 0 if operand == "y" else None
+        if shape == "abs":                  # una dirección entera: !$FFC0
+            return self._number(operand, "!")
         if shape == "dp":                   # un solo operando de página cero
             return self._number(operand, "$")
         if shape == "[dp]+y,a":             # el indirecto indexado

@@ -3107,6 +3107,25 @@ snes-demo-cofres nombre="demo-cofres":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# El cofre trampa de los Rat Tracks B1, al lado del héroe: la demo más corta
+# posible para ver el Game Over de la pelea que ese cofre abre. Arranca en
+# (22,36), o sea pegado al `RatTrackChest6c`; con mirar hacia arriba y apretar A
+# la pelea empieza, y con Talan solo —40 de HP contra tres GiantRat, y la huida
+# prohibida por la página— se pierde en unos segundos.
+#
+# Es lo que reprodujo el cuelgue del 2026-09-13: hasta ese día perder ahí dejaba
+# la consola clavada en el arranque, con el mapa dibujado y el juego muerto. Ver
+# README, "Trampas del hardware". Lleva también el mapa 26 para poder seguir a
+# los Rat Tracks B2 y probar de paso el jefe, que pierde igual.
+snes-demo-trampa nombre="demo-trampa":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
+      --con-ventana --con-timer --inicio 22 36 \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
 # Las dos de una vez.
 snes-demos:
   just snes-demo demo-ciudad
