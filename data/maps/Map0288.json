@@ -1,1025 +1,1177 @@
 {
-  "id": 288,
-  "name": "A Gain... and a Loss",
-  "size": [20, 80],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0288.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ConditionalBranch", "", [4, 81, 0, 0, 0, 1]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ChangeItems", "", [0, 0, 81, 0, 1]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 34]],
-            [0, "ChangeScreenTransitions", "", [0, 20]],
-            [0, "TintScreen", "", [50, 50, 50, 100, 10, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 28, 15, 23, 23, 12, 23, 13, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What's going on?!", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 28, 1, 14, 3, 12, 15, 13, 14, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 0]],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SERN", []],
-            [1, "ShowMessage_2", "It seems as if the power was just", []],
-            [1, "ShowMessage_2", "turned on...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "It seems as if the power was just", []],
-            [2, "ShowMessage_2", "turned on...", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "It seems as if the power was just", []],
-            [3, "ShowMessage_2", "turned on...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 15, 13, 12, 14, 23, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "This is more like it.", []],
-            [1, "ShowMessage_2", "The mobility is very encouraging!", []],
-            [1, "MoveEvent", "", [3, 8, 0, 0, 24, 25, 15]],
-            [1, "MoveEvent", "", [4, 8, 0, 0, 24, 25, 15]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "AG7? Are you feeling all right?", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "I would prefer it if you referred to me as", []],
-            [1, "ShowMessage_2", "\"Advocate.\" Calling me by the model of", []],
-            [1, "ShowMessage_2", "this battledroid is too generic for my tastes.", []],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "What happened to you, AG7?", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "AG7-17 BATTLEDROID", []],
-            [1, "ShowMessage_2", "This is more like it.", []],
-            [1, "ShowMessage_2", "The mobility is very encouraging!", []],
-            [1, "MoveEvent", "", [3, 8, 0, 0, 24, 25, 15]],
-            [1, "MoveEvent", "", [4, 8, 0, 0, 24, 25, 15]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "What the -", []],
-            [1, "ShowMessage_2", "Is this normal behavior for a battledroid?", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "AG7-17 BATTLEDROID", []],
-            [1, "ShowMessage_2", "You shall refer to me as \"Advocate.\"", []],
-            [1, "ShowMessage_2", "I am far more important than a mere", []],
-            [1, "ShowMessage_2", "droid! Remember that!", []],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Uh... what?", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "Wait", "", [6]],
-            [0, "ShowMessage", "EMILY'S VOICE", []],
-            [0, "ShowMessage_2", "Who's up there? Is that you, Talan?", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily!", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 2, 2, 2]],
-            [0, "MoveEvent", "", [4, 8, 0, 1, 2, 2, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "PanScreen", "", [2, 2, 40, 4, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I don't think we can get up to", []],
-            [0, "ShowMessage_2", "you, Talan! It's too high.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I'm going to try, though! Hang on!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily, wait -", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 24, 0, 25, 23, 4, 23, 23, 7, 23, 23, 4]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 695, 695, 0]],
-            [0, "MoveEvent", "", [34, 8, 0, 0, 28, 28, 36, 2, 2, 2, 2, 35, 6, 83, 119, 111, 114, 100, 50, 100, 80, 50, 6, 37, 29, 29]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 28, 26, 36, 2, 2, 2, 2, 37, 27, 37, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50, 29, 29]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "PlaySound", "Earth2", [70, 130, 50]],
-            [0, "PanScreen", "", [3, 2, 40, 6, 1]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily!", []],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I'm all right, I'm just a little bruised.", []],
-            [0, "Teleport", "", [288, 5, 73]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "There's a transport tram down here,", []],
-            [0, "ShowMessage_2", "Talan - it looks as if it runs on rails to", []],
-            [0, "ShowMessage_2", "Prima City.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "If we go there, Kersh and I can sneak into", []],
-            [0, "ShowMessage_2", "the Agency building and find the man", []],
-            [0, "ShowMessage_2", "responsible for ordering the attack on Paradise!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily, no! We can't go to Prima -", []],
-            [0, "ShowMessage_2", "it's just too dangerous! We'll find a way", []],
-            [0, "ShowMessage_2", "down there, just wait!", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 0, 0, 23, 13, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ControlSwitches", "", [0, 695, 695, 1]],
-            [0, "ShowMessage", "KERSH picked up THE PACKAGE.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "PlaySound", "static", [20, 100, 50]],
-            [0, "TintScreen", "", [200, 200, 200, 100, 0, 1]],
-            [0, "Wait", "", [7]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
-            [0, "ShowPicture", "ShipFlash", [2, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "VOICE", []],
-            [0, "ShowMessage_2", "Vo'stelt snelar'mes novosk!", []],
-            [0, "ShowMessage_2", "Vo'stelt novosk!\\|\\^", []],
-            [0, "Wait", "", [10]],
-            [0, "ErasePicture", "", [2]],
-            [0, "PlaySound", "static", [20, 100, 50]],
-            [0, "ShowPicture", "GTest4", [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "APPARITION", []],
-            [0, "ShowMessage_2", "Anash'na go'rel amno Kersh!\\|\\^", []],
-            [0, "TintScreen", "", [0, 0, 0, 0, 0, 1]],
-            [0, "ErasePicture", "", [1]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "FlashSprite", "", [6, 31, 0, 0, 31, 10, 0]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Agh!\\|\\^", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Kersh, are you all right?", []],
-            [0, "Wait", "", [18]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Yes... I just... think I remembered something.", []],
-            [0, "PanScreen", "", [2, 0, 40, 6, 0]],
-            [0, "FlashScreen", "", [0, 0, 0, 31, 5, 0]],
-            [0, "Wait", "", [8]],
-            [0, "FlashScreen", "", [0, 0, 0, 31, 5, 0]],
-            [0, "Wait", "", [5]],
-            [0, "FlashScreen", "", [0, 0, 0, 31, 5, 0]],
-            [0, "Wait", "", [13]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "TintScreen", "", [70, 70, 70, 100, 5, 0]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SERN", []],
-            [1, "ShowMessage_2", "The lights are flickering - this place won't", []],
-            [1, "ShowMessage_2", "be powered for long.", []],
-            [1, "ShowMessage", "SERN", []],
-            [1, "ShowMessage_2", "You can't go to Prima, girl - especially", []],
-            [1, "ShowMessage_2", "not without us to protect you!", []],
-            [1, "PanScreen", "", [3, 2, 40, 6, 1]],
-            [1, "MessageOptions", "", [0, 2, 0, 0]],
-            [1, "ShowMessage", "EMILY", []],
-            [1, "ShowMessage_2", "I can take care of myself, Sern!", []],
-            [1, "ShowMessage_2", "The power might fail at any minute,", []],
-            [1, "ShowMessage_2", "and the tram won't move!", []],
-            [1, "ShowMessage", "EMILY", []],
-            [1, "ShowMessage_2", "I have to do this now!", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "The lights are flickering - this place won't", []],
-            [2, "ShowMessage_2", "be powered for long.", []],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "Emily... going to Prima is a very bad", []],
-            [2, "ShowMessage_2", "idea. I agree with Talan - we need to", []],
-            [2, "ShowMessage_2", "talk this over!", []],
-            [2, "PanScreen", "", [3, 2, 40, 6, 1]],
-            [2, "MessageOptions", "", [0, 2, 0, 0]],
-            [2, "ShowMessage", "EMILY", []],
-            [2, "ShowMessage_2", "Radin... I'm sorry. But the tram might", []],
-            [2, "ShowMessage_2", "run out of power at any moment.", []],
-            [2, "ShowMessage_2", "I have to do this now, while I still can!", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "The lights are flickering - I don't think", []],
-            [3, "ShowMessage_2", "the power is going to stay on for long.", []],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "Emily, I agree with Talan! You can't", []],
-            [3, "ShowMessage_2", "go to Prima without us! We need to", []],
-            [3, "ShowMessage_2", "talk things over!", []],
-            [3, "PanScreen", "", [3, 2, 40, 6, 1]],
-            [3, "MessageOptions", "", [0, 2, 0, 0]],
-            [3, "ShowMessage", "EMILY", []],
-            [3, "ShowMessage_2", "Lerle... I'm sorry. But the tram might", []],
-            [3, "ShowMessage_2", "run out of power at any moment.", []],
-            [3, "ShowMessage_2", "I have to do this now, while I still can!", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 2, 2, 2, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Kersh, are you ready? The tram might", []],
-            [0, "ShowMessage_2", "not remain powered for long!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "I'm fine... you go onboard. I'll be right there.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 1, 36, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 0, 0, 0, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 2, 2, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "It's good to have this back again.", []],
-            [0, "ShowMessage_2", "To think I could have forgotten about it,", []],
-            [0, "ShowMessage_2", "even for a little while!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Talan! Do you remember what I told you", []],
-            [0, "ShowMessage_2", "on the rooftop back at Lashe City?", []],
-            [0, "Teleport", "", [288, 5, 35]],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "!!!!!!!!", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 26, 0, 23, 23, 23, 0, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [288, 4, 76]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "PlayBGM", "USTravelling", [0, 100, 100, 50]],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Well...\\|\\|\\^", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "... I remember.", []],
-            [0, "Teleport", "", [288, 5, 34]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Damn it!", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SERN", []],
-            [1, "ShowMessage_2", "His memory's returned!", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
-            [2, "ShowMessage", "RADIN", []],
-            [2, "ShowMessage_2", "His memory's returned!", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
-            [3, "ShowMessage", "LERLE", []],
-            [3, "ShowMessage_2", "His memory's returned!", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "Teleport", "", [288, 5, 73]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 1, 1, 1, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "Don't worry, Talan!", []],
-            [0, "ShowMessage_2", "I'll take good care of her!", []],
-            [0, "Teleport", "", [288, 7, 34]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Kersh, you bastard!", []],
-            [0, "Teleport", "", [288, 5, 73]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 23, 23, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 23, 23, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "KERSH", []],
-            [0, "ShowMessage_2", "See you at Prima, Talan!", []],
-            [0, "ShowMessage_2", "Don't be late!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [288, 7, 34]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No! NO!!", []],
-            [0, "Teleport", "", [288, 7, 76]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 2, 2, 1, 1, 1, 1, 1, 1]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I will hunt you down, Kersh!", []],
-            [0, "ShowMessage_2", "I will kill you!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 36, 2, 1, 1, 0, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Kersh!", []],
-            [0, "ShowMessage_2", "If you harm her -", []],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Earth8", [100, 70, 50]],
-            [0, "ControlSwitches", "", [0, 699, 699, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 30, 1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Keeeeeerrrssshhh!!!!!\\|\\^", []],
-            [0, "Teleport", "", [241, 4, 12]]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [4, 81, 0, 0, 0, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 81, 0, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 34]},
+            {"code": "ChangeScreenTransitions", "parameters": [0, 20]},
+            {"code": "TintScreen", "parameters": [50, 50, 50, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 28, 15, 23, 23, 12, 23, 13, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What's going on?!"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 28, 1, 14, 3, 12, 15, 13, 14, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "It seems as if the power was just"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "turned on..."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "It seems as if the power was just"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "turned on..."},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "It seems as if the power was just"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "turned on..."},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15, 13, 12, 14, 23, 2, 2, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "This is more like it."},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The mobility is very encouraging!"
+            },
+            {"code": "MoveEvent", "indent": 1, "parameters": [3, 8, 0, 0, 24, 25, 15]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [4, 8, 0, 0, 24, 25, 15]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "AG7? Are you feeling all right?"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I would prefer it if you referred to me as"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "\"Advocate.\" Calling me by the model of"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "this battledroid is too generic for my tastes."
+            },
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What happened to you, AG7?"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17 BATTLEDROID"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "This is more like it."},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The mobility is very encouraging!"
+            },
+            {"code": "MoveEvent", "indent": 1, "parameters": [3, 8, 0, 0, 24, 25, 15]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [4, 8, 0, 0, 24, 25, 15]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What the -"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Is this normal behavior for a battledroid?"
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17 BATTLEDROID"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You shall refer to me as \"Advocate.\""
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I am far more important than a mere"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "droid! Remember that!"},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... what?"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "ShowMessage", "string": "EMILY'S VOICE"},
+            {"code": "ShowMessage_2", "string": "Who's up there? Is that you, Talan?"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 24, 25, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily!"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 2, 2, 2]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 1, 2, 2, 2, 2, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "PanScreen", "parameters": [2, 2, 40, 4, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I don't think we can get up to"},
+            {"code": "ShowMessage_2", "string": "you, Talan! It's too high."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I'm going to try, though! Hang on!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily, wait -"},
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 0, 36, 24, 0, 25, 23, 4, 23, 23, 7, 23, 23, 4]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 695, 695, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                34, 8, 0, 0, 28, 28, 36, 2, 2, 2, 2, 35, 6, 83, 119, 111, 114, 100, 50, 100, 80,
+                50, 6, 37, 29, 29
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                5, 8, 0, 0, 28, 28, 26, 36, 2, 2, 2, 2, 37, 27, 37, 35, 5, 66, 108, 111, 119,
+                54, 100, 100, 50, 29, 29
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "PlaySound", "parameters": [70, 130, 50], "string": "Earth2"},
+            {"code": "PanScreen", "parameters": [3, 2, 40, 6, 1]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily!"},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I'm all right, I'm just a little bruised."},
+            {"code": "Teleport", "parameters": [288, 5, 73]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "There's a transport tram down here,"},
+            {"code": "ShowMessage_2", "string": "Talan - it looks as if it runs on rails to"},
+            {"code": "ShowMessage_2", "string": "Prima City."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "If we go there, Kersh and I can sneak into"},
+            {"code": "ShowMessage_2", "string": "the Agency building and find the man"},
+            {
+              "code": "ShowMessage_2",
+              "string": "responsible for ordering the attack on Paradise!"
+            },
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily, no! We can't go to Prima -"},
+            {"code": "ShowMessage_2", "string": "it's just too dangerous! We'll find a way"},
+            {"code": "ShowMessage_2", "string": "down there, just wait!"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 0, 0, 23, 13, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ControlSwitches", "parameters": [0, 695, 695, 1]},
+            {"code": "ShowMessage", "string": "KERSH picked up THE PACKAGE."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "PlaySound", "parameters": [20, 100, 50], "string": "static"},
+            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 0, 1]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+            {
+              "code": "ShowPicture",
+              "parameters": [2, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2],
+              "string": "ShipFlash"
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "VOICE"},
+            {"code": "ShowMessage_2", "string": "Vo'stelt snelar'mes novosk!"},
+            {"code": "ShowMessage_2", "string": "Vo'stelt novosk!\\|\\^"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ErasePicture", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [20, 100, 50], "string": "static"},
+            {
+              "code": "ShowPicture",
+              "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2],
+              "string": "GTest4"
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "APPARITION"},
+            {"code": "ShowMessage_2", "string": "Anash'na go'rel amno Kersh!\\|\\^"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 0, 0, 1]},
+            {"code": "ErasePicture", "parameters": [1]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "FlashSprite", "parameters": [6, 31, 0, 0, 31, 10, 0]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Agh!\\|\\^"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Kersh, are you all right?"},
+            {"code": "Wait", "parameters": [18]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Yes... I just... think I remembered something."
+            },
+            {"code": "PanScreen", "parameters": [2, 0, 40, 6, 0]},
+            {"code": "FlashScreen", "parameters": [0, 0, 0, 31, 5, 0]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "FlashScreen", "parameters": [0, 0, 0, 31, 5, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "FlashScreen", "parameters": [0, 0, 0, 31, 5, 0]},
+            {"code": "Wait", "parameters": [13]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 5, 0]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The lights are flickering - this place won't"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "be powered for long."},
+            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "You can't go to Prima, girl - especially"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "not without us to protect you!"},
+            {"code": "PanScreen", "indent": 1, "parameters": [3, 2, 40, 6, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I can take care of myself, Sern!"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "The power might fail at any minute,"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "and the tram won't move!"},
+            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I have to do this now!"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "The lights are flickering - this place won't"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "be powered for long."},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Emily... going to Prima is a very bad"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "idea. I agree with Talan - we need to"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "talk this over!"},
+            {"code": "PanScreen", "indent": 2, "parameters": [3, 2, 40, 6, 1]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Radin... I'm sorry. But the tram might"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "run out of power at any moment."},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I have to do this now, while I still can!"
+            },
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "The lights are flickering - I don't think"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "the power is going to stay on for long."
+            },
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Emily, I agree with Talan! You can't"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "go to Prima without us! We need to"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "talk things over!"},
+            {"code": "PanScreen", "indent": 3, "parameters": [3, 2, 40, 6, 1]},
+            {"code": "MessageOptions", "indent": 3, "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Lerle... I'm sorry. But the tram might"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "run out of power at any moment."},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I have to do this now, while I still can!"
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 28, 2, 2, 2, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Kersh, are you ready? The tram might"},
+            {"code": "ShowMessage_2", "string": "not remain powered for long!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {
+              "code": "ShowMessage_2",
+              "string": "I'm fine... you go onboard. I'll be right there."
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                5, 8, 0, 1, 36, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 0, 0, 0, 37, 34, 10, 110,
+                111, 98, 111, 100, 121, 104, 101, 114, 101, 0
+              ]
+            },
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 2, 2, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "It's good to have this back again."},
+            {"code": "ShowMessage_2", "string": "To think I could have forgotten about it,"},
+            {"code": "ShowMessage_2", "string": "even for a little while!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Talan! Do you remember what I told you"},
+            {"code": "ShowMessage_2", "string": "on the rooftop back at Lashe City?"},
+            {"code": "Teleport", "parameters": [288, 5, 35]},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "Wait", "parameters": [20]},
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "!!!!!!!!"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 26, 0, 23, 23, 23, 0, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [288, 4, 76]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "USTravelling"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Well...\\|\\|\\^"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "... I remember."},
+            {"code": "Teleport", "parameters": [288, 5, 34]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Damn it!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "His memory's returned!"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "His memory's returned!"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {"code": "ShowMessage_2", "indent": 3, "string": "His memory's returned!"},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Teleport", "parameters": [288, 5, 73]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 1, 1, 1, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "Don't worry, Talan!"},
+            {"code": "ShowMessage_2", "string": "I'll take good care of her!"},
+            {"code": "Teleport", "parameters": [288, 7, 34]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Kersh, you bastard!"},
+            {"code": "Teleport", "parameters": [288, 5, 73]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 23, 23, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 23, 23, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "KERSH"},
+            {"code": "ShowMessage_2", "string": "See you at Prima, Talan!"},
+            {"code": "ShowMessage_2", "string": "Don't be late!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 2, 2, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [288, 7, 34]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No! NO!!"},
+            {"code": "Teleport", "parameters": [288, 7, 76]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 2, 2, 1, 1, 1, 1, 1, 1]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I will hunt you down, Kersh!"},
+            {"code": "ShowMessage_2", "string": "I will kill you!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                6, 8, 0, 0, 36, 2, 1, 1, 0, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101,
+                114, 101, 0, 37
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Kersh!"},
+            {"code": "ShowMessage_2", "string": "If you harm her -"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Earth8"},
+            {"code": "ControlSwitches", "parameters": [0, 699, 699, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 30, 1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Keeeeeerrrssshhh!!!!!\\|\\^"},
+            {"code": "Teleport", "parameters": [241, 4, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "y": 29
     },
     {
       "id": 2,
       "name": "AG7-17/Advocate",
-      "at": [8, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 29
     },
     {
       "id": 3,
       "name": "Talan",
-      "at": [10, 33],
       "pages": [
-        {
-          "sprite": {
-            "charset": "Future1",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"character_name": "Future1", "id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 10,
+      "y": 33
     },
     {
       "id": 4,
       "name": "ParadiseCharacter",
-      "at": [12, 32],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 386
+          "character_direction": "left",
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 386
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 388
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 388
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 385
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 385
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 3,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 32
     },
     {
       "id": 5,
       "name": "Emily",
-      "at": [9, 73],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 73
     },
     {
       "id": 6,
       "name": "Kersh",
-      "at": [7, 74],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 74
     },
     {
       "id": 7,
       "name": "Battledroid",
-      "at": [2, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 22
     },
     {
       "id": 8,
       "name": "Battledroid",
-      "at": [8, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 22
     },
     {
       "id": 9,
       "name": "Battledroid",
-      "at": [14, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 22
     },
     {
       "id": 10,
       "name": "Battledroid",
-      "at": [14, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 11,
       "name": "Battledroid",
-      "at": [11, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 16
     },
     {
       "id": 12,
       "name": "Battledroid",
-      "at": [5, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 16
     },
     {
       "id": 13,
       "name": "Battledroid",
-      "at": [17, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 29
     },
     {
       "id": 14,
       "name": "Battledroid",
-      "at": [14, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 29
     },
     {
       "id": 15,
       "name": "Battledroid",
-      "at": [11, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 22
     },
     {
       "id": 16,
       "name": "Battledroid",
-      "at": [5, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 22
     },
     {
       "id": 17,
       "name": "Battledroid",
-      "at": [17, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 22
     },
     {
       "id": 18,
       "name": "Battledroid",
-      "at": [2, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 29
     },
     {
       "id": 19,
       "name": "Battledroid",
-      "at": [2, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 16
     },
     {
       "id": 20,
       "name": "Battledroid",
-      "at": [17, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 16
     },
     {
       "id": 21,
       "name": "Battledroid",
-      "at": [8, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 16
     },
     {
       "id": 22,
       "name": "Battledroid",
-      "at": [5, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 9
     },
     {
       "id": 23,
       "name": "Battledroid",
-      "at": [11, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 9
     },
     {
       "id": 24,
       "name": "Battledroid",
-      "at": [14, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 9
     },
     {
       "id": 25,
       "name": "Battledroid",
-      "at": [17, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 9
     },
     {
       "id": 26,
       "name": "Battledroid",
-      "at": [8, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 2
     },
     {
       "id": 27,
       "name": "Battledroid",
-      "at": [2, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 2
     },
     {
       "id": 28,
       "name": "Battledroid",
-      "at": [5, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 2
     },
     {
       "id": 29,
       "name": "Battledroid",
-      "at": [8, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 9
     },
     {
       "id": 30,
       "name": "Battledroid",
-      "at": [2, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 9
     },
     {
       "id": 31,
       "name": "Battledroid",
-      "at": [11, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 2
     },
     {
       "id": 32,
       "name": "Battledroid",
-      "at": [14, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 2
     },
     {
       "id": 33,
       "name": "Battledroid",
-      "at": [17, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 2
     },
     {
       "id": 34,
       "name": "The Package",
-      "at": [9, 67],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 695
+          "animation_type": "fixed_graphic",
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "Package",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 695
           },
-          "sprite": {
-            "charset": "Package",
-            "index": 4,
-            "direction": "up",
-            "pattern": "left"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 67
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [18, 74],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 699
+          "character_index": 3,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 699
           },
-          "tile": 3,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 74
     },
     {
       "id": 36,
       "name": "EV0036",
-      "at": [18, 75],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 699
+          "character_index": 9,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 699
           },
-          "tile": 9,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 75
     },
     {
       "id": 37,
       "name": "AfterBattleMint",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     }
-  ]
+  ],
+  "height": 80,
+  "save_count": 141
 }

@@ -1,160 +1,178 @@
 {
-  "id": 221,
-  "name": "Radin and Memnosyne",
-  "size": [30, 20],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0221.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 26]],
-            [0, "ChangePartyMembers", "", [1, 0, 27]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "ChangePartyMembers", "", [1, 0, 25]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Hmmm... sleeping.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "This will be even easier than I thought.", []],
-            [0, "Wait", "", [4]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE places her fingertips", []],
-            [0, "ShowMessage_2", "on RADIN's forehead.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "PlaySound", "Holy7", [100, 50, 50]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "zzz... zzz... mmm?... zzz...", []],
-            [0, "PlayBGM", "Jambala_Title", [0, 100, 100, 50]],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Just keep sleeping, and let your memories", []],
-            [0, "ShowMessage_2", "surface as dreams... show me your past...", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "... zzz... zzz...", []],
-            [0, "Teleport", "", [349, 12, 11]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 26]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 27]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 25]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                3, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3,
+                3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Hmmm... sleeping."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "This will be even easier than I thought."},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE places her fingertips"},
+            {"code": "ShowMessage_2", "string": "on RADIN's forehead."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Holy7"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "zzz... zzz... mmm?... zzz..."},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "Jambala_Title"},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Just keep sleeping, and let your memories"},
+            {"code": "ShowMessage_2", "string": "surface as dreams... show me your past..."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "... zzz... zzz..."},
+            {"code": "Teleport", "parameters": [349, 12, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 976
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 976
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Rest well. I'm sorry for making you", []],
-            [0, "ShowMessage_2", "relive painful memories.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "RADIN, asleep", []],
-            [0, "ShowMessage_2", "...zzz... zzz... tell him...", []],
-            [0, "ShowMessage_2", "Agency... zzz...", []],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "He'll probably wake in a few minutes,", []],
-            [0, "ShowMessage_2", "and then I can see what Talan's memories", []],
-            [0, "ShowMessage_2", "have in store.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "Teleport", "", [232, 5, 11]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Rest well. I'm sorry for making you"},
+            {"code": "ShowMessage_2", "string": "relive painful memories."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "RADIN, asleep"},
+            {"code": "ShowMessage_2", "string": "...zzz... zzz... tell him..."},
+            {"code": "ShowMessage_2", "string": "Agency... zzz..."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "He'll probably wake in a few minutes,"},
+            {"code": "ShowMessage_2", "string": "and then I can see what Talan's memories"},
+            {"code": "ShowMessage_2", "string": "have in store."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "Teleport", "parameters": [232, 5, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Radin",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 976
+          "character_direction": "up",
+          "character_name": "extra2(1)",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 976
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 3,
       "name": "Memnosyne",
-      "at": [21, 5],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 5
     },
     {
       "id": 4,
       "name": "Memnosyne6",
-      "at": [10, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 976
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 976
           },
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     }
-  ]
+  ],
+  "height": 20,
+  "save_count": 60,
+  "width": 30
 }

@@ -1,122 +1,128 @@
 {
-  "id": 168,
-  "name": "The Line Narrows",
-  "size": [20, 30],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0168.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "Emily",
-      "at": [6, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 18
     },
     {
       "id": 2,
       "name": "Pierson",
-      "at": [10, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangeSystemBGM", "hydr", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "hydr", [1, 0, 100, 100, 50]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]],
-            [0, "Wait", "", [16]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily, what are you doing? We have to", []],
-            [0, "ShowMessage_2", "get out of here!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Talan! I just... have to find my radio! I", []],
-            [0, "ShowMessage_2", "can't leave it here for the Agency to", []],
-            [0, "ShowMessage_2", "destroy!", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I just couldn't live with myself if I lost", []],
-            [0, "ShowMessage_2", "my mother's radio!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We don't have the time! The Agency", []],
-            [0, "ShowMessage_2", "Guards could come down here any", []],
-            [0, "ShowMessage_2", "minute!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 0, 0, 1, 23, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily, come on!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 12]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [3]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I found it!", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "PlaySound", "Item1", [80, 100, 50]],
-            [0, "ShowMessage", "EMILY received PRE-SHORTAGE RADIO.", []],
-            [0, "ChangeItems", "", [0, 0, 182, 0, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Someone's coming!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "Wait", "", [45]],
-            [0, "ChangeEventLocation", "", [2, 0, 19, 0]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Is that... Daddy?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What's he doing down here?", []],
-            [0, "MoveEvent", "", [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Where are you going? Come back!", []],
-            [0, "ShowMessage_2", "We can't stay around here much longer!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [169, 8, 24]]
-          ]
+          "event_commands": [
+            {"code": "ChangeSystemBGM", "parameters": [0, 0, 100, 100, 50], "string": "hydr"},
+            {"code": "ChangeSystemBGM", "parameters": [1, 0, 100, 100, 50], "string": "hydr"},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "TintScreen", "parameters": [70, 70, 40, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]},
+            {"code": "Wait", "parameters": [16]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily, what are you doing? We have to"},
+            {"code": "ShowMessage_2", "string": "get out of here!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Talan! I just... have to find my radio! I"},
+            {"code": "ShowMessage_2", "string": "can't leave it here for the Agency to"},
+            {"code": "ShowMessage_2", "string": "destroy!"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I just couldn't live with myself if I lost"},
+            {"code": "ShowMessage_2", "string": "my mother's radio!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We don't have the time! The Agency"},
+            {"code": "ShowMessage_2", "string": "Guards could come down here any"},
+            {"code": "ShowMessage_2", "string": "minute!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 3, 0, 0, 1, 23, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily, come on!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I found it!"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "parameters": [80, 100, 50], "string": "Item1"},
+            {"code": "ShowMessage", "string": "EMILY received PRE-SHORTAGE RADIO."},
+            {"code": "ChangeItems", "parameters": [0, 0, 182, 0, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Someone's coming!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66,
+                76, 68, 97, 108, 105, 97, 3
+              ]
+            },
+            {"code": "Wait", "parameters": [45]},
+            {"code": "ChangeEventLocation", "parameters": [2, 0, 19, 0]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Is that... Daddy?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What's he doing down here?"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66,
+                76, 68, 97, 108, 105, 97, 3, 29
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Where are you going? Come back!"},
+            {"code": "ShowMessage_2", "string": "We can't stay around here much longer!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [169, 8, 24]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 74
 }

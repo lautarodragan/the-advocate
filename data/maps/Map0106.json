@@ -1,367 +1,410 @@
 {
-  "id": 106,
-  "name": "TalanGetsAmnesty",
-  "size": [20, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0106.tiles",
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "3",
-      "at": [9, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [10, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [107, 1, 8]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "TintScreen", "", [50, 50, 50, 100, 1, 0]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [107, 1, 8]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "TintScreen", "parameters": [50, 50, 50, 100, 1, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 3
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [9, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [107, 1, 8]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "TintScreen", "", [50, 50, 50, 100, 1, 0]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [107, 1, 8]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "TintScreen", "parameters": [50, 50, 50, 100, 1, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 3
     },
     {
       "id": 4,
       "name": "4",
-      "at": [10, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 14
     },
     {
       "id": 5,
       "name": "Drago",
-      "at": [7, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 6
     },
     {
       "id": 6,
       "name": "Isabella",
-      "at": [12, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 6
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangeSystemBGM", "hydr", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "hydr", [1, 0, 100, 100, 50]],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [7]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Help! I need amnesty! Help me!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
-            [0, "ShowMessage", "ARMORED WOMAN", []],
-            [0, "ShowMessage_2", "Hold, friend. What's the matter?", []],
-            [0, "Wait", "", [10]],
-            [0, "ControlSwitches", "", [0, 330, 330, 0]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "I see...", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 0]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Don't give us any trouble. This man is a", []],
-            [0, "ShowMessage_2", "wanted felon for grievous crimes against", []],
-            [0, "ShowMessage_2", "humanity and the Agency.", []],
-            [0, "ShowMessage", "ARMORED WOMAN", []],
-            [0, "ShowMessage_2", "You know our policy. Everyone is welcome", []],
-            [0, "ShowMessage_2", "to the sanctuary of Paradise. Your Director", []],
-            [0, "ShowMessage_2", "would not want to risk an incident.", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "The Director has been assassinated, and", []],
-            [0, "ShowMessage_2", "his murderer is before you! I demand that", []],
-            [0, "ShowMessage_2", "you turn him over to us!", []],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "It is not our place to inquire into the", []],
-            [0, "ShowMessage_2", "histories of our guests. You are out of", []],
-            [0, "ShowMessage_2", "line, and you will leave now.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "The Director...", []],
-            [0, "ShowMessage", "ARMORED WOMAN", []],
-            [0, "ShowMessage_2", "... Is no longer in a position to be concerned", []],
-            [0, "ShowMessage_2", "with mundane matters of politics, it would", []],
-            [0, "ShowMessage_2", "seem.", []],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "This man is now our concern. I suggest", []],
-            [0, "ShowMessage_2", "that you leave our territory immediately.", []],
-            [0, "ShowMessage_2", "You know the rules.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "You are safe for the moment, my friend.", []],
-            [0, "ShowMessage_2", "Isabella will take you to the Council.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Th-thank you!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "This haven of criminals can't stand above", []],
-            [0, "ShowMessage_2", "the law for long. We will see you again!!", []],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MoveEvent", "", [11, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "ControlSwitches", "", [0, 331, 331, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 3, 3, 2]],
-            [0, "ShowMessage", "ISABELLA", []],
-            [0, "ShowMessage_2", "You're safe, now. Please come with me.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "But what if they come back?", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "They won't. We've had plenty of run-ins", []],
-            [0, "ShowMessage_2", "with the Agency before - they won't do", []],
-            [0, "ShowMessage_2", "anything. This is our domain.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "But it's the AGENCY! They wield all the", []],
-            [0, "ShowMessage_2", "power!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0]],
-            [0, "ShowMessage", "ISABELLA", []],
-            [0, "ShowMessage_2", "If you stay with us, friend, perhaps you'll", []],
-            [0, "ShowMessage_2", "realize that power comes in many", []],
-            [0, "ShowMessage_2", "forms...", []],
-            [0, "ShowMessage", "ISABELLA", []],
-            [0, "ShowMessage_2", "This way, please.", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "ARMORED MAN", []],
-            [0, "ShowMessage_2", "You'd better go with her - Isabella doesn't", []],
-            [0, "ShowMessage_2", "like being kept waiting.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [107, 1, 8]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]]
-          ]
+          "event_commands": [
+            {"code": "ChangeSystemBGM", "parameters": [0, 0, 100, 100, 50], "string": "hydr"},
+            {"code": "ChangeSystemBGM", "parameters": [1, 0, 100, 100, 50], "string": "hydr"},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Help! I need amnesty! Help me!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [1]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25]},
+            {"code": "ShowMessage", "string": "ARMORED WOMAN"},
+            {"code": "ShowMessage_2", "string": "Hold, friend. What's the matter?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 330, 330, 0]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "I see..."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Don't give us any trouble. This man is a"},
+            {"code": "ShowMessage_2", "string": "wanted felon for grievous crimes against"},
+            {"code": "ShowMessage_2", "string": "humanity and the Agency."},
+            {"code": "ShowMessage", "string": "ARMORED WOMAN"},
+            {"code": "ShowMessage_2", "string": "You know our policy. Everyone is welcome"},
+            {"code": "ShowMessage_2", "string": "to the sanctuary of Paradise. Your Director"},
+            {"code": "ShowMessage_2", "string": "would not want to risk an incident."},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "The Director has been assassinated, and"},
+            {"code": "ShowMessage_2", "string": "his murderer is before you! I demand that"},
+            {"code": "ShowMessage_2", "string": "you turn him over to us!"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 2, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "It is not our place to inquire into the"},
+            {"code": "ShowMessage_2", "string": "histories of our guests. You are out of"},
+            {"code": "ShowMessage_2", "string": "line, and you will leave now."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "The Director..."},
+            {"code": "ShowMessage", "string": "ARMORED WOMAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "... Is no longer in a position to be concerned"
+            },
+            {"code": "ShowMessage_2", "string": "with mundane matters of politics, it would"},
+            {"code": "ShowMessage_2", "string": "seem."},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "This man is now our concern. I suggest"},
+            {"code": "ShowMessage_2", "string": "that you leave our territory immediately."},
+            {"code": "ShowMessage_2", "string": "You know the rules."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "You are safe for the moment, my friend."},
+            {"code": "ShowMessage_2", "string": "Isabella will take you to the Council."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Th-thank you!"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "This haven of criminals can't stand above"},
+            {"code": "ShowMessage_2", "string": "the law for long. We will see you again!!"},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14]},
+            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {
+              "code": "MoveEvent",
+              "parameters": [4, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [8, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [11, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [10, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [9, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "ControlSwitches", "parameters": [0, 331, 331, 0]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 3, 3, 2]},
+            {"code": "ShowMessage", "string": "ISABELLA"},
+            {"code": "ShowMessage_2", "string": "You're safe, now. Please come with me."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "But what if they come back?"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "They won't. We've had plenty of run-ins"},
+            {"code": "ShowMessage_2", "string": "with the Agency before - they won't do"},
+            {"code": "ShowMessage_2", "string": "anything. This is our domain."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "But it's the AGENCY! They wield all the"},
+            {"code": "ShowMessage_2", "string": "power!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0]},
+            {"code": "ShowMessage", "string": "ISABELLA"},
+            {"code": "ShowMessage_2", "string": "If you stay with us, friend, perhaps you'll"},
+            {"code": "ShowMessage_2", "string": "realize that power comes in many"},
+            {"code": "ShowMessage_2", "string": "forms..."},
+            {"code": "ShowMessage", "string": "ISABELLA"},
+            {"code": "ShowMessage_2", "string": "This way, please."},
+            {
+              "code": "MoveEvent",
+              "parameters": [6, 8, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "ARMORED MAN"},
+            {"code": "ShowMessage_2", "string": "You'd better go with her - Isabella doesn't"},
+            {"code": "ShowMessage_2", "string": "like being kept waiting."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [107, 1, 8]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 331
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 331
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 8,
       "name": "5",
-      "at": [11, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 14
     },
     {
       "id": 9,
       "name": "2",
-      "at": [8, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 14
     },
     {
       "id": 10,
       "name": "1",
-      "at": [7, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 14
     },
     {
       "id": 11,
       "name": "6",
-      "at": [12, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 330
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 330
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 14
     }
-  ]
+  ],
+  "save_count": 37
 }

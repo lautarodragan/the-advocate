@@ -1,105 +1,95 @@
 {
-  "id": 240,
-  "name": "Emily As Child",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0240.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Childhood... happy memories...", []],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 6, 6, 5, 4, 4, 6, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "EMILY'S MOM", []],
-            [0, "ShowMessage_2", "Don't play near the water, Emily!", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "She's fine, darling.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Dreams of a happier time.", []],
-            [0, "ShowMessage_2", "So refreshing!", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "What else can I see...?", []],
-            [0, "Teleport", "", [243, 1, 11]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Childhood... happy memories..."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 6, 6, 5, 4, 4, 6, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY'S MOM"},
+            {"code": "ShowMessage_2", "string": "Don't play near the water, Emily!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "She's fine, darling."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Dreams of a happier time."},
+            {"code": "ShowMessage_2", "string": "So refreshing!"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "What else can I see...?"},
+            {"code": "Teleport", "parameters": [243, 1, 11]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Little Emily",
-      "at": [7, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People4",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "People4",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 8
     },
     {
       "id": 3,
       "name": "Pierson",
-      "at": [7, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "People4",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 4,
+          "character_name": "People4",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 2
     },
     {
       "id": 4,
       "name": "Emily's Mom",
-      "at": [8, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "People1",
+          "event_commands": [
+            {"code": "Comment", "string": "Anyone interested enough to delve this"},
+            {"code": "Comment_2", "string": "deeply into ABL deserves to receive a"},
+            {"code": "Comment_2", "string": "SPOILER!!"},
+            {"code": "Comment", "string": "YES this IS Memnosyne!  :)"},
+            {"code": "Comment_2"},
+            {"code": "Comment_2", "string": "-Lys"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "Comment", "Anyone interested enough to delve this", []],
-            [0, "Comment_2", "deeply into ABL deserves to receive a", []],
-            [0, "Comment_2", "SPOILER!!", []],
-            [0, "Comment", "YES this IS Memnosyne!  :)", []],
-            [0, "Comment_2", "", []],
-            [0, "Comment_2", "-Lys", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 3
     }
-  ]
+  ],
+  "save_count": 25
 }

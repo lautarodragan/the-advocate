@@ -1,92 +1,90 @@
 {
-  "id": 225,
-  "name": "Paradise Tunnel Memory",
-  "size": [50, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0225.tiles",
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "Isabella",
-      "at": [10, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "ISABELLA"},
+            {"code": "ShowMessage_2", "string": "Before you can become a part of this"},
+            {"code": "ShowMessage_2", "string": "community, you must meet with the Council"},
+            {"code": "ShowMessage_2", "string": "and pass the Trials."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "What could have happened to you to"},
+            {"code": "ShowMessage_2", "string": "damage your memories like this?"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Stop it! Leave me alone!"},
+            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Rebirth3"},
+            {"code": "Teleport", "parameters": [226, 11, 11]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "ISABELLA", []],
-            [0, "ShowMessage_2", "Before you can become a part of this", []],
-            [0, "ShowMessage_2", "community, you must meet with the Council", []],
-            [0, "ShowMessage_2", "and pass the Trials.", []],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "What could have happened to you to", []],
-            [0, "ShowMessage_2", "damage your memories like this?", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Stop it! Leave me alone!", []],
-            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
-            [0, "Teleport", "", [226, 11, 11]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 9],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 9
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 8
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 9],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [4]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [4]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     }
-  ]
+  ],
+  "save_count": 46,
+  "width": 50
 }

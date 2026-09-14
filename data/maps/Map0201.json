@@ -1,86 +1,88 @@
 {
-  "id": 201,
-  "name": "Net's Droid Emporium",
-  "size": [20, 15],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0201.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "Net",
-      "at": [10, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "Chara3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 5
     },
     {
       "id": 2,
       "name": "Malrick",
-      "at": [11, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara3",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "MALRICK"},
+            {"code": "ShowMessage_2", "string": "Don't pull any funny business."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "M-me? Of course not!"},
+            {"code": "ShowMessage", "string": "MALRICK"},
+            {"code": "ShowMessage_2", "string": "All right, then."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "MALRICK", []],
-            [0, "ShowMessage_2", "Don't pull any funny business.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "M-me? Of course not!", []],
-            [0, "ShowMessage", "MALRICK", []],
-            [0, "ShowMessage_2", "All right, then.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 12
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [10, 6],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "NET"},
+            {"code": "ShowMessage_2", "string": "I've got all the droid components you"},
+            {"code": "ShowMessage_2", "string": "could ever want... but I don't recommend"},
+            {"code": "ShowMessage_2", "string": "telling too many people about them..."},
+            {
+              "code": "OpenShop",
+              "parameters": [
+                0, 0, 0, 0, 129, 130, 282, 278, 279, 135, 269, 283, 281, 284, 271, 273, 274,
+                270, 290, 287, 272, 275, 276, 291, 288
+              ]
+            }
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "NET", []],
-            [0, "ShowMessage_2", "I've got all the droid components you", []],
-            [0, "ShowMessage_2", "could ever want... but I don't recommend", []],
-            [0, "ShowMessage_2", "telling too many people about them...", []],
-            [0, "OpenShop", "", [0, 0, 0, 0, 129, 130, 282, 278, 279, 135, 269, 283, 281, 284, 271, 273, 274, 270, 290, 287, 272, 275, 276, 291, 288]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 6
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Teleport", "", [68, 1, 3]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Teleport", "parameters": [68, 1, 3]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 14
     }
-  ]
+  ],
+  "save_count": 30
 }

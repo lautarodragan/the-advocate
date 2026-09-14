@@ -1,108 +1,106 @@
 {
-  "id": 177,
-  "name": "Paradise Found ;)",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0177.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "We were cautious, certainly - we crept down", []],
-            [0, "ShowMessage_2", "into the valley in the dead of night to see who", []],
-            [0, "ShowMessage_2", "had made the buildings...", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2, 23, 23, 13, 23, 23, 3, 3, 3, 3, 12, 23, 23]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 2, 2, 2, 13, 23, 23, 23, 23, 15, 23, 23, 14, 23, 23]],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 2, 2, 2]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [20]],
-            [0, "TintScreen", "", [0, 0, 0, 0, 5, 1]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "But whoever had given us this haven had", []],
-            [0, "ShowMessage_2", "left it long ago - no one remained.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "ControlSwitches", "", [0, 484, 484, 0]],
-            [0, "Teleport", "", [110, 10, 14]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "We were cautious, certainly - we crept down"},
+            {
+              "code": "ShowMessage_2",
+              "string": "into the valley in the dead of night to see who"
+            },
+            {"code": "ShowMessage_2", "string": "had made the buildings..."},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 2, 2, 2, 23, 23, 13, 23, 23, 3, 3, 3, 3, 12, 23, 23]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 0, 2, 2, 2, 2, 2, 13, 23, 23, 23, 23, 15, 23, 23, 14, 23, 23]
+            },
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 2, 2, 2]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 0, 5, 1]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "But whoever had given us this haven had"},
+            {"code": "ShowMessage_2", "string": "left it long ago - no one remained."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ControlSwitches", "parameters": [0, 484, 484, 0]},
+            {"code": "Teleport", "parameters": [110, 10, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Pierson",
-      "at": [13, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 3
     },
     {
       "id": 3,
       "name": "2",
-      "at": [12, 1],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 1
     },
     {
       "id": 4,
       "name": "3",
-      "at": [14, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara4",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara4",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14
     },
     {
       "id": 5,
       "name": "1",
-      "at": [14, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 7,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 2
     }
-  ]
+  ],
+  "save_count": 12
 }

@@ -1,363 +1,432 @@
 {
-  "id": 121,
-  "name": "Bandit Ambush",
-  "size": [20, 30],
-  "chipset": [49, "ABLTownMountain"],
-  "tiles": "Map0121.tiles",
+  "chipset_id": 49,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [6, 25],
       "pages": [
         {
-          "tile": 138,
+          "character_index": 138,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "Caution - Falling Boulders"},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "Caution - Falling Boulders", []],
-            [0, "MessageOptions", "", [0, 0, 1, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 25
     },
     {
       "id": 2,
       "name": "Boulder1",
-      "at": [10, 28],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 464
+          "character_index": 5,
+          "character_name": "Object2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 464
           },
-          "sprite": {
-            "charset": "Object2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 28
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [9, 22],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 464, 464, 0]],
-            [0, "PlaySound", "Earth5", [80, 100, 50]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 2, 29]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [5, 0, 9, 22]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 2]],
-            [0, "Wait", "", [7]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "That's odd...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 1, 2]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We'll need to come back this way - do", []],
-            [0, "ShowMessage_2", "you think we can move the boulder?", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 28, 3, 2, 2, 2, 35, 6, 69, 97, 114, 116, 104, 56, 90, 100, 50, 3, 2, 2, 35, 6, 69, 97, 114, 116, 104, 53, 90, 100, 50, 37]],
-            [0, "Wait", "", [7]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25, 12]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 12]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Oh no! Just as I thought!", []],
-            [0, "PlayBGM", "bubstix", [0, 80, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [6, 0, 12, 17]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "I think you two wandered into the wrong", []],
-            [0, "ShowMessage_2", "canyon!", []],
-            [0, "ControlSwitches", "", [0, 463, 463, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 15, 23, 13, 23, 12]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 15, 23, 13, 23, 12]],
-            [0, "MoveEvent", "", [15, 8, 0, 0, 36, 1, 1, 1, 37]],
-            [0, "MoveEvent", "", [13, 8, 0, 0, 36, 3, 3, 3, 3, 37]],
-            [0, "MoveEvent", "", [14, 8, 0, 0, 36, 3, 3, 3, 3, 37]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 36, 0, 37]],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 36, 0, 37]],
-            [0, "Wait", "", [17]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Come down here and fight - we'll show you", []],
-            [0, "ShowMessage_2", "what Defenders of Paradise are made of!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 15]],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "It's a shame, really. Paradise is going to", []],
-            [0, "ShowMessage_2", "need some serious defending in the next", []],
-            [0, "ShowMessage_2", "few days... too bad you won't be there to help!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "What an impudent, good-for-nothing -", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What do you mean? Are you planning another", []],
-            [0, "ShowMessage_2", "raid?", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "Someone from Paradise actually takes", []],
-            [0, "ShowMessage_2", "the time to hear what a bandit has to say?", []],
-            [0, "ShowMessage_2", "You must be new.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Enough talk! We'll slaughter you!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 1, 28, 3, 0, 2, 0, 24, 25, 3, 1, 1, 3, 2, 24, 25, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "Your precious town is going to be", []],
-            [0, "ShowMessage_2", "decimated. We've received a tidy sum from", []],
-            [0, "ShowMessage_2", "a certain organization to keep as many", []],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "Defenders busy as possible. We won't have", []],
-            [0, "ShowMessage_2", "to starve any longer! No more desperate", []],
-            [0, "ShowMessage_2", "raids, no more midnight gambles...", []],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "Once Paradise is destroyed, and your elite", []],
-            [0, "ShowMessage_2", "citizens are wiped out, we'll make our own", []],
-            [0, "ShowMessage_2", "\"Paradise,\" where no one goes hungry!", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 24, 25, 23, 24, 25]],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It won't budge!", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "You'll pay for this!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 15]],
-            [0, "Wait", "", [2]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "BANDIT LEADER", []],
-            [0, "ShowMessage_2", "Bring them with us. I'm sure the Lair is", []],
-            [0, "ShowMessage_2", "hungry - that other Defender must have", []],
-            [0, "ShowMessage_2", "barely whet its appetite.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Drago? Oh no...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "Teleport", "", [165, 3, 32]],
-            [0, "ChangeEncounterSteps", "", [0]],
-            [0, "TintScreen", "", [50, 50, 30, 100, 10, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 464, 464, 0]},
+            {"code": "PlaySound", "parameters": [80, 100, 50], "string": "Earth5"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 28, 2, 29]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [5, 0, 9, 22]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "That's odd..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 1, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We'll need to come back this way - do"},
+            {"code": "ShowMessage_2", "string": "you think we can move the boulder?"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                4, 8, 0, 0, 36, 28, 3, 2, 2, 2, 35, 6, 69, 97, 114, 116, 104, 56, 90, 100, 50,
+                3, 2, 2, 35, 6, 69, 97, 114, 116, 104, 53, 90, 100, 50, 37
+              ]
+            },
+            {"code": "Wait", "parameters": [7]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25, 12]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 12]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Oh no! Just as I thought!"},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "bubstix"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [6, 0, 12, 17]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "I think you two wandered into the wrong"},
+            {"code": "ShowMessage_2", "string": "canyon!"},
+            {"code": "ControlSwitches", "parameters": [0, 463, 463, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 15, 23, 13, 23, 12]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 15, 23, 13, 23, 12]},
+            {"code": "MoveEvent", "parameters": [15, 8, 0, 0, 36, 1, 1, 1, 37]},
+            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 36, 3, 3, 3, 3, 37]},
+            {"code": "MoveEvent", "parameters": [14, 8, 0, 0, 36, 3, 3, 3, 3, 37]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 36, 0, 37]},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 36, 0, 37]},
+            {"code": "Wait", "parameters": [17]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Come down here and fight - we'll show you"},
+            {"code": "ShowMessage_2", "string": "what Defenders of Paradise are made of!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "It's a shame, really. Paradise is going to"},
+            {"code": "ShowMessage_2", "string": "need some serious defending in the next"},
+            {
+              "code": "ShowMessage_2",
+              "string": "few days... too bad you won't be there to help!"
+            },
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "What an impudent, good-for-nothing -"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What do you mean? Are you planning another"},
+            {"code": "ShowMessage_2", "string": "raid?"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "Someone from Paradise actually takes"},
+            {"code": "ShowMessage_2", "string": "the time to hear what a bandit has to say?"},
+            {"code": "ShowMessage_2", "string": "You must be new."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Enough talk! We'll slaughter you!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 1, 28, 3, 0, 2, 0, 24, 25, 3, 1, 1, 3, 2, 24, 25, 29]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "Your precious town is going to be"},
+            {"code": "ShowMessage_2", "string": "decimated. We've received a tidy sum from"},
+            {"code": "ShowMessage_2", "string": "a certain organization to keep as many"},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "Defenders busy as possible. We won't have"},
+            {"code": "ShowMessage_2", "string": "to starve any longer! No more desperate"},
+            {"code": "ShowMessage_2", "string": "raids, no more midnight gambles..."},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "Once Paradise is destroyed, and your elite"},
+            {"code": "ShowMessage_2", "string": "citizens are wiped out, we'll make our own"},
+            {"code": "ShowMessage_2", "string": "\"Paradise,\" where no one goes hungry!"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 2, 2, 2, 2, 2, 24, 25, 23, 24, 25]
+            },
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It won't budge!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "You'll pay for this!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "BANDIT LEADER"},
+            {"code": "ShowMessage_2", "string": "Bring them with us. I'm sure the Lair is"},
+            {"code": "ShowMessage_2", "string": "hungry - that other Defender must have"},
+            {"code": "ShowMessage_2", "string": "barely whet its appetite."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Drago? Oh no..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "Teleport", "parameters": [165, 3, 32]},
+            {"code": "ChangeEncounterSteps", "parameters": [0]},
+            {"code": "TintScreen", "parameters": [50, 50, 30, 100, 10, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 22
     },
     {
       "id": 4,
       "name": "Boulder2",
-      "at": [11, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object2",
-            "index": 5,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 5,
+          "character_name": "Object2",
+          "condition": {"switch_a_id": 463},
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 17
     },
     {
       "id": 5,
       "name": "Sern",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "actor": 28
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "condition": {
+            "actor_id": 28,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 6,
       "name": "BanditLeader",
-      "at": [19, 1],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Crown2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 1
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [10, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "PlayBGM", "wb3town", [0, 100, 100, 50]],
-            [0, "Teleport", "", [158, 13, 25]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "wb3town"},
+            {"code": "Teleport", "parameters": [158, 13, 25]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 29
     },
     {
       "id": 9,
       "name": "South1",
-      "at": [4, 29],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 463
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 463
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 29
     },
     {
       "id": 10,
       "name": "South2",
-      "at": [13, 29],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 463
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 463
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 29
     },
     {
       "id": 12,
       "name": "Tester",
-      "at": [1, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 28]],
-            [0, "ControlSwitches", "", [0, 1, 1, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 28]},
+            {"code": "ControlSwitches", "parameters": [0, 1, 1, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 1
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 6
     },
     {
       "id": 13,
       "name": "East1",
-      "at": [19, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 463
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 463
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 22
     },
     {
       "id": 14,
       "name": "East2",
-      "at": [19, 25],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 463
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 463
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 25
     },
     {
       "id": 15,
       "name": "West1",
-      "at": [0, 23],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 463
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 463
           },
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 23
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 44
 }

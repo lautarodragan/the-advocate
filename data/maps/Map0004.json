@@ -1,308 +1,452 @@
 {
-  "id": 4,
-  "name": "Blank (Leave START here)",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0004.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [16, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 806, 806, 0]],
-            [0, "ControlSwitches", "", [0, 20, 20, 0]],
-            [0, "ChangeSaveAccess", "", [0]],
-            [0, "TintScreen", "", [0, 0, 100, 100, 10, 1]],
-            [0, "Teleport", "", [1, 7, 65]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 806, 806, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 20, 20, 0]},
+            {"code": "ChangeSaveAccess", "parameters": [0]},
+            {"code": "TintScreen", "parameters": [0, 0, 100, 100, 10, 1]},
+            {"code": "Teleport", "parameters": [1, 7, 65]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 15
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 15
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 11]],
-            [0, "ChangePartyMembers", "", [1, 0, 12]],
-            [0, "ChangePartyMembers", "", [1, 0, 13]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "TintScreen", "", [100, 60, 0, 0, 10, 1]],
-            [0, "ControlSwitches", "", [0, 16, 16, 0]],
-            [0, "Teleport", "", [5, 8, 12]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 11]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 12]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 13]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "TintScreen", "parameters": [100, 60, 0, 0, 10, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 16, 16, 0]},
+            {"code": "Teleport", "parameters": [5, 8, 12]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 21
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 21
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangeItems", "", [0, 0, 81, 0, 1]],
-            [0, "FadeOutBGM", "", [5000]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "Wait", "", [25]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ChangeItems", "", [1, 0, 82, 0, 1]],
-            [0, "ChangeItems", "", [1, 0, 83, 0, 1]],
-            [0, "ChangeItems", "", [1, 0, 84, 0, 1]],
-            [0, "ChangeItems", "", [1, 0, 85, 0, 1]],
-            [0, "ChangeItems", "", [1, 0, 86, 0, 1]],
-            [0, "ChangeItems", "", [1, 0, 87, 0, 1]],
-            [0, "Wait", "", [25]],
-            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]],
-            [0, "Wait", "", [20]],
-            [0, "ShowPicture", "Oneyearprev", [3, 0, 100, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 60]],
-            [0, "MovePicture", "", [3, 0, 100, 175, 0, 100, 0, 0, 100, 100, 100, 100, 0, 5497976, 35, 1]],
-            [0, "Wait", "", [20]],
-            [0, "MovePicture", "", [3, 0, 100, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 0, 20, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ErasePicture", "", [3]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [15]],
-            [0, "ControlSwitches", "", [0, 23, 23, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 40, 10, 1]],
-            [0, "Teleport", "", [7, 15, 7]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]]
-          ]
+          "event_commands": [
+            {"code": "ChangeItems", "parameters": [0, 0, 81, 0, 1]},
+            {"code": "FadeOutBGM", "parameters": [5000]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ChangeItems", "parameters": [1, 0, 82, 0, 1]},
+            {"code": "ChangeItems", "parameters": [1, 0, 83, 0, 1]},
+            {"code": "ChangeItems", "parameters": [1, 0, 84, 0, 1]},
+            {"code": "ChangeItems", "parameters": [1, 0, 85, 0, 1]},
+            {"code": "ChangeItems", "parameters": [1, 0, 86, 0, 1]},
+            {"code": "ChangeItems", "parameters": [1, 0, 87, 0, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "hzstream"},
+            {"code": "Wait", "parameters": [20]},
+            {
+              "code": "ShowPicture",
+              "parameters": [3, 0, 100, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 60],
+              "string": "Oneyearprev"
+            },
+            {
+              "code": "MovePicture",
+              "parameters": [3, 0, 100, 175, 0, 100, 0, 0, 100, 100, 100, 100, 0, 5497976, 35, 1]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {
+              "code": "MovePicture",
+              "parameters": [3, 0, 100, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 0, 20, 1]
+            },
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ErasePicture", "parameters": [3]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ControlSwitches", "parameters": [0, 23, 23, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 40, 10, 1]},
+            {"code": "Teleport", "parameters": [7, 15, 7]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 89
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 89
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "VOICE OF DIRECTOR", []],
-            [0, "ShowMessage_2", "Is he all right?", []],
-            [0, "ShowMessage", "VOICE OF DESSEN", []],
-            [0, "ShowMessage_2", "I think he's fainted! But he should", []],
-            [0, "ShowMessage_2", "be OK...", []],
-            [0, "ShowMessage", "VOICE OF DIRECTOR", []],
-            [0, "ShowMessage_2", "Oh my...", []],
-            [0, "Wait", "", [10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "Teleport", "", [19, 10, 8]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "VOICE OF DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Is he all right?"},
+            {"code": "ShowMessage", "string": "VOICE OF DESSEN"},
+            {"code": "ShowMessage_2", "string": "I think he's fainted! But he should"},
+            {"code": "ShowMessage_2", "string": "be OK..."},
+            {"code": "ShowMessage", "string": "VOICE OF DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Oh my..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "Teleport", "parameters": [19, 10, 8]}
+          ],
+          "id": 4,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 132
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 132
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "I think we've lost them.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "What happened up there? I felt...", []],
-            [1, "ShowMessage_2", "suddenly awakened...", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "I was helpless. None of my muscles", []],
-            [1, "ShowMessage_2", "would move! I tried, but -", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Everything looks so different, now.", []],
-            [1, "ShowMessage_2", "There's a colored haze around...", []],
-            [1, "ShowMessage_2", "everything!", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Maybe I should drive.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'm fine. But I think my ankle is", []],
-            [1, "ShowMessage_2", "sprained. I won't be able to move very", []],
-            [1, "ShowMessage_2", "quickly until we get to a doctor.", []],
-            [1, "Wait", "", [10]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Talan...", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "What?", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Do you think we can make it?", []],
-            [1, "ShowMessage_2", "This is the AGENCY we're talking", []],
-            [1, "ShowMessage_2", "about.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "That Captain, whoever he was, had", []],
-            [1, "ShowMessage_2", "powers I've never even dreamed", []],
-            [1, "ShowMessage_2", "of before! Do we stand a chance?", []],
-            [1, "Wait", "", [20]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Yes.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "But how can you be sure?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "We have a secret weapon.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Is that so? What?", []],
-            [1, "Wait", "", [20]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Me.", []],
-            [1, "Teleport", "", [34, 10, 8]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I don't see them behind us anymore.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "What happened up there? I felt...", []],
-            [2, "ShowMessage_2", "suddenly awakened...", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I couldn't move! It was as if my", []],
-            [2, "ShowMessage_2", "brain was no longer controlling", []],
-            [2, "ShowMessage_2", "my body! That sucks, man!", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Everything looks so different, now.", []],
-            [2, "ShowMessage_2", "There's a colored haze around...", []],
-            [2, "ShowMessage_2", "everything!", []],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Uh...maybe I should drive, man.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I'm fine. But I think my ankle is", []],
-            [2, "ShowMessage_2", "sprained. I won't be able to move very", []],
-            [2, "ShowMessage_2", "quickly until we get to a doctor.", []],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Talan...", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "What?", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Do you think we can make it?", []],
-            [2, "ShowMessage_2", "This is the AGENCY we're talking", []],
-            [2, "ShowMessage_2", "about!", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "That Captain, whoever he was, had", []],
-            [2, "ShowMessage_2", "powers no one in the Lazer Teeth", []],
-            [2, "ShowMessage_2", "could hope to match!", []],
-            [2, "Wait", "", [20]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "We'll be fine.", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "But how do you know?", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "We have a secret weapon.", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Oh yeah? What?", []],
-            [2, "Wait", "", [20]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Me.", []],
-            [2, "Teleport", "", [34, 10, 8]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [3, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "I think I've lost them.", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "What happened up there? I felt...", []],
-            [4, "ShowMessage_2", "suddenly awakened...", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "Everything looks so different, now.", []],
-            [4, "ShowMessage_2", "There's a colored haze around...", []],
-            [4, "ShowMessage_2", "everything!", []],
-            [4, "Wait", "", [20]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "I wonder if I'm going to be able", []],
-            [4, "ShowMessage_2", "to make it out of the city... the", []],
-            [4, "ShowMessage_2", "Agency will be crawling everywhere.", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "That Captain, whoever he was, had", []],
-            [4, "ShowMessage_2", "powers unmatched by anything I've", []],
-            [4, "ShowMessage_2", "ever seen!", []],
-            [4, "Wait", "", [20]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "<laugh> But I think I'll be fine.", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "Because now *I* seem to have", []],
-            [4, "ShowMessage_2", "powers of my own...", []],
-            [4, "Wait", "", [15]],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "And I plan on giving the Agency a", []],
-            [4, "ShowMessage_2", "run for their money.", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "What did the Director call this?", []],
-            [4, "ShowMessage_2", "A race for truth?", []],
-            [4, "ShowMessage", "TALAN", []],
-            [4, "ShowMessage_2", "Well... they'd better stay out of", []],
-            [4, "ShowMessage_2", "my way. The race is on!", []],
-            [4, "Teleport", "", [34, 10, 8]],
-            [4, "END", "", []],
-            [3, "ElseBranch", "", []],
-            [4, "END", "", []],
-            [3, "EndBranch", "", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I think we've lost them."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "What happened up there? I felt..."
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "suddenly awakened..."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I was helpless. None of my muscles"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "would move! I tried, but -"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Everything looks so different, now."
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "There's a colored haze around..."},
+            {"code": "ShowMessage_2", "indent": 1, "string": "everything!"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Maybe I should drive."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'm fine. But I think my ankle is"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "sprained. I won't be able to move very"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "quickly until we get to a doctor."
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Talan..."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Do you think we can make it?"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "This is the AGENCY we're talking"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "about."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "That Captain, whoever he was, had"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "powers I've never even dreamed"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "of before! Do we stand a chance?"},
+            {"code": "Wait", "indent": 1, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Yes."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "But how can you be sure?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "We have a secret weapon."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Is that so? What?"},
+            {"code": "Wait", "indent": 1, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Me."},
+            {"code": "Teleport", "indent": 1, "parameters": [34, 10, 8]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't see them behind us anymore."
+            },
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "What happened up there? I felt..."
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "suddenly awakened..."},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "I couldn't move! It was as if my"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "brain was no longer controlling"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "my body! That sucks, man!"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Everything looks so different, now."
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "There's a colored haze around..."},
+            {"code": "ShowMessage_2", "indent": 2, "string": "everything!"},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Uh...maybe I should drive, man."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I'm fine. But I think my ankle is"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "sprained. I won't be able to move very"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "quickly until we get to a doctor."
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Talan..."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "What?"},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Do you think we can make it?"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "This is the AGENCY we're talking"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "about!"},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "That Captain, whoever he was, had"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "powers no one in the Lazer Teeth"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "could hope to match!"},
+            {"code": "Wait", "indent": 2, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "We'll be fine."},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "But how do you know?"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "We have a secret weapon."},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Oh yeah? What?"},
+            {"code": "Wait", "indent": 2, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Me."},
+            {"code": "Teleport", "indent": 2, "parameters": [34, 10, 8]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 3, "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "I think I've lost them."},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "What happened up there? I felt..."
+            },
+            {"code": "ShowMessage_2", "indent": 4, "string": "suddenly awakened..."},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "Everything looks so different, now."
+            },
+            {"code": "ShowMessage_2", "indent": 4, "string": "There's a colored haze around..."},
+            {"code": "ShowMessage_2", "indent": 4, "string": "everything!"},
+            {"code": "Wait", "indent": 4, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "I wonder if I'm going to be able"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "to make it out of the city... the"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "Agency will be crawling everywhere."
+            },
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "That Captain, whoever he was, had"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "powers unmatched by anything I've"
+            },
+            {"code": "ShowMessage_2", "indent": 4, "string": "ever seen!"},
+            {"code": "Wait", "indent": 4, "parameters": [20]},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "<laugh> But I think I'll be fine."
+            },
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "Because now *I* seem to have"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "powers of my own..."},
+            {"code": "Wait", "indent": 4, "parameters": [15]},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "And I plan on giving the Agency a"
+            },
+            {"code": "ShowMessage_2", "indent": 4, "string": "run for their money."},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "What did the Director call this?"},
+            {"code": "ShowMessage_2", "indent": 4, "string": "A race for truth?"},
+            {"code": "ShowMessage", "indent": 4, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 4,
+              "string": "Well... they'd better stay out of"
+            },
+            {"code": "ShowMessage_2", "indent": 4, "string": "my way. The race is on!"},
+            {"code": "Teleport", "indent": 4, "parameters": [34, 10, 8]},
+            {"code": "END", "indent": 4},
+            {"code": "ElseBranch", "indent": 3},
+            {"code": "END", "indent": 4},
+            {"code": "EndBranch", "indent": 3},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 5,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 12
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 130,
-            "switch_b": 132
+          "animation_type": "continuous",
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 130,
+            "switch_b_id": 132
           },
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 7
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [10, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 131,
-            "switch_b": 132
+          "animation_type": "continuous",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 131,
+            "switch_b_id": 132
           },
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     }
-  ]
+  ],
+  "save_count": 244
 }

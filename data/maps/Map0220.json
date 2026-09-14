@@ -1,180 +1,200 @@
 {
-  "id": 220,
-  "name": "Lerle and Memnosyne",
-  "size": [30, 20],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0220.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 26]],
-            [0, "ChangePartyMembers", "", [1, 0, 27]],
-            [0, "ChangePartyMembers", "", [1, 0, 28]],
-            [0, "ChangePartyMembers", "", [1, 0, 25]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "(I don't see why I have to have", []],
-            [0, "ShowMessage_2", "the first watch. Talan just wanted", []],
-            [0, "ShowMessage_2", "the time to be alone with Emily...)", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 12, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Memnosyne! You, uh, can't sleep?", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "I like to take walks most nights.", []],
-            [0, "ShowMessage_2", "The cool air clears my head.", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "It looks like it's not treating you", []],
-            [0, "ShowMessage_2", "quite so well, though. Your face", []],
-            [0, "ShowMessage_2", "looks very pale.", []],
-            [0, "MoveEvent", "", [3, 8, 0, 0, 29, 26, 2, 2, 27, 28]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Really, I'm fine. I feel great!", []],
-            [0, "ShowMessage_2", "No problems!", []],
-            [0, "Wait", "", [4]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "You must have a fever. Here, close your", []],
-            [0, "ShowMessage_2", "eyes, let me see...", []],
-            [0, "MoveEvent", "", [2, 8, 0, 1, 2, 2]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Listen, I feel  - ", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE places her fingertips", []],
-            [0, "ShowMessage_2", "on LERLE's eyelids.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
-            [0, "PlaySound", "Holy7", [100, 50, 50]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "What the hell? Memnosyne!", []],
-            [0, "ShowMessage_2", "What's going on?!", []],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "PlayBGM", "u6menu-arrangement", [0, 100, 100, 50]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Relax, child... just let yourself slip away", []],
-            [0, "ShowMessage_2", "into peaceful slumber... that's right...", []],
-            [0, "ShowMessage_2", "let your memories surface as dreams...", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "LERLE, asleep", []],
-            [0, "ShowMessage_2", "... dreams...", []],
-            [0, "ShowMessage_2", "... so... tired...", []],
-            [0, "Teleport", "", [189, 7, 9]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 26]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 27]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 28]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 25]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "(I don't see why I have to have"},
+            {"code": "ShowMessage_2", "string": "the first watch. Talan just wanted"},
+            {"code": "ShowMessage_2", "string": "the time to be alone with Emily...)"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3,
+                3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Memnosyne! You, uh, can't sleep?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "I like to take walks most nights."},
+            {"code": "ShowMessage_2", "string": "The cool air clears my head."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "It looks like it's not treating you"},
+            {"code": "ShowMessage_2", "string": "quite so well, though. Your face"},
+            {"code": "ShowMessage_2", "string": "looks very pale."},
+            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 29, 26, 2, 2, 27, 28]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Really, I'm fine. I feel great!"},
+            {"code": "ShowMessage_2", "string": "No problems!"},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "You must have a fever. Here, close your"},
+            {"code": "ShowMessage_2", "string": "eyes, let me see..."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 1, 2, 2]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Listen, I feel  - "},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE places her fingertips"},
+            {"code": "ShowMessage_2", "string": "on LERLE's eyelids."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Holy7"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "What the hell? Memnosyne!"},
+            {"code": "ShowMessage_2", "string": "What's going on?!"},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "u6menu-arrangement"},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Relax, child... just let yourself slip away"},
+            {"code": "ShowMessage_2", "string": "into peaceful slumber... that's right..."},
+            {"code": "ShowMessage_2", "string": "let your memories surface as dreams..."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE, asleep"},
+            {"code": "ShowMessage_2", "string": "... dreams..."},
+            {"code": "ShowMessage_2", "string": "... so... tired..."},
+            {"code": "Teleport", "parameters": [189, 7, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 854
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 854
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
-            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Rest well. I thank you for the glimpse", []],
-            [0, "ShowMessage_2", "into your memories.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "LERLE, asleep", []],
-            [0, "ShowMessage_2", "...zzz...zzz...", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "He'll probably wake in a few minutes,", []],
-            [0, "ShowMessage_2", "and then I can see what Talan's memories", []],
-            [0, "ShowMessage_2", "have in store.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "Teleport", "", [232, 5, 11]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 40, 80, 50], "string": "nightbg"},
+            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Rest well. I thank you for the glimpse"},
+            {"code": "ShowMessage_2", "string": "into your memories."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "LERLE, asleep"},
+            {"code": "ShowMessage_2", "string": "...zzz...zzz..."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "He'll probably wake in a few minutes,"},
+            {"code": "ShowMessage_2", "string": "and then I can see what Talan's memories"},
+            {"code": "ShowMessage_2", "string": "have in store."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "Teleport", "parameters": [232, 5, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Memnosyne",
-      "at": [21, 5],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "move_type": "stationary"}
+      ],
+      "x": 21,
+      "y": 5
     },
     {
       "id": 3,
       "name": "Lerle",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 854
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 854
           },
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 4,
       "name": "Memnosyne2",
-      "at": [10, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 854
+          "character_index": 3,
+          "character_name": "memnosyne",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 854
           },
-          "sprite": {
-            "charset": "memnosyne",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     }
-  ]
+  ],
+  "height": 20,
+  "save_count": 80,
+  "width": 30
 }

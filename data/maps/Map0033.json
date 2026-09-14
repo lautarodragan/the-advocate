@@ -1,620 +1,695 @@
 {
-  "id": 33,
-  "name": "Escape From 27 Scene",
-  "size": [50, 50],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0033.tiles",
-  "parallax": {
-    "name": "Dawn1",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "Arden",
-      "at": [24, 7],
       "pages": [
         {
-          "conditions": {
-            "actor": 15
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "condition": {
+            "actor_id": 15,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 54
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 7
     },
     {
       "id": 2,
       "name": "Saldra",
-      "at": [26, 7],
       "pages": [
         {
-          "conditions": {
-            "actor": 17
+          "character_direction": "right",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "actor_id": 17,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 56
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 7
     },
     {
       "id": 3,
       "name": "Agent4",
-      "at": [25, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 4
     },
     {
       "id": 4,
       "name": "Agent5",
-      "at": [27, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 5
     },
     {
       "id": 5,
       "name": "Agent3",
-      "at": [23, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 5
     },
     {
       "id": 6,
       "name": "Agent6",
-      "at": [28, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 7
     },
     {
       "id": 7,
       "name": "Agent7",
-      "at": [28, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 9
     },
     {
       "id": 8,
       "name": "Agent2",
-      "at": [22, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 7
     },
     {
       "id": 9,
       "name": "Agent1",
-      "at": [22, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 9
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [32, 6],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "dcbest", [0, 80, 100, 50]],
-            [0, "ChangeHeroTitle", "Limping", [14]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Well, we defeated two guards and", []],
-            [1, "ShowMessage_2", "seven took their place. I don't like", []],
-            [1, "ShowMessage_2", "those numbers...", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "It's not over yet.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "What? Are you -", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "    RUN!", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]],
-            [1, "Wait", "", [12]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "C'mon, Arden - it's time to go!", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "I couldn't agree more!", []],
-            [1, "MoveEvent", "", [1, 8, 0, 0, 28, 36, 2, 2, 2, 2, 24, 2, 25]],
-            [1, "Wait", "", [12]],
-            [1, "MoveEvent", "", [9, 8, 0, 0, 2, 2]],
-            [1, "MoveEvent", "", [8, 8, 0, 0, 2, 13, 2]],
-            [1, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 2]],
-            [1, "MoveEvent", "", [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]],
-            [1, "MoveEvent", "", [4, 8, 0, 0, 2, 1, 3, 2]],
-            [1, "MoveEvent", "", [6, 8, 0, 0, 2]],
-            [1, "MoveEvent", "", [7, 8, 0, 0, 2, 2]],
-            [1, "Wait", "", [10]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108, 111, 119, 49, 100, 100, 50, 23, 14]],
-            [1, "MoveEvent", "", [1, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37, 39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14]],
-            [1, "Wait", "", [30]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Aggh... my ankle.", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 29]],
-            [1, "MoveEvent", "", [1, 8, 0, 0, 21]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Are you all right?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'm... fine. It's nothing.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Are you sure?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Red or blue?", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "What?", []],
-            [1, "ControlSwitches", "", [0, 132, 132, 0]],
-            [1, "ShowChoice", "Red/Blue", [0]],
-            [1, "ShowChoiceOption", "Red", [0]],
-            [2, "ControlSwitches", "", [0, 130, 130, 0]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 12, 37]],
-            [2, "MoveEvent", "", [1, 8, 0, 0, 36, 12, 37]],
-            [2, "Wait", "", [6]],
-            [2, "ChangeEventLocation", "", [1, 0, 0, 0]],
-            [2, "ChangePartyMembers", "", [1, 0, 15]],
-            [2, "ChangePartyMembers", "", [1, 0, 14]],
-            [2, "ChangePartyMembers", "", [0, 0, 10]],
-            [2, "END", "", []],
-            [1, "ShowChoiceOption", "Blue", [1]],
-            [2, "ControlSwitches", "", [0, 131, 131, 0]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 1, 14, 37]],
-            [2, "MoveEvent", "", [1, 8, 0, 0, 36, 1, 1, 1, 14, 37]],
-            [2, "Wait", "", [10]],
-            [2, "ChangeEventLocation", "", [1, 0, 0, 0]],
-            [2, "ChangePartyMembers", "", [1, 0, 15]],
-            [2, "ChangePartyMembers", "", [1, 0, 14]],
-            [2, "ChangePartyMembers", "", [0, 0, 10]],
-            [2, "END", "", []],
-            [1, "ShowChoiceEnd", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Let's get out of here!", []],
-            [1, "PlaySound", "Flame4", [100, 150, 0]],
-            [1, "Wait", "", [4]],
-            [1, "PlaySound", "Flame5", [100, 50, 0]],
-            [1, "Wait", "", [5]],
-            [1, "Teleport", "", [4, 9, 8]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "From two guards to seven.", []],
-            [2, "ShowMessage_2", "Great.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "It's not over yet.", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Are you blind, or somethin'?", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "    RUN!", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]],
-            [2, "Wait", "", [12]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "C'mon, Saldra - it's time to go!", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Yeah!", []],
-            [2, "MoveEvent", "", [2, 8, 0, 0, 28, 36, 3, 3, 2, 2, 2, 2, 24, 2, 25]],
-            [2, "Wait", "", [12]],
-            [2, "MoveEvent", "", [9, 8, 0, 0, 2, 2]],
-            [2, "MoveEvent", "", [8, 8, 0, 0, 2, 13, 2]],
-            [2, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 2]],
-            [2, "MoveEvent", "", [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]],
-            [2, "MoveEvent", "", [4, 8, 0, 0, 2, 1, 3, 2]],
-            [2, "MoveEvent", "", [6, 8, 0, 0, 2]],
-            [2, "MoveEvent", "", [7, 8, 0, 0, 2, 2]],
-            [2, "Wait", "", [10]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108, 111, 119, 49, 100, 100, 50, 23, 14]],
-            [2, "MoveEvent", "", [2, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37, 39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14]],
-            [2, "Wait", "", [30]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Aggh... my ankle.", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 29]],
-            [2, "MoveEvent", "", [2, 8, 0, 0, 21]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "You all right?", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I'm... fine. It's nothing.", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Are you positive?", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Red or blue?", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "Huh?", []],
-            [2, "ControlSwitches", "", [0, 132, 132, 0]],
-            [2, "ShowChoice", "Red/Blue", [0]],
-            [2, "ShowChoiceOption", "Red", [0]],
-            [3, "ControlSwitches", "", [0, 130, 130, 0]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 12, 37]],
-            [3, "MoveEvent", "", [2, 8, 0, 0, 36, 12, 37]],
-            [3, "Wait", "", [6]],
-            [3, "ChangeEventLocation", "", [2, 0, 0, 0]],
-            [3, "ChangePartyMembers", "", [1, 0, 17]],
-            [3, "ChangePartyMembers", "", [1, 0, 14]],
-            [3, "ChangePartyMembers", "", [0, 0, 10]],
-            [3, "END", "", []],
-            [2, "ShowChoiceOption", "Blue", [1]],
-            [3, "ControlSwitches", "", [0, 131, 131, 0]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 1, 14, 37]],
-            [3, "MoveEvent", "", [2, 8, 0, 0, 36, 1, 1, 1, 14, 37]],
-            [3, "Wait", "", [10]],
-            [3, "ChangeEventLocation", "", [2, 0, 0, 0]],
-            [3, "ChangePartyMembers", "", [1, 0, 17]],
-            [3, "ChangePartyMembers", "", [1, 0, 14]],
-            [3, "ChangePartyMembers", "", [0, 0, 10]],
-            [3, "END", "", []],
-            [2, "ShowChoiceEnd", "", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Let's get out of here!", []],
-            [2, "PlaySound", "Flame4", [100, 150, 0]],
-            [2, "Wait", "", [4]],
-            [2, "PlaySound", "Flame5", [100, 50, 0]],
-            [2, "Wait", "", [5]],
-            [2, "Teleport", "", [4, 9, 8]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Where'd the rest of these blasted", []],
-            [2, "ShowMessage_2", "guards come from?", []],
-            [2, "ShowMessage", "AGENCY GUARD", []],
-            [2, "ShowMessage_2", "Give up now, and we'll go easy on", []],
-            [2, "ShowMessage_2", "you, punk.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "It's not over yet.", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]],
-            [2, "MoveEvent", "", [9, 8, 0, 0, 2, 2]],
-            [2, "MoveEvent", "", [8, 8, 0, 0, 2, 13, 2]],
-            [2, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 2]],
-            [2, "MoveEvent", "", [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]],
-            [2, "MoveEvent", "", [4, 8, 0, 0, 2, 1, 3, 2]],
-            [2, "MoveEvent", "", [6, 8, 0, 0, 2]],
-            [2, "MoveEvent", "", [7, 8, 0, 0, 2, 2]],
-            [2, "Wait", "", [10]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108, 111, 119, 49, 100, 100, 50, 23, 14]],
-            [2, "Wait", "", [30]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Aggh... my ankle.", []],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 29]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "I think it's sprained... I won't be able", []],
-            [2, "ShowMessage_2", "to move as quickly until I get to a", []],
-            [2, "ShowMessage_2", "doctor.", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Time to make an important choice!", []],
-            [2, "ControlSwitches", "", [0, 132, 132, 0]],
-            [2, "ShowChoice", "Red/Blue", [0]],
-            [2, "ShowChoiceOption", "Red", [0]],
-            [3, "ControlSwitches", "", [0, 130, 130, 0]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 12, 37]],
-            [3, "Wait", "", [6]],
-            [3, "ChangePartyMembers", "", [1, 0, 14]],
-            [3, "ChangePartyMembers", "", [0, 0, 10]],
-            [3, "END", "", []],
-            [2, "ShowChoiceOption", "Blue", [1]],
-            [3, "ControlSwitches", "", [0, 131, 131, 0]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 1, 14, 37]],
-            [3, "Wait", "", [10]],
-            [3, "ChangePartyMembers", "", [1, 0, 14]],
-            [3, "ChangePartyMembers", "", [0, 0, 10]],
-            [3, "END", "", []],
-            [2, "ShowChoiceEnd", "", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Get me out of here!", []],
-            [2, "PlaySound", "Flame4", [100, 150, 0]],
-            [2, "Wait", "", [4]],
-            [2, "PlaySound", "Flame5", [100, 50, 0]],
-            [2, "Wait", "", [5]],
-            [2, "Teleport", "", [4, 9, 8]],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "dcbest"},
+            {"code": "ChangeHeroTitle", "parameters": [14], "string": "Limping"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Well, we defeated two guards and"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "seven took their place. I don't like"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "those numbers..."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "It's not over yet."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What? Are you -"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "    RUN!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [12]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "C'mon, Arden - it's time to go!"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I couldn't agree more!"},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [1, 8, 0, 0, 28, 36, 2, 2, 2, 2, 24, 2, 25]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [12]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 2, 2]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 2, 13, 2]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+            },
+            {"code": "MoveEvent", "indent": 1, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [6, 8, 0, 0, 2]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [7, 8, 0, 0, 2, 2]},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
+                111, 119, 49, 100, 100, 50, 23, 14
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 1,
+              "parameters": [
+                1, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37,
+                39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14
+              ]
+            },
+            {"code": "Wait", "indent": 1, "parameters": [30]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Aggh... my ankle."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 29]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Are you all right?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I'm... fine. It's nothing."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Are you sure?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Red or blue?"},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 132, 132, 0]},
+            {"code": "ShowChoice", "indent": 1, "parameters": [0], "string": "Red/Blue"},
+            {"code": "ShowChoiceOption", "indent": 1, "parameters": [0], "string": "Red"},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 130, 130, 0]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [1, 8, 0, 0, 36, 12, 37]},
+            {"code": "Wait", "indent": 2, "parameters": [6]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 2},
+            {"code": "ShowChoiceOption", "indent": 1, "parameters": [1], "string": "Blue"},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 131, 131, 0]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [1, 8, 0, 0, 36, 1, 1, 1, 14, 37]},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ChangeEventLocation", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 2},
+            {"code": "ShowChoiceEnd", "indent": 1},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Let's get out of here!"},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": "Wait", "indent": 1, "parameters": [4]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "Teleport", "indent": 1, "parameters": [4, 9, 8]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "From two guards to seven."},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Great."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "It's not over yet."},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Are you blind, or somethin'?"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "    RUN!"},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [12]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "C'mon, Saldra - it's time to go!"},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Yeah!"},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [2, 8, 0, 0, 28, 36, 3, 3, 2, 2, 2, 2, 24, 2, 25]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [12]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [9, 8, 0, 0, 2, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+            },
+            {"code": "MoveEvent", "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [6, 8, 0, 0, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [7, 8, 0, 0, 2, 2]},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
+                111, 119, 49, 100, 100, 50, 23, 14
+              ]
+            },
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                2, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37,
+                39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Aggh... my ankle."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 29]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [2, 8, 0, 0, 21]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "You all right?"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "I'm... fine. It's nothing."},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Are you positive?"},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Red or blue?"},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Huh?"},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 132, 132, 0]},
+            {"code": "ShowChoice", "indent": 2, "parameters": [0], "string": "Red/Blue"},
+            {"code": "ShowChoiceOption", "indent": 2, "parameters": [0], "string": "Red"},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 130, 130, 0]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [2, 8, 0, 0, 36, 12, 37]},
+            {"code": "Wait", "indent": 3, "parameters": [6]},
+            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 0, 0, 0]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceOption", "indent": 2, "parameters": [1], "string": "Blue"},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 131, 131, 0]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [2, 8, 0, 0, 36, 1, 1, 1, 14, 37]},
+            {"code": "Wait", "indent": 3, "parameters": [10]},
+            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 0, 0, 0]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceEnd", "indent": 2},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Let's get out of here!"},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": "Wait", "indent": 2, "parameters": [4]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": "Wait", "indent": 2, "parameters": [5]},
+            {"code": "Teleport", "indent": 2, "parameters": [4, 9, 8]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Where'd the rest of these blasted"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "guards come from?"},
+            {"code": "ShowMessage", "indent": 2, "string": "AGENCY GUARD"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Give up now, and we'll go easy on"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "you, punk."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "It's not over yet."},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+            },
+            {"code": "MoveEvent", "indent": 2, "parameters": [9, 8, 0, 0, 2, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+            },
+            {"code": "MoveEvent", "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [6, 8, 0, 0, 2]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [7, 8, 0, 0, 2, 2]},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {
+              "code": "MoveEvent",
+              "indent": 2,
+              "parameters": [
+                10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
+                111, 119, 49, 100, 100, 50, 23, 14
+              ]
+            },
+            {"code": "Wait", "indent": 2, "parameters": [30]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Aggh... my ankle."},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 29]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I think it's sprained... I won't be able"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "to move as quickly until I get to a"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "doctor."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Time to make an important choice!"
+            },
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 132, 132, 0]},
+            {"code": "ShowChoice", "indent": 2, "parameters": [0], "string": "Red/Blue"},
+            {"code": "ShowChoiceOption", "indent": 2, "parameters": [0], "string": "Red"},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 130, 130, 0]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
+            {"code": "Wait", "indent": 3, "parameters": [6]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceOption", "indent": 2, "parameters": [1], "string": "Blue"},
+            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 131, 131, 0]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
+            {"code": "Wait", "indent": 3, "parameters": [10]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
+            {"code": "END", "indent": 3},
+            {"code": "ShowChoiceEnd", "indent": 2},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Get me out of here!"},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": "Wait", "indent": 2, "parameters": [4]},
+            {"code": "PlaySound", "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": "Wait", "indent": 2, "parameters": [5]},
+            {"code": "Teleport", "indent": 2, "parameters": [4, 9, 8]},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 6
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [33, 23],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 23
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [31, 23],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 23
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [18, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 27
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [21, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 29
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [29, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 27
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [27, 30],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 30
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [15, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 28
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [21, 31],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 31
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [21, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 27
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [24, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 28
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [15, 30],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 30
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [18, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 29
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [32, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLVehicles",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "BLVehicles",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 29
     }
-  ]
+  ],
+  "height": 50,
+  "parallax_flag": true,
+  "parallax_name": "Dawn1",
+  "save_count": 46,
+  "width": 50
 }

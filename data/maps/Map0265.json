@@ -1,46 +1,44 @@
 {
-  "id": 265,
-  "name": "Kersh Tampering",
-  "size": [20, 15],
-  "chipset": [36, "townQ"],
-  "tiles": "Map0265.tiles",
+  "chipset_id": 36,
   "events": [
     {
       "id": 1,
       "name": "Kersh",
-      "at": [12, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 13
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "TintScreen", "", [100, 100, 100, 0, 5, 1]],
-            [0, "Wait", "", [10]],
-            [0, "TintScreen", "", [0, 0, 0, 0, 5, 1]],
-            [0, "Teleport", "", [266, 0, 2]]
-          ]
+          "event_commands": [
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 0, 5, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 0, 5, 1]},
+            {"code": "Teleport", "parameters": [266, 0, 2]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 28
 }

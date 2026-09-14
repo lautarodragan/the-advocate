@@ -1,53 +1,48 @@
 {
-  "id": 323,
-  "name": "Dalia Die In Sim",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0323.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 45, 0]],
-            [0, "ShowMessage", "YOU HAVE DIED!", []],
-            [0, "ShowMessage_2", "Start again from the area's entrance!", []],
-            [0, "ConditionalBranch", "", [0, 869, 0, 0, 0, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [1, "ProceedWithMovement", "", []],
-            [1, "Teleport", "", [281, 7, 12]],
-            [1, "TintScreen", "", [70, 70, 70, 100, 0, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 872, 0, 0, 0, 1]],
-            [2, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [2, "ProceedWithMovement", "", []],
-            [2, "Teleport", "", [331, 14, 17]],
-            [2, "TintScreen", "", [70, 70, 70, 100, 0, 0]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [0, 874, 0, 0, 0, 1]],
-            [3, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [3, "ProceedWithMovement", "", []],
-            [3, "Teleport", "", [342, 7, 12]],
-            [3, "TintScreen", "", [70, 70, 70, 100, 0, 0]],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 45, 0]},
+            {"code": "ShowMessage", "string": "YOU HAVE DIED!"},
+            {"code": "ShowMessage_2", "string": "Start again from the area's entrance!"},
+            {"code": "ConditionalBranch", "parameters": [0, 869, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement", "indent": 1},
+            {"code": "Teleport", "indent": 1, "parameters": [281, 7, 12]},
+            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 100, 0, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 872, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement", "indent": 2},
+            {"code": "Teleport", "indent": 2, "parameters": [331, 14, 17]},
+            {"code": "TintScreen", "indent": 2, "parameters": [70, 70, 70, 100, 0, 0]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 874, 0, 0, 0, 1]},
+            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement", "indent": 3},
+            {"code": "Teleport", "indent": 3, "parameters": [342, 7, 12]},
+            {"code": "TintScreen", "indent": 3, "parameters": [70, 70, 70, 100, 0, 0]},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 14
 }

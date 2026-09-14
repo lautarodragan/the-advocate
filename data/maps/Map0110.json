@@ -1,433 +1,533 @@
 {
-  "id": 110,
-  "name": "Council Chambers",
-  "size": [20, 20],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0110.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 2,
       "name": "Farmer",
-      "at": [15, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Crown3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "FARMER"},
+            {"code": "ShowMessage_2", "string": "Without us farmers, Paradise would starve!"},
+            {
+              "code": "ShowMessage_2",
+              "string": "We really are the lifeblood of this community."
+            }
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "FARMER", []],
-            [0, "ShowMessage_2", "Without us farmers, Paradise would starve!", []],
-            [0, "ShowMessage_2", "We really are the lifeblood of this community.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 10
     },
     {
       "id": 3,
       "name": "Defender",
-      "at": [5, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DEFENDER"},
+            {"code": "ShowMessage_2", "string": "Although we're on the Council, we still need"},
+            {
+              "code": "ShowMessage_2",
+              "string": "to perform our duties. I have the tunnel-guarding"
+            },
+            {"code": "ShowMessage_2", "string": "shift following Isabella and Drago."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DEFENDER", []],
-            [0, "ShowMessage_2", "Although we're on the Council, we still need", []],
-            [0, "ShowMessage_2", "to perform our duties. I have the tunnel-guarding", []],
-            [0, "ShowMessage_2", "shift following Isabella and Drago.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 12
     },
     {
       "id": 4,
       "name": "Lawyer",
-      "at": [5, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People4",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "The Agency caravans still bring goods to sell"},
+            {
+              "code": "ShowMessage_2",
+              "string": "us - they also bring us the latest legal texts."
+            },
+            {"code": "ShowMessage_2", "string": "There's another shipment due next week."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "The Agency caravans still bring goods to sell", []],
-            [0, "ShowMessage_2", "us - they also bring us the latest legal texts.", []],
-            [0, "ShowMessage_2", "There's another shipment due next week.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 8
     },
     {
       "id": 5,
       "name": "Actor",
-      "at": [15, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "ACTOR"},
+            {
+              "code": "ShowMessage_2",
+              "string": "We get many of our scripts from the ruins of a"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "pre-Shortage theatre to the west.  It's pretty"
+            },
+            {"code": "ShowMessage_2", "string": "dangerous, though."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "ACTOR", []],
-            [0, "ShowMessage_2", "We get many of our scripts from the ruins of a", []],
-            [0, "ShowMessage_2", "pre-Shortage theatre to the west.  It's pretty", []],
-            [0, "ShowMessage_2", "dangerous, though.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 12
     },
     {
       "id": 6,
       "name": "Actress",
-      "at": [15, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "ACTRESS"},
+            {"code": "ShowMessage_2", "string": "Since everyone in Paradise has to pull their"},
+            {"code": "ShowMessage_2", "string": "own weight, the acting profession is very"},
+            {"code": "ShowMessage_2", "string": "important. People need to be entertained!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "ACTRESS", []],
-            [0, "ShowMessage_2", "Since everyone in Paradise has to pull their", []],
-            [0, "ShowMessage_2", "own weight, the acting profession is very", []],
-            [0, "ShowMessage_2", "important. People need to be entertained!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 14
     },
     {
       "id": 7,
       "name": "Farmer",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "People1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "FARMER"},
+            {"code": "ShowMessage_2", "string": "The bandits of the north have been raiding"},
+            {"code": "ShowMessage_2", "string": "our fields lately. We need to do something"},
+            {"code": "ShowMessage_2", "string": "about them!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "FARMER", []],
-            [0, "ShowMessage_2", "The bandits of the north have been raiding", []],
-            [0, "ShowMessage_2", "our fields lately. We need to do something", []],
-            [0, "ShowMessage_2", "about them!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 8,
       "name": "Defender",
-      "at": [5, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DEFENDER"},
+            {"code": "ShowMessage_2", "string": "The Trials are different for everyone."},
+            {"code": "ShowMessage_2", "string": "But good luck!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DEFENDER", []],
-            [0, "ShowMessage_2", "The Trials are different for everyone.", []],
-            [0, "ShowMessage_2", "But good luck!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 14
     },
     {
       "id": 9,
       "name": "Lawyer",
-      "at": [5, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "You'd be amazed at the amount of trouble"},
+            {
+              "code": "ShowMessage_2",
+              "string": "the people of Paradise can get themselves into."
+            },
+            {"code": "ShowMessage_2", "string": "We lawyers are vital!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "You'd be amazed at the amount of trouble", []],
-            [0, "ShowMessage_2", "the people of Paradise can get themselves into.", []],
-            [0, "ShowMessage_2", "We lawyers are vital!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 10
     },
     {
       "id": 10,
       "name": "Pierson",
-      "at": [10, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 350
+          "character_index": 6,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 350
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Please return and speak with me once"},
+            {"code": "ShowMessage_2", "string": "you have explored our town and met some"},
+            {
+              "code": "ShowMessage_2",
+              "string": "of our citizens. I am sure you will wish to stay."
+            }
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Please return and speak with me once", []],
-            [0, "ShowMessage_2", "you have explored our town and met some", []],
-            [0, "ShowMessage_2", "of our citizens. I am sure you will wish to stay.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 361,
-            "switch_b": 350
+          "character_index": 6,
+          "character_name": "People1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 361,
+            "switch_b_id": 350
           },
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Are you done looking around?"},
+            {"code": "ShowChoice", "parameters": [1], "string": "No/Yes"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "No"},
+            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Well, make yourself at home. Come back"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "and speak with me when you are ready."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "Yes"},
+            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Excellent! We'll set you up in a guest house"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "for the night, and tomorrow morning we"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "will awake you for your Trials."},
+            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Sleep well, candidate Talan!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... yes. Thank you."},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 362, 362, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 350, 350, 1]},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
+            {
+              "code": "PlayBGM",
+              "indent": 1,
+              "parameters": [0, 100, 100, 50],
+              "string": "dfrelax"
+            },
+            {"code": "Teleport", "indent": 1, "parameters": [114, 2, 6]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Are you done looking around?", []],
-            [0, "ShowChoice", "No/Yes", [1]],
-            [0, "ShowChoiceOption", "No", [0]],
-            [1, "ShowMessage", "PIERSON", []],
-            [1, "ShowMessage_2", "Well, make yourself at home. Come back", []],
-            [1, "ShowMessage_2", "and speak with me when you are ready.", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "Yes", [1]],
-            [1, "ShowMessage", "PIERSON", []],
-            [1, "ShowMessage_2", "Excellent! We'll set you up in a guest house", []],
-            [1, "ShowMessage_2", "for the night, and tomorrow morning we", []],
-            [1, "ShowMessage_2", "will awake you for your Trials.", []],
-            [1, "ShowMessage", "PIERSON", []],
-            [1, "ShowMessage_2", "Sleep well, candidate Talan!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Uh... yes. Thank you.", []],
-            [1, "ControlSwitches", "", [0, 362, 362, 0]],
-            [1, "ControlSwitches", "", [0, 350, 350, 1]],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [1, "PlayBGM", "dfrelax", [0, 100, 100, 50]],
-            [1, "Teleport", "", [114, 2, 6]],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 8
     },
     {
       "id": 11,
       "name": "RunExplainScene1",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "OLD MAN", []],
-            [0, "ShowMessage_2", "Welcome to Paradise, friend. My name is", []],
-            [0, "ShowMessage_2", "Pierson, and these are the men and women", []],
-            [0, "ShowMessage_2", "of the Council.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "My name is Talan.  I... can't thank you enough", []],
-            [0, "ShowMessage_2", "for saving me from the Agency.", []],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 13, 23]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Well... you're not quite in the clear, yet... you", []],
-            [0, "ShowMessage_2", "still have to face the Trials. Allow me to", []],
-            [0, "ShowMessage_2", "explain.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [175, 9, 5]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "OLD MAN"},
+            {"code": "ShowMessage_2", "string": "Welcome to Paradise, friend. My name is"},
+            {"code": "ShowMessage_2", "string": "Pierson, and these are the men and women"},
+            {"code": "ShowMessage_2", "string": "of the Council."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "My name is Talan.  I... can't thank you enough"
+            },
+            {"code": "ShowMessage_2", "string": "for saving me from the Agency."},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 13, 23]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Well... you're not quite in the clear, yet... you"
+            },
+            {"code": "ShowMessage_2", "string": "still have to face the Trials. Allow me to"},
+            {"code": "ShowMessage_2", "string": "explain."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [175, 9, 5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 484
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 484
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [10, 8, 0, 0, 14]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "We named it \"Paradise\" and set to work", []],
-            [0, "ShowMessage_2", "fixing the buildings and establishing a small", []],
-            [0, "ShowMessage_2", "community for those out of favor with", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "the Agency.  We have lived here ever since,", []],
-            [0, "ShowMessage_2", "gaining new members, losing old ones, but", []],
-            [0, "ShowMessage_2", "always disavowing technology and the Agency.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't understand - why does the Agency let", []],
-            [0, "ShowMessage_2", "you stay here? Why have they given up on", []],
-            [0, "ShowMessage_2", "their pursuit of me because I made it here?", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "We came to an agreement with the Director", []],
-            [0, "ShowMessage_2", "of the Agency many, many years ago. He", []],
-            [0, "ShowMessage_2", "would not wish to break it.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "But that is enough history for one day. You wish", []],
-            [0, "ShowMessage_2", "to know how you can stay here in this nirvana", []],
-            [0, "ShowMessage_2", "we have been given.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Um... yes. What exactly are these \"Trials?\"", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Anyone wishing to stay in Paradise has the", []],
-            [0, "ShowMessage_2", "benefit of having their history erased - no one", []],
-            [0, "ShowMessage_2", "here will pry into your past.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "However, this is not a benefit to be lightly", []],
-            [0, "ShowMessage_2", "given. We do not want this place to be a den", []],
-            [0, "ShowMessage_2", "of criminals, as the Agency considers it.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "For this reason, anyone wishing to stay must", []],
-            [0, "ShowMessage_2", "complete a test of his moral fitness and strength", []],
-            [0, "ShowMessage_2", "of character.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "You will be given the Trials tomorrow morning.", []],
-            [0, "ShowMessage_2", "For now, you are welcome to explore our", []],
-            [0, "ShowMessage_2", "community and speak with our citizens.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "If you successfully complete tomorrow's", []],
-            [0, "ShowMessage_2", "Trials, you will be asked to select one of the", []],
-            [0, "ShowMessage_2", "four main professions of Paradise.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "This will establish your role in our community,", []],
-            [0, "ShowMessage_2", "so choose wisely. But for now, welcome to", []],
-            [0, "ShowMessage_2", "Paradise, and good luck tomorrow!", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Please return and speak to me when you have", []],
-            [0, "ShowMessage_2", "finished your explorations of our town.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thank you, Sir.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Pierson will do fine, Talan. We try not to", []],
-            [0, "ShowMessage_2", "make very much of status in Paradise. Let", []],
-            [0, "ShowMessage_2", "the Agency display their ranks - it is not for us.", []],
-            [0, "ControlSwitches", "", [0, 350, 350, 0]],
-            [0, "ControlSwitches", "", [0, 349, 349, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "We named it \"Paradise\" and set to work"},
+            {"code": "ShowMessage_2", "string": "fixing the buildings and establishing a small"},
+            {"code": "ShowMessage_2", "string": "community for those out of favor with"},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "the Agency.  We have lived here ever since,"},
+            {"code": "ShowMessage_2", "string": "gaining new members, losing old ones, but"},
+            {"code": "ShowMessage_2", "string": "always disavowing technology and the Agency."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't understand - why does the Agency let"},
+            {"code": "ShowMessage_2", "string": "you stay here? Why have they given up on"},
+            {"code": "ShowMessage_2", "string": "their pursuit of me because I made it here?"},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "We came to an agreement with the Director"},
+            {"code": "ShowMessage_2", "string": "of the Agency many, many years ago. He"},
+            {"code": "ShowMessage_2", "string": "would not wish to break it."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "string": "But that is enough history for one day. You wish"
+            },
+            {"code": "ShowMessage_2", "string": "to know how you can stay here in this nirvana"},
+            {"code": "ShowMessage_2", "string": "we have been given."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Um... yes. What exactly are these \"Trials?\""},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Anyone wishing to stay in Paradise has the"},
+            {
+              "code": "ShowMessage_2",
+              "string": "benefit of having their history erased - no one"
+            },
+            {"code": "ShowMessage_2", "string": "here will pry into your past."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "However, this is not a benefit to be lightly"},
+            {"code": "ShowMessage_2", "string": "given. We do not want this place to be a den"},
+            {"code": "ShowMessage_2", "string": "of criminals, as the Agency considers it."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "For this reason, anyone wishing to stay must"},
+            {
+              "code": "ShowMessage_2",
+              "string": "complete a test of his moral fitness and strength"
+            },
+            {"code": "ShowMessage_2", "string": "of character."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "string": "You will be given the Trials tomorrow morning."
+            },
+            {"code": "ShowMessage_2", "string": "For now, you are welcome to explore our"},
+            {"code": "ShowMessage_2", "string": "community and speak with our citizens."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "If you successfully complete tomorrow's"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Trials, you will be asked to select one of the"
+            },
+            {"code": "ShowMessage_2", "string": "four main professions of Paradise."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {
+              "code": "ShowMessage_2",
+              "string": "This will establish your role in our community,"
+            },
+            {"code": "ShowMessage_2", "string": "so choose wisely. But for now, welcome to"},
+            {"code": "ShowMessage_2", "string": "Paradise, and good luck tomorrow!"},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Please return and speak to me when you have"},
+            {"code": "ShowMessage_2", "string": "finished your explorations of our town."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thank you, Sir."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Pierson will do fine, Talan. We try not to"},
+            {"code": "ShowMessage_2", "string": "make very much of status in Paradise. Let"},
+            {
+              "code": "ShowMessage_2",
+              "string": "the Agency display their ranks - it is not for us."
+            },
+            {"code": "ControlSwitches", "parameters": [0, 350, 350, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 349, 349, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 349
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 349
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [10, 19],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
-            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
-            [1, "Teleport", "", [108, 25, 22]],
-            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
-            [1, "ControlSwitches", "", [0, 361, 361, 0]],
-            [1, "PlayBGM", "wb3town", [0, 80, 100, 50]],
-            [1, "Teleport", "", [108, 25, 22]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "PlayBGM", "wb3town", [0, 80, 100, 50]],
-            [1, "Teleport", "", [108, 25, 22]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 350, 0, 0, 0, 1]},
+            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 70, 2, 1]},
+            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
+            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 70, 2, 1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 361, 361, 0]},
+            {
+              "code": "PlayBGM",
+              "indent": 1,
+              "parameters": [0, 80, 100, 50],
+              "string": "wb3town"
+            },
+            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {
+              "code": "PlayBGM",
+              "indent": 1,
+              "parameters": [0, 80, 100, 50],
+              "string": "wb3town"
+            },
+            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 19
     }
-  ]
+  ],
+  "height": 20,
+  "save_count": 54
 }

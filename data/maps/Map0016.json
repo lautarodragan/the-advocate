@@ -1,66 +1,90 @@
 {
-  "id": 16,
-  "name": "Running To Work Scene",
-  "size": [75, 75],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0016.tiles",
-  "parallax": {
-    "name": "Evening1",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [52, 32],
       "pages": [
         {
-          "tile": 45,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "hzbreach", [0, 100, 100, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [16, 46, 15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [16, 43, 7]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 15]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [16, 24, 15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [16, 50, 73]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [30]],
-            [0, "PanScreen", "", [2, 0, 10, 4, 1]],
-            [0, "TimerOperation", "", [2, 0, 0, 0, 0]],
-            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Well, I'm late. Let's hope the boss isn't", []],
-            [1, "ShowMessage_2", "TOO angry...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "PlaySound", "Success2", [100, 100, 50]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I made it to work, and with time to", []],
-            [1, "ShowMessage_2", "spare!", []],
-            [1, "ControlSwitches", "", [0, 77, 77, 0]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "PanScreen", "", [2, 2, 10, 4, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 0, 0, 37]],
-            [0, "FadeOutBGM", "", [1000]],
-            [0, "Wait", "", [11]],
-            [0, "PlayBGM", "wb3mlair", [1000, 100, 100, 50]],
-            [0, "Teleport", "", [17, 36, 73]]
-          ]
+          "character_index": 45,
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "hzbreach"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [16, 46, 15]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [16, 43, 7]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 15]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [16, 24, 15]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [16, 50, 73]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {"code": "Wait", "parameters": [30]},
+            {"code": "PanScreen", "parameters": [2, 0, 10, 4, 1]},
+            {"code": "TimerOperation", "parameters": [2, 0, 0, 0, 0]},
+            {"code": "ConditionalBranch", "parameters": [0, 68, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Well, I'm late. Let's hope the boss isn't"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "TOO angry..."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {
+              "code": "PlaySound",
+              "indent": 1,
+              "parameters": [100, 100, 50],
+              "string": "Success2"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I made it to work, and with time to"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "spare!"},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 77, 77, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "PanScreen", "parameters": [2, 2, 10, 4, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 0, 0, 0, 0, 37]},
+            {"code": "FadeOutBGM", "parameters": [1000]},
+            {"code": "Wait", "parameters": [11]},
+            {"code": "PlayBGM", "parameters": [1000, 100, 100, 50], "string": "wb3mlair"},
+            {"code": "Teleport", "parameters": [17, 36, 73]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 52,
+      "y": 32
     }
-  ]
+  ],
+  "height": 75,
+  "parallax_flag": true,
+  "parallax_name": "Evening1",
+  "save_count": 30,
+  "width": 75
 }

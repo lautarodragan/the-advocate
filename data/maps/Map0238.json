@@ -1,48 +1,46 @@
 {
-  "id": 238,
-  "name": "KershClimbingPath",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0238.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "Kersh",
-      "at": [17, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 10
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 12]],
-            [0, "Wait", "", [35]],
-            [0, "ControlSwitches", "", [0, 628, 628, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [207, 10, 3]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 12]
+            },
+            {"code": "Wait", "parameters": [35]},
+            {"code": "ControlSwitches", "parameters": [0, 628, 628, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [207, 10, 3]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 6
 }

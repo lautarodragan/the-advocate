@@ -1,2322 +1,2423 @@
 {
-  "id": 312,
-  "name": "Burning Forest",
-  "size": [70, 65],
-  "chipset": [48, "deepforest"],
-  "tiles": "Map0312.tiles",
+  "chipset_id": 48,
   "events": [
     {
       "id": 1,
       "name": "Fire",
-      "at": [59, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 13
     },
     {
       "id": 2,
       "name": "Fire",
-      "at": [65, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 65,
+      "y": 9
     },
     {
       "id": 3,
       "name": "Fire",
-      "at": [67, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 67,
+      "y": 10
     },
     {
       "id": 4,
       "name": "Fire",
-      "at": [68, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 11
     },
     {
       "id": 5,
       "name": "Fire",
-      "at": [60, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 60,
+      "y": 18
     },
     {
       "id": 6,
       "name": "Fire",
-      "at": [57, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 57,
+      "y": 26
     },
     {
       "id": 7,
       "name": "Fire",
-      "at": [62, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 62,
+      "y": 33
     },
     {
       "id": 8,
       "name": "Fire",
-      "at": [68, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 38
     },
     {
       "id": 9,
       "name": "Fire",
-      "at": [59, 32],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 59,
+      "y": 32
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [30, 52],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [2, 0, 0, 0, 0, 1]],
-            [1, "TimerOperation", "", [2, 0, 120, 1, 0]],
-            [1, "ControlSwitches", "", [0, 845, 845, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "We made it!", []],
-            [1, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [1, "Teleport", "", [313, 4, 9]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "PlaySound", "Flame5", [100, 100, 50]],
-            [1, "TintScreen", "", [200, 0, 0, 100, 10, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "We're surrounded by flames!", []],
-            [1, "ShowMessage_2", "There's... no escape...", []],
-            [1, "ShowBattleAnimation", "", [124, 10001, 1, 1]],
-            [1, "FadeOutBGM", "", [2000]],
-            [1, "GameOver", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [2, 0, 0, 0, 0, 1]},
+            {"code": "TimerOperation", "indent": 1, "parameters": [2, 0, 120, 1, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 845, 845, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "We made it!"},
+            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "indent": 1, "parameters": [313, 4, 9]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Flame5"},
+            {"code": "TintScreen", "indent": 1, "parameters": [200, 0, 0, 100, 10, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "We're surrounded by flames!"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "There's... no escape..."},
+            {"code": "ShowBattleAnimation", "indent": 1, "parameters": [124, 10001, 1, 1]},
+            {"code": "FadeOutBGM", "indent": 1, "parameters": [2000]},
+            {"code": "GameOver", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 52
     },
     {
       "id": 11,
       "name": "Fire",
-      "at": [47, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 47,
+      "y": 22
     },
     {
       "id": 12,
       "name": "Fire",
-      "at": [51, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 51,
+      "y": 21
     },
     {
       "id": 13,
       "name": "Fire",
-      "at": [40, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 40,
+      "y": 18
     },
     {
       "id": 14,
       "name": "Fire",
-      "at": [39, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 16
     },
     {
       "id": 15,
       "name": "Fire",
-      "at": [35, 15],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 15
     },
     {
       "id": 16,
       "name": "Fire",
-      "at": [39, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 3
     },
     {
       "id": 17,
       "name": "Fire",
-      "at": [30, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 13
     },
     {
       "id": 18,
       "name": "Fire",
-      "at": [31, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 24
     },
     {
       "id": 19,
       "name": "Fire",
-      "at": [29, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 22
     },
     {
       "id": 20,
       "name": "Fire",
-      "at": [12, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 12
     },
     {
       "id": 21,
       "name": "Fire",
-      "at": [16, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 12
     },
     {
       "id": 22,
       "name": "Fire",
-      "at": [25, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 25,
+      "y": 10
     },
     {
       "id": 23,
       "name": "Fire",
-      "at": [11, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 17
     },
     {
       "id": 24,
       "name": "Fire",
-      "at": [5, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 9
     },
     {
       "id": 25,
       "name": "Fire",
-      "at": [50, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 50,
+      "y": 25
     },
     {
       "id": 26,
       "name": "Fire",
-      "at": [42, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 42,
+      "y": 39
     },
     {
       "id": 27,
       "name": "Fire",
-      "at": [35, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 35,
+      "y": 34
     },
     {
       "id": 28,
       "name": "Fire",
-      "at": [33, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 33
     },
     {
       "id": 29,
       "name": "Fire",
-      "at": [54, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 54,
+      "y": 29
     },
     {
       "id": 30,
       "name": "Fire",
-      "at": [55, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 55,
+      "y": 28
     },
     {
       "id": 31,
       "name": "Fire",
-      "at": [65, 18],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 65,
+      "y": 18
     },
     {
       "id": 32,
       "name": "Fire",
-      "at": [62, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 62,
+      "y": 21
     },
     {
       "id": 33,
       "name": "Fire",
-      "at": [62, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 62,
+      "y": 24
     },
     {
       "id": 34,
       "name": "Fire",
-      "at": [65, 31],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 65,
+      "y": 31
     },
     {
       "id": 35,
       "name": "Fire",
-      "at": [65, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 65,
+      "y": 34
     },
     {
       "id": 36,
       "name": "Fire",
-      "at": [68, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 28
     },
     {
       "id": 37,
       "name": "Fire",
-      "at": [68, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 24
     },
     {
       "id": 38,
       "name": "Fire",
-      "at": [68, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 17
     },
     {
       "id": 39,
       "name": "Fire",
-      "at": [48, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 14
     },
     {
       "id": 40,
       "name": "Fire",
-      "at": [39, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 10
     },
     {
       "id": 41,
       "name": "Fire",
-      "at": [37, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 11
     },
     {
       "id": 42,
       "name": "Fire",
-      "at": [33, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 22
     },
     {
       "id": 43,
       "name": "Fire",
-      "at": [14, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 22
     },
     {
       "id": 44,
       "name": "Fire",
-      "at": [16, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 24
     },
     {
       "id": 45,
       "name": "Fire",
-      "at": [6, 22],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 22
     },
     {
       "id": 46,
       "name": "Fire",
-      "at": [3, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 14
     },
     {
       "id": 47,
       "name": "Fire",
-      "at": [6, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 5
     },
     {
       "id": 48,
       "name": "Fire",
-      "at": [4, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 4
     },
     {
       "id": 49,
       "name": "Fire",
-      "at": [4, 28],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 28
     },
     {
       "id": 50,
       "name": "Fire",
-      "at": [6, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 27
     },
     {
       "id": 51,
       "name": "Fire",
-      "at": [4, 32],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 32
     },
     {
       "id": 52,
       "name": "Fire",
-      "at": [7, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 33
     },
     {
       "id": 53,
       "name": "Fire",
-      "at": [17, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 35
     },
     {
       "id": 54,
       "name": "Fire",
-      "at": [22, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 34
     },
     {
       "id": 55,
       "name": "Fire",
-      "at": [16, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "normal",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 29
     },
     {
       "id": 56,
       "name": "Fire",
-      "at": [50, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 50,
+      "y": 10
     },
     {
       "id": 57,
       "name": "Fire",
-      "at": [44, 29],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 44,
+      "y": 29
     },
     {
       "id": 58,
       "name": "Fire",
-      "at": [39, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 26
     },
     {
       "id": 59,
       "name": "Fire",
-      "at": [33, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 33,
+      "y": 13
     },
     {
       "id": 60,
       "name": "Fire",
-      "at": [31, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 8
     },
     {
       "id": 61,
       "name": "Fire",
-      "at": [34, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 4
     },
     {
       "id": 62,
       "name": "Fire",
-      "at": [32, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 4
     },
     {
       "id": 63,
       "name": "Fire",
-      "at": [50, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 50,
+      "y": 2
     },
     {
       "id": 64,
       "name": "Fire",
-      "at": [45, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 45,
+      "y": 7
     },
     {
       "id": 65,
       "name": "Fire",
-      "at": [49, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 8
     },
     {
       "id": 66,
       "name": "Fire",
-      "at": [53, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 53,
+      "y": 13
     },
     {
       "id": 67,
       "name": "Fire",
-      "at": [61, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 61,
+      "y": 9
     },
     {
       "id": 68,
       "name": "Fire",
-      "at": [67, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 67,
+      "y": 2
     },
     {
       "id": 69,
       "name": "Fire",
-      "at": [66, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 66,
+      "y": 25
     },
     {
       "id": 70,
       "name": "Fire",
-      "at": [54, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 54,
+      "y": 36
     },
     {
       "id": 71,
       "name": "Fire",
-      "at": [53, 40],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 53,
+      "y": 40
     },
     {
       "id": 72,
       "name": "Fire",
-      "at": [53, 43],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 53,
+      "y": 43
     },
     {
       "id": 73,
       "name": "Fire",
-      "at": [55, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 55,
+      "y": 44
     },
     {
       "id": 74,
       "name": "Fire",
-      "at": [56, 48],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 56,
+      "y": 48
     },
     {
       "id": 75,
       "name": "Fire",
-      "at": [61, 49],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 61,
+      "y": 49
     },
     {
       "id": 76,
       "name": "Fire",
-      "at": [64, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 64,
+      "y": 44
     },
     {
       "id": 77,
       "name": "Fire",
-      "at": [36, 45],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 45
     },
     {
       "id": 78,
       "name": "Fire",
-      "at": [41, 46],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 41,
+      "y": 46
     },
     {
       "id": 79,
       "name": "Fire",
-      "at": [30, 40],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 40
     },
     {
       "id": 80,
       "name": "Fire",
-      "at": [30, 31],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_continuous",
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Ouch! Hot!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Ouch! Hot!", []]
-          ]
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 30,
+      "y": 31
     },
     {
       "id": 81,
       "name": "EV0081",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "timer": 1
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": true,
+              "variable": false
+            },
+            "timer_sec": 1
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlaySound", "Flame5", [100, 100, 50]],
-            [0, "TintScreen", "", [200, 0, 0, 100, 10, 1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We're surrounded by flames!", []],
-            [0, "ShowMessage_2", "There's... no escape...", []],
-            [0, "ShowBattleAnimation", "", [124, 10001, 1, 1]],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "GameOver", "", []]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Flame5"},
+            {"code": "TintScreen", "parameters": [200, 0, 0, 100, 10, 1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We're surrounded by flames!"},
+            {"code": "ShowMessage_2", "string": "There's... no escape..."},
+            {"code": "ShowBattleAnimation", "parameters": [124, 10001, 1, 1]},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "GameOver"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 846
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 846
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [110, 40, 40, 100, 5, 1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's that ship again! It's flying way", []],
-            [0, "ShowMessage_2", "too low...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Looks like this is it!", []],
-            [0, "ChangeEscapeAccess", "", [0]],
-            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
-            [0, "EnemyEncounter", "burning_forest_2", [0, 239, 1, 0, 0, 0]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't think they'll bother us anymore.", []],
-            [0, "ChangeEscapeAccess", "", [1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Let's go - Paradise should be just a", []],
-            [0, "ShowMessage_2", "little farther west!", []],
-            [0, "ControlSwitches", "", [0, 847, 847, 0]],
-            [0, "Teleport", "", [66, 34, 56]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [110, 40, 40, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's that ship again! It's flying way"},
+            {"code": "ShowMessage_2", "string": "too low..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Looks like this is it!"},
+            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "KW-robot"
+            },
+            {
+              "code": "EnemyEncounter",
+              "parameters": [0, 239, 1, 0, 0, 0],
+              "string": "burning_forest_2"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't think they'll bother us anymore."},
+            {"code": "ChangeEscapeAccess", "parameters": [1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Let's go - Paradise should be just a"},
+            {"code": "ShowMessage_2", "string": "little farther west!"},
+            {"code": "ControlSwitches", "parameters": [0, 847, 847, 0]},
+            {"code": "Teleport", "parameters": [66, 34, 56]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 847
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 847
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 82,
       "name": "EV0082",
-      "at": [0, 61],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 34, 56]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 34, 56]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 61
     },
     {
       "id": 83,
       "name": "EV0083",
-      "at": [69, 61],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 44, 57]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 44, 57]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 69,
+      "y": 61
     },
     {
       "id": 84,
       "name": "AfterBattleMint",
-      "at": [2, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 2
     },
     {
       "id": 85,
       "name": "BurnForest.1",
-      "at": [66, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 911, 911, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 260, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Strength Potion-ATK"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 911, 911, 0]],
-            [0, "ChangeItems", "", [0, 0, 260, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Strength Potion-ATK", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 911
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 911
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 66,
+      "y": 33
     },
     {
       "id": 86,
       "name": "BurnForest.2",
-      "at": [58, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 912, 912, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 251, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Flame Shield-L"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 912, 912, 0]],
-            [0, "ChangeItems", "", [0, 0, 251, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Flame Shield-L", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 912
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 912
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 58,
+      "y": 38
     },
     {
       "id": 87,
       "name": "BurnForest.3",
-      "at": [68, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 913, 913, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 161, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Flame Knife-R"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 913, 913, 0]],
-            [0, "ChangeItems", "", [0, 0, 161, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Flame Knife-R", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 913
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 913
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 2
     },
     {
       "id": 88,
       "name": "BurnForest.4",
-      "at": [18, 2],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 914, 914, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 144, 0, 4]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Hot Sandwich-HP x4"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 914, 914, 0]],
-            [0, "ChangeItems", "", [0, 0, 144, 0, 4]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Hot Sandwich-HP x4", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 914
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 914
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 2
     },
     {
       "id": 89,
       "name": "BurnForest.5",
-      "at": [1, 34],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 915, 915, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 176, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Flame Staff-RL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 915, 915, 0]],
-            [0, "ChangeItems", "", [0, 0, 176, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Flame Staff-RL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 915
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 915
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 34
     },
     {
       "id": 90,
       "name": "BurnForest.6",
-      "at": [56, 60],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 916, 916, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 259, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Agility Potion-AGL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 916, 916, 0]],
-            [0, "ChangeItems", "", [0, 0, 259, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Agility Potion-AGL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 916
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 916
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 56,
+      "y": 60
     },
     {
       "id": 91,
       "name": "BurnForest.7",
-      "at": [68, 51],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 917, 917, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 272, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       BuzzSaw-!R"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 917, 917, 0]],
-            [0, "ChangeItems", "", [0, 0, 272, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       BuzzSaw-!R", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 917
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 917
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 68,
+      "y": 51
     },
     {
       "id": 92,
       "name": "BurnForest.8",
-      "at": [48, 56],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 918, 918, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 106, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Empty Bottle"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 918, 918, 0]],
-            [0, "ChangeItems", "", [0, 0, 106, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Empty Bottle", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 918
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 918
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 56
     },
     {
       "id": 93,
       "name": "BurnForest.9",
-      "at": [49, 45],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 919, 919, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 129, 0, 3]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Motor Oil-HP x3"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 919, 919, 0]],
-            [0, "ChangeItems", "", [0, 0, 129, 0, 3]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Motor Oil-HP x3", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 919
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 919
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 45
     },
     {
       "id": 94,
       "name": "BurnForest.10",
-      "at": [48, 43],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 920, 920, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 396, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       FightingDirty vol. 4"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 920, 920, 0]],
-            [0, "ChangeItems", "", [0, 0, 396, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       FightingDirty vol. 4", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 920
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 920
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 43
     }
-  ]
+  ],
+  "height": 65,
+  "save_count": 53,
+  "width": 70
 }

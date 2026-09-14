@@ -1,8 +1,1 @@
-{
-  "id": 275,
-  "name": "Eisen's Simulation",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0275.tiles",
-  "events": []
-}
+{"save_count": 4}

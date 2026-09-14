@@ -1,375 +1,420 @@
 {
-  "id": 173,
-  "name": "Leaving the Tomb",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0173.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "1",
-      "at": [19, 8],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "character_index": 9,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 9,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 8
     },
     {
       "id": 2,
       "name": "2",
-      "at": [18, 8],
       "pages": [
+        {"character_index": 9, "id": 1, "move_type": "stationary"},
         {
-          "tile": 9,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "character_index": 8,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 8,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 8
     },
     {
       "id": 3,
       "name": "3",
-      "at": [19, 7],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "character_index": 3,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 3,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 7
     },
     {
       "id": 4,
       "name": "4",
-      "at": [18, 7],
       "pages": [
+        {"character_index": 3, "id": 1, "move_type": "stationary"},
         {
-          "tile": 3,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "character_index": 2,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 2,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 7
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [17, 7],
       "pages": [
+        {"character_index": 2, "id": 1, "move_type": "stationary"},
         {
-          "tile": 2,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 7
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [17, 8],
       "pages": [
+        {"character_index": 8, "id": 1, "move_type": "stationary"},
         {
-          "tile": 8,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 480
+          "character_index": 54,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 480
           },
-          "tile": 54,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 8
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "TintScreen", "", [80, 0, 20, 100, 5, 1]],
-            [0, "Wait", "", [30]],
-            [0, "PlaySound", "Earth9", [100, 100, 100]],
-            [0, "ControlSwitches", "", [0, 480, 480, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ControlSwitches", "", [0, 481, 481, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily, let's move!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 3, 3, 3, 3, 14]],
-            [0, "MoveEvent", "", [8, 8, 0, 1, 0, 0, 3, 3, 3, 3, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ControlSwitches", "", [0, 482, 482, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 0, 0, 0, 0, 0]],
-            [0, "MoveEvent", "", [10, 8, 0, 1, 0, 3, 3, 0, 0, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [174, 5, 9]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "TintScreen", "parameters": [80, 0, 20, 100, 5, 1]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "PlaySound", "parameters": [100, 100, 100], "string": "Earth9"},
+            {"code": "ControlSwitches", "parameters": [0, 480, 480, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 481, 481, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily, let's move!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 0, 3, 3, 3, 3, 14]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 1, 0, 0, 3, 3, 3, 3, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 482, 482, 0]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 0, 0, 0, 0, 0]},
+            {"code": "MoveEvent", "parameters": [10, 8, 0, 1, 0, 3, 3, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [174, 5, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 8,
       "name": "1",
-      "at": [16, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 481
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 481
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 14
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [11, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 482
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 482
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 14
     },
     {
       "id": 10,
       "name": "Guard2",
-      "at": [9, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 482
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 482
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [0, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 482
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 482
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 8
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [3, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 13
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [5, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 11
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [6, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 9
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [12, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "fourfold",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 12
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [7, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 12
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [8, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 7
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [14, 14],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown7",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 3,
+          "character_name": "Crown7",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_speed": "double",
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 14
     }
-  ]
+  ],
+  "save_count": 13
 }

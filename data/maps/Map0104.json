@@ -1,64 +1,58 @@
 {
-  "id": 104,
-  "name": "Overlook Memory",
-  "size": [20, 30],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0104.tiles",
-  "parallax": {
-    "name": "Night1",
-    "loop_x": true,
-    "loop_y": false,
-    "scroll_x": -2,
-    "scroll_y": 0
-  },
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "EMILY, asleep", []],
-            [0, "ShowMessage_2", "I used to... stay awake at night, looking", []],
-            [0, "ShowMessage_2", "out over the mountains... always thinking...", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY, asleep", []],
-            [0, "ShowMessage_2", "... that I might see her again.", []],
-            [0, "Wait", "", [20]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 20, 0]],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "ShowMessage", "EMILY, asleep", []],
-            [0, "ShowMessage_2", "But I never did.", []],
-            [0, "Wait", "", [20]],
-            [0, "ControlSwitches", "", [0, 701, 701, 0]],
-            [0, "Teleport", "", [219, 8, 9]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "EMILY, asleep"},
+            {"code": "ShowMessage_2", "string": "I used to... stay awake at night, looking"},
+            {"code": "ShowMessage_2", "string": "out over the mountains... always thinking..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY, asleep"},
+            {"code": "ShowMessage_2", "string": "... that I might see her again."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 20, 0]},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "ShowMessage", "string": "EMILY, asleep"},
+            {"code": "ShowMessage_2", "string": "But I never did."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ControlSwitches", "parameters": [0, 701, 701, 0]},
+            {"code": "Teleport", "parameters": [219, 8, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 5,
       "name": "Emily",
-      "at": [14, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 8
     }
-  ]
+  ],
+  "height": 30,
+  "parallax_auto_loop_x": true,
+  "parallax_flag": true,
+  "parallax_loop_x": true,
+  "parallax_name": "Night1",
+  "parallax_sx": -2,
+  "save_count": 37
 }

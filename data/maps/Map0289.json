@@ -1,255 +1,293 @@
 {
-  "id": 289,
-  "name": "Talan's Scenario Floor 3",
-  "size": [30, 30],
-  "chipset": [39, "tech5"],
-  "tiles": "Map0289.tiles",
+  "chipset_id": 39,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [7, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [263, 8, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [263, 8, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 29
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [8, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [263, 9, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [263, 9, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 29
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [25, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [262, 9, 138]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [262, 9, 138]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 25
     },
     {
       "id": 4,
       "name": "AfterBattleMint",
-      "at": [29, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 29
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [29, 29],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 29,
+      "y": 29
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [5, 4],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This door is locked."},
+            {"code": "ShowMessage_2", "string": "I wonder where it goes?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This door is locked.", []],
-            [0, "ShowMessage_2", "I wonder where it goes?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 4
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [6, 4],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This door is locked."},
+            {"code": "ShowMessage_2", "string": "I wonder where it goes?"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This door is locked.", []],
-            [0, "ShowMessage_2", "I wonder where it goes?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 4
     },
     {
       "id": 8,
       "name": "Refinery.4",
-      "at": [28, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 963, 963, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Carbon Battery x3"},
+            {"code": "ChangeItems", "parameters": [0, 0, 329, 0, 3]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 963, 963, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Carbon Battery x3", []],
-            [0, "ChangeItems", "", [0, 0, 329, 0, 3]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 963
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 963
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 24
     },
     {
       "id": 9,
       "name": "Refinery.5",
-      "at": [17, 17],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 964, 964, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Electric Shield-L"},
+            {"code": "ChangeItems", "parameters": [0, 0, 250, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 964, 964, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Electric Shield-L", []],
-            [0, "ChangeItems", "", [0, 0, 250, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 964
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 964
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 17
     },
     {
       "id": 10,
       "name": "Refinery.6",
-      "at": [28, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 965, 965, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Recharge Draught-SP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 258, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 965, 965, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Recharge Draught-SP", []],
-            [0, "ChangeItems", "", [0, 0, 258, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 965
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 965
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 16
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 23,
+  "width": 30
 }

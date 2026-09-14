@@ -1,891 +1,1023 @@
 {
-  "id": 85,
-  "name": "Tasgarde Lab",
-  "size": [20, 30],
-  "chipset": [19, "Ancient(1)"],
-  "tiles": "Map0085.tiles",
+  "chipset_id": 19,
   "events": [
     {
       "id": 3,
       "name": "EV0003",
-      "at": [12, 28],
       "pages": [
         {
-          "conditions": {
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 15, 23, 12, 23]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This whole base is a wreck! Why hasn't", []],
-            [0, "ShowMessage_2", "the Agency renovated it? This is a", []],
-            [0, "ShowMessage_2", "disgrace!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "It's not my place to make the Agency's", []],
-            [0, "ShowMessage_2", "decisions for it, I guess. My superiors", []],
-            [0, "ShowMessage_2", "know better than I what should be", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "done with the taxpayers' money.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I guess.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ControlSwitches", "", [0, 282, 282, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 15, 23, 12, 23]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This whole base is a wreck! Why hasn't"},
+            {"code": "ShowMessage_2", "string": "the Agency renovated it? This is a"},
+            {"code": "ShowMessage_2", "string": "disgrace!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "It's not my place to make the Agency's"},
+            {"code": "ShowMessage_2", "string": "decisions for it, I guess. My superiors"},
+            {"code": "ShowMessage_2", "string": "know better than I what should be"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "done with the taxpayers' money."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I guess."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 282, 282, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 282,
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 282
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 28
     },
     {
       "id": 4,
       "name": "Eisen",
-      "at": [5, 16],
       "pages": [
         {
-          "sprite": {
-            "charset": "People5",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "People5",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Professor Eisen, I've been ordered by"},
+            {"code": "ShowMessage_2", "string": "the Captain of the Agency to instruct"},
+            {"code": "ShowMessage_2", "string": "you to reactivate... hello?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Professor Eisen, can you hear me?"},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I think he's hooked up to a simulation of"},
+            {"code": "ShowMessage_2", "string": "some sort - there's got to be a way to"},
+            {"code": "ShowMessage_2", "string": "deactivate it somewhere in this room."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 283, 283, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Professor Eisen, I've been ordered by", []],
-            [0, "ShowMessage_2", "the Captain of the Agency to instruct", []],
-            [0, "ShowMessage_2", "you to reactivate... hello?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Professor Eisen, can you hear me?", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I think he's hooked up to a simulation of", []],
-            [0, "ShowMessage_2", "some sort - there's got to be a way to", []],
-            [0, "ShowMessage_2", "deactivate it somewhere in this room.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ControlSwitches", "", [0, 283, 283, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 283
+          "character_index": 6,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Professor, I'm going to deactivate"},
+            {"code": "ShowMessage_2", "string": "your simulation. I  need to talk to you!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Now, where's the switch to turn it off?"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Professor, I'm going to deactivate", []],
-            [0, "ShowMessage_2", "your simulation. I  need to talk to you!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Now, where's the switch to turn it off?", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 284
+          "character_index": 6,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 284
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Yes, well. What?"}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Yes, well. What?", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 16
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [4, 18],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "A control panel. It looks very broken."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "A control panel. It looks very broken.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This control panel doesn't seem to be"},
+            {"code": "ShowMessage_2", "string": "the one I want."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This control panel doesn't seem to be", []],
-            [0, "ShowMessage_2", "the one I want.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 18
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [5, 18],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "A control panel. It looks very broken."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "A control panel. It looks very broken.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This control panel doesn't seem to be"},
+            {"code": "ShowMessage_2", "string": "the one I want."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This control panel doesn't seem to be", []],
-            [0, "ShowMessage_2", "the one I want.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 18
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [12, 19],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "A control panel. A handwritten card", []],
-            [0, "ShowMessage_2", "by the console says \"Awaken.\"", []]
-          ]
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "A control panel. A handwritten card"},
+            {"code": "ShowMessage_2", "string": "by the console says \"Awaken.\""}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I think this should do it. There's a", []],
-            [0, "ShowMessage_2", "hand-written card by this switch", []],
-            [0, "ShowMessage_2", "that says \"Awaken.\"", []],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Cursor2", [100, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "PlaySound", "Attack2", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "...this isn't the Sword of Langermal!", []],
-            [0, "ShowMessage_2", "Get out of my sight! Foolish knave -", []],
-            [0, "Wait", "", [7]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "What happened to my simulation? What?", []],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 3, 0, 0, 15, 37]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 13]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Who are you?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "My name is Corporal Dalia, and I am", []],
-            [0, "ShowMessage_2", "here by order of the Agency to have you", []],
-            [0, "ShowMessage_2", "reactivate the Advocate.", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Oh. Oh my... my, oh my...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 0, 14]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "He's back in his simulation! I don't", []],
-            [0, "ShowMessage_2", "believe this!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 1, 1, 12, 37]],
-            [0, "Wait", "", [15]],
-            [0, "PlaySound", "Cursor2", [100, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "PlaySound", "Attack2", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Will you stop that, little girl?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 25, 3, 3, 3, 3, 3, 3, 0, 0, 15, 37]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I am a Corporal in the most powerful", []],
-            [0, "ShowMessage_2", "organization - ", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Oh, hush. I heard you the first time.", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Can't an old man relax in his retirement?", []],
-            [0, "ShowMessage_2", "What's the world coming to? Me, oh my.", []],
-            [0, "ShowMessage_2", "Harumph!", []],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "You're in my way.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 26, 1, 27, 28]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Why am I letting him get away with", []],
-            [0, "ShowMessage_2", "talking to me like this?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "He's just an old man. That must be it.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 2, 1, 2, 2, 12]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Why should I reactivate the Advocate?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Because the Agency has ordered you to.", []],
-            [0, "ShowMessage_2", "It is your solemn duty to carry out -", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Bah. So they sent me a dyed-in-the-wool", []],
-            [0, "ShowMessage_2", "spear carrier, eh? What?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "What's that supposed to mean?", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Just an old expression. You probably", []],
-            [0, "ShowMessage_2", "wouldn't understand. I suppose you'd", []],
-            [0, "ShowMessage_2", "be \"loyal to the last,\" for this wonderful", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Agency of yours, eh? What?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Of course! Serving the Agency is the", []],
-            [0, "ShowMessage_2", "greatest honor anyone could hope for!", []],
-            [0, "ShowMessage_2", "And promotion to the Catch Colony is", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "the highest reward for those whose", []],
-            [0, "ShowMessage_2", "hearts are most loyal!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "So they built the damn thing. Bah.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "How dare you besmirch - ", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Settle down, little girl. My, you", []],
-            [0, "ShowMessage_2", "certainly are excitable. I can", []],
-            [0, "ShowMessage_2", "criticize the Agency all I like -", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Lord knows they've criticized me", []],
-            [0, "ShowMessage_2", "enough, in my day. Eh?", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This old man is off his rocker. I think", []],
-            [0, "ShowMessage_2", "he's been in one simulation too many.", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Just turn on this Advocate thing and I'll", []],
-            [0, "ShowMessage_2", "leave you to your simulation.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Kids. Always so eager to finish their", []],
-            [0, "ShowMessage_2", "chores so they can run and play.", []],
-            [0, "ShowMessage_2", "Harumph!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I am NOT a -", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Do you even know what the Advocate", []],
-            [0, "ShowMessage_2", "is? Have your superiors even told you", []],
-            [0, "ShowMessage_2", "that much?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Well... it's a computer program that... was", []],
-            [0, "ShowMessage_2", "built to assist construction of the Catch", []],
-            [0, "ShowMessage_2", "Colony, back before the Shortage.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "I think I'm going to tell you my story.", []],
-            [0, "ShowMessage_2", "If you still want me to reactivate the", []],
-            [0, "ShowMessage_2", "Advocate once I've finished...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "So be it.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Fine. I'll listen to your story. But make", []],
-            [0, "ShowMessage_2", "it quick.", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "My story begins before the Shortage,", []],
-            [0, "ShowMessage_2", "back when I was a young man...", []],
-            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "ChangePartyMembers", "", [1, 0, 21]],
-            [0, "Teleport", "", [86, 10, 8]],
-            [0, "ControlSwitches", "", [0, 284, 284, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I think this should do it. There's a"},
+            {"code": "ShowMessage_2", "string": "hand-written card by this switch"},
+            {"code": "ShowMessage_2", "string": "that says \"Awaken.\""},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cursor2"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Attack2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "...this isn't the Sword of Langermal!"},
+            {"code": "ShowMessage_2", "string": "Get out of my sight! Foolish knave -"},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "What happened to my simulation? What?"},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 3, 3, 0, 0, 15, 37]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Who are you?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "My name is Corporal Dalia, and I am"},
+            {"code": "ShowMessage_2", "string": "here by order of the Agency to have you"},
+            {"code": "ShowMessage_2", "string": "reactivate the Advocate."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Oh. Oh my... my, oh my..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 0, 14]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "He's back in his simulation! I don't"},
+            {"code": "ShowMessage_2", "string": "believe this!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 2, 2, 1, 1, 12, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cursor2"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Attack2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Will you stop that, little girl?"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 36, 24, 25, 3, 3, 3, 3, 3, 3, 0, 0, 15, 37]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I am a Corporal in the most powerful"},
+            {"code": "ShowMessage_2", "string": "organization - "},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Oh, hush. I heard you the first time."},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Can't an old man relax in his retirement?"},
+            {"code": "ShowMessage_2", "string": "What's the world coming to? Me, oh my."},
+            {"code": "ShowMessage_2", "string": "Harumph!"},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "You're in my way."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 29, 26, 1, 27, 28]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Why am I letting him get away with"},
+            {"code": "ShowMessage_2", "string": "talking to me like this?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "He's just an old man. That must be it."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 1, 2, 1, 2, 2, 12]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Why should I reactivate the Advocate?"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Because the Agency has ordered you to."},
+            {"code": "ShowMessage_2", "string": "It is your solemn duty to carry out -"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Bah. So they sent me a dyed-in-the-wool"},
+            {"code": "ShowMessage_2", "string": "spear carrier, eh? What?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "What's that supposed to mean?"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Just an old expression. You probably"},
+            {"code": "ShowMessage_2", "string": "wouldn't understand. I suppose you'd"},
+            {"code": "ShowMessage_2", "string": "be \"loyal to the last,\" for this wonderful"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Agency of yours, eh? What?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Of course! Serving the Agency is the"},
+            {"code": "ShowMessage_2", "string": "greatest honor anyone could hope for!"},
+            {"code": "ShowMessage_2", "string": "And promotion to the Catch Colony is"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "the highest reward for those whose"},
+            {"code": "ShowMessage_2", "string": "hearts are most loyal!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "So they built the damn thing. Bah."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "How dare you besmirch - "},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Settle down, little girl. My, you"},
+            {"code": "ShowMessage_2", "string": "certainly are excitable. I can"},
+            {"code": "ShowMessage_2", "string": "criticize the Agency all I like -"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Lord knows they've criticized me"},
+            {"code": "ShowMessage_2", "string": "enough, in my day. Eh?"},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This old man is off his rocker. I think"},
+            {"code": "ShowMessage_2", "string": "he's been in one simulation too many."},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Just turn on this Advocate thing and I'll"},
+            {"code": "ShowMessage_2", "string": "leave you to your simulation."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Kids. Always so eager to finish their"},
+            {"code": "ShowMessage_2", "string": "chores so they can run and play."},
+            {"code": "ShowMessage_2", "string": "Harumph!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I am NOT a -"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Do you even know what the Advocate"},
+            {"code": "ShowMessage_2", "string": "is? Have your superiors even told you"},
+            {"code": "ShowMessage_2", "string": "that much?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Well... it's a computer program that... was"},
+            {"code": "ShowMessage_2", "string": "built to assist construction of the Catch"},
+            {"code": "ShowMessage_2", "string": "Colony, back before the Shortage."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 1, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "I think I'm going to tell you my story."},
+            {"code": "ShowMessage_2", "string": "If you still want me to reactivate the"},
+            {"code": "ShowMessage_2", "string": "Advocate once I've finished..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "So be it."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Fine. I'll listen to your story. But make"},
+            {"code": "ShowMessage_2", "string": "it quick."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "My story begins before the Shortage,"},
+            {"code": "ShowMessage_2", "string": "back when I was a young man..."},
+            {"code": "TintScreen", "parameters": [60, 60, 60, 0, 10, 1]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
+            {"code": "Teleport", "parameters": [86, 10, 8]},
+            {"code": "ControlSwitches", "parameters": [0, 284, 284, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 284
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 284
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't need to touch the Simulation", []],
-            [0, "ShowMessage_2", "deactivation switch again.", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't need to touch the Simulation"},
+            {"code": "ShowMessage_2", "string": "deactivation switch again."}
+          ],
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 19
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [13, 19],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "A control panel. A handwritten card", []],
-            [0, "ShowMessage_2", "by the console says \"Awaken.\"", []]
-          ]
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "A control panel. A handwritten card"},
+            {"code": "ShowMessage_2", "string": "by the console says \"Awaken.\""}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I think this should do it. There's a", []],
-            [0, "ShowMessage_2", "hand-written card by this switch", []],
-            [0, "ShowMessage_2", "that says \"Awaken.\"", []],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Cursor2", [100, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "PlaySound", "Attack2", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "...this isn't the Sword of Langermal!", []],
-            [0, "ShowMessage_2", "Get out of my sight! Foolish knave -", []],
-            [0, "Wait", "", [7]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "What happened to my simulation? What?", []],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 3, 3, 0, 0, 15, 37]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 13]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Who are you?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "My name is Corporal Dalia, and I am", []],
-            [0, "ShowMessage_2", "here by order of the Agency to have you", []],
-            [0, "ShowMessage_2", "reactivate the Advocate.", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Oh. Oh my... my, oh my...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 0, 14]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "He's back in his simulation! I don't", []],
-            [0, "ShowMessage_2", "believe this!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 1, 1, 12, 37]],
-            [0, "Wait", "", [15]],
-            [0, "PlaySound", "Cursor2", [100, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "PlaySound", "Attack2", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Will you stop that, little girl?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 25, 3, 3, 3, 3, 3, 3, 0, 0, 15, 37]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I am a Corporal in the most powerful", []],
-            [0, "ShowMessage_2", "organization - ", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Oh, hush. I heard you the first time.", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Can't an old man relax in his retirement?", []],
-            [0, "ShowMessage_2", "What's the world coming to? Me, oh my.", []],
-            [0, "ShowMessage_2", "Harumph!", []],
-            [0, "MoveEvent", "", [4, 4, 0, 0, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "You're in my way.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 26, 1, 27, 28]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Why am I letting him get away with", []],
-            [0, "ShowMessage_2", "talking to me like this?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "He's just an old man. That must be it.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 2, 1, 2, 2, 12]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Why should I reactivate the Advocate?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Because the Agency has ordered you to.", []],
-            [0, "ShowMessage_2", "It is your solemn duty to carry out -", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Bah. So they sent me a dyed-in-the-wool", []],
-            [0, "ShowMessage_2", "spear carrier, eh? What?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "What's that supposed to mean?", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Just an old expression. You probably", []],
-            [0, "ShowMessage_2", "wouldn't understand. I suppose you'd", []],
-            [0, "ShowMessage_2", "be \"loyal to the last,\" for this wonderful", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Agency of yours, eh? What?", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Of course! Serving the Agency is the", []],
-            [0, "ShowMessage_2", "greatest honor anyone could hope for!", []],
-            [0, "ShowMessage_2", "And promotion to the Catch Colony is", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "the highest reward for those whose", []],
-            [0, "ShowMessage_2", "hearts are most loyal!", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "So they built the damn thing. Bah.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "How dare you besmirch - ", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Settle down, little girl. My, you", []],
-            [0, "ShowMessage_2", "certainly are excitable. I can", []],
-            [0, "ShowMessage_2", "criticize the Agency all I like -", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Lord knows they've criticized me", []],
-            [0, "ShowMessage_2", "enough, in my day. Eh?", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This old man is off his rocker. I think", []],
-            [0, "ShowMessage_2", "he's been in one simulation too many.", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Just turn on this Advocate thing and I'll", []],
-            [0, "ShowMessage_2", "leave you to your simulation.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Kids. Always so eager to finish their", []],
-            [0, "ShowMessage_2", "chores so they can run and play.", []],
-            [0, "ShowMessage_2", "Harumph!", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I am NOT a -", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "Do you even know what the Advocate", []],
-            [0, "ShowMessage_2", "is? Have your superiors even told you", []],
-            [0, "ShowMessage_2", "that much?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Well... it's a computer program that... was", []],
-            [0, "ShowMessage_2", "built to assist construction of the Catch", []],
-            [0, "ShowMessage_2", "Colony, back before the Shortage.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "I think I'm going to tell you my story.", []],
-            [0, "ShowMessage_2", "If you still want me to reactivate the", []],
-            [0, "ShowMessage_2", "Advocate once I've finished...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "So be it.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Fine. I'll listen to your story. But make", []],
-            [0, "ShowMessage_2", "it quick.", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "My story begins before the Shortage,", []],
-            [0, "ShowMessage_2", "back when I was a young man...", []],
-            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "ChangePartyMembers", "", [1, 0, 21]],
-            [0, "Teleport", "", [86, 10, 8]],
-            [0, "ControlSwitches", "", [0, 284, 284, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I think this should do it. There's a"},
+            {"code": "ShowMessage_2", "string": "hand-written card by this switch"},
+            {"code": "ShowMessage_2", "string": "that says \"Awaken.\""},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cursor2"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Attack2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "...this isn't the Sword of Langermal!"},
+            {"code": "ShowMessage_2", "string": "Get out of my sight! Foolish knave -"},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "What happened to my simulation? What?"},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 3, 3, 3, 0, 0, 15, 37]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Who are you?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "My name is Corporal Dalia, and I am"},
+            {"code": "ShowMessage_2", "string": "here by order of the Agency to have you"},
+            {"code": "ShowMessage_2", "string": "reactivate the Advocate."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Oh. Oh my... my, oh my..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 0, 14]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "He's back in his simulation! I don't"},
+            {"code": "ShowMessage_2", "string": "believe this!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 2, 2, 1, 1, 12, 37]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Cursor2"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Attack2"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Will you stop that, little girl?"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 36, 24, 25, 3, 3, 3, 3, 3, 3, 0, 0, 15, 37]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I am a Corporal in the most powerful"},
+            {"code": "ShowMessage_2", "string": "organization - "},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Oh, hush. I heard you the first time."},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Can't an old man relax in his retirement?"},
+            {"code": "ShowMessage_2", "string": "What's the world coming to? Me, oh my."},
+            {"code": "ShowMessage_2", "string": "Harumph!"},
+            {"code": "MoveEvent", "parameters": [4, 4, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "You're in my way."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 29, 26, 1, 27, 28]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Why am I letting him get away with"},
+            {"code": "ShowMessage_2", "string": "talking to me like this?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "He's just an old man. That must be it."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 1, 2, 1, 2, 2, 12]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Why should I reactivate the Advocate?"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Because the Agency has ordered you to."},
+            {"code": "ShowMessage_2", "string": "It is your solemn duty to carry out -"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Bah. So they sent me a dyed-in-the-wool"},
+            {"code": "ShowMessage_2", "string": "spear carrier, eh? What?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "What's that supposed to mean?"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Just an old expression. You probably"},
+            {"code": "ShowMessage_2", "string": "wouldn't understand. I suppose you'd"},
+            {"code": "ShowMessage_2", "string": "be \"loyal to the last,\" for this wonderful"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Agency of yours, eh? What?"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Of course! Serving the Agency is the"},
+            {"code": "ShowMessage_2", "string": "greatest honor anyone could hope for!"},
+            {"code": "ShowMessage_2", "string": "And promotion to the Catch Colony is"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "the highest reward for those whose"},
+            {"code": "ShowMessage_2", "string": "hearts are most loyal!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "So they built the damn thing. Bah."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "How dare you besmirch - "},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Settle down, little girl. My, you"},
+            {"code": "ShowMessage_2", "string": "certainly are excitable. I can"},
+            {"code": "ShowMessage_2", "string": "criticize the Agency all I like -"},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Lord knows they've criticized me"},
+            {"code": "ShowMessage_2", "string": "enough, in my day. Eh?"},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This old man is off his rocker. I think"},
+            {"code": "ShowMessage_2", "string": "he's been in one simulation too many."},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Just turn on this Advocate thing and I'll"},
+            {"code": "ShowMessage_2", "string": "leave you to your simulation."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Kids. Always so eager to finish their"},
+            {"code": "ShowMessage_2", "string": "chores so they can run and play."},
+            {"code": "ShowMessage_2", "string": "Harumph!"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I am NOT a -"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "Do you even know what the Advocate"},
+            {"code": "ShowMessage_2", "string": "is? Have your superiors even told you"},
+            {"code": "ShowMessage_2", "string": "that much?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Well... it's a computer program that... was"},
+            {"code": "ShowMessage_2", "string": "built to assist construction of the Catch"},
+            {"code": "ShowMessage_2", "string": "Colony, back before the Shortage."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 1, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "I think I'm going to tell you my story."},
+            {"code": "ShowMessage_2", "string": "If you still want me to reactivate the"},
+            {"code": "ShowMessage_2", "string": "Advocate once I've finished..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "So be it."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Fine. I'll listen to your story. But make"},
+            {"code": "ShowMessage_2", "string": "it quick."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "My story begins before the Shortage,"},
+            {"code": "ShowMessage_2", "string": "back when I was a young man..."},
+            {"code": "TintScreen", "parameters": [60, 60, 60, 0, 10, 1]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
+            {"code": "Teleport", "parameters": [86, 10, 8]},
+            {"code": "ControlSwitches", "parameters": [0, 284, 284, 0]}
+          ],
+          "id": 2,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 284
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 284
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't need to touch the Simulation", []],
-            [0, "ShowMessage_2", "deactivation switch again.", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't need to touch the Simulation"},
+            {"code": "ShowMessage_2", "string": "deactivation switch again."}
+          ],
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 19
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [11, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This switch controls the large monitor."},
+            {"code": "ShowMessage_2", "string": "It's not the one I want."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This switch controls the large monitor.", []],
-            [0, "ShowMessage_2", "It's not the one I want.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 16
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [15, 19],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This panel operates the access hatch"},
+            {"code": "ShowMessage_2", "string": "next to me."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This panel operates the access hatch", []],
-            [0, "ShowMessage_2", "next to me.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 19
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [13, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 25
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [12, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 25
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [5, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 25
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [4, 25],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 25
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [8, 17],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 17
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [9, 17],
       "pages": [
         {
-          "tile": 0,
+          "condition": {"switch_a_id": 283},
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think these computers are even"},
+            {"code": "ShowMessage_2", "string": "working anymore!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think these computers are even", []],
-            [0, "ShowMessage_2", "working anymore!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 17
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [14, 16],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I shouldn't concern myself with these"},
+            {"code": "ShowMessage_2", "string": "valves - I have a mission to accomplish!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I shouldn't concern myself with these", []],
-            [0, "ShowMessage_2", "valves - I have a mission to accomplish!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [13, 16],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I shouldn't concern myself with these"},
+            {"code": "ShowMessage_2", "string": "valves - I have a mission to accomplish!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I shouldn't concern myself with these", []],
-            [0, "ShowMessage_2", "valves - I have a mission to accomplish!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 13,
+      "y": 16
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [4, 16],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I shouldn't concern myself with these"},
+            {"code": "ShowMessage_2", "string": "valves - I have a mission to accomplish!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I shouldn't concern myself with these", []],
-            [0, "ShowMessage_2", "valves - I have a mission to accomplish!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 16
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [3, 16],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I shouldn't concern myself with these"},
+            {"code": "ShowMessage_2", "string": "valves - I have a mission to accomplish!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I shouldn't concern myself with these", []],
-            [0, "ShowMessage_2", "valves - I have a mission to accomplish!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 16
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [6, 16],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 283
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 283
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "This console controls the large monitor."},
+            {"code": "ShowMessage_2", "string": "I don't need to use it."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "This console controls the large monitor.", []],
-            [0, "ShowMessage_2", "I don't need to use it.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 284
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 284
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't need to touch that."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't need to touch that.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 308
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 308
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "EISEN"},
+            {"code": "ShowMessage_2", "string": "And that's my story. I've remained here"},
+            {"code": "ShowMessage_2", "string": "ever since."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "EISEN", []],
-            [0, "ShowMessage_2", "And that's my story. I've remained here", []],
-            [0, "ShowMessage_2", "ever since.", []]
-          ]
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 16
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [12, 16],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "It's a simulation chamber."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "It's a simulation chamber.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 16
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 37
 }

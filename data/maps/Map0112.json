@@ -1,176 +1,233 @@
 {
-  "id": 112,
-  "name": "ParadiseInteriors",
-  "size": [20, 15],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0112.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
-            [1, "TintScreen", "", [0, 0, 0, 100, 2, 1]],
-            [1, "Teleport", "", [108, 10, 19]],
-            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "Teleport", "", [108, 10, 19]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 350, 0, 0, 0, 1]},
+            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 2, 1]},
+            {"code": "Teleport", "indent": 1, "parameters": [108, 10, 19]},
+            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 70, 2, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "Teleport", "indent": 1, "parameters": [108, 10, 19]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "Farmer",
-      "at": [14, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 350
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 350
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEP"},
+            {"code": "ShowMessage_2", "string": "I was a Farmer, but the Council let me open"},
+            {
+              "code": "ShowMessage_2",
+              "string": "this bar. I'm glad they did - I was getting tired"
+            },
+            {"code": "ShowMessage_2", "string": "of waking up so early to go to the fields!"},
+            {"code": "ShowInn", "parameters": [0, 50, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BARKEEP", []],
-            [0, "ShowMessage_2", "I was a Farmer, but the Council let me open", []],
-            [0, "ShowMessage_2", "this bar. I'm glad they did - I was getting tired", []],
-            [0, "ShowMessage_2", "of waking up so early to go to the fields!", []],
-            [0, "ShowInn", "", [0, 50, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 372
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 372
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEP"},
+            {"code": "ShowMessage_2", "string": "I was a Farmer, but the Council let me open"},
+            {
+              "code": "ShowMessage_2",
+              "string": "this bar. I'm glad they did - I was getting tired"
+            },
+            {"code": "ShowMessage_2", "string": "of waking up so early to go to the fields!"},
+            {"code": "ShowInn", "parameters": [0, 50, 0]}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BARKEEP", []],
-            [0, "ShowMessage_2", "I was a Farmer, but the Council let me open", []],
-            [0, "ShowMessage_2", "this bar. I'm glad they did - I was getting tired", []],
-            [0, "ShowMessage_2", "of waking up so early to go to the fields!", []],
-            [0, "ShowInn", "", [0, 50, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 396
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 396
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEP"},
+            {"code": "ShowMessage_2", "string": "This has been a slow day for customers."},
+            {"code": "ShowInn", "parameters": [0, 50, 0]}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BARKEEP", []],
-            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
-            [0, "ShowInn", "", [0, 50, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 427
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 427
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEP"},
+            {"code": "ShowMessage_2", "string": "This has been a slow day for customers."},
+            {"code": "ShowInn", "parameters": [0, 50, 0]}
+          ],
+          "id": 4,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BARKEEP", []],
-            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
-            [0, "ShowInn", "", [0, 50, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 441
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 441
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BARKEEP"},
+            {"code": "ShowMessage_2", "string": "This has been a slow day for customers."},
+            {"code": "ShowInn", "parameters": [0, 50, 0]}
+          ],
+          "id": 5,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "BARKEEP", []],
-            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
-            [0, "ShowInn", "", [0, 50, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 7
     },
     {
       "id": 3,
       "name": "Farmer",
-      "at": [14, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "Crown3",
+          "condition": {"switch_a_id": 350},
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 5
     },
     {
       "id": 4,
       "name": "Lawyer",
-      "at": [2, 11],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 350
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 350
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "I'm certainly not taking that case! My"},
+            {"code": "ShowMessage_2", "string": "record is unblemished!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "I'm certainly not taking that case! My", []],
-            [0, "ShowMessage_2", "record is unblemished!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 11
     },
     {
       "id": 5,
       "name": "Lawyer",
-      "at": [3, 9],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 350
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 350
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "Well, someone needs to represent the"},
+            {"code": "ShowMessage_2", "string": "bandits. We need a trial before we can"},
+            {"code": "ShowMessage_2", "string": "lock them up!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "Well, someone needs to represent the", []],
-            [0, "ShowMessage_2", "bandits. We need a trial before we can", []],
-            [0, "ShowMessage_2", "lock them up!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 9
     }
-  ]
+  ],
+  "save_count": 33
 }

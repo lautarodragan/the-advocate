@@ -1,122 +1,124 @@
 {
-  "id": 239,
-  "name": "Kersh and Little Sally",
-  "size": [20, 15],
-  "chipset": [36, "townQ"],
-  "tiles": "Map0239.tiles",
+  "chipset_id": 36,
   "events": [
     {
       "id": 1,
       "name": "Kersh",
-      "at": [12, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 13
     },
     {
       "id": 2,
       "name": "Little Sally Kesman",
-      "at": [3, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People5",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "People5",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 5
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 26, 24, 1, 24, 2, 25, 24, 3, 25, 2, 2, 27, 12, 26, 24, 1, 25, 24, 1, 25]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "She knew she wasn't supposed to", []],
-            [0, "ShowMessage_2", "go near the base, but she loved the", []],
-            [0, "ShowMessage_2", "wildflowers that grew there so much...", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 27, 2, 2, 3, 3, 0, 0, 2, 1, 2, 1]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Oh, she did love flowers. Her mother", []],
-            [0, "ShowMessage_2", "let her keep a vase in her room full", []],
-            [0, "ShowMessage_2", "of the prettiest ones she could find.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "She was looking for flowers on the day", []],
-            [0, "ShowMessage_2", "Surl was destroyed.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 1, 2, 2, 2, 6, 5, 5, 6, 2, 2, 2, 2, 2, 2, 13]],
-            [0, "Wait", "", [15]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "What are you doing?", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "Hello? Do you work for the base?", []],
-            [0, "ShowMessage_2", "My daddy works for the base.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "FUNNY-LOOKING MAN", []],
-            [0, "ShowMessage_2", "Yes I do. I work for the base.", []],
-            [0, "ShowMessage_2", "Now run along and play, little girl.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "What are you doing?", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "Can I see?", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "FUNNY-LOOKING MAN", []],
-            [0, "ShowMessage_2", "I'm just making sure the base is safe", []],
-            [0, "ShowMessage_2", "for your daddy.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "Oh. OK.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SALLY KESMAN", []],
-            [0, "ShowMessage_2", "Thank you very much.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 1, 4, 7, 7, 7, 0, 3, 24, 0, 25]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "He was there on the day Surl launched its", []],
-            [0, "ShowMessage_2", "missiles and the Agency counter-attacked!", []],
-            [0, "ControlSwitches", "", [0, 629, 629, 0]],
-            [0, "Teleport", "", [207, 8, 7]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 26, 24, 1, 24, 2, 25, 24, 3, 25, 2, 2, 27, 12, 26, 24, 1, 25, 24, 1,
+                25
+              ]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "She knew she wasn't supposed to"},
+            {"code": "ShowMessage_2", "string": "go near the base, but she loved the"},
+            {"code": "ShowMessage_2", "string": "wildflowers that grew there so much..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 27, 2, 2, 3, 3, 0, 0, 2, 1, 2, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Oh, she did love flowers. Her mother"},
+            {"code": "ShowMessage_2", "string": "let her keep a vase in her room full"},
+            {"code": "ShowMessage_2", "string": "of the prettiest ones she could find."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "She was looking for flowers on the day"},
+            {"code": "ShowMessage_2", "string": "Surl was destroyed."},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 1, 2, 2, 2, 6, 5, 5, 6, 2, 2, 2, 2, 2, 2, 13]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "What are you doing?"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "Hello? Do you work for the base?"},
+            {"code": "ShowMessage_2", "string": "My daddy works for the base."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "FUNNY-LOOKING MAN"},
+            {"code": "ShowMessage_2", "string": "Yes I do. I work for the base."},
+            {"code": "ShowMessage_2", "string": "Now run along and play, little girl."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "What are you doing?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "Can I see?"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "FUNNY-LOOKING MAN"},
+            {"code": "ShowMessage_2", "string": "I'm just making sure the base is safe"},
+            {"code": "ShowMessage_2", "string": "for your daddy."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "Oh. OK."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SALLY KESMAN"},
+            {"code": "ShowMessage_2", "string": "Thank you very much."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 1, 4, 7, 7, 7, 0, 3, 24, 0, 25]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "He was there on the day Surl launched its"},
+            {"code": "ShowMessage_2", "string": "missiles and the Agency counter-attacked!"},
+            {"code": "ControlSwitches", "parameters": [0, 629, 629, 0]},
+            {"code": "Teleport", "parameters": [207, 8, 7]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 10
 }

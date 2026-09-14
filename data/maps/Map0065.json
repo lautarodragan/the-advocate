@@ -1,8 +1,1 @@
-{
-  "id": 65,
-  "name": "Northern World",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0065.tiles",
-  "events": []
-}
+{"save_count": 8}

@@ -1,201 +1,191 @@
 {
-  "id": 172,
-  "name": "Freeing Dalia",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0172.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [4, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 5
     },
     {
       "id": 2,
       "name": "StopGuard",
-      "at": [4, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 8
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [4, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 11
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [15, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 11
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [15, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 5
     },
     {
       "id": 7,
       "name": "Dalia",
-      "at": [8, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 3,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 3
     },
     {
       "id": 8,
       "name": "Manta",
-      "at": [11, 9],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 479
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "Future1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 479
           },
-          "sprite": {
-            "charset": "Future1",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 9
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowBattleAnimation", "", [72, 8, 1, 0]],
-            [0, "ControlSwitches", "", [0, 479, 479, 0]],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Who... who are you? You're not part of", []],
-            [0, "ShowMessage_2", "the simulation, are you?", []],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "You never completed your mission. I've", []],
-            [0, "ShowMessage_2", "been hired to rescue you and finish what", []],
-            [0, "ShowMessage_2", "you started.", []],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "The old man's putting up a good fight, but", []],
-            [0, "ShowMessage_2", "my rerouting scanner program should", []],
-            [0, "ShowMessage_2", "have broken his temporary blocks by now.", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 15]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "You're a Slicer, aren't you?", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "The best of the best.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "My name's Manta.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [173, 17, 8]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowBattleAnimation", "parameters": [72, 8, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 479, 479, 0]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Who... who are you? You're not part of"},
+            {"code": "ShowMessage_2", "string": "the simulation, are you?"},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "You never completed your mission. I've"},
+            {"code": "ShowMessage_2", "string": "been hired to rescue you and finish what"},
+            {"code": "ShowMessage_2", "string": "you started."},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "The old man's putting up a good fight, but"},
+            {"code": "ShowMessage_2", "string": "my rerouting scanner program should"},
+            {"code": "ShowMessage_2", "string": "have broken his temporary blocks by now."},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "You're a Slicer, aren't you?"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "The best of the best."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "My name's Manta."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [173, 17, 8]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 27
 }

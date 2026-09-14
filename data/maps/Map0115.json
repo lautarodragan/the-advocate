@@ -1,281 +1,312 @@
 {
-  "id": 115,
-  "name": "House1",
-  "size": [20, 15],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0115.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
-            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
-            [1, "Teleport", "", [108, 2, 29]],
-            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "Teleport", "", [108, 2, 29]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 350, 0, 0, 0, 1]},
+            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 70, 2, 1]},
+            {"code": "Teleport", "indent": 1, "parameters": [108, 2, 29]},
+            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 70, 2, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "Teleport", "indent": 1, "parameters": [108, 2, 29]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "Lawyer",
-      "at": [10, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 350
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 350
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "These citations are all incorrect! What was"},
+            {"code": "ShowMessage_2", "string": "she thinking? She needs to get her head out"},
+            {"code": "ShowMessage_2", "string": "of the clouds and start learning the Law!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "These citations are all incorrect! What was", []],
-            [0, "ShowMessage_2", "she thinking? She needs to get her head out", []],
-            [0, "ShowMessage_2", "of the clouds and start learning the Law!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 5
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [1, 8],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 1,
+      "y": 8
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [2, 8],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 2,
+      "y": 8
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [3, 8],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 3,
+      "y": 8
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [3, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 376
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 376
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {
+              "code": "ShowMessage_2",
+              "string": "I'm not feeling very well. That girl had better"
+            },
+            {"code": "ShowMessage_2", "string": "not be doing her citations incorrectly while"},
+            {"code": "ShowMessage_2", "string": "I'm out sick!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "I'm not feeling very well. That girl had better", []],
-            [0, "ShowMessage_2", "not be doing her citations incorrectly while", []],
-            [0, "ShowMessage_2", "I'm out sick!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 7
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [12, 9],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 376
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Chara4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 376
           },
-          "sprite": {
-            "charset": "Chara4",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "Of course my citations are correct!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "Of course my citations are correct!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 9
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [14, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 427,
-            "switch_b": 403
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 427,
+            "switch_b_id": 403
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "I wish there was something I could"},
+            {"code": "ShowMessage_2", "string": "do... but I don't think there is."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "I wish there was something I could", []],
-            [0, "ShowMessage_2", "do... but I don't think there is.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 7
     },
     {
       "id": 9,
       "name": "Lawyer",
-      "at": [6, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 441,
-            "switch_b": 388
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 441,
+            "switch_b_id": 388
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "Break a leg tonight, Talan! Preferably"},
+            {"code": "ShowMessage_2", "string": "yours! Hehehehe..."},
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "Get it? Because then you could sue"},
+            {"code": "ShowMessage_2", "string": "someone! Hehehe..."},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'm glad I'm not a Lawyer... I couldn't"},
+            {"code": "ShowMessage_2", "string": "put up with this every day!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 543, 543, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "Break a leg tonight, Talan! Preferably", []],
-            [0, "ShowMessage_2", "yours! Hehehehe...", []],
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "Get it? Because then you could sue", []],
-            [0, "ShowMessage_2", "someone! Hehehe...", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'm glad I'm not a Lawyer... I couldn't", []],
-            [0, "ShowMessage_2", "put up with this every day!", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ControlSwitches", "", [0, 543, 543, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 441,
-            "switch_b": 543
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 441,
+            "switch_b_id": 543
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "LAWYER"},
+            {"code": "ShowMessage_2", "string": "Get it? Get it?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Yeah, I got it. Ha."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "LAWYER", []],
-            [0, "ShowMessage_2", "Get it? Get it?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Yeah, I got it. Ha.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 6
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [1, 9],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 1,
+      "y": 9
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [2, 9],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 2,
+      "y": 9
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [3, 9],
       "pages": [
-        {
-          "tile": 0,
-          "layer": "same",
-          "trigger": "action"
-        }
-      ]
+        {"id": 1, "layer": "same", "move_type": "stationary"}
+      ],
+      "x": 3,
+      "y": 9
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     }
-  ]
+  ],
+  "save_count": 39
 }

@@ -1,226 +1,290 @@
 {
-  "id": 296,
-  "name": "Quarry II",
-  "size": [20, 40],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0296.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [19, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Teleport", "", [250, 58, 42]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "parameters": [250, 58, 42]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 636
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 636
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [250, 58, 42]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [250, 58, 42]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 2
     },
     {
       "id": 2,
       "name": "Quarry.1",
-      "at": [3, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 763, 763, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 311, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Carpet Moss"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 763, 763, 0]],
-            [0, "ChangeItems", "", [0, 0, 311, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Carpet Moss", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 763
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 763
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 10
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [10, 39],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [249, 32, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [249, 32, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 636
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 636
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [250, 58, 42]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [250, 58, 42]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 39
     },
     {
       "id": 4,
       "name": "AG7",
-      "at": [4, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 150
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 150
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ChangeHP", "parameters": [1, 18, 0, 0, 300, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "AG7! You're safe!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AG7-17"},
+            {"code": "ShowMessage_2", "string": "&%@ = invalid header()"},
+            {"code": "ShowMessage_2", "string": "((((hOI&D%h)(e237)))"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Still broken, I see."},
+            {"code": "ShowMessage_2", "string": "But I'm glad you're safe!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                4, 8, 0, 0, 36, 2, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
+                0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 18]},
+            {"code": "ControlSwitches", "parameters": [0, 877, 877, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ChangeHP", "", [1, 18, 0, 0, 300, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "AG7! You're safe!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AG7-17", []],
-            [0, "ShowMessage_2", "&%@ = invalid header()", []],
-            [0, "ShowMessage_2", "((((hOI&D%h)(e237)))", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Still broken, I see.", []],
-            [0, "ShowMessage_2", "But I'm glad you're safe!", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 2, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ChangePartyMembers", "", [0, 0, 18]],
-            [0, "ControlSwitches", "", [0, 877, 877, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 877
+          "character_direction": "up",
+          "character_name": "nobodyhere",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 877
           },
-          "sprite": {
-            "charset": "nobodyhere",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 6
     },
     {
       "id": 5,
       "name": "AfterBattleMint",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [19, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Teleport", "", [250, 58, 42]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Teleport", "parameters": [250, 58, 42]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 636
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 636
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [250, 58, 42]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [250, 58, 42]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 3
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [19, 39],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 47, 0]],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 47, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 39
     }
-  ]
+  ],
+  "height": 40,
+  "save_count": 63
 }

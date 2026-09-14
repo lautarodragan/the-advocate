@@ -1,109 +1,96 @@
 {
-  "id": 176,
-  "name": "Overlook",
-  "size": [20, 15],
-  "chipset": [22, "Minechips"],
-  "tiles": "Map0176.tiles",
-  "parallax": {
-    "name": "Night1",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 22,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [11, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara2",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Chara2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 11
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [16, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 9
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara4",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara4",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 11
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Coming around  one of the tallest peaks, we", []],
-            [0, "ShowMessage_2", "beheld an amazing sight: far below us, in the", []],
-            [0, "ShowMessage_2", "valley, were buildings.", []],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "My thought was that we had drifted too far", []],
-            [0, "ShowMessage_2", "south in our journey through the mountains,", []],
-            [0, "ShowMessage_2", "and had ended up in Surl, but...", []],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [177, 2, 3]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Coming around  one of the tallest peaks, we"},
+            {"code": "ShowMessage_2", "string": "beheld an amazing sight: far below us, in the"},
+            {"code": "ShowMessage_2", "string": "valley, were buildings."},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "My thought was that we had drifted too far"},
+            {"code": "ShowMessage_2", "string": "south in our journey through the mountains,"},
+            {"code": "ShowMessage_2", "string": "and had ended up in Surl, but..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [177, 2, 3]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 6,
       "name": "Pierson",
-      "at": [8, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 12
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "Night1",
+  "save_count": 13
 }

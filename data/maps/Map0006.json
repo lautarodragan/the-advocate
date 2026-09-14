@@ -1,140 +1,142 @@
 {
-  "id": 6,
-  "name": "CoreRetro II",
-  "size": [100, 100],
-  "chipset": [8, "ChipSet2"],
-  "tiles": "Map0006.tiles",
-  "parallax": {
-    "name": "Night2",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 8,
   "events": [
     {
       "id": 1,
       "name": "Manta",
-      "at": [0, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 10
     },
     {
       "id": 2,
       "name": "Core",
-      "at": [0, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 1,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 1,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 9
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [23, 19],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 17
+          "character_index": 120,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 17
           },
-          "tile": 120,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1, 1]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12, 23, 15, 23, 13, 23, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Wow, I'd forgotten just how busy", []],
-            [0, "ShowMessage_2", "city-life can be... this is great!", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "So, who's the guy we're supposed to meet?", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "I don't know his real name. To be safe,", []],
-            [0, "ShowMessage_2", "I just call him \"Boss.\"", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Apparently, the guy we're after killed", []],
-            [0, "ShowMessage_2", "the Boss's wife, or something.", []],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "So it's personal.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
-            [0, "Wait", "", [7]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Yeah... here he comes.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "Wait", "", [4]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [40]],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "Core, I presume? I trust you will not", []],
-            [0, "ShowMessage_2", "disappoint me.", []],
-            [0, "ShowMessage", "?????", []],
-            [0, "ShowMessage_2", "But enough dallying. We have work to do.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12, 0, 23]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [4, 0, 0, 30]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "ShowMessage", "CORE", []],
-            [0, "ShowMessage_2", "Is this guy for real?", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 23, 23, 23, 15]],
-            [0, "Wait", "", [12]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "He's the Boss.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13, 1, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 0, 0]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1]],
-            [0, "Wait", "", [12]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 12, 0, 23]],
-            [0, "Wait", "", [5]],
-            [0, "ChangeEventLocation", "", [2, 0, 0, 28]],
-            [0, "Teleport", "", [3, 48, 18]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "ControlSwitches", "", [0, 19, 19, 0]],
-            [0, "ControlSwitches", "", [0, 17, 17, 1]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 36, 1, 1]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 36, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12, 23, 15, 23, 13, 23, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Wow, I'd forgotten just how busy"},
+            {"code": "ShowMessage_2", "string": "city-life can be... this is great!"},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "So, who's the guy we're supposed to meet?"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "I don't know his real name. To be safe,"},
+            {"code": "ShowMessage_2", "string": "I just call him \"Boss.\""},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Apparently, the guy we're after killed"},
+            {"code": "ShowMessage_2", "string": "the Boss's wife, or something."},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "So it's personal."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Yeah... here he comes."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [4]},
+            {
+              "code": "MoveEvent",
+              "parameters": [4, 8, 0, 0, 36, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+            },
+            {"code": "Wait", "parameters": [40]},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "Core, I presume? I trust you will not"},
+            {"code": "ShowMessage_2", "string": "disappoint me."},
+            {"code": "ShowMessage", "string": "?????"},
+            {"code": "ShowMessage_2", "string": "But enough dallying. We have work to do."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12, 0, 23]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 0, 30]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "CORE"},
+            {"code": "ShowMessage_2", "string": "Is this guy for real?"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1, 1, 1, 23, 23, 23, 15]},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "He's the Boss."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13, 1, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1, 1, 1, 1, 0, 0]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 1]},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 12, 0, 23]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ChangeEventLocation", "parameters": [2, 0, 0, 28]},
+            {"code": "Teleport", "parameters": [3, 48, 18]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 19, 19, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 17, 17, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 19
     },
     {
       "id": 4,
       "name": "Kersh",
-      "at": [22, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 9
     }
-  ]
+  ],
+  "height": 100,
+  "parallax_flag": true,
+  "parallax_name": "Night2",
+  "save_count": 33,
+  "width": 100
 }

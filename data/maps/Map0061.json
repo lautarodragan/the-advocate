@@ -1,576 +1,729 @@
 {
-  "id": 61,
-  "name": "Floor 0",
-  "size": [20, 15],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0061.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [1, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [60, 1, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [60, 1, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 14
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [14, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [60, 14, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [60, 14, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 14
     },
     {
       "id": 3,
       "name": "DrawerL",
-      "at": [9, 4],
       "pages": [
         {
-          "tile": 48,
+          "character_index": 48,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 197, 197, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 197, 197, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 197
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 197
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 4
     },
     {
       "id": 4,
       "name": "DrawerM",
-      "at": [9, 5],
       "pages": [
         {
-          "tile": 54,
+          "character_index": 54,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 197, 197, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 197, 197, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 197
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 197
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 5
     },
     {
       "id": 5,
       "name": "DrawerU",
-      "at": [9, 3],
       "pages": [
         {
-          "tile": 48,
+          "character_index": 48,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 197, 197, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 197, 197, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 197
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 197
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 3
     },
     {
       "id": 6,
       "name": "DrawerL",
-      "at": [9, 11],
       "pages": [
         {
-          "tile": 54,
+          "character_index": 54,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 202, 202, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 202, 202, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 11
     },
     {
       "id": 7,
       "name": "DrawerL",
-      "at": [9, 10],
       "pages": [
         {
-          "tile": 48,
+          "character_index": 48,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 202, 202, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 202, 202, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 10
     },
     {
       "id": 8,
       "name": "DrawerL",
-      "at": [9, 9],
       "pages": [
         {
-          "tile": 48,
+          "character_index": 48,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The wall here is corroded. I might be"},
+            {"code": "ShowMessage_2", "string": "able to break through it."},
+            {"code": "ShowBattleAnimation", "parameters": [144, 10005, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 202, 202, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The wall here is corroded. I might be", []],
-            [0, "ShowMessage_2", "able to break through it.", []],
-            [0, "ShowBattleAnimation", "", [144, 10005, 1, 0]],
-            [0, "ControlSwitches", "", [0, 202, 202, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 9
     },
     {
       "id": 9,
       "name": "DrawerL",
-      "at": [8, 11],
       "pages": [
+        {"character_index": 54, "id": 1, "layer": "same", "move_type": "stationary"},
         {
-          "tile": 54,
-          "layer": "same",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 11
     },
     {
       "id": 10,
       "name": "DrawerL",
-      "at": [8, 10],
       "pages": [
+        {"character_index": 48, "id": 1, "layer": "same", "move_type": "stationary"},
         {
-          "tile": 48,
-          "layer": "same",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 10
     },
     {
       "id": 11,
       "name": "DrawerL",
-      "at": [8, 9],
       "pages": [
+        {"character_index": 48, "id": 1, "layer": "same", "move_type": "stationary"},
         {
-          "tile": 48,
-          "layer": "same",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 202
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 202
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 9
     },
     {
       "id": 12,
       "name": "Motivator Chip",
-      "at": [17, 12],
       "pages": [
         {
-          "tile": 1,
+          "character_index": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 203, 203, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's the Motivator Chip!"},
+            {"code": "ChangeItems", "parameters": [0, 0, 126, 0, 1]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Item1"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN got the MOTIVATOR CHIP!!"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ControlSwitches", "", [0, 203, 203, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's the Motivator Chip!", []],
-            [0, "ChangeItems", "", [0, 0, 126, 0, 1]],
-            [0, "PlaySound", "Item1", [100, 100, 50]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN got the MOTIVATOR CHIP!!", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 203
+          "character_index": 2,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 203
           },
-          "tile": 2,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 12
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [18, 13],
       "pages": [
         {
-          "conditions": {
-            "item": 126
+          "character_index": 52,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 126
           },
-          "tile": 52,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 205, 205, 0]],
-            [0, "PlaySound", "Blow4", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 204, 204, 0]],
-            [0, "Teleport", "", [63, 26, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Hmmm... it's a sewer tunnel, or something.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well, at least I'm out of the Recycling", []],
-            [0, "ShowMessage_2", "Plant. I think Stash's place should be...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 15, 23]],
-            [0, "Wait", "", [14]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This way.", []]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 205, 205, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Blow4"},
+            {"code": "ControlSwitches", "parameters": [0, 204, 204, 0]},
+            {"code": "Teleport", "parameters": [63, 26, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Hmmm... it's a sewer tunnel, or something."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well, at least I'm out of the Recycling"},
+            {"code": "ShowMessage_2", "string": "Plant. I think Stash's place should be..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 15, 23]},
+            {"code": "Wait", "parameters": [14]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This way."}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 204
+          "character_index": 8,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 204
           },
-          "tile": 8,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [63, 26, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [63, 26, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 2, 2, 2, 2, 2, 37, 29, 35, 5, 66, 108, 111, 119, 54,
+                100, 100, 50
+              ]
+            },
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 13
     },
     {
       "id": 14,
       "name": "LockedRecyclePlantCN",
-      "at": [12, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This container is locked. If I had a"},
+            {"code": "ShowMessage_2", "string": "CONTAINER KEY, I might be able to"},
+            {"code": "ShowMessage_2", "string": "open it."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This container is locked. If I had a", []],
-            [0, "ShowMessage_2", "CONTAINER KEY, I might be able to", []],
-            [0, "ShowMessage_2", "open it.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "item": 105
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 105
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Should I use my Container Key?"},
+            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [1, 0, 105, 0, 1]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "The CONTAINER KEY broke off in"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "the lock, but the container is now"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "unlocked."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
+            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 217, 217, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "You found:"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "     Scarlet Bandana-H"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "     Cheap Wine-SP x2"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "     Vitality Pill-MHP"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 133, 0, 1]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 103, 0, 2]},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 134, 0, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I think I'll hang onto my Container"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Key for the time being."},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Should I use my Container Key?", []],
-            [0, "ShowChoice", "Yes/No", [2]],
-            [0, "ShowChoiceOption", "Yes", [0]],
-            [1, "ChangeItems", "", [1, 0, 105, 0, 1]],
-            [1, "MessageOptions", "", [1, 1, 0, 0]],
-            [1, "ShowMessage", "The CONTAINER KEY broke off in", []],
-            [1, "ShowMessage_2", "the lock, but the container is now", []],
-            [1, "ShowMessage_2", "unlocked.", []],
-            [1, "MessageOptions", "", [0, 2, 1, 0]],
-            [1, "PlaySound", "Bow2", [100, 100, 50]],
-            [1, "ControlSwitches", "", [0, 217, 217, 0]],
-            [1, "ShowMessage", "You found:", []],
-            [1, "ShowMessage_2", "     Scarlet Bandana-H", []],
-            [1, "ShowMessage_2", "     Cheap Wine-SP x2", []],
-            [1, "ShowMessage_2", "     Vitality Pill-MHP", []],
-            [1, "ChangeItems", "", [0, 0, 133, 0, 1]],
-            [1, "ChangeItems", "", [0, 0, 103, 0, 2]],
-            [1, "ChangeItems", "", [0, 0, 134, 0, 1]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I think I'll hang onto my Container", []],
-            [1, "ShowMessage_2", "Key for the time being.", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 217
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 217
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 13
     },
     {
       "id": 16,
       "name": "Recycle0.3",
-      "at": [1, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 219, 219, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Bag of Chips-HP"},
+            {"code": "ShowMessage_2", "string": "       Bottled Water-SP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 124, 0, 1]},
+            {"code": "ChangeItems", "parameters": [0, 0, 125, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 219, 219, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Bag of Chips-HP", []],
-            [0, "ShowMessage_2", "       Bottled Water-SP", []],
-            [0, "ChangeItems", "", [0, 0, 124, 0, 1]],
-            [0, "ChangeItems", "", [0, 0, 125, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 219
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 219
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 4
     },
     {
       "id": 17,
       "name": "Recycle0.4",
-      "at": [15, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 220, 220, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Bulletproof-!B"},
+            {"code": "ChangeItems", "parameters": [0, 0, 135, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 220, 220, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Bulletproof-!B", []],
-            [0, "ChangeItems", "", [0, 0, 135, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 220
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 220
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 3
     },
     {
       "id": 18,
       "name": "Recycle0.5",
-      "at": [17, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 221, 221, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Motor Oil-HP x2"},
+            {"code": "ShowMessage_2", "string": "       Jumper Cable-HP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 129, 0, 2]},
+            {"code": "ChangeItems", "parameters": [0, 0, 130, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 221, 221, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Motor Oil-HP x2", []],
-            [0, "ShowMessage_2", "       Jumper Cable-HP", []],
-            [0, "ChangeItems", "", [0, 0, 129, 0, 2]],
-            [0, "ChangeItems", "", [0, 0, 130, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 221
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 221
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 4
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 79
 }

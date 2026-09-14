@@ -1,273 +1,268 @@
 {
-  "id": 345,
-  "name": "Squad Postings",
-  "size": [20, 15],
-  "chipset": [19, "Ancient(1)"],
-  "tiles": "Map0345.tiles",
+  "chipset_id": 19,
   "events": [
     {
       "id": 1,
       "name": "Agent1",
-      "at": [8, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 5
     },
     {
       "id": 2,
       "name": "AgentOther",
-      "at": [11, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 5
     },
     {
       "id": 3,
       "name": "AgentOther",
-      "at": [10, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 6
     },
     {
       "id": 4,
       "name": "AgentOther",
-      "at": [12, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 6
     },
     {
       "id": 5,
       "name": "AgentOther",
-      "at": [11, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 6
     },
     {
       "id": 6,
       "name": "AgentOther",
-      "at": [7, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 6
     },
     {
       "id": 7,
       "name": "AgentOther",
-      "at": [9, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 5
     },
     {
       "id": 8,
       "name": "Drago",
-      "at": [9, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "YoungAgents",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "YoungAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 13
     },
     {
       "id": 9,
       "name": "Sern",
-      "at": [10, 13],
       "pages": [
         {
-          "sprite": {
-            "charset": "YoungAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "YoungAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 13
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 24, 13, 25, 23, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "It looks like squad assignments for", []],
-            [0, "ShowMessage_2", "the exam are posted, Sern!", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 28, 0, 3, 0, 0, 0, 0, 0, 29]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 0, 3, 0, 0, 0, 0, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "I can't see...", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "I'm listed as a Squad Leader!", []],
-            [0, "ShowMessage_2", "You and Isabella are both on", []],
-            [0, "ShowMessage_2", "my squad! That's great!", []],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 13, 23, 23, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "You petitioned to be leader? You didn't", []],
-            [0, "ShowMessage_2", "tell ME that!", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "It was Isabella's idea.", []],
-            [0, "ShowMessage_2", "I don't really care.", []],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 23, 13, 23, 23]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Yeah. Well.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "It's just a test, Sern - it's not like this is", []],
-            [0, "ShowMessage_2", "a real mission. You'll probably get leader", []],
-            [0, "ShowMessage_2", "if we pass the test and graduate.", []],
-            [0, "Wait", "", [7]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Hey, Isabella's roommate is listed as", []],
-            [0, "ShowMessage_2", "a Squad Leader, too - they should be", []],
-            [0, "ShowMessage_2", "here by now...", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "Let's run back to the dorms and pick", []],
-            [0, "ShowMessage_2", "them up! If they miss the exam, they'll", []],
-            [0, "ShowMessage_2", "be in big trouble, and we need Isabella!", []],
-            [0, "ControlSwitches", "", [0, 876, 876, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 24, 25, 12]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Squad Leaders, we will now brief you", []],
-            [0, "ShowMessage_2", "on your assignments and your duties for", []],
-            [0, "ShowMessage_2", "the duration of this examination. This way.", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 24, 25, 13]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Yeah, I know. I'll go get them.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "This is interesting... he was in training", []],
-            [0, "ShowMessage_2", "with the Agency?", []],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "SERN, sleeping", []],
-            [0, "ShowMessage_2", "... zzz... zzz....", []],
-            [0, "Teleport", "", [244, 6, 12]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 24, 13, 25, 23, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "It looks like squad assignments for"},
+            {"code": "ShowMessage_2", "string": "the exam are posted, Sern!"},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 28, 0, 3, 0, 0, 0, 0, 0, 29]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 0, 3, 0, 0, 0, 0, 0]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "I can't see..."},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "I'm listed as a Squad Leader!"},
+            {"code": "ShowMessage_2", "string": "You and Isabella are both on"},
+            {"code": "ShowMessage_2", "string": "my squad! That's great!"},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 13, 23, 23, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "You petitioned to be leader? You didn't"},
+            {"code": "ShowMessage_2", "string": "tell ME that!"},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "It was Isabella's idea."},
+            {"code": "ShowMessage_2", "string": "I don't really care."},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 23, 13, 23, 23]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Yeah. Well."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {
+              "code": "ShowMessage_2",
+              "string": "It's just a test, Sern - it's not like this is"
+            },
+            {"code": "ShowMessage_2", "string": "a real mission. You'll probably get leader"},
+            {"code": "ShowMessage_2", "string": "if we pass the test and graduate."},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Hey, Isabella's roommate is listed as"},
+            {"code": "ShowMessage_2", "string": "a Squad Leader, too - they should be"},
+            {"code": "ShowMessage_2", "string": "here by now..."},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "Let's run back to the dorms and pick"},
+            {"code": "ShowMessage_2", "string": "them up! If they miss the exam, they'll"},
+            {"code": "ShowMessage_2", "string": "be in big trouble, and we need Isabella!"},
+            {"code": "ControlSwitches", "parameters": [0, 876, 876, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 24, 25, 12]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Squad Leaders, we will now brief you"},
+            {"code": "ShowMessage_2", "string": "on your assignments and your duties for"},
+            {"code": "ShowMessage_2", "string": "the duration of this examination. This way."},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 24, 25, 13]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Yeah, I know. I'll go get them."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "This is interesting... he was in training"},
+            {"code": "ShowMessage_2", "string": "with the Agency?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "SERN, sleeping"},
+            {"code": "ShowMessage_2", "string": "... zzz... zzz...."},
+            {"code": "Teleport", "parameters": [244, 6, 12]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 11,
       "name": "Announcer",
-      "at": [5, 4],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 876
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "ABLDalia",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 876
           },
-          "sprite": {
-            "charset": "ABLDalia",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 4
     }
-  ]
+  ],
+  "save_count": 21
 }

@@ -1,75 +1,92 @@
 {
-  "id": 247,
-  "name": "PathToMemnosyne",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0247.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [246, 18, 12]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [246, 18, 12]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "y": 12
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [14, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 708, 708, 0]],
-            [0, "Teleport", "", [207, 7, 18]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 708, 708, 0]},
+            {"code": "Teleport", "parameters": [207, 7, 18]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 635
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 635
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We're not going back until we know what", []],
-            [0, "ShowMessage_2", "the Agency is up to. We need to see if they've", []],
-            [0, "ShowMessage_2", "left Paradise, and why the Captain was alone.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "ProceedWithMovement", "", []]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We're not going back until we know what"},
+            {
+              "code": "ShowMessage_2",
+              "string": "the Agency is up to. We need to see if they've"
+            },
+            {"code": "ShowMessage_2", "string": "left Paradise, and why the Captain was alone."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "ProceedWithMovement"}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [19, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 47, 0]],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 47, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 14
     }
-  ]
+  ],
+  "save_count": 26
 }

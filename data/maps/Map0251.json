@@ -1,175 +1,234 @@
 {
-  "id": 251,
-  "name": "Inside Storage",
-  "size": [20, 30],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0251.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 3,
       "name": "EV0003",
-      "at": [9, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "They've taken everything! This place", []],
-            [0, "ShowMessage_2", "was cluttered and full of boxes before!", []],
-            [0, "Wait", "", [3]],
-            [0, "ConditionalBranch", "", [5, 27, 0, 0, 0, 1]],
-            [1, "ShowMessage", "RADIN", []],
-            [1, "ShowMessage_2", "What could they have been looking for?", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [5, 26, 0, 0, 0, 1]],
-            [2, "ShowMessage", "LERLE", []],
-            [2, "ShowMessage_2", "They must have been looking for", []],
-            [2, "ShowMessage_2", "something - but what could it have", []],
-            [2, "ShowMessage_2", "been?", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [5, 28, 0, 0, 0, 1]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "They tore this place apart looking for", []],
-            [3, "ShowMessage_2", "something specific. It's too methodical", []],
-            [3, "ShowMessage_2", "be otherwise.", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ControlSwitches", "", [0, 653, 653, 0]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "They've taken everything! This place"},
+            {"code": "ShowMessage_2", "string": "was cluttered and full of boxes before!"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ConditionalBranch", "parameters": [5, 27, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "What could they have been looking for?"
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 26, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "They must have been looking for"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "something - but what could it have"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "been?"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 28, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "They tore this place apart looking for"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "something specific. It's too methodical"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "be otherwise."},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ControlSwitches", "parameters": [0, 653, 653, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 653
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 653
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 20
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "They've taken everything! This place", []],
-            [0, "ShowMessage_2", "was cluttered and full of boxes before!", []],
-            [0, "Wait", "", [3]],
-            [0, "ConditionalBranch", "", [5, 27, 0, 0, 0, 1]],
-            [1, "ShowMessage", "RADIN", []],
-            [1, "ShowMessage_2", "What could they have been looking for?", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [5, 26, 0, 0, 0, 1]],
-            [2, "ShowMessage", "LERLE", []],
-            [2, "ShowMessage_2", "They must have been looking for", []],
-            [2, "ShowMessage_2", "something - but what could it have", []],
-            [2, "ShowMessage_2", "been?", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ConditionalBranch", "", [5, 28, 0, 0, 0, 1]],
-            [3, "ShowMessage", "SERN", []],
-            [3, "ShowMessage_2", "They tore this place apart looking for", []],
-            [3, "ShowMessage_2", "something specific. It's too methodical", []],
-            [3, "ShowMessage_2", "be otherwise.", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ControlSwitches", "", [0, 653, 653, 0]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "They've taken everything! This place"},
+            {"code": "ShowMessage_2", "string": "was cluttered and full of boxes before!"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ConditionalBranch", "parameters": [5, 27, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "What could they have been looking for?"
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 26, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "They must have been looking for"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "something - but what could it have"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "been?"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 28, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "They tore this place apart looking for"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "something specific. It's too methodical"
+            },
+            {"code": "ShowMessage_2", "indent": 3, "string": "be otherwise."},
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ControlSwitches", "parameters": [0, 653, 653, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 653
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 653
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 20
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [19, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "Teleport", "", [252, 9, 14]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Teleport", "parameters": [252, 9, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 16
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [19, 17],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "Teleport", "", [252, 9, 14]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Teleport", "parameters": [252, 9, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 17
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [19, 29],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "I can't find ingredients here.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 29
     }
-  ]
+  ],
+  "height": 30,
+  "save_count": 86
 }

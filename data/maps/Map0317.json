@@ -1,134 +1,130 @@
 {
-  "id": 317,
-  "name": "OutsideActing",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0317.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "Lerle",
-      "at": [9, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 6
     },
     {
       "id": 2,
       "name": "Sewell",
-      "at": [8, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 0,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 8
     },
     {
       "id": 3,
       "name": "Auleen",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 3,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 3,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 4,
       "name": "Emily",
-      "at": [11, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 7
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "I've tried everything else. If I can't", []],
-            [0, "ShowMessage_2", "make it as an Actor...", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Pierson said he's going to have to make", []],
-            [0, "ShowMessage_2", "me leave Paradise.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "There's an easy solution, my boy!", []],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "There is?", []],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "SEWELL", []],
-            [0, "ShowMessage_2", "Don't screw up the performance", []],
-            [0, "ShowMessage_2", "tonight, and you can stay! Haa! Haa!", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "I'm sure you'll be fine, Lerle.", []],
-            [0, "ShowMessage_2", "You're a great Actor!", []],
-            [0, "ShowMessage_2", "Just... concentrate!", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "LERLE, asleep", []],
-            [0, "ShowMessage_2", "... concentrate...", []],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "It's nearly time for him to wake that", []],
-            [0, "ShowMessage_2", "Talan for his shift, but...", []],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "Just a little more...", []],
-            [0, "Teleport", "", [318, 3, 8]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "I've tried everything else. If I can't"},
+            {"code": "ShowMessage_2", "string": "make it as an Actor..."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Pierson said he's going to have to make"},
+            {"code": "ShowMessage_2", "string": "me leave Paradise."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "There's an easy solution, my boy!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "There is?"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": "ShowMessage_2", "string": "Don't screw up the performance"},
+            {"code": "ShowMessage_2", "string": "tonight, and you can stay! Haa! Haa!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                2, 8, 0, 0, 3, 3, 3, 3, 3, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101,
+                114, 101, 0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "I'm sure you'll be fine, Lerle."},
+            {"code": "ShowMessage_2", "string": "You're a great Actor!"},
+            {"code": "ShowMessage_2", "string": "Just... concentrate!"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE, asleep"},
+            {"code": "ShowMessage_2", "string": "... concentrate..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "It's nearly time for him to wake that"},
+            {"code": "ShowMessage_2", "string": "Talan for his shift, but..."},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "Just a little more..."},
+            {"code": "Teleport", "parameters": [318, 3, 8]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 15
 }

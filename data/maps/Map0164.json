@@ -1,71 +1,72 @@
 {
-  "id": 164,
-  "name": "AG7-17 Tutorial",
-  "size": [20, 15],
-  "chipset": [11, "ChipSet1"],
-  "tiles": "Map0164.tiles",
+  "chipset_id": 11,
   "events": [
     {
       "id": 1,
       "name": "RunAG7Tutorial",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MemorizeBGM", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "AG7-17 is a battle droid, so there are some", []],
-            [0, "ShowMessage_2", "items that humans can use that he cannot:", []],
-            [0, "ShowMessage_2", "food, for example.", []],
-            [0, "ShowMessage", "Attacking with a weapon drains a", []],
-            [0, "ShowMessage_2", "small amount of the droid's SP, and", []],
-            [0, "ShowMessage_2", "so does using special skills.", []],
-            [0, "ShowMessage", "AG7-17 does not learn these skills. Instead,", []],
-            [0, "ShowMessage_2", "he equips various components which", []],
-            [0, "ShowMessage_2", "grant him these abilities.", []],
-            [0, "ShowMessage", "These abilities become available once", []],
-            [0, "ShowMessage_2", "you equip a particular component and", []],
-            [0, "ShowMessage_2", "exit the menu.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "The Agency has outlawed the ownership of", []],
-            [0, "ShowMessage_2", "Battle Droids by private individuals, even old", []],
-            [0, "ShowMessage_2", "models like the AG7-17.", []],
-            [0, "ShowMessage", "Anyone caught with such a Droid is subject", []],
-            [0, "ShowMessage_2", "to heavy fines and possibly imprisonment.", []],
-            [0, "ShowMessage_2", "The Agency is sometimes lax about this", []],
-            [0, "ShowMessage_2", "particular proviso.", []],
-            [0, "ShowMessage", "Items marked with a \"-!\" symbol are illegal", []],
-            [0, "ShowMessage_2", "and will add to the fine if found equipped on", []],
-            [0, "ShowMessage_2", "a battle droid.", []],
-            [0, "PlayMemorizedBGM", "", []],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "RecallToLocation", "", [127, 128, 129]]
-          ]
+          "character_direction": "right",
+          "event_commands": [
+            {"code": "MemorizeBGM"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+            },
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "AG7-17 is a battle droid, so there are some"},
+            {"code": "ShowMessage_2", "string": "items that humans can use that he cannot:"},
+            {"code": "ShowMessage_2", "string": "food, for example."},
+            {"code": "ShowMessage", "string": "Attacking with a weapon drains a"},
+            {"code": "ShowMessage_2", "string": "small amount of the droid's SP, and"},
+            {"code": "ShowMessage_2", "string": "so does using special skills."},
+            {"code": "ShowMessage", "string": "AG7-17 does not learn these skills. Instead,"},
+            {"code": "ShowMessage_2", "string": "he equips various components which"},
+            {"code": "ShowMessage_2", "string": "grant him these abilities."},
+            {"code": "ShowMessage", "string": "These abilities become available once"},
+            {"code": "ShowMessage_2", "string": "you equip a particular component and"},
+            {"code": "ShowMessage_2", "string": "exit the menu."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "The Agency has outlawed the ownership of"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Battle Droids by private individuals, even old"
+            },
+            {"code": "ShowMessage_2", "string": "models like the AG7-17."},
+            {"code": "ShowMessage", "string": "Anyone caught with such a Droid is subject"},
+            {"code": "ShowMessage_2", "string": "to heavy fines and possibly imprisonment."},
+            {"code": "ShowMessage_2", "string": "The Agency is sometimes lax about this"},
+            {"code": "ShowMessage_2", "string": "particular proviso."},
+            {"code": "ShowMessage", "string": "Items marked with a \"-!\" symbol are illegal"},
+            {"code": "ShowMessage_2", "string": "and will add to the fine if found equipped on"},
+            {"code": "ShowMessage_2", "string": "a battle droid."},
+            {"code": "PlayMemorizedBGM"},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "RecallToLocation", "parameters": [127, 128, 129]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [10, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "continuous",
+          "character_index": 4,
+          "character_name": "AG717",
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "continuous"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 7
     }
-  ]
+  ],
+  "save_count": 39
 }

@@ -1,694 +1,917 @@
 {
-  "id": 81,
-  "name": "Dr. Vago's House",
-  "size": [20, 15],
-  "chipset": [18, "Inside"],
-  "tiles": "Map0081.tiles",
+  "chipset_id": 18,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [9, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [69, 10, 19]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [69, 10, 19]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 2,
       "name": "Vago",
-      "at": [3, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 239
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 239
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 265
+          "character_index": 2,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 265
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 266
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 266
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 164
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 164
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 4,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 6
     },
     {
       "id": 3,
       "name": "Saldra",
-      "at": [14, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 56,
-            "switch_b": 265
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 56,
+            "switch_b_id": 265
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 56,
-            "switch_b": 270
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 56,
+            "switch_b_id": 270
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 310
+          "character_direction": "up",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 6
     },
     {
       "id": 4,
       "name": "Arden",
-      "at": [14, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 54,
-            "switch_b": 265
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 54,
+            "switch_b_id": 265
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 54,
-            "switch_b": 270
+          "character_direction": "left",
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 54,
+            "switch_b_id": 270
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 310
+          "character_direction": "up",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 8
     },
     {
       "id": 5,
       "name": "AG7-17",
-      "at": [12, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 150,
-            "switch_b": 265
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 150,
+            "switch_b_id": 265
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 150,
-            "switch_b": 270
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 150,
+            "switch_b_id": 270
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 310
+          "character_direction": "up",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 5
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 265
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 265
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I think he's coming around.", []],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Oooooh... my head...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 3]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Doctor, are you feeling better? I've", []],
-            [0, "ShowMessage_2", "brought you back to your house. You've", []],
-            [0, "ShowMessage_2", "been unconscious.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "It's coming back to me, slowly. I was", []],
-            [0, "ShowMessage_2", "climbing Sorbe Mountain looking", []],
-            [0, "ShowMessage_2", "for ingredients...", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I stumbled across a patch of bloodroot!", []],
-            [0, "ShowMessage_2", "And then you must have found me under", []],
-            [0, "ShowMessage_2", "its effects!", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "8ry3uf73r3uy6256told you12947637", []],
-            [1, "ShowMessage_2", "&#@%gr6367ft3g7238574384", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [1, "Wait", "", [5]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Shut it, AG7.", []],
-            [1, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Bloodroot?", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "It's a plant that sends out airborne", []],
-            [0, "ShowMessage_2", "seeds to reproduce. These seeds", []],
-            [0, "ShowMessage_2", "cause an effect in humans akin to", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "an uncontrollable rage - centuries", []],
-            [0, "ShowMessage_2", "ago, berserkers used to harness this", []],
-            [0, "ShowMessage_2", "effect in battle.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Bloodroot is very dangerous, but", []],
-            [0, "ShowMessage_2", "fortunately it is fairly uncommon.", []],
-            [0, "ShowMessage_2", "I apologize for attacking you.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No harm done.  It seems that these are", []],
-            [0, "ShowMessage_2", "dangerous times, at least for me.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "In any event, I'd like to make it up", []],
-            [0, "ShowMessage_2", "to you, somehow.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Actually, there is something you might", []],
-            [0, "ShowMessage_2", "be able to help me with...", []],
-            [0, "Comment", "HEALING TALAN'S ANKLE", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "PlayBGM", "tsmedit", [0, 80, 100, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "You've sprained your ankle pretty", []],
-            [0, "ShowMessage_2", "badly - what did you do, jump off", []],
-            [0, "ShowMessage_2", "a building?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Actually... yeah.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 3, 12]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Unbelievable.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [81, 15, 11]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "Wait", "", [20]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Teleport", "", [81, 4, 6]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Well... this is odd. Do you have any allergies?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Not that I know of. Why?", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "You have a pretty bad rash on your", []],
-            [0, "ShowMessage_2", "shoulder. I'll apply a dermal patch,", []],
-            [0, "ShowMessage_2", "that should help.", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "Wait", "", [20]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "ChangeHeroTitle", "Fugitive", [14]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "You're free to go! Your ankle might", []],
-            [0, "ShowMessage_2", "twinge a little bit, but you should be", []],
-            [0, "ShowMessage_2", "able to walk quickly now.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thank you very much, Dr. Vago.", []],
-            [0, "ShowMessage_2", "I really appreciate it.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Don't mention it! It's the least I could", []],
-            [0, "ShowMessage_2", "do, especially considering the unfortunate", []],
-            [0, "ShowMessage_2", "way I greeted you atop the mountain!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]],
-            [0, "Wait", "", [1]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]],
-            [0, "Wait", "", [1]],
-            [0, "ChangeEventLocation", "", [2, 0, 8, 7]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "Teleport", "", [81, 10, 7]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [15]],
-            [0, "ControlSwitches", "", [0, 267, 267, 0]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "PlayBGM", "iknow", [0, 100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 270, 270, 0]],
-            [0, "ControlSwitches", "", [0, 266, 266, 0]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 266
-          },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I think he's coming around."},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Oooooh... my head..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Doctor, are you feeling better? I've"},
+            {"code": "ShowMessage_2", "string": "brought you back to your house. You've"},
+            {"code": "ShowMessage_2", "string": "been unconscious."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "It's coming back to me, slowly. I was"},
+            {"code": "ShowMessage_2", "string": "climbing Sorbe Mountain looking"},
+            {"code": "ShowMessage_2", "string": "for ingredients..."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I stumbled across a patch of bloodroot!"},
+            {"code": "ShowMessage_2", "string": "And then you must have found me under"},
+            {"code": "ShowMessage_2", "string": "its effects!"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "8ry3uf73r3uy6256told you12947637"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "&#@%gr6367ft3g7238574384"},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Shut it, AG7."},
+            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Bloodroot?"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "It's a plant that sends out airborne"},
+            {"code": "ShowMessage_2", "string": "seeds to reproduce. These seeds"},
+            {"code": "ShowMessage_2", "string": "cause an effect in humans akin to"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "an uncontrollable rage - centuries"},
+            {"code": "ShowMessage_2", "string": "ago, berserkers used to harness this"},
+            {"code": "ShowMessage_2", "string": "effect in battle."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Bloodroot is very dangerous, but"},
+            {"code": "ShowMessage_2", "string": "fortunately it is fairly uncommon."},
+            {"code": "ShowMessage_2", "string": "I apologize for attacking you."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No harm done.  It seems that these are"},
+            {"code": "ShowMessage_2", "string": "dangerous times, at least for me."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "In any event, I'd like to make it up"},
+            {"code": "ShowMessage_2", "string": "to you, somehow."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Actually, there is something you might"},
+            {"code": "ShowMessage_2", "string": "be able to help me with..."},
+            {"code": "Comment", "string": "HEALING TALAN'S ANKLE"},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "tsmedit"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "You've sprained your ankle pretty"},
+            {"code": "ShowMessage_2", "string": "badly - what did you do, jump off"},
+            {"code": "ShowMessage_2", "string": "a building?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Actually... yeah."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 3, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Unbelievable."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [81, 15, 11]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Teleport", "parameters": [81, 4, 6]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Well... this is odd. Do you have any allergies?"
+            },
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Not that I know of. Why?"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "You have a pretty bad rash on your"},
+            {"code": "ShowMessage_2", "string": "shoulder. I'll apply a dermal patch,"},
+            {"code": "ShowMessage_2", "string": "that should help."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "ChangeHeroTitle", "parameters": [14], "string": "Fugitive"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "You're free to go! Your ankle might"},
+            {"code": "ShowMessage_2", "string": "twinge a little bit, but you should be"},
+            {"code": "ShowMessage_2", "string": "able to walk quickly now."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thank you very much, Dr. Vago."},
+            {"code": "ShowMessage_2", "string": "I really appreciate it."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Don't mention it! It's the least I could"},
+            {"code": "ShowMessage_2", "string": "do, especially considering the unfortunate"},
+            {"code": "ShowMessage_2", "string": "way I greeted you atop the mountain!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 28]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2]
+            },
+            {"code": "Wait", "parameters": [1]},
+            {"code": "ChangeEventLocation", "parameters": [2, 0, 8, 7]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "Teleport", "parameters": [81, 10, 7]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ControlSwitches", "parameters": [0, 267, 267, 0]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "iknow"},
+            {"code": "ControlSwitches", "parameters": [0, 270, 270, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 266, 266, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 270
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 266
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "So, you work for the Agency?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Uh... sort of. Actually, I work for Delcentric,", []],
-            [0, "ShowMessage_2", "but these days the Agency basically pulls", []],
-            [0, "ShowMessage_2", "the strings, so, yeah. Anyway.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I see. Well, the Agency is certainly very", []],
-            [0, "ShowMessage_2", "good at pulling strings. It's made them a", []],
-            [0, "ShowMessage_2", "fair share of enemies, I imagine.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That's right! Too bad I had to get caught in", []],
-            [0, "ShowMessage_2", "the middle - I mean...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Why don't you tell me all about it, Talan?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I wouldn't want to... bore you with the", []],
-            [0, "ShowMessage_2", "details...", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Believe me - I think I should know", []],
-            [0, "ShowMessage_2", "why you're running from the Agency.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 23, 15]],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I never said anything about running!", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "You're not very good at concealing your", []],
-            [0, "ShowMessage_2", "motives, Talan. It's a good thing you ran into", []],
-            [0, "ShowMessage_2", "me, rather than someone more...", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "...accepting... of the Agency's role in world", []],
-            [0, "ShowMessage_2", "power these days.  Start from the top, and", []],
-            [0, "ShowMessage_2", "maybe I'll be able to help you.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I trust you. I'll tell you the story... but", []],
-            [0, "ShowMessage_2", "consider yourself warned: I have unusual", []],
-            [0, "ShowMessage_2", "powers at my disposal...", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "No doubt.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It all began in my rundown apartment", []],
-            [0, "ShowMessage_2", "in Sector 35.  I had overslept, and I", []],
-            [0, "ShowMessage_2", "needed to hurry to work...", []],
-            [0, "ControlSwitches", "", [0, 252, 252, 0]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 25, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "FadeOutBGM", "", [2000]],
-            [0, "Wait", "", [20]],
-            [0, "ShowPicture", "MeanwhileLashe", [3, 0, 175, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 47120380]],
-            [0, "MovePicture", "", [3, 0, 175, 175, 0, 100, 0, 0, 100, 100, 100, 100, 0, 47624220, 35, 1]],
-            [0, "Wait", "", [20]],
-            [0, "MovePicture", "", [3, 0, 175, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 0, 20, 1]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ErasePicture", "", [3]],
-            [0, "ChangePartyMembers", "", [1, 0, 14]],
-            [0, "ChangePartyMembers", "", [1, 0, 15]],
-            [0, "ChangePartyMembers", "", [1, 0, 17]],
-            [0, "ChangePartyMembers", "", [1, 0, 18]],
-            [0, "ChangePartyMembers", "", [0, 0, 10]],
-            [0, "Teleport", "", [82, 8, 8]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "ControlSwitches", "", [0, 273, 273, 0]]
-          ]
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 273
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 270
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "So, you work for the Agency?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Uh... sort of. Actually, I work for Delcentric,"
+            },
+            {"code": "ShowMessage_2", "string": "but these days the Agency basically pulls"},
+            {"code": "ShowMessage_2", "string": "the strings, so, yeah. Anyway."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I see. Well, the Agency is certainly very"},
+            {"code": "ShowMessage_2", "string": "good at pulling strings. It's made them a"},
+            {"code": "ShowMessage_2", "string": "fair share of enemies, I imagine."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That's right! Too bad I had to get caught in"},
+            {"code": "ShowMessage_2", "string": "the middle - I mean..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Why don't you tell me all about it, Talan?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I wouldn't want to... bore you with the"},
+            {"code": "ShowMessage_2", "string": "details..."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Believe me - I think I should know"},
+            {"code": "ShowMessage_2", "string": "why you're running from the Agency."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 23, 15]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I never said anything about running!"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "You're not very good at concealing your"},
+            {
+              "code": "ShowMessage_2",
+              "string": "motives, Talan. It's a good thing you ran into"
+            },
+            {"code": "ShowMessage_2", "string": "me, rather than someone more..."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "...accepting... of the Agency's role in world"},
+            {"code": "ShowMessage_2", "string": "power these days.  Start from the top, and"},
+            {"code": "ShowMessage_2", "string": "maybe I'll be able to help you."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I trust you. I'll tell you the story... but"},
+            {"code": "ShowMessage_2", "string": "consider yourself warned: I have unusual"},
+            {"code": "ShowMessage_2", "string": "powers at my disposal..."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "No doubt."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It all began in my rundown apartment"},
+            {"code": "ShowMessage_2", "string": "in Sector 35.  I had overslept, and I"},
+            {"code": "ShowMessage_2", "string": "needed to hurry to work..."},
+            {"code": "ControlSwitches", "parameters": [0, 252, 252, 0]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 25, 1]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "FadeOutBGM", "parameters": [2000]},
+            {"code": "Wait", "parameters": [20]},
+            {
+              "code": "ShowPicture",
+              "parameters": [3, 0, 175, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 47120380],
+              "string": "MeanwhileLashe"
+            },
+            {
+              "code": "MovePicture",
+              "parameters": [3, 0, 175, 175, 0, 100, 0, 0, 100, 100, 100, 100, 0, 47624220, 35, 1]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {
+              "code": "MovePicture",
+              "parameters": [3, 0, 175, 175, 0, 100, 0, 0, 0, 0, 0, 100, 0, 0, 20, 1]
+            },
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ErasePicture", "parameters": [3]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
+            {"code": "Teleport", "parameters": [82, 8, 8]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 273, 273, 0]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 309
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 273
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ConditionalBranch", "", [4, 81, 0, 0, 0, 1]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ChangeItems", "", [0, 0, 81, 0, 1]],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ChangeEncounterSteps", "", [25]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
-            [0, "ChangeScreenTransitions", "", [0, 0]],
-            [0, "ChangeScreenTransitions", "", [1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... and that's when we met you. So now", []],
-            [0, "ShowMessage_2", "you know the whole story.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Frankly, it's amazing that you've made it", []],
-            [0, "ShowMessage_2", "this far, Talan. The Agency is not to be", []],
-            [0, "ShowMessage_2", "trifled with.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Tell me about it.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I'm sorry that I can't be a tremendous", []],
-            [0, "ShowMessage_2", "help to you - I wish I could say I have all", []],
-            [0, "ShowMessage_2", "the answers for you... but I don't.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "But I think I can point you in the right", []],
-            [0, "ShowMessage_2", "direction.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What do you mean?", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "You said that before he was assassinated,", []],
-            [0, "ShowMessage_2", "the Director told you to \"seek Paradise...\"", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "That's right. I figured it was just an", []],
-            [0, "ShowMessage_2", "expression.", []],
-            [0, "MoveEvent", "", [7, 8, 0, 0, 3, 3, 3, 23, 1, 1, 1, 23]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I think it's more than that. You see, there", []],
-            [0, "ShowMessage_2", "is a village far away, nestled among the", []],
-            [0, "ShowMessage_2", "mountains to the west, called \"Paradise.\"", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There is?", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I lived there, for awhile - but, for various", []],
-            [0, "ShowMessage_2", "reasons, I had to leave. That was a long", []],
-            [0, "ShowMessage_2", "time ago, but I'm sure it's still there.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Paradise is a small community dedicated", []],
-            [0, "ShowMessage_2", "to survival without the use of machines.", []],
-            [0, "ShowMessage_2", "You can imagine that this doesn't sit too", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "well with the Agency; after all, the Agency", []],
-            [0, "ShowMessage_2", "represents the onward march of science", []],
-            [0, "ShowMessage_2", "and technology - to them, Paradise is a", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "nuisance, and they try to keep its existence", []],
-            [0, "ShowMessage_2", "quiet.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "The Agency doesn't like to publicize", []],
-            [0, "ShowMessage_2", "the fact that there's a thriving rural", []],
-            [0, "ShowMessage_2", "community that disavows its ideals.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Paradise is an independent community -", []],
-            [0, "ShowMessage_2", "if you can get there, you could claim", []],
-            [0, "ShowMessage_2", "political asylum.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Are you sure? The Agency could just come", []],
-            [0, "ShowMessage_2", "in with their Guards and take me out!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "I seem to remember an old law on the books", []],
-            [0, "ShowMessage_2", "saying that Paradise was to be a haven. If", []],
-            [0, "ShowMessage_2", "the Agency did that, they'd have a major", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "incident on their hands. I think you'd be", []],
-            [0, "ShowMessage_2", "safe. But first you'll need to get there.", []],
-            [0, "ShowMessage_2", "Good luck, Talan. You're going to need it.", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Remember, Paradise is far away, among", []],
-            [0, "ShowMessage_2", "the southwestern mountains. Your journey", []],
-            [0, "ShowMessage_2", "is far from complete.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thank you for everything, Doctor.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Teleport", "", [69, 10, 19]],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 15]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Let's go find Paradise, Talan. I know we", []],
-            [1, "ShowMessage_2", "can make it.", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I hope you're right, Arden. I really do.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 17]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Well, what are we waiting for, man?", []],
-            [1, "ShowMessage_2", "Paradise awaits!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Yeah. I've got a bad feeling about this", []],
-            [1, "ShowMessage_2", "whole thing, though. I hope Vago's right.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "We've made it this far, right? Nothing", []],
-            [1, "ShowMessage_2", "can stop us!", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Yeah. Nothing.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 18]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "You ready, AG7?", []],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "&*Aeeufe6e6e6&&&^%$%dd", []],
-            [1, "ShowMessage_2", "Invalid Data Acquired76@6dbbf", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'll take that as... a \"yes,\" I suppose.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Let's go.", []],
-            [0, "ControlSwitches", "", [0, 310, 310, 0]]
-          ]
+          "id": 4,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 310
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 309
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [4, 81, 0, 0, 0, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 81, 0, 1]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ChangeEncounterSteps", "parameters": [25]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
+            {"code": "ChangeScreenTransitions", "parameters": [0, 0]},
+            {"code": "ChangeScreenTransitions", "parameters": [1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... and that's when we met you. So now"},
+            {"code": "ShowMessage_2", "string": "you know the whole story."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Frankly, it's amazing that you've made it"},
+            {"code": "ShowMessage_2", "string": "this far, Talan. The Agency is not to be"},
+            {"code": "ShowMessage_2", "string": "trifled with."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Tell me about it."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I'm sorry that I can't be a tremendous"},
+            {"code": "ShowMessage_2", "string": "help to you - I wish I could say I have all"},
+            {"code": "ShowMessage_2", "string": "the answers for you... but I don't."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "But I think I can point you in the right"},
+            {"code": "ShowMessage_2", "string": "direction."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What do you mean?"},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "You said that before he was assassinated,"},
+            {"code": "ShowMessage_2", "string": "the Director told you to \"seek Paradise...\""},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "That's right. I figured it was just an"},
+            {"code": "ShowMessage_2", "string": "expression."},
+            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 3, 3, 3, 23, 1, 1, 1, 23]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I think it's more than that. You see, there"},
+            {"code": "ShowMessage_2", "string": "is a village far away, nestled among the"},
+            {"code": "ShowMessage_2", "string": "mountains to the west, called \"Paradise.\""},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There is?"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I lived there, for awhile - but, for various"},
+            {"code": "ShowMessage_2", "string": "reasons, I had to leave. That was a long"},
+            {"code": "ShowMessage_2", "string": "time ago, but I'm sure it's still there."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Paradise is a small community dedicated"},
+            {"code": "ShowMessage_2", "string": "to survival without the use of machines."},
+            {"code": "ShowMessage_2", "string": "You can imagine that this doesn't sit too"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "well with the Agency; after all, the Agency"},
+            {"code": "ShowMessage_2", "string": "represents the onward march of science"},
+            {"code": "ShowMessage_2", "string": "and technology - to them, Paradise is a"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "nuisance, and they try to keep its existence"},
+            {"code": "ShowMessage_2", "string": "quiet."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "The Agency doesn't like to publicize"},
+            {"code": "ShowMessage_2", "string": "the fact that there's a thriving rural"},
+            {"code": "ShowMessage_2", "string": "community that disavows its ideals."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Paradise is an independent community -"},
+            {"code": "ShowMessage_2", "string": "if you can get there, you could claim"},
+            {"code": "ShowMessage_2", "string": "political asylum."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Are you sure? The Agency could just come"},
+            {"code": "ShowMessage_2", "string": "in with their Guards and take me out!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "I seem to remember an old law on the books"},
+            {"code": "ShowMessage_2", "string": "saying that Paradise was to be a haven. If"},
+            {"code": "ShowMessage_2", "string": "the Agency did that, they'd have a major"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "incident on their hands. I think you'd be"},
+            {"code": "ShowMessage_2", "string": "safe. But first you'll need to get there."},
+            {"code": "ShowMessage_2", "string": "Good luck, Talan. You're going to need it."},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Remember, Paradise is far away, among"},
+            {"code": "ShowMessage_2", "string": "the southwestern mountains. Your journey"},
+            {"code": "ShowMessage_2", "string": "is far from complete."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thank you for everything, Doctor."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Teleport", "parameters": [69, 10, 19]},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 15]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Let's go find Paradise, Talan. I know we"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "can make it."},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I hope you're right, Arden. I really do."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 17]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Well, what are we waiting for, man?"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "Paradise awaits!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Yeah. I've got a bad feeling about this"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "whole thing, though. I hope Vago's right."
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "We've made it this far, right? Nothing"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "can stop us!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah. Nothing."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 18]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "You ready, AG7?"},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "&*Aeeufe6e6e6&&&^%$%dd"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Invalid Data Acquired76@6dbbf"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'll take that as... a \"yes,\" I suppose."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Let's go."},
+            {"code": "ControlSwitches", "parameters": [0, 310, 310, 0]}
+          ],
+          "id": 5,
+          "move_type": "stationary",
+          "trigger": "auto_start"
+        },
+        {
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
+          },
+          "id": 6,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 7,
       "name": "VagoSitting",
-      "at": [8, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 266
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 266
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "If you happen to find any ingredients in"},
+            {"code": "ShowMessage_2", "string": "your travels, bring them back here and"},
+            {"code": "ShowMessage_2", "string": "I'd be only too happy to reward you."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'll keep that in mind. Thanks, Dr. Vago!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "If you happen to find any ingredients in", []],
-            [0, "ShowMessage_2", "your travels, bring them back here and", []],
-            [0, "ShowMessage_2", "I'd be only too happy to reward you.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'll keep that in mind. Thanks, Dr. Vago!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 272
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 272
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "If you happen to find any ingredients in"},
+            {"code": "ShowMessage_2", "string": "your travels, bring them back here and"},
+            {"code": "ShowMessage_2", "string": "I'd be only too happy to reward you."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'll keep that in mind. Thanks, Dr. Vago!"}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "If you happen to find any ingredients in", []],
-            [0, "ShowMessage_2", "your travels, bring them back here and", []],
-            [0, "ShowMessage_2", "I'd be only too happy to reward you.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'll keep that in mind. Thanks, Dr. Vago!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 310
+          "character_direction": "right",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 7
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [6, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 310
+          "character_index": 2,
+          "character_name": "People5",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 310
           },
-          "sprite": {
-            "charset": "People5",
-            "index": 2,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "Talan, hello! You haven't gotten to Paradise"},
+            {"code": "ShowMessage_2", "string": "yet? Remember, it's far to the southwest."},
+            {"code": "ShowMessage_2", "string": "The quickest way would probably be to"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "cross the river by the bridge north of"},
+            {"code": "ShowMessage_2", "string": "Sorbe, and follow the highway south and"},
+            {"code": "ShowMessage_2", "string": "west through Tangle Forest until you"},
+            {"code": "ShowMessage", "string": "DR. VAGO"},
+            {"code": "ShowMessage_2", "string": "hit the mountains. Good luck, Talan."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "Talan, hello! You haven't gotten to Paradise", []],
-            [0, "ShowMessage_2", "yet? Remember, it's far to the southwest.", []],
-            [0, "ShowMessage_2", "The quickest way would probably be to", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "cross the river by the bridge north of", []],
-            [0, "ShowMessage_2", "Sorbe, and follow the highway south and", []],
-            [0, "ShowMessage_2", "west through Tangle Forest until you", []],
-            [0, "ShowMessage", "DR. VAGO", []],
-            [0, "ShowMessage_2", "hit the mountains. Good luck, Talan.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 5
     }
-  ]
+  ],
+  "save_count": 79
 }

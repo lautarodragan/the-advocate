@@ -1,962 +1,1140 @@
 {
-  "id": 165,
-  "name": "Bandit Hideout Inside",
-  "size": [80, 50],
-  "chipset": [30, "Inside"],
-  "tiles": "Map0165.tiles",
+  "chipset_id": 30,
   "events": [
     {
       "id": 1,
       "name": "BanditR",
-      "at": [27, 20],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 468
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 468
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 20
     },
     {
       "id": 2,
       "name": "Sern",
-      "at": [11, 26],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 466
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 466
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 26
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [2, 26],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 23, 13, 23, 23]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Where am I? And where's Sern?", []],
-            [0, "ControlSwitches", "", [0, 465, 465, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15, 23, 23, 13, 23, 23]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Where am I? And where's Sern?"},
+            {"code": "ControlSwitches", "parameters": [0, 465, 465, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 465
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 465
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 26
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [8, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangePartyMembers", "", [0, 0, 28]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Oh, you're awake. It's about time, boy.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What happened? I don't remember very", []],
-            [0, "ShowMessage_2", "much after we were trapped in that canyon.", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "One of the bandits threw a stone at you.", []],
-            [0, "ShowMessage_2", "Hit you in the head, you passed out. They", []],
-            [0, "ShowMessage_2", "had to carry you here. You were lucky -", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "It was a pretty long journey over rocky", []],
-            [0, "ShowMessage_2", "terrain.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Any sign of Drago?", []],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "Wait", "", [25]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "The bastards fed him to this beast of theirs", []],
-            [0, "ShowMessage_2", "that lives in this mountain.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "We need to get back to Paradise to warn", []],
-            [0, "ShowMessage_2", "everybody!", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "If Drago wasn't able to escape, I don't", []],
-            [0, "ShowMessage_2", "think there's much hope for us. He was", []],
-            [0, "ShowMessage_2", "always stronger than... than I was.", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "But I'm taking some of these bandits out", []],
-            [0, "ShowMessage_2", "before I go! They'll pay for taking him", []],
-            [0, "ShowMessage_2", "from us...", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "... and from her.", []],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There aren't any doors to this prison...", []],
-            [0, "ShowMessage_2", "let's get out of here!", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 2, 2, 37]],
-            [0, "Wait", "", [8]],
-            [0, "ControlSwitches", "", [0, 466, 466, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 28]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 3, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Oh, you're awake. It's about time, boy."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What happened? I don't remember very"},
+            {"code": "ShowMessage_2", "string": "much after we were trapped in that canyon."},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "One of the bandits threw a stone at you."},
+            {"code": "ShowMessage_2", "string": "Hit you in the head, you passed out. They"},
+            {"code": "ShowMessage_2", "string": "had to carry you here. You were lucky -"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "It was a pretty long journey over rocky"},
+            {"code": "ShowMessage_2", "string": "terrain."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Any sign of Drago?"},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "The bastards fed him to this beast of theirs"},
+            {"code": "ShowMessage_2", "string": "that lives in this mountain."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "We need to get back to Paradise to warn"},
+            {"code": "ShowMessage_2", "string": "everybody!"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "If Drago wasn't able to escape, I don't"},
+            {"code": "ShowMessage_2", "string": "think there's much hope for us. He was"},
+            {"code": "ShowMessage_2", "string": "always stronger than... than I was."},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "But I'm taking some of these bandits out"},
+            {"code": "ShowMessage_2", "string": "before I go! They'll pay for taking him"},
+            {"code": "ShowMessage_2", "string": "from us..."},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "... and from her."},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There aren't any doors to this prison..."},
+            {"code": "ShowMessage_2", "string": "let's get out of here!"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 36, 2, 2, 37]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ControlSwitches", "parameters": [0, 466, 466, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 466
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 466
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 28
     },
     {
       "id": 5,
       "name": "BanditL",
-      "at": [17, 21],
       "pages": [
         {
-          "sprite": {
-            "charset": "Crown2",
-            "index": 1,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "Crown2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 468
+          "character_direction": "up",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 468
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 21
     },
     {
       "id": 6,
       "name": "Sern2",
-      "at": [14, 16],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 1, 2, 2, 1, 1, 14]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 1, 1, 14]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Do you think we should run for it?", []],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "I don't think we'd make it. There's only", []],
-            [0, "ShowMessage_2", "the one plank bridging the chasm - all", []],
-            [0, "ShowMessage_2", "they'd need to do is kick it down...", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "BANDIT", []],
-            [0, "ShowMessage_2", "Cross the bridge, scum.", []],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Uh...", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "BANDIT", []],
-            [0, "ShowMessage_2", "What's the problem? Get them over", []],
-            [0, "ShowMessage_2", "here, Ashe!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 13, 23, 23]],
-            [0, "ShowMessage", "ASHE", []],
-            [0, "ShowMessage_2", "I am, I am! Geez...", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [3]],
-            [0, "MessageOptions", "", [0, 1, 0, 0]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Now!!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 28, 2, 2, 29]],
-            [0, "Wait", "", [4]],
-            [0, "ShowBattleAnimation", "", [3, 5, 1, 0]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 28, 26, 38, 36, 1, 1, 1, 28, 2, 2, 2, 2, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29, 29, 29]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "BANDIT", []],
-            [0, "ShowMessage_2", "Ashe!", []],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 36, 0, 1, 1, 1, 1, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "C'mon, boy! Hurry up!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 1, 1, 1]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "BANDIT", []],
-            [0, "ShowMessage_2", "Looks like you're going to be food for", []],
-            [0, "ShowMessage_2", "the Lair a little ahead of schedule!", []],
-            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25, 23, 1, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 25, 1]],
-            [0, "Wait", "", [4]],
-            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25, 23, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 1, 37]],
-            [0, "Wait", "", [4]],
-            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
-            [0, "ControlSwitches", "", [0, 467, 467, 0]],
-            [0, "PlaySound", "Fall2", [100, 80, 50]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 12, 26, 38, 2, 2, 2, 2, 2, 39, 27, 37]],
-            [0, "MoveEvent", "", [6, 8, 0, 0, 12, 28, 26, 38, 2, 2, 2, 2, 2, 39, 27, 29]],
-            [0, "Wait", "", [4]],
-            [0, "Teleport", "", [166, 1, 20]],
-            [0, "ChangeEncounterSteps", "", [25]],
-            [0, "ControlSwitches", "", [0, 468, 468, 0]]
-          ]
+          "event_commands": [
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10005, 8, 0, 0, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 1, 2, 2, 1, 1,
+                14
+              ]
+            },
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 1, 1, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Do you think we should run for it?"},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "I don't think we'd make it. There's only"},
+            {"code": "ShowMessage_2", "string": "the one plank bridging the chasm - all"},
+            {"code": "ShowMessage_2", "string": "they'd need to do is kick it down..."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "BANDIT"},
+            {"code": "ShowMessage_2", "string": "Cross the bridge, scum."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Uh..."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 3, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "BANDIT"},
+            {"code": "ShowMessage_2", "string": "What's the problem? Get them over"},
+            {"code": "ShowMessage_2", "string": "here, Ashe!"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13, 23, 23]},
+            {"code": "ShowMessage", "string": "ASHE"},
+            {"code": "ShowMessage_2", "string": "I am, I am! Geez..."},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Now!!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 28, 2, 2, 29]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowBattleAnimation", "parameters": [3, 5, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                5, 8, 0, 0, 28, 28, 26, 38, 36, 1, 1, 1, 28, 2, 2, 2, 2, 2, 2, 34, 8, 65, 66,
+                76, 68, 97, 108, 105, 97, 3, 29, 29, 29
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "BANDIT"},
+            {"code": "ShowMessage_2", "string": "Ashe!"},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 36, 0, 1, 1, 1, 1, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "C'mon, boy! Hurry up!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 1, 1, 1]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "BANDIT"},
+            {"code": "ShowMessage_2", "string": "Looks like you're going to be food for"},
+            {"code": "ShowMessage_2", "string": "the Lair a little ahead of schedule!"},
+            {"code": "ShowBattleAnimation", "parameters": [42, 7, 1, 0]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 24, 25, 23, 1, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 24, 25, 1]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowBattleAnimation", "parameters": [42, 7, 1, 0]},
+            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 24, 25, 23, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 1, 37]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "ShowBattleAnimation", "parameters": [42, 7, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 467, 467, 0]},
+            {"code": "PlaySound", "parameters": [100, 80, 50], "string": "Fall2"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 36, 12, 26, 38, 2, 2, 2, 2, 2, 39, 27, 37]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [6, 8, 0, 0, 12, 28, 26, 38, 2, 2, 2, 2, 2, 39, 27, 29]
+            },
+            {"code": "Wait", "parameters": [4]},
+            {"code": "Teleport", "parameters": [166, 1, 20]},
+            {"code": "ChangeEncounterSteps", "parameters": [25]},
+            {"code": "ControlSwitches", "parameters": [0, 468, 468, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 468
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 468
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 16
     },
     {
       "id": 7,
       "name": "6 - Kicktarget",
-      "at": [23, 20],
       "pages": [
+        {"character_index": 20, "id": 1, "move_type": "stationary"},
         {
-          "tile": 20,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 20
     },
     {
       "id": 8,
       "name": "5",
-      "at": [22, 20],
       "pages": [
+        {"character_index": 19, "id": 1, "move_type": "stationary"},
         {
-          "tile": 19,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 20
     },
     {
       "id": 9,
       "name": "4",
-      "at": [21, 20],
       "pages": [
+        {"character_index": 19, "id": 1, "move_type": "stationary"},
         {
-          "tile": 19,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 20
     },
     {
       "id": 10,
       "name": "3",
-      "at": [20, 20],
       "pages": [
+        {"character_index": 19, "id": 1, "move_type": "stationary"},
         {
-          "tile": 19,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 20
     },
     {
       "id": 11,
       "name": "2",
-      "at": [19, 20],
       "pages": [
+        {"character_index": 19, "id": 1, "move_type": "stationary"},
         {
-          "tile": 19,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 20
     },
     {
       "id": 12,
       "name": "1",
-      "at": [18, 20],
       "pages": [
+        {"character_index": 18, "id": 1, "move_type": "stationary"},
         {
-          "tile": 18,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 467
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 467
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 20
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [37, 4],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 5, 48]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 5, 48]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 4
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [5, 49],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 37, 5]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 37, 5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 49
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [10, 42],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 53, 42]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 53, 42]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 42
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [53, 43],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 10, 43]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 10, 43]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 53,
+      "y": 43
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [49, 36],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 71, 42]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 71, 42]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 36
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [71, 43],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 49, 37]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 49, 37]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 71,
+      "y": 43
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [71, 30],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 58, 19]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 58, 19]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 71,
+      "y": 30
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [58, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [165, 71, 31]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [165, 71, 31]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 58,
+      "y": 20
     },
     {
       "id": 21,
       "name": "EV0021",
-      "at": [58, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Sunlight! We're almost out!", []],
-            [0, "ControlSwitches", "", [0, 475, 475, 0]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Sunlight! We're almost out!"},
+            {"code": "ControlSwitches", "parameters": [0, 475, 475, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 475
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 475
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 58,
+      "y": 14
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [58, 2],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Teleport", "", [167, 9, 9]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Teleport", "parameters": [167, 9, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 58,
+      "y": 2
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 24,
       "name": "BanditHQ.1",
-      "at": [12, 24],
       "pages": [
         {
-          "tile": 0,
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 585, 585, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 127, 0, 2]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Stale Pita-HP x2"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 585, 585, 0]],
-            [0, "ChangeItems", "", [0, 0, 127, 0, 2]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Stale Pita-HP x2", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 585
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 585
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing else inside the pot."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 24
     },
     {
       "id": 25,
       "name": "BanditHQ.2",
-      "at": [12, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 591, 591, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 243, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Electric Armor-B"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 591, 591, 0]],
-            [0, "ChangeItems", "", [0, 0, 243, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Electric Armor-B", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 591
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 591
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 10
     },
     {
       "id": 26,
       "name": "BanditHQ.3",
-      "at": [4, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 592, 592, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 189, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Thorn Gloves-RL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 592, 592, 0]],
-            [0, "ChangeItems", "", [0, 0, 189, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Thorn Gloves-RL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 592
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 592
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 4
     },
     {
       "id": 27,
       "name": "BanditHQ.4",
-      "at": [36, 32],
       "pages": [
         {
-          "tile": 0,
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 593, 593, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 210, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Two-Handed Sword-RL"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 593, 593, 0]],
-            [0, "ChangeItems", "", [0, 0, 210, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Two-Handed Sword-RL", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 593
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 593
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing else inside the pot."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 32
     },
     {
       "id": 28,
       "name": "EV0028",
-      "at": [28, 33],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 3, 3, 25, 37]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 24, 3, 3, 25, 37]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 33
     },
     {
       "id": 29,
       "name": "EV0029",
-      "at": [26, 33],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 1, 1, 25, 37]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 24, 1, 1, 25, 37]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 33
     },
     {
       "id": 30,
       "name": "BanditHQ.5",
-      "at": [11, 36],
       "pages": [
         {
-          "tile": 0,
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 594, 594, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 247, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Mystical Robes-B"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 594, 594, 0]],
-            [0, "ChangeItems", "", [0, 0, 247, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Mystical Robes-B", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 594
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 594
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing else inside the crate."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing else inside the crate.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 36
     },
     {
       "id": 31,
       "name": "BanditHQ.6",
-      "at": [14, 15],
       "pages": [
         {
-          "tile": 0,
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 595, 595, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 195, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Sturdy Axe-R"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 595, 595, 0]],
-            [0, "ChangeItems", "", [0, 0, 195, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Sturdy Axe-R", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 595
+          "character_direction": "left",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 595
           },
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "There's nothing else inside the pot."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 15
     },
     {
       "id": 32,
       "name": "BanditHQ.7",
-      "at": [54, 39],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 596, 596, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 257, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Healing Draught-HP"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 596, 596, 0]],
-            [0, "ChangeItems", "", [0, 0, 257, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Healing Draught-HP", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 596
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 596
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 54,
+      "y": 39
     },
     {
       "id": 33,
       "name": "BanditHQ.8",
-      "at": [61, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 597, 597, 0]},
+            {"code": "ChangeItems", "parameters": [0, 0, 248, 0, 1]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Steel Armor-B"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 597, 597, 0]],
-            [0, "ChangeItems", "", [0, 0, 248, 0, 1]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Steel Armor-B", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 597
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 597
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 61,
+      "y": 11
     },
     {
       "id": 34,
       "name": "SaveInBanditHQ",
-      "at": [6, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 6,
+      "y": 24
     },
     {
       "id": 35,
       "name": "EV0035",
-      "at": [5, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 34, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 34, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 34, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 34, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 20
     }
-  ]
+  ],
+  "height": 50,
+  "save_count": 64,
+  "width": 80
 }

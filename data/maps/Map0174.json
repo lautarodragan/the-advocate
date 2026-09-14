@@ -1,91 +1,92 @@
 {
-  "id": 174,
-  "name": "Pierson and Kersh",
-  "size": [20, 15],
-  "chipset": [24, "INNER ITEMS SHOP"],
-  "tiles": "Map0174.tiles",
+  "chipset_id": 24,
   "events": [
     {
       "id": 1,
       "name": "Pierson",
-      "at": [9, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "People1",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 6,
+          "character_name": "People1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 6
     },
     {
       "id": 2,
       "name": "Kersh",
-      "at": [9, 14],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 483
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 483
           },
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 14
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [0, 0, 1, 0]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "I thought it would be you.", []],
-            [0, "Wait", "", [20]],
-            [0, "ControlSwitches", "", [0, 483, 483, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Where is it?", []],
-            [0, "Wait", "", [6]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "I won't ask again. Where have you hidden it?", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "You've made a tactical error, old friend.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "PIERSON", []],
-            [0, "ShowMessage_2", "Never underestimate an old man who", []],
-            [0, "ShowMessage_2", "has nothing left to live for.", []],
-            [0, "Wait", "", [5]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 1, 1]],
-            [0, "Wait", "", [25]],
-            [0, "PlaySound", "gun2", [100, 90, 50]],
-            [0, "FadeOutBGM", "", [5000]],
-            [0, "Wait", "", [50]],
-            [0, "Teleport", "", [203, 10, 27]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [70, 70, 40, 100, 5, 1]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "I thought it would be you."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ControlSwitches", "parameters": [0, 483, 483, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Where is it?"},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "I won't ask again. Where have you hidden it?"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "You've made a tactical error, old friend."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": "ShowMessage_2", "string": "Never underestimate an old man who"},
+            {"code": "ShowMessage_2", "string": "has nothing left to live for."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 1]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "gun2"},
+            {"code": "FadeOutBGM", "parameters": [5000]},
+            {"code": "Wait", "parameters": [50]},
+            {"code": "Teleport", "parameters": [203, 10, 27]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 29
 }

@@ -1,144 +1,175 @@
 {
-  "id": 137,
-  "name": "Room5",
-  "size": [20, 15],
-  "chipset": [25, "sd3_castle_inside_2"],
-  "tiles": "Map0137.tiles",
+  "chipset_id": 25,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [7, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [131, 13, 9]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [131, 13, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 7,
+      "y": 12
     },
     {
       "id": 2,
       "name": "KeyChest",
-      "at": [5, 5],
       "pages": [
         {
-          "conditions": {
-            "variable": [123, "greater_equal", 8]
+          "animation_type": "fixed_continuous",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": true
+            },
+            "variable_id": 123,
+            "variable_value": 8
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Open1"},
+            {"code": "ControlSwitches", "parameters": [0, 411, 411, 0]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Item1"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's the Theatre Ruins key!"},
+            {"code": "ChangeItems", "parameters": [0, 0, 151, 0, 1]},
+            {"code": "ShowBattleAnimation", "parameters": [132, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The treasure chest vanished!"},
+            {"code": "ControlVars", "parameters": [0, 123, 123, 0, 0, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "PlaySound", "Open1", [70, 100, 50]],
-            [0, "ControlSwitches", "", [0, 411, 411, 0]],
-            [0, "PlaySound", "Item1", [70, 100, 50]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's the Theatre Ruins key!", []],
-            [0, "ChangeItems", "", [0, 0, 151, 0, 1]],
-            [0, "ShowBattleAnimation", "", [132, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The treasure chest vanished!", []],
-            [0, "ControlVars", "", [0, 123, 123, 0, 0, 0, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 411
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 411
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The chest is empty."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The chest is empty.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "item": 151
+          "character_direction": "up",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 151
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 5
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 4,
       "name": "TheatreRuins.6",
-      "at": [11, 10],
       "pages": [
         {
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "down",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 7,
+          "character_name": "Object1",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 567, 567, 0]},
+            {"code": "ChangeGold", "parameters": [0, 0, 1000]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       1000 credits"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 567, 567, 0]],
-            [0, "ChangeGold", "", [0, 0, 1000]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       1000 credits", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 567
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "Object1",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 567
           },
-          "sprite": {
-            "charset": "Object1",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 10
     }
-  ]
+  ],
+  "save_count": 28
 }

@@ -1,62 +1,55 @@
 {
-  "id": 204,
-  "name": "Splashdown",
-  "size": [20, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0204.tiles",
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "Talan",
-      "at": [18, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 18,
+      "y": 8
     },
     {
       "id": 2,
       "name": "Emily",
-      "at": [12, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 6
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [30, 20, 60, 100, 0, 0]],
-            [0, "MoveEvent", "", [2, 7, 0, 0, 29, 26, 38, 6, 6, 5, 2, 6]],
-            [0, "MoveEvent", "", [1, 7, 0, 0, 29, 29, 26, 38, 6, 5, 5, 5]],
-            [0, "Wait", "", [30]],
-            [0, "Teleport", "", [236, 10, 11]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [30, 20, 60, 100, 0, 0]},
+            {"code": "MoveEvent", "parameters": [2, 7, 0, 0, 29, 26, 38, 6, 6, 5, 2, 6]},
+            {"code": "MoveEvent", "parameters": [1, 7, 0, 0, 29, 29, 26, 38, 6, 5, 5, 5]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "Teleport", "parameters": [236, 10, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 28
 }

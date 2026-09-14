@@ -1,507 +1,614 @@
 {
-  "id": 74,
-  "name": "Tasgarde Military Base",
-  "size": [50, 50],
-  "chipset": [19, "Ancient(1)"],
-  "tiles": "Map0074.tiles",
+  "chipset_id": 19,
   "events": [
     {
       "id": 1,
       "name": "Door1Top",
-      "at": [19, 38],
       "pages": [
+        {"character_index": 109, "id": 1, "move_type": "stationary"},
         {
-          "tile": 109,
-          "layer": "below",
-          "trigger": "action"
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 279
+          },
+          "id": 2,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 279
+          "character_index": 109,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 309
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 309
-          },
-          "tile": 109,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 38
     },
     {
       "id": 2,
       "name": "Door1Bottom",
-      "at": [19, 39],
       "pages": [
+        {"character_index": 115, "id": 1, "move_type": "stationary"},
         {
-          "tile": 115,
-          "layer": "below",
-          "trigger": "action"
+          "character_index": 109,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 279
+          },
+          "id": 2,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 279
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 280
           },
-          "tile": 109,
-          "layer": "below",
-          "trigger": "action"
+          "id": 3,
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 280
+          "character_index": 115,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 309
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 309
-          },
-          "tile": 115,
-          "layer": "below",
-          "trigger": "action"
+          "id": 4,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 39
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [19, 49],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [66, 94, 4]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [66, 94, 4]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "My mission is not yet complete! I need", []],
-            [0, "ShowMessage_2", "to have Professor Eisen reactivate the", []],
-            [0, "ShowMessage_2", "Advocate!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "My mission is not yet complete! I need"},
+            {"code": "ShowMessage_2", "string": "to have Professor Eisen reactivate the"},
+            {"code": "ShowMessage_2", "string": "Advocate!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 49
     },
     {
       "id": 4,
       "name": "DoorGuard",
-      "at": [22, 40],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "I'm sorry, Sir. This location is not"},
+            {"code": "ShowMessage_2", "string": "open to the general public."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'll just... be leaving now..."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<phew> He must not have gotten"},
+            {"code": "ShowMessage_2", "string": "the word about me, yet."},
+            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "I'm sorry, Sir. This location is not", []],
-            [0, "ShowMessage_2", "open to the general public.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'll just... be leaving now...", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<phew> He must not have gotten", []],
-            [0, "ShowMessage_2", "the word about me, yet.", []],
-            [0, "MessageOptions", "", [0, 0, 1, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "actor": 21
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Corporal. Welcome to Tasgarde."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "At ease. I have orders from the Captain."},
+            {"code": "ShowMessage_2", "string": "I must speak with Professor Eisen."},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "I'll open the door, Corporal."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [100, 120, 50], "string": "Earth2"},
+            {"code": "ControlSwitches", "parameters": [0, 279, 279, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ControlSwitches", "parameters": [0, 280, 280, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "You're all set, Corporal. The professor"},
+            {"code": "ShowMessage_2", "string": "should be in his lab. He always is."},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "I'll call ahead to the other guard station"},
+            {"code": "ShowMessage_2", "string": "and have him open the door for you."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Thank you."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Corporal. Welcome to Tasgarde.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "At ease. I have orders from the Captain.", []],
-            [0, "ShowMessage_2", "I must speak with Professor Eisen.", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "I'll open the door, Corporal.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Earth2", [100, 120, 50]],
-            [0, "ControlSwitches", "", [0, 279, 279, 0]],
-            [0, "Wait", "", [5]],
-            [0, "ControlSwitches", "", [0, 280, 280, 0]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "You're all set, Corporal. The professor", []],
-            [0, "ShowMessage_2", "should be in his lab. He always is.", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "I'll call ahead to the other guard station", []],
-            [0, "ShowMessage_2", "and have him open the door for you.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Thank you.", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 280,
-            "actor": 21
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 280
           },
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Corporal."}
+          ],
+          "id": 3,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Corporal.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 40
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [74, 48, 7]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 3, 3, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Let me open the door for you, Corporal.", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 12]],
-            [0, "Wait", "", [10]],
-            [0, "ControlSwitches", "", [0, 281, 281, 0]],
-            [0, "PlaySound", "Blow7", [100, 50, 50]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Thank you. Is he expecting me?", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "I don't think so. Honestly, we rarely", []],
-            [0, "ShowMessage_2", "see the professor. He keeps pretty", []],
-            [0, "ShowMessage_2", "much to himself.", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I see.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, 0]],
-            [0, "Wait", "", [20]],
-            [0, "Teleport", "", [85, 9, 26]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [74, 48, 7]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15, 23, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Let me open the door for you, Corporal."},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 281, 281, 0]},
+            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Blow7"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Thank you. Is he expecting me?"},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "I don't think so. Honestly, we rarely"},
+            {"code": "ShowMessage_2", "string": "see the professor. He keeps pretty"},
+            {"code": "ShowMessage_2", "string": "much to himself."},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I see."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, 0]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "Teleport", "parameters": [85, 9, 26]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 19
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [49, 7],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [74, 19, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [74, 19, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14, 23]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 7
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [49, 8],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [74, 19, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [74, 19, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14, 23]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 49,
+      "y": 8
     },
     {
       "id": 8,
       "name": "LabDoorGuard",
-      "at": [42, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Go on in, Corporal."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Go on in, Corporal.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 42,
+      "y": 6
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [21, 29],
       "pages": [
         {
-          "conditions": {
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't think this is the way to the lab.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't think this is the way to the lab."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 29
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [36, 4],
       "pages": [
+        {"character_index": 3, "id": 1, "move_type": "stationary"},
         {
-          "tile": 3,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 4
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [37, 4],
       "pages": [
+        {"character_index": 4, "id": 1, "move_type": "stationary"},
         {
-          "tile": 4,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 4
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [38, 4],
       "pages": [
+        {"character_index": 5, "id": 1, "move_type": "stationary"},
         {
-          "tile": 5,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 4
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [38, 5],
       "pages": [
+        {"character_index": 11, "id": 1, "move_type": "stationary"},
         {
-          "tile": 11,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 38,
+      "y": 5
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [37, 5],
       "pages": [
+        {"character_index": 10, "id": 1, "move_type": "stationary"},
         {
-          "tile": 10,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [85, 9, 26]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [85, 9, 26]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 5
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [36, 5],
       "pages": [
+        {"character_index": 9, "id": 1, "move_type": "stationary"},
         {
-          "tile": 9,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 281
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 281
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 36,
+      "y": 5
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [26, 45],
       "pages": [
         {
-          "conditions": {
-            "actor": 21
+          "condition": {
+            "actor_id": 21,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 23]],
-            [0, "ControlSwitches", "", [0, 462, 462, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12, 23]},
+            {"code": "ControlSwitches", "parameters": [0, 462, 462, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 462
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 462
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 45
     },
     {
       "id": 17,
       "name": "SaveInTasgarde",
-      "at": [18, 40],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 18,
+      "y": 40
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [17, 38],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 17, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 17, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 17, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 17, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 38
     }
-  ]
+  ],
+  "height": 50,
+  "save_count": 31,
+  "width": 50
 }

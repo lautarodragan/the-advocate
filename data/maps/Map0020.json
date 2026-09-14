@@ -1,1200 +1,1374 @@
 {
-  "id": 20,
-  "name": "Sector 30 Back Alleys",
-  "size": [100, 100],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0020.tiles",
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [90, 15],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I can't go back up there! The Agency"},
+            {"code": "ShowMessage_2", "string": "guards will be onto me in no time!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I can't go back up there! The Agency", []],
-            [0, "ShowMessage_2", "guards will be onto me in no time!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 90,
+      "y": 15
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [89, 20],
       "pages": [
         {
-          "tile": 53,
+          "character_index": 53,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "You are trespassing on Delcentric"},
+            {"code": "ShowMessage_2", "string": "property - violaters are subject to"},
+            {"code": "ShowMessage_2", "string": "a 10,000 credit fine and imprisonment."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "A fine is probably the LEAST of my"},
+            {"code": "ShowMessage_2", "string": "worries at this point!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "You are trespassing on Delcentric", []],
-            [0, "ShowMessage_2", "property - violaters are subject to", []],
-            [0, "ShowMessage_2", "a 10,000 credit fine and imprisonment.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "A fine is probably the LEAST of my", []],
-            [0, "ShowMessage_2", "worries at this point!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 89,
+      "y": 20
     },
     {
       "id": 3,
       "name": "SaveInSector30",
-      "at": [88, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 88,
+      "y": 27
     },
     {
       "id": 4,
       "name": "InnBum",
-      "at": [91, 27],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 1,
+          "character_name": "Future3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "BUM"},
+            {"code": "ShowMessage_2", "string": "Hey there, Mac. I've got a great pile"},
+            {"code": "ShowMessage_2", "string": "of garbage back there you can rest"},
+            {"code": "ShowMessage_2", "string": "in - a real bargain at 5 credits!"},
+            {"code": "ShowInn", "parameters": [0, 5, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "BUM", []],
-            [0, "ShowMessage_2", "Hey there, Mac. I've got a great pile", []],
-            [0, "ShowMessage_2", "of garbage back there you can rest", []],
-            [0, "ShowMessage_2", "in - a real bargain at 5 credits!", []],
-            [0, "ShowInn", "", [0, 5, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 91,
+      "y": 27
     },
     {
       "id": 5,
       "name": "Slum30Chest1c",
-      "at": [78, 19],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [5, 6]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       10 credits"},
+            {"code": "ChangeGold", "parameters": [0, 0, 10]},
+            {"code": "ControlSwitches", "parameters": [0, 98, 98, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [5, 6]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       10 credits", []],
-            [0, "ChangeGold", "", [0, 0, 10]],
-            [0, "ControlSwitches", "", [0, 98, 98, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 98
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 98
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 78,
+      "y": 19
     },
     {
       "id": 6,
       "name": "Slum30Chest1o",
-      "at": [0, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 7,
       "name": "Slum30Chest2c",
-      "at": [86, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [7, 8]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Bent Iron Plating-L"},
+            {"code": "ChangeItems", "parameters": [0, 0, 98, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 99, 99, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [7, 8]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Bent Iron Plating-L", []],
-            [0, "ChangeItems", "", [0, 0, 98, 0, 1]],
-            [0, "ControlSwitches", "", [0, 99, 99, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 99
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 99
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 86,
+      "y": 35
     },
     {
       "id": 8,
       "name": "Slum30Chest2o",
-      "at": [1, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 1
     },
     {
       "id": 9,
       "name": "Slum30Chest3c",
-      "at": [84, 44],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [9, 10]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Cold Sandwich-HP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 97, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 101, 101, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [9, 10]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Cold Sandwich-HP", []],
-            [0, "ChangeItems", "", [0, 0, 97, 0, 1]],
-            [0, "ControlSwitches", "", [0, 101, 101, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 101
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 101
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 84,
+      "y": 44
     },
     {
       "id": 10,
       "name": "Slum30Chest3o",
-      "at": [2, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2
     },
     {
       "id": 11,
       "name": "Slum30Chest4c",
-      "at": [98, 35],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [11, 12]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Bent Pipe-R"},
+            {"code": "ChangeItems", "parameters": [0, 0, 327, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 100, 100, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [11, 12]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Bent Pipe-R", []],
-            [0, "ChangeItems", "", [0, 0, 327, 0, 1]],
-            [0, "ControlSwitches", "", [0, 100, 100, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 100
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 100
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 98,
+      "y": 35
     },
     {
       "id": 12,
       "name": "Slum30Chest4o",
-      "at": [3, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3
     },
     {
       "id": 13,
       "name": "Slum30Chest5c",
-      "at": [69, 60],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [13, 14]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Cold Sandwich-HP x2"},
+            {"code": "ChangeItems", "parameters": [0, 0, 97, 0, 2]},
+            {"code": "ControlSwitches", "parameters": [0, 104, 104, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [13, 14]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Cold Sandwich-HP x2", []],
-            [0, "ChangeItems", "", [0, 0, 97, 0, 2]],
-            [0, "ControlSwitches", "", [0, 104, 104, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 104
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 104
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 69,
+      "y": 60
     },
     {
       "id": 14,
       "name": "Slum30Chest5o",
-      "at": [4, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4
     },
     {
       "id": 15,
       "name": "Slum30Chest6c",
-      "at": [74, 66],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [15, 16]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Torn Flak Vest"},
+            {"code": "ChangeItems", "parameters": [0, 0, 99, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 103, 103, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [15, 16]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Torn Flak Vest", []],
-            [0, "ChangeItems", "", [0, 0, 99, 0, 1]],
-            [0, "ControlSwitches", "", [0, 103, 103, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 103
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 103
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 74,
+      "y": 66
     },
     {
       "id": 16,
       "name": "Slum30Chest6o",
-      "at": [5, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5
     },
     {
       "id": 17,
       "name": "Slum30Chest7c",
-      "at": [37, 24],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [17, 18]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Dirty Headscarf-H"},
+            {"code": "ChangeItems", "parameters": [0, 0, 100, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 106, 106, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [17, 18]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Dirty Headscarf-H", []],
-            [0, "ChangeItems", "", [0, 0, 100, 0, 1]],
-            [0, "ControlSwitches", "", [0, 106, 106, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 106
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 106
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 24
     },
     {
       "id": 18,
       "name": "Slum30Chest7o",
-      "at": [6, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6
     },
     {
       "id": 19,
       "name": "Slum30Chest8c",
-      "at": [53, 54],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [19, 20]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       75 credits"},
+            {"code": "ChangeGold", "parameters": [0, 0, 75]},
+            {"code": "ControlSwitches", "parameters": [0, 105, 105, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [19, 20]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       75 credits", []],
-            [0, "ChangeGold", "", [0, 0, 75]],
-            [0, "ControlSwitches", "", [0, 105, 105, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 105
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 105
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 53,
+      "y": 54
     },
     {
       "id": 20,
       "name": "Slum30Chest8o",
-      "at": [7, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 7
     },
     {
       "id": 21,
       "name": "BumGuardingEntrance",
-      "at": [48, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_index": 1,
+          "character_name": "Future3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Hey there, pal. Spare some creds?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What did you say?"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Got any loose credits you wouldn't"},
+            {"code": "ShowMessage_2", "string": "mind parting with, pal?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "What's with you, anyway?"},
+            {"code": "ShowMessage_2", "string": "Listen, I could just use -"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No, YOU listen!"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 24, 25]},
+            {"code": "ConditionalBranch", "parameters": [0, 68, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I got to work late today, missing half"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "of an important speech by the"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "most important man in the world,"},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "I was nearly late to work today,"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "almost missing a speech by the"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "most important man in the world,"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "who is now DEAD, and I am the prime"},
+            {"code": "ShowMessage_2", "string": "suspect for his murder! I am hungry,"},
+            {"code": "ShowMessage_2", "string": "I am tired, I am being chased by"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "the best Guards in the Agency, and you"},
+            {"code": "ShowMessage_2", "string": "have the GALL to ask me for money?"},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Thunder9"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 94, 94, 0]},
+            {"code": "WeatherEffects", "parameters": [1, 2]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "And now I'm soaked."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Gee, pal. I'm sorry. Looks like you"},
+            {"code": "ShowMessage_2", "string": "need this more than I do."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Item1"},
+            {"code": "ChangeGold", "parameters": [0, 0, 20]},
+            {"code": "ShowMessage", "string": "PANHANDLER gave TALAN 20 credits."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well. Thank you very much."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Just a tip, pal. You won't be able to"},
+            {"code": "ShowMessage_2", "string": "use the roads to get out of Sector"},
+            {"code": "ShowMessage_2", "string": "30. The guys after you will have"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "all the exits covered. You're gonna"},
+            {"code": "ShowMessage_2", "string": "need to use the Rat Tracks."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The Rat Tracks?"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Yeah, they're a series of tunnels that"},
+            {"code": "ShowMessage_2", "string": "have been carved out beneath a"},
+            {"code": "ShowMessage_2", "string": "couple Sectors."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "If you follow 'em, they'll lead"},
+            {"code": "ShowMessage_2", "string": "you right out into 27, and you should"},
+            {"code": "ShowMessage_2", "string": "be able to escape the Agency guys."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thanks for the advice. But, uh..."},
+            {"code": "ShowMessage_2", "string": "these Rat Tracks... what exactly"},
+            {"code": "ShowMessage_2", "string": "made them?"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Giant Rats that have been infected"},
+            {"code": "ShowMessage_2", "string": "with all the toxins that factory up"},
+            {"code": "ShowMessage_2", "string": "there's been dumping in the ground."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "They're pretty strong, but if you"},
+            {"code": "ShowMessage_2", "string": "stay alert and use lots of healing"},
+            {"code": "ShowMessage_2", "string": "items, you should be OK."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Maybe."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thanks for the words of encouragement."},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "No sweat, pal! If the Agency Guards"},
+            {"code": "ShowMessage_2", "string": "come by here, I never saw ya!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Hey there, pal. Spare some creds?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What did you say?", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Got any loose credits you wouldn't", []],
-            [0, "ShowMessage_2", "mind parting with, pal?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "What's with you, anyway?", []],
-            [0, "ShowMessage_2", "Listen, I could just use -", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No, YOU listen!", []],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
-            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I got to work late today, missing half", []],
-            [1, "ShowMessage_2", "of an important speech by the", []],
-            [1, "ShowMessage_2", "most important man in the world,", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I was nearly late to work today,", []],
-            [1, "ShowMessage_2", "almost missing a speech by the", []],
-            [1, "ShowMessage_2", "most important man in the world,", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "who is now DEAD, and I am the prime", []],
-            [0, "ShowMessage_2", "suspect for his murder! I am hungry,", []],
-            [0, "ShowMessage_2", "I am tired, I am being chased by", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "the best Guards in the Agency, and you", []],
-            [0, "ShowMessage_2", "have the GALL to ask me for money?", []],
-            [0, "PlaySound", "Thunder9", [100, 100, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "ControlSwitches", "", [0, 94, 94, 0]],
-            [0, "WeatherEffects", "", [1, 2]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "And now I'm soaked.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Gee, pal. I'm sorry. Looks like you", []],
-            [0, "ShowMessage_2", "need this more than I do.", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "PlaySound", "Item1", [100, 100, 50]],
-            [0, "ChangeGold", "", [0, 0, 20]],
-            [0, "ShowMessage", "PANHANDLER gave TALAN 20 credits.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well. Thank you very much.", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Just a tip, pal. You won't be able to", []],
-            [0, "ShowMessage_2", "use the roads to get out of Sector", []],
-            [0, "ShowMessage_2", "30. The guys after you will have", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "all the exits covered. You're gonna", []],
-            [0, "ShowMessage_2", "need to use the Rat Tracks.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The Rat Tracks?", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Yeah, they're a series of tunnels that", []],
-            [0, "ShowMessage_2", "have been carved out beneath a", []],
-            [0, "ShowMessage_2", "couple Sectors.", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "If you follow 'em, they'll lead", []],
-            [0, "ShowMessage_2", "you right out into 27, and you should", []],
-            [0, "ShowMessage_2", "be able to escape the Agency guys.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thanks for the advice. But, uh...", []],
-            [0, "ShowMessage_2", "these Rat Tracks... what exactly", []],
-            [0, "ShowMessage_2", "made them?", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Giant Rats that have been infected", []],
-            [0, "ShowMessage_2", "with all the toxins that factory up", []],
-            [0, "ShowMessage_2", "there's been dumping in the ground.", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "They're pretty strong, but if you", []],
-            [0, "ShowMessage_2", "stay alert and use lots of healing", []],
-            [0, "ShowMessage_2", "items, you should be OK.", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Maybe.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thanks for the words of encouragement.", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "No sweat, pal! If the Agency Guards", []],
-            [0, "ShowMessage_2", "come by here, I never saw ya!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 93
+          "animation_type": "fixed_graphic",
+          "character_index": 1,
+          "character_name": "Future3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 93
           },
-          "sprite": {
-            "charset": "Future3",
-            "index": 1,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Keep the change, pal. That ladder"},
+            {"code": "ShowMessage_2", "string": "there will take you down into the"},
+            {"code": "ShowMessage_2", "string": "Rat Tracks."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Keep the change, pal. That ladder", []],
-            [0, "ShowMessage_2", "there will take you down into the", []],
-            [0, "ShowMessage_2", "Rat Tracks.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 33
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [50, 34],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
-            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
-            [0, "CallEvent", "", [1, 21, 1]],
-            [0, "ControlSwitches", "", [0, 93, 93, 0]]
-          ]
+          "event_commands": [
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [0, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {
+              "code": "ChangeSystemBGM",
+              "parameters": [1, 0, 100, 100, 50],
+              "string": "T_VGFighterMAX_Masako"
+            },
+            {"code": "CallEvent", "parameters": [1, 21, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 93, 93, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 93
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 93
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 50,
+      "y": 34
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [48, 40],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlSwitches", "", [0, 94, 94, 1]],
-            [0, "WeatherEffects", "", [0, 1]],
-            [0, "Teleport", "", [21, 46, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 94, 94, 1]},
+            {"code": "WeatherEffects", "parameters": [0, 1]},
+            {"code": "Teleport", "parameters": [21, 46, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 48,
+      "y": 40
     },
     {
       "id": 24,
       "name": "Slum30Chest9c",
-      "at": [92, 46],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "TradeEventLocations", "parameters": [24, 25]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Empty Power Pack"},
+            {"code": "ChangeItems", "parameters": [0, 0, 101, 0, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 102, 102, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "TradeEventLocations", "", [24, 25]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Empty Power Pack", []],
-            [0, "ChangeItems", "", [0, 0, 101, 0, 1]],
-            [0, "ControlSwitches", "", [0, 102, 102, 0]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 102
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 102
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 92,
+      "y": 46
     },
     {
       "id": 25,
       "name": "Slum30Chest9o",
-      "at": [8, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8
     },
     {
       "id": 26,
       "name": "EV0026",
-      "at": [89, 21],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "You are trespassing on Delcentric"},
+            {"code": "ShowMessage_2", "string": "property - violaters are subject to"},
+            {"code": "ShowMessage_2", "string": "a 10,000 credit fine and imprisonment."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "A fine is probably the LEAST of my"},
+            {"code": "ShowMessage_2", "string": "worries at this point!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "You are trespassing on Delcentric", []],
-            [0, "ShowMessage_2", "property - violaters are subject to", []],
-            [0, "ShowMessage_2", "a 10,000 credit fine and imprisonment.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "A fine is probably the LEAST of my", []],
-            [0, "ShowMessage_2", "worries at this point!", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 89,
+      "y": 21
     },
     {
       "id": 27,
       "name": "EV0027",
-      "at": [44, 33],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 119
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 119
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "WeatherEffects", "", [1, 0]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Looks like the rain is clearing up.", []],
-            [0, "ChangeEventLocation", "", [28, 0, 51, 51]],
-            [0, "ChangeEventLocation", "", [29, 0, 52, 52]],
-            [0, "MoveEvent", "", [28, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-            [0, "MoveEvent", "", [29, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]],
-            [0, "Wait", "", [30]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Hey, guys... spare some change?", []],
-            [0, "MoveEvent", "", [29, 8, 0, 0, 3, 3, 3, 3, 3, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [28, 8, 0, 0, 0, 3, 3, 0, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Where did he go?", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "I don't know who you're talking about.", []],
-            [0, "ShowMessage_2", "Are you with the Agency?", []],
-            [0, "WeatherEffects", "", [0, 0]],
-            [0, "PlaySound", "Kill2", [60, 100, 0]],
-            [0, "Wait", "", [2]],
-            [0, "PlaySound", "Kill4", [50, 100, 100]],
-            [0, "ShowBattleAnimation", "", [1, 21, 1, 0]],
-            [0, "FlashSprite", "", [21, 31, 0, 11, 31, 10, 1]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Aaaghh!", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "What did he say to you?", []],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "I don't -", []],
-            [0, "PlaySound", "Kill2", [60, 100, 0]],
-            [0, "Wait", "", [2]],
-            [0, "PlaySound", "Kill4", [60, 100, 100]],
-            [0, "ShowBattleAnimation", "", [1, 21, 1, 0]],
-            [0, "FlashSprite", "", [21, 31, 0, 0, 31, 10, 1]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "ughhh.... ladder.... tracks...", []],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Thank you for your cooperation.", []],
-            [0, "ShowMessage_2", "Have a nice day.", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "MoveEvent", "", [29, 8, 0, 0, 2, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD gave PANHANDLER", []],
-            [0, "ShowMessage_2", "100 credits.", []],
-            [0, "MessageOptions", "", [0, 2, 1, 0]],
-            [0, "MoveEvent", "", [29, 8, 0, 0, 36, 1, 2, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [29, 0, 98, 99]],
-            [0, "MoveEvent", "", [28, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "AGENCY GUARD", []],
-            [0, "ShowMessage_2", "Keep the change.", []],
-            [0, "MoveEvent", "", [28, 8, 0, 0, 36, 3, 2, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [8]],
-            [0, "ChangeEventLocation", "", [28, 0, 99, 99]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [21, 8, 0, 0, 29, 29, 38, 2]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "PANHANDLER", []],
-            [0, "ShowMessage_2", "Sorry... man...", []],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [28, 17, 30]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 14]],
-            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Ugh... I'm so cold... what's going on?", []],
-            [2, "Wait", "", [10]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "... ... ...", []],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "It's passed. My temperature is back", []],
-            [2, "ShowMessage_2", "to normal. What is this?", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 15]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "Talan, what's wrong?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Nothing... I guess. I just felt cold, for", []],
-            [1, "ShowMessage_2", "a second. It's gone now.", []],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "All right. We should keep moving.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ChangePartyMembers", "", [0, 0, 17]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Hey, what's wrong?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Nothing... I guess. I just felt cold, for", []],
-            [1, "ShowMessage_2", "a second. It's gone now.", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Oh. That's weird. We'd better get", []],
-            [1, "ShowMessage_2", "goin', though.", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [8]],
-            [0, "PlayBGM", "wb3shop", [0, 100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 120, 120, 0]],
-            [0, "ControlSwitches", "", [0, 119, 119, 1]]
-          ]
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "WeatherEffects", "parameters": [1, 0]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Looks like the rain is clearing up."},
+            {"code": "ChangeEventLocation", "parameters": [28, 0, 51, 51]},
+            {"code": "ChangeEventLocation", "parameters": [29, 0, 52, 52]},
+            {
+              "code": "MoveEvent",
+              "parameters": [28, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {
+              "code": "MoveEvent",
+              "parameters": [29, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]
+            },
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Hey, guys... spare some change?"},
+            {"code": "MoveEvent", "parameters": [29, 8, 0, 0, 3, 3, 3, 3, 3, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [28, 8, 0, 0, 0, 3, 3, 0, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Where did he go?"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "I don't know who you're talking about."},
+            {"code": "ShowMessage_2", "string": "Are you with the Agency?"},
+            {"code": "WeatherEffects", "parameters": [0, 0]},
+            {"code": "PlaySound", "parameters": [60, 100, 0], "string": "Kill2"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [50, 100, 100], "string": "Kill4"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 21, 1, 0]},
+            {"code": "FlashSprite", "parameters": [21, 31, 0, 11, 31, 10, 1]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Aaaghh!"},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "What did he say to you?"},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "I don't -"},
+            {"code": "PlaySound", "parameters": [60, 100, 0], "string": "Kill2"},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "PlaySound", "parameters": [60, 100, 100], "string": "Kill4"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 21, 1, 0]},
+            {"code": "FlashSprite", "parameters": [21, 31, 0, 0, 31, 10, 1]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "ughhh.... ladder.... tracks..."},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Thank you for your cooperation."},
+            {"code": "ShowMessage_2", "string": "Have a nice day."},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "MoveEvent", "parameters": [29, 8, 0, 0, 2, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD gave PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "100 credits."},
+            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
+            {"code": "MoveEvent", "parameters": [29, 8, 0, 0, 36, 1, 2, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [29, 0, 98, 99]},
+            {"code": "MoveEvent", "parameters": [28, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "AGENCY GUARD"},
+            {"code": "ShowMessage_2", "string": "Keep the change."},
+            {"code": "MoveEvent", "parameters": [28, 8, 0, 0, 36, 3, 2, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ChangeEventLocation", "parameters": [28, 0, 99, 99]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [21, 8, 0, 0, 29, 29, 38, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "PANHANDLER"},
+            {"code": "ShowMessage_2", "string": "Sorry... man..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [28, 17, 30]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Ugh... I'm so cold... what's going on?"
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "... ... ..."},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "It's passed. My temperature is back"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "to normal. What is this?"},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 15]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Talan, what's wrong?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Nothing... I guess. I just felt cold, for"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "a second. It's gone now."},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "All right. We should keep moving."
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 17]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Hey, what's wrong?"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Nothing... I guess. I just felt cold, for"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "a second. It's gone now."},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Oh. That's weird. We'd better get"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "goin', though."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "wb3shop"},
+            {"code": "ControlSwitches", "parameters": [0, 120, 120, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 119, 119, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 44,
+      "y": 33
     },
     {
       "id": 28,
       "name": "Agent1",
-      "at": [99, 99],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "left"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "character_pattern": "left",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 99,
+      "y": 99
     },
     {
       "id": 29,
       "name": "Agent2",
-      "at": [98, 99],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "up",
-            "pattern": "left"
-          },
+          "character_direction": "up",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "character_pattern": "left",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 98,
+      "y": 99
     },
     {
       "id": 30,
       "name": "ResetBattleSwitches",
-      "at": [1, 3],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 145
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 145
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 145, 145, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 145, 145, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 142
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 142
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlSwitches", "", [0, 142, 142, 1]]
-          ]
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 142, 142, 1]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "variable": [28, "greater_equal", 1]
+          "character_index": 13,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": true
+            },
+            "variable_id": 28,
+            "variable_value": 1
           },
-          "tile": 13,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ControlVars", "", [0, 28, 28, 0, 0, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 28, 28, 0, 0, 0, 0]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 3
     },
     {
       "id": 31,
       "name": "EV0031",
-      "at": [86, 24],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 3, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 3, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 86,
+      "y": 24
     },
     {
       "id": 32,
       "name": "EV0032",
-      "at": [82, 43],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The door is locked."},
+            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "OK, let's see if I can pick the lock on"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "this door... just give me a minute..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it'll do me no good, man."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't know how to pick locks, man."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "Let me try to pick the lock, Talan..."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "ElseBranch", "indent": 2},
+            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "I know how to pick locks, but without"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 3,
+              "string": "a set of lockpicks it doesn't matter."
+            },
+            {"code": "END", "indent": 3},
+            {"code": "EndBranch", "indent": 2},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "I don't really know how to pick locks."
+            },
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The door is locked.", []],
-            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
-            [3, "ShowMessage_2", "this door... just give me a minute...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "SALDRA", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
-            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
-            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
-            [3, "END", "", []],
-            [2, "ElseBranch", "", []],
-            [3, "ShowMessage", "ARDEN", []],
-            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
-            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
-            [3, "END", "", []],
-            [2, "EndBranch", "", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "ShowMessage", "ARDEN", []],
-            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 82,
+      "y": 43
     },
     {
       "id": 33,
       "name": "EV0033",
-      "at": [3, 2],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 2
     }
-  ]
+  ],
+  "height": 100,
+  "save_count": 131,
+  "width": 100
 }

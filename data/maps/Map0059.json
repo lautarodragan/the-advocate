@@ -1,407 +1,471 @@
 {
-  "id": 59,
-  "name": "Outside Recycling Plant",
-  "size": [50, 50],
-  "chipset": [9, "BLchp1"],
-  "tiles": "Map0059.tiles",
+  "chipset_id": 9,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [20, 49],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'm not going back to see Stash without", []],
-            [0, "ShowMessage_2", "the Motivator Chip - he's not going to", []],
-            [0, "ShowMessage_2", "get away with swindling me!", []],
-            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "How do you know he hasn't already?", []],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Hey, watch it!", []],
-            [1, "ShowMessage", "SALDRA", []],
-            [1, "ShowMessage_2", "Just kidding, man... hehehehe...", []],
-            [1, "ControlSwitches", "", [0, 187, 187, 0]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'm not going back to see Stash without"},
+            {"code": "ShowMessage_2", "string": "the Motivator Chip - he's not going to"},
+            {"code": "ShowMessage_2", "string": "get away with swindling me!"},
+            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "How do you know he hasn't already?"
+            },
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Hey, watch it!"},
+            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Just kidding, man... hehehehe..."},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 187, 187, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 187
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 187
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I need to find the Motivator Chip first!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [10]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I need to find the Motivator Chip first!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 20,
+      "y": 49
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [21, 22],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [60, 11, 13]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [60, 11, 13]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 205
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 205
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I've already gotten the Motivator Chip.", []],
-            [0, "ShowMessage_2", "I don't need to go back inside this", []],
-            [0, "ShowMessage_2", "crumbling place!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [6]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I've already gotten the Motivator Chip."},
+            {"code": "ShowMessage_2", "string": "I don't need to go back inside this"},
+            {"code": "ShowMessage_2", "string": "crumbling place!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [6]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 21,
+      "y": 22
     },
     {
       "id": 3,
       "name": "SaveOutsideRecycle",
-      "at": [20, 43],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 20,
+      "y": 43
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [22, 41],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 3, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 3, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 41
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [19, 23],
       "pages": [
         {
-          "tile": 53,
+          "character_index": 53,
+          "event_commands": [
+            {"code": "MessageOptions", "parameters": [1, 0, 1, 0]},
+            {"code": "ShowMessage", "string": "   Sector 32 Recycling Plant"},
+            {"code": "ShowMessage_2", "string": "   *** CONDEMNED ***"},
+            {"code": "ShowMessage_2", "string": "Trespassers will be prosecuted"},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MessageOptions", "", [1, 0, 1, 0]],
-            [0, "ShowMessage", "   Sector 32 Recycling Plant", []],
-            [0, "ShowMessage_2", "   *** CONDEMNED ***", []],
-            [0, "ShowMessage_2", "Trespassers will be prosecuted", []],
-            [0, "MessageOptions", "", [0, 0, 0, 0]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 23
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [26, 36],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 0,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's a beat-up vending machine, but"},
+            {"code": "ShowMessage_2", "string": "I think it still works! Prices have been"},
+            {"code": "ShowMessage_2", "string": "marked up, though..."},
+            {"code": "OpenShop", "parameters": [1, 1, 0, 0, 124, 125, 127]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's a beat-up vending machine, but", []],
-            [0, "ShowMessage_2", "I think it still works! Prices have been", []],
-            [0, "ShowMessage_2", "marked up, though...", []],
-            [0, "OpenShop", "", [1, 1, 0, 0, 124, 125, 127]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 36
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [28, 36],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Should I take a nap in this pile of"},
+            {"code": "ShowMessage_2", "string": "junk?"},
+            {
+              "code": "ShowChoice",
+              "parameters": [2],
+              "string": "Yes - Rest up for a bit/No - I'm in a hurry!"
+            },
+            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes - Rest up for a bit"},
+            {"code": "ShowInn", "indent": 1, "parameters": [0, 0, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceOption", "parameters": [1], "string": "No - I'm in a hurry!"},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'm not sleeping in any pile of junk!"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "If I wanted to do that, I could just"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "stay at my apartment!"},
+            {"code": "END", "indent": 1},
+            {"code": "ShowChoiceEnd"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Should I take a nap in this pile of", []],
-            [0, "ShowMessage_2", "junk?", []],
-            [0, "ShowChoice", "Yes - Rest up for a bit/No - I'm in a hurry!", [2]],
-            [0, "ShowChoiceOption", "Yes - Rest up for a bit", [0]],
-            [1, "ShowInn", "", [0, 0, 0]],
-            [1, "END", "", []],
-            [0, "ShowChoiceOption", "No - I'm in a hurry!", [1]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "I'm not sleeping in any pile of junk!", []],
-            [1, "ShowMessage_2", "If I wanted to do that, I could just", []],
-            [1, "ShowMessage_2", "stay at my apartment!", []],
-            [1, "END", "", []],
-            [0, "ShowChoiceEnd", "", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 28,
+      "y": 36
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [34, 29],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 2, 2, 37]},
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 2, 2, 2, 2, 37]],
-            [0, "Wait", "", [10]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 29
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [34, 33],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 0, 0, 0, 0, 0, 0, 37]},
+            {"code": "Wait", "parameters": [10]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 0, 0, 0, 0, 37]],
-            [0, "Wait", "", [10]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 34,
+      "y": 33
     },
     {
       "id": 10,
       "name": "OutsidePlant.1",
-      "at": [32, 25],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 222, 222, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Cheap Wine-SP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 103, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 222, 222, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Cheap Wine-SP", []],
-            [0, "ChangeItems", "", [0, 0, 103, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 222
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 222
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 32,
+      "y": 25
     },
     {
       "id": 11,
       "name": "OutsidePlant.2",
-      "at": [37, 38],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 223, 223, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Grounded Boots-O"},
+            {"code": "ChangeItems", "parameters": [0, 0, 137, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 223, 223, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Grounded Boots-O", []],
-            [0, "ChangeItems", "", [0, 0, 137, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 223
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 223
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 37,
+      "y": 38
     },
     {
       "id": 12,
       "name": "OutsidePlant.3",
-      "at": [26, 31],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "left"
-          },
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": "ControlSwitches", "parameters": [0, 224, 224, 0]},
+            {"code": "ShowMessage", "string": "You found:"},
+            {"code": "ShowMessage_2", "string": "       Fresh Pita-HP"},
+            {"code": "ChangeItems", "parameters": [0, 0, 114, 0, 1]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "PlaySound", "Bow2", [100, 100, 50]],
-            [0, "ControlSwitches", "", [0, 224, 224, 0]],
-            [0, "ShowMessage", "You found:", []],
-            [0, "ShowMessage_2", "       Fresh Pita-HP", []],
-            [0, "ChangeItems", "", [0, 0, 114, 0, 1]]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 224
+          "animation_type": "fixed_graphic",
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "BLObjs",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 224
           },
-          "sprite": {
-            "charset": "BLObjs",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+          ],
+          "id": 2,
           "layer": "same",
-          "trigger": "action",
-          "animation": "fixed_graphic",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's empty. That figures.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 26,
+      "y": 31
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [27, 23],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The grate is empty. Oh well..."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The grate is empty. Oh well...", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 27,
+      "y": 23
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "height": 50,
+  "save_count": 47,
+  "width": 50
 }

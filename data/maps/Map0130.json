@@ -1,611 +1,818 @@
 {
-  "id": 130,
-  "name": "Ground Floor",
-  "size": [30, 40],
-  "chipset": [25, "sd3_castle_inside_2"],
-  "tiles": "Map0130.tiles",
+  "chipset_id": 25,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [10, 39],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [129, 9, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [129, 9, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 39
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [2, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [131, 2, 16]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [131, 2, 16]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 14
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [3, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [131, 3, 16]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [131, 3, 16]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 14
     },
     {
       "id": 4,
       "name": "Lerle",
-      "at": [29, 0],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 29
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [2, 38],
       "pages": [
         {
-          "conditions": {
-            "actor": 26
+          "condition": {
+            "actor_id": 26,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ChangeEventLocation", "", [4, 0, 10, 38]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 13]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "One odd thing about the Theatre Ruins:", []],
-            [0, "ShowMessage_2", "No matter how many times we've come", []],
-            [0, "ShowMessage_2", "in looking for scripts, the doors always", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "seem to lock again, and the furniture", []],
-            [0, "ShowMessage_2", "is often in different places. Auleen thinks", []],
-            [0, "ShowMessage_2", "the place is haunted.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Maybe we'll find out for sure today!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Uh... maybe.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
-            [0, "Wait", "", [6]],
-            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
-            [0, "ControlSwitches", "", [0, 400, 400, 0]]
-          ]
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 10, 38]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 13]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "One odd thing about the Theatre Ruins:"},
+            {"code": "ShowMessage_2", "string": "No matter how many times we've come"},
+            {"code": "ShowMessage_2", "string": "in looking for scripts, the doors always"},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "seem to lock again, and the furniture"},
+            {"code": "ShowMessage_2", "string": "is often in different places. Auleen thinks"},
+            {"code": "ShowMessage_2", "string": "the place is haunted."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Maybe we'll find out for sure today!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Uh... maybe."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 1, 37]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 29, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 400, 400, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 400
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 400
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 38
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [8, 32],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
-            [0, "ControlSwitches", "", [0, 412, 412, 0]],
-            [0, "Teleport", "", [133, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 123, 123, 1, 0, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 412, 412, 0]},
+            {"code": "Teleport", "parameters": [133, 7, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 412
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 412
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [133, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [133, 7, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 32
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [15, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
-            [0, "ControlSwitches", "", [0, 413, 413, 0]],
-            [0, "Teleport", "", [134, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 123, 123, 1, 0, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 413, 413, 0]},
+            {"code": "Teleport", "parameters": [134, 7, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 413
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 413
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [134, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [134, 7, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 28
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [24, 20],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
-            [0, "ControlSwitches", "", [0, 414, 414, 0]],
-            [0, "Teleport", "", [135, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 123, 123, 1, 0, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 414, 414, 0]},
+            {"code": "Teleport", "parameters": [135, 7, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 414
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 414
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [135, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [135, 7, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 24,
+      "y": 20
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [11, 12],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
-            [0, "ControlSwitches", "", [0, 415, 415, 0]],
-            [0, "Teleport", "", [136, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 123, 123, 1, 0, 1, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 415, 415, 0]},
+            {"code": "Teleport", "parameters": [136, 7, 11]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 415
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 415
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [136, 7, 11]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [136, 7, 11]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 12
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [5, 12],
       "pages": [
         {
-          "conditions": {
-            "actor": 26
+          "condition": {
+            "actor_id": 26,
+            "flags": {
+              "actor": true,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            }
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ChangeEventLocation", "", [4, 0, 5, 12]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "This huge door leads to the stage area.", []],
-            [0, "ShowMessage_2", "We can probably find a good script inside,", []],
-            [0, "ShowMessage_2", "but first we'll need a key for the door.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Where can we find the key?", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Auleen's ghosts must move it around. Last", []],
-            [0, "ShowMessage_2", "time I was here, I found the key in a room", []],
-            [0, "ShowMessage_2", "upstairs somewhere.", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Auleen says the key is always in the last", []],
-            [0, "ShowMessage_2", "room you look - but that's obvious, right?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Why don't we just use the key you found?", []],
-            [0, "ShowMessage_2", "Why go through all this over again?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Well... honestly, I lost it. It's probably", []],
-            [0, "ShowMessage_2", "wedged in a crack in the floorboards back", []],
-            [0, "ShowMessage_2", "home.", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Auleen thinks some spirit ghosted it", []],
-            [0, "ShowMessage_2", "away, or something, but I doubt it.", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "There'll be one around here somewhere.", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 2, 1, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
-            [0, "ControlSwitches", "", [0, 409, 409, 0]]
-          ]
-        },
-        {
-          "conditions": {
-            "switch_a": 409
-          },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 5, 12]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "This huge door leads to the stage area."},
+            {"code": "ShowMessage_2", "string": "We can probably find a good script inside,"},
+            {"code": "ShowMessage_2", "string": "but first we'll need a key for the door."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Where can we find the key?"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Auleen's ghosts must move it around. Last"},
+            {"code": "ShowMessage_2", "string": "time I was here, I found the key in a room"},
+            {"code": "ShowMessage_2", "string": "upstairs somewhere."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Auleen says the key is always in the last"},
+            {"code": "ShowMessage_2", "string": "room you look - but that's obvious, right?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Why don't we just use the key you found?"},
+            {"code": "ShowMessage_2", "string": "Why go through all this over again?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Well... honestly, I lost it. It's probably"},
+            {"code": "ShowMessage_2", "string": "wedged in a crack in the floorboards back"},
+            {"code": "ShowMessage_2", "string": "home."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Auleen thinks some spirit ghosted it"},
+            {"code": "ShowMessage_2", "string": "away, or something, but I doubt it."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "There'll be one around here somewhere."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 2, 1, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 29, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 409, 409, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "trigger": "touched"
         },
         {
-          "conditions": {
-            "item": 151
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 409
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [4, 0, 4, 10]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 12]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Open1", [70, 150, 50]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "TALAN unlocked the door with", []],
-            [0, "ShowMessage_2", "the THEATRE KEY.", []],
-            [0, "ControlSwitches", "", [0, 420, 420, 0]],
-            [0, "PlaySound", "Earth2", [90, 50, 50]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "Wait", "", [6]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Let's go, Talan!", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 0, 37]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
-            [0, "Wait", "", [10]],
-            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
-            [0, "Teleport", "", [132, 16, 28]]
-          ]
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 420
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": true,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 151
           },
-          "tile": 0,
-          "layer": "below",
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 0, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 4, 10]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [70, 150, 50], "string": "Open1"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN unlocked the door with"},
+            {"code": "ShowMessage_2", "string": "the THEATRE KEY."},
+            {"code": "ControlSwitches", "parameters": [0, 420, 420, 0]},
+            {"code": "PlaySound", "parameters": [90, 50, 50], "string": "Earth2"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Let's go, Talan!"},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 0, 37]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 0, 37]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 29, 0]},
+            {"code": "Teleport", "parameters": [132, 16, 28]}
+          ],
+          "id": 3,
+          "move_type": "stationary",
+          "trigger": "touched"
+        },
+        {
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
+          },
+          "id": 4,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 12
     },
     {
       "id": 11,
       "name": "EV0011",
-      "at": [4, 9],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't think we should go back to the", []],
-            [0, "ShowMessage_2", "stage area. Let's just get out of here!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't think we should go back to the"},
+            {"code": "ShowMessage_2", "string": "stage area. Let's just get out of here!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 9
     },
     {
       "id": 12,
       "name": "EV0012",
-      "at": [3, 9],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't think we should go back to the", []],
-            [0, "ShowMessage_2", "stage area. Let's just get out of here!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't think we should go back to the"},
+            {"code": "ShowMessage_2", "string": "stage area. Let's just get out of here!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 9
     },
     {
       "id": 13,
       "name": "EV0013",
-      "at": [3, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 8
     },
     {
       "id": 14,
       "name": "EV0014",
-      "at": [4, 8],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 8
     },
     {
       "id": 15,
       "name": "EV0015",
-      "at": [4, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 7
     },
     {
       "id": 16,
       "name": "EV0016",
-      "at": [3, 7],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 7
     },
     {
       "id": 17,
       "name": "EV0017",
-      "at": [3, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 6
     },
     {
       "id": 18,
       "name": "EV0018",
-      "at": [4, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 6
     },
     {
       "id": 19,
       "name": "EV0019",
-      "at": [4, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 5
     },
     {
       "id": 20,
       "name": "EV0020",
-      "at": [3, 5],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 420
+          "character_index": 128,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 420
           },
-          "tile": 128,
-          "layer": "below",
-          "trigger": "action"
+          "id": 1,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 3,
+      "y": 5
     },
     {
       "id": 21,
       "name": "SaveInTheatreRuins",
-      "at": [10, 33],
       "pages": [
         {
-          "sprite": {
-            "charset": "savept",
-            "index": 0,
-            "direction": "up",
-            "pattern": "left"
-          },
-          "layer": "below",
-          "trigger": "action",
-          "animation": "fixed_continuous",
-          "translucent": true,
-          "script": [
-            [0, "PlaySound", "Holy5", [70, 100, 50]],
-            [0, "OpenSaveMenu", "", []],
-            [0, "ChangeSaveAccess", "", [0]]
-          ]
+          "animation_type": "fixed_continuous",
+          "character_direction": "up",
+          "character_name": "savept",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": "OpenSaveMenu"},
+            {"code": "ChangeSaveAccess", "parameters": [0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "translucent": true
         }
-      ]
+      ],
+      "x": 10,
+      "y": 33
     },
     {
       "id": 22,
       "name": "EV0022",
-      "at": [0, 3],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 422
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 422
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
-            [0, "ChangeEventLocation", "", [4, 0, 3, 10]],
-            [0, "Wait", "", [7]],
-            [0, "PlaySound", "Earth4", [70, 70, 50]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "What's that?!", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It sounded like... walls shifting, or something...", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Let's just get out of here. I'm convinced, all", []],
-            [0, "ShowMessage_2", "right, Auleen! It's haunted! Good for you!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "She's not here, Lerle.", []],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
-            [0, "Wait", "", [7]],
-            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
-            [0, "ControlSwitches", "", [0, 423, 423, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 3, 10]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "PlaySound", "parameters": [70, 70, 50], "string": "Earth4"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 24, 25]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "What's that?!"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "It sounded like... walls shifting, or something..."
+            },
+            {"code": "ShowMessage", "string": "LERLE"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Let's just get out of here. I'm convinced, all"
+            },
+            {"code": "ShowMessage_2", "string": "right, Auleen! It's haunted! Good for you!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "She's not here, Lerle."},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 36, 1, 37]},
+            {"code": "Wait", "parameters": [7]},
+            {"code": "ChangeEventLocation", "parameters": [4, 0, 29, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 423, 423, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 423
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 423
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "y": 3
     },
     {
       "id": 23,
       "name": "EV0023",
-      "at": [0, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 24,
       "name": "EV0024",
-      "at": [8, 28],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
+          "character_direction": "up",
+          "character_pattern": "left",
+          "event_commands": [
+            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
+            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
+            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 21, 1]},
+            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 21, 2]},
+            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
+            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
           "translucent": true,
-          "script": [
-            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
-            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
-            [0, "ControlVars", "", [0, 41, 41, 0, 6, 21, 1]],
-            [0, "ControlVars", "", [0, 42, 42, 0, 6, 21, 2]],
-            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
-            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
-            [2, "ChangeSaveAccess", "", [1]],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 28
     }
-  ]
+  ],
+  "height": 40,
+  "save_count": 60,
+  "width": 30
 }

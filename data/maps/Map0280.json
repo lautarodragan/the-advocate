@@ -1,8 +1,1 @@
-{
-  "id": 280,
-  "name": "Area 1 Catacombs",
-  "size": [20, 15],
-  "chipset": [3, "inner"],
-  "tiles": "Map0280.tiles",
-  "events": []
-}
+{"chipset_id": 3, "save_count": 4}

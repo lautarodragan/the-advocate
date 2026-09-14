@@ -1,111 +1,123 @@
 {
-  "id": 213,
-  "name": "Boy Running",
-  "size": [20, 15],
-  "chipset": [36, "townQ"],
-  "tiles": "Map0213.tiles",
+  "chipset_id": 36,
   "events": [
     {
       "id": 1,
       "name": "Boy",
-      "at": [0, 4],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 615
+          "character_direction": "right",
+          "character_name": "People4",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 615
           },
-          "sprite": {
-            "charset": "People4",
-            "index": 0,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 4
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 14],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowBattleAnimation", "", [77, 3, 1, 0]],
-            [0, "MoveEvent", "", [4, 8, 0, 0, 28, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]],
-            [0, "Wait", "", [10]],
-            [0, "ControlSwitches", "", [0, 615, 615, 0]],
-            [0, "MoveEvent", "", [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 5, 5, 5, 5, 1, 1, 1, 1, 1]],
-            [0, "PlaySound", "Explosion2", [50, 100, 50]],
-            [0, "Wait", "", [3]],
-            [0, "PlaySound", "Explosion5", [50, 100, 0]],
-            [0, "Wait", "", [5]],
-            [0, "PlaySound", "Explosion7", [70, 100, 20]],
-            [0, "Wait", "", [10]],
-            [0, "PlaySound", "Explosion7", [90, 80, 30]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "LITTLE BOY", []],
-            [0, "ShowMessage_2", "C'mon, Bro! Wake up! C'mon!", []],
-            [0, "Wait", "", [15]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 2, 0]],
-            [0, "PlaySound", "Bell", [80, 150, 50]],
-            [0, "ShowPicture", "SurlBroDiff", [20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 0]],
-            [0, "Wait", "", [15]],
-            [0, "TintScreen", "", [0, 0, 0, 100, 1, 0]],
-            [0, "MovePicture", "", [20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "LITTLE BOY", []],
-            [0, "ShowMessage_2", "I wanted to be in the army like my", []],
-            [0, "ShowMessage_2", "brother Jim. He had a cool uniform", []],
-            [0, "ShowMessage_2", "and got to carry a gun!", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "LITTLE BOY", []],
-            [0, "ShowMessage_2", "I don't want to be in the Army anymore.", []],
-            [0, "Teleport", "", [214, 8, 9]],
-            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]]
-          ]
+          "event_commands": [
+            {"code": "ShowBattleAnimation", "parameters": [77, 3, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [4, 8, 0, 0, 28, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 615, 615, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 5, 5, 5, 5, 1, 1, 1, 1, 1]
+            },
+            {"code": "PlaySound", "parameters": [50, 100, 50], "string": "Explosion2"},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "PlaySound", "parameters": [50, 100, 0], "string": "Explosion5"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "PlaySound", "parameters": [70, 100, 20], "string": "Explosion7"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "PlaySound", "parameters": [90, 80, 30], "string": "Explosion7"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "LITTLE BOY"},
+            {"code": "ShowMessage_2", "string": "C'mon, Bro! Wake up! C'mon!"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 2, 0]},
+            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
+            {
+              "code": "ShowPicture",
+              "parameters": [20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+              "string": "SurlBroDiff"
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 0]},
+            {
+              "code": "MovePicture",
+              "parameters": [20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "LITTLE BOY"},
+            {"code": "ShowMessage_2", "string": "I wanted to be in the army like my"},
+            {"code": "ShowMessage_2", "string": "brother Jim. He had a cool uniform"},
+            {"code": "ShowMessage_2", "string": "and got to carry a gun!"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "LITTLE BOY"},
+            {"code": "ShowMessage_2", "string": "I don't want to be in the Army anymore."},
+            {"code": "Teleport", "parameters": [214, 8, 9]},
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "y": 14
     },
     {
       "id": 3,
       "name": "Brother",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 0,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 4,
       "name": "Agent",
-      "at": [16, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "BLAgents",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "BLAgents",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 8
     }
-  ]
+  ],
+  "save_count": 20
 }

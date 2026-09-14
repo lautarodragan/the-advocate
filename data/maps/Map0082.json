@@ -1,145 +1,151 @@
 {
-  "id": 82,
-  "name": "Director'sOfficeNextStep",
-  "size": [20, 15],
-  "chipset": [18, "Inside"],
-  "tiles": "Map0082.tiles",
-  "parallax": {
-    "name": "OfficeView",
-    "loop_x": false,
-    "loop_y": false,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 18,
   "events": [
     {
       "id": 1,
       "name": "Agency Captain",
-      "at": [10, 12],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 5,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 5,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 12
     },
     {
       "id": 2,
       "name": "Director",
-      "at": [17, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 4
     },
     {
       "id": 3,
       "name": "RunTheScene",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13]],
-            [0, "Wait", "", [25]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
-            [0, "Wait", "", [5]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Ah, you're here.", []],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Sir.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "I suppose it's time for the next phase of", []],
-            [0, "ShowMessage_2", "the Schedule... this is where things might", []],
-            [0, "ShowMessage_2", "get dicey...", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Corporal Dalia will handle the next phase.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Dalia? Isn't she a bit... abrasive? I don't know", []],
-            [0, "ShowMessage_2", "whether Eisen will choose to cooperate with", []],
-            [0, "ShowMessage_2", "her.", []],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "He won't have a choice, Sir. The Advocate", []],
-            [0, "ShowMessage_2", "must be reactivated. Dalia will be acceptable.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Well, there's no denying that she's loyal.", []],
-            [0, "ShowMessage_2", "But Corporal Dalia sometimes lacks...", []],
-            [0, "ShowMessage_2", "a gentle touch, shall we say?", []],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Have you found the Slicer yet? We can't", []],
-            [0, "ShowMessage_2", "let someone just get away with hacking our", []],
-            [0, "ShowMessage_2", "systems...", []],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Not yet, Sir. But he will be found.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "Good - I want you to offer him a position", []],
-            [0, "ShowMessage_2", "with the Agency. We can't let his talents", []],
-            [0, "ShowMessage_2", "remain unattached...", []],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "...otherwise someone might use them", []],
-            [0, "ShowMessage_2", "against us. Plus, if Eisen refuses to reactivate", []],
-            [0, "ShowMessage_2", "the Advocate, we might need a Slicer.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "AGENCY CAPTAIN", []],
-            [0, "ShowMessage_2", "Sir.", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "That is all, Captain.", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
-            [0, "Wait", "", [25]],
-            [0, "ControlSwitches", "", [0, 274, 274, 0]],
-            [0, "PlaySound", "Open2", [70, 100, 50]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]],
-            [0, "Wait", "", [8]],
-            [0, "ControlSwitches", "", [0, 274, 274, 1]],
-            [0, "PlaySound", "Close1", [70, 100, 50]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]],
-            [0, "Wait", "", [30]],
-            [0, "ShowMessage", "DIRECTOR", []],
-            [0, "ShowMessage_2", "A foolish charade...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "Teleport", "", [83, 68, 68]],
-            [0, "ChangePartyMembers", "", [1, 0, 10]],
-            [0, "ChangePartyMembers", "", [0, 0, 21]],
-            [0, "ControlSwitches", "", [0, 275, 275, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Ah, you're here."},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Sir."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "I suppose it's time for the next phase of"},
+            {"code": "ShowMessage_2", "string": "the Schedule... this is where things might"},
+            {"code": "ShowMessage_2", "string": "get dicey..."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Corporal Dalia will handle the next phase."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Dalia? Isn't she a bit... abrasive? I don't know"
+            },
+            {"code": "ShowMessage_2", "string": "whether Eisen will choose to cooperate with"},
+            {"code": "ShowMessage_2", "string": "her."},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "He won't have a choice, Sir. The Advocate"},
+            {
+              "code": "ShowMessage_2",
+              "string": "must be reactivated. Dalia will be acceptable."
+            },
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Well, there's no denying that she's loyal."},
+            {"code": "ShowMessage_2", "string": "But Corporal Dalia sometimes lacks..."},
+            {"code": "ShowMessage_2", "string": "a gentle touch, shall we say?"},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Have you found the Slicer yet? We can't"},
+            {"code": "ShowMessage_2", "string": "let someone just get away with hacking our"},
+            {"code": "ShowMessage_2", "string": "systems..."},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Not yet, Sir. But he will be found."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "Good - I want you to offer him a position"},
+            {"code": "ShowMessage_2", "string": "with the Agency. We can't let his talents"},
+            {"code": "ShowMessage_2", "string": "remain unattached..."},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "...otherwise someone might use them"},
+            {
+              "code": "ShowMessage_2",
+              "string": "against us. Plus, if Eisen refuses to reactivate"
+            },
+            {"code": "ShowMessage_2", "string": "the Advocate, we might need a Slicer."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
+            {"code": "ShowMessage_2", "string": "Sir."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "That is all, Captain."},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]},
+            {"code": "Wait", "parameters": [25]},
+            {"code": "ControlSwitches", "parameters": [0, 274, 274, 0]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Open2"},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+            },
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ControlSwitches", "parameters": [0, 274, 274, 1]},
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Close1"},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ShowMessage", "string": "DIRECTOR"},
+            {"code": "ShowMessage_2", "string": "A foolish charade..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Teleport", "parameters": [83, 68, 68]},
+            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": "ChangePartyMembers", "parameters": [0, 0, 21]},
+            {"code": "ControlSwitches", "parameters": [0, 275, 275, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 275
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 275
           },
-          "tile": 0,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "auto_start"
         }
       ]
@@ -147,42 +153,53 @@
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 13],
       "pages": [
+        {"character_index": 32, "id": 1, "move_type": "stationary"},
         {
-          "tile": 32,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 274
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 274
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 13
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [10, 14],
       "pages": [
+        {"character_index": 38, "id": 1, "move_type": "stationary"},
         {
-          "tile": 38,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 274
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 274
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 14
     }
-  ]
+  ],
+  "parallax_flag": true,
+  "parallax_name": "OfficeView",
+  "save_count": 40
 }

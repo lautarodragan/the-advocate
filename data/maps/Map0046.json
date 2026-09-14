@@ -1,353 +1,409 @@
 {
-  "id": 46,
-  "name": "Security Footage 2",
-  "size": [20, 15],
-  "chipset": [3, "inner"],
-  "tiles": "Map0046.tiles",
+  "chipset_id": 3,
   "events": [
     {
       "id": 1,
       "name": "RunDirectorScene",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "Wait", "", [30]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 15]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [12]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 14]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 24, 25]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 12]],
-            [0, "Wait", "", [5]],
-            [0, "Wait", "", [30]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 15]],
-            [0, "Wait", "", [3]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 2, 3, 2, 2, 2]],
-            [0, "Wait", "", [16]],
-            [0, "ControlSwitches", "", [0, 91, 91, 0]],
-            [0, "ChangeEventLocation", "", [9, 0, 10, 14]],
-            [0, "Wait", "", [6]],
-            [0, "MoveEvent", "", [9, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 3]],
-            [0, "ControlSwitches", "", [0, 91, 91, 1]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1, 23, 12]],
-            [0, "Wait", "", [15]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "Wait", "", [4]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1, 1, 12]],
-            [0, "Wait", "", [30]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2, 2, 2, 15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2]],
-            [0, "Wait", "", [10]],
-            [0, "Wait", "", [8]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14]],
-            [0, "Wait", "", [20]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1, 1, 12]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 12, 23, 0]],
-            [0, "Wait", "", [5]],
-            [0, "Wait", "", [15]],
-            [0, "Wait", "", [3]],
-            [0, "ControlSwitches", "", [0, 92, 92, 0]],
-            [0, "ShowBattleAnimation", "", [137, 5, 0, 0]],
-            [0, "ShowBattleAnimation", "", [139, 2, 0, 0]],
-            [0, "FlashSprite", "", [2, 0, 0, 0, 31, 1, 1]],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 38, 26, 2, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 4]],
-            [0, "Wait", "", [8]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 13]],
-            [0, "Wait", "", [15]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
-            [0, "Wait", "", [10]],
-            [0, "Wait", "", [2]],
-            [0, "Wait", "", [2]],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "Wait", "", [10]],
-            [0, "Wait", "", [5]],
-            [0, "Wait", "", [8]],
-            [0, "ControlSwitches", "", [0, 90, 90, 0]]
-          ]
+          "event_commands": [
+            {"code": "Wait", "parameters": [30]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [12]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 36, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12, 24, 25]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [6]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 2, 3, 2, 2, 2]},
+            {"code": "Wait", "parameters": [16]},
+            {"code": "ControlSwitches", "parameters": [0, 91, 91, 0]},
+            {"code": "ChangeEventLocation", "parameters": [9, 0, 10, 14]},
+            {"code": "Wait", "parameters": [6]},
+            {
+              "code": "MoveEvent",
+              "parameters": [9, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 3]
+            },
+            {"code": "ControlSwitches", "parameters": [0, 91, 91, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 1, 23, 12]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [4]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 1, 1, 12]},
+            {"code": "Wait", "parameters": [30]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 2, 2, 2, 2, 2, 15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 2, 2, 2]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14]},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 1, 1, 1, 1, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12, 23, 0]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "ControlSwitches", "parameters": [0, 92, 92, 0]},
+            {"code": "ShowBattleAnimation", "parameters": [137, 5, 0, 0]},
+            {"code": "ShowBattleAnimation", "parameters": [139, 2, 0, 0]},
+            {"code": "FlashSprite", "parameters": [2, 0, 0, 0, 31, 1, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [2, 8, 0, 0, 28, 38, 26, 2, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 4]
+            },
+            {"code": "Wait", "parameters": [8]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 0, 13]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ControlSwitches", "parameters": [0, 90, 90, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 90
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 90
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
       ]
     },
     {
       "id": 2,
       "name": "Director",
-      "at": [10, 4],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 4,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "character_direction": "up",
+          "character_index": 4,
+          "character_name": "People3",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Sir, c'mon wake up! PLEASE wake up!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's no use. He's dead."}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Sir, c'mon wake up! PLEASE wake up!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's no use. He's dead.", []]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 4
     },
     {
       "id": 3,
       "name": "FirstShot",
-      "at": [10, 3],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 129,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 129,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 3
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [10, 2],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I guess this is the only way. PLEASE"},
+            {"code": "ShowMessage_2", "string": "PLEASE PLEASE let the assassin"},
+            {"code": "ShowMessage_2", "string": "not be looking!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [10001, 8, 0, 0, 29, 36, 24, 0, 0, 0, 25, 37, 28]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "Teleport", "parameters": [20, 93, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 28, 36, 38, 2, 2, 2, 2, 2, 39, 29, 3, 3, 3, 14, 24, 28, 38, 2,
+                2, 2, 2, 2, 25, 39, 2, 2, 2, 24, 2, 2, 2, 25, 37
+              ]
+            },
+            {"code": "Wait", "parameters": [30]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "This is terrible! The Director has been"},
+            {"code": "ShowMessage_2", "string": "assassinated! I can't believe it!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Why am I running?"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I've got nothing to hide! I could just"},
+            {"code": "ShowMessage_2", "string": "tell them what I know, which is..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "The Director was planning to die. He"},
+            {"code": "ShowMessage_2", "string": "set everything up - he even locked"},
+            {"code": "ShowMessage_2", "string": "the door, to give me time..."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "... to escape."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Thanks a billion, \"Sir.\""},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I guess this is the only way. PLEASE", []],
-            [0, "ShowMessage_2", "PLEASE PLEASE let the assassin", []],
-            [0, "ShowMessage_2", "not be looking!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 36, 24, 0, 0, 0, 25, 37, 28]],
-            [0, "Wait", "", [10]],
-            [0, "Teleport", "", [20, 93, 0]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 38, 2, 2, 2, 2, 2, 39, 29, 3, 3, 3, 14, 24, 28, 38, 2, 2, 2, 2, 2, 25, 39, 2, 2, 2, 24, 2, 2, 2, 25, 37]],
-            [0, "Wait", "", [30]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "This is terrible! The Director has been", []],
-            [0, "ShowMessage_2", "assassinated! I can't believe it!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Why am I running?", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I've got nothing to hide! I could just", []],
-            [0, "ShowMessage_2", "tell them what I know, which is...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "The Director was planning to die. He", []],
-            [0, "ShowMessage_2", "set everything up - he even locked", []],
-            [0, "ShowMessage_2", "the door, to give me time...", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "... to escape.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Thanks a billion, \"Sir.\"", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
-            [0, "Wait", "", [5]]
-          ]
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 2
     },
     {
       "id": 5,
       "name": "FirstShotA",
-      "at": [10, 1],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 130,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 130,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 1
     },
     {
       "id": 6,
       "name": "FirstShot",
-      "at": [10, 0],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 124,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 124,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10
     },
     {
       "id": 7,
       "name": "FirstShot",
-      "at": [11, 3],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 129,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 129,
-          "layer": "below",
+          "id": 2,
+          "move_type": "stationary",
           "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 3
     },
     {
       "id": 8,
       "name": "FirstShot",
-      "at": [9, 3],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 92
+          "character_index": 129,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 92
           },
-          "tile": 129,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 3
     },
     {
       "id": 9,
       "name": "Dessen",
-      "at": [11, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future2",
-            "index": 6,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 6,
+          "character_name": "Future2",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 8
     },
     {
       "id": 11,
       "name": "DoorUpper",
-      "at": [10, 13],
       "pages": [
         {
-          "tile": 0,
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I don't think unlocking the door and"},
+            {"code": "ShowMessage_2", "string": "letting in the Agency guards would"},
+            {"code": "ShowMessage_2", "string": "be wise at this juncture!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I mean it!"}
+          ],
+          "id": 1,
           "layer": "same",
-          "trigger": "action",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I don't think unlocking the door and", []],
-            [0, "ShowMessage_2", "letting in the Agency guards would", []],
-            [0, "ShowMessage_2", "be wise at this juncture!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I mean it!", []]
-          ]
+          "move_type": "stationary"
         },
         {
-          "conditions": {
-            "switch_a": 91
+          "character_index": 68,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 91
           },
-          "tile": 68,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 13
     },
     {
       "id": 12,
       "name": "DoorLower",
-      "at": [10, 14],
       "pages": [
+        {"id": 1, "move_type": "stationary"},
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
-        },
-        {
-          "conditions": {
-            "switch_a": 91
+          "character_index": 74,
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 91
           },
-          "tile": 74,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 14
     }
-  ]
+  ],
+  "save_count": 26
 }

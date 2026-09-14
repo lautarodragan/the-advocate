@@ -1,187 +1,181 @@
 {
-  "id": 314,
-  "name": "DefenderFail",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0314.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "Lerle",
-      "at": [10, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 3
     },
     {
       "id": 2,
       "name": "Sern",
-      "at": [12, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 3
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "So all I have to do to become a", []],
-            [0, "ShowMessage_2", "Defender is beat you up? That", []],
-            [0, "ShowMessage_2", "doesn't sound too hard!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "SERN", []],
-            [0, "ShowMessage_2", "Really.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Here I go! Haaaaayyyyyaaaaaah!!!!", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 26, 28, 36, 38, 24, 4, 25, 2, 28]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowBattleAnimation", "", [1, 1, 1, 0]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 6, 6, 6, 6, 6, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50, 5, 5, 5, 5, 2, 37, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "Ow...", []],
-            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DRAGO", []],
-            [0, "ShowMessage_2", "I'm sure you'll be good at something.", []],
-            [0, "ShowMessage_2", "Not everyone is meant to be a", []],
-            [0, "ShowMessage_2", "Defender.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "I guess that's true. I'll try something", []],
-            [0, "ShowMessage_2", "else! That's not against the rules,", []],
-            [0, "ShowMessage_2", "right?", []],
-            [0, "MessageOptions", "", [1, 1, 0, 0]],
-            [0, "ShowMessage", "MEMNOSYNE", []],
-            [0, "ShowMessage_2", "These memories are bittersweet.", []],
-            [0, "ShowMessage_2", "Underneath his cheerful exterior,", []],
-            [0, "ShowMessage_2", "he really is a very sad boy.", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "LERLE", []],
-            [0, "ShowMessage_2", "I'll be a Farmer - that doesn't sound very", []],
-            [0, "ShowMessage_2", "difficult.", []],
-            [0, "Teleport", "", [315, 13, 6]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "So all I have to do to become a"},
+            {"code": "ShowMessage_2", "string": "Defender is beat you up? That"},
+            {"code": "ShowMessage_2", "string": "doesn't sound too hard!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "SERN"},
+            {"code": "ShowMessage_2", "string": "Really."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Here I go! Haaaaayyyyyaaaaaah!!!!"},
+            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 26, 28, 36, 38, 24, 4, 25, 2, 28]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowBattleAnimation", "parameters": [1, 1, 1, 0]},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                1, 8, 0, 0, 36, 6, 6, 6, 6, 6, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50, 5, 5,
+                5, 5, 2, 37, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "Ow..."},
+            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DRAGO"},
+            {"code": "ShowMessage_2", "string": "I'm sure you'll be good at something."},
+            {"code": "ShowMessage_2", "string": "Not everyone is meant to be a"},
+            {"code": "ShowMessage_2", "string": "Defender."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "I guess that's true. I'll try something"},
+            {"code": "ShowMessage_2", "string": "else! That's not against the rules,"},
+            {"code": "ShowMessage_2", "string": "right?"},
+            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
+            {"code": "ShowMessage", "string": "MEMNOSYNE"},
+            {"code": "ShowMessage_2", "string": "These memories are bittersweet."},
+            {"code": "ShowMessage_2", "string": "Underneath his cheerful exterior,"},
+            {"code": "ShowMessage_2", "string": "he really is a very sad boy."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "LERLE"},
+            {"code": "ShowMessage_2", "string": "I'll be a Farmer - that doesn't sound very"},
+            {"code": "ShowMessage_2", "string": "difficult."},
+            {"code": "Teleport", "parameters": [315, 13, 6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [16, 3],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 1,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 1,
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 16,
+      "y": 3
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [0, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 6
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [2, 6],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 2,
+      "y": 6
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [17, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 2,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 2,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 17,
+      "y": 7
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [14, 7],
       "pages": [
         {
-          "sprite": {
-            "charset": "Chara1",
-            "index": 3,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 3,
+          "character_name": "Chara1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 14,
+      "y": 7
     }
-  ]
+  ],
+  "save_count": 16
 }

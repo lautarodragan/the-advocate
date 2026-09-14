@@ -1,210 +1,207 @@
 {
-  "id": 276,
-  "name": "Throne Room",
-  "size": [20, 15],
-  "chipset": [1, "Basis"],
-  "tiles": "Map0276.tiles",
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [4, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 5
     },
     {
       "id": 2,
       "name": "StopGuard",
-      "at": [4, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 8
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [4, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 4,
+      "y": 11
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [15, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 11
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [15, 8],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 8
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [15, 5],
       "pages": [
         {
-          "sprite": {
-            "charset": "People3",
-            "index": 7,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 7,
+          "character_name": "People3",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 15,
+      "y": 5
     },
     {
       "id": 8,
       "name": "Manta",
-      "at": [10, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "Future1",
-            "index": 4,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_index": 4,
+          "character_name": "Future1",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 9
     },
     {
       "id": 9,
       "name": "EV0009",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
-            [0, "MessageOptions", "", [0, 0, 0, 0]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Manta, huh? I've never heard of you.", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "I was recruited by your employer fairly", []],
-            [0, "ShowMessage_2", "recently.", []],
-            [0, "Wait", "", [3]],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 14, 23, 23, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "It looks as if the old man has activated", []],
-            [0, "ShowMessage_2", "an emergency lock-out system. I need", []],
-            [0, "ShowMessage_2", "to go make some changes.", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 1, 1, 1, 1]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "Aren't you going to let me out of this", []],
-            [0, "ShowMessage_2", "simulation?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "Hmmm... the old man has more tricks", []],
-            [0, "ShowMessage_2", "up his sleeve than I thought. This might", []],
-            [0, "ShowMessage_2", "be interesting...", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "I've activated the code snippets the old", []],
-            [0, "ShowMessage_2", "man kept in the simulation for emergencies.", []],
-            [0, "ShowMessage_2", "I don't have the time to trigger them now.", []],
-            [0, "ShowMessage", "MANTA", []],
-            [0, "ShowMessage_2", "So if you want to get out, you need to", []],
-            [0, "ShowMessage_2", "trigger these three code sequences", []],
-            [0, "ShowMessage_2", "yourself. I don't have the time right now.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "How will I know -", []],
-            [0, "MoveEvent", "", [8, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ShowBattleAnimation", "", [72, 8, 1, 0]],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I don't believe this. I have to play some", []],
-            [0, "ShowMessage_2", "stupid computer game to get out of this", []],
-            [0, "ShowMessage_2", "thing?", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "KNIGHT", []],
-            [0, "ShowMessage_2", "Your Highness, I'm afraid you must", []],
-            [0, "ShowMessage_2", "stay here. Your protection is of paramount", []],
-            [0, "ShowMessage_2", "import.", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Wait", "", [8]],
-            [0, "ShowMessage", "DALIA", []],
-            [0, "ShowMessage_2", "I guess it's better than waiting here", []],
-            [0, "ShowMessage_2", "for that Slicer to get back.", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [278, 25, 9]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
+            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Manta, huh? I've never heard of you."},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "I was recruited by your employer fairly"},
+            {"code": "ShowMessage_2", "string": "recently."},
+            {"code": "Wait", "parameters": [3]},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14, 23, 23, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "It looks as if the old man has activated"},
+            {"code": "ShowMessage_2", "string": "an emergency lock-out system. I need"},
+            {"code": "ShowMessage_2", "string": "to go make some changes."},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 1, 1, 1, 1]},
+            {"code": "ProceedWithMovement"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "Aren't you going to let me out of this"},
+            {"code": "ShowMessage_2", "string": "simulation?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "Hmmm... the old man has more tricks"},
+            {"code": "ShowMessage_2", "string": "up his sleeve than I thought. This might"},
+            {"code": "ShowMessage_2", "string": "be interesting..."},
+            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "I've activated the code snippets the old"},
+            {"code": "ShowMessage_2", "string": "man kept in the simulation for emergencies."},
+            {"code": "ShowMessage_2", "string": "I don't have the time to trigger them now."},
+            {"code": "ShowMessage", "string": "MANTA"},
+            {"code": "ShowMessage_2", "string": "So if you want to get out, you need to"},
+            {"code": "ShowMessage_2", "string": "trigger these three code sequences"},
+            {"code": "ShowMessage_2", "string": "yourself. I don't have the time right now."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "How will I know -"},
+            {
+              "code": "MoveEvent",
+              "parameters": [8, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+            },
+            {"code": "ShowBattleAnimation", "parameters": [72, 8, 1, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I don't believe this. I have to play some"},
+            {"code": "ShowMessage_2", "string": "stupid computer game to get out of this"},
+            {"code": "ShowMessage_2", "string": "thing?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "KNIGHT"},
+            {"code": "ShowMessage_2", "string": "Your Highness, I'm afraid you must"},
+            {"code": "ShowMessage_2", "string": "stay here. Your protection is of paramount"},
+            {"code": "ShowMessage_2", "string": "import."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": "ProceedWithMovement"},
+            {"code": "Wait", "parameters": [8]},
+            {"code": "ShowMessage", "string": "DALIA"},
+            {"code": "ShowMessage_2", "string": "I guess it's better than waiting here"},
+            {"code": "ShowMessage_2", "string": "for that Slicer to get back."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 2, 2, 2, 2, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114,
+                101, 0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [278, 25, 9]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 27
 }

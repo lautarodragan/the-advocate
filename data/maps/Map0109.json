@@ -1,290 +1,375 @@
 {
-  "id": 109,
-  "name": "Paradise Overlook",
-  "size": [20, 30],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0109.tiles",
-  "parallax": {
-    "name": "Night1",
-    "loop_x": false,
-    "loop_y": true,
-    "scroll_x": 0,
-    "scroll_y": 0
-  },
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [10, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [108, 50, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [108, 50, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 363
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 363
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I can't go back down now!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I can't go back down now!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 29
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [11, 29],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [108, 50, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [108, 50, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 363
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 363
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I can't go back down now!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
-            [0, "Wait", "", [5]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I can't go back down now!"},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
+            {"code": "Wait", "parameters": [5]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 29
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [0, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 362
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 362
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "PlayBGM", "Drahkken_Neo_Remix", [0, 50, 100, 50]],
-            [0, "PanScreen", "", [2, 0, 13, 4, 1]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0]],
-            [0, "Wait", "", [20]],
-            [0, "PanScreen", "", [2, 2, 13, 4, 1]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Uh oh... this is bad!", []],
-            [0, "ShowMessage_2", "She might... fall, or something...", []],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Or jump?", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I need to do something!", []],
-            [0, "ControlSwitches", "", [0, 363, 363, 0]]
-          ]
+          "event_commands": [
+            {"code": "PlayBGM", "parameters": [0, 50, 100, 50], "string": "Drahkken_Neo_Remix"},
+            {"code": "PanScreen", "parameters": [2, 0, 13, 4, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [5, 8, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0]
+            },
+            {"code": "Wait", "parameters": [20]},
+            {"code": "PanScreen", "parameters": [2, 2, 13, 4, 1]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Uh oh... this is bad!"},
+            {"code": "ShowMessage_2", "string": "She might... fall, or something..."},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Or jump?"},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I need to do something!"},
+            {"code": "ControlSwitches", "parameters": [0, 363, 363, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         },
         {
-          "conditions": {
-            "switch_a": 363
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 363
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "action"
+          "id": 2,
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "y": 22
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [1, 22],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 362
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 362
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "PlaySound", "Rain1", [70, 100, 50]],
-            [0, "Wait", "", [30]]
-          ]
+          "event_commands": [
+            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Rain1"},
+            {"code": "Wait", "parameters": [30]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
-      ]
+      ],
+      "x": 1,
+      "y": 22
     },
     {
       "id": 5,
       "name": "Emily",
-      "at": [5, 11],
       "pages": [
         {
-          "sprite": {
-            "charset": "emily",
-            "index": 4,
-            "direction": "right",
-            "pattern": "middle"
-          },
+          "character_direction": "right",
+          "character_index": 4,
+          "character_name": "emily",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 5,
+      "y": 11
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [8, 10],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 363
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 363
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 1, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Wait!", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
-            [0, "Wait", "", [2]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 15]],
-            [0, "Wait", "", [15]],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "What - what do you want?", []],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "She's... beautiful...", []],
-            [0, "MessageOptions", "", [0, 2, 0, 0]],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "Get away from me, or I'll scream!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Listen, it's nothing like that - ", []],
-            [0, "ShowMessage_2", "I'm a friend... I just -", []],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "Leave me alone! This is none of your business!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What's wrong? Maybe I can help...", []],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "No one can! No one understands anything!", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Maybe I -", []],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "What would you know about anything?", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Listen... all I know is that I was sleeping, and", []],
-            [0, "ShowMessage_2", "heard you crying outside my door. I followed", []],
-            [0, "ShowMessage_2", "you up here.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I'm not a very smart person, but I'm smart", []],
-            [0, "ShowMessage_2", "enough to know what happens when", []],
-            [0, "ShowMessage_2", "someone crying like you climbs up  a rocky", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "spire in the dead of night during a rainstorm.", []],
-            [0, "Wait", "", [5]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 3]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "CRYING GIRL", []],
-            [0, "ShowMessage_2", "Oh? And what happens, Mr. \"I'm Not A", []],
-            [0, "ShowMessage_2", "Smart Person?\"", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "People get hurt. Usually, the would-be-rescuer", []],
-            [0, "ShowMessage_2", "who is willing to jump off a cliff in the vain", []],
-            [0, "ShowMessage_2", "hope of saving a pretty face.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "<shrug>", []],
-            [0, "ShowMessage_2", "And you don't know for a fact that I'm not", []],
-            [0, "ShowMessage_2", "willing to do that, so why don't you save us", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "both a lot of embarrassment and just come", []],
-            [0, "ShowMessage_2", "back down to the village?", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 13, 23, 23, 23, 23, 15]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "GIRL", []],
-            [0, "ShowMessage_2", "That's a cute speech. Why do you think it's", []],
-            [0, "ShowMessage_2", "going to work?", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Well... you've stopped crying. That's a good", []],
-            [0, "ShowMessage_2", "sign.", []],
-            [0, "ShowMessage", "GIRL", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Plus, that speech worked on the vidcast", []],
-            [0, "ShowMessage_2", "program \"Flashbang IV: Death Cult.\"", []],
-            [0, "ShowMessage_2", "<sheepish grin>", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "GIRL", []],
-            [0, "ShowMessage_2", "My name's Emily...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Emily. That's a pretty name. My name's", []],
-            [0, "ShowMessage_2", "Talan.", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "That's not.", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Very funny.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 3, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "All right, Emily... let's go back down where it's", []],
-            [0, "ShowMessage_2", "dry. I'm soaked.", []],
-            [0, "Wait", "", [20]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "Talan, thank you...", []],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "No problem, Emily. I'm glad to help!", []],
-            [0, "PlayBGM", "sladies", [0, 100, 100, 50]],
-            [0, "ShowMessage", "EMILY", []],
-            [0, "ShowMessage_2", "... but this isn't a vidcast.", []],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 28, 1, 1, 24, 1, 1, 1, 1, 25, 12, 38, 26, 2, 2, 2, 2, 2, 2, 2, 2, 2, 27, 37, 29, 39, 25, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "DAMN!!!!!!!!", []],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 1, 1, 1, 24, 1, 1, 1, 1, 25, 12, 26, 38, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 27, 29, 39, 37, 25, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
-            [0, "Wait", "", [15]],
-            [0, "Teleport", "", [122, 4, 0]]
-          ]
+          "event_commands": [
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 1, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Wait!"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25]},
+            {"code": "Wait", "parameters": [2]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 15]},
+            {"code": "Wait", "parameters": [15]},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {"code": "ShowMessage_2", "string": "What - what do you want?"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "She's... beautiful..."},
+            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {"code": "ShowMessage_2", "string": "Get away from me, or I'll scream!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Listen, it's nothing like that - "},
+            {"code": "ShowMessage_2", "string": "I'm a friend... I just -"},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Leave me alone! This is none of your business!"
+            },
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What's wrong? Maybe I can help..."},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {"code": "ShowMessage_2", "string": "No one can! No one understands anything!"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Maybe I -"},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {"code": "ShowMessage_2", "string": "What would you know about anything?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "Listen... all I know is that I was sleeping, and"
+            },
+            {"code": "ShowMessage_2", "string": "heard you crying outside my door. I followed"},
+            {"code": "ShowMessage_2", "string": "you up here."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I'm not a very smart person, but I'm smart"},
+            {"code": "ShowMessage_2", "string": "enough to know what happens when"},
+            {"code": "ShowMessage_2", "string": "someone crying like you climbs up  a rocky"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "spire in the dead of night during a rainstorm."
+            },
+            {"code": "Wait", "parameters": [5]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 2, 3]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "CRYING GIRL"},
+            {"code": "ShowMessage_2", "string": "Oh? And what happens, Mr. \"I'm Not A"},
+            {"code": "ShowMessage_2", "string": "Smart Person?\""},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "People get hurt. Usually, the would-be-rescuer"
+            },
+            {
+              "code": "ShowMessage_2",
+              "string": "who is willing to jump off a cliff in the vain"
+            },
+            {"code": "ShowMessage_2", "string": "hope of saving a pretty face."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "<shrug>"},
+            {"code": "ShowMessage_2", "string": "And you don't know for a fact that I'm not"},
+            {"code": "ShowMessage_2", "string": "willing to do that, so why don't you save us"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "both a lot of embarrassment and just come"},
+            {"code": "ShowMessage_2", "string": "back down to the village?"},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 2, 13, 23, 23, 23, 23, 15]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "GIRL"},
+            {"code": "ShowMessage_2", "string": "That's a cute speech. Why do you think it's"},
+            {"code": "ShowMessage_2", "string": "going to work?"},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Well... you've stopped crying. That's a good"},
+            {"code": "ShowMessage_2", "string": "sign."},
+            {"code": "ShowMessage", "string": "GIRL"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Plus, that speech worked on the vidcast"},
+            {"code": "ShowMessage_2", "string": "program \"Flashbang IV: Death Cult.\""},
+            {"code": "ShowMessage_2", "string": "<sheepish grin>"},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "GIRL"},
+            {"code": "ShowMessage_2", "string": "My name's Emily..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Emily. That's a pretty name. My name's"},
+            {"code": "ShowMessage_2", "string": "Talan."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "That's not."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Very funny."},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 3, 3]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "string": "All right, Emily... let's go back down where it's"
+            },
+            {"code": "ShowMessage_2", "string": "dry. I'm soaked."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "Talan, thank you..."},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "No problem, Emily. I'm glad to help!"},
+            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "sladies"},
+            {"code": "ShowMessage", "string": "EMILY"},
+            {"code": "ShowMessage_2", "string": "... but this isn't a vidcast."},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                5, 8, 0, 0, 36, 28, 1, 1, 24, 1, 1, 1, 1, 25, 12, 38, 26, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 27, 37, 29, 39, 25, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3
+              ]
+            },
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "DAMN!!!!!!!!"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                10001, 8, 0, 0, 36, 1, 1, 1, 1, 24, 1, 1, 1, 1, 25, 12, 26, 38, 28, 2, 2, 2, 2,
+                2, 2, 2, 2, 2, 27, 29, 39, 37, 25, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3
+              ]
+            },
+            {"code": "Wait", "parameters": [15]},
+            {"code": "Teleport", "parameters": [122, 4, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 10
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [19, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 47, 0]],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 47, 0]},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 19
     }
-  ]
+  ],
+  "height": 30,
+  "parallax_flag": true,
+  "parallax_loop_y": true,
+  "parallax_name": "Night1",
+  "save_count": 28
 }

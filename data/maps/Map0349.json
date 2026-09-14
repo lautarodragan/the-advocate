@@ -1,46 +1,49 @@
 {
-  "id": 349,
-  "name": "Walking in Paradise",
-  "size": [20, 15],
-  "chipset": [23, "PS4Chipset"],
-  "tiles": "Map0349.tiles",
+  "chipset_id": 23,
   "events": [
     {
       "id": 1,
       "name": "Radin",
-      "at": [19, 9],
       "pages": [
         {
-          "sprite": {
-            "charset": "extra2(1)",
-            "index": 0,
-            "direction": "left",
-            "pattern": "middle"
-          },
+          "character_direction": "left",
+          "character_name": "extra2(1)",
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 19,
+      "y": 9
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [40, 20, 60, 100, 5, 1]],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 23, 23, 13, 23, 23, 23, 14, 12, 15]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
-            [0, "ProceedWithMovement", "", []],
-            [0, "Teleport", "", [350, 10, 14]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [40, 20, 60, 100, 5, 1]},
+            {
+              "code": "MoveEvent",
+              "parameters": [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 23, 23, 13, 23, 23, 23, 14, 12, 15]
+            },
+            {"code": "ProceedWithMovement"},
+            {
+              "code": "MoveEvent",
+              "parameters": [
+                1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121,
+                104, 101, 114, 101, 0
+              ]
+            },
+            {"code": "ProceedWithMovement"},
+            {"code": "Teleport", "parameters": [350, 10, 14]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     }
-  ]
+  ],
+  "save_count": 12
 }

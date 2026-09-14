@@ -1,210 +1,242 @@
 {
-  "id": 210,
-  "name": "The Kingdom of Surl",
-  "size": [40, 60],
-  "chipset": [31, "worldmapcharlie"],
-  "tiles": "Map0210.tiles",
+  "chipset_id": 31,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [11, 3],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [246, 7, 13]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [246, 7, 13]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 3
     },
     {
       "id": 2,
       "name": "EV0002",
-      "at": [9, 32],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "TintScreen", "", [80, 80, 80, 80, 4, 1]],
-            [0, "Teleport", "", [257, 1, 33]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [80, 80, 80, 80, 4, 1]},
+            {"code": "Teleport", "parameters": [257, 1, 33]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         },
         {
-          "conditions": {
-            "switch_a": 665
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 665
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [257, 1, 33]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [257, 1, 33]}
+          ],
+          "id": 2,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 9,
+      "y": 32
     },
     {
       "id": 3,
       "name": "EV0003",
-      "at": [10, 32],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [270, 18, 4]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [270, 18, 4]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 32
     },
     {
       "id": 4,
       "name": "EV0004",
-      "at": [11, 47],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [258, 13, 1]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [258, 13, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 47
     },
     {
       "id": 5,
       "name": "EV0005",
-      "at": [11, 48],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [273, 9, 13]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [273, 9, 13]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 11,
+      "y": 48
     },
     {
       "id": 6,
       "name": "EV0006",
-      "at": [22, 45],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [260, 1, 13]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [260, 1, 13]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 22,
+      "y": 45
     },
     {
       "id": 7,
       "name": "EV0007",
-      "at": [23, 45],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [260, 68, 12]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [260, 68, 12]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 23,
+      "y": 45
     },
     {
       "id": 8,
       "name": "EV0008",
-      "at": [31, 45],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "touched",
-          "script": [
-            [0, "Teleport", "", [261, 1, 9]],
-            [0, "ControlSwitches", "", [0, 236, 236, 1]]
-          ]
+          "event_commands": [
+            {"code": "Teleport", "parameters": [261, 1, 9]},
+            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "touched"
         }
-      ]
+      ],
+      "x": 31,
+      "y": 45
     },
     {
       "id": 9,
       "name": "AfterBattleMint",
-      "at": [39, 0],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 498
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 498
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "CallEvent", "", [0, 35, 0]]
-          ]
+          "event_commands": [
+            {"code": "CallEvent", "parameters": [0, 35, 0]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 39
     },
     {
       "id": 10,
       "name": "EV0010",
-      "at": [39, 59],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 811
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 811
           },
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "ShowMessage", "RADIN", []],
-            [0, "ShowMessage_2", "The soil here is not very good for", []],
-            [0, "ShowMessage_2", "finding ingredients. I should try", []],
-            [0, "ShowMessage_2", "elsewhere.", []],
-            [0, "ControlSwitches", "", [0, 811, 811, 1]]
-          ]
+          "event_commands": [
+            {"code": "ShowMessage", "string": "RADIN"},
+            {"code": "ShowMessage_2", "string": "The soil here is not very good for"},
+            {"code": "ShowMessage_2", "string": "finding ingredients. I should try"},
+            {"code": "ShowMessage_2", "string": "elsewhere."},
+            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
-      ]
+      ],
+      "x": 39,
+      "y": 59
     },
     {
       "id": 11,
       "name": "WorldMapTurnOnSaving",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "parallel",
-          "script": [
-            [0, "ConditionalBranch", "", [0, 236, 1, 0, 0, 1]],
-            [1, "ControlSwitches", "", [0, 236, 236, 0]],
-            [1, "ChangeSaveAccess", "", [1]],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []]
-          ]
+          "condition": {"switch_a_id": 236},
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 236, 1, 0, 0, 1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 236, 236, 0]},
+            {"code": "ChangeSaveAccess", "indent": 1, "parameters": [1]},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "parallel"
         }
       ]
     }
-  ]
+  ],
+  "height": 60,
+  "save_count": 101,
+  "width": 40
 }

@@ -1,262 +1,342 @@
 {
-  "id": 124,
-  "name": "Talan'sDream2",
-  "size": [20, 15],
-  "chipset": [21, "PS4Chipset"],
-  "tiles": "Map0124.tiles",
+  "chipset_id": 21,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
-      "at": [0, 0],
       "pages": [
         {
-          "tile": 0,
-          "layer": "below",
-          "trigger": "auto_start",
-          "script": [
-            [0, "TintScreen", "", [100, 10, 100, 100, 10, 1]],
-            [0, "PlayBGM", "Black-Dove_2_CH", [0, 50, 100, 50]],
-            [0, "Wait", "", [10]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What is this light?... I don't like it...", []],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "I can hear you breathing again! Who is this?", []],
-            [0, "MessageOptions", "", [1, 2, 0, 0]],
-            [0, "ShowMessage", "PRESENCE", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "Wait", "", [20]],
-            [0, "MessageOptions", "", [1, 0, 0, 0]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "It's gone again, whatever it was.", []],
-            [0, "Wait", "", [10]],
-            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
-            [1, "ControlSwitches", "", [0, 371, 371, 0]],
-            [1, "Wait", "", [5]],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "Arden! You escaped!", []],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "No, I didn't. The Agency brought me back.", []],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "I'm with the Vipers again, Talan.", []],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "That's what you wanted, right? That's... good!", []],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "There are fewer of us now, Talan.", []],
-            [1, "ShowMessage_2", "They keep leading us from our cells,", []],
-            [1, "ShowMessage_2", "one by one...", []],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "No! Arden... that's not true! You're... ", []],
-            [1, "ShowMessage_2", "you're not real!", []],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "ARDEN", []],
-            [1, "ShowMessage_2", "... one by one...", []],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN, crying", []],
-            [1, "ShowMessage_2", "Stop it! I never meant for this to happen!", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
-            [2, "ControlSwitches", "", [0, 368, 368, 0]],
-            [2, "Wait", "", [5]],
-            [2, "MessageOptions", "", [1, 0, 0, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "Saldra! You escaped!", []],
-            [2, "Wait", "", [10]],
-            [2, "MessageOptions", "", [1, 2, 0, 0]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "No, man, I didn't. The Agency brought me back.", []],
-            [2, "Wait", "", [10]],
-            [2, "MessageOptions", "", [1, 2, 0, 0]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "I'm with the Teeth again, man.", []],
-            [2, "MessageOptions", "", [1, 0, 0, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "That's what you wanted, right? That's... good!", []],
-            [2, "Wait", "", [10]],
-            [2, "MessageOptions", "", [1, 2, 0, 0]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "There are fewer of us now, Talan.", []],
-            [2, "ShowMessage_2", "They keep leading us from our cells,", []],
-            [2, "ShowMessage_2", "one by one...", []],
-            [2, "MessageOptions", "", [1, 0, 0, 0]],
-            [2, "ShowMessage", "TALAN", []],
-            [2, "ShowMessage_2", "No! Saldra... that's not true! You're... ", []],
-            [2, "ShowMessage_2", "you're not real!", []],
-            [2, "MessageOptions", "", [1, 2, 0, 0]],
-            [2, "ShowMessage", "SALDRA", []],
-            [2, "ShowMessage_2", "... one by one...", []],
-            [2, "MessageOptions", "", [1, 0, 0, 0]],
-            [2, "ShowMessage", "TALAN, crying", []],
-            [2, "ShowMessage_2", "Stop it! I never meant for this to happen!", []],
-            [2, "END", "", []],
-            [1, "ElseBranch", "", []],
-            [2, "END", "", []],
-            [1, "EndBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
-            [1, "ControlSwitches", "", [0, 369, 369, 0]],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "AG7! You're -", []],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "... ... ...", []],
-            [1, "Wait", "", [20]],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "Friend.name = \"Talan\"", []],
-            [1, "ShowMessage_2", "NewValue = - (Friend.name)", []],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "AG7... they wouldn't let me bring you inside", []],
-            [1, "ShowMessage_2", "the city, I'm sorry. There was nothing I could", []],
-            [1, "ShowMessage_2", "do!", []],
-            [1, "MessageOptions", "", [1, 2, 0, 0]],
-            [1, "ShowMessage", "AG7-17", []],
-            [1, "ShowMessage_2", "((as73fbf.int27fb%#^6))/2734n", []],
-            [1, "ShowMessage_2", "fjdddr5637gbcdisregard-9237rh", []],
-            [1, "Wait", "", [10]],
-            [1, "MessageOptions", "", [1, 0, 0, 0]],
-            [1, "ShowMessage", "TALAN", []],
-            [1, "ShowMessage_2", "AG7...", []],
-            [1, "END", "", []],
-            [0, "ElseBranch", "", []],
-            [1, "END", "", []],
-            [0, "EndBranch", "", []],
-            [0, "ControlSwitches", "", [0, 370, 370, 0]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "Dessen! Is that you?", []],
-            [0, "Wait", "", [10]],
-            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
-            [0, "Wait", "", [5]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "You sold me out! I thought we were friends,", []],
-            [0, "ShowMessage_2", "but you turned on me the first chance you", []],
-            [0, "ShowMessage_2", "got!", []],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "DESSEN", []],
-            [0, "ShowMessage_2", "... ... ...", []],
-            [0, "ShowMessage", "DESSEN", []],
-            [0, "ShowMessage_2", "You're dangerous, Talan. You're starting", []],
-            [0, "ShowMessage_2", "to realize it, too - why else do you think", []],
-            [0, "ShowMessage_2", "you've conjured us up from the depths of", []],
-            [0, "ShowMessage", "DESSEN", []],
-            [0, "ShowMessage_2", "your memory? Events have been set in", []],
-            [0, "ShowMessage_2", "motion that are far greater than any of", []],
-            [0, "ShowMessage_2", "us - and it scares you.", []],
-            [0, "TintScreen", "", [100, 60, 100, 100, 5, 1]],
-            [0, "Wait", "", [10]],
-            [0, "ShowMessage", "TALAN", []],
-            [0, "ShowMessage_2", "What's happening to the light?", []],
-            [0, "FadeOutBGM", "", [1000]],
-            [0, "TintScreen", "", [180, 180, 150, 200, 10, 1]],
-            [0, "PlaySound", "Explosion6", [100, 150, 50]],
-            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
-            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
-            [0, "ControlSwitches", "", [0, 362, 362, 1]],
-            [0, "ControlSwitches", "", [0, 363, 363, 1]],
-            [0, "ControlSwitches", "", [0, 367, 367, 1]],
-            [0, "ControlSwitches", "", [0, 372, 372, 0]],
-            [0, "Teleport", "", [114, 2, 6]]
-          ]
+          "event_commands": [
+            {"code": "TintScreen", "parameters": [100, 10, 100, 100, 10, 1]},
+            {"code": "PlayBGM", "parameters": [0, 50, 100, 50], "string": "Black-Dove_2_CH"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What is this light?... I don't like it..."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "I can hear you breathing again! Who is this?"},
+            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "string": "PRESENCE"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "Wait", "parameters": [20]},
+            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "It's gone again, whatever it was."},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 371, 371, 0]},
+            {"code": "Wait", "indent": 1, "parameters": [5]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Arden! You escaped!"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "No, I didn't. The Agency brought me back."
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "I'm with the Vipers again, Talan."
+            },
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "That's what you wanted, right? That's... good!"
+            },
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "There are fewer of us now, Talan."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "They keep leading us from our cells,"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "one by one..."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "No! Arden... that's not true! You're... "
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "you're not real!"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... one by one..."},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN, crying"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "Stop it! I never meant for this to happen!"
+            },
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 0, 0, 0, 1]},
+            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 368, 368, 0]},
+            {"code": "Wait", "indent": 2, "parameters": [5]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "Saldra! You escaped!"},
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "No, man, I didn't. The Agency brought me back."
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "I'm with the Teeth again, man."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "That's what you wanted, right? That's... good!"
+            },
+            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "There are fewer of us now, Talan."
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "They keep leading us from our cells,"
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "one by one..."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "No! Saldra... that's not true! You're... "
+            },
+            {"code": "ShowMessage_2", "indent": 2, "string": "you're not real!"},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": "ShowMessage_2", "indent": 2, "string": "... one by one..."},
+            {"code": "MessageOptions", "indent": 2, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 2, "string": "TALAN, crying"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 2,
+              "string": "Stop it! I never meant for this to happen!"
+            },
+            {"code": "END", "indent": 2},
+            {"code": "ElseBranch", "indent": 1},
+            {"code": "END", "indent": 2},
+            {"code": "EndBranch", "indent": 1},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 369, 369, 0]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "AG7! You're -"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
+            {"code": "Wait", "indent": 1, "parameters": [20]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "Friend.name = \"Talan\""},
+            {"code": "ShowMessage_2", "indent": 1, "string": "NewValue = - (Friend.name)"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "AG7... they wouldn't let me bring you inside"
+            },
+            {
+              "code": "ShowMessage_2",
+              "indent": 1,
+              "string": "the city, I'm sorry. There was nothing I could"
+            },
+            {"code": "ShowMessage_2", "indent": 1, "string": "do!"},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "AG7-17"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "((as73fbf.int27fb%#^6))/2734n"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "fjdddr5637gbcdisregard-9237rh"},
+            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
+            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": "ShowMessage_2", "indent": 1, "string": "AG7..."},
+            {"code": "END", "indent": 1},
+            {"code": "ElseBranch"},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ControlSwitches", "parameters": [0, 370, 370, 0]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "Dessen! Is that you?"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 14]},
+            {"code": "Wait", "parameters": [5]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "You sold me out! I thought we were friends,"},
+            {"code": "ShowMessage_2", "string": "but you turned on me the first chance you"},
+            {"code": "ShowMessage_2", "string": "got!"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "DESSEN"},
+            {"code": "ShowMessage_2", "string": "... ... ..."},
+            {"code": "ShowMessage", "string": "DESSEN"},
+            {"code": "ShowMessage_2", "string": "You're dangerous, Talan. You're starting"},
+            {"code": "ShowMessage_2", "string": "to realize it, too - why else do you think"},
+            {"code": "ShowMessage_2", "string": "you've conjured us up from the depths of"},
+            {"code": "ShowMessage", "string": "DESSEN"},
+            {"code": "ShowMessage_2", "string": "your memory? Events have been set in"},
+            {"code": "ShowMessage_2", "string": "motion that are far greater than any of"},
+            {"code": "ShowMessage_2", "string": "us - and it scares you."},
+            {"code": "TintScreen", "parameters": [100, 60, 100, 100, 5, 1]},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": "ShowMessage_2", "string": "What's happening to the light?"},
+            {"code": "FadeOutBGM", "parameters": [1000]},
+            {"code": "TintScreen", "parameters": [180, 180, 150, 200, 10, 1]},
+            {"code": "PlaySound", "parameters": [100, 150, 50], "string": "Explosion6"},
+            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
+            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
+            {"code": "ControlSwitches", "parameters": [0, 362, 362, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 363, 363, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 367, 367, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 372, 372, 0]},
+            {"code": "Teleport", "parameters": [114, 2, 6]}
+          ],
+          "id": 1,
+          "move_type": "stationary",
+          "trigger": "auto_start"
         }
       ]
     },
     {
       "id": 2,
       "name": "Arden",
-      "at": [6, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 371
+          "character_name": "Chara2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 371
           },
-          "sprite": {
-            "charset": "Chara2",
-            "index": 0,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 6,
+      "y": 6
     },
     {
       "id": 3,
       "name": "Saldra",
-      "at": [12, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 368
+          "character_index": 6,
+          "character_name": "Chara3",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 368
           },
-          "sprite": {
-            "charset": "Chara3",
-            "index": 6,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 12,
+      "y": 6
     },
     {
       "id": 4,
       "name": "AG7-17",
-      "at": [8, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 369
+          "character_index": 4,
+          "character_name": "AG717",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 369
           },
-          "sprite": {
-            "charset": "AG717",
-            "index": 4,
-            "direction": "down",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 8,
+      "y": 6
     },
     {
       "id": 5,
       "name": "Dessen",
-      "at": [10, 6],
       "pages": [
         {
-          "conditions": {
-            "switch_a": 370
+          "character_direction": "up",
+          "character_index": 6,
+          "character_name": "Future2",
+          "condition": {
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "switch_a_id": 370
           },
-          "sprite": {
-            "charset": "Future2",
-            "index": 6,
-            "direction": "up",
-            "pattern": "middle"
-          },
+          "id": 1,
           "layer": "same",
-          "trigger": "action"
+          "move_type": "stationary"
         }
-      ]
+      ],
+      "x": 10,
+      "y": 6
     }
-  ]
+  ],
+  "save_count": 28
 }
