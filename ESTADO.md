@@ -19,24 +19,26 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-14: `just snes-hitos-foto` son **168 casos, todos en verde** —sobre
-la foto `151599a`— y `just pruebas` son **164 en verde y 1 `xfail`, sin
-rojos**; las siete últimas son las de los HP del menú y el Game Over de los
-encuentros al azar, y antes de ésas las nueve de los encuentros y las dos del
-save point. El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién
-es: es un defecto de la **página de prueba** de guardado y no del juego, y está
-abajo.
+Al 2026-09-14: `just snes-hitos-foto` son **169 casos, todos en verde** —sobre
+la foto `0246651`, con el arreglo del menú de la pelea adentro— y `just
+pruebas` son **159 en verde y 1 `xfail`, sin rojos**.
+El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
+defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
-**Al banco 0 le sobran 49 bytes con `demo-ciudad`**, medidos el 2026-09-14 por
-bisección con un `.res` en `TABLAS`; venían 85, y los 36 que faltan se los
-llevaron el enganche del menú a los HP y la comprobación de derrota del
-encuentro al azar.
+**Y el banco 0 tiene 69 bytes libres** con `demo-ciudad`, que son 85 menos los
+16 que costó mandar al SPC700 de vuelta al IPL. Medido por bisección; ver
+AGENTS.md, "Trampas del entorno". **Siguen siendo 69 el 2026-09-14**, después
+del arreglo del menú de la pelea: sus cinco bytes de más viven en RODATA y su
+código está en el banco de la batalla.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/hp-y-game-over/`: los dos
-defectos del sistema de batalla que taro reportó, con `demo-titulo` y
-`demo-ciudad`. Su `LEEME.txt` dice qué mirar —el HP del menú después de
-pelear, perder a propósito, y dos peleas seguidas— y qué sigue sin poder
-hacerse (curar).
+**La ROM de esta vuelta** está en `pruebas-manuales/menu-de-pelea/`: la
+`demo-ciudad` con el menú de la pelea arreglado, y las dos capturas del caso
+nuevo —el menú roto y el mismo arreglado—. Su `LEEME.txt` dice los dos caminos
+para llegar a una pelea con varios actores.
+
+**La anterior** está en `pruebas-manuales/cofre-trampa/`: el cofre que
+colgaba el juego, con un cartucho que arranca pegado a él. Su `LEEME.txt` dice
+qué apretar y qué mirar al volver.
 
 **La de la vuelta anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
@@ -97,6 +99,71 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 `compilar_pagina`, así que lo que vale es la diferencia—. **La diferencia es la
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
+
+### El menú de la pelea ilegible: un índice de texto que no entraba en un byte (2026-09-14)
+
+taro lo reportó jugando en la SNES: *"el menu de la batalla está bastante roto.
+los textos se pisan entre ellos. es imposible saber qué estoy seleccionando"*.
+Era una sola cosa y no tenía nada que ver con la geometría del menú:
+**`ba_orden_txt` era una tabla de un byte y los índices de texto no entran en
+un byte**.
+
+El conversor guarda todos los textos de las pantallas en un solo bloque —los
+ítems primero, con su nombre y sus dos renglones de descripción, después los
+del equipo, la tienda y la batalla—. Con los 57 ítems de `demo-ciudad` los de
+la batalla arrancan en el **273**, así que el conversor emitía `.byte 273` y
+`w65` lo truncaba a 17 sin decir nada. El menú quedaba nombrando otros cuatro
+textos, y como el conversor los emite **ya recortados** la ROM los dibuja con
+ancho 255:
+
+    Attack   (fila 24, col 1)   -> "detonated shell."
+    Defend   (fila 24, col 22)  -> "A bandana with a circuit"
+    Use Item (fila 26, col 1)   -> "Circuit Bandana-H"
+    Escape   (fila 26, col 13)  -> "Prices - Sector 32\""
+
+"Circuit Bandana-H" ocupa hasta la columna 17 y "Prices - Sector 32" arranca en
+la 13: **ahí se pisan**. Y el de Defend mide 24 desde la columna 22, así que
+se da la vuelta y sigue en el renglón de abajo. La única orden que se leía bien
+era la segunda, porque su texto no sale de ahí sino de `actor_hab_txt`, que
+**sí** es de dos bytes.
+
+**Por qué ningún caso de la tanda lo veía**, que era la pregunta: sus cartuchos
+llevan un mapa y ningún ítem, y ahí los textos de la batalla arrancan en el
+**103**. El truncado no existe hasta el 256, así que los ocho casos de la
+pantalla de pelea comparaban la ROM contra la referencia en el único rango
+donde las dos coinciden. No es "los dos lados se equivocan igual": es que el
+defecto depende de **qué cartucho se arma**, como el desborde del banco 0, y la
+tanda arma cartuchos chicos. El grupo y la tropa no tenían nada que ver —con
+cuatro actores y cuatro enemigos la pantalla da cero, medido—.
+
+Tres cosas quedaron:
+
+* **`ba_orden_txt` es de dos bytes**, como sus dos hermanas. Cuesta cinco bytes
+  de RODATA y un byte **menos** de código, porque el índice ya se arma de a
+  dieciséis bits.
+* **`w65` rechaza un `.byte` que no entra en un byte.** El truncado callado es
+  lo que dejó pasar esto, y es a propósito sólo en `.word`, donde la tabla de
+  punteros de un bloque guarda los dos bytes bajos de una dirección de 24.
+  Con el control puesto, `demo-ciudad` no tiene ningún otro `.byte` desbordado.
+* **`--relleno-de-textos`**, el hermano de `--relleno-de-mensajes`: textos
+  muertos de largo cero delante de todos, para que los índices pasen del 255 en
+  un cartucho de un mapa. Lo usa el caso `batalla-textos-lejos`, verificado en
+  rojo con la tabla de un byte puesta: **754 pixeles, 1,31%**, todos en los dos
+  renglones del menú. Va de un solo lado a propósito: la referencia escribe
+  caracteres y no modela ningún índice de texto.
+
+Lo que **no** era, y conviene que quede escrito:
+
+* **"no me permite seleccionar nada más que ataque" no es cierto del todo.** El
+  cursor recorre las cinco con izquierda y derecha, y Attack, Defend y Escape
+  hacen lo suyo. Las dos que no llevan a ningún lado con el grupo de Lashe City
+  son la habilidad —**ninguno de los cuatro actores de ahí sabe ninguna**:
+  Talan, Arden, Gang Member y Saldra son de nivel 1 a 4 y todas se aprenden más
+  arriba— y `Use Item` con el inventario sin nada usable. Las dos van en gris o
+  no pasa nada, que es lo que hace el menú de pausa; con los textos equivocados
+  encima, jugando eso se lee como "sólo anda atacar".
+* **Los SP siguen sin verse** en la pantalla de la pelea, que es la deuda
+  declarada de las habilidades y sigue abierta.
 
 ### El cofre trampa de los Rat Tracks: el Game Over colgaba la ROM (2026-09-13)
 

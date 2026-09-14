@@ -1037,6 +1037,16 @@ columna en la que va tiene que dejarle **diez celdas libres**: "AgentTrain" y
 "Tech Skill" miden diez justos y no le dejan lugar al cursor del que sigue, que
 va una celda antes del texto.
 
+**Las dos tablas son de dos bytes, y eso no es de adorno.** Un índice de texto
+nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
+tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
+`demo-ciudad` los textos de la batalla arrancan en el 273. Hasta el 2026-09-14
+`ba_orden_txt` era de un byte, así que el conversor emitía `.byte 273` y el
+ensamblador lo truncaba a 17: el menú dibujaba cuatro renglones de descripción
+de ítem, encimados entre ellos, y la pelea era injugable. El caso que lo cuida
+es `batalla-textos-lejos`, y desde entonces `w65` **rechaza** un `.byte` que no
+entre en un byte en vez de truncarlo.
+
 Lo que hasta el 2026-09-13 decía acá era que esa orden iba en gris porque a
 este nivel nadie sabía ninguna habilidad, y **eso era falso**: salía de leer los
 parámetros con el nivel mockeado en 1. Ver "Las habilidades", más abajo.

@@ -350,8 +350,18 @@ class Data:
                 out += part
             else:
                 expression, width = part
-                out += (expression.value(symbols) & ((1 << 8 * width) - 1)
-                        ).to_bytes(width, "little")
+                valor = expression.value(symbols)
+                # **Un `.byte` que no entra en un byte es un error**, y no un
+                # truncado callado. El truncado existe a propósito para
+                # `.word`, donde la tabla de punteros de un bloque guarda los
+                # dos bytes bajos de una dirección de 24 bits; en un `.byte` no
+                # hay ningún uso así y sí hubo un defecto: el conversor emitía
+                # `.byte 273` para el texto de una orden del menú de la pelea y
+                # el menú dibujaba el texto 17. Ver `ba_orden_txt`.
+                if width == 1 and not -128 <= valor <= 255:
+                    raise Error(".byte %d no entra en un byte" % valor)
+                out += (valor & ((1 << 8 * width) - 1)).to_bytes(width,
+                                                                 "little")
         return bytes(out)
 
 

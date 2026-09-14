@@ -27944,12 +27944,19 @@ sin_cursor_orden:
     lda BA_S0
     cmp #BA_ORDEN_HABILIDAD
     beq texto_de_la_habilidad
-    lda BA_S0
-    jsr ba_ax
-    lda f:ba_orden_txt, x
+    ; **De dos bytes**, como `actor_hab_txt` y `enemigo_txt`: el índice de un
+    ; texto no entra en uno. Con los 29 mapas de `demo-ciudad` los textos de la
+    ; batalla arrancan en el 273, así que la tabla de un byte que estaba acá
+    ; hasta el 2026-09-14 los truncaba a 17, 18, 19 y 32, que son renglones de
+    ; la descripción de un ítem: el menú dibujaba cuatro textos largos, uno
+    ; encima del otro. Ningún cartucho de la tanda llega a 256 textos.
     rep #$20
 .a16
+    lda BA_S0
     and #$00FF
+    asl a
+    tax
+    lda f:ba_orden_txt, x
     tax
     bra texto_puesto
 texto_de_la_habilidad:
