@@ -5453,6 +5453,27 @@ def main():
                              "título le agregaría cuadros al arranque y los "
                              "96 casos comparan cuadros contados desde el "
                              "reset.")
+    parser.add_argument("--banco-entero", action="store_true",
+                        help="que **todos** los temas aporten muestras al "
+                             "banco compartido, en vez de recortar los "
+                             "últimos hasta que el banco entre en la ARAM. "
+                             "El recorte es lo que hace que en `demo-ciudad` "
+                             "a los nueve temas del final les falten entre el "
+                             "28%% y el 88%% de las notas —las que piden un "
+                             "programa que no está—; con esto no falta "
+                             "ninguna y lo que baja es la resolución de "
+                             "todas. El banco pasa a no entrar entero en la "
+                             "ARAM, que no es un problema: ahí vive un "
+                             "paquete de mapa por vez")
+    parser.add_argument("--banco-sin-prioridad", action="store_true",
+                        help="que el tema del mapa de arranque **no** tenga "
+                             "prioridad para aportar muestras al banco. Es "
+                             "para las ROMs de escuchar: arrancar en el mapa "
+                             "20 le da prioridad a su tema y entonces suena "
+                             "entero, que es justo lo contrario de lo que se "
+                             "quiere reproducir. Con esto el reparto del "
+                             "banco es el mismo que el de `demo-ciudad`, que "
+                             "arranca en un mapa sin música")
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
@@ -6245,7 +6266,9 @@ def main():
     # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se,
-        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF])
+        prioridad=([] if args.banco_sin_prioridad
+                   else [t for t in (tema_titulo, arranque) if t != 0xFF]),
+        tope=(1 << 30) if args.banco_entero else None)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
     # suena desde el principio— y las muestras de sus efectos, en el orden en
@@ -6288,16 +6311,23 @@ def main():
           % (musica, ", ".join(t["nombre"] for t in hechos)
              or "ninguna, sale muda"))
     for i, tema in enumerate(hechos):
-        print("  %d. %-16s %4.0f s, %6d B de stream%s"
+        # El porcentaje de notas que llegan al stream va acá y no escondido:
+        # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
+        # decía nadie. Ver "Varios temas en el cartucho" en el README.
+        suenan = tema["resumen"].get("notas")
+        print("  %d. %-16s %4.0f s, %6d B de stream, %s de las notas%s"
               % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
+                 "todas" if suenan is None or suenan > 0.999
+                 else "%.0f%%" % (100 * suenan),
                  ", suena desde el arranque" if i == arranque else ""))
     if hechos:
         print("  banco compartido: %d muestras, %d B de los %d de ARAM"
               % (len(banco.voces), banco.bytes, snes_music.ARAM_LIBRE))
     if afuera:
         print("  no aportan muestras al banco: %s" % ", ".join(afuera))
-        print("    (existen igual: suenan con lo que otros temas ya pusieron,"
-              " y con MSU-1 suenan enteros)")
+        print("    (existen igual, y suenan con lo que otros temas ya "
+              "pusieron: el porcentaje de arriba dice cuánto. Con pista de "
+              "MSU-1 suenan enteros, pero hoy ninguno de éstos tiene)")
 
     if args.reference:
         mapas[args.inicial]["base"].save(args.reference)

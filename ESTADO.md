@@ -86,6 +86,111 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### Las voces que faltan no son del runtime: son del banco compartido (2026-09-14)
+
+taro lo reportó jugando en la SNES: *"la música parece perder calidad
+progresivamente. Lo empecé a notar en el auditorio, en la oficina del director
+ya es muy evidente —suenan solo dos o tres voces—, luego en los back alleys
+pareciera tener una voz menos, y en los rat tracks creo que ya le queda una
+sola voz o ni suena"*. Y después, lo que lo cierra: *"se escucha igual el tema
+en la oficina del director con alta calidad o calidad clásica"*.
+
+**No es progresivo y no es del runtime: es un tema distinto por mapa, y a cada
+uno le falta lo suyo.** Lo que se cae son las notas cuyo **programa de General
+MIDI no está en el banco compartido**: `build_events` las saltea con un
+`continue` y no llegan al stream. Medido sobre los 21 temas de `demo-ciudad`,
+contando notas del MIDI que sobreviven:
+
+    mapa 17  Delcentric Factory   hzstream       100,0%   (y tiene pista de MSU-1)
+    mapa 18  Auditorium           Astpgmarch      64,4%
+    mapa 19  Talan and the Dir.   Gaden           63,6%
+                                  3D-Galax        43,4%
+    mapa 20  Sector 30 Back All.  wb3shop         72,5%
+    mapa 26  Rat Tracks B2        KSSMKEND        42,0%
+                                  vswar           69,2%
+    mapa 28  Sector 27 Back All.  Lunar_Pyramid   70,4%
+    mapa 32  Sector 27 Warehouse  dcbest          27,5%
+    mapa 36  LasheCityVehicle     golden_axe-…    12,2%
+
+Los **doce primeros temas de la lista están al 100%**. Los nueve del final son
+exactamente los que `build_varios` saca de aportantes cuando el banco no entra
+en la ARAM, y los saca **desde el final de la lista** —que es más o menos el
+orden de los mapas—, y de ahí sale la ilusión de degradación progresiva. No lo
+es: el 20 suena mejor que el 19, y taro lo dijo así sin saberlo.
+
+**Por qué suena igual con MSU-1 y sin él, que es lo que parecía imposible:**
+ninguno de esos temas tiene pista. `PISTAS_MSU` son ocho y le tocan a los temas
+0, 1, 2, 4, 5, 6 y 7 más el del título; del 8 en adelante `tema_msu` es `$FF`.
+O sea que en la oficina del director **las dos corridas de taro fueron el mismo
+camino, el del SPC700**, y por eso les falta lo mismo. Lo único que sigue sin
+encajar es su *"los samples son mejores"*: ahí los dos cartuchos son byte por
+byte el mismo sonido.
+
+**No es el soundfont.** Se midió: los veinte programas que faltan —58, 49, 52,
+18, 92, 94, 45, 96, 102, 26, 56, 16, 39, 112, 91, 99, 118, 32, 36 y 50— están
+**todos** en `Microsoft GS Wavetable Synth.sf2`. Lo que falta es lugar en la
+ARAM, no la muestra.
+
+**Y tampoco es el paquete de audio ni el desalojo.** Se recorrió `demo-ciudad`
+con `pruebas/consola.py` teletransportando de mapa en mapa y preguntándole a la
+ROM qué muestras tiene arriba: de 21 a 32 muestras en la ARAM según el mapa, y
+**cero** faltantes del tema que estaba sonando en todos ellos. `FAR_QUIERE` y
+`paquete_cargar` hacen lo suyo bien.
+
+#### El lever para decidirlo de oído: `--banco-entero`
+
+`build_varios` toma ahora un `tope`, y el conversor un `--banco-entero` que lo
+saca. Medido sobre los mismos 21 temas:
+
+    hoy                  58 muestras, 57517 B, tasa mediana 11521 Hz, 9 temas mutilados
+    con --banco-entero   95 muestras, 67376 B, tasa mediana  8109 Hz, 0 temas mutilados
+
+O sea: **o los doce primeros perfectos y los nueve últimos con la mitad de las
+notas, o los veintiuno enteros y todos un 30% más chillones.** Con
+`--banco-entero` el banco ya no entra en la ARAM de una vez, y eso está bien:
+ahí vive **un paquete de mapa por vez**, no el banco. Los dos siguen al 100%
+menos `Astpgmarch` (88,6%) y `vswar` (82,2%), que pierden golpes de percusión
+porque el presupuesto de la batería es lo que sobra.
+
+**Cuál de las dos suena peor lo tiene que decir taro**, y para eso están las
+ROMs de `pruebas-manuales/audio/`. La tercera salida —pistas de MSU-1 para esos
+nueve temas— son unos 280 MB más de PCM por cartucho y no se hizo.
+
+### El MSU-1 de `demo-titulo`: no se pudo reproducir, y el camino no tiene red (2026-09-14)
+
+taro: *"la que tiene la pantalla de título no carga la música de alta calidad,
+mientras que la otra sí"*. **En emulador las dos hacen exactamente lo mismo.**
+Medido con bsnes y los ocho `.pcm` al lado, leyendo `MSU_HAY` y `MSU_SUENA` de
+la WRAM cuadro a cuadro:
+
+    demo-ciudad   MSU_HAY=1 desde el cuadro 1; MSU_SUENA=1 en el 208, tema 1
+    demo-titulo   MSU_HAY=1 desde el cuadro 1; MSU_SUENA=1 en el 113, tema 21
+                  (el del título), y en el 219 pasa al tema 1
+
+Así que la detección anda, el número de pista del título es el 8 y está en la
+tabla, y la ROM arranca las dos pistas. El defecto es **de hardware solamente**.
+
+Lo que sí apareció mirando, y es el único candidato que produce ese síntoma:
+**bsnes no pone `AUDIO_BUSY` nunca.** `io.audioBusy` arranca en falso en
+`power()` y no se escribe en ningún lado —está en
+`/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—, así que el
+lazo de espera de `msu_arrancar` **sale siempre en la primera vuelta en todos
+los emuladores y en toda la tanda**. En el FX Pak la pista sale de la SD y
+abrirla lleva tiempo de verdad: ese lazo sólo corre allá. Es un camino sin red,
+de los que AGENTS.md avisa.
+
+Y en el mismo archivo está la regla que lo vuelve sospechoso: `case 0x2007: if
+(io.audioBusy) break;` — **con `AUDIO_BUSY` puesto el hardware ignora las
+escrituras a los registros de audio**. `demo-titulo` pide dos pistas con 1,8 s
+de diferencia —la del título y la de la apertura—; `demo-ciudad` pide una sola.
+Si la segunda llega mientras la primera todavía se abre, se pierde.
+
+Por eso `msu_arrancar` ahora **espera antes de escribir la pista, no sólo
+después**, y el tope pasó de `$4000` —unos 70 ms— a `$FFFF`, unas tres décimas
+de segundo. Cuesta **14 bytes del banco 0**. En emulador no cambia nada, y ése
+es el punto: **esto no está verificado, lo tiene que decir la consola**.
+`pruebas-manuales/audio/` lleva las dos `demo-titulo` para compararlas.
+
 ### Los cofres que no frenaban: era el Hover-Tram (2026-09-13)
 
 taro reportó que en el Sector 30 y en los Rat Tracks los cofres, los bums y las
@@ -1065,11 +1170,12 @@ después armadas y corridas con el mismo arnés:
 
 Lo que queda abierto:
 
-* **Los siete temas que no aportan al banco suenan incompletos.** Son los de los
-  mapas del final de Lashe City, ninguno con pista de MSU-1, y sus notas con
-  muestra van del 8% (`golden_axe-turtlevillage2`) al 70% (`Lunar_Pyramid`);
-  antes no sonaban ni existían. **Si incompleto suena peor que mudo, lo dice el
-  oído de taro** y es cortarles el stream.
+* **Los nueve temas que no aportan al banco suenan incompletos**, y eso es lo
+  que taro terminó oyendo en la consola el 2026-09-13. Medido de nuevo el
+  2026-09-14 contando notas del MIDI que sobreviven: de 12,2%
+  (`golden_axe-turtlevillage2`) a 72,5% (`wb3shop`). Ver "Las voces que faltan"
+  arriba, que trae la tabla por mapa y el `--banco-entero` para compararlo de
+  oído.
 * **El límite de verdad ya no es el banco entero**, desde que el audio sube por
   paquetes de mapa: en la ARAM viven el directorio y un paquete. Con los
   diecinueve aportando, el peor paquete son 54945 de 63831 B, o sea que entra;

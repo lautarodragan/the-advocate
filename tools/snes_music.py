@@ -651,7 +651,8 @@ def leer_tema(name, game_dir=GAME_DIR):
     }
 
 
-def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
+def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
+                 tope=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
@@ -679,6 +680,16 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
     los últimos: el del título va ahí, porque es la primera pantalla del juego
     y no un tema de un mapa que el jugador puede no visitar nunca.
 
+    `tope` es contra cuánto se mide el banco. Con `ARAM_LIBRE`, que es lo de
+    siempre, entran los primeros y los últimos quedan mutilados: una nota cuyo
+    programa no está en el banco **se cae del stream** —ver el `continue` de
+    `build_events`—, y en `demo-ciudad` eso son nueve temas a los que les
+    sobrevive entre el 12% y el 72% de las notas. Con un tope más alto aportan
+    todos y lo que se paga es resolución para todos, porque los mismos 40 KB
+    melódicos se reparten entre más programas. **Cuál de las dos suena peor lo
+    dice el oído**, y por eso hay con qué armar las dos: `--banco-entero` en el
+    conversor. Ver "Varios temas en el cartucho" en el README.
+
     El límite sigue siendo el banco entero contra `ARAM_LIBRE`, que es más
     estricto de lo que el hardware pide desde que el audio sube por paquetes de
     mapa —en la ARAM viven el directorio y **un** paquete, no el banco—; queda
@@ -692,13 +703,14 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
 
     orden = [i for i in prioridad if 0 <= i < len(leidos)]
     orden += [i for i in range(len(leidos)) if i not in orden]
+    tope = ARAM_LIBRE if tope is None else tope
     aportan, afuera = [i for i in orden if leidos[i]], []
     while True:
         banco = Banco(set().union(*[leidos[i]["melodicos"] for i in aportan])
                       if aportan else set(),
                       set().union(*[leidos[i]["golpes"] for i in aportan])
                       if aportan else set())
-        if banco.bytes <= ARAM_LIBRE or not aportan:
+        if banco.bytes <= tope or not aportan:
             break
         afuera.insert(0, nombres[aportan.pop()])
 
@@ -743,7 +755,29 @@ def resumen_del_tema(leido, banco):
         "coverage": sum(musica.coverage(spans[c], len(voices.get(c, [])))
                         * sum(a * b for a, b in spans[c].items())
                         for c in spans) / max(1, total),
+        # Y cuántas de sus notas llegan al stream. Una nota cuyo programa no
+        # está en el banco **no suena más bajo: no existe** —el `continue` de
+        # `build_events`—, así que esto es la voz que el jugador no oye. Es un
+        # número distinto de `coverage`, que mide la polifonía; se confundieron
+        # el 2026-09-14 y por un rato pareció que compartir el banco no costaba
+        # nada, porque `coverage` da igual con el banco entero o compartido.
+        "notas": notas_que_suenan(leido, banco),
     }
+
+
+def notas_que_suenan(leido, banco):
+    """Qué fracción de las notas del MIDI tiene su muestra en el banco."""
+    total = suenan = 0
+    for nota in leido["notas"]:
+        if nota.channel not in leido["voces"]:
+            continue
+        total += 1
+        if nota.channel == midi.DRUM_CHANNEL:
+            suenan += banco.golpes.get(nota.pitch) is not None
+        else:
+            programa = leido["programas"].get(nota.channel, 0)
+            suenan += banco.melodicas.get(programa) is not None
+    return suenan / max(1, total)
 
 
 def build_nombre(name, game_dir=GAME_DIR):
