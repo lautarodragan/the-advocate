@@ -4570,7 +4570,7 @@ schema_struct! {
 #[serde(default)]
 pub struct Music {
     /// field 0x01 of the binary, stored even when it holds the default
-    pub name: String = "\"(OFF)\"".to_string(),
+    pub name: String = "(OFF)".to_string(),
     /// field 0x02 of the binary
     pub fadein: i32 = 0,
     /// field 0x03 of the binary
@@ -5476,7 +5476,7 @@ schema_struct! {
 #[serde(default)]
 pub struct Sound {
     /// field 0x01 of the binary, stored even when it holds the default
-    pub name: String = "\"(OFF)\"".to_string(),
+    pub name: String = "(OFF)".to_string(),
     /// field 0x03 of the binary
     pub volume: i32 = 100,
     /// field 0x04 of the binary

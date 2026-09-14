@@ -626,7 +626,13 @@ fn default_value(default: &str, e: &Enc) -> String {
         // The sentinel a save file uses to say "use the name the LDB carries".
         // `constants.csv` declares it as `"\x1"`.
         Enc::Text if d == "kEmptyName" => "\"\\u{1}\".to_string()".into(),
-        Enc::Text => format!("{:?}.to_string()", d),
+        // A text default is written in the CSV as the C++ literal, quotes and
+        // all: `Music,name` holds `"(OFF)"` and the name is the five characters
+        // inside. Quoting it again would make the default seven characters
+        // long, which is a value no file can ever hold, so the field would
+        // never be recognised as holding its default.
+        Enc::Text => format!("{:?}.to_string()", d.strip_prefix('"')
+            .and_then(|d| d.strip_suffix('"')).unwrap_or(d)),
         Enc::Enum(n) => {
             if d.is_empty() {
                 format!("{n}::default()")
