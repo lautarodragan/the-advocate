@@ -52,6 +52,31 @@ reader that understood **nothing** and kept every chunk raw would also give
 byte for byte, and the JSON would be useless. So `no_chunk_goes_unnamed`
 requires that not a single chunk survives unnamed in the dump.
 
+### The corpus Ditto writes for itself
+
+A fresh clone with no game still measures something: `tests/synthetic.rs`
+builds its own files and needs nothing from the environment.
+
+Half of it is **not a round trip**. A round trip only proves that the reader
+and the writer agree with each other: if both misread the same field the same
+way, the comparison comes out clean and says nothing. So those tests write the
+bytes **out by hand** —a BER integer and the boundaries where it grows, a
+chunk `(id, length, body)`, a whole map spelled byte by byte— and assert which
+value each one stands for. A reader that invented its own format fails them.
+
+The other half builds documents holding what a real game rarely does: the
+extremes of a BER integer, text in the range where cp1252 departs from
+Latin-1, empty vectors next to full ones, a field set to its default on
+purpose, and a chunk the schema does not name. Those close through the binary
+and through the JSON.
+
+The two corpora answer different questions and neither replaces the other:
+the synthetic one proves the implementation is consistent and covers what a
+game does not exercise; a real game proves the format is the one RPG Maker
+actually writes. A brand new project made with the editor is worth more here
+than a finished game, because almost everything in it holds the factory
+default, which is exactly what the omission rule is about.
+
 ## A game as a directory, and not one big JSON
 
 A game written as a single JSON per binary file is unusable as a repository: the
