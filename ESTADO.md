@@ -20,8 +20,16 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-14, con la vuelta de audio adentro: `just snes-hitos-foto` son **168
-casos, todos en verde** —foto `0ae85e1`— y `just pruebas` **159 en verde y 1
-`xfail`, sin rojos**. Al banco 0 le quedan **67 bytes libres** con
+casos, todos en verde** —foto `82668cf`— y `just pruebas` **158 en verde y 1
+`xfail`, sin rojos**: los 157 de la vuelta anterior más el caso nuevo de este
+archivo.
+
+**Y un aviso de medición que costó una confusión**: una corrida de `just
+pruebas` con otro agente corriendo la suya dio **160 casos** en vez de 159, y
+entre sus avisos había uno con una ruta de `.claude/worktrees/<otro agente>/`.
+O sea que pytest puede recoger archivos de otro worktree cuando hay dos
+corridas a la vez. El número que vale se saca con el árbol tranquilo, o se
+comprueba con `pytest pruebas --collect-only -q`. Al banco 0 le quedan **67 bytes libres** con
 `demo-ciudad`, medidos por bisección: eran 81 antes de los 14 que se llevó la
 espera del MSU-1. Y `just snes-demo demo-ciudad` y `demo-titulo` arman las dos.
 
