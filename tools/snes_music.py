@@ -1018,6 +1018,12 @@ def main():
         print("  banco:           %s" % ", ".join(summary["bank"]))
         print("  se reproduce el %.0f%% del tiempo-nota"
               % (100 * summary["coverage"]))
+        # Y el otro número, que es el que se oye como voces que faltan: ver
+        # `notas_que_suenan`. Con un tema solo suele ser 100%, y justamente por
+        # eso conviene que esté: la diferencia contra la ROM entera es el costo
+        # de compartir el banco.
+        print("  suenan el %.0f%% de las notas"
+              % (100 * summary["notas"]))
 
     emit(args.output,
          [{"nombre": name, "stream": stream, "segundos": seconds,
