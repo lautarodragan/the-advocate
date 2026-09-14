@@ -247,6 +247,12 @@ al cartel, ver "Lo que costaría el sistema entero" en ESTADO.md— y **el tema 
 Game Over no suena**: sería un tema más en la lista de todos los cartuchos con
 pelea, y lo que se gana es el silencio de un segundo antes del arranque.
 
+El reinicio **no es gratis**: son los casi dos segundos del arranque, porque
+vuelve a subir el driver y las muestras al SPC700. Hay que hacerlo, y no es
+prolijidad: el `jml reset` no resetea al SPC700 —eso lo hace sólo el botón de
+la consola— así que sin volver a arrancarlo del todo el juego se colgaba. Ver
+README, "Trampas del hardware".
+
 **Y se pierde el progreso desde el último guardado**, que es lo mismo que pasa
 en RM2k si el jugador elige "Continue"; lo que no hay es la otra opción, seguir
 desde el título con "New Game" sabiendo que perdiste.

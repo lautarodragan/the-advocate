@@ -19,14 +19,21 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
-se agregó es `snes-encuentro`— y `just pruebas` son **157 en verde y 1 `xfail`,
-sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
-últimas las del save point —`test_guardar_save_point.py`—.
+Al 2026-09-13: `just snes-hitos-foto` son **168 casos, todos en verde** y `just
+pruebas` son **159 en verde y 1 `xfail`, sin rojos**; las dos últimas son las
+del Game Over que cuelga —`test_game_over.py`—.
 El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+**Y el banco 0 tiene 69 bytes libres** con `demo-ciudad`, que son 85 menos los
+16 que costó mandar al SPC700 de vuelta al IPL. Medido por bisección; ver
+AGENTS.md, "Trampas del entorno".
+
+**La ROM de esta vuelta** está en `pruebas-manuales/cofre-trampa/`: el cofre que
+colgaba el juego, con un cartucho que arranca pegado a él. Su `LEEME.txt` dice
+qué apretar y qué mirar al volver.
+
+**La anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
@@ -85,6 +92,39 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 `compilar_pagina`, así que lo que vale es la diferencia—. **La diferencia es la
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
+
+### El cofre trampa de los Rat Tracks: el Game Over colgaba la ROM (2026-09-13)
+
+taro no pudo pasar de Rat Tracks B1: *"hay un cofre trampa... queda la pantalla
+en negro y no podés hacer nada. softlock, o un crash"*. Es el
+`RatTrackChest6c`, el evento 20 del mapa 21, y su página es un `EnemyEncounter`
+contra la tropa 98 —tres GiantRat— con la huida prohibida y `defeat_mode` 0, o
+sea Game Over al perder.
+
+**No era la pelea: era el reinicio.** El Game Over es `jml f:reset`, y el
+arranque se quedaba clavado en `spc_upload` esperando el `$AA`/`$BB` de una ROM
+de IPL que ya no corría —el botón de reset de la consola resetea al SPC700, un
+`jml` de adentro del juego no—. El porqué durable está en el README, "Trampas
+del hardware". El arreglo es un comando nuevo del driver que lo manda de vuelta
+al IPL; lo manda `reset` antes de subir nada, así que **cualquier** Game Over
+—las quince páginas del juego, el jefe del mapa 26 incluido— vuelve al juego.
+
+Lo que hay que saber de esto:
+
+* **La prueba que ya existía pasaba con la ROM colgada.**
+  `test_perder_sin_manejador_vuelve_al_arranque` miraba `mapa_actual`, que
+  `cargar_mapa` deja puesto mucho antes de la subida al SPC700. Lo único que
+  dice que el arranque terminó es que el lazo vuelva a contar `vueltas`, y eso
+  es lo que mira ahora `test_el_game_over_vuelve_al_juego`, **comprobado en
+  rojo** sacando el comando nuevo.
+* **No es el defecto del HP** que se trabajó en paralelo el mismo día. Acá
+  perder sí llevaba al Game Over —`BA_RESULT` en 2 y el `jml`— y el cuelgue es
+  del arranque, no de la pelea. Se tocan en un solo punto: cuanto más fácil sea
+  perder, más seguido se llegaba al cuelgue.
+* **La reproducción**, por si hay que volver: un cartucho del mapa 21 solo,
+  `ir_al_mapa(21, 22, 36)`, mirar hacia arriba y tocarle A al cofre. Con el
+  grupo por omisión —Talan solo, 40 de HP— la pelea se pierde sola en unos
+  ciento cincuenta cuadros.
 
 ### Los cofres que no frenaban: era el Hover-Tram (2026-09-13)
 

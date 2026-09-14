@@ -106,6 +106,18 @@ PISTAS_MSU = {
 #      en los puertos 0, 1 y 2, detrás del puntero. El puntero no avanza: el
 #      65816 lo vuelve a poner antes de cada bloque. Son unos 56 ciclos del
 #      SPC700 por terna, unos 55 KB por segundo
+#   4  volver a la ROM del IPL: ver abajo. No contesta el acuse, porque para
+#      cuando el 65816 lo leería el driver ya no existe
+#
+# El comando 4 está para **volver a arrancar la ROM**. El 65816 no puede
+# resetear al SPC700 —el botón de reset de la consola sí, porque la línea les
+# llega a los dos, pero un `jml reset` de adentro del juego no—, así que
+# después del Game Over el SPC700 sigue corriendo este driver y el IPL ya no
+# está para saludar con $AA/$BB. `spc_upload` se quedaba esperando ese saludo
+# **para siempre**, con la pantalla ya encendida y el mapa dibujado: es el
+# cuelgue del cofre trampa de los Rat Tracks. Prendiendo el bit 7 de $F1 la
+# ROM del IPL vuelve a aparecer en $FFC0 y saltar ahí la arranca de cero, que
+# es exactamente lo que ve el 65816 cuando la consola se enciende.
 #
 # Los tres de la ARAM existen por el paquete de audio de cada mapa: las
 # muestras se suben mientras la música suena, así que el driver tiene que
@@ -142,13 +154,19 @@ no_dsp:
     bra espera
 no_byte:
     cmp a, #$02
-    bne bloque
+    bne no_puntero
     mov a, $F4
     mov $00, a
     mov a, $F5
     mov $01, a
     mov $F7, x
     bra espera
+no_puntero:
+    cmp a, #$04
+    bne bloque
+    mov a, #$80         ; la ROM del IPL, de vuelta en $FFC0
+    mov $F1, a
+    jmp !$FFC0
 bloque:
     mov a, $F4
     mov $02, a

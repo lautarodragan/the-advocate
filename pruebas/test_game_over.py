@@ -48,6 +48,14 @@ TROPA = 82
 ESPERA = 20
 # El jefe de los Rat Tracks, que es lo que todo esto destraba.
 RAT_TRACKS_B2, JEFE = 26, 6
+# Y el cofre trampa de los Rat Tracks B1, que es la otra de las 15 páginas que
+# taro se encontró jugando: el `RatTrackChest6c`, que en vez de un ítem trae
+# tres GiantRat y no deja huir. Ver `test_el_cofre_trampa_compila`.
+RAT_TRACKS_B1, COFRE_TRAMPA = 21, 20
+# Cuántos cuadros de hardware se le dan al arranque de después del Game Over
+# para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
+# SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
+VOLVER_TOPE = 600
 
 
 def sin_hp(una):
@@ -74,13 +82,29 @@ def cuadros_hasta_reiniciar(una, tope=900):
     return None
 
 
+def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
+    """Cuántos cuadros pasan, desde el reinicio, hasta que el lazo vuelve a
+    correr. `None` si no volvió: eso es el cuelgue.
+
+    Se mira que `vueltas` **suba**, que es lo único que dice que el arranque
+    terminó: `mapa_actual` ya vale lo suyo mucho antes —`cargar_mapa` corre
+    antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
+    clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
+    """
+    for n in range(tope):
+        antes = una.palabra("vueltas")
+        una.consola.correr(1)
+        if una.palabra("vueltas") > antes:
+            return n
+    return None
+
+
 # --- lo que se emite -------------------------------------------------------
 
-def pagina_del_jefe(numero):
-    """La página `numero` del evento del jefe de los Rat Tracks, compilada."""
-    game_map = lcf.Map(os.path.join(GAME_DIR,
-                                    "Map%04d.lmu" % RAT_TRACKS_B2))
-    evento = [e for e in game_map.events if e.id == JEFE][0]
+def pagina_de(map_id, evento_id, numero):
+    """La página `numero` del evento `evento_id` del mapa, compilada."""
+    game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
+    evento = [e for e in game_map.events if e.id == evento_id][0]
     for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
                     eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
                     eventos.indexar_actores):
@@ -89,6 +113,11 @@ def pagina_del_jefe(numero):
     return eventos.compilar_pagina(
         evento.pages[numero], lambda mid: 0, eventos.Mensajes(), del_mapa,
         eventos.Temas(), eventos.Graficos(), eventos.Imagenes(GAME_DIR))
+
+
+def pagina_del_jefe(numero):
+    """La página `numero` del evento del jefe de los Rat Tracks, compilada."""
+    return pagina_de(RAT_TRACKS_B2, JEFE, numero)
 
 
 def test_las_tres_paginas_del_jefe_compilan():
@@ -148,3 +177,42 @@ def test_perder_con_manejador_no_reinicia(partida):
     assert cuadros_hasta_reiniciar(una, tope=300) is None, (
         "la ROM se reinició con una pelea que sí tiene a dónde volver: "
         "entonces el reinicio del otro caso no lo causa BATALLA_PERDER")
+
+
+def test_el_cofre_trampa_compila():
+    """El `RatTrackChest6c` del mapa 21, que es por donde taro se cayó.
+
+    Es la otra cara del jefe: mismo `defeat_mode` 0, y además
+    `ChangeEscapeAccess` con la huida prohibida, así que perder es la única
+    salida que la página tiene. Está acá para que se sepa **cuál** es el cofre
+    del que habla `test_el_game_over_vuelve_al_juego`: sin esto, el día que
+    alguien toque `tropa_de_encuentro` el cuelgue vuelve por un camino que
+    ninguna prueba nombra.
+    """
+    assert pagina_de(RAT_TRACKS_B1, COFRE_TRAMPA, 0) is not None
+
+
+def test_el_game_over_vuelve_al_juego(partida):
+    """Y del otro lado del reinicio **el juego corre**, que es lo que faltaba.
+
+    `test_perder_sin_manejador_vuelve_al_arranque` mira que `vueltas` se vaya
+    para atrás, o sea que el `jml reset` haya salido; con eso alcanzaba para
+    creer que el Game Over andaba, y no andaba. El arranque se quedaba clavado
+    en `spc_upload`, esperando el $AA/$BB de una ROM de IPL que ya no corría:
+    el botón de reset de la consola resetea al SPC700 —la línea les llega a los
+    dos— y un `jml` de adentro del juego no. La pantalla quedaba encendida con
+    el mapa dibujado y el juego muerto, que es lo que taro reportó del cofre
+    trampa de los Rat Tracks como "pantalla en negro, softlock o crash".
+
+    `mapa_actual` no lo ve: `cargar_mapa` corre **antes** de la subida al
+    SPC700. Lo único que dice que el arranque terminó es que el lazo vuelva a
+    contar vueltas.
+    """
+    una = partida(batalla=TROPA, game_over=True, espera=ESPERA)
+    sin_hp(una)
+    assert cuadros_hasta_reiniciar(una) is not None, (
+        "la ROM no se reinició: sin Game Over esto no prueba nada")
+    assert cuadros_hasta_volver(una) is not None, (
+        "la ROM se reinició y no volvió a correr en %d cuadros: el arranque "
+        "se colgó, y el sospechoso es la subida al SPC700 esperando un IPL "
+        "que ya no está" % VOLVER_TOPE)
