@@ -2,4 +2,4 @@
 name = "xtask"
 version = "0.1.0"
 edition = "2021"
-description = "Genera src/esquema/ desde las tablas CSV de liblcf"
+description = "Generates src/schema/ from liblcf's CSV tables"

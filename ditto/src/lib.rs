@@ -1,10 +1,10 @@
-//! Ditto: lee los archivos de RPG Maker 2000 y los vuelca a JSON, y al revés.
+//! Ditto: reads the RPG Maker 2000 files and dumps them to JSON, and back.
 //!
-//! El criterio que hace útil a esto es que la vuelta sea **byte por byte**:
-//! sólo así se puede abrir el juego con el RPG Maker de verdad, guardarlo, y
-//! seguir teniendo el mismo repositorio. Ver `README.md`.
+//! What makes this useful is that the way back is **byte for byte**: only then
+//! can a game be opened with the real RPG Maker, saved, and still be the same
+//! repository. See `README.md`.
 
-pub mod archivo;
-pub mod crudos;
-pub mod esquema;
+pub mod file;
 pub mod lcf;
+pub mod raw;
+pub mod schema;

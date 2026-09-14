@@ -1,15 +1,15 @@
 //! Ditto: `.ldb`/`.lmu`/`.lmt` ⇄ JSON.
 
-use ditto::archivo;
+use ditto::file;
 use std::path::Path;
 use std::process::ExitCode;
 
-fn uso() -> ExitCode {
+fn usage() -> ExitCode {
     eprintln!(
-        "uso:\n  \
-         ditto leer   <archivo.lmu|.ldb|.lmt> [salida.json]\n  \
-         ditto volver <archivo.json> [salida.lmu]\n\n\
-         Sin salida, escribe por la salida estándar."
+        "usage:\n  \
+         ditto read  <file.lmu|.ldb|.lmt> [out.json]\n  \
+         ditto write <file.json> [out.lmu]\n\n\
+         With no output file, it writes to standard output."
     );
     ExitCode::from(2)
 }
@@ -17,14 +17,14 @@ fn uso() -> ExitCode {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() < 2 {
-        return uso();
+        return usage();
     }
-    let entrada = Path::new(&args[1]);
-    let salida = args.get(2).map(Path::new);
+    let input = Path::new(&args[1]);
+    let output = args.get(2).map(Path::new);
     let r = match args[0].as_str() {
-        "leer" => leer(entrada, salida),
-        "volver" => volver(entrada, salida),
-        _ => return uso(),
+        "read" => read(input, output),
+        "write" => write(input, output),
+        _ => return usage(),
     };
     match r {
         Ok(()) => ExitCode::SUCCESS,
@@ -35,18 +35,18 @@ fn main() -> ExitCode {
     }
 }
 
-fn leer(entrada: &Path, salida: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
-    let doc = archivo::leer(&std::fs::read(entrada)?)?;
-    volcar(&serde_json::to_vec_pretty(&doc)?, salida)
+fn read(input: &Path, output: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
+    let doc = file::read(&std::fs::read(input)?)?;
+    emit(&serde_json::to_vec_pretty(&doc)?, output)
 }
 
-fn volver(entrada: &Path, salida: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
-    let doc: archivo::Documento = serde_json::from_slice(&std::fs::read(entrada)?)?;
-    volcar(&archivo::escribir(&doc)?, salida)
+fn write(input: &Path, output: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
+    let doc: file::Document = serde_json::from_slice(&std::fs::read(input)?)?;
+    emit(&file::write(&doc)?, output)
 }
 
-fn volcar(d: &[u8], salida: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
-    match salida {
+fn emit(d: &[u8], output: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {
+    match output {
         Some(p) => std::fs::write(p, d)?,
         None => {
             use std::io::Write;
