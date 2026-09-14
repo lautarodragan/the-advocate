@@ -17,6 +17,20 @@ check:
 export:
   python3 tools/export_json.py --verify
 
+# --- Ditto -----------------------------------------------------------------
+# El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
+# conversor: convive con ellos.
+#
+# La tanda corta va sobre una muestra de mapas y tarda un segundo; la larga son
+# los 328 mapas, el LDB y el árbol, y mide lo único que hace útil a la
+# herramienta: que el binario vuelva **byte por byte**. Va aparte porque es la
+# que uno quiere ver con el número, no la que corre callada.
+ditto-pruebas:
+  cd ditto && cargo test
+
+ditto-vuelta-entera:
+  cd ditto && cargo test --release -- --ignored --nocapture
+
 # --- Super Nintendo --------------------------------------------------------
 # El port. Todo el toolchain son dos cosas: python y un core de libretro. El
 # ensamblador de 65816 es nuestro (tools/w65.py) y la ROM se corre desde Python
