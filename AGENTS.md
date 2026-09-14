@@ -176,6 +176,13 @@ Lo que hay que hacer siempre:
   él no tiene montado en el host: una ROM que quede ahí adentro no la puede
   probar. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` que diga qué
   mirar y con qué limitaciones se chocó.
+* **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
+  agente.** La del agente tiene su arreglo y **ninguno de los demás**. El
+  2026-09-14 taro probó una armada en la rama de audio: la música sonaba bien
+  —era lo que esa rama arreglaba— y el Rat King le colgó la consola con un bug
+  que hacía horas estaba arreglado en otras cinco ramas. Perdió una sesión de
+  juego persiguiendo algo ya resuelto. La del agente sirve para aislar **su**
+  cambio; la que se juega, no.
 * **Pasarle al agente lo que ya está medido**, para que no lo vuelva a averiguar
   y para que no lo mida distinto.
 * **Pedirle el límite medido y no la implementación forzada.** Cuando el punto
