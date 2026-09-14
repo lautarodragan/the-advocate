@@ -805,6 +805,59 @@ Lo que queda abierto:
   podría dejar de entrar con `--switch 171` a mano. No se cambió: eso es la
   carrera y no el minijuego, y cambiarlo pide volver a mirar toda esa escena.
 
+### El sistema de batalla que taro dio por inservible: eran dos causas (2026-09-13)
+
+taro jugó `pruebas-manuales/2026-09-13-2a75142/demo-titulo.sfc` y reportó
+cuatro síntomas. Medidos, son **dos defectos y una confusión**, y conviene que
+quede escrito cuál es cuál porque el reporte los ordenaba al revés.
+
+**Uno: el número de HP del menú estaba horneado en el bloque del actor.** El
+panel del grupo lo dibuja el conversor y la ROM lo sube tal cual, así que el
+número no podía cambiar nunca; los 40 que taro veía son el máximo de Talan,
+que es quien lidera la intro. Ahora las tres cifras las escribe
+`menu_hp_escribir` desde `FAR_HP`, de a una celda cada una y con los mismos
+bloques que el oro; el máximo y la barra siguen horneados. **Cuesta que las
+cifras vayan a 8 pixeles y no a los 6 de la fuente**, que es el mismo precio
+que el oro y la pantalla de ítems ya pagan, y que la columna del máximo se
+corrió a x=192.
+
+**Dos: perder un encuentro al azar no era Game Over**, y de ahí salían los
+otros dos síntomas del reporte. `op_batalla` mira `BA_RESULT` y resuelve el
+destino de la derrota; el encuentro al azar arranca la pelea sin bytecode
+—`pelea_arrancar` desde `move_hero`— y nadie miraba el resultado. Como
+`modo_fin` guarda los HP de la pelea en `FAR_HP`, después de una derrota el
+grupo quedaba en cero **para siempre** y toda pelea siguiente se perdía sola
+antes de abrirse. Medido antes del arreglo, mapa 21 con
+`--encuentros-de-prueba 8`: `BA_RESULT` en 2 y trescientos cuadros después la
+partida seguía en el mapa; con el arreglo reinicia veintiún cuadros después.
+
+**Y la confusión: los enemigos con HP bajo no eran un defecto.** `ba_armar`
+vacía las doce ranuras y rellena los HP desde `enemigo_hp` del cartucho en
+cada pelea; medido con dos y tres encuentros seguidos, cada enemigo arranca
+siempre en su máximo. Lo que taro vio son los datos del juego: las tropas de
+Rat Tracks B1 son GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la
+pantalla de la pelea muestra el HP de cada enemigo sin su máximo —`BA_CONMAX`
+en cero—, así que un GiantRat dice "20" porque tiene 20.
+
+Lo cubren, todos comprobados en rojo antes:
+
+    test_menu.py              el menú con los HP que deja una pelea (111 px)
+    test_hp_de_batalla.py     pelear, volver al mapa, abrir el menú y mirar
+                              el número; y dos encuentros seguidos mirando
+                              con qué HP arrancan los enemigos
+    test_game_over.py         perder un encuentro al azar reinicia, y el
+                              control que gana y no reinicia
+
+**Lo que sigue sin poder hacerse: curar.** Es la otra mitad de *"así que no
+puedo curar"* y **no** es del menú: en el mapa, `objetivo_pantalla` con una
+medicina ignora A a propósito —"`UseItem` sólo la gasta si sube algo, y fuera
+de batalla nadie tiene los HP por debajo del máximo"—, que era cierto hasta
+que las peleas empezaron a bajarlos. La cuenta ya está escrita del lado de la
+pelea (`ba_item_cura`, con `item_cura_rate` e `item_cura_hp` que el conversor
+emite), así que lo que falta es aplicarla sobre `FAR_HP`, gastar el ítem y
+repintar la fila. **Sin eso el grupo no se recupera nunca**, porque tampoco
+hay posadas ni `ChangeHP` de página que suba.
+
 ### Las habilidades: entraron las siete (2026-09-13)
 
 Lo último que taro reportó como faltante de la batalla. Los cinco pasos que la

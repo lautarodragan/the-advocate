@@ -215,6 +215,10 @@ ACCESO_PEDIDO      = $80
 ; equipo, y el reset los pone llenos.
 FAR_HP = $3700
 
+; La RAM lejana con el banco adelante, para los pocos que la leen desde afuera
+; con `lda f:`: es lo mismo que `BAT_LARGO`, que quedó con nombre de pelea.
+FAR_LARGO = $7E0000
+
 ; Y los SP, que son estado por lo mismo que los HP desde que las habilidades
 ; se pueden usar: cada una cuesta su `sp_cost` y `Scene_Battle` se lo descuenta
 ; al que la usa. Arrancan llenos desde `actor_spmax` y viajan en la partida,
@@ -11956,6 +11960,22 @@ otro_miembro:
     lda #MENU_ACTOR_FILAS
     sta temp + 2
     jsr ranura_rect_subir
+    ; Y los HP de ahora encima del bloque, que no los trae: el bloque se
+    ; hornea al convertir. El actor se vuelve a buscar en `grupo` en vez de
+    ; guardarlo, porque los dos bytes que sobraban de `temp` los usa
+    ; `ranura_rect_subir`.
+    pla
+    pha
+    sta temp + 2                ; la fila
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda grupo, x
+    sta temp                    ; el actor
+    jsl f:menu_hp_escribir
 sin_bloque:
     pla
     inc a
@@ -25362,6 +25382,125 @@ cero:
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
+    rtl
+.endproc
+
+; Los HP de ahora de un actor, en su fila del panel del grupo: tres cifras
+; alineadas a la derecha y lo que sobre a la izquierda, en blanco. `temp` trae
+; el número de actor del LDB y `temp + 2` la fila; se lleva A, X, Y y `temp`.
+;
+; **Esto existe porque el bloque de la fila se hornea al convertir.** Hasta el
+; 2026-09-13 los HP iban adentro de ese bloque, así que el menú mostraba
+; siempre el máximo del nivel por más que la pelea los bajara: es lo que taro
+; reportó jugando —"en el menú siempre se muestra en 40", que es el máximo de
+; Talan—. El máximo y la barra siguen horneados, que ésos no cambian.
+;
+; Las cifras son las mismas celdas que el oro —`menu_cifra_celdas`, una por
+; celda— y caen alineadas sin tocar nada porque las dos líneas se dibujan a
+; dos pixeles del borde de arriba de su celda. `titulo._pegar_hp` es la
+; referencia, con las mismas columnas.
+;
+; Vive fuera del banco 0 por lo mismo que `hp_inicial_poner`: allá quedan
+; decenas de bytes y esto son más de cien. Se entra con `jsl` y con el banco de
+; datos en 0 —el menú corre así— pero se lo pone igual, porque todo lo que toca
+; —`temp`, las tablas de `TABLAS` y los registros del PPU— es absoluto del
+; banco 0 y depender del llamador para eso ya costó un error en este repo.
+.proc menu_hp_escribir
+.a8
+.i16
+    phb
+    lda #0
+    pha
+    plb
+    ; La celda de las unidades: la primera del bloque de la fila, más el
+    ; desplazamiento que emite el conversor, más las cifras que van a la
+    ; izquierda.
+    rep #$20
+.a16
+    lda temp + 2
+    and #$00FF
+    asl a
+    tax
+    lda menu_fila_vram, x
+    clc
+    adc #(MENU_HP_DESPL + MENU_HP_CIFRAS - 1)
+    tay
+    ; Y los HP, de la RAM lejana. Un actor con más de 999 mostraría sus tres
+    ; cifras de abajo; ninguno del juego llega.
+    lda temp
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LARGO + FAR_HP, x
+    sta temp
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #MENU_HP_CIFRAS
+    sta temp + 3
+cifra:
+    rep #$20
+.a16
+    lda temp
+    sta WRDIVL                  ; el dividendo, de dieciséis bits
+    sep #$20
+.a8
+    lda #10
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDDIVL
+    sta temp
+    lda RDMPYL                  ; el resto, que es la cifra
+    and #$00FF
+    asl a
+    asl a                       ; dos palabras por cifra
+    tax
+    sty VMADDL
+    lda menu_cifra_celdas, x
+    sta VMDATAL
+    tya
+    clc
+    adc #32                     ; la celda de abajo
+    sta VMADDL
+    lda menu_cifra_celdas + 2, x
+    sta VMDATAL
+    sep #$20
+.a8
+    dey
+    dec temp + 3
+    beq listo
+    lda temp
+    ora temp + 1
+    bne cifra
+    ; Lo que queda a la izquierda, en blanco: la celda 0, que en el bloque del
+    ; actor es la que ya hay debajo de las cifras.
+blanco:
+    rep #$20
+.a16
+    sty VMADDL
+    stz VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    stz VMDATAL
+    sep #$20
+.a8
+    dey
+    dec temp + 3
+    bne blanco
+listo:
+    plb
     rtl
 .endproc
 
