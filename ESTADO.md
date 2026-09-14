@@ -33,6 +33,13 @@ comprueba con `pytest pruebas --collect-only -q`. Al banco 0 le quedan **67 byte
 `demo-ciudad`, medidos por bisección: eran 81 antes de los 14 que se llevó la
 espera del MSU-1. Y `just snes-demo demo-ciudad` y `demo-titulo` arman las dos.
 
+**Con una salvedad que hay que decir**: la tanda se corrió sobre la foto
+`82668cf`, o sea **antes** de que `PISTAS_MSU` pasara de 8 a 22. Ese cambio sólo
+mueve los bytes de `tema_msu`, y la tanda corre **sin** archivos de MSU-1 al
+lado, así que `MSU_HAY` queda en cero y esa tabla no se lee nunca. `just
+pruebas` sí se volvió a correr después, y es la que da 158. Si alguien quiere la
+tanda sobre el árbol final, son quince minutos.
+
 Al 2026-09-13: `just snes-hitos-foto` eran **165 casos, todos en verde** —el que
 se agregó es `snes-encuentro`— y `just pruebas` **157 en verde y 1 `xfail`,
 sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
