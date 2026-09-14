@@ -33,7 +33,17 @@ ditto-pruebas:
   cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test
 
 ditto-vuelta-entera:
-  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --ignored --nocapture
+  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
+
+# El volcado del juego entero como árbol de archivos, para mirarlo.
+#
+# Va **fuera del repo** a propósito: el volcado que manda sigue siendo el de
+# `just datos` en `data/`, y elegir cuál gana es el paso 2 de DITTO.md, con los
+# dos a la vista. Un `ditto unpack` sobre `data/` pisaría el que usa el
+# conversor.
+ditto-volcado DIR="/extras/volcado-ditto":
+  cd ditto && cargo build --release
+  ./ditto/target/release/ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{DIR}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. Todo el toolchain son dos cosas: python y un core de libretro. El

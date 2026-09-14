@@ -36,7 +36,45 @@ mantienen dos decodificadores.
 
 **Todavía no pasó.** Ditto no reemplaza a nadie: convive con `tools/lcf.py` y
 con el conversor, que siguen leyendo los binarios. La decisión está tomada y el
-cambio es otra vuelta de trabajo.
+cambio son tres pasos, decididos con taro:
+
+1. Que Ditto **omita los defaults** al serializar y emita **la estructura de
+   `data/`**. Hecho el 2026-09-14; es lo que cuenta la sección de abajo.
+2. **Volcar los JSON una vez y versionarlos.**
+3. Que **`tools/lcf.py` los lea**, con sus 51 consumidores intactos.
+
+## Paso 1: el volcado por directorios, y cuánto pesa
+
+`ditto unpack <juego> <dir>` escribe el árbol y `ditto pack <dir> <juego>` lo
+vuelve a armar. La estructura es la que pidió taro, que es la que ya tiene
+`data/`: `maps.json` con el árbol, un archivo por mapa en `maps/`, las capas de
+tiles aparte en `maps/Map0001.tiles`, y las 15 secciones de la base en `db/`.
+El porqué de cada decisión está en `ditto/README.md`, en inglés; acá va lo que
+es de este repo.
+
+**Ditto no reemplaza a `tools/export_json.py` en esta vuelta, y no escribió una
+sola línea en `data/`.** Cuál de los dos gana es el paso 2 y lo decide taro con
+los dos volcados a la vista. Lo que sí se puede comparar ya son los números,
+sobre el mismo juego:
+
+    17.569.229   el .ldb como un solo JSON, omitiendo defaults
+    25.675.888   el .ldb como un solo JSON, como estaba antes
+    19.506.490   el volcado de Ditto entero, 674 archivos
+    16.121.259   el volcado de hoy, el de tools/export_json.py
+
+O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y el volcado
+completo de Ditto queda **21% por encima** del de hoy. La diferencia no es
+grasa: el de Python es una *lectura* del juego —un comando de evento entra en
+una línea, y los campos que al port no le sirven no están—, y el de Ditto tiene
+que poder volver a escribir el binario, así que lleva todo. Un mapa concreto,
+el 8, pasó de 439.222 bytes como un JSON suelto a 99.915 de JSON más 67.902 de
+`.tiles`.
+
+**Lo que hay que mirar al elegir en el paso 2** es que los dos volcados no
+dicen lo mismo: `data/maps.json` de hoy trae `file`, `size` y nombres que el
+conversor usa, y el de Ditto trae el `.lmt` tal cual. El paso 3 —que
+`tools/lcf.py` lea JSON— es el que va a decir cuál de las dos formas le sirve a
+los 51 consumidores.
 
 ## El corpus
 
@@ -53,7 +91,10 @@ vez de fallar; las que no lo necesitan —los defaults del esquema— corren
 siempre.
 
 Al 2026-09-14 la vuelta da **330 de 330** archivos idénticos: los 328 `.lmu`,
-el `RPG_RT.ldb` y el `RPG_RT.lmt`.
+el `RPG_RT.ldb` y el `RPG_RT.lmt`. Y desde el volcado por directorios, otros
+**330 de 330**: `unpack` el juego entero, `pack` de vuelta, y los mismos 330
+archivos byte por byte. Ésa es la prueba de que la estructura no perdió nada, y
+está en `ditto/tests/directory_dump.rs`.
 
 Y el número de la otra mitad, que es el que hace que ese 330 no sea suerte:
 sobre los 328 mapas, RPG Maker 2000 **omitió 8.461 campos** de 10.824 posibles

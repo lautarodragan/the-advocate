@@ -542,10 +542,15 @@ fn emit_struct(
     // purpose: that way a JSON missing a field takes it from that `Default`
     // —the CSV's— and not from the zero of the type. Field by field, a missing
     // `max_hp` would go back to being 0 instead of 10.
+    //
+    // `Serialize` is **not** in the derive list: `schema_struct!` writes it, so
+    // that a field holding its default is left out of the JSON the same way the
+    // binary leaves out its chunk. See the macro for why it cannot be an
+    // attribute.
     out.push_str(&format!(
         "schema_struct! {{\n\
          /// Generated from `fields.csv`.\n\
-         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]\n\
+         #[derive(Debug, Clone, PartialEq, Deserialize)]\n\
          #[serde(default)]\n\
          pub struct {name} {{\n"
     ));
@@ -576,9 +581,11 @@ fn emit_struct(
     // A chunk the schema does not name is kept raw and goes back to the file in
     // its place. Without this, any field liblcf does not know —or that belongs
     // to 2003— would silently break the round trip.
+    //
+    // It needs no `skip_serializing_if`: an empty list is this field's default,
+    // and the macro's `Serialize` already leaves out whatever holds it.
     out.push_str(
         "    /// The chunks the schema does not name, so the round trip is exact.\n\
-         \x20   #[serde(skip_serializing_if = \"Vec::is_empty\")]\n\
          \x20   pub unknown: Vec<RawChunk> = Vec::new(),\n}\n}\n\n",
     );
 }

@@ -4,6 +4,7 @@
 //! can a game be opened with the real RPG Maker, saved, and still be the same
 //! repository. See `README.md`.
 
+pub mod dump;
 pub mod file;
 pub mod lcf;
 pub mod raw;

@@ -31,6 +31,20 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// So the parts that touch the disk —the directory dump— fail with the same
+/// error as the parts that touch the format, and `?` works across both.
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error(e.to_string())
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error(e.to_string())
+    }
+}
+
 pub fn error<T>(m: impl Into<String>) -> Result<T> {
     Err(Error(m.into()))
 }
@@ -159,6 +173,20 @@ pub fn enc_ber(v: i32) -> Vec<u8> {
 
 // --- The default, written once ---------------------------------------------
 
+/// The name a field goes by in the JSON.
+///
+/// `stringify!` on a raw identifier keeps the `r#`: the field liblcf calls
+/// `type` is `r#type` in Rust, and written out as `"r#type"` the derived
+/// `Deserialize` —which does strip it— would not find it, so the field would
+/// come back holding its default. Measured: without this, `Skill` 71 read back
+/// as `Normal` instead of `Teleport`.
+pub fn json_name(s: &'static str) -> &'static str {
+    match s.strip_prefix("r#") {
+        Some(t) => t,
+        None => s,
+    }
+}
+
 /// Declares a schema struct with **the default of every field next to the
 /// field**, and builds the `Default` out of that.
 ///
@@ -173,9 +201,26 @@ pub fn enc_ber(v: i32) -> Vec<u8> {
 /// would fall back to the zero of its type through the back door, which is
 /// exactly the bug that started Ditto (`max_hp` at 0 where the format says 10).
 ///
-/// Nothing is needed for serde: the struct's `#[serde(default)]` already takes
-/// its values from this `Default`, so a field missing from the JSON holds the
-/// format's default and not the type's.
+/// Reading from the JSON needs nothing extra: the struct's `#[serde(default)]`
+/// already takes its values from this `Default`, so a field missing from the
+/// JSON holds the format's default and not the type's.
+///
+/// # Writing the JSON: the same omission rule as the binary
+///
+/// `Serialize` is **not derived**, it is written here: a field holding its
+/// default is left out of the JSON, which is exactly what the binary does with
+/// its chunks. The point is size —in this format most fields hold their
+/// default: over the measured game the editor omitted 8,461 chunks out of the
+/// 10,824 possible— and it costs nothing to read back, because
+/// `#[serde(default)]` puts it in again.
+///
+/// It is done by hand and not with `#[serde(skip_serializing_if = "...")]`
+/// because that attribute takes the *path of a function*, and a field's default
+/// here is an arbitrary expression: naming one function per field would mean
+/// building an identifier out of the struct's and the field's, which
+/// `macro_rules!` cannot do. Comparing against `Self::default()` needs no name
+/// at all, and it is the same value the codec compares against when it decides
+/// to omit a chunk.
 macro_rules! schema_struct {
     (
         $(#[$meta:meta])*
@@ -197,6 +242,21 @@ macro_rules! schema_struct {
         impl Default for $name {
             fn default() -> Self {
                 Self { $($field: $value,)* }
+            }
+        }
+
+        impl serde::Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+                use serde::ser::SerializeStruct;
+                let d = <Self as Default>::default();
+                let n = 0usize $(+ (self.$field != d.$field) as usize)*;
+                let mut m = s.serialize_struct(stringify!($name), n)?;
+                $(
+                    if self.$field != d.$field {
+                        m.serialize_field(json_name(stringify!($field)), &self.$field)?;
+                    }
+                )*
+                m.end()
             }
         }
     };

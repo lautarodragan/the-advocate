@@ -4,22 +4,32 @@ Reads the RPG Maker 2000 files —`.ldb`, `.lmu`, `.lmt`— and dumps them to
 JSON, **and writes them back from the JSON**. It is called that because it does
 one thing only: copy somebody else's shape.
 
-    cargo run --release -- read  Map0001.lmu mapa1.json
-    cargo run --release -- write mapa1.json  Map0001.lmu
+    cargo run --release -- read   Map0001.lmu map1.json
+    cargo run --release -- write  map1.json   Map0001.lmu
+
+    cargo run --release -- unpack ./game      ./dump
+    cargo run --release -- pack   ./dump      ./game-again
+
+`read`/`write` do one file, which is what one wants in order to look at a single
+map. `unpack`/`pack` do a whole game as **a tree of files**, which is what one
+wants in order to keep it in a repository; that layout has [its own
+section](#a-game-as-a-directory-and-not-one-big-json).
 
 ## The only thing that makes it worth anything: the way back is byte for byte
 
 Over a whole game —328 `.lmu`, the `RPG_RT.ldb` and the `RPG_RT.lmt`— reading,
 dumping to JSON, writing back from the JSON and comparing against the original
-gives **330 out of 330 identical**. That is what lets a game live in a version
+gives **330 out of 330 identical**. Through the directory layout, where the
+database is split into sections and the tile layers leave the JSON altogether,
+it is **330 out of 330** as well. That is what lets a game live in a version
 control system as JSON, be opened with the real RPG Maker —or with EasyRPG's—,
 saved, and come back, using the proprietary format as nothing but a transport.
 An "almost" is no good: one byte too many breaks somebody else's game.
 
 `cargo test` measures it:
 
-    cargo test                                        # a sample of maps, one second
-    cargo test --release -- --ignored --nocapture     # the whole corpus, with the number
+    cargo test                                             # a sample of maps, one second
+    cargo test --release -- --include-ignored --nocapture  # the whole corpus, with the number
 
 The short batch is the default so that `cargo test` stays something one runs
 without thinking about it.
@@ -41,6 +51,64 @@ And there is a second test, because the round trip on its own is not enough: a
 reader that understood **nothing** and kept every chunk raw would also give
 byte for byte, and the JSON would be useless. So `no_chunk_goes_unnamed`
 requires that not a single chunk survives unnamed in the dump.
+
+## A game as a directory, and not one big JSON
+
+A game written as a single JSON per binary file is unusable as a repository: the
+database alone is 17 MB in one file, so a one-word change to a term lands in a
+diff next to every enemy in the game. `unpack` writes a tree instead:
+
+    ditto.json            the layout's version, and the header of every file
+    maps.json             the map tree: the `.lmt`
+    maps/Map0001.json     one file per map, without its tile layers
+    maps/Map0001.tiles    those layers, as a grid
+    db/actors.json        the `.ldb`, one file per section (15 of them)
+    db/database.json      what is left of the database: its `version`
+
+`pack` builds `RPG_RT.ldb`, `RPG_RT.lmt` and every `.lmu` back from that tree,
+and `tests/directory_dump.rs` requires the result to be the same 330 files byte
+for byte. That is the test that says the layout lost nothing: everything needed
+to write the binary back had to find a place in it.
+
+**The `format`/`header`/`data` envelope is gone, and the header is not.** One
+JSON on its own needs the envelope because nothing else says what the file is;
+in a tree the place says it —`db/` is the database, `maps/Map0001.json` is a
+map—. The header *string* is another matter: liblcf has an option to preserve
+it precisely because there are games with a changed name, and assuming it would
+give a different binary. So it lives in `ditto.json`, once per kind, with a
+per-map override for the map that disagrees (normally there is none).
+
+**The tile layers are a text grid and not JSON.** 100x100 numbers per layer are
+what makes a map file unreadable, and in a diff they bury the event that
+actually changed; one line per row puts a changed tile on its own line, at the
+row and the column it is on the map. It is not for space —measured: the 837,270
+tiles of the corpus are 5,123,812 bytes as `.tiles` against some 5,334,435
+packed into the JSON, 4%—. `pack` takes the layers from the `.tiles` when there
+is one and from the JSON when there is not, so a layer that cannot be laid out
+as a `width * height` grid simply stays in the JSON.
+
+**The database is split by shape, not by a list of names.** Every field of
+`Database` that is an array or an object gets a file named after it; the scalars
+stay together in `database.json`. A section liblcf adds tomorrow gets its own
+file with no change here.
+
+`unpack` empties a previous dump before writing —otherwise a `Map0400.json` left
+over from an older one would put a map back into the game— and refuses to write
+into a non-empty directory that has no `ditto.json`, which would be somebody
+else's.
+
+### The JSON is pretty-printed, with lists kept on their line
+
+`serde_json`'s pretty printer puts one array element per line, and this format
+is lists all the way down: the parameters of an event command, the ranks of a
+state, the frames of an animation. So the printer here keeps a list of plain
+values on one line while it fits in 96 columns, and does the same with a small
+object that holds nothing but plain values —which is what an event command is,
+and there are 65,596 of them in the battle events of the measured game alone—.
+Objects that hold other objects always go one key per line: that nesting is the
+shape of the data, and it is what a diff is read for.
+
+Over that game it is the difference between a 29.5 MB dump and a 19.5 MB one.
 
 ## The names are not ours
 
@@ -101,6 +169,27 @@ which is exactly what the codec needs in order to decide omission and what
 it would leave the default written twice all the same, with a proc-macro
 dependency on top.
 
+#### And the same default decides what the JSON leaves out
+
+`Serialize` is **not derived**: `schema_struct!` writes it, and it leaves out
+every field that equals `Self::default()` —the very value the codec compares
+against when it decides to omit a chunk—. The binary's rule and the JSON's are
+then the same rule, and reading costs nothing because `#[serde(default)]` puts
+the field back. Nothing is lost by it: the round trip is measured through the
+JSON, and it stays at 330 of 330.
+
+It is written out by hand rather than with `#[serde(skip_serializing_if = "…")]`
+because that attribute takes the *path of a function*, and the default here is
+an arbitrary expression: one function per field would mean building an
+identifier out of the struct's name and the field's, which `macro_rules!` cannot
+do. Comparing against `Self::default()` needs no name at all.
+
+One trap, and it cost the first version two files: `stringify!` on a raw
+identifier keeps the `r#`. The field liblcf calls `type` is `r#type` in Rust and
+went into the JSON as `"r#type"`, which the derived `Deserialize` —which does
+strip it— did not find, so it came back holding its default: `Skill` 71 read
+back as `Normal` instead of `Teleport`. `json_name` strips it.
+
 ## The format, and the four things that make the exact round trip hard
 
 A file is a header —a length and a name— and a struct behind it. A struct is a
@@ -110,7 +199,13 @@ bits per byte, the high bit says it continues.
 
 That much is mechanical. What costs is this:
 
-**1. A field holding its default is not written.** Except for the ones
+**1. A field holding its default is not written.** The JSON does the same, and
+for the same reason it can: `Serialize` is written by `schema_struct!` and
+leaves out every field that holds its default, and `#[serde(default)]` puts it
+back on the way in. In this format that is most of them —over the corpus the
+`.ldb` goes from 25,675,888 bytes to 17,569,229 as a single JSON— and it costs
+nothing to read back.
+ Except for the ones
 `fields.csv` marks with `PersistIfDefault`, which are always written —even with
 length 0—. So reading and writing are not symmetric by construction: they are
 symmetric because the default that fills a field in when reading is the same
