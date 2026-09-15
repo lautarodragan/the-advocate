@@ -6,7 +6,7 @@ en qué mapa está, qué switch tiene prendido o qué evento está corriendo. So
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `w65.py --simbolos` deja al lado de la ROM
+Lo que hace posible preguntar es que `w65 --symbols` deja al lado de la ROM
 la tabla de símbolos que sale del `main.s` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
@@ -31,6 +31,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                            # noqa: E402
+import w65_bin                                          # noqa: E402
 from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
@@ -47,7 +48,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `w65.py --simbolos`, leída por nombre."""
+    """La tabla que deja `w65 --symbols`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta
@@ -589,9 +590,15 @@ def huella():
 
     Se mira el contenido y no la fecha: `git checkout` de ida y vuelta deja
     fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
+
+    **El ensamblador entra por el binario y no por sus fuentes**: desde el
+    2026-09-15 es Rust, y hasta entonces se colaba solo por el `tools/*.py`.
+    Va el binario y no `w65/src/*.rs` porque es lo que de verdad ensambló:
+    con los fuentes, un `cargo build` que falla dejaría la huella nueva y el
+    ensamblador viejo.
     """
     h = hashlib.sha256()
-    partes = [os.path.join(RAIZ, "rom", "src", "main.s")]
+    partes = [os.path.join(RAIZ, "rom", "src", "main.s"), w65_bin.binario()]
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:
@@ -709,9 +716,11 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     convertir += ["-o", inc]
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
 
-    subprocess.run([sys.executable, os.path.join(RAIZ, "tools", "w65.py"),
+    # El ensamblador es el binario de Rust, el mismo que usan las recetas. Sus
+    # flags son ingleses porque w65/ es un proyecto aparte; ver AGENTS.md.
+    subprocess.run([w65_bin.binario(),
                     os.path.join(RAIZ, "rom", "src", "main.s"),
-                    "-I", destino, "-o", sfc, "--simbolos", sfc + ".sym"],
+                    "-I", destino, "-o", sfc, "--symbols", sfc + ".sym"],
                    check=True, capture_output=True, cwd=RAIZ)
     with open(sello, "w") as archivo:
         archivo.write(actual)

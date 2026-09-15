@@ -124,15 +124,26 @@ tiles-pruebas:
   cd tiles && cargo test
 
 # --- w65 -------------------------------------------------------------------
-# El ensamblador de 65816 en Rust, y **el que arma las ROMs** desde el
-# 2026-09-15: todas las recetas que ensamblan `main.s` lo llaman a él.
-# `tools/w65.py` no se va: se queda como la segunda implementación que valida a
-# ésta, que es de lo que vive `just w65-comparar`. Adentro de w65/ no hay una
-# sola mención a este juego ni a la SNES, igual que en ditto/ y protocol/: es un
-# ensamblador y nada más.
+# El ensamblador de 65816 en Rust, y **el único que arma las ROMs** desde el
+# 2026-09-15: todas las recetas que ensamblan `main.s` lo llaman a él, y también
+# `pruebas/consola.py`, que arma las suyas desde pytest. Adentro de w65/ no hay
+# una sola mención a este juego ni a la SNES, igual que en ditto/ y protocol/:
+# es un ensamblador y nada más, y por eso sus flags están en inglés
+# —`--include`, `--symbols`, `--no-checksum`—.
 #
-# Por eso mismo sus flags están en inglés y no son los del Python:
-# `--include`, `--symbols`, `--no-checksum`.
+# `tools/w65.py`, la primera implementación, se borró el 2026-09-15 junto con
+# `w65-comparar` y `snes-validar`, que lo comparaban byte por byte contra este
+# binario y contra ca65. El argumento de taro: si el ensamblador se equivoca, la
+# ROM cambia y la tanda se pone roja, así que la comparación ya la hace el
+# criterio de aceptación, y entre los golden files, los md5 y jugarla a mano una
+# regresión drástica se ve igual. Mantener cadenas de verificación sólo obligaba
+# a tocar los dos lados de cada una.
+#
+# Y esto tiene fecha de vencimiento: el port va a pasar a `ca65` + `ld65`, por
+# preferir un proyecto mantenido y con ecosistema antes que sostener el nuestro.
+# Lo que falta para eso es `.bloque` —el acomodo de bloques en bancos—, que cae
+# en el asignador, así que la migración es de otra vuelta y hasta entonces el
+# que arma las ROMs es éste.
 w65 := "./w65/target/release/w65"
 
 # Compilar el ensamblador antes de usarlo, que es lo que cuesta que sea Rust:
@@ -161,26 +172,6 @@ w65-binario:
 w65-pruebas:
   cd w65 && cargo test
 
-# La única forma de dar por bueno el port: los dos ensambladores sobre el mismo
-# fuente, y **la ROM y la tabla de símbolos byte por byte iguales**. Hay que
-# darle un directorio con un `mapdata.inc` y un `musicdata.inc`, porque el
-# acomodo de bancos depende de los datos y un cartucho chico no ejercita lo
-# mismo que uno grande: el que manda es `demo-ciudad`.
-#
-# Y va **sólo** ese `-I`, sin `rom/src`: ahí vive el `mapdata.inc` que dejó la
-# última conversión, que es estado global y suele estar viejo. Con los dos, el
-# viejo gana y los dos ensambladores cortan por un símbolo que no existe. Los
-# `.inc` generados de `rom/src` igual se encuentran, porque `.include` cae al
-# directorio del fuente cuando no está en los `-I`.
-w65-comparar INC="rom/build/demo-ciudad": w65-binario
-  python3 tools/w65.py rom/src/main.s -I {{INC}} \
-      -o /tmp/w65-py.sfc --simbolos /tmp/w65-py.sym
-  {{w65}} rom/src/main.s -I {{INC}} \
-      -o /tmp/w65-rs.sfc --symbols /tmp/w65-rs.sym
-  sha256sum /tmp/w65-py.sfc /tmp/w65-rs.sfc /tmp/w65-py.sym /tmp/w65-rs.sym
-  python3 -c "import sys; a=open('/tmp/w65-py.sfc','rb').read(); b=open('/tmp/w65-rs.sfc','rb').read(); c=open('/tmp/w65-py.sym').read(); d=open('/tmp/w65-rs.sym').read(); sys.exit(0 if a==b and c==d else 'w65: NO son iguales')"
-  @echo "iguales byte por byte"
-
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, cargo y un core de libretro. El
 # ensamblador de 65816 es nuestro —`w65/`, en Rust, desde el 2026-09-15— y la
@@ -190,9 +181,6 @@ w65-comparar INC="rom/build/demo-ciudad": w65-binario
 # **cargo es nuevo acá**: antes compilar la ROM no lo necesitaba. Lo trae
 # `w65-binario`, de la que dependen `snes-build` y las demos, y que es la que
 # dice qué falta si no está.
-#
-# El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
-# w65.py contra ca65. No se necesita para compilar.
 
 # Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
 # las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin
@@ -2856,7 +2844,7 @@ assets-medir que="todo":
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
 # verde en la tanda entera, porque los dos lados se equivocaban igual.
 #
-# Se apoyan en la tabla de símbolos que deja `w65.py --simbolos`, así que
+# Se apoyan en la tabla de símbolos que deja `w65 --symbols`, así que
 # ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `main.s` hace fallar la prueba diciendo qué símbolo falta.
 pruebas *args:
@@ -3412,43 +3400,6 @@ snes-demos:
 # el MSU-1 no se enciende.
 snes-msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
-
-# --- verificación del ensamblador ------------------------------------------
-# **Sigue midiendo `tools/w65.py` y no `w65/`, a propósito**: desde el
-# 2026-09-15 las ROMs las arma el de Rust, y la cadena que lo sostiene tiene dos
-# eslabones —ca65 contra w65.py acá, y w65.py contra w65/ en `w65-comparar`—.
-# Cambiar este lado al binario de Rust rompería el primero sin agregar nada, y
-# además no se puede probar desde adentro del contenedor: necesita podman.
-#
-# w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
-# se genera un fuente con cada mnemónico en cada modo de direccionamiento que la
-# tabla declara, se ensambla con las dos cadenas y se comparan los bytes.
-#
-# Correr esto cada vez que se toquen las tablas de opcodes. Necesita podman, así
-# que va desde el host, no desde adentro del contenedor.
-#
-# Lo que compara es el primer banco: w65.py arma el cartucho entero, 256 KB, y
-# snes.cfg describe uno de 32. Del resto se comprueba que sea relleno.
-#
-# Lo que valida es la codificación de instrucciones, que es lo que se puede
-# equivocar en silencio. El layout de la ROM —banqueo LoROM, 128 KB, checksum—
-# ya no se compara: ca65 necesitaría una configuración bastante más compleja
-# para expresarlo, y main.s dejó de entrar en los 32 KB de snes.cfg cuando el
-# banco de muestras creció. A cambio, el layout sí se verifica de punta a punta
-# cada vez que la ROM arranca y suena en el emulador.
-#
-# rom/snes.cfg y rom/Makefile existen sólo para esto.
-
-snes-image:
-  podman build -t abl-snes snes
-
-snes-validar:
-  python3 tools/w65_coverage.py -o rom/build/cobertura.s
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes \
-      sh -c 'ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s \
-             && ld65 -C snes.cfg -o build/cobertura-ca65.sfc build/cobertura.o'
-  python3 tools/w65.py --sin-checksum rom/build/cobertura.s -o rom/build/cobertura-w65.sfc
-  python3 tools/w65_check.py rom/build/cobertura-w65.sfc rom/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
 # La música de un mapa a mano. Normalmente no hace falta: `snes-convert` ya la
