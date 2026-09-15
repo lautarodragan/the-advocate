@@ -3365,8 +3365,9 @@ snes-musica mapa tema banco="": w65-binario
 # prohibida por la página— se pierde en unos segundos.
 #
 # Es lo que reprodujo el cuelgue del 2026-09-13: hasta ese día perder ahí dejaba
-# la consola clavada en el arranque, con el mapa dibujado y el juego muerto. Ver
-# README, "Trampas del hardware". Lleva también el mapa 26 para poder seguir a
+# la consola clavada en el arranque, con el mapa dibujado y el juego muerto. El
+# porqué está en `main.s`, en el `APU_CMD_IPL` que `reset` manda antes de
+# `spc_upload`. Lleva también el mapa 26 para poder seguir a
 # los Rat Tracks B2 y probar de paso el jefe, que pierde igual.
 snes-demo-trampa nombre="demo-trampa": w65-binario
   mkdir -p rom/build/{{nombre}}

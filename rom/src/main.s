@@ -1011,7 +1011,10 @@ grupo_listo:
     ; sin inicializar, `ruta_i < ruta_n` da falso las diez corridas de snes9x y
     ; el error desaparece; en bsnes con entropía alta se ve. La tanda entera
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
-    ; en mednafen. Está medido en "Trampas del hardware" del README.
+    ; en mednafen. Está medido: con estas dos sin inicializar a mano y diez
+    ; corridas por core, snes9x da 0 de 10 en rojo y bsnes 2 de 10. Contra eso
+    ; existe `snes-bsnes`, que corre dos casos con `bsnes_entropy=High`; el
+    ; justfile tiene el resto de los números.
     stz ev_activo
     jsr limpiar_esperas
     stz ruta_n                  ; sin ruta forzada pendiente
@@ -1724,6 +1727,17 @@ puesto:
 ; el PPU dibujando, y el resultado era un tinte a medias distinto cada vez —una
 ; vez la capa de encima y un sprite, otra vez el fondo con el héroe en negro y
 ; los NPCs sin teñir—.
+;
+; Y esto la tanda no lo cobra: snes9x **acepta** las escrituras a CGRAM con el
+; PPU dibujando y mednafen no, así que un tinte roto puede dar verde en las
+; sesenta comparaciones y verse mal en la consola. Cuando algo de CGRAM o VRAM
+; anda acá adentro y no en el hardware, ésta es la primera sospecha.
+;
+; La otra salida que se probó —apagar la pantalla a mitad del cuadro, escribir
+; el tinte y volver a prenderla— es otra trampa de las que el emulador tapa: en
+; la consola son líneas negras mientras dura la cuenta, y en el emulador un
+; cuadro teñido de la mitad para abajo. La vio la sacudida de pantalla, que es
+; la primera receta que compara cuadro por cuadro.
 ;
 ; Apagar la pantalla es lo que ya hacen `cruzar_puerta` y el teletransporte por
 ; la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
