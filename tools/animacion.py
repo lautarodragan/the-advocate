@@ -5,7 +5,7 @@ Vive aparte de `snes_convert.py` por la misma razón que `imagen.py`: no es un
 mapa. Es un dibujo suelto que hay que meter en la pantalla, y lo único que el
 conversor y la referencia tienen que compartir es **exactamente dónde cae y de
 qué color es cada pixel**. Los sonidos y los destellos de la misma animación
-no están acá: ésos son `OP_ANIMACION` en `eventos.py`, y existen desde el
+no están acá: ésos son `OP_ANIMATION` en `eventos.py`, y existen desde el
 2026-09-11.
 
 El presupuesto, que es de donde sale todo lo demás:

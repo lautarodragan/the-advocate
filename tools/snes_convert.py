@@ -1154,7 +1154,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
 def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
                    tope=OBJ_PALETTES):
     """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
-    grises— y la paleta donde entran sus colores. Ver OP_CLIMA en eventos.py.
+    grises— y la paleta donde entran sus colores. Ver OP_WEATHER en eventos.py.
 
     Es lo mismo que `digitos_del_timer`: los colores van en la primera paleta
     de personaje con lugar, menos las de líder, y los tiles al final del
@@ -2790,7 +2790,7 @@ def animaciones_de_la_rom(mapas, renderer):
         for pagina in mapa.get("paginas", ()):
             codigo = pagina.get("codigo") or b""
             for i, c in eventos.recorrer_codigo(codigo):
-                if (c[i] == eventos.OP_ANIMACION
+                if (c[i] == eventos.OP_ANIMATION
                         and c[i + 1] != eventos.ANIM_SIN_DIBUJO):
                     numeros.add(c[i + 1])
     salida = {}
@@ -3358,14 +3358,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; su tabla se copia a la RAM como la de NPCs.\n"
         "RUTA_GRAF_MAX = %d\n"
         "; La cabecera de un cuadro de texto, que es el primer byte del que\n"
-        "; `OP_MENSAJE` nombra: los renglones en los tres bits de abajo, el\n"
+        "; `OP_MESSAGE` nombra: los renglones en los tres bits de abajo, el\n"
         "; autocierre del `\\^` en el bit 3 y cuantas pausas de `\\|` lleva en\n"
         "; el nibble de arriba. Y cuanto dura cada pausa, que son 61 cuadros y\n"
         "; no 60: ver CUADROS_DE_PAUSA en eventos.py.\n"
         "CABECERA_LINEAS     = $%02X\n"
         "CABECERA_AUTOCIERRE = $%02X\n"
         "CUADROS_DE_PAUSA    = %d\n"
-        "; El bit de arriba de la ranura de OP_VAR y de OP_TECLA: si la\n"
+        "; El bit de arriba de la ranura de OP_VAR y de OP_KEY: si la\n"
         "; escritura pide el refresco de páginas. Lo resuelve el conversor\n"
         "; mirando qué variables miran las condiciones de página de este\n"
         "; mapa; `var_apuntar` enmascara con VAR_RANURA. Ver VAR_REFRESCO en\n"
@@ -3381,7 +3381,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        "; OP_TECLA. Ver `op_tecla` en main.s.\n"
+        "; OP_KEY. Ver `op_tecla` en main.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -3412,7 +3412,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; de un objeto al siguiente, y de una fila de cuatro a la que sigue.\n"
         "IMAGEN_PASO = %d\n"
         "IMAGEN_FILA = %d\n"
-        "; La lluvia: ver OP_CLIMA en eventos.py.\n"
+        "; La lluvia: ver OP_WEATHER en eventos.py.\n"
         "LLUVIA_GOTAS_MAX = %d\n"
         "LLUVIA_GOTAS_0 = %d\n"
         "LLUVIA_GOTAS_1 = %d\n"
@@ -3435,7 +3435,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "VAR_AZAR      = %d\n"
         "VAR_OTRO      = %d\n"
         "; La clase 6, las coordenadas de un personaje: el blanco va como el de\n"
-        "; OP_RUTA —0 el héroe, el índice del evento más uno— y el otro operando\n"
+        "; OP_ROUTE —0 el héroe, el índice del evento más uno— y el otro operando\n"
         "; dice cuál coordenada. Ver VAR_PERSONAJE en eventos.py.\n"
         "VAR_PERSONAJE = %d\n"
         "PERSONAJE_X   = %d\n"
@@ -3451,7 +3451,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
         "; Y las dos preguntas de actor que llevan dos operandos, con su\n"
-        "; opcode propio: ver OP_SI_ACTOR en eventos.py.\n"
+        "; opcode propio: ver OP_IF_ACTOR en eventos.py.\n"
         "COND_ACTOR_HABILIDAD = %d\n"
         "COND_ACTOR_EQUIPO    = %d\n"
         "ORO_MAX     = %d\n"
@@ -5096,7 +5096,7 @@ def sprite_de_prueba(argumento):
 def ruta_de_evento(argumento):
     """(blanco, órdenes) desde el flag, o () si no se pidió ninguna.
 
-    El blanco es el byte que va en OP_RUTA: 0 es el héroe y un evento es su
+    El blanco es el byte que va en OP_ROUTE: 0 es el héroe y un evento es su
     índice **más uno**. Ver `Eventos.blanco`.
     """
     if not argumento or len(argumento) < 2:
@@ -5398,7 +5398,7 @@ def main():
                         help="la página de prueba guarda la partida en la "
                              "SRAM. El save point del juego está en el mapa 8 "
                              "y hay que caminar hasta él; esto deja probar "
-                             "`OP_GUARDAR` desde cualquier mapa. El otro lado "
+                             "`OP_SAVE` desde cualquier mapa. El otro lado "
                              "del mismo flag de snes_expect.py")
     parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
                         metavar=("SEGUNDOS", "VISIBLE"),
@@ -5703,7 +5703,7 @@ def main():
                                                   args.rama_var_de_prueba,
                                                   args.tecla_de_prueba))
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
-    # línea de tiempo adentro: ver OP_ANIMACION.
+    # línea de tiempo adentro: ver OP_ANIMATION.
     eventos.indexar_animaciones(args.game_dir)
     # Y los eventos comunes, que `CallEvent` compila en el lugar:
     # los dos lados tienen que mirar la misma base.
@@ -5827,7 +5827,7 @@ def main():
                 and mapa["id"] != args.imagenes.mapa):
             for pagina in paginas:
                 codigo = pagina["codigo"]
-                if codigo and any(codigo[i] == eventos.OP_IMAGEN
+                if codigo and any(codigo[i] == eventos.OP_PICTURE
                                   for i, _c in eventos.recorrer_codigo(codigo)):
                     sys.exit(
                         "mapa %d: muestra el cartel %r y sus tiles quedaron en "
@@ -5963,7 +5963,7 @@ def main():
         # a nadie; está para que un cambio futuro no las tire en silencio.
         blancos = {c[i + 1] for p in paginas if p["codigo"]
                    for i, c in recorrer_codigo(p["codigo"])
-                   if c[i] == eventos.OP_RUTA and c[i + 1]}
+                   if c[i] == eventos.OP_ROUTE and c[i + 1]}
         # Y que nadie destelle a alguien que comparte gráfico con otro. En la
         # consola el destello se hace sobre la paleta del personaje, así que dos
         # que compartan gráfico destellarían juntos. `eventos.py` ya rechaza el

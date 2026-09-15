@@ -12,7 +12,7 @@ Ahora compilan, con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 `assets/LIMITACIONES.md`.
 
 Esto va acá y no en la tanda de pixeles por una razón que conviene tener
-escrita: del lado de la referencia la pelea no se juega —`OP_BATALLA` se va
+escrita: del lado de la referencia la pelea no se juega —`OP_BATTLE` se va
 siempre por la rama de victoria, ver tools/eventos.py— así que no hay ningún
 cuadro que comparar. Sin esta prueba, el `jml reset` sería exactamente lo que
 AGENTS.md llama "un camino que ninguna prueba ejecuta".
@@ -141,7 +141,7 @@ def test_la_derrota_del_jefe_apunta_al_game_over():
     exactamente la clase de mentira que el `raise` estaba evitando.
     """
     codigo = pagina_del_jefe(0)
-    peleas = [i for i, b in enumerate(codigo) if b == eventos.OP_BATALLA]
+    peleas = [i for i, b in enumerate(codigo) if b == eventos.OP_BATTLE]
     # El opcode puede aparecer como operando de otro comando, así que se busca
     # el que además lleva la tropa que el LDB dice.
     for i in peleas:

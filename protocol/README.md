@@ -54,7 +54,7 @@ the argument holding how many follow carries `count`:
 
 ```toml
 [[opcode]]
-name = "OP_ELEGIR"
+name = "OP_CHOICE"
 code = 0x14
 args = [
   { name = "length", type = "byte", count = "options" },

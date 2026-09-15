@@ -590,7 +590,7 @@ Tres cosas de cómo está hecho, porque las tres costaron un día:
   su propio lazo de cuadros desde `op_guardar`, igual que desde el título, y
   `vueltas` no avanza mientras se ve. Es lo que hace RM2k: la escena apilada
   para el reloj del mapa, y la página sigue por el comando siguiente cuando se
-  cierra. Por eso la referencia no modela nada —`OP_GUARDAR` ocupa su byte y no
+  cierra. Por eso la referencia no modela nada —`OP_SAVE` ocupa su byte y no
   cuesta un cuadro— y después de cerrar los dos lados van por el mismo tick,
   tarde lo que tarde el jugador.
 * **Al cerrar se repone sólo lo que la pantalla pisó**, y no el mapa entero:
@@ -759,7 +759,7 @@ acá la elección corre antes que `pedir_menu`. Lo mismo al cerrar el menú y la
 pantalla de ranuras: el B que cerró no le llega a nadie más.
 
 `ChangeSaveAccess` y `ChangeMainMenuAccess` **se honran**: dejaron de estar
-entre los comandos ignorados, compilan a `OP_ACCESO` y apagan o prenden los
+entre los comandos ignorados, compilan a `OP_ACCESS` y apagan o prenden los
 bits 0 y 1 de `FAR_ACCESO`, que viaja en la partida. Guardar prohibido pone
 Save en gris; el menú prohibido hace que B no lo pida. El save point no mira
 el permiso, como `OpenSaveMenu`.
@@ -860,9 +860,9 @@ la partida.
 
 ### La tienda
 
-`OpenShop` abre `Scene_Shop` desde el 2026-09-11. Compila a `OP_TIENDA` —el
+`OpenShop` abre `Scene_Shop` desde el 2026-09-11. Compila a `OP_SHOP` —el
 tipo, el juego de mensajes y la lista de lo que vende, de largo variable como
-`OP_ELEGIR`— y, como guardar, la pantalla se abre adentro del intérprete y no
+`OP_CHOICE`— y, como guardar, la pantalla se abre adentro del intérprete y no
 cuesta ningún tick: al salir el mapa vuelve y la página sigue. Es una pantalla
 de texto, y cada modo es el de RM2k:
 
@@ -917,7 +917,7 @@ El azar es el xorshift de siempre —el de `ControlVars`— pero con **semilla
 propia**: pelear no le corre el azar del mapa, que es lo que la referencia de
 pixeles supone cuando dice que una batalla no cuesta ningún tick.
 
-`OP_BATALLA` lleva la tropa y **los tres destinos**: victoria, huida y
+`OP_BATTLE` lleva la tropa y **los tres destinos**: victoria, huida y
 derrota, absolutos dentro de la página y parcheados al cerrar el bloque, igual
 que las opciones de un `ShowChoice`. El manejador que la página no tenga
 apunta al final, que es lo que hace RM2k con un sub-índice sin rama. Como la
@@ -939,7 +939,7 @@ Game Over y el de "una batalla sin cerrar" —sin `EndBattle` el bloque no se
 cierra—. Medido: destrabar cualquiera de los dos solo, **+0**; los dos, **+15**.
 
 Ahora el compilador mira adelante, como con las opciones de un `ShowChoice`: si
-al `EnemyEncounter` no le sigue un manejador, emite el `OP_BATALLA` en el acto,
+al `EnemyEncounter` no le sigue un manejador, emite el `OP_BATTLE` en el acto,
 con victoria y huida en el comando de abajo y la derrota en `BATALLA_PERDER`.
 
 **`BATALLA_PERDER` es $FFFF**, o sea un destino imposible —los tres son
@@ -952,7 +952,7 @@ la SRAM. Es lo que `Scene_Gameover` hace al final, menos la imagen y menos el
 tema; los dos están declarados en `assets/LIMITACIONES.md`.
 
 Ese camino **la tanda de pixeles no lo puede ver**: del lado de la referencia
-`OP_BATALLA` se va siempre por la victoria, así que no hay cuadro que comparar.
+`OP_BATTLE` se va siempre por la victoria, así que no hay cuadro que comparar.
 Lo cobra `pruebas/test_game_over.py`, que pone el grupo entero en cero HP —con
 nadie en pie `batalla_correr` contesta derrota sin abrir la pantalla— y exige
 que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
@@ -1394,7 +1394,7 @@ la misma trampa que ya tenían los puentes `ba_t_*` del otro lado.
 
 `WeatherEffects` dibuja la lluvia desde el 2026-09-11 —la apertura llueve,
 primero débil y después media—. Hasta ahí se aceptaba sin hacer nada porque
-era lo único que trababa la cinemática. Compila a `OP_CLIMA` con el tipo y la
+era lo único que trababa la cinemática. Compila a `OP_WEATHER` con el tipo y la
 fuerza, y la regla es la de `Game_Screen::UpdateRain`: cada gota vive doce
 cuadros, baja cuatro pixeles y corre uno a la izquierda por cuadro, y una
 apagada nace con un diez por ciento de chance en un lugar al azar.
@@ -1456,7 +1456,7 @@ tanda, que desde ahora compara con lluvia.
 
 ### Los efectos de sonido
 
-`PlaySound` suena desde el 2026-09-11. Compila a `OP_SONIDO` con el índice del
+`PlaySound` suena desde el 2026-09-11. Compila a `OP_SOUND` con el índice del
 efecto en `sonido_tabla`, que lleva por efecto la muestra, la altura, el
 volumen de cada lado y cuántos cuadros dura: el tempo de RM2k estira la altura
 y la duración, y el paneo baja el lado contrario.
@@ -1475,7 +1475,7 @@ Tres decisiones, las tres por la ARAM:
   (`dsp_musica`), y al terminar el efecto la devuelve tal cual; mientras suena,
   la música no la toca.
 
-La tanda no mide audio: compara imágenes, y `OP_SONIDO` no cuesta tiempo en
+La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta tiempo en
 la referencia. Lo que se corrió fue una grabación de la apertura de
 `demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
 los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
@@ -1707,7 +1707,7 @@ menos el dibujo**: sus efectos de sonido y sus destellos, en el cuadro en que
 RM2k los pone. Son once en la intro —tres en el Linkage Block, ocho en el
 Emitter Room, todas de fuego— y sin ellas esas escenas eran silencio y nada.
 
-Compila a `OP_ANIMACION` con la línea de tiempo adentro: por cada `timing` de
+Compila a `OP_ANIMATION` con la línea de tiempo adentro: por cada `timing` de
 la animación, en el cuadro par `2 * (frame - 1)`, su efecto y su destello, de
 la pantalla o del evento objetivo. Hay una sola a la vez, como en
 `Game_Screen::ShowBattleAnimation`, y avanza una vez por cuadro antes que los
@@ -2348,7 +2348,7 @@ compilan, como todo lo indirecto. Sale de la cinemática de apertura, que lo
 usa seis veces para traer a Core, a Manta y al droide a escena, y destraba
 además cinco páginas automáticas, las cinco que decía `snes-destraba`.
 
-En la ROM es `OP_LUGAR`: la celda va a `ev_pos_buf`, que es lo que miran las
+En la ROM es `OP_PLACE`: la celda va a `ev_pos_buf`, que es lo que miran las
 rutas, la tecla de acción y el contacto, y el dibujo la sigue de dos maneras.
 Un evento con ranura de ruta sólo necesita que se le corte el paso y el salto:
 `mover_eventos` lo refresca en el mismo cuadro. Uno sin ranura **no se lleva
@@ -2366,8 +2366,8 @@ tapada por la capa de encima, y los dos lados lo dibujaban tapado. La prueba
 daba cero con el corte sacado, porque no veía al evento.
 
 **Y dos eventos que se cambian de lugar.** `TradeEventLocations` es
-`OP_TRUEQUE` desde el 2026-09-05: los dos blancos, y cada uno va con el mismo
-`MoveTo` de `OP_LUGAR` a la celda del otro, con las dos celdas leídas antes de
+`OP_SWAP` desde el 2026-09-05: los dos blancos, y cada uno va con el mismo
+`MoveTo` de `OP_PLACE` a la celda del otro, con las dos celdas leídas antes de
 escribir ninguna. Lo usa una sola escena de las que se miran: la puerta de
 arriba a la izquierda del mapa 2, donde Manta la vuela y la puerta se cambia
 de lugar con el evento 21. Es el caso `puerta-izq` de `snes-escena`.
@@ -2574,7 +2574,7 @@ a velocidad 2, medio pixel por cuadro.
 * **Se repite** volviendo al principio en el mismo cuadro, una vez por cuadro.
   **No lee órdenes nuevas mientras el intérprete tiene una página corriendo**
   —`IsRunning()` en `UpdateNextMovementAction`—, pero el paso en curso se
-  termina y las esperas siguen contando. Y **no la espera `OP_RUTAS`**:
+  termina y las esperas siguen contando. Y **no la espera `OP_WAIT_ROUTES`**:
   `ProceedWithMovement` mira sólo las forzadas.
 * **El refresco.** `Game_Map::Refresh`: al cargar el mapa y al empezar el
   cuadro siguiente a un cambio de switch o de grupo, cada evento con rutas
@@ -3005,7 +3005,7 @@ Lo que cuesta: un mensaje de 51 caracteres tarda unos 15 cuadros en aparecer y
 uno de cuatro renglones llenos tardaría unos 36. En RM2k tampoco desentona: allá
 la ventana se abre con una animación.
 
-**De dónde sale el texto: el operando del opcode.** `OP_MENSAJE` lleva un
+**De dónde sale el texto: el operando del opcode.** `OP_MESSAGE` lleva un
 desplazamiento de 16 bits dentro del bloque `mensajes`, que es de la ROM entera
 y no del mapa. El conversor lo arma mientras compila las páginas —cada
 `ShowMessage` deja su texto y se lleva su desplazamiento— y lo deduplica, que en
@@ -3152,8 +3152,8 @@ ni que el operando encuentre su texto.
 El mapa 255 se eligió midiendo. Tiene una página automática **sin condición de
 switch** —o sea que corre al entrar— cuyo código entero es esto:
 
-    07 0000     OP_MENSAJE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
-    07 7c00     OP_MENSAJE @124   otras cuatro
+    07 0000     OP_MESSAGE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
+    07 7c00     OP_MESSAGE @124   otras cuatro
     01 5003 01  el switch 848
 
 De ahí salen las tres cosas que ninguna otra receta mira. El **desplazamiento**:
@@ -3168,10 +3168,10 @@ cero y la receta daría verde sin probar nada.
 
 #### La sacudida de pantalla
 
-`ShakeScreen` es `OP_SACUDIR` desde el 2026-09-05: fuerza, velocidad y cuadros,
+`ShakeScreen` es `OP_SHAKE` desde el 2026-09-05: fuerza, velocidad y cuadros,
 y con cero cuadros es `ShakeEnd`. Es `ShakeOnce` de easyrpg, que no reinicia la
 posición para que dos sacudidas seguidas se encadenen, y con `wait` el
-conversor le pone un `OP_ESPERAR` detrás, como a los destellos. La cuenta por
+conversor le pone un `OP_DELAY` detrás, como a los destellos. La cuenta por
 cuadro es `Shake::NextPosition`:
 
     amplitud = 1 + 2 * fuerza
@@ -3266,8 +3266,8 @@ después, los cinco cuadros.
 
 #### El destello de pantalla
 
-`FlashScreen` (11040) es `OP_DESTELLO` desde el 2026-09-05: color, fuerza y
-cuadros, y un `OP_ESPERAR` detrás si la página espera, como la sacudida. Lo
+`FlashScreen` (11040) es `OP_FLASH_SCREEN` desde el 2026-09-05: color, fuerza y
+cuadros, y un `OP_DELAY` detrás si la página espera, como la sacudida. Lo
 pide la escena en que Core rompe la puerta de seguridad del mapa 2 —evento 22,
 página del switch 7, la que abre el pasillo al ascensor—, y era lo que la
 cortaba junto con `ShowBattleAnimation` (11210), que desde el 2026-09-11 suena
@@ -5009,7 +5009,7 @@ mapa 8 es uno.
 **Y la rama por objeto, desde el 2026-09-13.** Es la misma pregunta que la
 condición de página —`GetItemCount(id) > 0`, sin `GetEquippedItemCount` porque
 no hay equipo— pero adentro de un `ConditionalBranch`, la clase 4. Compila al
-mismo `OP_SI` que el switch, con el número de RM2k adelante y la polaridad tal
+mismo `OP_IF` que el switch, con el número de RM2k adelante y la polaridad tal
 cual —0 es "tiene que tenerlo"—, así que la ROM la decide con el mismo `eor` y
 sin una rama de más; lee el byte de `FAR_ITEMS` por el mismo camino que
 `condiciones_ok`. Son **+20 páginas del juego entero**, y estuvo sin hacerse
@@ -5028,8 +5028,8 @@ porque van juntas en el juego: las 10 páginas que preguntan por una habilidad
 preguntan además por el equipo, así que la 4 sola destraba cero y la 5 sola
 +18.
 
-Las dos nuevas no entran en `OP_SI`, que tiene un solo operando: llevan el
-actor **y** el ítem o la habilidad. Por eso hay un opcode aparte, `OP_SI_ACTOR`
+Las dos nuevas no entran en `OP_IF`, que tiene un solo operando: llevan el
+actor **y** el ítem o la habilidad. Por eso hay un opcode aparte, `OP_IF_ACTOR`
 —sub, actor en un byte, dato en una palabra, destino— con el destino último,
 como todos, porque es lo que el conversor parchea al cerrar la rama. Ninguna de
 las dos tiene polaridad: RM2k no se la da, la rama de abajo es el `else`.
@@ -5127,7 +5127,7 @@ que alguna condición de página del **mapa cargado** mira. Acá esa pregunta no
 hace falta correrla en la consola: quién mira qué es estático por mapa y el
 bytecode de una página se compila para su mapa, así que la contesta el
 conversor. Es `VAR_REFRESCO`, el bit de arriba de la ranura de `OP_VAR` y de
-`OP_TECLA`: `var_apuntar` lo enmascara con `VAR_RANURA` y `var_escribir` lo
+`OP_KEY`: `var_apuntar` lo enmascara con `VAR_RANURA` y `var_escribir` lo
 mira, que es el único lugar por donde pasan las tres escrituras que hay. Sale
 gratis en bytes —cuatro menos de banco 0, porque el `lda #1 / sta refresco`
 estaba repetido tres veces— y por eso la ranura tiene que entrar en siete bits:

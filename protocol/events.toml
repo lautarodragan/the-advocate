@@ -19,7 +19,7 @@
 # `signed = true` says how to read it back; nothing writes it differently.
 
 [[opcode]]
-name = "OP_FIN"
+name = "OP_DONE"
 code = 0x00
 args = []
 
@@ -41,14 +41,14 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_ESPERAR"
+name = "OP_DELAY"
 code = 0x03
 args = [
   { name = "frames", type = "word" },
 ]
 
 [[opcode]]
-name = "OP_TINTE"
+name = "OP_TINT"
 code = 0x04
 args = [
   { name = "red", type = "byte" },
@@ -58,7 +58,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_GRUPO"
+name = "OP_PARTY"
 code = 0x05
 args = [
   { name = "operation", type = "byte" },
@@ -66,7 +66,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_RUTA"
+name = "OP_ROUTE"
 code = 0x06
 args = [
   { name = "target", type = "byte" },
@@ -78,14 +78,14 @@ repeated = { name = "commands", args = [
 ] }
 
 [[opcode]]
-name = "OP_MENSAJE"
+name = "OP_MESSAGE"
 code = 0x07
 args = [
   { name = "offset", type = "word" },
 ]
 
 [[opcode]]
-name = "OP_RUTAS"
+name = "OP_WAIT_ROUTES"
 code = 0x08
 args = []
 
@@ -118,7 +118,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_LUGAR"
+name = "OP_PLACE"
 code = 0x0C
 args = [
   { name = "target", type = "byte" },
@@ -127,7 +127,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_TRUEQUE"
+name = "OP_SWAP"
 code = 0x0D
 args = [
   { name = "first", type = "byte" },
@@ -135,7 +135,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_SACUDIR"
+name = "OP_SHAKE"
 code = 0x0E
 args = [
   { name = "power", type = "byte" },
@@ -144,7 +144,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_DESTELLO"
+name = "OP_FLASH_SCREEN"
 code = 0x0F
 args = [
   { name = "red", type = "byte" },
@@ -155,7 +155,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_FUNDIR_BGM"
+name = "OP_FADE_BGM"
 code = 0x10
 args = [
   { name = "step", type = "word" },
@@ -173,7 +173,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_SI"
+name = "OP_IF"
 code = 0x12
 args = [
   { name = "kind", type = "byte" },
@@ -183,14 +183,14 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_IR"
+name = "OP_GOTO"
 code = 0x13
 args = [
   { name = "destination", type = "word" },
 ]
 
 [[opcode]]
-name = "OP_ELEGIR"
+name = "OP_CHOICE"
 code = 0x14
 args = [
   { name = "length", type = "byte", count = "options" },
@@ -202,7 +202,7 @@ repeated = { name = "options", args = [
 ] }
 
 [[opcode]]
-name = "OP_ORO"
+name = "OP_GOLD"
 code = 0x15
 args = [
   { name = "sign", type = "byte" },
@@ -210,7 +210,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_GUARDAR"
+name = "OP_SAVE"
 code = 0x16
 args = []
 
@@ -226,7 +226,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_SI_VAR"
+name = "OP_IF_VAR"
 code = 0x18
 args = [
   { name = "slot", type = "byte" },
@@ -245,7 +245,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_ACCESO"
+name = "OP_ACCESS"
 code = 0x1A
 args = [
   { name = "bit", type = "byte" },
@@ -253,7 +253,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_TIENDA"
+name = "OP_SHOP"
 code = 0x1B
 args = [
   { name = "kind", type = "byte" },
@@ -265,7 +265,7 @@ repeated = { name = "goods", args = [
 ] }
 
 [[opcode]]
-name = "OP_CLIMA"
+name = "OP_WEATHER"
 code = 0x1C
 args = [
   { name = "kind", type = "byte" },
@@ -273,14 +273,14 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_SONIDO"
+name = "OP_SOUND"
 code = 0x1D
 args = [
   { name = "index", type = "word" },
 ]
 
 [[opcode]]
-name = "OP_ANIMACION"
+name = "OP_ANIMATION"
 code = 0x1E
 args = [
   { name = "animation", type = "byte" },
@@ -299,7 +299,7 @@ repeated = { name = "frames", args = [
 ] }
 
 [[opcode]]
-name = "OP_IMAGEN"
+name = "OP_PICTURE"
 code = 0x1F
 args = [
   { name = "red", type = "byte" },
@@ -309,7 +309,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_IMAGEN_MOVER"
+name = "OP_PICTURE_MOVE"
 code = 0x20
 args = [
   { name = "red", type = "byte" },
@@ -320,12 +320,12 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_IMAGEN_BORRAR"
+name = "OP_PICTURE_ERASE"
 code = 0x21
 args = []
 
 [[opcode]]
-name = "OP_BATALLA"
+name = "OP_BATTLE"
 code = 0x22
 args = [
   { name = "troop", type = "word" },
@@ -335,12 +335,12 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_PARAR_RUTAS"
+name = "OP_STOP_ROUTES"
 code = 0x23
 args = []
 
 [[opcode]]
-name = "OP_SI_ACTOR"
+name = "OP_IF_ACTOR"
 code = 0x24
 args = [
   { name = "subkind", type = "byte" },
@@ -350,7 +350,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_ACTOR_GRAF"
+name = "OP_ACTOR_SPRITE"
 code = 0x25
 args = [
   { name = "actor", type = "byte" },
@@ -358,7 +358,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_TECLA"
+name = "OP_KEY"
 code = 0x26
 args = [
   { name = "slot", type = "byte" },
@@ -366,7 +366,7 @@ args = [
 ]
 
 [[opcode]]
-name = "OP_LUGAR_VAR"
+name = "OP_PLACE_VAR"
 code = 0x27
 args = [
   { name = "target", type = "byte" },

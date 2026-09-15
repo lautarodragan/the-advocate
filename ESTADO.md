@@ -641,7 +641,7 @@ fábrica, y seguía rota de ahí en adelante —la captura es
 `pruebas-manuales/2026-09-13-f30be91/demo-ciudad-0006.png`—. **Encontrado y
 arreglado**, y no era ni el pan ni el cronómetro.
 
-**Qué era.** `OP_MENSAJE` lleva un desplazamiento de dieciséis bits dentro del
+**Qué era.** `OP_MESSAGE` lleva un desplazamiento de dieciséis bits dentro del
 bloque de textos, y `msg_empezar` lo sumaba al puntero **de a dieciséis bits**,
 perdiendo el acarreo y dejando el banco fijo. El bloque mide 48972 bytes con
 los 29 mapas de `demo-ciudad` —más que los 32 KB que mide la ventana de un
@@ -1053,7 +1053,7 @@ describió. El comando vale **+5 páginas** del juego entero —mapas 49, 51, 52
 54 y 285— sobre una base de 5348 de 5603 disparables.
 
 Lo importante: **los dos lados ya lo hacen**. `op_tecla` en `main.s` y
-`OP_TECLA` en `eventos.py` cubren la forma que no espera; el único que la
+`OP_KEY` en `eventos.py` cubren la forma que no espera; el único que la
 rechaza es el `raise` de `KEY_INPUT_PROC`, y lo rechaza por el arnés. Medido
 con `TECLA_SIN_ESPERA=1`, que es el interruptor que se agregó para no tener que
 volver a parchear a mano:
@@ -1137,7 +1137,7 @@ cosas distintas, no una:
   orden de `CheckInput`, de mayor valor a menor.
 * **`ChangeEventLocation` con la celda en dos variables** no compilaba, y es
   con lo que la página planta la piedra donde está el jugador. Es el opcode
-  nuevo `OP_LUGAR_VAR = $27`.
+  nuevo `OP_PLACE_VAR = $27`.
 
 **El corte de `KeyInputProc` era del arnés y no de la ROM**, y ésa es la parte
 que conviene entender: la tanda sostenía una dirección desde el arranque con
@@ -1168,7 +1168,7 @@ entero y con `indexar_variables`, `indexar_comunes`, `indexar_animaciones`,
     sólo la ranura de la variable        5415  (+0)
     sólo KeyInputProc entero             5415  (+0)
     las dos juntas                       5417  (+2)
-    sólo OP_LUGAR_VAR                    5415  (+0)
+    sólo OP_PLACE_VAR                    5415  (+0)
     las tres                             5418  (+3)
 
 **Ninguna de las tres sola vale nada, y ése es el resultado.** Las dos páginas
@@ -1398,7 +1398,7 @@ RM2k nunca pide. Ahora se hacen los dos:
 **Dónde viajan**: en el byte de cabecera del cuadro de texto, que contaba los
 renglones y le sobraban cinco bits. Los renglones quedan en los bits 0-2, el
 autocierre en el 3 y cuántas pausas en el nibble de arriba. Un operando más en
-`OP_MENSAJE` habría costado un byte en cada uno de los 2895 cuadros del juego
+`OP_MESSAGE` habría costado un byte en cada uno de los 2895 cuadros del juego
 para los 2855 que no llevan ninguna cola.
 
 Lo que hay que saber para tocarlo:
@@ -1973,7 +1973,7 @@ de cada una está en `README.md`.
    sin nada que la ejercite es inventarse una diferencia. Las variables suman
    cero, medido.
 
-  Compila a dos opcodes: `OP_SI` —switch, polaridad y destino— y `OP_IR`, el
+  Compila a dos opcodes: `OP_IF` —switch, polaridad y destino— y `OP_GOTO`, el
   salto sin condición que va donde estaba el `else`. **El destino es absoluto
   dentro de la página**, así que en la ROM saltar es asignar el cursor; quién
   es ese destino lo resuelve el conversor, que es el único que ve la página

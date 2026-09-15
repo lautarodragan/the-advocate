@@ -1667,7 +1667,7 @@ def main():
                         metavar="TROPA",
                         help="una pelea contra esta tropa al final de la "
                              "página de prueba. De este lado no cuesta ningún "
-                             "tick y no dibuja nada: ver OP_BATALLA en "
+                             "tick y no dibuja nada: ver OP_BATTLE en "
                              "tools/eventos.py")
     parser.add_argument("--guardar-de-prueba", action="store_true",
                         help="la página de prueba guarda la partida en la "
@@ -2117,7 +2117,7 @@ def main():
             # al líder, que **sí** cruza el teletransporte: en RM2k el gráfico
             # vive en el actor. Si el CharSet no está en el banco de sprites de
             # este mapa se queda con el del LDB, que es lo mismo que hace la
-            # ROM en `elegir_grafico_heroe`. Ver OP_ACTOR_GRAF.
+            # ROM en `elegir_grafico_heroe`. Ver OP_ACTOR_SPRITE.
             lider = estado.grupo[0] if estado.grupo else None
             if lider in estado.actor_graf:
                 par = mundo.graficos(map_id).pares[estado.actor_graf[lider]]

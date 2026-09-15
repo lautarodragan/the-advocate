@@ -104,4 +104,4 @@ def test_el_tram_officer_compila_con_las_variables():
                                      eventos.Mensajes(),
                                      del_mapa.para(oficial.id))
     assert codigo is not None and eventos.OP_VAR in codigo \
-        and eventos.OP_SI_VAR in codigo
+        and eventos.OP_IF_VAR in codigo

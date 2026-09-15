@@ -4,7 +4,7 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. `snes-batalla`
 compara **la pantalla** contra `pantallas.pantalla_batalla` y no puede hacer
 más: la pelea bloquea adentro del intérprete y no cuesta ningún tick, así que
-del lado de `snes_expect.py` no hay nada dibujado —ver `OP_BATALLA` en
+del lado de `snes_expect.py` no hay nada dibujado —ver `OP_BATTLE` en
 tools/eventos.py—. Lo que pasa adentro se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
@@ -713,7 +713,7 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
 
     Es lo mismo que la pantalla de ranuras y la tienda, y es lo que le permite
     a la referencia salir del opcode en el mismo tick tarde lo que tarde el
-    jugador. Sin esto, `OP_BATALLA` tendría que modelar cuántos cuadros dura
+    jugador. Sin esto, `OP_BATTLE` tendría que modelar cuántos cuadros dura
     una pelea, que es justo lo que no se puede medir honestamente.
     """
     una = en_el_droide(partida)

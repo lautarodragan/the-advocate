@@ -1015,7 +1015,7 @@ grupo_listo:
     stz ruta_i
     stz ruta_espera
     lda #8
-    sta ruta_frec               ; la de siempre, hasta que un OP_RUTA diga otra
+    sta ruta_frec               ; la de siempre, hasta que un OP_ROUTE diga otra
     ; Y lo demás que una ruta deja prendido. La RAM arranca con basura —snes9x
     ; la llena de $55— así que sin esto el héroe arrancaría atravesando paredes
     ; y con la animación parada.
@@ -3963,9 +3963,9 @@ otro:
     ; un `beq` llega a 127 bytes y el cuerpo del último opcode está detrás de
     ; todos los demás, así que el límite lo marca la suma de los otros seis.
     ;
-    ; Eso ya cortó dos veces. La primera, al aparecer OP_MENSAJE, dejó a
+    ; Eso ya cortó dos veces. La primera, al aparecer OP_MESSAGE, dejó a
     ; OP_TELEPORT a 140 bytes; se arregló ordenando las comparaciones como los
-    ; cuerpos. La segunda fue darle su operando a OP_MENSAJE: 129 bytes, o sea
+    ; cuerpos. La segunda fue darle su operando a OP_MESSAGE: 129 bytes, o sea
     ; que aquel arreglo duraba exactamente un opcode. Y faltan cuatro —MoveEvent
     ; sobre otro evento, FlashSprite, PlaySound y ControlVars, en ese orden y
     ; medidos con `just snes-destraba`—, así que el límite se saca del medio de
@@ -3973,49 +3973,49 @@ otro:
     ;
     ; Sale tres bytes y cuatro ciclos por opcode que no matchea, en un despacho
     ; que corre unas pocas veces por cuadro. El orden ya no significa nada.
-    cmp #OP_MENSAJE
+    cmp #OP_MESSAGE
     bne :+
     jmp op_mensaje
 :   cmp #OP_SWITCH
     bne :+
     jmp op_switch
-:   cmp #OP_RUTA
+:   cmp #OP_ROUTE
     bne :+
     jmp op_ruta
-:   cmp #OP_GRUPO
+:   cmp #OP_PARTY
     bne :+
     jmp op_grupo
-:   cmp #OP_ESPERAR
+:   cmp #OP_DELAY
     bne :+
     jmp op_esperar
-:   cmp #OP_TINTE
+:   cmp #OP_TINT
     bne :+
     jmp op_tinte
 :   cmp #OP_FLASH
     bne :+
     jmp op_flash
-:   cmp #OP_RUTAS
+:   cmp #OP_WAIT_ROUTES
     bne :+
     jmp op_rutas
 :   cmp #OP_BGM
     bne :+
     jmp op_bgm
-:   cmp #OP_LUGAR
+:   cmp #OP_PLACE
     bne :+
     jmp op_lugar
-:   cmp #OP_LUGAR_VAR
+:   cmp #OP_PLACE_VAR
     bne :+
     jmp op_lugar_var
-:   cmp #OP_TRUEQUE
+:   cmp #OP_SWAP
     bne :+
     jmp op_trueque
-:   cmp #OP_SACUDIR
+:   cmp #OP_SHAKE
     bne :+
     jmp op_sacudir
-:   cmp #OP_DESTELLO
+:   cmp #OP_FLASH_SCREEN
     bne :+
     jmp op_destello
-:   cmp #OP_FUNDIR_BGM
+:   cmp #OP_FADE_BGM
     bne :+
     jmp op_fundir_bgm
 :   cmp #OP_PAN
@@ -4024,55 +4024,55 @@ otro:
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
-:   cmp #OP_SI
+:   cmp #OP_IF
     bne :+
     jmp op_si
-:   cmp #OP_IR
+:   cmp #OP_GOTO
     bne :+
     jmp op_ir
-:   cmp #OP_ELEGIR
+:   cmp #OP_CHOICE
     bne :+
     jmp op_elegir
-:   cmp #OP_ORO
+:   cmp #OP_GOLD
     bne :+
     jmp op_oro
 :   cmp #OP_ITEM
     bne :+
     jmp op_item
-:   cmp #OP_ACCESO
+:   cmp #OP_ACCESS
     bne :+
     jmp op_acceso
-:   cmp #OP_ACTOR_GRAF
+:   cmp #OP_ACTOR_SPRITE
     bne :+
     jmp op_actor_graf
-:   cmp #OP_TECLA
+:   cmp #OP_KEY
     bne :+
     jmp op_tecla
-:   cmp #OP_TIENDA
+:   cmp #OP_SHOP
     bne :+
     jmp op_tienda
-:   cmp #OP_BATALLA
+:   cmp #OP_BATTLE
     bne :+
     jmp op_batalla
-:   cmp #OP_CLIMA
+:   cmp #OP_WEATHER
     bne :+
     jmp op_clima
-:   cmp #OP_ANIMACION
+:   cmp #OP_ANIMATION
     bne :+
     jmp op_animacion
-:   cmp #OP_SONIDO
+:   cmp #OP_SOUND
     bne :+
     jmp op_sonido
-:   cmp #OP_IMAGEN
+:   cmp #OP_PICTURE
     bne :+
     jmp op_imagen
-:   cmp #OP_IMAGEN_MOVER
+:   cmp #OP_PICTURE_MOVE
     bne :+
     jmp op_imagen_mover
-:   cmp #OP_IMAGEN_BORRAR
+:   cmp #OP_PICTURE_ERASE
     bne :+
     jmp op_imagen_borrar
-:   cmp #OP_GUARDAR
+:   cmp #OP_SAVE
     bne :+
     jmp op_guardar
 :   cmp #OP_TELEPORT
@@ -4081,16 +4081,16 @@ otro:
 :   cmp #OP_VAR
     bne :+
     jmp op_var
-:   cmp #OP_SI_VAR
+:   cmp #OP_IF_VAR
     bne :+
     jmp op_si_var
-:   cmp #OP_SI_ACTOR
+:   cmp #OP_IF_ACTOR
     bne :+
     jmp op_si_actor
-:   cmp #OP_PARAR_RUTAS
+:   cmp #OP_STOP_ROUTES
     bne :+
     jmp op_parar_rutas
-:   stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
+:   stz ev_activo               ; OP_DONE, o algo que no conocemos: se corta
     rts
 
 ; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
@@ -4292,8 +4292,8 @@ si_no_cumple:
 
 ; `ConditionalBranch` caso 5 con dos operandos: "sabe esta habilidad" —el
 ; sub 4— y "tiene puesto este objeto" —el 5—. Van en un opcode aparte y no en
-; `OP_SI` porque llevan **dos** operandos, el actor y el ítem o la habilidad;
-; ver OP_SI_ACTOR en eventos.py.
+; `OP_IF` porque llevan **dos** operandos, el actor y el ítem o la habilidad;
+; ver OP_IF_ACTOR en eventos.py.
 ;
 ; Ninguna de las dos tiene polaridad: RM2k no se la da, igual que a "está en el
 ; grupo", así que la rama de abajo es el `else`.
@@ -4673,16 +4673,16 @@ sigue_la_pagina:
     jmp otro
 
 
-; `OP_SONIDO`: el índice en `sonido_tabla`. Queda pendiente y arranca al
+; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
 op_sonido:
     jsr sonido_de_codigo
     jmp otro
 
-; Los tres del cartel. `OP_IMAGEN` lo pone ya con su tono —`Game_Pictures::
-; Show` deja `time_left` en cero—, `OP_IMAGEN_MOVER` arranca la rampa hacia
-; otro tono y `OP_IMAGEN_BORRAR` lo saca. Ninguno corta el cuadro: si la página
-; espera lo que dura el fundido, el conversor le pone un OP_ESPERAR detrás,
+; Los tres del cartel. `OP_PICTURE` lo pone ya con su tono —`Game_Pictures::
+; Show` deja `time_left` en cero—, `OP_PICTURE_MOVE` arranca la rampa hacia
+; otro tono y `OP_PICTURE_ERASE` lo saca. Ninguno corta el cuadro: si la página
+; espera lo que dura el fundido, el conversor le pone un OP_DELAY detrás,
 ; igual que al `FlashScreen` y a la sacudida.
 op_imagen:
     ldx #$0000
@@ -4758,8 +4758,8 @@ op_imagen_borrar:
     sta f:CARTEL_ACTIVA
     jmp otro
 
-; `OP_ANIMACION`: el número de animación de RM2k, sobre qué se dibuja, cuántas
-; entradas y las entradas, que se quedan en el bytecode. Ver OP_ANIMACION en
+; `OP_ANIMATION`: el número de animación de RM2k, sobre qué se dibuja, cuántas
+; entradas y las entradas, que se quedan en el bytecode. Ver OP_ANIMATION en
 ; eventos.py y `animacion_tick`. La nueva reemplaza a la que hubiera, y no
 ; cuesta ningún tick.
 ;
@@ -5019,7 +5019,7 @@ lugar_plantar:                  ; con Y ya en la pila: ver `op_lugar_var`
 ; `ChangeEventLocation` con la celda en **dos variables**, que es la otra rama
 ; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_lugar`: el mismo
 ; `MoveTo`, o sea la celda cambia ya, el paso en curso se corta y ni la ruta ni
-; hacia dónde mira se tocan. Ver OP_LUGAR_VAR en eventos.py.
+; hacia dónde mira se tocan. Ver OP_PLACE_VAR en eventos.py.
 ;
 ; Las dos lecturas van **antes** de escribir ninguna de las dos palabras, como
 ; en `op_trueque`: una variable que se leyera después de haber movido al evento
@@ -5118,7 +5118,7 @@ op_trueque:
 
 ; `ShakeScreen`: `ShakeOnce`, que no reinicia la posición para que dos
 ; sacudidas seguidas se encadenen suaves, o `ShakeEnd` con cero cuadros. No
-; corta el cuadro: si la página espera, el conversor le pone un OP_ESPERAR
+; corta el cuadro: si la página espera, el conversor le pone un OP_DELAY
 ; detrás, como con los destellos.
 op_sacudir:
     lda [cod_ptr], y            ; fuerza
@@ -5141,7 +5141,7 @@ con_cuadros:
     jmp otro
 
 ; `FlashOnce`: el color, el nivel a escala 256 y los cuadros. No corta el
-; cuadro: si la página espera, el conversor le pone un OP_ESPERAR detrás.
+; cuadro: si la página espera, el conversor le pone un OP_DELAY detrás.
 op_destello:
     jsr destello_de_codigo
     jmp otro
@@ -5153,7 +5153,7 @@ op_destello:
 ; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
 ; por el evento que se acaba de mandar a caminar.
 ; Arranca un destello sobre un personaje. No corta el cuadro: si la página
-; espera, el conversor le pone un OP_ESPERAR detrás, que es exactamente lo que
+; espera, el conversor le pone un OP_DELAY detrás, que es exactamente lo que
 ; hace `CommandFlashSprite` con `SetupWait(tenths)`.
 op_flash:
     phy
@@ -5289,7 +5289,7 @@ fundir_nada:
 
 ; `OpenSaveMenu`: la pantalla de ranuras en modo guardar, y la partida a la
 ; que el jugador elija. Sin operandos. La referencia hace lo mismo con el mismo
-; opcode: ver `OP_GUARDAR` en tools/eventos.py.
+; opcode: ver `OP_SAVE` en tools/eventos.py.
 ;
 ; **Bloquea adentro del intérprete y no cuesta ningún tick**, que es lo que hace
 ; RM2k: `OpenSaveMenu` apila `Scene_Save`, el mapa deja de actualizarse hasta
@@ -5534,7 +5534,7 @@ var_pone:
 
 var_de_personaje:
     ; La clase 6: las coordenadas de un personaje, en celdas. `a` es el blanco
-    ; —0 el héroe, el índice del evento más uno, el mismo byte que OP_RUTA— y
+    ; —0 el héroe, el índice del evento más uno, el mismo byte que OP_ROUTE— y
     ; `b` dice cuál: PERSONAJE_X o PERSONAJE_Y.
     ;
     ; La celda que se lee es la **viva**: `tile_x`/`tile_y` para el héroe y
@@ -5663,7 +5663,7 @@ op_grupo:
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 ; `ChangeSpriteAssociation`: el actor y el índice del gráfico en la tabla del
-; mapa, la misma que resuelve la orden 34 de una ruta. Ver OP_ACTOR_GRAF en
+; mapa, la misma que resuelve la orden 34 de una ruta. Ver OP_ACTOR_SPRITE en
 ; eventos.py.
 ;
 ; El `ResetGraphic()` que RM2k le hace al `Game_Player` es el `jsr
@@ -5697,7 +5697,7 @@ graf_no_lidera:
     jmp otro
 
 ; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
-; OP_TECLA en eventos.py, que es donde está el porqué de que la forma que
+; OP_KEY en eventos.py, que es donde está el porqué de que la forma que
 ; espera se emita dos veces.
 ;
 ; La que **espera** y no encuentra nada rebobina su propio cursor a este mismo
@@ -7463,7 +7463,7 @@ lo_encontre:
     ; actor: es el `actor->SetSprite` de RM2k, y vive en el actor, así que
     ; **cruza el teletransporte**. Si su gráfico no está en el banco de sprites
     ; de este mapa se cae al del LDB, que es a lo que apunta el camino de
-    ; abajo; la referencia hace lo mismo. Ver OP_ACTOR_GRAF en eventos.py.
+    ; abajo; la referencia hace lo mismo. Ver OP_ACTOR_SPRITE en eventos.py.
     phy                         ; la entrada del actor, por si no hay cambio
     lda temp                    ; el líder
     jsr actor_graf_leer
@@ -10408,7 +10408,7 @@ suma:
     rts
 .endproc
 
-; Guarda la partida. Es lo que hace `OP_GUARDAR`, o sea el `OpenSaveMenu` del
+; Guarda la partida. Es lo que hace `OP_SAVE`, o sea el `OpenSaveMenu` del
 ; save point de Lashe City.
 .proc guardar_partida
 .a8
@@ -13399,7 +13399,7 @@ espera2:
 
 ; --- la tienda -----------------------------------------------------------------
 ;
-; `Scene_Shop`, abierta por `OP_TIENDA` desde el intérprete, como guardar: la
+; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la
 ; pantalla bloquea adentro de la página, no cuesta ningún tick, y al salir el
 ; mapa vuelve y la página sigue. Es una pantalla de texto —ver "las pantallas
 ; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Lo
@@ -14669,7 +14669,7 @@ si_a:
 
 ; --- la batalla -----------------------------------------------------------------
 ;
-; `EnemyEncounter`, abierto por `OP_BATALLA` desde el intérprete: como la
+; `EnemyEncounter`, abierto por `OP_BATTLE` desde el intérprete: como la
 ; tienda y como guardar, la pantalla bloquea adentro de la página, `vueltas` no
 ; avanza mientras se ve y **no cuesta ningún tick**. Lo que la diferencia de
 ; las otras dos es que el resultado **elige por dónde sigue la página**: el
@@ -14850,7 +14850,7 @@ callar:
 ; --- la lluvia ------------------------------------------------------------------
 ;
 ; `Game_Screen::UpdateRain` y `Weather::DrawRain`, con la regla de RM2k sobre
-; la pantalla de 256x224: ver OP_CLIMA en eventos.py, que es la referencia. El
+; la pantalla de 256x224: ver OP_WEATHER en eventos.py, que es la referencia. El
 ; estado vive en la RAM lejana: el tipo y la fuerza del clima, cuántas gotas
 ; hay y el azar de la lluvia —un xorshift propio, sembrado cada vez que el
 ; clima cambia— en `FAR_CLIMA`, y tres bytes por gota —x, y y la vida— en
@@ -17419,7 +17419,7 @@ listo:
 ;
 ; Seis objetos de 32x32 con una paleta de sprite para ellos solos, y un fundido
 ; que es un tinte de esos quince colores cuadro a cuadro. Ver `tools/imagen.py`,
-; que es donde está escrito dónde cae y de qué color es cada pixel, y OP_IMAGEN
+; que es donde está escrito dónde cae y de qué color es cada pixel, y OP_PICTURE
 ; en eventos.py.
 ;
 ; El cartel vive en **un solo mapa** de la ROM —el que se llevó sus tiles al
@@ -17673,7 +17673,7 @@ salir:
 
 ; --- la animación de batalla ------------------------------------------------
 ;
-; `OP_ANIMACION` deja acá la línea de tiempo: dónde está la entrada que sigue
+; `OP_ANIMATION` deja acá la línea de tiempo: dónde está la entrada que sigue
 ; —en el bytecode—, cuántas quedan y el reloj. `animacion_tick` corre una vez
 ; por cuadro antes que los destellos y dispara las del tick: un efecto, un
 ; destello de pantalla o uno del evento objetivo. Es `cuadro_de_animacion` en
@@ -24298,7 +24298,7 @@ FUNDIDO_MISMO  = 3      ; un Teleport al mismo: sólo mover al héroe
 ; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
 ; lee una vez por cuadro, así que el ciclo de más por acceso no se nota.
 ruta:        .res 32
-; La frecuencia de la ruta puesta sobre el héroe, y la que trae el OP_RUTA que
+; La frecuencia de la ruta puesta sobre el héroe, y la que trae el OP_ROUTE que
 ; se está leyendo. Es el contador de parada de RM2k: ver `ruta_tras_paso`.
 ruta_frec:    .res 1
 ruta_frec_op: .res 1
@@ -29095,7 +29095,7 @@ listo:
 ;
 ; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
 ; tienda: `vueltas` no avanza mientras se ve, así que para la referencia la
-; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATALLA`
+; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
 ; en tools/eventos.py.
 .proc batalla_correr
 .a8

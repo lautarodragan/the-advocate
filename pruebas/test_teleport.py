@@ -41,7 +41,7 @@ def test_el_destino_viaja_en_dos_bytes():
     codigo = compilar_un_teleport(LEJOS)
     assert len(codigo) == eventos.LARGO_DE_OPCODE[eventos.OP_TELEPORT]
     estado = eventos.Estado()
-    eventos.ejecutar(codigo + bytes([eventos.OP_FIN]), estado)
+    eventos.ejecutar(codigo + bytes([eventos.OP_DONE]), estado)
     # El mapa, y de paso la celda, que es lo que se correría si el largo
     # estuviera mal.
     assert estado.salto == (LEJOS, 12, 34)
@@ -80,8 +80,8 @@ def test_ningun_opcode_comparte_numero_con_otro():
 
     No es una precaución abstracta: el 2026-09-13 tres ramas de sub-agente
     eligieron el siguiente número libre a la vez, sin verse, y salieron dos
-    colisiones —`OP_PARAR_RUTAS` con `OP_ACTOR_GRAF` en $23, `OP_SI_ACTOR` con
-    `OP_TECLA` en $24—. Git las mergeó **sin un solo conflicto**, porque cada
+    colisiones —`OP_STOP_ROUTES` con `OP_ACTOR_SPRITE` en $23, `OP_IF_ACTOR` con
+    `OP_KEY` en $24—. Git las mergeó **sin un solo conflicto**, porque cada
     una está en su línea, y lo que se rompía era el recorrido del bytecode: el
     intérprete leía un opcode de tres bytes creyendo que medía siete.
 

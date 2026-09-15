@@ -274,7 +274,7 @@ snes-sacudir
 snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
 snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"
 snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-lluvia "" 2
-# La animación de batalla, sus destellos: ver OP_ANIMACION. La escena del
+# La animación de batalla, sus destellos: ver OP_ANIMATION. La escena del
 # Emitter Room, que es la que las usa, no se puede disparar desde una prueba
 # —ver ESTADO—, así que va por la página de prueba. `animacion` encontró que
 # un destello de pantalla con cuadros impares arranca por la fase que ninguna
@@ -357,7 +357,7 @@ snes-parar 6 24 "4 2 2 2 2" "2 2 2 2" "22 12" "20 26 34 40" 115 parar-rutas
 # que no lo tiene: el caso con el ítem da esos mismos 40012.
 snes-rama-item 6 "90 12 0 0 100" "90 1" "22 12" "2 30" 115 rama-item
 snes-rama-item 6 "90 12 0 0 100" "" "22 12" "2 30" 115 rama-item-no
-# Y las dos ramas de actor con dos operandos, `OP_SI_ACTOR`. Cada par es la
+# Y las dos ramas de actor con dos operandos, `OP_IF_ACTOR`. Cada par es la
 # misma página preguntando por algo que se cumple y por algo que no, así que la
 # diferencia entre uno y otro —40012 pixeles, el 69,78%— **es** la respuesta de
 # la rama. Kersh es el actor 11: lleva puesto el ítem 82 y no el 84, y a su

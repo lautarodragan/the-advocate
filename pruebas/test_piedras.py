@@ -16,7 +16,7 @@ Lo que hace la página, `EV0017` del mapa 11, y lo que se comprueba acá:
     `Stone`     el evento 18, que se planta en (var 6, var 7) y después camina
 
 O sea que esto ejercita las tres cosas que trababan la página: la ranura de la
-variable 5, la espera de la cruceta y `OP_LUGAR_VAR`. **Con cualquiera de las
+variable 5, la espera de la cruceta y `OP_PLACE_VAR`. **Con cualquiera de las
 tres sacada la página no compila**, y entonces `test_con_a_y_una_direccion_la_
 piedra_sale_volando` se cae en el primer `assert` con la variable 5 en cero.
 Verificado así el 2026-09-13, volviendo a poner el corte de `KEY_INPUT_PROC`.
@@ -130,7 +130,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
         "las variables 6 y 7 tendrían que traer la celda del héroe")
     assert celda_de(p, mapa11, STONE) == DEBAJO_DE_LA_REJA, (
         "la piedra tendría que estar plantada encima del héroe y está en %s. "
-        "Es el `ChangeEventLocation` por variables, o sea OP_LUGAR_VAR"
+        "Es el `ChangeEventLocation` por variables, o sea OP_PLACE_VAR"
         % (celda_de(p, mapa11, STONE),))
 
     p.correr(4)

@@ -38,7 +38,7 @@ TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
 # Abrir el menú de guardar: la pantalla de ranuras, que congela el juego
-# mientras se ve y no cuesta ningún tick. Ver `OP_GUARDAR`.
+# mientras se ve y no cuesta ningún tick. Ver `OP_SAVE`.
 OPEN_SAVE_MENU = 11910
 CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
@@ -559,7 +559,7 @@ PROCEED_WITH_MOVEMENT = 11340
 # Lo de las décimas no es un detalle: `CommandFlashSprite` hace
 # `event->Flash(r, g, b, p, tenths * DEFAULT_FPS / 10)` y, si espera,
 # `SetupWait(tenths)`, que es la misma espera del comando Wait. O sea que el
-# tiempo sale gratis: es un OP_ESPERAR detrás.
+# tiempo sale gratis: es un OP_DELAY detrás.
 FLASH_SPRITE = 11320
 
 # Cómo consume el tiempo una ruta forzada, y es una decisión de modelo que los
@@ -626,12 +626,12 @@ IGNORABLES = {
 # la puerta a los primeros diez minutos del juego. Sin esto la ROM no arranca la
 # historia; con esto arranca, sin lluvia.
 #
-# **Desde el 2026-09-11 la lluvia se dibuja**: ver OP_CLIMA. La nieve, la
+# **Desde el 2026-09-11 la lluvia se dibuja**: ver OP_WEATHER. La nieve, la
 # niebla y la tormenta de arena siguen sin dibujarse, y apagan la lluvia.
 WEATHER_EFFECTS = 11070
 
 # PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan.
-# Suena desde el 2026-09-11 (ver OP_SONIDO); hasta ahí se aceptaba sin
+# Suena desde el 2026-09-11 (ver OP_SOUND); hasta ahí se aceptaba sin
 # tocarlo, y era la deuda más barata de todas las que hay acá: **no se
 # ve**. La pantalla que se compara es exactamente la misma con y sin sonido, y
 # el audio que sí se compara —`snes-check`, contra el MIDI del mapa— tampoco
@@ -651,7 +651,7 @@ WEATHER_EFFECTS = 11070
 # Lo que sí destraba es concreto: el Insta-Shave del pad de Talan toca cuatro
 # efectos antes de su mensaje, así que sin esto esa rama no corre.
 #
-# **Desde el 2026-09-11 suenan**: ver OP_SONIDO.
+# **Desde el 2026-09-11 suenan**: ver OP_SOUND.
 PLAY_SOUND = 11550
 
 # `ShowBattleAnimation` sobre el mapa —`CommandShowBattleAnimation`, 11210—:
@@ -680,7 +680,7 @@ CHANGE_ITEMS = 10320
 # imagen encima de todo, movida y borrada.
 #
 # **Desde el 2026-09-12 se hace una**: el cartel del "One year previously", y
-# cualquier otro que entre en el mismo molde. Ver `Imagenes`, OP_IMAGEN y "El
+# cualquier otro que entre en el mismo molde. Ver `Imagenes`, OP_PICTURE y "El
 # cartel de 'One year previously'" en el README. Los que no entran —los 27 de
 # los 34 que el juego tiene— se siguen aceptando sin hacerse, y lo que sigue
 # vale para ésos.
@@ -708,7 +708,7 @@ CALL_EVENT = 12330
 # Y la tienda: `OpenShop`. Cuarenta y tres en el juego, ninguna con las ramas
 # de "compró"/"no compró". Del 2026-09-10 a la noche al 11 se aceptó sin abrir
 # nada, para que los vendedores de Lashe City Interiors —EV0021 y EV0023—
-# contestaran; desde el 11 abre la tienda de verdad: ver OP_TIENDA.
+# contestaran; desde el 11 abre la tienda de verdad: ver OP_SHOP.
 OPEN_SHOP = 10720
 
 # `ChangeSystemBGM` (10660): cambia el tema que el sistema usa para pelear,
@@ -943,14 +943,14 @@ def asociaciones_de(game_maps):
 #     sacarlo cuando todavía es barato es más barato que
 #     sacarlo el día que una demo se pase.
 #
-# OP_ESPERAR: cuadros (word): la cinemática espera seis
+# OP_DELAY: cuadros (word): la cinemática espera seis
 #     segundos, o sea 360, y no entran en un byte
 #
-# OP_TINTE: r, g, b, sat (byte cada uno)
+# OP_TINT: r, g, b, sat (byte cada uno)
 #
-# OP_GRUPO: operación (byte), actor (byte)
+# OP_PARTY: operación (byte), actor (byte)
 #
-# OP_RUTA: blanco (byte), frecuencia (byte), cuántos comandos (byte), y los
+# OP_ROUTE: blanco (byte), frecuencia (byte), cuántos comandos (byte), y los
 #     comandos. El blanco es 0 para el héroe, y si no el
 #     índice del evento en la tabla del mapa más uno.
 #
@@ -960,34 +960,34 @@ def asociaciones_de(game_maps):
 #     octavo en la lista, que puede ser cualquier otro. Lo
 #     traduce el conversor, que es el único que ve el mapa.
 #
-# OP_MENSAJE: desplazamiento (word) dentro del bloque `mensajes`:
+# OP_MESSAGE: desplazamiento (word) dentro del bloque `mensajes`:
 #     abre esa ventana y bloquea la página hasta que el
 #     jugador apriete A
 #
-# OP_RUTAS: sin operandos: la página no sigue hasta que no quede
+# OP_WAIT_ROUTES: sin operandos: la página no sigue hasta que no quede
 #     ninguna ruta forzada corriendo
 #
 # OP_FLASH: blanco (byte), r, g, b, potencia (byte cada uno, de 0
 #     a 31) y cuántos cuadros dura (byte)
 #
-# OP_LUGAR: blanco (byte, como en OP_RUTA: el índice del evento
+# OP_PLACE: blanco (byte, como en OP_ROUTE: el índice del evento
 #     más uno), x (word), y (word). Planta al evento en la
 #     celda y le corta el paso en curso; no toca su ruta ni
 #     hacia dónde mira, que es lo que hace `MoveTo`.
 #
-# OP_TRUEQUE: dos blancos (byte cada uno, como en OP_LUGAR): los
+# OP_SWAP: dos blancos (byte cada uno, como en OP_PLACE): los
 #     dos eventos se cambian de celda entre sí, cada uno
 #     con `MoveTo`, que es `CommandTradeEventLocations`.
 #
-# OP_SACUDIR: fuerza (byte), velocidad (byte), cuadros (word):
+# OP_SHAKE: fuerza (byte), velocidad (byte), cuadros (word):
 #     `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
 #     pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
 #
-# OP_DESTELLO: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
+# OP_FLASH_SCREEN: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
 #     (byte): `FlashOnce`, el destello de la pantalla
 #     entera. Ver `Estado.cuadro_de_destello`.
 #
-# OP_SI: tipo (byte), operando (word), polaridad (byte),
+# OP_IF: tipo (byte), operando (word), polaridad (byte),
 #     destino (word):
 #     `ConditionalBranch` con condición de switch. Si no se
 #     cumple, el cursor salta al destino, que es el `else`
@@ -1000,18 +1000,18 @@ def asociaciones_de(game_maps):
 #     relativo: el cursor de la ROM es un índice de 16 bits
 #     en el mismo array, así que asignarlo es todo el salto.
 #
-# OP_IR: destino (word): el salto sin condición que se emite
+# OP_GOTO: destino (word): el salto sin condición que se emite
 #     donde estaba el `else`, para que la rama de arriba se
 #     saltee la de abajo.
 #
-# OP_GUARDAR: sin operandos: la partida a la SRAM del cartucho.
+# OP_SAVE: sin operandos: la partida a la SRAM del cartucho.
 #     Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
 #     y el evento la pisa. Lo que se guarda lo dice
 #     `partida_tabla` en main.s, que es el único lugar donde
 #     está escrito. No cuesta un cuadro: en RM2k el menú
 #     bloquea, y acá no hay nada que mirar.
 #
-# OP_ORO: signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
+# OP_GOLD: signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
 #     `ChangeGold`, y va en tres bytes porque el tope de
 #     RM2k son 999999 y el juego usa el valor entero: hay un
 #     comando que da exactamente eso.
@@ -1021,7 +1021,7 @@ def asociaciones_de(game_maps):
 #     —el menú no existe— pero sí quién lo pregunta: la rama
 #     de oro de `ConditionalBranch`.
 #
-# OP_ELEGIR: cuántas opciones (byte), qué hace cancelar (byte), y
+# OP_CHOICE: cuántas opciones (byte), qué hace cancelar (byte), y
 #     después una entrada por opción: el cuadro de texto
 #     (word) y el destino (word). Es `ShowChoice`.
 #
@@ -1036,7 +1036,7 @@ def asociaciones_de(game_maps):
 #     este mapa ya están repartidos entre los personajes.
 #
 #     El destino es absoluto dentro de la página, como el de
-#     OP_SI, y el cuerpo de cada opción termina en un OP_IR
+#     OP_IF, y el cuerpo de cada opción termina en un OP_GOTO
 #     al final de la elección.
 #
 # OP_PAN: operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
@@ -1054,7 +1054,7 @@ def asociaciones_de(game_maps):
 #     y el comentario de `CommandPanScreen` sobre el
 #     máximo.
 #
-# OP_FUNDIR_BGM: paso (word): cuánto baja por cuadro el volumen del
+# OP_FADE_BGM: paso (word): cuánto baja por cuadro el volumen del
 #     tema, en 1/65536 de lo que estuviera sonando.
 #
 #     Va el paso y no los milisegundos que trae RM2k
@@ -1317,7 +1317,7 @@ class Eventos:
         return otro
 
     def blanco(self, quien):
-        """El byte de blanco que va en OP_RUTA, o None si no se puede mover.
+        """El byte de blanco que va en OP_ROUTE, o None si no se puede mover.
 
         0 es el héroe; para un evento, su índice más uno. Los vehículos no
         existen en esta ROM y un id que el mapa no tiene tampoco: los dos
@@ -1335,7 +1335,7 @@ class Eventos:
 class Mensajes:
     """El bloque de textos de la ROM, y el desplazamiento de cada cuadro.
 
-    Es de la ROM entera y no del mapa: `OP_MENSAJE` lleva un desplazamiento
+    Es de la ROM entera y no del mapa: `OP_MESSAGE` lleva un desplazamiento
     dentro de este bloque, así que todos los mapas comparten la numeración y el
     conversor lo emite una sola vez. Lo repetido se guarda una sola vez —el
     juego repite cuadros enteros, y son 418 de 2895— y sale gratis porque el
@@ -1401,7 +1401,7 @@ class Mensajes:
             if len(self.datos) > 0x10000:
                 raise SystemExit(
                     "los mensajes de esta ROM son %d bytes y el operando de "
-                    "OP_MENSAJE es de 16 bits" % len(self.datos))
+                    "OP_MESSAGE es de 16 bits" % len(self.datos))
             self.donde[clave] = donde
             self.textos[donde] = lineas
         return self.donde[clave]
@@ -1444,7 +1444,7 @@ class Mensajes:
 
 
 # La cabecera de un cuadro de texto. Los escapes entran acá y no en un operando
-# más de `OP_MENSAJE` porque acá salen gratis: los renglones de una ventana son
+# más de `OP_MESSAGE` porque acá salen gratis: los renglones de una ventana son
 # cuatro como mucho, así que el byte que los cuenta tenía cinco bits sin usar.
 # Un operando más costaría un byte por cada uno de los 2895 cuadros del juego y
 # habría que emitirlo igual en los 2855 que no llevan ninguna cola.
@@ -1622,7 +1622,7 @@ COND_ACTOR_EQUIPO = 5
 # La rama por variable: `[1, variable, clase del valor, valor, comparación,
 # hay else]`. La clase es 0 para una constante y 1 para otra variable; la
 # comparación, `==`, `>=`, `<=`, `>`, `<` y `!=`, en ese orden, que es el de
-# RM2k. Compila a OP_SI_VAR, no a OP_SI: no entra en siete bytes.
+# RM2k. Compila a OP_IF_VAR, no a OP_IF: no entra en siete bytes.
 COND_VARIABLE = 1
 
 # --- las variables de RM2k ---------------------------------------------------
@@ -1645,7 +1645,7 @@ COND_VARIABLE = 1
 # compila, que es más honesto que truncar.
 #
 # OP_VAR: ranura (byte), operación (byte), clase (byte), a (word), b (word)
-# El bit de arriba de la **ranura**, en OP_VAR y en OP_TECLA: si esta escritura
+# El bit de arriba de la **ranura**, en OP_VAR y en OP_KEY: si esta escritura
 # pide el refresco de páginas.
 #
 # Es `Game_Map::SetNeedRefreshForVarChange`, que **no** marca el refresco por
@@ -1667,8 +1667,8 @@ COND_VARIABLE = 1
 VAR_REFRESCO = 0x80
 VAR_RANURA_MAX = 0x7F
 #
-# OP_SI_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
-#     destino (word): como OP_SI, el destino va último para el parcheo
+# OP_IF_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
+#     destino (word): como OP_IF, el destino va último para el parcheo
 # El inventario, desde el 2026-09-10 a la noche: un byte por ítem del LDB en la
 # RAM lejana —`FAR_ITEMS`, pegado a las variables—, indexado por el número de
 # RM2k, y `ChangeItems` compila a OP_ITEM con el ítem y cuánto se suma, con
@@ -1693,7 +1693,7 @@ ITEM_MAX = 99
 # de una. Con el bit puesto por el conversor el opcode no tiene cuenta que
 # hacer y acepta los permisos que haga falta.
 #
-# OP_ACCESO: el bit en FAR_ACCESO (byte), permitido (byte)
+# OP_ACCESS: el bit en FAR_ACCESO (byte), permitido (byte)
 # Los HP y los estados, que fuera de batalla **no bajan nunca** en este juego:
 # medido sobre los 328 mapas, los 11 `ChangeHP` suman —siete de a 1 al grupo,
 # cuatro de 300 y 999 a un actor—, los 16 `ChangeCondition` quitan un estado y
@@ -1701,15 +1701,15 @@ ITEM_MAX = 99
 # HP y los SP al máximo y ningún estado, y estos tres comandos no cambian nada:
 # compilan a nada, y es exacto, no una aproximación. El que baje HP o ponga un
 # estado no compila, porque ahí sí habría algo que llevar.
-# La tienda, desde el 2026-09-11: `OpenShop` compila a OP_TIENDA con el tipo
+# La tienda, desde el 2026-09-11: `OpenShop` compila a OP_SHOP con el tipo
 # —0 compra y vende, 1 sólo compra, 2 sólo vende—, el juego de mensajes y la
 # lista de lo que vende, por número de ítem. Es de largo variable, como
-# OP_ELEGIR. Como guardar, la pantalla se abre adentro del intérprete y no
+# OP_CHOICE. Como guardar, la pantalla se abre adentro del intérprete y no
 # cuesta ningún tick: el mapa no corre mientras se ve. Las ramas de "compró"
 # y "no compró" no compilan; ninguna de las 43 tiendas del juego las usa.
 #
-# OP_TIENDA: tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
-# El clima, desde el 2026-09-11: `WeatherEffects` compila a OP_CLIMA con el tipo
+# OP_SHOP: tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
+# El clima, desde el 2026-09-11: `WeatherEffects` compila a OP_WEATHER con el tipo
 # y la fuerza, y la lluvia se dibuja. Es `Game_Screen::UpdateRain` con la regla
 # de RM2k —cada gota vive doce cuadros, baja cuatro pixeles y corre uno a la
 # izquierda por cuadro, y una apagada nace con un diez por ciento de chance en
@@ -1738,7 +1738,7 @@ ITEM_MAX = 99
 # El diez por ciento de chance es `azar & 255 < 26`, 10,2%: con `% 100` la
 # ROM gastaba el divisor en cada gota apagada de cada cuadro.
 #
-# OP_CLIMA: tipo, fuerza
+# OP_WEATHER: tipo, fuerza
 CLIMA_LLUVIA = 1
 LLUVIA_GOTAS = (15, 45, 75)
 LLUVIA_VIDA = 12
@@ -1760,7 +1760,7 @@ def lluvia_pixeles(x, y):
     return [(x + 3 - r // 4, y + r) for r in range(16)]
 
 
-# Los efectos de sonido, desde el 2026-09-11: `PlaySound` compila a OP_SONIDO
+# Los efectos de sonido, desde el 2026-09-11: `PlaySound` compila a OP_SOUND
 # con el índice de su entrada en `Temas.sonidos`, y la tabla de la ROM dice
 # con qué muestra, qué altura, qué volumen de cada lado y cuántos cuadros. Las
 # muestras van en la ARAM junto al banco de la música, con un presupuesto
@@ -1768,11 +1768,11 @@ def lluvia_pixeles(x, y):
 # roba a la música mientras duran. No se ven, así que la referencia sólo los
 # salta: no cuestan ningún tick, como en RM2k.
 #
-# OP_SONIDO: índice (word)
+# OP_SOUND: índice (word)
 
 # Las animaciones de batalla sobre el mapa, desde el 2026-09-11: sus sonidos y
 # sus destellos, **sin el dibujo**. `ShowBattleAnimation` compila a
-# OP_ANIMACION con la línea de tiempo entera adentro: cuántas entradas y, por
+# OP_ANIMATION con la línea de tiempo entera adentro: cuántas entradas y, por
 # cada una, ocho bytes —el tick en que dispara, contado desde el del comando,
 # el tipo y seis de datos—. Es lo que `BattleAnimation::Update` hace con los
 # `timings` de la animación: en el cuadro par `2 * (frame - 1)` suena el efecto
@@ -1788,7 +1788,7 @@ def lluvia_pixeles(x, y):
 # primera y baja lineal en `ANIM_DESTELLO_CUADROS`. Es la misma luz y dura lo
 # mismo, y los dos lados hacen esta cuenta.
 #
-# OP_ANIMACION: n, y n entradas de ANIM_ENTRADA bytes
+# OP_ANIMATION: n, y n entradas de ANIM_ENTRADA bytes
 ANIM_ENTRADA = 8
 ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 # Diez, que es lo que dura el de RM2k, y **par** a propósito: el destello de
@@ -1824,11 +1824,11 @@ def dibujo_blanco(anim, blanco):
 # El cartel de un `ShowPicture`, desde el 2026-09-12. La ROM lleva **uno solo**
 # —ver `Imagenes`— y por eso los tres opcodes no dicen cuál: dicen qué hacerle.
 #
-#   OP_IMAGEN        r, g, b, sat (bytes, 100 neutro): lo pone con ese tono.
-#   OP_IMAGEN_MOVER  el tono al que va, y en cuántos cuadros. No corta el
+#   OP_PICTURE        r, g, b, sat (bytes, 100 neutro): lo pone con ese tono.
+#   OP_PICTURE_MOVE  el tono al que va, y en cuántos cuadros. No corta el
 #                    cuadro: si la página espera, el conversor le pone un
-#                    OP_ESPERAR detrás, como al `FlashScreen` y a la sacudida.
-#   OP_IMAGEN_BORRAR lo saca.
+#                    OP_DELAY detrás, como al `FlashScreen` y a la sacudida.
+#   OP_PICTURE_ERASE lo saca.
 #
 # **El fundido del cartel es el tono y no la transparencia**, que es lo que
 # había que ir a mirar: los dos `MovePicture` de la página del "1 year earlier"
@@ -1837,17 +1837,17 @@ def dibujo_blanco(anim, blanco):
 # a negro; en la consola eso es teñir sus quince entradas de CGRAM, que es
 # exactamente la cuenta que el tinte de pantalla ya hacía.
 #
-# OP_IMAGEN: r, g, b, sat
+# OP_PICTURE: r, g, b, sat
 #
-# OP_IMAGEN_MOVER: r, g, b, sat, cuadros (byte)
+# OP_PICTURE_MOVE: r, g, b, sat, cuadros (byte)
 # Cuántos cuadros puede durar un `MovePicture` para que entre en el byte de
-# `OP_IMAGEN_MOVER`. Los dos de la página duran 210 y 120.
+# `OP_PICTURE_MOVE`. Los dos de la página duran 210 y 120.
 IMAGEN_CUADROS_MAX = 255
 
 
 # --- la batalla -------------------------------------------------------------
 #
-# `EnemyEncounter` y sus tres manejadores. Es el hermano de `OP_ELEGIR`: el
+# `EnemyEncounter` y sus tres manejadores. Es el hermano de `OP_CHOICE`: el
 # comando abre una pantalla que bloquea, y **el resultado elige por dónde
 # sigue la página**, así que el opcode lleva los tres destinos y el conversor
 # los parchea al cerrar el bloque, igual que las opciones de una elección.
@@ -1860,11 +1860,11 @@ IMAGEN_CUADROS_MAX = 255
 # resuelve buscándolo en `tropa_id`, y una tropa que no esté ahí es una pelea
 # que no se hace y que sale por la rama de victoria.
 #
-# Los destinos son **absolutos dentro de la página**, como los de `OP_SI`.
+# Los destinos son **absolutos dentro de la página**, como los de `OP_IF`.
 # Un manejador que la página no tenga apunta al final del bloque, o sea al
 # `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
 #
-# OP_BATALLA: tropa (word), victoria (word), huida (word), derrota (word)
+# OP_BATTLE: tropa (word), victoria (word), huida (word), derrota (word)
 # El destino que quiere decir "acá no se sigue: esto es un Game Over". Va en el
 # lugar de la derrota cuando el `EnemyEncounter` trae `defeat_mode` 0, que en
 # RM2k es `Scene_Gameover`. Es un destino imposible —los tres son absolutos
@@ -1888,11 +1888,11 @@ BATALLA_PERDER = 0xFFFF
 # página no compila y el HQ no se puede volver a jugar después de que te
 # agarren.
 #
-# OP_PARAR_RUTAS: sin operandos
+# OP_STOP_ROUTES: sin operandos
 
-# Las dos preguntas de actor que no entran en `OP_SI`, desde el 2026-09-13:
+# Las dos preguntas de actor que no entran en `OP_IF`, desde el 2026-09-13:
 # "¿tiene puesto este objeto?" y "¿sabe esta habilidad?". No entran porque
-# llevan **dos** operandos —el actor y el ítem o la habilidad— y `OP_SI` tiene
+# llevan **dos** operandos —el actor y el ítem o la habilidad— y `OP_IF` tiene
 # uno solo; el actor entra en un byte porque el LDB tiene 60 y `ACTORES_N` los
 # cuenta, y el dato no, porque los ítems llegan a 450.
 #
@@ -1900,7 +1900,7 @@ BATALLA_PERDER = 0xFFFF
 # `else`— igual que a "está en el grupo". El destino va último, como en todos,
 # porque es lo que `con_destino` parchea al cerrar la rama.
 #
-# OP_SI_ACTOR: sub (byte), actor (byte), dato (word), destino (word)
+# OP_IF_ACTOR: sub (byte), actor (byte), dato (word), destino (word)
 
 HALT_ALL_MOVEMENT = 11350
 
@@ -1943,7 +1943,7 @@ CHANGE_PBG = 11720
 # mergeó sin un solo conflicto —cada una en su línea— y lo que se rompía era el
 # recorrido del bytecode. Lo cuida `test_ningun_opcode_comparte_numero_con_otro`.
 #
-# OP_ACTOR_GRAF: actor (byte), gráfico (byte)
+# OP_ACTOR_SPRITE: actor (byte), gráfico (byte)
 
 # `KeyInputProc`: ranura de variable (byte) y qué teclas mira (byte).
 #
@@ -1995,10 +1995,10 @@ TECLA_VALOR_DECISION = 5
 TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 
 # `ChangeEventLocation` con la celda **en dos variables**, que es el otro
-# `LUGAR` de RM2k: mismos efectos que `OP_LUGAR` —`MoveTo`, la celda cambia ya
+# `LUGAR` de RM2k: mismos efectos que `OP_PLACE` —`MoveTo`, la celda cambia ya
 # y el paso en curso se corta— pero los dos números se leen al correr.
 #
-# Va en un opcode propio y no en un bit de `OP_LUGAR` porque los operandos son
+# Va en un opcode propio y no en un bit de `OP_PLACE` porque los operandos son
 # otros: dos ranuras de un byte contra dos palabras. `LARGO_DE_OPCODE` es una
 # tabla, así que un opcode que mida distinto según un bit no lo sabe recorrer
 # ni el conversor ni la ROM.
@@ -2010,9 +2010,9 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 # parado y por lo tanto no se puede tirar ninguna.
 #
 # **El número se elige mirando los que ya están**, no el último que uno
-# recuerde: ver el aviso de `OP_ACTOR_GRAF`.
+# recuerde: ver el aviso de `OP_ACTOR_SPRITE`.
 #
-# OP_LUGAR_VAR: blanco (byte, como en OP_LUGAR), ranura de la x
+# OP_PLACE_VAR: blanco (byte, como en OP_PLACE), ranura de la x
 #     (byte), ranura de la y (byte)
 
 
@@ -2353,7 +2353,7 @@ VARIABLE_SLOT = {}      # variable de RM2k -> ranura en la ROM
 VARIABLES_PRUEBA_AL_TIMER = 9   # la "operación" de --vars-de-prueba que pone el
                                 # cronómetro desde la variable; ver pagina_de_prueba
 VARIABLES_PRUEBA_AL_LUGAR = 10  # y la que planta un evento en la celda que dicen
-                                # dos variables, o sea `OP_LUGAR_VAR`. Va en la
+                                # dos variables, o sea `OP_PLACE_VAR`. Va en la
                                 # misma lista y no en un flag propio por lo
                                 # mismo que la 9: la página de prueba tiene que
                                 # poder **escribir las variables primero**, y
@@ -2451,7 +2451,7 @@ def indexar_actores(game_dir):
 
     Sin esto el intérprete contestaría que nadie tiene nada puesto y que nadie
     sabe nada, **en silencio y de un solo lado**, que es la forma de falla que
-    `AGENTS.md` nombra. Por eso hay una lista que dice si se llamó y `OP_SI_ACTOR`
+    `AGENTS.md` nombra. Por eso hay una lista que dice si se llamó y `OP_IF_ACTOR`
     la mira.
     """
     import lcf
@@ -2628,14 +2628,14 @@ def bytes_de_rama(cmd):
         if p[2] == COND_ACTOR_EN_GRUPO:
             # "Está en el grupo" no tiene polaridad: la rama de abajo es el
             # `else`.
-            return bytes([OP_SI, COND_ACTOR, numero & 0xFF, numero >> 8,
+            return bytes([OP_IF, COND_ACTOR, numero & 0xFF, numero >> 8,
                           0, 0, 0])
         if p[2] in (COND_ACTOR_HABILIDAD, COND_ACTOR_EQUIPO):
             if len(p) < 4:
                 raise NoSePuede("una rama de actor sin el objeto ni la "
                                 "habilidad")
             if not 0 <= numero <= 0xFF:
-                # El actor viaja en un byte: ver OP_SI_ACTOR. El LDB tiene 60.
+                # El actor viaja en un byte: ver OP_IF_ACTOR. El LDB tiene 60.
                 raise NoSePuede("actor %d, que no entra en un byte" % numero)
             if _ACTORES_INDEXADOS and numero not in ACTOR_EQUIPO:
                 # Las tablas de la ROM van del 0 al último actor del LDB, así
@@ -2650,7 +2650,7 @@ def bytes_de_rama(cmd):
             if not 0 <= dato <= 0xFFFF:
                 raise NoSePuede("una rama de actor contra %d, que no entra en "
                                 "una palabra" % dato)
-            return bytes([OP_SI_ACTOR, p[2], numero,
+            return bytes([OP_IF_ACTOR, p[2], numero,
                           dato & 0xFF, dato >> 8, 0, 0])
         raise NoSePuede("del héroe sabemos si está en el grupo, si sabe una "
                         "habilidad y qué tiene puesto, y no la %d" % p[2])
@@ -2669,11 +2669,11 @@ def bytes_de_rama(cmd):
             raise NoSePuede("rama por variable contra algo que no sabemos")
         if not 0 <= p[4] <= CMP_DISTINTO:
             raise NoSePuede("comparación %d que no existe" % p[4])
-        return bytes([OP_SI_VAR, ranura, clase, p[4], valor & 0xFF,
+        return bytes([OP_IF_VAR, ranura, clase, p[4], valor & 0xFF,
                       (valor >> 8) & 0xFF, 0, 0])
     else:
         raise NoSePuede("rama sobre una condición que no sabemos hacer")
-    return bytes([OP_SI, p[0], numero & 0xFF, numero >> 8,
+    return bytes([OP_IF, p[0], numero & 0xFF, numero >> 8,
                   1 if p[2] else 0, 0, 0])
 
 
@@ -2993,7 +2993,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
     cuerpo del evento llamado se emite en el lugar de la llamada. `base` es
     dónde arranca este pedazo adentro de la página de afuera, porque los
     destinos de las ramas son absolutos; `hondo` es el anidamiento, que se
-    topa. Un pedazo en línea **no lleva `OP_FIN`**: en RM2k el `END` del
+    topa. Un pedazo en línea **no lleva `OP_DONE`**: en RM2k el `END` del
     evento llamado devuelve al que llamó, no termina la página.
     """
     marca = mensajes.marca() if mensajes is not None else None
@@ -3055,7 +3055,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                     sigue = largo + 9
                     perder = (BATALLA_PERDER if perder_es_game_over
                               else sigue)
-                    pieza = bytes([OP_BATALLA, tropa & 0xFF, tropa >> 8,
+                    pieza = bytes([OP_BATTLE, tropa & 0xFF, tropa >> 8,
                                    sigue & 0xFF, sigue >> 8,
                                    sigue & 0xFF, sigue >> 8,
                                    perder & 0xFF, perder >> 8])
@@ -3074,7 +3074,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 # bloque con un salto al final, que se parchea al cerrarlo. Es
                 # lo mismo que hace `ShowChoiceOption`, y por lo mismo: así no
                 # hay que mirar la indentación.
-                pieza = b"" if not actual["vistas"] else bytes([OP_IR, 0, 0])
+                pieza = b"" if not actual["vistas"] else bytes([OP_GOTO, 0, 0])
                 if pieza:
                     actual["salidas"].append(len(piezas))
                 actual["vistas"] += 1
@@ -3085,7 +3085,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if not bat:
                     raise NoSePuede("un fin de batalla sin su pelea")
                 actual = bat.pop()
-                tabla = bytes([OP_BATALLA,
+                tabla = bytes([OP_BATTLE,
                                actual["tropa"] & 0xFF, actual["tropa"] >> 8])
                 for n, destino in enumerate(actual["destinos"]):
                     # El manejador que la página no tiene cae en el final del
@@ -3134,7 +3134,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 # elección con un salto al final, que se parchea al cerrarla.
                 # Emitirlo acá y no en el `END` del cuerpo es lo que hace que
                 # esto no dependa de mirar la indentación.
-                pieza = b"" if not actual["vistas"] else bytes([OP_IR, 0, 0])
+                pieza = b"" if not actual["vistas"] else bytes([OP_GOTO, 0, 0])
                 if pieza:
                     actual["salidas"].append(len(piezas))
                 actual["vistas"] += 1
@@ -3145,7 +3145,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 actual = eleg.pop()
                 if any(d is None for d in actual["destinos"]):
                     raise NoSePuede("una opción sin cuerpo")
-                tabla = bytes([OP_ELEGIR, actual["n"], actual["cancelar"]])
+                tabla = bytes([OP_CHOICE, actual["n"], actual["cancelar"]])
                 for cuadro, destino in zip(actual["cuadros"],
                                            actual["destinos"]):
                     tabla += bytes([cuadro & 0xFF, cuadro >> 8,
@@ -3161,7 +3161,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if not pila:
                     raise NoSePuede("un `else` sin su `if`")
                 abierta = pila.pop()
-                pieza = bytes([OP_IR, 0, 0])
+                pieza = bytes([OP_GOTO, 0, 0])
                 # El destino del `if` es **después** de este salto, que es
                 # donde arranca la rama de abajo; el del salto se resuelve en
                 # el `end`, con la pieza que queda abierta en su lugar.
@@ -3189,10 +3189,10 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         if bat:
             raise NoSePuede("una batalla sin cerrar")
         codigo = b"".join(piezas)
-        # El `OP_FIN` es de la página y no del pedazo: un cuerpo en línea que
+        # El `OP_DONE` es de la página y no del pedazo: un cuerpo en línea que
         # lo llevara terminaría la página del que llamó en vez de devolverle el
         # control. Ver `base`.
-        return codigo if hondo else codigo + bytes([OP_FIN])
+        return codigo if hondo else codigo + bytes([OP_DONE])
     except NoSePuede:
         if mensajes is not None:
             mensajes.volver(marca)
@@ -3297,7 +3297,7 @@ def _compilar_imagen(cmd, imagenes):
     if cmd.code == ERASE_PICTURE:
         if not p or not imagenes.suyo(p[0], None, None):
             return None
-        return bytes([OP_IMAGEN_BORRAR])
+        return bytes([OP_PICTURE_ERASE])
     if not imagen_aceptable(p):
         return None
     tono = (p[8], p[9], p[10], p[11])
@@ -3308,7 +3308,7 @@ def _compilar_imagen(cmd, imagenes):
         # menos y saber cuál era el índice 0 antes de reducir.
         if p[7] or imagenes.mostrar(p[0], cmd.string, p[2], p[3]) is None:
             return None
-        return bytes([OP_IMAGEN]) + bytes(tono)
+        return bytes([OP_PICTURE]) + bytes(tono)
     # MovePicture: el mismo cartel, en el mismo lugar, con otro tono. La
     # duración viene en **décimas** —`data.time_left = duration * DEFAULT_FPS /
     # 10`—, que es lo que había que ir a leer: los 35 del primero son tres
@@ -3318,10 +3318,10 @@ def _compilar_imagen(cmd, imagenes):
     cuadros = p[14] * CUADROS_POR_DECIMA
     if not 0 <= cuadros <= IMAGEN_CUADROS_MAX:
         return None
-    salida = bytes([OP_IMAGEN_MOVER]) + bytes(tono) + bytes([cuadros])
+    salida = bytes([OP_PICTURE_MOVE]) + bytes(tono) + bytes([cuadros])
     if len(p) > 15 and p[15] and cuadros:
         # `options.wait`: la página espera lo que dura, como el `FlashScreen`.
-        salida += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        salida += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
     return salida
 
 
@@ -3338,12 +3338,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if temas is None or not cmd.string or len(p) < 3:
             return b""
         k = temas.sonido(cmd.string, p[0], p[1], p[2])
-        return bytes([OP_SONIDO, k & 0xFF, k >> 8])
+        return bytes([OP_SOUND, k & 0xFF, k >> 8])
 
     if cmd.code == WEATHER_EFFECTS:
         if len(p) < 2:
             raise NoSePuede("WeatherEffects sin operandos")
-        return bytes([OP_CLIMA, p[0] & 0xFF, min(max(p[1], 0), 2)])
+        return bytes([OP_WEATHER, p[0] & 0xFF, min(max(p[1], 0), 2)])
 
     if cmd.code == OPEN_SHOP:
         if len(p) < 4:
@@ -3352,8 +3352,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede("OpenShop con las ramas de compró y no compró")
         vende = [i for i in p[4:] if 0 < i < ITEMS_N]
         if len(vende) > 255 or not 0 <= p[0] <= 2 or not 0 <= p[1] <= 2:
-            raise NoSePuede("OpenShop que no entra en OP_TIENDA")
-        return bytes([OP_TIENDA, p[0], p[1], len(vende)]) + b"".join(
+            raise NoSePuede("OpenShop que no entra en OP_SHOP")
+        return bytes([OP_SHOP, p[0], p[1], len(vende)]) + b"".join(
             bytes([i & 0xFF, i >> 8]) for i in vende)
 
     if cmd.code == FULL_HEAL:
@@ -3431,7 +3431,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if not PERMITIR_TECLA_SIN_ESPERA:
                 raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
                                 "héroe no manda sobre el pad en la referencia")
-            return bytes([OP_TECLA, ranura_de_variable(p[0]), banderas])
+            return bytes([OP_KEY, ranura_de_variable(p[0]), banderas])
         # **La espera se hace con las tres cosas: la cruceta, la tecla de
         # acción y cancelar**, desde el 2026-09-13. Hasta ese día valía sólo la
         # de acción, y la razón escrita era del **arnés** y no de la ROM: la
@@ -3451,11 +3451,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # 0, 0)`: sin esto no se puede tirar ninguna piedra.
         ranura = ranura_de_variable(p[0]) | escritura_pide_refresco(
             p[0], eventos_mapa)
-        return bytes([OP_TECLA, ranura, banderas | TECLA_ARRANCA,
-                      OP_TECLA, ranura, banderas])
+        return bytes([OP_KEY, ranura, banderas | TECLA_ARRANCA,
+                      OP_KEY, ranura, banderas])
 
     if cmd.code == CHANGE_SPRITE_ASSOCIATION:
-        # [actor, índice del CharSet, transparente]. Ver OP_ACTOR_GRAF.
+        # [actor, índice del CharSet, transparente]. Ver OP_ACTOR_SPRITE.
         if len(p) != 3:
             # Con cuatro es el bitfield de "esto sale de una variable", que
             # este juego no usa nunca.
@@ -3471,7 +3471,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         elegido = graficos.indice(cmd.string, p[1])
         if elegido > 0xFF:
             raise NoSePuede("demasiados gráficos en el mapa")
-        return bytes([OP_ACTOR_GRAF, p[0], elegido])
+        return bytes([OP_ACTOR_SPRITE, p[0], elegido])
 
     if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
                     CHANGE_ESCAPE_ACCESS):
@@ -3480,7 +3480,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         cual = {CHANGE_SAVE_ACCESS: ACCESO_GUARDAR,
                 CHANGE_MENU_ACCESS: ACCESO_MENU,
                 CHANGE_ESCAPE_ACCESS: ACCESO_ESCAPAR}[cmd.code]
-        return bytes([OP_ACCESO, ACCESO_BIT[cual], 1 if p[0] else 0])
+        return bytes([OP_ACCESS, ACCESO_BIT[cual], 1 if p[0] else 0])
 
     if cmd.code == CHANGE_ITEMS:
         # [sumar o quitar, ítem por constante o variable, ítem, cantidad por
@@ -3509,7 +3509,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         monto = p[2]
         if not 0 <= monto <= 0xFFFFFF:
             raise NoSePuede("ChangeGold de %d, que no entra en tres bytes" % monto)
-        return bytes([OP_ORO, 1 if p[0] else 0,
+        return bytes([OP_GOLD, 1 if p[0] else 0,
                       monto & 0xFF, (monto >> 8) & 0xFF, (monto >> 16) & 0xFF])
 
     if cmd.code == PLAY_BGM:
@@ -3539,10 +3539,10 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if not p or p[0] < 0:
             raise NoSePuede()
         paso = paso_de_fundido(p[0])
-        return bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
+        return bytes([OP_FADE_BGM, paso & 0xFF, paso >> 8])
 
     if cmd.code == OPEN_SAVE_MENU:
-        return bytes([OP_GUARDAR])
+        return bytes([OP_SAVE])
 
     if cmd.code in (SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE):
         salida = _compilar_imagen(cmd, imagenes)
@@ -3582,13 +3582,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede()   # el id sale de una variable, y no las leemos
         if p[0] not in (GRUPO_AGREGAR, GRUPO_SACAR) or not 0 <= p[2] <= 255:
             raise NoSePuede()
-        return bytes([OP_GRUPO, p[0], p[2]])
+        return bytes([OP_PARTY, p[0], p[2]])
 
     if cmd.code == PROCEED_WITH_MOVEMENT:
-        return bytes([OP_RUTAS])
+        return bytes([OP_WAIT_ROUTES])
 
     if cmd.code == HALT_ALL_MOVEMENT:
-        return bytes([OP_PARAR_RUTAS])
+        return bytes([OP_STOP_ROUTES])
 
     if cmd.code == CHANGE_PBG:
         return b""      # se acepta y se tira: ver CHANGE_PBG
@@ -3629,7 +3629,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if p[6]:
             # Esperar es exactamente el comando Wait: `SetupWait(tenths)`, o sea
             # las mismas décimas por CUADROS_POR_DECIMA.
-            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
         return out
 
     if cmd.code == CONTROL_VARS:
@@ -3661,7 +3661,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             b = 0
         elif clase == VAR_PERSONAJE:
             # La celda de un personaje. `a` pasa a ser el mismo byte de blanco
-            # que lleva OP_RUTA —0 el héroe, el índice del evento más uno— y no
+            # que lleva OP_ROUTE —0 el héroe, el índice del evento más uno— y no
             # el id de RM2k: el bytecode no vuelve a ver un id, que es lo que
             # `Eventos` existe para garantizar. `b` es cuál coordenada.
             if b not in (PERSONAJE_X, PERSONAJE_Y):
@@ -3812,7 +3812,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # por terminada, así que ni cuesta cuadros ni deja nada que
             # esperar en `ProceedWithMovement`.
             return b""
-        return bytes([OP_RUTA, blanco, p[1], len(ruta)]) + bytes(ruta)
+        return bytes([OP_ROUTE, blanco, p[1], len(ruta)]) + bytes(ruta)
 
     if cmd.code == CHANGE_EVENT_LOCATION:
         if len(p) < 4 or p[1] not in (LUGAR_CONSTANTE, LUGAR_POR_VARIABLE):
@@ -3827,15 +3827,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if p[1] == LUGAR_POR_VARIABLE:
             # La celda sale de dos variables, y se leen **al correr**: es el
             # `Main_Data::game_variables->Get(x)` de `CommandChangeEventLocation`.
-            # Va en un opcode aparte y no en un bit de `OP_LUGAR` porque los
+            # Va en un opcode aparte y no en un bit de `OP_PLACE` porque los
             # operandos son otros —dos ranuras de un byte contra dos palabras—
             # y un opcode de largo variable es lo que el recorrido del
             # bytecode no sabe hacer: `LARGO_DE_OPCODE` es una tabla.
-            return bytes([OP_LUGAR_VAR, blanco, ranura_de_variable(p[2]),
+            return bytes([OP_PLACE_VAR, blanco, ranura_de_variable(p[2]),
                           ranura_de_variable(p[3])])
         if not (0 <= p[2] <= 0xFFFF and 0 <= p[3] <= 0xFFFF):
             raise NoSePuede()
-        return bytes([OP_LUGAR, blanco, p[2] & 0xFF, p[2] >> 8,
+        return bytes([OP_PLACE, blanco, p[2] & 0xFF, p[2] >> 8,
                       p[3] & 0xFF, p[3] >> 8])
 
     if cmd.code == SHAKE_SCREEN:
@@ -3847,13 +3847,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         cuadros = p[2] * CUADROS_POR_DECIMA
         if cuadros > 0xFFFF:
             raise NoSePuede()
-        out = bytes([OP_SACUDIR, p[0], p[1], cuadros & 0xFF, cuadros >> 8])
+        out = bytes([OP_SHAKE, p[0], p[1], cuadros & 0xFF, cuadros >> 8])
         if cuadros and p[3]:
-            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
         return out
 
     if cmd.code == SHOW_BATTLE_ANIMATION:
-        # (animación, objetivo, esperar, global): ver OP_ANIMACION.
+        # (animación, objetivo, esperar, global): ver OP_ANIMATION.
         if len(p) < 3:
             raise NoSePuede()
         anim = ANIMACIONES.get(p[0])
@@ -3900,12 +3900,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # que es lo que ya hacía. Ninguna de las once de la intro la pide.
         numero = (p[0] if p[0] <= 255 and not (len(p) > 3 and p[3])
                   else ANIM_SIN_DIBUJO)
-        out = (bytes([OP_ANIMACION, numero, dibujo_blanco(anim, blanco),
+        out = (bytes([OP_ANIMATION, numero, dibujo_blanco(anim, blanco),
                       len(entradas)])
                + b"".join(entradas))
         cuadros = 2 * len(anim["cuadros"])
         if p[2] and cuadros:
-            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
         return out
 
     if cmd.code == FLASH_SCREEN:
@@ -3918,9 +3918,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         cuadros = p[4] * CUADROS_POR_DECIMA
         if cuadros > 0xFF:
             raise NoSePuede()
-        out = bytes([OP_DESTELLO, p[0], p[1], p[2], p[3], cuadros])
+        out = bytes([OP_FLASH_SCREEN, p[0], p[1], p[2], p[3], cuadros])
         if cuadros and p[5]:
-            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
         return out
 
     if cmd.code == TRADE_EVENT_LOCATIONS:
@@ -3931,7 +3931,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         blancos = [eventos_mapa.blanco(q) for q in p[:2]]
         if any(b is None or b == 0 for b in blancos):
             raise NoSePuede()   # el héroe, un vehículo o un evento que no existe
-        return bytes([OP_TRUEQUE] + blancos)
+        return bytes([OP_SWAP] + blancos)
 
     if cmd.code == WAIT:
         if len(p) < 1:
@@ -3939,7 +3939,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         cuadros = p[0] * CUADROS_POR_DECIMA
         if cuadros > 0xFFFF:
             raise NoSePuede()
-        return bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        return bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
 
     if cmd.code == TINT_SCREEN:
         if len(p) < 4:
@@ -3949,7 +3949,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # La duración se descarta: el tinte se aplica de una. La pantalla que
         # se compara está siempre asentada, así que el valor final es el que
         # importa; lo que se pierde es el degradé de un segundo.
-        return bytes([OP_TINTE, p[0], p[1], p[2], p[3]])
+        return bytes([OP_TINT, p[0], p[1], p[2], p[3]])
 
     if cmd.code == SHOW_MESSAGE:
         if mensajes is None:
@@ -3959,7 +3959,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # todos los cuadros; lo que no sea `\|` ni `\^` sigue cortando la
         # página desde ahí. Ver `cola_de_escapes`.
         donde = mensajes.agregar(lineas)
-        return bytes([OP_MENSAJE, donde & 0xFF, donde >> 8])
+        return bytes([OP_MESSAGE, donde & 0xFF, donde >> 8])
 
     raise NoSePuede()
 
@@ -4529,9 +4529,9 @@ class Estado:
         # porque en RM2k vive en el actor y no en el `Game_Player`, y porque es
         # justamente lo que este juego necesita: las 102 páginas de la
         # persecución en auto lo cambian y se teletransportan en el comando
-        # siguiente. Ver OP_ACTOR_GRAF.
+        # siguiente. Ver OP_ACTOR_SPRITE.
         self.actor_graf = {}
-        # La animación de batalla en curso: ver OP_ANIMACION.
+        # La animación de batalla en curso: ver OP_ANIMATION.
         self.animacion = None
         # Y su dibujo, que va por su cuenta y dura más: la línea de tiempo se
         # termina con la última entrada y el dibujo, dos cuadros por cada
@@ -4542,7 +4542,7 @@ class Estado:
         # tick de antes de avanzarlo: ver `cuadro_de_animacion`.
         self.anim_cuadro = None
         # El cartel puesto, o None: (tono de ahora, desde, hasta, paso, pasos).
-        # Ver OP_IMAGEN y `cuadro_de_imagen`.
+        # Ver OP_PICTURE y `cuadro_de_imagen`.
         self.imagen = None
         # El evento que mira al héroe porque él lo disparó: ver `girar`.
         self.giro = None
@@ -4603,7 +4603,7 @@ class Estado:
         # del otro lado. Se llena solo al preguntar; ver `equipo_de`.
         self.equipo = {}
         # Si se puede guardar desde el menú, si se puede abrir el menú y si se
-        # puede huir de una batalla, por bit de `FAR_ACCESO`. Ver OP_ACCESO: la
+        # puede huir de una batalla, por bit de `FAR_ACCESO`. Ver OP_ACCESS: la
         # clave es el bit y no el número del permiso, porque eso es lo que
         # lleva el bytecode.
         self.permitido = {bit: True for bit in ACCESO_BIT}
@@ -4623,7 +4623,7 @@ class Estado:
         # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
         self.sacudida_pos = 0
         # El clima: el tipo y la fuerza que puso el último WeatherEffects, las
-        # gotas —[x, y, vida]— y su azar. Ver OP_CLIMA.
+        # gotas —[x, y, vida]— y su azar. Ver OP_WEATHER.
         self.clima = (0, 0)
         self.gotas = []
         self.lluvia_azar = LLUVIA_SEMILLA
@@ -4709,7 +4709,7 @@ class Estado:
         """La x o la y de un personaje, en celdas: la clase 6 de `ControlVars`.
 
         `blanco` es el byte que lleva el bytecode —0 el héroe, el índice del
-        evento más uno, igual que en OP_RUTA— y `cual` es PERSONAJE_X o
+        evento más uno, igual que en OP_ROUTE— y `cual` es PERSONAJE_X o
         PERSONAJE_Y. La ROM lo lee de `tile_x`/`tile_y` y de `ev_pos_buf`, que
         es esto mismo: la celda **viva**, la que una ruta ya movió.
 
@@ -4915,7 +4915,7 @@ class Estado:
 
     def paginas_caminando(self):
         """Si alguna ruta propia de página tiene algo por hacer. No entra en
-        `algo_corriendo` a propósito: `OP_RUTAS` no las espera, y una que se
+        `algo_corriendo` a propósito: `OP_WAIT_ROUTES` no las espera, y una que se
         repite no termina nunca. Lo mira sólo el lazo con presupuesto de
         cuadros, para no cortar antes de tiempo un mapa donde alguien camina
         solo."""
@@ -5426,7 +5426,7 @@ class Estado:
 # Cuánto ocupa cada opcode se deriva de sus argumentos declarados, así que
 # `LARGO_DE_OPCODE` y `largo_de_opcode` vienen de `opcodes.py`, generado desde
 # `protocol/events.toml`. Antes se escribían a mano, y había dos copias —una
-# acá y otra en el conversor—: la de acá se quedó con el OP_RUTA viejo cuando
+# acá y otra en el conversor—: la de acá se quedó con el OP_ROUTE viejo cuando
 # el nuevo sumó la frecuencia, y fueron doce casos de la tanda en rojo.
 
 
@@ -5475,7 +5475,7 @@ def blancos_de_ruta(paginas):
     for pagina in paginas:
         codigo = pagina.get("codigo")
         for i, c in recorrer_codigo(codigo or b""):
-            if c[i] == OP_RUTA and c[i + 1]:
+            if c[i] == OP_ROUTE and c[i + 1]:
                 blancos.add(c[i + 1] - 1)
     return blancos
 
@@ -5658,14 +5658,14 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     con la 8 caminan seguidas y con otra se paran entre orden y orden.
 
     `lugar` es (blanco, x, y, espera) para plantar a un evento en una celda
-    —OP_LUGAR— después de esperar esos cuadros. Va **entre** la ruta del
-    evento y su OP_RUTAS a propósito: con la espera a mitad de un paso, el
+    —OP_PLACE— después de esperar esos cuadros. Va **entre** la ruta del
+    evento y su OP_WAIT_ROUTES a propósito: con la espera a mitad de un paso, el
     corte del paso que hace `MoveTo` es lo que se ve, y la ruta sigue desde la
     celda nueva.
 
     `parar` son los cuadros que se esperan antes de un `HaltAllMovement`, que
     corta las dos rutas —la del héroe y la del evento— por la mitad. Va en el
-    mismo lugar que `lugar` y por lo mismo: entre las rutas y el `OP_RUTAS` que
+    mismo lugar que `lugar` y por lo mismo: entre las rutas y el `OP_WAIT_ROUTES` que
     las espera. Existe porque el único `HaltAllMovement` del juego está en una
     página del mapa 11 que teletransporta al final, así que no hay dónde mirar
     lo que el comando hace; acá se ve solo. Y es filoso por construcción: con el
@@ -5673,7 +5673,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     decenas de cuadros más tarde.
 
     `ruta_ev` es (blanco, órdenes) para mandar a caminar a un evento, y detrás
-    va un OP_RUTAS. Existe por lo mismo que el resto: **ninguna página del juego
+    va un OP_WAIT_ROUTES. Existe por lo mismo que el resto: **ninguna página del juego
     que compile manda a caminar a un evento sin depender de un switch**, así que
     ese camino no lo ejercitaría nada. Y es filoso por construcción: hasta que
     la ruta no termine, el tinte de más abajo no se aplica, así que el cuadro en
@@ -5696,7 +5696,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # La fuerza de un WeatherEffects de lluvia, de 0 a 2. La única que
         # llueve en el juego es la apertura, y ahí la cámara no se mueve: sin
         # esto nada miraría que las gotas van pegadas al mapa.
-        codigo += bytes([OP_CLIMA, CLIMA_LLUVIA, lluvia])
+        codigo += bytes([OP_WEATHER, CLIMA_LLUVIA, lluvia])
     if timer:
         # (segundos, visible). El cronómetro del juego lo prende una página que
         # no compila —la del despertador del pad—, así que sin esto no habría
@@ -5720,18 +5720,18 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # hay ninguna donde se pueda elegir qué rama se toma. Sin eso, la rama
         # que **corre** no la ejercita nada; sólo la que se saltea.
         #
-        # Compila a lo mismo que compilaría el juego —`OP_SI` y `OP_IR`, con el
+        # Compila a lo mismo que compilaría el juego —`OP_IF` y `OP_GOTO`, con el
         # destino puesto por el mismo parcheo— porque sale del mismo camino:
         # se arma la lista de comandos y la compila `compilar_pagina`.
         cual, adentro, despues = rama
         # El destino es el mismo que pondría `compilar_pagina` al cerrar la
-        # rama: después del `OP_SI` —siete bytes desde que lleva la clase de
+        # rama: después del `OP_IF` —siete bytes desde que lleva la clase de
         # condición adelante— y del `OP_SWITCH` de adentro —cuatro—. Acá se
         # calcula a mano porque esta página no sale de comandos de RM2k, así que
         # no pasa por el parcheo; el bytecode que resulta es el mismo byte por
         # byte, que es lo que hace que pruebe algo.
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI] + 4
-        codigo += bytes([OP_SI, COND_SWITCH, cual & 0xFF, cual >> 8, 0,
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF] + 4
+        codigo += bytes([OP_IF, COND_SWITCH, cual & 0xFF, cual >> 8, 0,
                          destino & 0xFF, destino >> 8])
         codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
         codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
@@ -5744,7 +5744,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # 3— es de tecla y no automática, y encima su mapa no tiene tema
         # propio, así que no hay con qué oírla.
         paso = paso_de_fundido(fundir_bgm)
-        codigo += bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
+        codigo += bytes([OP_FADE_BGM, paso & 0xFF, paso >> 8])
     if ruta:
         if any(o in RUTA_HEROE_AFUERA for o in ruta):
             # Acá **sí** se corta en vez de tirarlas. Una ruta escrita a mano
@@ -5755,7 +5755,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             # El mismo corte que hace `traducir` con un MoveEvent del juego: la
             # ROM camina las diagonales sobre eventos y no sobre el héroe.
             raise NoSePuede("el héroe no camina en diagonal")
-        codigo += bytes([OP_RUTA, 0, frecuencia, len(ruta)]) + bytes(ruta)
+        codigo += bytes([OP_ROUTE, 0, frecuencia, len(ruta)]) + bytes(ruta)
     if flash:
         # (blanco, r, g, b, potencia, cuadros). Existe por lo mismo que todo lo
         # demás de esta página: ninguna del juego que compile destella sin
@@ -5768,7 +5768,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # que compile lo usa sin depender de un switch, y hasta que apareció el
         # relámpago de la apertura —una paralela— este camino no lo corría nadie:
         # así sobrevivió el `lda #0` de `destellar_fondo`.
-        codigo += bytes([OP_DESTELLO]) + bytes(destello)
+        codigo += bytes([OP_FLASH_SCREEN]) + bytes(destello)
     if animacion:
         # (animación, objetivo, esperar): un `ShowBattleAnimation` compilado
         # por el mismo camino que el juego. Existe por lo mismo que el resto:
@@ -5786,20 +5786,20 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             eventos_mapa=eventos_mapa)
     if ruta_ev:
         blanco, ordenes = ruta_ev
-        codigo += (bytes([OP_RUTA, blanco, frecuencia, len(ordenes)])
+        codigo += (bytes([OP_ROUTE, blanco, frecuencia, len(ordenes)])
                    + bytes(ordenes))
     if lugar:
         blanco, x, y, cuadros = lugar
         if cuadros:
-            codigo += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
-        codigo += bytes([OP_LUGAR, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
+            codigo += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+        codigo += bytes([OP_PLACE, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
     if parar:
-        # `HaltAllMovement` a mitad de camino. Antes del `OP_RUTAS` para que se
+        # `HaltAllMovement` a mitad de camino. Antes del `OP_WAIT_ROUTES` para que se
         # note: con las rutas canceladas, esperarlas no cuesta nada.
-        codigo += bytes([OP_ESPERAR, parar & 0xFF, parar >> 8])
-        codigo += bytes([OP_PARAR_RUTAS])
+        codigo += bytes([OP_DELAY, parar & 0xFF, parar >> 8])
+        codigo += bytes([OP_STOP_ROUTES])
     if ruta_ev:
-        codigo += bytes([OP_RUTAS])
+        codigo += bytes([OP_WAIT_ROUTES])
     if pan:
         # Uno o más (operación, dirección, distancia, velocidad, esperar): lo
         # mismo que compila un PanScreen del juego. Existe por lo mismo que el
@@ -5815,18 +5815,18 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # aplica cuando la sacudida termina, que es lo que la hace filosa.
         fuerza, velocidad, decimas, esperar = sacudida
         cuadros = decimas * CUADROS_POR_DECIMA
-        codigo += bytes([OP_SACUDIR, fuerza, velocidad,
+        codigo += bytes([OP_SHAKE, fuerza, velocidad,
                          cuadros & 0xFF, cuadros >> 8])
         if cuadros and esperar:
-            codigo += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+            codigo += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
     if mensaje is not None:
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
         # que lo que venga después es lo que prueba que la página **siguió**
         # cuando se apretó A. Con el tinte detrás, antes de apretar la pantalla
         # está sin teñir y después está teñida, igual que en `snes-espera`.
-        codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
+        codigo += bytes([OP_MESSAGE, mensaje & 0xFF, mensaje >> 8])
     if espera:
-        codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+        codigo += bytes([OP_DELAY, espera & 0xFF, espera >> 8])
     if tecla:
         # `KeyInputProc`: (variable, esperar, direcciones, acción, cancelar),
         # los cinco parámetros de RM2k tal cual. Va **antes** de `variables` a
@@ -5865,8 +5865,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                 # `CHANGE_EVENT_LOCATION` porque el blanco de la página de
                 # prueba ya viene traducido, y `_compilar` lo traduciría de
                 # nuevo desde un id de RM2k que acá no existe. Es lo mismo que
-                # hace `lugar` un poco más arriba con `OP_LUGAR`.
-                codigo += bytes([OP_LUGAR_VAR, a, ranura_de_variable(v),
+                # hace `lugar` un poco más arriba con `OP_PLACE`.
+                codigo += bytes([OP_PLACE_VAR, a, ranura_de_variable(v),
                                  ranura_de_variable(b)])
                 continue
             codigo += _compilar(lcf.EventCommand(
@@ -5908,10 +5908,10 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # acá porque esta página no pasa por `compilar_pagina`.
         import lcf
         numero, *color = rama_item
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI] + LARGO_DE_OPCODE[OP_TINTE]
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF] + LARGO_DE_OPCODE[OP_TINT]
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_ITEM, numero, 0, 0, 0, 0])), destino)
-        codigo += bytes([OP_TINTE]) + bytes(color)
+        codigo += bytes([OP_TINT]) + bytes(color)
     if rama_actor:
         # (sub, actor, dato, r, g, b, saturación): la rama por **actor** con
         # dos operandos —la 4, "sabe la habilidad", y la 5, "tiene puesto este
@@ -5930,19 +5930,19 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # acá porque esta página no pasa por `compilar_pagina`.
         import lcf
         sub, actor, dato, *color = rama_actor
-        destino = (len(codigo) + LARGO_DE_OPCODE[OP_SI_ACTOR]
-                   + LARGO_DE_OPCODE[OP_TINTE])
+        destino = (len(codigo) + LARGO_DE_OPCODE[OP_IF_ACTOR]
+                   + LARGO_DE_OPCODE[OP_TINT])
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_ACTOR, actor, sub, dato, 0, 0])), destino)
-        codigo += bytes([OP_TINTE]) + bytes(color)
+        codigo += bytes([OP_TINT]) + bytes(color)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
-        # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas
+        # variable, como `rama` pero con OP_IF_VAR. Existe porque en los mapas
         # 1 a 10 la única página que compara una variable es el Tram Officer, y
         # ahí el valor sale de un azar.
         import lcf
         v, comparacion, valor, adentro, despues = rama_var
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI_VAR] + 4
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF_VAR] + 4
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_VARIABLE, v, 0, valor, comparacion, 0])),
             destino)
@@ -5953,7 +5953,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # mismo que `guardar` y que la batalla: las 212 apariciones del comando
         # en el juego están todas en los cuatro mapas de la persecución en auto
         # —el 49, el 50, el 52 y el 54— y ninguno de ésos entra en una ROM de
-        # prueba, así que sin esto `OP_ACTOR_GRAF` sería un camino que no
+        # prueba, así que sin esto `OP_ACTOR_SPRITE` sería un camino que no
         # ejercita nada.
         #
         # Va **después de la espera**, como guardar: así los cuadros de antes
@@ -5973,14 +5973,14 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     if guardar:
         # Guardar la partida. El save point del mapa 8 es el único evento del
         # juego que lo pide, y está en un mapa que las pruebas no llevan; sin
-        # esto `OP_GUARDAR` sería un camino que no ejercita nada, que es
+        # esto `OP_SAVE` sería un camino que no ejercita nada, que es
         # exactamente cómo sobrevivieron los tres errores del intérprete.
         #
         # Va **después de la espera** a propósito: así la prueba puede mover la
         # partida —irse a otro mapa, caminar— mientras la página espera, y lo
         # que se guarda no es el estado del arranque. Guardando el del arranque,
         # cargar y no cargar dan lo mismo y la prueba no prueba nada.
-        codigo += bytes([OP_GUARDAR])
+        codigo += bytes([OP_SAVE])
     if batalla:
         # Una pelea contra esta tropa. Existe por lo mismo que guardar: la
         # única batalla que el jugador alcanza hoy es la del droide del mapa 2,
@@ -5988,7 +5988,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # ROM no camina —la 9, "hacia el héroe"—, así que sin esto la tropa de
         # cuatro enemigos no la ejercitaría nada.
         #
-        # Los tres destinos apuntan al final del bloque, o sea al OP_FIN: gane,
+        # Los tres destinos apuntan al final del bloque, o sea al OP_DONE: gane,
         # pierda o escape, la página sigue por el mismo lado. Lo que se prueba
         # acá es la pelea, no por dónde sigue la escena.
         #
@@ -6001,14 +6001,14 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         audio_de_batalla(temas)
         fin = len(codigo) + 9
         perder = BATALLA_PERDER if batalla_game_over else fin
-        codigo += bytes([OP_BATALLA, batalla & 0xFF, batalla >> 8,
+        codigo += bytes([OP_BATTLE, batalla & 0xFF, batalla >> 8,
                          fin & 0xFF, fin >> 8, fin & 0xFF, fin >> 8,
                          perder & 0xFF, perder >> 8])
     if tinte:
         # (r, g, b) y, si viene, la saturación; si no, la neutra.
-        codigo += bytes([OP_TINTE]) + bytes(tinte[:3])
+        codigo += bytes([OP_TINT]) + bytes(tinte[:3])
         codigo += bytes([tinte[3] if len(tinte) > 3 else TINTE_NEUTRO])
-    return codigo + bytes([OP_FIN])
+    return codigo + bytes([OP_DONE])
 
 
 # Cuántas páginas se pueden arrancar encadenadas en un mismo cuadro. En RM2k el
@@ -6450,7 +6450,7 @@ def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None,
         if interprete.cuadro(mover_evento=mover_evento):
             return estado.salto
         # Las rutas de los eventos avanzan acá porque este lazo es el dueño del
-        # tiempo. Sin esto, una página que espere a que terminen —OP_RUTAS— no
+        # tiempo. Sin esto, una página que espere a que terminen —OP_WAIT_ROUTES— no
         # terminaría nunca: nadie las estaría caminando.
         if avanzar is not None:
             avanzar()
@@ -6479,7 +6479,7 @@ def ejecutar(codigo, estado, desde=0):
     i = desde
     while i < len(codigo):
         op = codigo[i]
-        if op == OP_FIN:
+        if op == OP_DONE:
             return None
         if op == OP_SWITCH:
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
@@ -6490,7 +6490,7 @@ def ejecutar(codigo, estado, desde=0):
                 estado.switches.discard(numero)
                 estado.refresco = True
             i += 4
-        elif op == OP_SI:
+        elif op == OP_IF:
             # `CommandConditionalBranch`: si no se cumple, el cursor se va al
             # `else` o al `end`. El destino es absoluto dentro de la página, así
             # que el salto es la asignación.
@@ -6519,10 +6519,10 @@ def ejecutar(codigo, estado, desde=0):
                 i += 7
             else:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
-        elif op == OP_SI_ACTOR:
+        elif op == OP_IF_ACTOR:
             # Las dos preguntas de actor que llevan dos operandos. Salta igual
-            # que `OP_SI` —el destino es absoluto dentro de la página— y no
-            # tiene polaridad: ver OP_SI_ACTOR.
+            # que `OP_IF` —el destino es absoluto dentro de la página— y no
+            # tiene polaridad: ver OP_IF_ACTOR.
             if not _ACTORES_INDEXADOS:
                 raise ValueError("una rama de actor sin `indexar_actores`: "
                                  "contestaría que no sin decirlo")
@@ -6541,11 +6541,11 @@ def ejecutar(codigo, estado, desde=0):
                 i += 7
             else:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
-        elif op == OP_ACCESO:
+        elif op == OP_ACCESS:
             estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
             i += 3
-        elif op == OP_TECLA:
-            # Ver OP_TECLA. La de arrancar pone la variable en cero y devuelve
+        elif op == OP_KEY:
+            # Ver OP_KEY. La de arrancar pone la variable en cero y devuelve
             # el control sin mirar nada; la que espera se **rebobina a sí
             # misma** hasta que haya tecla, así que se la vuelve a ejecutar
             # cuadro a cuadro. `(i, 0, None)` es exactamente eso: el cursor
@@ -6574,7 +6574,7 @@ def ejecutar(codigo, estado, desde=0):
             if pide_refresco:
                 estado.refresco = True
             i += 3
-        elif op == OP_ACTOR_GRAF:
+        elif op == OP_ACTOR_SPRITE:
             # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
             # el actor está liderando se ve en el mismo cuadro, y si no queda
             # guardado. Quién lo mira es el que dibuja al héroe —acá
@@ -6592,14 +6592,14 @@ def ejecutar(codigo, estado, desde=0):
                                               estado.item(numero) + delta))
             estado.refresco = True
             i += 4
-        elif op == OP_ORO:
+        elif op == OP_GOLD:
             # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
             monto = (codigo[i + 2] | (codigo[i + 3] << 8)
                      | (codigo[i + 4] << 16))
             estado.oro = max(0, min(ORO_MAX, estado.oro
                                     + (-monto if codigo[i + 1] else monto)))
             i += 5
-        elif op == OP_IR:
+        elif op == OP_GOTO:
             i = codigo[i + 1] | (codigo[i + 2] << 8)
         elif op == OP_TELEPORT:
             # El resto de la página sí corre. En
@@ -6624,13 +6624,13 @@ def ejecutar(codigo, estado, desde=0):
             # Se cuenta acá, que es el único lugar por donde pasan todos.
             estado.fundidos += 1
             return (i + 7, 0, True)     # corta el cuadro, como `return false`
-        elif op == OP_ESPERAR:
+        elif op == OP_DELAY:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos
             # cuadros que dejar pasar", decía el comentario, y era cierto
             # mientras la página corriera entera con la pantalla apagada.
             cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
             return (i + 3, cuadros, False)
-        elif op == OP_RUTA:
+        elif op == OP_ROUTE:
             # La ruta se encola y la camina quien la recibió, no el intérprete:
             # en RM2k `ForceMoveRoute` es asincrónico y la página sigue. Quien
             # la hace avanzar es `cuadro_de_ruta` / `cuadro_de_rutas_ev`, una
@@ -6648,7 +6648,7 @@ def ejecutar(codigo, estado, desde=0):
             i += 4 + cuantos
         elif op == OP_FLASH:
             # Empieza un destello. No corta el cuadro: si la página espera, el
-            # conversor le pone un OP_ESPERAR detrás, que es lo que hace
+            # conversor le pone un OP_DELAY detrás, que es lo que hace
             # `CommandFlashSprite` con `SetupWait(tenths)`.
             estado.flashes[codigo[i + 1]] = (codigo[i + 2], codigo[i + 3],
                                              codigo[i + 4], codigo[i + 5],
@@ -6706,7 +6706,7 @@ def ejecutar(codigo, estado, desde=0):
             if pide_refresco:
                 estado.refresco = True
             i += 8
-        elif op == OP_SI_VAR:
+        elif op == OP_IF_VAR:
             ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
             contra = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
             if clase == VAR_VARIABLE:
@@ -6716,26 +6716,26 @@ def ejecutar(codigo, estado, desde=0):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
-        elif op == OP_IMAGEN:
+        elif op == OP_PICTURE:
             # El cartel se pone con su tono y en el mismo cuadro, como
             # `Game_Pictures::Show`: `time_left` queda en cero.
             estado.poner_imagen(tuple(codigo[i + 1:i + 5]))
             i += 5
-        elif op == OP_IMAGEN_MOVER:
+        elif op == OP_PICTURE_MOVE:
             # Y `Move`: el tono al que va y en cuántos cuadros. No cuesta
-            # ningún tick; si la página espera, atrás viene un OP_ESPERAR.
+            # ningún tick; si la página espera, atrás viene un OP_DELAY.
             estado.mover_imagen(tuple(codigo[i + 1:i + 5]), codigo[i + 5])
             i += 6
-        elif op == OP_IMAGEN_BORRAR:
+        elif op == OP_PICTURE_ERASE:
             estado.imagen = None
             i += 1
-        elif op == OP_SONIDO:
+        elif op == OP_SOUND:
             i += 3                  # no se ve y no cuesta ningún tick
-        elif op == OP_CLIMA:
+        elif op == OP_WEATHER:
             # Como `CommandWeatherEffects`: no cuesta ningún tick.
             estado.poner_clima(codigo[i + 1], codigo[i + 2])
             i += 3
-        elif op == OP_BATALLA:
+        elif op == OP_BATTLE:
             # La pelea, como la tienda y como guardar: bloquea adentro del
             # intérprete, **no cuesta ningún tick** y de este lado no hay nada
             # que dibujar. En la ROM `batalla_pantalla` corre su propio lazo de
@@ -6755,19 +6755,19 @@ def ejecutar(codigo, estado, desde=0):
             # `BATALLA_SEMILLA`—, así que la misma tanda de toques da siempre
             # la misma pelea. Y el estado de los dos lados coincide porque la
             # rama es esta misma: gane, pierda o escape, la página de prueba
-            # manda las tres al `OP_FIN`.
+            # manda las tres al `OP_DONE`.
             #
             # Mientras eso no existió, el mapa volvía de la pelea con media
             # VRAM pisada y nadie se enteraba. Lo que la pantalla de la pelea
             # muestra lo sigue cobrando `just snes-batalla`, y lo que la pelea
             # le hace a los HP, `pruebas/test_batalla.py`.
             i = codigo[i + 3] | (codigo[i + 4] << 8)
-        elif op == OP_TIENDA:
+        elif op == OP_SHOP:
             # La tienda, como guardar: no cuesta ningún tick y de este lado no
             # hay nada que dibujar. Lo que muestra lo cobran `snes-tienda` y
             # `pruebas/test_tienda.py`.
             i += 4 + 2 * codigo[i + 3]
-        elif op == OP_GUARDAR:
+        elif op == OP_SAVE:
             # La pantalla de ranuras, y guardar en la que se elija. De este
             # lado no hay nada que guardar —la referencia es un modelo, no una
             # partida— ni nada que dibujar: lo que importa es que el opcode
@@ -6781,31 +6781,31 @@ def ejecutar(codigo, estado, desde=0):
             # `titulo.py --ranuras`, y lo que la ROM escribe,
             # `pruebas/test_guardar.py`.
             i += 1
-        elif op == OP_FUNDIR_BGM:
+        elif op == OP_FADE_BGM:
             # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa
             # tres bytes y el stream tiene que ser el mismo de los dos lados.
             # Y tampoco cuesta un cuadro: `CommandFadeOutBGM` devuelve true en
             # el mismo, así que la página sigue de largo.
             i += 3
-        elif op == OP_LUGAR:
+        elif op == OP_PLACE:
             # `MoveTo`: la celda cambia ya y el paso en curso se corta. La ruta
             # sigue desde la celda nueva, y hacia dónde mira no cambia.
             estado.mover_evento(codigo[i + 1] - 1,
                                 codigo[i + 2] | (codigo[i + 3] << 8),
                                 codigo[i + 4] | (codigo[i + 5] << 8))
             i += 6
-        elif op == OP_LUGAR_VAR:
-            # El mismo `MoveTo` que `OP_LUGAR`, con la celda leída de dos
-            # variables **al correr**. Ver OP_LUGAR_VAR.
+        elif op == OP_PLACE_VAR:
+            # El mismo `MoveTo` que `OP_PLACE`, con la celda leída de dos
+            # variables **al correr**. Ver OP_PLACE_VAR.
             estado.mover_evento(codigo[i + 1] - 1,
                                 estado.variable(codigo[i + 2]),
                                 estado.variable(codigo[i + 3]))
             i += 4
-        elif op == OP_SACUDIR:
+        elif op == OP_SHAKE:
             # `ShakeOnce`, que no reinicia la posición —"so that multiple
             # shakes which interrupt each other flow smoothly"—, o `ShakeEnd`
             # con cero cuadros. No corta el cuadro: si la página espera, el
-            # conversor le pone un OP_ESPERAR detrás.
+            # conversor le pone un OP_DELAY detrás.
             cuadros = codigo[i + 3] | (codigo[i + 4] << 8)
             if cuadros:
                 estado.sacudida_fuerza = codigo[i + 1]
@@ -6814,7 +6814,7 @@ def ejecutar(codigo, estado, desde=0):
             else:
                 estado.sacudida_pos = estado.sacudida_resta = 0
             i += 5
-        elif op == OP_ANIMACION:
+        elif op == OP_ANIMATION:
             # La animación nueva reemplaza a la que hubiera; sus entradas las
             # dispara `cuadro_de_animacion`. No cuesta ningún tick.
             n = codigo[i + 3]
@@ -6829,16 +6829,16 @@ def ejecutar(codigo, estado, desde=0):
             # su tabla— así que acá salen de la misma tabla, `ANIMACIONES`.
             estado.empezar_dibujo(codigo[i + 1], codigo[i + 2])
             i += 4 + ANIM_ENTRADA * n
-        elif op == OP_DESTELLO:
+        elif op == OP_FLASH_SCREEN:
             # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
             # cuadro. No corta el cuadro: si la página espera, el conversor le
-            # pone un OP_ESPERAR detrás. Con cero cuadros el primer
+            # pone un OP_DELAY detrás. Con cero cuadros el primer
             # `cuadro_de_destello` lo apaga sin que se vea.
             estado.destello = (codigo[i + 1], codigo[i + 2], codigo[i + 3])
             estado.destello_nivel = codigo[i + 4] << 8
             estado.destello_resta = codigo[i + 5]
             i += 6
-        elif op == OP_TRUEQUE:
+        elif op == OP_SWAP:
             # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
             # leídas antes de mover a ninguno.
             a, b = codigo[i + 1] - 1, codigo[i + 2] - 1
@@ -6868,12 +6868,12 @@ def ejecutar(codigo, estado, desde=0):
                 # `StopTimer` apaga las dos cosas, no sólo la cuenta.
                 estado.timer_activo = estado.timer_visible = False
             i += 5
-        elif op == OP_PARAR_RUTAS:
+        elif op == OP_STOP_ROUTES:
             # `HaltAllMovement`. No cuesta un cuadro: `CommandHaltAllMovement`
             # devuelve true, así que la página sigue en el mismo tick.
             estado.parar_rutas()
             i += 1
-        elif op == OP_RUTAS:
+        elif op == OP_WAIT_ROUTES:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
             # ser, y quien decide es `Interprete.cuadro` mirando si queda alguna
@@ -6883,7 +6883,7 @@ def ejecutar(codigo, estado, desde=0):
                 i += 1
                 continue
             return (i + 1, ESPERAR_RUTAS, False)
-        elif op == OP_ELEGIR:
+        elif op == OP_CHOICE:
             # Abre la ventana con las opciones y corta el cuadro, igual que un
             # mensaje. La diferencia es que la página no retoma donde quedó: el
             # cursor se lo pone `Interprete.cuadro` cuando el jugador elige, y
@@ -6904,7 +6904,7 @@ def ejecutar(codigo, estado, desde=0):
             }
             estado.mensaje = estado.eleccion["cuadros"][0]
             return (i, 0, False)
-        elif op == OP_MENSAJE:
+        elif op == OP_MESSAGE:
             # Abre la ventana y corta el cuadro. El cursor queda en el comando
             # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta
             # que alguien apriete A: la página queda bloqueada, que es lo que
@@ -6923,10 +6923,10 @@ def ejecutar(codigo, estado, desde=0):
                     estado.mensajes.cola(estado.mensaje)
                 estado.msg_pausa = pausas * CUADROS_DE_PAUSA
             return (i + 3, 0, False)
-        elif op == OP_GRUPO:
+        elif op == OP_PARTY:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
             i += 3
-        elif op == OP_TINTE:
+        elif op == OP_TINT:
             estado.tinte = (codigo[i + 1], codigo[i + 2], codigo[i + 3],
                             codigo[i + 4])
             estado.tinte_cambio = True      # lo mira `cuadro_de_destello`

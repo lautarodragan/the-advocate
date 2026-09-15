@@ -847,7 +847,7 @@ snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115"
 # destella a los dos: la pantalla y el objetivo. La página de prueba la
 # muestra **y espera**, y después tiñe: los cuadros del medio miran los
 # destellos del tick 34 al 50 y el último que la espera fue la de los 56
-# cuadros de la animación. Ver OP_ANIMACION en eventos.py.
+# cuadros de la animación. Ver OP_ANIMATION en eventos.py.
 snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranque="115" nombre="animacion" celda="":
   #!/usr/bin/env bash
   set -euo pipefail
@@ -891,7 +891,7 @@ snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranqu
 # sacado, porque no veía al evento. Cada caso se rompió a propósito para saber
 # que mira lo que dice.
 #
-# Los cuadros del primero no son los de la espera: `OP_ESPERAR 12` suelta la
+# Los cuadros del primero no son los de la espera: `OP_DELAY 12` suelta la
 # página en el cuadro **14**, no en el 12 —la espera cuenta cuadros enteros y
 # el opcode se lee en el siguiente—, y elegidos a ojo los dos primeros caían
 # antes del corte, así que la ROM sin el corte también daba cero. El 14 es el
@@ -960,7 +960,7 @@ snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros=
 # Existe porque ninguna página del juego que compile las usa: las 36 que
 # preguntan por el equipo y las 10 que preguntan por una habilidad viven en
 # mapas que ninguna demo lleva —el 20, el 38, el 47, el 48 y el 151, entre
-# otros—. Sin esto, `OP_SI_ACTOR` sería un camino que no ejercita nadie.
+# otros—. Sin esto, `OP_IF_ACTOR` sería un camino que no ejercita nadie.
 #
 # `rama` son siete números: SUB ACTOR DATO R G B SAT. Los datos de referencia,
 # del LDB: Kersh es el actor 11, lleva puesto el ítem 82 —Modified Blaster— y
@@ -1127,7 +1127,7 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
 # a, b— y las operaciones 9 y 10 son las inventadas de la página de prueba: la
 # 9 pone el cronómetro desde la variable, que en RM2k es un TimerOperation, y
 # la 10 planta un evento en la celda que dicen **dos** variables, que es el
-# `ChangeEventLocation` por variables —`OP_LUGAR_VAR`—: ahí `a` es el blanco y
+# `ChangeEventLocation` por variables —`OP_PLACE_VAR`—: ahí `a` es el blanco y
 # `b` la variable de la y, mientras que la variable del renglón es la de la x.
 #
 # Las dos están en esta lista y no en un flag propio por lo mismo: la página de
@@ -1756,7 +1756,7 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 # una página que tampoco sale del juego. Eso probaba el dibujo, el bloqueo y el
 # cierre, pero no el camino que ahora existe: que un `ShowMessage` de RM2k
 # compile, que su texto entre en el bloque de la ROM y que el operando de
-# `OP_MENSAJE` lo vuelva a encontrar. Sin este caso ese camino no lo corría
+# `OP_MESSAGE` lo vuelva a encontrar. Sin este caso ese camino no lo corría
 # **nada**, que es exactamente cómo sobrevivieron los tres errores del
 # intérprete de eventos.
 #
@@ -1764,8 +1764,8 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 # **sin condición de switch** —o sea que corre al entrar— cuyo código entero es
 # dos cuadros de texto seguidos y un switch:
 #
-#     07 0000   OP_MENSAJE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
-#     07 7c00   OP_MENSAJE @124   otras cuatro
+#     07 0000   OP_MESSAGE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
+#     07 7c00   OP_MESSAGE @124   otras cuatro
 #     01 5003 01  el switch 848
 #
 # De ahí salen tres cosas que ninguna otra receta mira. Los **desplazamientos**:
@@ -1871,7 +1871,7 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # Es el hermano de `snes-guardar` y de `snes-tienda`: la pelea bloquea adentro
 # del intérprete y **no cuesta ningún tick**, así que no se puede comparar
 # contra `snes_expect.py` —de ese lado no hay nada dibujado, a propósito: ver
-# `OP_BATALLA` en tools/eventos.py—. Lo que se compara es la pantalla, contra
+# `OP_BATTLE` en tools/eventos.py—. Lo que se compara es la pantalla, contra
 # la misma función que la modela.
 #
 # La pelea se abre desde la página de prueba y no desde un evento del juego, y
@@ -1946,7 +1946,7 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
 #
 # Cómo se compara, que es lo que lo hace barato: **la pelea no cuesta ningún
 # tick**. `batalla_correr` corre su propio lazo y `vueltas` no avanza mientras
-# dura, y la referencia sale del `OP_BATALLA` por la rama de victoria en el
+# dura, y la referencia sale del `OP_BATTLE` por la rama de victoria en el
 # mismo tick en que entró. O sea que del otro lado no hay nada que modelar: el
 # cuadro N es el mapa quieto, igual que si no hubiera habido pelea. Que la ROM
 # dibuje eso mismo **es** la prueba.
