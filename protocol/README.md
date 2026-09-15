@@ -8,8 +8,8 @@ it reads from the middle of the next instruction and carries on.
 So the opcodes are declared once, in a file owned by neither side, and each
 side's constants are generated from it:
 
-    generate.py events.toml --python <module>.py --asm <equates>.inc
-    generate.py events.toml --python <module>.py --asm <equates>.inc --check
+    protocol events.toml --python <module>.py --asm <equates>.inc
+    protocol events.toml --python <module>.py --asm <equates>.inc --check
 
 There is one declaration per bytecode. **Where the generated files go is the
 caller's business**, not this directory's — that is what keeps this independent
@@ -19,10 +19,21 @@ The generated files are meant to be **committed**, and `--check` is meant to run
 in a test suite: it writes nothing, names what is stale, and exits non-zero.
 Nothing parses a declaration at run time.
 
+`--check` exits **1** when something is out of date and **2** when the caller
+got it wrong —a broken declaration, an unwritable path—, so a build script can
+tell "regenerate" from "you passed me nonsense".
+
 ## What is here
 
     events.toml   the event bytecode: 40 opcodes, the interpreted one
     music.toml    the music stream the sound chip's driver reads: 3 opcodes
+    src/          the generator: `cargo build --release`, or `cargo test`
+
+A declaration is refused rather than half-understood: an unknown type, a
+misspelled field, two opcodes on the same number, or a repeated group nobody
+counts all stop with the file, the opcode and what was expected. The tests in
+`src/` are mostly those messages, because a generator whose errors are vague
+is one people stop trusting and go back to writing the numbers by hand.
 
 ## Why this exists
 

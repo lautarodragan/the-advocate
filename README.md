@@ -103,6 +103,7 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
     tools/render_map.py   el render en sí
     tools/list_maps.py    inventario de mapas
     tools/event_codes.py  generado: nombres de los opcodes de evento
+    protocol/               el generador, en Rust: declaración -> constantes
     tools/event_opcodes.py  generado desde protocol/events.toml
     tools/music_opcodes.py  generado desde protocol/music.toml
 

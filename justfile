@@ -16,16 +16,29 @@ check:
 # --- El protocolo del bytecode ---------------------------------------------
 # Los opcodes de los eventos: su número y su layout. La declaración está en
 # protocol/events.toml y no es ni del compilador ni del intérprete; de ahí salen
-# generados tools/event_opcodes.py y rom/src/event_opcodes.inc, los dos commiteados.
+# generados los dos módulos de `tools/` y los dos `.inc` de `rom/src/`, todos
+# commiteados. Hay dos declaraciones: el bytecode de los eventos y el stream de
+# música que lee el SPC700.
+#
+# El generador es Rust y vive en protocol/, que no sabe nada de este juego: le
+# pasás una declaración y las rutas de salida. Que sea Rust cuesta un
+# `cargo build` acá, y nada más: lo generado está en git, así que compilar la
+# ROM no lo necesita.
 #
 # `--check` es lo que corre la tanda: falla si alguno quedó viejo. Antes el
 # número lo decidía eventos.py y le llegaba a main.s adentro de mapdata.inc,
 # que es cómo dos ramas pudieron elegir el mismo sin que git viera nada.
 protocolo *args:
-  python3 protocol/generate.py protocol/events.toml \
+  cd protocol && cargo build --release
+  ./protocol/target/release/protocol protocol/events.toml \
       --python tools/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
-  python3 protocol/generate.py protocol/music.toml \
+  ./protocol/target/release/protocol protocol/music.toml \
       --python tools/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
+
+# Las pruebas del generador: los errores que tiene que dar ante una declaración
+# rota, y la forma exacta del texto que emite. No necesitan el juego ni la ROM.
+protocolo-pruebas:
+  cd protocol && cargo test
 
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al

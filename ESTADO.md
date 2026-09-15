@@ -113,11 +113,21 @@ stream, `main.s` lo lee— sin nada que atara las copias. Ahora son
 `protocol/music.toml`.
 
 Eso obligó a generalizar el generador, y ahí apareció que **tenía las rutas de
-salida clavadas al layout de este repo**: hoy es `generate.py DECLARACIÓN
---python X --asm Y [--check]`, con `--help` y errores que nombran el archivo y
-el opcode. Los generados pasaron a `event_opcodes` y `music_opcodes`, y su API
-a inglés (`OPCODE_SIZE`, `opcode_size`), porque son la salida de una
-herramienta en inglés y no fuente de este árbol.
+salida clavadas al layout de este repo**: hoy es `protocol DECLARACIÓN --python
+X --asm Y [--check]`, con `--help` y errores que nombran el archivo, el opcode
+y lo que se esperaba. Los generados pasaron a `event_opcodes` y
+`music_opcodes`, y su API a inglés (`OPCODE_SIZE`, `opcode_size`), porque son
+la salida de una herramienta en inglés y no fuente de este árbol.
+
+Y de ahí **el generador pasó a Rust con clap** (`protocol/src/`), que es lo que
+taro quiere de una herramienta: un binario que recibe input y da output, con
+`--help` y errores que una IA o una persona aprenden sin leer la
+implementación. Sale con 1 si algo está desactualizado y con 2 si la llamada
+está mal, que son cosas distintas para quien lo automatice. Las 14 pruebas de
+`just protocolo-pruebas` son sobre todo **los mensajes de error**: un generador
+que se explica mal es uno que la gente deja de usar y vuelve a escribir los
+números a mano. Compilar la ROM no necesita cargo —lo generado está en git—;
+sólo cambiar un opcode.
 
 Los dos bytecodes caen en el mismo espacio de símbolos del ensamblador: pueden
 compartir número pero no nombre, y eso lo cuida una prueba.

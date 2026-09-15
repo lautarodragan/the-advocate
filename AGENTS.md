@@ -37,7 +37,8 @@ mensaje en vez de fallar.
 
 Misma regla y mismo porqué que `ditto/`: adentro de `protocol/` no hay una sola
 mención a ABL ni a la SNES —declara bytecodes y nada más—, así que los TOML,
-el generador, sus comentarios y su README van **en inglés**. Los mensajes de
+el generador —Rust con clap, desde el 2026-09-15—, sus comentarios y su README
+van **en inglés**. Los mensajes de
 commit siguen en castellano, como todo lo del repo.
 
 Y lo que sale generado de ahí va **en inglés también**, aunque caiga en
