@@ -554,8 +554,9 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 #   después  la ventana borrada y el tinte puesto, o sea que apretar A la cerró
 #            y la página siguió
 #
-# Ese segundo cuadro es el único que ejercita `redibujar_franja`, que hasta hoy
-# no la llamaba nadie: si no corriera, la ventana seguiría ahí.
+# Ese segundo cuadro es el único que ejercita el cierre: `flush_video` apaga el
+# HDMA de la ventana cuando `msg_abierto` vuelve a cero, y si eso no corriera la
+# ventana seguiría ahí.
 #
 # Los cuadros se miran con margen y no en el borde, por lo mismo que
 # `snes-espera`: el arranque de la ROM no lo modela la referencia. A los 60
@@ -2411,7 +2412,7 @@ snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 2
 #
 # El tercer caso es el mensaje, y no está de adorno. Es el código más nuevo y el
 # que más CGRAM y VRAM toca con la pantalla apagada —`load_ventana` sube tiles y
-# una paleta entera, `mensaje_de_evento` escribe el tilemap—, que es justo la
+# una paleta entera, y `estampar_ventana` escribe su tilemap—, que es justo la
 # clase de escritura que snes9x perdona; ahí ya nos mordió dos veces, con el
 # tinte aplicado mientras el PPU dibujaba.
 #
