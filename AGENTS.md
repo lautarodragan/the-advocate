@@ -15,46 +15,57 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
 trabaja, no al final—.
 
-## `ditto/` está en inglés a propósito
+## Los proyectos independientes están en inglés
 
-Todo lo demás de este repo va en castellano: los comentarios, la documentación
-y los mensajes de commit. **`ditto/` no.** Desde el 2026-09-14 es un proyecto
-independiente —lee y escribe el formato de RPG Maker 2000, y no sabe nada de
-este port—, así que adentro de ese directorio el código, los comentarios, los
-nombres de las pruebas y el README van **en inglés**, y no hay una sola
-mención a ABL, a la SNES ni al port. Lo que ata a Ditto con este repo vive en
-`DITTO.md`, en la raíz y en castellano.
+Todo este repo va en castellano —comentarios, documentación y mensajes de
+commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
+de punta a punta: código, comentarios, nombres de pruebas y README. Al
+2026-09-15 son cuatro:
+
+    ditto/      lee y escribe los formatos de RPG Maker 2000
+    protocol/   declara un bytecode y genera las constantes de sus dos lados
+    brr/        códec BRR y lector de SoundFont
+    w65/        el ensamblador de 65816
+
+La regla para saber si algo va adentro de uno de ésos es una sola: **si no
+necesita saber nada de este juego, es un proyecto aparte y va en inglés.**
+Adentro no se nombra a ABL ni al port, y sus flags son ingleses aunque el
+equivalente de `tools/` los tenga en castellano (`--include`, `--symbols`).
+Hablar de la consola *como formato* —el SPC700, el 65816— sí está bien: eso es
+el dominio, no el proyecto.
 
 No es un descuido que corregir: si alguien lo "arregla" al castellano, deshace
-la decisión. Los mensajes de commit, eso sí, siguen en castellano también para
-los cambios de `ditto/`: son del repo.
+la decisión. **Los mensajes de commit siguen en castellano también para esos
+directorios**: son del repo.
 
-Y sus pruebas no dependen del juego: el corpus se lo pasa el justfile en
-`DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje en vez de fallar.
+Y **lo que esas herramientas generan va en inglés también**, aunque caiga en
+`tools/` o en `rom/src/`: es su salida, no fuente de este árbol, y dice arriba
+que es generada y de dónde. El 2026-09-14 la regla era la contraria —"el idioma
+del árbol donde cae"— y duró un día: al generalizar el generador para el
+segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
-## `protocol/` también está en inglés
+Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
+`DITTO_CORPUS` y sin esa variable las que lo necesitan se saltean con un
+mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 
-Misma regla y mismo porqué que `ditto/`: adentro de `protocol/` no hay una sola
-mención a ABL ni a la SNES —declara bytecodes y nada más—, así que los TOML,
-el generador —Rust con clap, desde el 2026-09-15—, sus comentarios y su README
-van **en inglés**. Los mensajes de
-commit siguen en castellano, como todo lo del repo.
+### Los que conviven con su equivalente en Python
 
-Y lo que sale generado de ahí va **en inglés también**, aunque caiga en
-`tools/` o en `rom/src/`: es la salida de esa herramienta, no fuente de este
-árbol, y dice arriba que es generada y de dónde. El 2026-09-14 la regla era la
-contraria —"el idioma del árbol donde cae"— y duró un día: al generalizar el
-generador para el segundo bytecode quedó claro que hacerlo hablar castellano lo
-ata a este repo, que es justo lo que no puede pasar.
+`brr/` y `w65/` **todavía no reemplazan a nadie**: `tools/brr.py`, `tools/sf2.py`
+y `tools/w65.py` siguen siendo los que arman la ROM, y ninguna receta de
+compilación los llama. Lo que ata cada par es que la salida sea **byte por
+byte igual** —las muestras en un caso, la ROM y la tabla de símbolos en el
+otro—, y eso es lo único por lo que se puede confiar en el port. Un cambio en
+un lado sin el otro rompe esa igualdad: si hay que tocar el codificador o el
+ensamblador, se toca en los dos o no se toca.
 
-Y lo importante: **el número de un opcode se elige en la declaración y en
-ningún otro lado.** Hay dos: `protocol/events.toml`, el bytecode que interpreta
-`ejecutar`, y `protocol/music.toml`, el stream que lee `irq_musica`. Los dos
-caen en el mismo espacio de símbolos del ensamblador, así que dos opcodes de
-bytecodes distintos pueden compartir **número** pero no **nombre** —por eso
-`OP_FIN` se llama `OP_DONE`: `OP_END` ya era del stream de música—, y eso lo
-cuida una prueba.
+## El número de un opcode se elige en la declaración
+
+En `protocol/` y en ningún otro lado. Hay dos declaraciones:
+`protocol/events.toml`, el bytecode que interpreta `ejecutar`, y
+`protocol/music.toml`, el stream que lee `irq_musica`. Los dos caen en el mismo
+espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
+pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
+`OP_DONE`: `OP_END` ya era del stream de música—, y eso lo cuida una prueba.
 
 Antes el de eventos lo declaraba `tools/eventos.py` y le llegaba al intérprete
 adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el mismo sin
@@ -64,21 +75,6 @@ ahí es el bytecode, no las tablas del mapa.) Al repartir trabajo entre
 sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
-
-## Y `brr/` también
-
-Tercer proyecto independiente, misma regla: adentro de `brr/` —el códec BRR y
-el lector de SoundFont, en Rust desde el 2026-09-15— el código, los
-comentarios, los nombres de las pruebas y el README van **en inglés**, y no hay
-una sola mención a ABL ni al port. El BRR sí es un formato de la consola, así
-que hablar del SPC700 o de la SNES *como formato* está bien; lo que no va es
-"nuestro conversor". Los mensajes de commit, en castellano.
-
-**`tools/brr.py` y `tools/sf2.py` siguen siendo los que arman la ROM.** El port
-convive con ellos y no los reemplaza; lo que ata a los dos lados es que las
-muestras salgan byte por byte iguales, que es lo medido en ESTADO.md. Un cambio
-en el codificador de un lado sin el otro rompe esa igualdad, que es la única
-razón por la que se puede confiar en el port.
 
 ## La regla que sostiene todo
 

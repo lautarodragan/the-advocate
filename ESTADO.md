@@ -192,6 +192,49 @@ Tarda **2,0 s contra 29,9 s** en codificar las 608, y eso incluye arrancar el
 proceso 608 veces; medido con otro agente compitiendo por CPU, así que el
 número es un piso.
 
+## El ensamblador en Rust (2026-09-15)
+
+`w65/` es el port a Rust de `tools/w65.py`, el ensamblador de 65816 que arma
+la ROM. Es el cuarto proyecto independiente, después de `ditto/`,
+`protocol/` y `brr/`, y sigue sus mismas reglas: **adentro no hay una sola mención a
+este juego ni a la SNES** —es un ensamblador de 65816 y nada más—, y los dos
+códigos de salida son 1 si el fuente no ensambla y 2 si la llamada está mal.
+
+**Los dos conviven, y las recetas que arman ROMs siguen llamando al de
+Python.** El criterio de aceptación se cumplió: `just w65-comparar` ensambla el
+mismo `main.s` con los dos y la ROM y la tabla de símbolos salen **byte por
+byte iguales**, verificado con los `mapdata.inc` de `demo-ciudad` y de
+`demo-titulo` —los únicos dos que el `main.s` de hoy acepta; el resto de
+`rom/build/` es viejo y lo rechaza el de Python también—. Los caminos que
+fallan también coinciden: sobre `demo-carrera`, `demo-apertura` y `demo-musica`
+los dos cortan en la misma línea por la misma razón.
+
+Tarda **0,40 s contra 11,0 s**, con 302 MB de pico contra 1,2 GB. `just
+w65-pruebas` son 67 casos que no dependen del juego: fuentes chicos escritos
+adentro de la prueba, y sobre todo los mensajes de error.
+
+**Los flags cambiaron de nombre al inglés** —`--include`, `--symbols`,
+`--no-checksum`—, así que migrar el justfile es un paso aparte y todavía sin
+hacer.
+
+Tres cosas que aparecieron del original y **no se tocaron**, para no mover la
+ROM:
+
+* **El control de rango de `.byte` está muerto.** Vive en `Data.emit`, pero
+  `Assembler.emit_item` atiende a `Data` por su cuenta y trunca sin mirar, así
+  que el guardián que se puso por el defecto de `ba_orden_txt` no corre desde
+  entonces. Medido: hoy no hay ningún `.byte` fuera de rango en `demo-ciudad`,
+  o sea que revivirlo no cambiaría la ROM. Si se revive, va **en los dos
+  lados**.
+* **`jml etiqueta` no se puede escribir**: `jml` sólo tiene modo largo y un
+  operando pelado se decodifica siempre como absoluto o página directa. Hay
+  que poner `jml f:etiqueta`.
+* **Una etiqueta o constante llamada `a` es inalcanzable como operando**: el
+  decodificador lee `a` como el acumulador antes que como un símbolo.
+
+**Lo que sigue**: migrar las recetas al binario de Rust y recién ahí borrar
+`tools/w65.py`.
+
 ## El bytecode declarado en un solo lado (2026-09-15)
 
 `protocol/events.toml` declara los 40 opcodes —su número y los bytes que los
