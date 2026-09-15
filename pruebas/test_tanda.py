@@ -34,10 +34,11 @@ def test_heroe_6(direccion):
     número exacto.
 
     **El nombre de la captura lleva el mapa además de la dirección.** Con sólo
-    la dirección, una tanda escribía `none.png` nueve veces: en serie era
-    sobreescritura inofensiva, pero el PNG que uno querría mirar cuando algo
-    falla ya lo pisó un mapa posterior. Con las goldens el nombre pasó a ser la
-    clave, así que ahora además es obligatorio.
+    la dirección, cada mapa de la tanda escribía su `none.png` encima del
+    anterior: en serie era sobreescritura inofensiva, pero el PNG que uno
+    querría mirar cuando algo falla ya lo pisó un mapa posterior. Con las
+    goldens el nombre pasó a ser **la clave**, así que ahora además es
+    obligatorio.
 
     Una consola nueva por dirección, como hace el corredor: arrancar de cero es
     parte de lo que se compara.
@@ -57,12 +58,14 @@ def test_puerta_30_28():
     una vez el cambio de mapa completo —tiles, paleta, capa de encima, sprites,
     NPCs— y que el héroe haya caído en la celda que la puerta dice.
 
-    **El plan cuenta los 70 ticks del fundido además de los ocho por celda**: en
-    este caso son 142 y no 72, y la pantalla queda quieta exactamente en el 142.
+    **El plan cuenta el fundido de la puerta además de los ocho ticks por
+    celda**, así que es bastante más que celdas por ocho, y la pantalla se queda
+    quieta antes de que termine: los últimos ticks son el fundido ya resuelto.
     Eso es un dato en sí mismo —la carga del mapa pasa adentro del negro y no
-    corre el reloj—. El `--margen 16` que la receta le pasa a la referencia es
-    aire de cuando la ROM se tomaba siete cuadros que nadie contaba; al corredor
-    le pasa `--margen 0`, y ése es el número que vale.
+    corre el reloj, y la ROM pierde cuadros de hardware ahí sin perder un solo
+    tick—. El `--margen 16` que la receta le pasa a la referencia es aire de
+    cuando la ROM se tomaba cuadros que nadie contaba; al corredor le pasa
+    `--margen 0`, y ése es el que vale.
 
     El mapa destino tiene que estar en el cartucho: una puerta a un mapa que no
     entró no lleva a ningún lado, ni en la consola ni en la referencia.
@@ -131,6 +134,11 @@ def test_ruta(cuadro):
     se aprieta nada —`--walk none`— y el que camina es la ruta. Un pad sostenido
     sería una segunda fuente de movimiento y la referencia no modela las dos
     juntas.
+
+    Y una que es del mapa pero se paga en el arnés: **el mapa 6 es mudo**, y eso
+    es lo que hace usable el desfasaje de arranque. La ROM no empieza a
+    interpretar en el cuadro 0 y la referencia no modela nada de eso; con música
+    el desfasaje cambia y los cuadros del medio se corren todos juntos.
 
     Y los cuatro cuadros salen de una sola conversión, que es lo caro; correr el
     emulador cuatro veces no lo es.
