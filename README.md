@@ -30,38 +30,40 @@ se llegó, que está en `git log`.
         * [El mapa no se guarda como tilemap](#el-mapa-no-se-guarda-como-tilemap)
         * [El reparto de la VRAM lo decide el conversor](#el-reparto-de-la-vram-lo-decide-el-conversor)
         * [El reparto de CGRAM, también](#el-reparto-de-cgram-también)
+    * [El agua se mueve, y cuesta un DMA de 1664 bytes](#el-agua-se-mueve-y-cuesta-un-dma-de-1664-bytes)
+    * [El save point: anima quieto y guarda a disco](#el-save-point-anima-quieto-y-guarda-a-disco)
+    * [El menú de pausa](#el-menú-de-pausa)
+    * [La pantalla de ítems](#la-pantalla-de-ítems)
+    * [El equipo, y las pantallas de texto](#el-equipo-y-las-pantallas-de-texto)
+    * [La tienda](#la-tienda)
+    * [La batalla por turnos](#la-batalla-por-turnos)
+        * [La pelea sin manejadores, y el Game Over](#la-pelea-sin-manejadores-y-el-game-over)
+        * [El menú: las cinco órdenes del ABL](#el-menú-las-cinco-órdenes-del-abl)
+        * [Las habilidades](#las-habilidades)
+        * [El fondo y los monstruos: una sola imagen](#el-fondo-y-los-monstruos-una-sola-imagen)
+        * [Los encuentros al azar](#los-encuentros-al-azar)
+        * [La música y los efectos de la pelea](#la-música-y-los-efectos-de-la-pelea)
+    * [La lluvia](#la-lluvia)
+    * [Los efectos de sonido](#los-efectos-de-sonido)
+    * [El paquete de audio de cada mapa](#el-paquete-de-audio-de-cada-mapa)
+    * [El MSU-1](#el-msu-1)
+    * [Las animaciones de batalla: el sonido y la luz](#las-animaciones-de-batalla-el-sonido-y-la-luz)
+    * [El dibujo de las animaciones de batalla](#el-dibujo-de-las-animaciones-de-batalla)
     * [El cartel de "One year previously"](#el-cartel-de-one-year-previously)
         * [Lo que costaría el sistema de imágenes entero](#lo-que-costaría-el-sistema-de-imágenes-entero)
     * [Varios mapas en la ROM](#varios-mapas-en-la-rom)
-        * [Las puertas](#las-puertas)
-        * [El fundido de los teletransportes](#el-fundido-de-los-teletransportes)
-        * [La pantalla se prende en el vblank, no donde se carga el mapa](#la-pantalla-se-prende-en-el-vblank-no-donde-se-carga-el-mapa)
-        * [Pisar un evento, y pisarlo al final de una ruta forzada](#pisar-un-evento-y-pisarlo-al-final-de-una-ruta-forzada)
-        * [La colisión con los eventos](#la-colisión-con-los-eventos)
-        * [Plantar un evento en una celda](#plantar-un-evento-en-una-celda)
-        * [Los eventos dibujados con un tile del chipset](#los-eventos-dibujados-con-un-tile-del-chipset)
-        * [El gráfico sigue a la página, y el tile manda sobre el terreno](#el-gráfico-sigue-a-la-página-y-el-tile-manda-sobre-el-terreno)
-        * [El ascensor no llevaba a ningún lado](#el-ascensor-no-llevaba-a-ningún-lado)
-        * [Las rutas propias de las páginas](#las-rutas-propias-de-las-páginas)
-        * [La frecuencia de la ruta, y encarar al héroe](#la-frecuencia-de-la-ruta-y-encarar-al-héroe)
-        * [El arranque de verdad](#el-arranque-de-verdad)
-        * [El intérprete de eventos](#el-intérprete-de-eventos)
-        * [La ventana de mensaje](#la-ventana-de-mensaje)
-        * [El texto se compone en caliente](#el-texto-se-compone-en-caliente)
-        * [La sacudida de pantalla](#la-sacudida-de-pantalla)
-        * [El destello de pantalla](#el-destello-de-pantalla)
-        * [El arranque dura siempre lo mismo](#el-arranque-dura-siempre-lo-mismo)
-        * [La cámara corrida sin el héroe](#la-cámara-corrida-sin-el-héroe)
+        * [Las tres piezas del intérprete de eventos](#las-tres-piezas-del-intérprete-de-eventos)
+        * [Un opcode por comando](#un-opcode-por-comando)
+        * [Las mecánicas que no son un opcode](#las-mecánicas-que-no-son-un-opcode)
+            * [Atravesar paredes vale mientras dura la ruta](#atravesar-paredes-vale-mientras-dura-la-ruta)
         * [Varios temas en el cartucho](#varios-temas-en-el-cartucho)
-        * [El `FadeOutBGM`](#el-fadeoutbgm)
-        * [La frecuencia se sube y se baja a mitad de una ruta](#la-frecuencia-se-sube-y-se-baja-a-mitad-de-una-ruta)
-        * [Cambiar el gráfico a mitad de una ruta](#cambiar-el-gráfico-a-mitad-de-una-ruta)
-        * [Las diagonales de ruta](#las-diagonales-de-ruta)
-        * [El cronómetro](#el-cronómetro)
         * [Cómo se verifica](#cómo-se-verifica)
-        * [Los cuadros perdidos se cuentan](#los-cuadros-perdidos-se-cuentan)
     * [El personaje](#el-personaje)
         * [Las poses se suben en caliente](#las-poses-se-suben-en-caliente)
+        * [Los eventos translúcidos van horneados](#los-eventos-translúcidos-van-horneados)
+        * [El color math, implementado y descartado](#el-color-math-implementado-y-descartado)
+        * [Los quince colores de un sprite](#los-quince-colores-de-un-sprite)
+        * [El giro hacia el héroe](#el-giro-hacia-el-héroe)
     * [La colisión](#la-colisión)
     * [La pila y la BSS comparten los ocho kilos](#la-pila-y-la-bss-comparten-los-ocho-kilos)
     * [Las tablas van en el banco 0](#las-tablas-van-en-el-banco-0)
@@ -74,6 +76,9 @@ se llegó, que está en `git log`.
     * [Cómo se verifica la ROM](#cómo-se-verifica-la-rom)
     * [El parche de bsnes](#el-parche-de-bsnes)
     * [Trampas del hardware](#trampas-del-hardware)
+    * [El inventario, y lo que una condición de ítem hace](#el-inventario-y-lo-que-una-condición-de-ítem-hace)
+    * [Las dos preguntas de actor de una rama](#las-dos-preguntas-de-actor-de-una-rama)
+    * [Las variables de RM2k](#las-variables-de-rm2k)
     * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
 
@@ -177,12 +182,11 @@ algo.
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
-desde el 2026-09-14 **es de donde el port lee el juego**: `tools/lcf.py` sale
-de acá, así que el conversor, la referencia en Python y las pruebas están
-mirando estos archivos y no los binarios. Quién lo escribe es **Ditto**
-(`ditto/`), que además sabe volver: `ditto pack` rearma los 330 archivos byte
-por byte. El porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
-`data/README.md`.
+**es de donde el port lee el juego**: `tools/lcf.py` sale de acá, así que el
+conversor, la referencia en Python y las pruebas están mirando estos archivos y
+no los binarios. Quién lo escribe es **Ditto** (`ditto/`), que además sabe
+volver: `ditto pack` rearma los 330 archivos byte por byte. El porqué de la
+decisión está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
 
     data/ditto.json           la versión del volcado y el header de cada archivo
     data/maps.json            el árbol de mapas y la posición inicial
@@ -215,16 +219,6 @@ Shift-JIS: en el JSON salen como caracteres raros —decodificarlos adivinando l
 costaría a Ditto la vuelta exacta— y el que los interpreta es `tools/lcf.py`,
 por los bytes que cp1252 no define.
 
-**El volcado viejo, el de Python, se borró el 2026-09-14.** Eran cuatro
-archivos y 3.133 líneas —`export_json.py`, `lcf_bin.py` (el lector de binarios),
-`gen_schema.py` y `lcf_schema.py`— que quedaron sin dueño el día que `data/`
-pasó a ser el volcado de Ditto. Daba una *lectura* más corta del juego —un
-comando de evento en una línea, sin los campos que al port no le sirven—, y ésa
-es toda la razón por la que se dudó en borrarlo; lo que no daba es con qué
-volver a escribir el binario, que es lo que hace útil al volcado. Dos caminos
-para el mismo formato es justamente lo que costó caro (ver `DITTO.md`), así que
-queda uno.
-
 ## El port a Super Nintendo
 
 Dibuja el mapa y reproduce su tema. Empezó como una rama aparte del port a Mega
@@ -247,8 +241,7 @@ seis CharSets del Auditorium entran sin fusionar ninguno.
 
 Probado en emulador: **suena mucho mejor que la Mega Drive y cerca del
 original**. Esa era la pregunta que motivaba la rama, y la contesta a favor de
-la SNES. Cuando se escribió esto las muestras eran ondas de un ciclo generadas
-en Python; hoy salen de un SoundFont y van en BRR, y el veredicto sólo mejoró.
+la SNES.
 
 ### El mapa
 
@@ -265,17 +258,11 @@ No era evitable de otra forma: Map0007 tiene tiles de 16, 17 y 19 colores, y
 VRAM por tile, 64 bytes en vez de 32; con 92 tiles son 5,8 KB de los 64.
 
 El resultado se verifica pixel por pixel contra el render de Python, a 15 bits,
-que es la profundidad real de la consola:
-
-    Map0007: 0 pixeles distintos de 57344
+que es la profundidad real de la consola. Cuántos pixeles difieren, de los
+57344 de la pantalla, lo dice `just snes-heroe 7`.
 
 En la Mega Drive esto no se podía hacer: los 9 bits obligaban a fusionar
 colores, así que sólo se podía comparar por forma. Acá la comparación es exacta.
-
-Eso destapó un detalle del hardware que a ojo era invisible: **el PPU muestra la
-línea `vofs+1` en el primer scanline**, no la `vofs`. Con el scroll en 0 el mapa
-quedaba corrido una línea. Las dos imágenes se veían idénticas y diferían en el
-50% de los pixeles.
 
 ### La cámara
 
@@ -292,12 +279,9 @@ ancho del mapa menos el de la pantalla, que el conversor emite como `CAM_MAX_X`
 y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
 comparación falla.
 
-    centro   (0,0)    0 pixeles distintos de 57344
-    derecha  (64,0)   0
-    abajo    (0,16)   0
-    esquina  (64,16)  0
-
-Que llegue justo a 64 y 16 prueba a la vez el movimiento y el tope.
+Las cuatro direcciones salen de una sola corrida, `just snes-heroe 7`. Que la
+cámara llegue justo a 64 y a 16, que es el tamaño del mapa 7 menos el de la
+pantalla, prueba a la vez el movimiento y el tope.
 
 ### Los mapas que no entran
 
@@ -374,8 +358,8 @@ reparto a ningún mapa que ya lo tenía:
     ventana+fondo  sprites 256 | fondo 480  | ventana_map | encima 128 | ventana 256
     ventana+sprite sprites 512 | fondo 384  | ventana_map | encima 128 | ventana 256
 
-Los dos "+sprite" son del 2026-09-12 y los pidió el mismo mapa: **Delcentric
-Factory**, el camino al auditorio. Gasta 217 tiles de fondo y **475 de sprite**
+Los dos "+sprite" los pide **Delcentric Factory**, el camino al auditorio:
+gasta 217 tiles de fondo y **475 de sprite**
 —26 NPCs con CharSet son 28 ranuras, o sea 448 tiles justos, y encima van los 8
 glifos del cronómetro y las 19 gotas de lluvia—. Los 512 no son una elección:
 son el tope del hardware, porque el campo de nombre de OAM tiene nueve bits y
@@ -393,23 +377,14 @@ sprites. La de abajo la comparten el fondo, que va en 8 bits y direcciona CGRAM
 en directo, y la capa de encima, que va en 4 bits y por lo tanto cuenta su
 índice dentro de una paleta de 16.
 
-Ese corte estaba clavado en dos paletas para la capa de encima y 95 colores para
-el fondo, y **27 mapas no entraban** —los tres primeros del juego entre ellos—
-mientras el fondo dejaba colores sin usar. Al medirlo aparecieron dos causas que
-se veían como una sola:
+Un corte fijo no sirve: con dos paletas clavadas para la capa de encima se caen
+los mapas cuya capa de encima pide tres o más, que son varias decenas y entre
+ellos los tres primeros del juego. Y hay una causa que **no la arregla ningún
+reparto**: un tile suelto de 17 colores no entra en una paleta de 15 por muchas
+que haya, y eso se arregla fusionando, que es lo que la Mega Drive ya hacía con
+el fondo.
 
-    la capa de encima pide 3 paletas    7 mapas
-                            4           5
-                            5           1
-                            6           2
-                            7           6
-    un tile suelto con más de 15 colores   1 mapa
-
-La segunda no la arregla ningún reparto: un tile de 17 colores no entra en una
-paleta de 15 por muchas que haya. Se arregla fusionando, que es lo que la Mega
-Drive ya hacía con el fondo.
-
-Ahora el corte lo decide el conversor mapa por mapa, y **el fondo tiene la
+Así que el corte lo decide el conversor mapa por mapa, y **el fondo tiene la
 primera opción**: se queda con las paletas que necesita para los colores que
 realmente usa, y la capa de encima se lleva las que sobren —hasta las que pida,
 nunca más— y fusiona si no le alcanzan. Va en ese orden porque son 300 mapas
@@ -417,11 +392,9 @@ cuya capa de encima pide una o dos paletas contra un puñado que pediría siete:
 servir primero al de encima le sacaría colores al fondo en todos para que unos
 pocos no fusionen.
 
-    Map0007   fondo 60 de 111 disponibles | encima 1 paleta desde la 7
-    Map0001   fondo 49 de  63             | encima 4 paletas desde la 4
-    Map0348   fondo 95 de  95             | encima 2 desde la 6, 27 fusionados
-
-Los tres primeros mapas del juego entran ahora sin fusionar un solo color.
+El informe del conversor lo dice mapa por mapa: cuántos colores se quedó el
+fondo de cuántos había, cuántas paletas se llevó la capa de encima, desde cuál,
+y cuántos colores le tocó fusionar.
 
 Que las dos capas se conviertan juntas no es comodidad: el corte no lo puede
 decidir ninguna por su cuenta, así que `convert_layers()` es el único lugar
@@ -498,46 +471,20 @@ decide es `anim_tick`, en el cuerpo del lazo, y deja **un byte** —el último
 libre de la página directa— con tres bits por familia: cero es "nada", y si no
 el dibujo más uno. En el vblank queda un `lda` y un `beq`.
 
-**La fase se midió, no se razonó.** Como el DMA sale en el vblank siguiente,
-igual que OAM, la primera versión miraba el tick anterior "por el cuadro que el
-video va atrasado". Con eso la tanda da rojo en **un tick de cada 24** —el del
-cambio, y nada más— que en el mapa 5 son 18349 pixeles, el 32% de la pantalla.
-Con el tick tal cual, cero. El caso que lo cobra es `snes-caminando 5 left` con
-el avance 46, que es el tick 24 justo: un avance de N pixeles es el tick N/2 + 1,
-así que se le puede pedir a la tanda el cuadro exacto en que el agua cambia.
+**La fase se midió, no se razonó.** Aunque el DMA salga en el vblank siguiente,
+igual que OAM, el dibujo que corresponde es el del tick tal cual y no el del
+anterior: mirar el anterior da rojo en **un tick de cada 24** —el del cambio, y
+nada más—, que en el mapa 5 son 18349 pixeles. El caso que lo cobra es
+`snes-caminando 5 left` con el avance 46, que es el tick 24 justo: un avance de
+N pixeles es el tick N/2 + 1, así que se le puede pedir a la tanda el cuadro
+exacto en que el agua cambia.
 
 **Y el reloj de la ROM no es `estado.ticks`.** Adentro del negro de un
 teletransporte el mundo está congelado y la referencia no cuenta el cuadro, pero
-la consola sigue dando vueltas al lazo: son 70 por fundido. La referencia ya
-tenía esa cuenta hecha para el plan de la caminata —`estado.ticks + fundidos *
-FUNDIDO_TOTAL`— y le faltaba usarla acá. Sin eso, la escena de Core y Manta se
-iba un dibujo desde el primer teletransporte: 7284 pixeles en el cuadro 1200, y
-verde en el 300 y el 600, que son los de antes del salto.
-
-Los dos errores tienen la misma forma y por eso vale escribirlos juntos: **los
-dos lados contando ticks distintos**. El primero se veía en un cuadro de cada
-24 y el segundo sólo después de un fundido.
-
-**Y tres del 65816, todos el mismo.** Un `ldx` o un `ldy` con los índices anchos
-se lleva **el byte de al lado**, y un `sta` con el acumulador ancho **lo pisa**.
-Las tres veces fue sobre `temp`, que son cuatro bytes:
-
-* `ldx temp + 3` para preguntar "¿este tick es el del cambio?" se llevaba
-  `temp + 4`, que es el byte bajo de `hero_x`. Todos los ticks parecían el del
-  cambio. **No se ve en la pantalla** —subir el dibujo que ya está subido no
-  cambia nada— así que la comparación de pixeles daba cero; lo que se veía era
-  el presupuesto de poses bajando en todos los cuadros.
-* `ldy temp + 2` para pasar el dibujo se llevaba `temp + 3`, y con eso el DMA
-  leía de cualquier lado.
-* `sta temp + 2` adentro de `anim_subir`, con el acumulador ancho, pisaba
-  `temp + 3`, donde el vblank guardaba lo que le quedaba pendiente a la segunda
-  familia. Se perdía **sólo cuando las dos cambiaban en el mismo tick** —cada
-  24, que es múltiplo de 6— y el tile animado se quedaba con el dibujo viejo
-  hasta el cambio siguiente: **8 pixeles** en el mapa 2, en la celda (5,53).
-
-El tercero es el que mejor muestra para qué sirve la tanda: ocho pixeles, en un
-caso que no tiene nada que ver con la animación —una puerta del mapa 2— y en
-cuatro cuadros elegidos hace semanas.
+la consola sigue dando vueltas al lazo: son 70 por fundido. La cuenta que vale
+es `estado.ticks + fundidos * FUNDIDO_TOTAL`, la misma que el plan de la
+caminata. Sin eso la escena de Core y Manta se va un dibujo desde el primer
+teletransporte.
 
 Los dos casos nuevos de la tanda están medidos con la fase rota a propósito, que
 es lo único que prueba que miran algo: `snes-caminando 5 left "40 46 48 50"`
@@ -550,7 +497,6 @@ vacía.
 `SaveByTalansPad0`, el evento 67 del mapa 8, son tres comandos —`PlaySound`,
 `OpenSaveMenu`, `ChangeSaveAccess`— y una página con `animation_type` 3, que en
 RM2k es "Fixed Dir/Continuous": recorre el ciclo de caminata **sin moverse**.
-taro pidió las dos cosas.
 
 **La animación de un evento quieto no tiene dónde guardar su contador.** Los que
 caminan lo llevan adentro de su ranura de ruta; los quietos no tienen ranura, la
@@ -570,11 +516,10 @@ unos sí y otros no —dos fuentes iguales, una moviéndose y la otra congelada,
 ve peor que las dos quietas—. Medido sobre los 328 mapas del juego: 312 tienen
 cuatro o menos.
 
-La fase se midió como la del agua: sin el `inc` que la corrige, el save point del
-mapa 8 se queda una columna atrás y son 76 pixeles. Lo cobra
-`snes-escena 8 "9 55" 0 down "20 30 40 50"`, que es un caso nuevo de la tanda:
-la celda (9,55) lo deja en pantalla y los cuatro cuadros caen en tres columnas
-distintas del ciclo.
+La fase se midió como la del agua, y la cobra
+`snes-escena 8 "9 55" 0 down "20 30 40 50"`: la celda (9,55) lo deja en pantalla
+y los cuatro cuadros caen en tres columnas distintas del ciclo. Sin el `inc` que
+corrige la fase se queda una columna atrás, que son 76 pixeles.
 
 **Guardar abre la pantalla de ranuras, como en RM2k.** `OpenSaveMenu` apila
 la misma pantalla que "Resume the Story" abre desde el título, en modo guardar
@@ -583,10 +528,9 @@ la ranura que la partida está usando, que es el `latest_slot` de
 `Scene_File::Start` sin fechas. A elige y guarda ahí, B vuelve sin guardar, y
 no se pregunta si la ranura estaba ocupada porque `Scene_Save::Action` tampoco
 pregunta. El cartucho declara SRAM con batería en la cabecera —`$02` y 8 KB— y
-en el EverDrive eso es una pila de verdad. Empezó siendo una sola ranura sin
-menú, que fue el alcance de la primera vuelta.
+en el EverDrive eso es una pila de verdad.
 
-Tres cosas de cómo está hecho, porque las tres costaron un día:
+Tres cosas de cómo está hecho:
 
 * **Bloquea adentro del intérprete y no cuesta ningún tick.** La pantalla corre
   su propio lazo de cuadros desde `op_save`, igual que desde el título, y
@@ -606,25 +550,20 @@ Tres cosas de cómo está hecho, porque las tres costaron un día:
   en `$4000`: 267 pixeles en el héroe del mapa 73, sólo con el grupo 11, porque
   el líder del grupo 10 cae en el bloque 0 y se salvaba. Cuesta dos cuadros
   negros al volver: 30 KB de DMA no entran en un vblank.
-* **La pantalla va en toda ROM**, con título o sin él. Hasta el 2026-09-10 salía
-  sólo con `--con-titulo` y sin él era un byte de relleno con `RANURA_TILES` en
-  cero, y un DMA de cero bytes son 65536: abrirla desde una ROM sin título
-  llenaba la VRAM de basura. Ésa era la "pantalla negra con basura arriba" del
-  primer intento, que ESTADO.md atribuía al contexto del intérprete. Y el
-  testigo que "entraba 85 veces" leía RAM sin inicializar: snes9x la llena de
-  `$55`, que es 85.
+* **La pantalla va en toda ROM**, con título o sin él. Con sus tiles emitidos
+  sólo bajo `--con-titulo`, abrirla desde una ROM sin título era un DMA de cero
+  bytes —o sea de 65536— que llenaba la VRAM de basura.
 
 **Cada ranura con partida muestra lo que muestra RM2k**, que es lo que
 `Window_SaveFile::Refresh` dibuja por archivo: el nombre del archivo, el
 nombre del líder, el nivel —`lvl_short` en el color 1 del sistema y el número
 a dos cifras, "L  1", mockeado en 1 porque no hay actores con nivel— y las
-**caras** del grupo, del FaceSet y a 48x48. taro lo pidió el 2026-09-10 al ver
-que EasyRPG mostraba la cara de Talan. La fila mide 48 pixeles por eso.
+**caras** del grupo, del FaceSet y a 48x48, que es por lo que la fila mide 48
+pixeles.
 
-Está mirado contra el oráculo y no sólo leído del código: `rom/easyrpg.sh`
-con `REPLAY` guardó sobre el save point del mapa 8 en el juego original y
-abrió el menú de cargar desde el título, y la captura está en
-`/extras/capturas/erpg-cargar`. Lo que difiere a propósito: los puntos de vida
+Está mirado contra el oráculo y no sólo leído del código: `rom/easyrpg.sh` con
+`REPLAY` corre la misma escena en el juego original y deja la captura al lado.
+Lo que difiere a propósito: los puntos de vida
 no van, porque este port no los tiene; entran tres caras y no cuatro, y
 pegadas en vez de a 56 px, porque en 256 de ancho no hay más lugar sin comerse
 el borde que un televisor de tubo no muestra; y el cursor es un ">" sobre
@@ -676,15 +615,9 @@ ventana de la WRAM: el bus B no llega a la SRAM, pero sí a `WMDATA`, así que l
 SRAM va del lado del bus A y la WRAM del otro. Guardar es un DMA de B a A —el
 bit 7 de DMAP— y cargar el mismo al revés.
 
-Dos detalles que costaron su rato:
-
-* **La partida vive en $0100 y no en $0000.** `w65.py` elige página directa
-  cuando la dirección entra en un byte, igual que ca65, así que con la partida
-  al principio del banco un `lda SRAM_MAGIA, x` leería la página directa en vez
-  de la SRAM. Los 256 bytes de abajo no los usa nadie.
-* **La magia se compara contra inmediatos**, no contra una tabla de la ROM: con
-  el banco de datos apuntando a la SRAM no hay cómo leer el cartucho —el
-  ensamblador no tiene direccionamiento largo y la página directa está llena—.
+Dos detalles que costaron su rato y que están anotados donde muerden, arriba de
+`SRAM_MAGIA` en `main.s`: que la partida viva en `$0100` y no en `$0000`, y que
+la magia se compare contra inmediatos.
 
 Una ranura vale si tiene la magia `ABLS` y la suma de sus bytes cuadra. Las dos
 cosas hacen falta: la SRAM sin escribir trae basura —snes9x la llena de $60— y
@@ -699,7 +632,7 @@ cortado a propósito, tres de sus cuatro pruebas dan rojo.
 
 ### El menú de pausa
 
-Desde el 2026-09-11 **B abre el menú**, que es `Scene_Menu` de RM2k: las cinco
+**B abre el menú**, que es `Scene_Menu` de RM2k: las cinco
 órdenes a la izquierda —`Use Item`, `Tech Skill`, `Equipment`, `Save`, `End
 Game`, con los términos del LDB—, el oro abajo y el grupo a la derecha, con la
 cara, el nombre, el nivel —mockeado en 1, como en las ranuras—, el estado y
@@ -718,12 +651,10 @@ cosmético y está declarado.
 
 **Los HP de ahora se escriben corriendo, y el máximo va horneado.** La fila de
 cada actor es un bloque de celdas que el conversor dibuja una vez, así que
-cualquier número que lleve adentro es el del día que se convirtió: hasta el
-2026-09-13 los HP iban ahí y el menú mostraba siempre el máximo del nivel por
-más que una pelea los bajara. Era invisible para la comparación de pixeles
-porque `render_menu` horneaba el mismo número: **los dos lados se equivocaban
-igual**, que es la forma de falla que AGENTS.md nombra primero. Ahora las tres
-cifras las escribe `menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de
+cualquier número que lleve adentro es el del día que se convirtió: con los HP ahí
+el menú muestra siempre el máximo del nivel por más que una pelea los baje, y la
+comparación de pixeles no lo ve porque `render_menu` hornea el mismo número. Las
+tres cifras las escribe `menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de
 una por cifra que el oro y por la misma razón; el "/máximo" de al lado sigue
 horneado, que ése no cambia. Vale para las dos pantallas que comparten el
 panel, el menú y la elección de actor, porque las dos pasan por
@@ -731,22 +662,22 @@ panel, el menú y la elección de actor, porque las dos pasan por
 
 Las cifras caen alineadas con las del oro sin tocar nada: las dos líneas se
 dibujan a dos pixeles del borde de arriba de su celda. Y el precio de las
-celdas de 8 pixeles es el mismo que ya se paga en el oro. Todo lo demás sale de `titulo.py`: `render_menu`
-es la referencia y el conversor emite **los mismos bloques de celdas**, en el
-mismo banco de tiles y la misma paleta que la pantalla de ranuras —las caras
-son las mismas y guardar se abre desde el menú—. Las órdenes en gris llevan su
-propia paleta de BG2: el color 3 es un degradé y con el del texto sumaban 18
-colores, así que a las caras les quedan seis paletas.
+celdas de 8 pixeles es el mismo que ya se paga en el oro. Todo lo demás sale de
+`titulo.py`: `render_menu` es la referencia y el conversor emite **los mismos
+bloques de celdas**, en el mismo banco de tiles y la misma paleta que la
+pantalla de ranuras —las caras son las mismas y guardar se abre desde el menú—.
+Las órdenes en gris llevan su propia paleta de BG2: el color 3 es un degradé y
+con el del texto sumaban 18 colores, así que a las caras les quedan seis
+paletas.
 
-**Y desde el 2026-09-12, la séptima cara se cuelga de una prestada.** La lista
-de caras no es la del grupo sino la de todos los que algún `ChangePartyMembers`
-de los mapas de la ROM pueda meter, y con Lashe City entera son ocho: los cuatro
-de la intro más Arden, Saldra, el Gang Member de los Rat Tracks y AG7-17. Antes
-eso era un corte —`SystemExit`— y ahora cada color de la cara que sobra va al
-más cercano por luma de la paleta a la que menos colores le falte, que es
-exactamente lo que `cabe` hace con los sprites y la misma razón de taro: un
-personaje con colores raros es un error visible, y un cuarto mapa que no entra
-no lo es. Se ve en el informe del conversor, que las nombra.
+**La séptima cara se cuelga de una paleta prestada.** La lista de caras no es la
+del grupo sino la de todos los que algún `ChangePartyMembers` de los mapas de la
+ROM pueda meter, y con Lashe City entera son ocho: los cuatro de la intro más
+Arden, Saldra, el Gang Member de los Rat Tracks y AG7-17. Cada color de la cara
+que sobra va al más cercano por luma de la paleta a la que menos colores le
+falte, que es lo que `cabe` hace con los sprites y por la misma razón: un
+personaje con colores raros es un error visible y un mapa que no entra es un
+mapa menos. Se ve en el informe del conversor, que las nombra.
 
 **Cuándo se abre es lo de RM2k.** `Game_Player::Update` anota el pedido
 —`menu_calling`— si B se aprieta con el menú permitido, sin mensaje y sin
@@ -777,7 +708,7 @@ mitad de un paso, y que los permisos vuelvan de la SRAM.
 
 ### La pantalla de ítems
 
-"Use Item" abre `Scene_Item` desde el 2026-09-11: arriba la descripción del
+"Use Item" abre `Scene_Item`: arriba la descripción del
 ítem marcado y abajo la lista del inventario con cuántos hay de cada uno, en
 orden de número como `Game_Party`. En gris va lo que A no usa, como
 `Window_Item`. Hoy A usa **los ítems de switch**, que en la demo son uno solo,
@@ -801,17 +732,16 @@ muestra el menú son siempre los del máximo. El día que haya batallas, los HP
 pasan a ser estado del juego y a viajar en la partida. Libros, materiales y
 especiales siguen en gris.
 
-**El texto va de a una letra por celda.** La pantalla tiene su propio banco
-de tiles con cada carácter de la fuente en dos celdas, en blanco y en gris
-—307 tiles, que no dependen de cuántos ítems haya—, y los nombres y las
-descripciones van en ASCII en el cartucho; escribir una letra son dos
-palabras del tilemap. El primer intento llevaba el texto de cada ítem ya
-dibujado en el banco de las ranuras y el menú, como las caras, y con una
-docena de ítems no entraba: cuatro ROMs de la tanda dejaron de armarse. El
-precio es que las letras van a 8 pixeles y no a los 6 de la fuente, como las
-cifras del oro. En RM2k la lista va en dos columnas de 144 pixeles; acá en una,
-con la cantidad a la derecha, y la descripción en dos renglones de 30 letras.
-Es cosmético y está declarado.
+**El texto va de a una letra por celda.** La pantalla tiene su propio banco de
+tiles con cada carácter de la fuente en dos celdas, en blanco y en gris —307
+tiles, que no dependen de cuántos ítems haya—, y los nombres y las descripciones
+van en ASCII en el cartucho; escribir una letra son dos palabras del tilemap. Va
+así y no con el texto de cada ítem ya dibujado, como las caras, porque eso crece
+con el inventario y con una docena de ítems ya no entra en VRAM. El precio es
+que las letras van a 8 pixeles y no a los 6 de la fuente, como las cifras del
+oro. En RM2k la lista va en dos columnas de 144 pixeles; acá en una, con la
+cantidad a la derecha, y la descripción en dos renglones de 30 letras. Es
+cosmético y está declarado.
 
 La descripción se compone en `texto_buf` —el búfer del compositor de
 mensajes, libre con el menú abierto— y sube de un DMA al principio de cada
@@ -829,7 +759,7 @@ corren y vuelven, y la lista vacía.
 ### El equipo, y las pantallas de texto
 
 "Equipment" abre la elección de actor en modo elegir y después `Scene_Equip`
-de ése, desde el 2026-09-11: su nombre, los cuatro parámetros —los del nivel,
+de ése: su nombre, los cuatro parámetros —los del nivel,
 mockeado en 1, más lo que suma lo puesto—, y las cinco ranuras. A sobre una
 ranura muestra la lista de lo que el actor puede ponerse ahí, con los
 parámetros que quedarían; la línea vacía del final es sacarse lo que tiene. Lo
@@ -841,7 +771,7 @@ acá la lista las reemplaza mientras se elige. Cosmético y declarado.
 El equipo es estado: cinco palabras por actor del LDB en `FAR_EQUIPO`, que
 arranca con el equipo inicial de la base —un DMA de la tabla del conversor en
 el reset— y viaja en la partida. Son 610 bytes más, y con ellos la partida
-pasó de los 1024 de la ranura: **la SRAM es de 32 KB** desde el 2026-09-11 y
+pasó de los 1024 de la ranura: **la SRAM es de 32 KB** y
 las ranuras van cada 2048. `ChangeEquipment` no compila todavía: el juego lo
 usa en dos mapas que no están en la demo.
 
@@ -862,7 +792,7 @@ la partida.
 
 ### La tienda
 
-`OpenShop` abre `Scene_Shop` desde el 2026-09-11. Compila a `OP_SHOP` —el
+`OpenShop` abre `Scene_Shop`. Compila a `OP_SHOP` —el
 tipo, el juego de mensajes y la lista de lo que vende, de largo variable como
 `OP_CHOICE`— y, como guardar, la pantalla se abre adentro del intérprete y no
 cuesta ningún tick: al salir el mapa vuelve y la página sigue. Es una pantalla
@@ -887,13 +817,10 @@ inventario que quedan.
 
 ### La batalla por turnos
 
-`EnemyEncounter` abre una pelea desde el 2026-09-12. Es la primera versión y
-taro la pidió así, con todas las letras: *"podemos ignorar desafíos
-relacionados con la imagen de fondo y usar versiones de menor resolución,
-menor paleta de colores o incluso un color plano y ya, así nos podemos enfocar
-en la mecánica de la batalla por turnos, daño, hp, win condition, etc"*. Así
-que **no hay fondo ni battlers dibujados**: la pantalla es de texto sobre
-negro, la misma grilla de 32 por 28 celdas del equipo y la tienda.
+`EnemyEncounter` abre una pelea. El alcance elegido fue la mecánica —turnos,
+daño, HP, condición de victoria— antes que el dibujo, así que la pantalla es de
+texto sobre negro, la misma grilla de 32 por 28 celdas del equipo y la tienda,
+y el fondo con los battlers llegó después (ver más abajo).
 
 Lo que sí es de RM2k son las palabras —todas del LDB— y **todas las cuentas**,
 que salen de easyrpg-player y están escritas dos veces: en `main.s` y en
@@ -932,15 +859,12 @@ el jugador.
 Hay una forma de `EnemyEncounter` que no trae bloque de manejadores: RM2k no lo
 emite cuando `defeat_mode` es 0, porque entonces perder no es una rama de la
 página sino `Scene_Gameover`. Son **24 comandos en 15 páginas disparables** del
-juego, y hasta el 2026-09-13 ninguna compilaba. Importa quiénes son: tres de
-esas páginas son el `EV0006` del mapa 26, o sea **el jefe de los Rat Tracks**,
-que por eso no aparecía nunca.
+juego, tres de ellas el `EV0006` del mapa 26, o sea el jefe de los Rat Tracks.
+Compilarlas fueron dos trabajos que sólo sirven juntos —el Game Over y el bloque
+que sin `EndBattle` no cierra—: cualquiera de los dos solo destraba **+0**, y los
+dos, **+15**.
 
-Eran dos trabajos y por eso hacer uno solo daba cero páginas: el `raise` del
-Game Over y el de "una batalla sin cerrar" —sin `EndBattle` el bloque no se
-cierra—. Medido: destrabar cualquiera de los dos solo, **+0**; los dos, **+15**.
-
-Ahora el compilador mira adelante, como con las opciones de un `ShowChoice`: si
+El compilador mira adelante, como con las opciones de un `ShowChoice`: si
 al `EnemyEncounter` no le sigue un manejador, emite el `OP_BATTLE` en el acto,
 con victoria y huida en el comando de abajo y la derrota en `BATALLA_PERDER`.
 
@@ -962,13 +886,11 @@ que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
 **Y el encuentro al azar pierde por el mismo camino.** Una pelea que arranca
 del azar de los pasos no tiene bytecode detrás —la abre `pelea_arrancar` desde
 `move_hero`— así que no hay destino que resolver ni manejadores que emitir:
-perderla es siempre `Scene_Gameover`. Hasta el 2026-09-13 nadie miraba
-`BA_RESULT` en ese camino y la derrota devolvía el control al mapa, y eso
-encadenaba el resto: `modo_fin` guarda los HP de la pelea en `FAR_HP`, así que
-el grupo quedaba en cero **para siempre** y toda pelea siguiente se perdía sola
-antes de abrirse. Ahora el llamador compara con `BA_DERROTA` y hace el mismo
-`jml reset`. Lo cobran dos casos más de `test_game_over.py`, con el mapa 21 y
-`--encuentros-de-prueba`.
+perderla es siempre `Scene_Gameover`, y el llamador compara con `BA_DERROTA` y
+hace el mismo `jml reset`. Sin eso la derrota devuelve el control al mapa y, como
+`modo_fin` guarda los HP de la pelea en `FAR_HP`, el grupo queda en cero **para
+siempre** y toda pelea siguiente se pierde sola antes de abrirse. Lo cobran dos
+casos más de `test_game_over.py`, con el mapa 21 y `--encuentros-de-prueba`.
 
 Y una aproximación declarada: las 24 peleas de esta forma traen `escape_mode` 0,
 o sea huir prohibido, y la ROM deja huir igual porque el permiso no viaja en el
@@ -992,15 +914,15 @@ Lo que hay, y lo que no:
     defender                        sí, y vale sólo el turno en que le toca
     huir                            sí, pero es orden de cada actor y no del
                                     grupo, que es una simplificación declarada
-    usar un ítem                    sí, desde el 2026-09-13: ver abajo
-    habilidades                     sí, desde el 2026-09-13: ver abajo
+    usar un ítem                    sí: ver abajo
+    habilidades                     sí: ver abajo
     los estados                     no
     experiencia, oro, subir nivel   no: no hay niveles
-    la música y los efectos         sí, desde el 2026-09-13: ver abajo
+    la música y los efectos         sí: ver abajo
     los battlers dibujados          sí, horneados en el fondo: ver abajo
-    la imagen de fondo              sí, desde el 2026-09-13
+    la imagen de fondo              sí
     las páginas de evento de tropa  no
-    los encuentros aleatorios       sí, desde el 2026-09-13: ver abajo
+    los encuentros aleatorios       sí: ver abajo
 
 La pantalla muestra los HP de los enemigos, que RM2k no hace. Es a propósito:
 lo que esta vuelta tiene que dejar ver es la mecánica, y sin eso un golpe que
@@ -1015,11 +937,9 @@ mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
 
 #### El menú: las cinco órdenes del ABL
 
-Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
-taro pidió el menú del original, que además tiene `Use Item` y la habilidad.
-Ahora son las cinco, en los dos renglones del mensaje: tres arriba y dos abajo,
-que mientras se elige está libre. Las palabras son las del LDB, y el ancho es
-diez porque es lo que mide la orden más larga.
+Son las cinco del original, en los dos renglones del mensaje: tres arriba y dos
+abajo, que mientras se elige está libre. Las palabras son las del LDB, y el ancho
+es diez porque es lo que mide la orden más larga.
 
 **El orden es el del original**: Attack, la habilidad, Defend, Use Item. Se ve
 en `pruebas-manuales/capturas-batalla/auto_20260912_123013.png`, donde el menú
@@ -1039,18 +959,11 @@ va una celda antes del texto.
 **Las dos tablas son de dos bytes, y eso no es de adorno.** Un índice de texto
 nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
 tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
-`demo-ciudad` los textos de la batalla arrancan en el 273. Hasta el 2026-09-14
-`ba_orden_txt` era de un byte, así que el conversor emitía `.byte 273` y el
-ensamblador lo truncaba a 17: el menú dibujaba cuatro renglones de descripción
-de ítem, encimados entre ellos, y la pelea era injugable. El caso que lo cuida
-es `batalla-textos-lejos`, y desde entonces `w65` **rechaza** un `.byte` que no
-entre en un byte en vez de truncarlo.
+`demo-ciudad` los textos de la batalla arrancan en el 273, que en un byte no
+entra. El caso que lo cuida es `batalla-textos-lejos`, y `w65` **rechaza** un
+`.byte` que no entre en un byte en vez de truncarlo.
 
-Lo que hasta el 2026-09-13 decía acá era que esa orden iba en gris porque a
-este nivel nadie sabía ninguna habilidad, y **eso era falso**: salía de leer los
-parámetros con el nivel mockeado en 1. Ver "Las habilidades", más abajo.
-
-`Use Item` sí anda. Abre la lista de lo que se puede usar **donde va la de los
+`Use Item` anda. Abre la lista de lo que se puede usar **donde va la de los
 enemigos**, porque eligiendo qué usar lo que hace falta ver es el grupo; se
 elige el ítem, después a quién, y con eso queda anotada la orden de ese actor,
 que se ejecuta en su turno como cualquier otra. B vuelve un paso.
@@ -1060,9 +973,9 @@ Qué entra en la lista y cuánto cura sale de easyrpg-player:
 * **Qué entra**: `Game_Party::IsItemUsable` con la pelea abierta, o sea una
   medicina que no esté marcada "sólo fuera de batalla". De ésas, este port
   ofrece las que **recuperan HP y no son `ko_only`**: las de SP quedan afuera
-  porque la lista todavía sólo sabe curar HP —los SP **sí** son estado desde el
-  2026-09-13, así que eso pasó de imposible a deuda—, y las de revivir porque
-  revivir es sacar el estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
+  porque la lista todavía sólo sabe curar HP —los SP **sí** son estado, así que
+  eso pasó de imposible a deuda—, y las de revivir porque revivir es sacar el
+  estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
   juego, de la Potion de 50 a la Miracle Drop, que cura todo.
 * **Cuánto cura**: `Game_BattleAlgorithm::Item::vExecute`, o sea
   `recover_hp_rate * GetMaxHp() / 100 + recover_hp`, topado contra lo que le
@@ -1085,11 +998,10 @@ Todos verificados en rojo con su defecto puesto.
 
 #### Las habilidades
 
-Entraron el 2026-09-13, y lo que las destrabó no fue la pantalla: fue leer el
-`initial_level` del LDB en vez de mockear el nivel en 1. Con los niveles de
-verdad —Kersh 20, Core y Manta 15— los tres saben las suyas desde la primera
-pelea: siete entre los tres, 131 y 146 Kersh, 129 y 150 Core, y 130, 143, 144 y
-150 Manta.
+Lo que las destraba no es la pantalla sino leer el `initial_level` del LDB en vez
+de mockear el nivel en 1. Con los niveles de verdad —Kersh 20, Core y Manta 15—
+los tres saben las suyas desde la primera pelea: siete entre los tres, 131 y 146
+Kersh, 129 y 150 Core, y 130, 143, 144 y 150 Manta.
 
 **Qué sabe cada uno**: `Game_Actor::LearnLevelSkills` recorre la tabla de
 aprendizaje del actor y aprende las de nivel menor o igual al suyo, y
@@ -1165,9 +1077,8 @@ actor sin ninguna —Talan, que es de nivel 1— no abra la lista.
 
 #### El fondo y los monstruos: una sola imagen
 
-taro pidió las dos cosas el 2026-09-13 —*"La batalla no tiene ni imagen de
-fondo ni imagen del monstruo"*— y acá van juntas **porque son el mismo
-dibujo**: el conversor compone el fondo de batalla con los battlers de la
+El fondo y los battlers van juntos **porque son el mismo dibujo**: el conversor
+compone el fondo de batalla con los battlers de la
 tropa encima y el cartucho lleva el resultado como una capa de 8bpp de
 256x128, los siete renglones de texto de arriba. La consola no dibuja
 battlers: sube una imagen. El porqué largo, el presupuesto y lo que se pierde
@@ -1191,29 +1102,20 @@ están en `tools/escena.py`; el titular:
   tilemap en $3C00, el de la escena en $3800 y los tiles de la escena en
   $4000, que son las últimas 16.384 palabras de la VRAM.
 
-  **Rehacerla no era `volver_al_mapa`, y decirlo acá costó una demo entera.**
-  Aquél repone lo que pisan la tienda, el menú y las ranuras, que escriben nada
-  más que `RANURA_VRAM` y `RANURA_MAP` —elegidos para caer adentro del banco de
-  tiles de BG1 en los cuatro repartos, y el conversor lo comprueba—. Los 32 KB
-  de la escena se salen de esa caja: se llevan además el tilemap del mapa
-  ($5800), el de la capa de encima ($7800), los tiles de la ventana de mensaje
-  ($6800) y el banco de sprites —entero en `LAYOUT_ANCHO`, que lo pone en
-  $4000—. Volver de una pelea es `volver_de_batalla`, que repone eso con
-  `load_sprite`, `load_ventana` y `fill_window` antes de llamar al otro. Lo
-  cobran `vuelta` y `vuelta-ventana`, uno por reparto de VRAM; sin el arreglo
-  son 74% y 77% de los pixeles.
+  **Rehacerla no es `volver_al_mapa`.** Aquél repone lo que pisan la tienda, el
+  menú y las ranuras, que escriben nada más que `RANURA_VRAM` y `RANURA_MAP`
+  —elegidos para caer adentro del banco de tiles de BG1 en los cuatro repartos,
+  y el conversor lo comprueba—. Los 32 KB de la escena se salen de esa caja: se
+  llevan además el tilemap del mapa ($5800), el de la capa de encima ($7800),
+  los tiles de la ventana de mensaje ($6800) y el banco de sprites —entero en
+  `LAYOUT_ANCHO`, que lo pone en $4000—. Volver de una pelea es
+  `volver_de_batalla`, que repone eso con `load_sprite`, `load_ventana` y
+  `fill_window` antes de llamar al otro. Lo cobran `vuelta` y `vuelta-ventana`,
+  uno por reparto de VRAM; sin el arreglo son 74% y 77% de los pixeles.
 
-Dos cosas que costaron y conviene no volver a descubrir:
-
-* **El texto lleva el bit de prioridad.** En modo 3 el orden del PPU deja BG1
-  de prioridad 0 **arriba** de BG2 de prioridad 0, así que sin eso la escena
-  tapa las letras. Lo pone el conversor en `item_glifo_celdas`; en las otras
-  pantallas que usan esos glifos —ítems, equipo, tienda— BG1 está apagado y el
-  bit no cambia un pixel.
-* **El tile con que se tapa lo que queda abajo de la escena es el 512**, y cae
-  fuera del bloque: 512 tiles de 8bpp son exactamente las palabras que van de
-  `ESCENA_VRAM` al final de la VRAM, así que el 512 da la vuelta y queda en la
-  palabra 0, que mientras dura la pelea es VRAM del mapa y no la usa nadie.
+Dos cosas del PPU que no son obvias —el bit de prioridad del texto y el tile
+512 con que se tapa lo que queda abajo— están anotadas arriba de `escena_subir`
+en `main.s`, que es donde muerden.
 
 **Lo que cuesta, declarado**: un enemigo muerto se sigue viendo. En RM2k
 desaparece; acá lo que dice que murió es su renglón —el nombre en gris y los
@@ -1237,15 +1139,11 @@ pixeles— con `escena_subir` clavado en la escena 0.
 
 #### Los encuentros al azar
 
-Desde el 2026-09-13. taro jugó y reportó que en `Sector 30 Back Alleys` y en
-los Rat Tracks no aparecía nunca nada, y tenía razón: no estaban hechos.
-
 **Los datos no están en el `.lmu`, están en el árbol.** `RPG_RT.lmt` guarda por
 nodo —mapa o área— tres campos que este port no leía: `encounters`, la lista de
 tropas; `encounter_steps`, cada cuántos pasos; y `area_rect`. Un **área** es un
-nodo de tipo 2: no tiene `.lmu`, cuelga de un mapa y le tapa un rectángulo.
-Hasta el 2026-09-13 el comentario de `lcf.TreeMap` decía que el tipo 2 era una
-carpeta del editor, y estaba mal.
+nodo de tipo 2: no tiene `.lmu`, cuelga de un mapa y le tapa un rectángulo —no
+es una carpeta del editor, que es lo que parece—.
 
 Medido sobre el juego entero:
 
@@ -1302,16 +1200,15 @@ de pixeles sigue pudiendo predecir los dos. Se consume un número por paso y uno
 más para elegir la tropa, y ése es el contrato con `eventos.Encuentros`.
 
 **Dónde vive cada cosa.** El estado son nueve bytes en la RAM lejana,
-`FAR_ENCUENTRO` en `$7E3900`: en el banco 0 no entraban, porque la BSS está en
-7680 de 7680 —medido metiéndole un `.res 64` y mirando el corte de w65—. Las
-tablas y las tres rutinas viven **fuera del banco 0**, en RODATA, y del lado de
-allá quedan nada más que cuatro `jsl` y el puente a la pelea, 43 bytes. Ni ésos
-entraban: `demo-ciudad` tenía ocho libres, así que bajó `item_switch` a RODATA
-—124 bytes, la tabla más grande de las que se leen con X y no están en un lazo
-por cuadro— y quedaron ochenta y nueve. Y la pelea se arranca con
-`pelea_arrancar`, que es el cuerpo de `op_battle` sacado a una rutina aparte:
-un encuentro al azar pelea **sin bytecode**, así que no tiene cursor que
-guardar ni manejadores a los que saltar.
+`FAR_ENCUENTRO` en `$7E3900`: en el banco 0 no entraban —la BSS está llena, y
+medir cuánto falta es meterle un `.res N` y buscar por bisección dónde corta
+`w65`—. Las tablas y las tres rutinas viven **fuera del banco 0**, en RODATA, y
+del lado de allá quedan nada más que cuatro `jsl` y el puente a la pelea, 43
+bytes. Ni ésos entraban, así que bajó `item_switch` a RODATA —124 bytes, la
+tabla más grande de las que se leen con X y no están en un lazo por cuadro—. Y
+la pelea se arranca con `pelea_arrancar`, que es el cuerpo de `op_battle`
+sacado a una rutina aparte: un encuentro al azar pelea **sin bytecode**, así
+que no tiene cursor que guardar ni manejadores a los que saltar.
 
 **Lo que cuesta, declarado:**
 
@@ -1333,8 +1230,8 @@ guardar ni manejadores a los que saltar.
   ella despierta se caen dos casos de `test_condicional.py`. Ver
   `CHANGE_ENCOUNTER_STEPS` en eventos.py.
 
-**Lo cobra `snes-encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1,
-uno de los tres que taro reportó— caminando para arriba, con
+**Lo cobra `snes-encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1—
+caminando para arriba, con
 `--encuentros-de-prueba 8` para que el encuentro salga en el paso 8 y no en el
 130. Compara dos cuadros: el mapa un paso antes, y la pantalla de la pelea
 contra `pantallas.py --batalla`, con la tropa que dice la referencia. Los dos
@@ -1344,8 +1241,8 @@ del lado de la ROM son el 100% de los pixeles; contra otra tropa de la misma
 
 #### La música y los efectos de la pelea
 
-Desde el 2026-09-13. Todo sale del LDB —`system.json`— y **quién suena en qué
-momento sale de easyrpg-player**, no de memoria: está escrito con su función de
+Todo sale del LDB —`system.json`— y **quién suena en qué momento sale de
+easyrpg-player**, no de memoria: está escrito con su función de
 origen en `eventos.AUDIO_BATALLA`.
 
     battle_music      T_VGFighterMAX_Masako   `Scene_Battle`, al construirse
@@ -1387,22 +1284,16 @@ en la ARAM, el de victoria, el del mapa al volver, y cuál de los cinco efectos
 sale en cada golpe— y los cuatro están verificados en rojo con su defecto
 puesto.
 
-Y de ahí salió un defecto que no era del audio: **el banco de datos de
-`op_battle` no es el 0**, así que `music_apagada` y `tema_actual`, que son
-absolutos de la BSS, se leían del banco del cartucho donde vive la página. Es
-la misma trampa que ya tenían los puentes `ba_t_*` del otro lado.
-
 ### La lluvia
 
-`WeatherEffects` dibuja la lluvia desde el 2026-09-11 —la apertura llueve,
-primero débil y después media—. Hasta ahí se aceptaba sin hacer nada porque
-era lo único que trababa la cinemática. Compila a `OP_WEATHER` con el tipo y la
+`WeatherEffects` dibuja la lluvia —la apertura llueve, primero débil y después
+media—. Compila a `OP_WEATHER` con el tipo y la
 fuerza, y la regla es la de `Game_Screen::UpdateRain`: cada gota vive doce
 cuadros, baja cuatro pixeles y corre uno a la izquierda por cuadro, y una
 apagada nace con un diez por ciento de chance en un lugar al azar.
 
-**La lluvia va pegada al mapa**, como en RM2k, desde el 2026-09-11: antes iba
-pegada a la pantalla, y taro lo vio al caminar. En RPG_RT las gotas viven en
+**La lluvia va pegada al mapa**, como en RM2k, y no a la pantalla. En RPG_RT las
+gotas viven en
 una superficie del tamaño de la pantalla que da la vuelta en los bordes, y se
 pega corrida por el paneo, que es lo que la cámara se movió
 (`Weather::DrawParticles`). Acá la superficie es de 256x256: la x y la y de
@@ -1443,35 +1334,28 @@ fuerte bajó de 58 a 24 líneas en `lluvia_tick` y `build_oam` de 130 a 84.
 
 Lo cobran `pan-lluvia` y `sacudir-lluvia` en la tanda, que corren la cámara
 con lluvia fuerte por la página de prueba (`--lluvia-de-prueba`): en la
-apertura la cámara no se mueve, así que ella sola no miraba el scroll de las
-gotas. `pan-lluvia` encontró además un error de la referencia: entre dos
-gotas encimadas pintaba arriba la última, y en el PPU gana la de índice más
-bajo de OAM.
-
-Costó un detalle de la referencia: el lazo con presupuesto cortaba cuando la
-escena se quedaba quieta, y la lluvia no se aquieta nunca. Al final de la
-apertura la referencia dibujaba las gotas de 26 ticks antes; ahora las gotas
-sostienen el lazo, como el cronómetro. Lo encontró la comparación de la
-secuencia de estados de la lluvia de los dos lados, actualización por
-actualización: las primeras 2626 eran idénticas. Lo cobra `apertura` en la
-tanda, que desde ahora compara con lluvia.
+apertura la cámara no se mueve, así que ella sola no mira el scroll de las
+gotas. Y `apertura` compara con lluvia, que es lo que exige que la referencia
+sostenga el lazo mientras llueva: la lluvia no se aquieta nunca, así que un lazo
+con presupuesto que corte con la escena quieta dibuja las gotas de veintipico de
+ticks antes.
 
 ### Los efectos de sonido
 
-`PlaySound` suena desde el 2026-09-11. Compila a `OP_SOUND` con el índice del
+`PlaySound` suena. Compila a `OP_SOUND` con el índice del
 efecto en `sonido_tabla`, que lleva por efecto la muestra, la altura, el
 volumen de cada lado y cuántos cuadros dura: el tempo de RM2k estira la altura
 y la duración, y el paneo baja el lado contrario.
 
 Tres decisiones, las tres por la ARAM:
 
-* **Van por mapa**, desde la noche del 2026-09-11: ver "El paquete de audio de
-  cada mapa", más abajo. Hasta ahí se quedaban con lo que la música dejaba
-  libre, y de los 38 que pide la demo entraban 5.
+* **Van por mapa**: ver "El paquete de audio de cada mapa", más abajo. Hasta
+  ahí se quedaban con lo que la música dejaba libre, y de los 38 que pide la
+  demo entraban 5.
 * **A 6 kHz y a lo sumo tres cuartos de segundo** —era uno hasta el paquete,
-  que tiene que subirlos en el fundido de cada salto—. Uno más largo repite sus últimos 0,4 s
-  hasta durar lo que dura en RM2k: la lluvia de la apertura son cinco segundos
-  de ruido y así se la oye entera.
+  que tiene que subirlos en el fundido de cada salto—. Uno más largo repite sus
+  últimos 0,4 s hasta durar lo que dura en RM2k: la lluvia de la apertura son
+  cinco segundos de ruido y así se la oye entera.
 * **El efecto le roba la voz 7 a la música**, que es de percusión. La ROM
   guarda una sombra de los registros de esa voz que la música escribe
   (`dsp_musica`), y al terminar el efecto la devuelve tal cual; mientras suena,
@@ -1490,10 +1374,10 @@ Si suenan bien lo dice el oído de taro.
 ### El paquete de audio de cada mapa
 
 La ARAM son 64 KB, y los instrumentos de los ocho temas de la demo son 53: los
-efectos que piden el Linkage Block y el Emitter Room —43 y 55 KB— no entraban
-ni cerca. taro eligió, el 2026-09-11, un paquete por mapa: al cargar uno, se
-suben **los temas que sus páginas pueden prender y los efectos que piden**, en
-el orden en que aparecen, que es la prioridad si no entran todos. Cada tema
+efectos que piden el Linkage Block y el Emitter Room —43 y 55 KB— no entran ni
+cerca. Por eso hay **un paquete por mapa**: al cargar uno se suben **los temas
+que sus páginas pueden prender y los efectos que piden**, en el orden en que
+aparecen, que es la prioridad si no entran todos. Cada tema
 por separado son de 8 a 32 KB, así que en el Emitter Room entran sus dos temas,
 los catorce efectos y el tema del mapa anterior, que sigue sonando.
 
@@ -1523,38 +1407,23 @@ Cómo está hecho:
 
 Lo que cuesta: el fundido de un salto dura lo que tarda la subida. Del mapa 1
 al Emitter Room son 58 cuadros perdidos, de los que unos 14 son la carga del
-mapa de siempre: unas siete décimas de segundo de negro más. El bucle de subida
-del 65816 lee la terna que sigue mientras el SPC700 guarda la anterior, y
-nunca una de más: pasado el final de un bloque puede haber registros que se
-alteran al leerlos.
+mapa de siempre: unas siete décimas de segundo de negro más.
 
-Cómo se verificó, porque la tanda no mide audio: la ARAM se lee del estado
-guardado del core —`retro_serialize`, ubicando el driver—, y cada muestra que
-la ROM dice tener se compara con la del cartucho byte por byte, con su entrada
-del directorio. Así se revisó el arranque, la apertura entera y un salto del
-mapa 1 al Emitter Room con el tema del mapa 1 sonando —provocado escribiendo
-el pedido de fundido en la WRAM—: todas bien, y la música sin cortarse. Contra
-la ROM anterior, alineadas en el primer sonido, la salida es idéntica muestra
-por muestra durante tres segundos y difiere desde la primera nota de la voz 0,
-con las muestras y los disparos iguales en los dos lados; la sospecha es el
-instante en que cae ese KON dentro del cuadro, que no quedó demostrada.
-
-Y desde el 2026-09-12 hay una prueba de estado que lo cobra sola,
-`pruebas/test_musica_paquete.py`: para el tema que la ROM dice estar tocando,
-que cada muestra de su `tema_muestras` tenga entrada en `FAR_ARAM_DE`. Nació de
-un defecto que **la tanda no podía ver** —el silencio no cambia un pixel— y que
-encima el MSU-1 tapaba: `tema_asegurar` miraba la Z que le dejaba el `plx` en
-vez de la del `lda`, así que contestaba siempre "están todas" y no subía nada.
-El tema de la pantalla de título es el único que ningún paquete trae —sale de
-`title_music` del LDB y los paquetes se arman con los `PlayBGM` de cada mapa—,
-así que era el único que dependía por entero de ese camino, y estuvo mudo un
-día.
+Cómo se verifica, porque la tanda no mide audio: la ARAM se lee del estado
+guardado del core —`retro_serialize`, ubicando el driver— y cada muestra que la
+ROM dice tener se compara con la del cartucho byte por byte, con su entrada del
+directorio. Y `pruebas/test_musica_paquete.py` lo cobra solo: para el tema que la
+ROM dice estar tocando, que cada muestra de su `tema_muestras` tenga entrada en
+`FAR_ARAM_DE`. Hace falta una prueba de estado porque **el silencio no cambia un
+pixel**, y el tema de la pantalla de título es el más expuesto: es el único que
+ningún paquete trae —sale de `title_music` del LDB y los paquetes se arman con
+los `PlayBGM` de cada mapa— así que depende por entero de ese camino.
 
 ### El MSU-1
 
-La música sintetizada suena fea, y taro lo dijo el 2026-09-11 escuchándola: los
-ocho temas de la demo comparten 53 KB de ARAM, así que cada instrumento es una
-muestra corta y recortada. El **MSU-1** es la salida: no es hardware de la
+La música sintetizada suena fea, y la causa está medida: los ocho temas de la
+demo comparten 53 KB de ARAM, así que cada instrumento es una muestra corta y
+recortada. El **MSU-1** es la salida: no es hardware de la
 consola sino una extensión que soportan el FX Pak Pro y los emuladores, con la
 música en archivos PCM al lado de la ROM. El tema sale de un archivo de 44,1
 kHz estéreo en vez de las ocho voces del SPC700.
@@ -1563,13 +1432,11 @@ Lo usan **los 21 temas que suenan hasta salir de Lashe City**, más el del
 título: `PISTAS_MSU` en `snes_music.py` dice cuáles tienen pista y con qué
 número, y el conversor emite `tema_msu`, un byte por tema —`$FF` el que no
 tiene—. Los del juego entero son 43, noventa y un minutos, 923 MB de PCM;
-entran el día que haya una ROM que los toque.
-
-Eran ocho hasta el 2026-09-14, y los otros catorce entraron porque taro los
-pidió por su nombre después de jugar: los temas sin pista sonaban por el SPC700
-y a nueve de ellos les faltaban entre el 28% y el 88% de las notas (ver "Varios
-temas en el cartucho"). **Los números del 1 al 8 no se mueven nunca**: son los
-que ya están en la tarjeta, y renumerarlos obligaría a renombrar archivos.
+entran el día que haya una ROM que los toque. Que los lleven todos importa
+porque un tema sin pista suena por el SPC700 y ahí puede faltarle del 28% al 88%
+de las notas: ver "Varios temas en el cartucho". **Los números del 1 al 8 no se
+mueven nunca**: son los que ya están en la tarjeta, y renumerarlos obligaría a
+renombrar archivos.
 
 Dos de los temas **no son de ningún mapa** y por eso se escapan de cualquier
 barrido de `PlayBGM`: salen del LDB. `title_music` es el de la pantalla de
@@ -1604,9 +1471,8 @@ Cómo funciona, del lado de la ROM:
   hardware **ignora** las escrituras a los registros de audio, y un `PlayBGM`
   que llega mientras la pista anterior todavía se abre se pierde entero. Con
   pantalla de título eso pasa: se piden dos pistas con 1,8 s de diferencia.
-  El tope de la espera son `$FFFF` vueltas, unas tres décimas de segundo; era
-  `$4000` hasta el 2026-09-14, y quedarse corto no cuesta un cuadro sino el
-  tema entero.
+  El tope de la espera son `$FFFF` vueltas, unas tres décimas de segundo, y
+  quedarse corto no cuesta un cuadro sino el tema entero.
 * **El `FadeOutBGM` baja el volumen del MSU-1**, no el del DSP: el nivel del
   fundido ya va de 255 a 0, que es justo la escala de `$2006`, y al llegar a
   cero se corta la pista. El volumen del DSP no se toca **porque es el que
@@ -1618,7 +1484,7 @@ Cómo funciona, del lado de la ROM:
   hacía el comienzo del stream —sacarlo del mute con que arranca el SPC700, el
   volumen general, y dónde está el directorio de muestras— y con pista el
   stream no corre nunca. Sin eso los efectos de sonido se disparan contra un
-  DSP mudo, que es lo que taro escuchó: música por MSU-1 y **ningún efecto**.
+  DSP mudo, y el síntoma es música por MSU-1 y **ningún efecto**.
   El prólogo sale de `dsp_init_reg`/`dsp_init_val`, que el conversor emite de
   `init_writes`, o sea de la misma lista que ya escribía el stream; copiarla a
   mano en el 65816 serían dos lados que se pueden equivocar igual. KON y KOF
@@ -1634,8 +1500,8 @@ Cómo funciona, del lado de la ROM:
   1,21 veces más alta, que es lo mismo escuchado al revés: "los efectos se oyen
   mucho más bajos". `MSU_VOLUMEN_MAX` es `$D8` —ese 0,85— y con eso el clipping
   se va a cero y la música queda en 24508, al lado de los 23867 del SPC700. Va
-  en el registro y no en las pistas: normalizarlas más abajo serían 195 MB a
-  rehacer por ROM, y perdería la referencia de nivel entre un tema y otro.
+  en el registro y no en las pistas: normalizarlas más abajo sería rehacer todos
+  los PCM del cartucho, y perdería la referencia de nivel entre un tema y otro.
   El fundido escala contra ese techo y no contra 255, o su primer cuadro
   **subiría** la música antes de bajarla.
 
@@ -1645,43 +1511,17 @@ con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
 punto de loop en muestras, y el audio crudo.
 
-Dos cosas que costaron:
+Una cosa más del lado del cartucho: **la pista se normaliza a 0,97 de la
+escala**. fluidsynth se corre bajo, en 0,6, porque con 1,0 los temas de muchas
+voces saturan, y sin normalizar después la pista sale a un cuarto del volumen de
+la música del SPC700 —pico 4632 contra 17012— y el cambio de un tema al otro da
+un salto.
 
-* **La pista salía a un cuarto del volumen de la música del SPC700** —pico 4632
-  contra 17012— y el cambio de un tema al otro daba un salto. fluidsynth se
-  corre bajo, en 0,6, porque con 1,0 los temas de muchas voces saturan, y
-  después la pista **se normaliza** a 0,97 de la escala.
-* **`ldx f:MSU_HAY` leía el byte de al lado.** Es la trampa de siempre de este
-  repo con los índices de 16 bits; acá el efecto era que el MSU-1 parecía estar
-  sin estar.
-* **Y la ROM se quedó muda sin archivos de MSU-1**, que es el caso que tiene
-  que andar. `tema_asegurar` vuelve con `$FF` en el acumulador, y al llamarlo
-  después de sacar el tema de la pila el tema quedaba en `$FF`: el puntero del
-  stream se iba de su tabla y la música moría a los diez cuadros. El tema ahora
-  se queda en la pila mientras dura esa llamada.
-
-Cómo se verificó, porque la tanda no escucha: primero el protocolo solo, con
+Cómo se verifica, porque la tanda no escucha: primero el protocolo solo, con
 una ROM mínima aparte que pide la pista y deja los registros en la RAM —la
 firma, el estado antes y después, y cuántas vueltas tardó en cargar—. Y después
 la ROM de verdad, corriendo 1800 cuadros con el núcleo de libretro y grabando
 la salida:
-
-**Y para los efectos de sonido hay que aislarlos, porque la música los tapa.**
-La forma que sirve es la misma ROM con los dos bytes de volumen de cada fila de
-`sonido_tabla` puestos en cero, y comparar las dos salidas muestra por muestra:
-lo que difiere **son** los efectos. Con pista, y con el prólogo del DSP puesto,
-difieren 714382 muestras de 1027098 desde el cuadro 212; con el prólogo
-deshabilitado —un `$FF` en el primer byte de `dsp_init_reg`, que es exactamente
-la ROM de antes— difieren **cero**. Ese par es lo que prueba que el arreglo es
-lo que los hace sonar, y no el emulador.
-
-Y queda escrito el intento que no servía, porque es la trampa que este repo ya
-conoce: la primera medición ponía `SE_CUADROS` en cero desde el arnés para
-"suprimir" el efecto, y daba cero diferencias **también sin MSU-1**, donde los
-efectos se oyen perfectamente. No suprimía nada —la voz ya había arrancado en
-el KON de ese cuadro—, así que los dos lados salían iguales por la misma razón
-equivocada. Un control por el camino conocido es lo que lo delató; sin él,
-habría "verificado" un arreglo sin evidencia.
 
 * **el nivel**: picos de 17096 a 20118 en las ventanas de 300 cuadros, contra
   los 17012 de la música del SPC700;
@@ -1691,23 +1531,27 @@ habría "verificado" un arreglo sin evidencia.
 * **el fundido**: pinchando el pedido de `FadeOutBGM`, la pista se corta a los
   84 cuadros y el pico baja 19059 → 3464 → 0.
 
-Y la tanda entera —123 casos— sigue en verde **sin** los archivos de MSU-1, que
-es el camino que recorre cualquier prueba de acá.
+**Y para los efectos de sonido hay que aislarlos, porque la música los tapa.**
+La forma que sirve es la misma ROM con los dos bytes de volumen de cada fila de
+`sonido_tabla` puestos en cero, y comparar las dos salidas muestra por muestra:
+lo que difiere **son** los efectos. Así se comprobó que el prólogo del DSP es lo
+que los hace sonar con pista: con el prólogo puesto difieren 714382 muestras de
+1027098 desde el cuadro 212, y con un `$FF` en el primer byte de `dsp_init_reg`
+—que lo deshabilita— difieren **cero**.
+
+Y la tanda entera sigue en verde **sin** los archivos de MSU-1, que es el
+camino que recorre cualquier prueba de acá.
 
 Lo que falta: el punto de loop. El MSU-1 vuelve al principio del archivo, así
-que un tema con introducción la repite cada vuelta; hoy los ocho loopean
-enteros. Y los 35 temas que las demos no tocan.
-
-Lo que pesa: los ocho son 195 MB por ROM, de 62 a 215 segundos cada uno. La
-normalización se nota acá —`lufsorr` sube 1,35 y `cd4` baja a 0,97—, que es lo
-que evita el salto de volumen al cambiar de tema.
+que un tema con introducción la repite cada vuelta; hoy loopean enteros. Y los
+temas que las demos no tocan.
 
 ### Las animaciones de batalla: el sonido y la luz
 
-`ShowBattleAnimation` se aceptaba sin hacer. Desde el 2026-09-11 hace **todo
-menos el dibujo**: sus efectos de sonido y sus destellos, en el cuadro en que
-RM2k los pone. Son once en la intro —tres en el Linkage Block, ocho en el
-Emitter Room, todas de fuego— y sin ellas esas escenas eran silencio y nada.
+`ShowBattleAnimation` son dos mitades, y ésta es la del **sonido y la luz**: sus
+efectos y sus destellos, en el cuadro en que RM2k los pone. El dibujo está en la
+sección que sigue. Son once en la intro —tres en el Linkage Block, ocho en el
+Emitter Room, todas de fuego— y sin ellas esas escenas son silencio y nada.
 
 Compila a `OP_ANIMATION` con la línea de tiempo adentro: por cada `timing` de
 la animación, en el cuadro par `2 * (frame - 1)`, su efecto y su destello, de
@@ -1738,7 +1582,7 @@ paquete de audio de cada mapa, que los cuenta como uno más.
 
 ### El dibujo de las animaciones de batalla
 
-Desde el 2026-09-12 también se dibujan. El sistema entero está en
+También se dibujan. El sistema entero está en
 `tools/animacion.py`, que es el único lugar donde se decide dónde cae y de qué
 color es cada pixel; la ROM no decide nada de eso.
 
@@ -1761,10 +1605,8 @@ achicó lo emite el conversor animación por animación. Las de la intro:
 | 79        | 512x384  | 64x48 | 28      | 56 KB          |
 | 82        | 536x416  | 64x49 | 28      | 56 KB          |
 
-taro aceptó el precio el 2026-09-12 —*"deberíamos poder lograrlo si reducimos
-el tamaño de algunos de los efectos"*— y es lo que hace que las grandes
-existan: al 11% la 82 es un brillo y no un incendio, pero está, y la alternativa
-medida era que no estuviera.
+Achicarlas es lo que hace que las grandes existan: al 11% la 82 es un brillo y
+no un incendio, pero está, y la alternativa medida era que no estuviera.
 
 **Los cuadros van prerenderizados en el cartucho y se suben por DMA.** Uno cada
 dos cuadros de consola, que es lo que dura un cuadro de RM2k: 2 KB, o sea
@@ -1880,12 +1722,6 @@ contra la referencia, **los cinco en cero**. El de la mitad de cada rampa no es
 adorno: es el único que ejercita la interpolación cuadro a cuadro, que es donde
 la ROM y la referencia pueden separarse en un valor sin que se vea.
 
-Un rojo que costó y queda escrito: **`armar_paleta` usa Y de cursor** y la deja
-en 32, y quien la llama desde un opcode la tiene apuntando al bytecode. Sin un
-`phy` el intérprete seguía leyendo treinta y dos bytes más adelante y corría lo
-que hubiera ahí. No se veía como un cartel roto: se veía como que la página
-seguía, sólo que otra.
-
 #### Lo que costaría el sistema de imágenes entero
 
 Medido sobre los 328 mapas del juego, no estimado:
@@ -1941,10 +1777,7 @@ lado.
 
 **Las tablas del mapa ya no entran en el banco 0.** La de bloques llega a 8 KB
 —512 bloques por 16 bytes— y con varios mapas no hay dónde ponerlas. Se leen
-desde donde estén con un puntero de 24 bits, o sea `lda [ptr],y`, que fue lo que
-obligó a agregarle direccionamiento indirecto indexado a `w65.py`. Buscando
-dónde meterlo apareció que `lda [ptr],y` se ensamblaba como `lda [ptr]` sin
-avisar: el sufijo se separaba y la rama de los corchetes lo descartaba.
+desde donde estén con un puntero de 24 bits, o sea `lda [ptr],y`.
 
 La de NPCs es la excepción y se copia a la RAM: `build_oam` la recorre con un
 índice y en cinco desplazamientos distintos, así que con un puntero saldría el
@@ -1952,1479 +1785,166 @@ triple de instrucciones en el lazo que se ejecuta 128 veces por cuadro. Copiarla
 cuesta un lazo por carga de mapa y entran 127, que es el tope que impone OAM; el
 mapa con más NPCs del juego tiene 89.
 
-#### Las puertas
+Y en el mapa donde el juego arranca la posición del héroe sale del LCF y no de
+la heurística del "tile abierto más cercano al centro": `Map0004`, que es donde
+el juego empieza, es una habitación vacía sin una sola celda abierta por los
+cuatro lados. A los demás se llega por teletransporte, y ahí sigue mandando la
+heurística. La regla vive en `inicio_del_mapa()` y la usan el conversor **y** la
+referencia: si cada uno eligiera por su cuenta, la comparación estaría midiendo
+dos cosas distintas.
 
-De los 959 teletransportes del juego, **265 son puertas**: una página cuyo único
-trabajo es mudarte, sin variables ni condiciones ni diálogo. De ésas, 263 se
-disparan con "toca el héroe" y son las que la ROM usa. Se pueden hacer sin
-intérprete de eventos, y son las que convierten un mapa suelto en un mundo.
+#### Las tres piezas del intérprete de eventos
 
-Las otras 694 están adentro de cinemáticas y piden el intérprete.
+Cada página de evento que se puede compilar viaja en el cartucho como
+**bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-**A qué mapa lleva, en dos bytes.** Tanto `OP_TELEPORT` como el registro de una
-puerta guardaban el índice del mapa destino en **un byte**, y eso le ponía al
-formato un techo de 256 mapas cuando el juego tiene 328. Las demos llevan 29,
-así que no molestaba; se sacó igual, porque un techo escrito en el formato sale
-más barato ahora que el día que una demo se pase. Adentro de la ROM el índice
-viaja de dieciséis bits desde `salto_mapa` hasta `mapa_actual`, y el techo que
-queda es el de `mapa_ofs`: 512 mapas, que es lo que entra en un word a
-`MAPA_STRIDE` de 128 bytes. Los tres bytes de RAM que costó salieron de tres
-declaraciones que no leía nadie —`ev_actual`, `ruta_salto_dx` y
-`ruta_salto_dy`—, porque la RAM baja estaba en 7680 de 7680 y la página directa
-en 256 de 256. **La partida guardada cambió de tamaño**: una partida vieja no
-carga, la suma no le cuadra.
+    protocol/events.toml   lo declara: cada opcode, su número y los bytes que lleva
+    tools/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
+    rom/src/main.s         lo ejecuta: `correr_codigo` y un `op_*` por opcode
 
-Qué comandos pueden acompañar a un teletransporte sin que deje de ser una
-puerta se decide con un criterio, no a ojo: **que no ejecutarlos no se vea en la
-pantalla que comparamos**. Un fundido, una espera y un sonido se saltean y la
-imagen final es la misma; un cambio de música o del gráfico del héroe, no.
+`tools/eventos.py` es además **la referencia**: el mismo bytecode lo ejecuta
+ella cuadro a cuadro —`Interprete.cuadro` y los `Estado.cuadro_de_*`— y la tanda
+compara las dos pantallas. O sea que el intérprete está escrito dos veces y el
+programa que corre es uno solo.
 
-La primera versión de esa lista puso los códigos de memoria y tres estaban mal.
-Dos de los que creía inofensivos eran `PlayBGM` y `ChangeSpriteAssociation`, así
-que el filtro aceptaba como puertas eventos que cambian la música y el sprite
-del héroe. **La comparación no puede ver ese error**, porque la referencia usa
-la misma lista: las dos partes coinciden en hacer lo mismo mal. Los códigos
-salen de `tools/event_codes.py`, que se genera desde liblcf, y de ningún otro
-lado.
+De `protocol/events.toml` salen generados `tools/event_opcodes.py` y
+`rom/src/event_opcodes.inc`; ver `protocol/README.md`, que está en inglés porque
+ahí adentro no se sabe nada de este juego. **Un opcode nuevo se declara ahí y en
+ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
+intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
+git viera nada.
 
-La ROM mira la tabla de puertas al **terminar** el paso, no al empezarlo, que es
-lo que hace RM2k: el evento se dispara cuando el héroe ocupa la celda. Si hay
-puerta, se apaga la pantalla, se carga el mapa entero y se lo deja donde la
-puerta dice. RM2k también funde a negro al cruzar, así que el parpadeo no
-desentona.
+**Una página se emite sólo si todos sus comandos se pueden ejecutar.**
+`compilar_pagina` corta con `NoSePuede` y el evento se queda sin código:
+ejecutar la mitad de un script dejaría al juego en un estado que no existe, y la
+comparación no lo vería, porque la referencia haría lo mismo mal. Por lo mismo,
+un evento con una condición que no sabemos evaluar queda entero afuera: sin
+saber qué página está activa, correr la equivocada es peor que no correr
+ninguna.
 
-Una puerta a un mapa que no entró en el cartucho se descarta en la conversión.
-En la consola sería un salto al vacío, y es mejor que no haga nada a que haga
-cualquier cosa; el conversor dice cuántas quedaron afuera.
+De ahí sale la única clase de error que se arregla **desde afuera** y no tocando
+código: una página que teletransporta a un mapa que el cartucho no lleva no se
+emite, y el evento se dibuja, se pisa y no hace nada. Por eso el conversor
+nombra los mapas que le faltan a cada página que se cae por esto: es la única
+razón de las veinte que se arregla sumando el mapa a la ROM.
 
-Lo mismo vale para las **páginas** que teletransportan, sólo que ahí no se
-descarta el salto sino la página entera: `compilar_pagina` corta con
-`NoSePuede`, la página se queda sin código y el evento no hace nada —ni el
-salto, ni lo que venía antes—. Desde el 2026-09-05 el conversor también lo
-dice, con los mapas que faltan nombrados, porque el conteo de "N ejecutables"
-no distinguía esta razón de las otras veinte y ésta es la única que se arregla
-desde afuera, sumando el mapa. Ver "El ascensor no llevaba a ningún lado".
+Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
+ser una puerta —o sea, sin intérprete— sale de `tools/event_codes.py`, que se
+genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
+y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
+como puertas eventos que cambian la música y el sprite del héroe. **La
+comparación no puede ver ese error**, porque la referencia usa la misma lista.
 
-#### El fundido de los teletransportes
+#### Un opcode por comando
 
-RM2k funde a negro y vuelve en **cada** teletransporte, cambie de mapa o no.
-Sale de easyrpg-player: `Scene_Map::UpdateStage2` arma el `TeleportParams` con
-`erase_screen = true` siempre, `StartPendingTeleport` pide la transición que
-diga la base —la de A Blurred Line es `transition_out = 0` y `transition_in =
-0`, o sea `TransitionFadeOut` y `TransitionFadeIn`— y `GetDefaultFrames` les da
-**35 cuadros a cada una**. Mientras la transición corre, el juego está
-congelado: `Scene::MainFunction` ve `IsAsyncPending()` y llama a
-`Player::Update(false)`, que no actualiza la escena.
+Qué hace cada uno, y por qué está escrito como está, vive en el comentario de su
+manejador. El conversor lo emite en `_compilar`, en el caso del comando de RM2k
+de la primera columna; a los que la página espera y el opcode no corta —la
+sacudida, los destellos, la imagen, la animación— el conversor les pone un
+`OP_DELAY` detrás.
 
-Así que son 70 cuadros por salto, y en esos 70 no pasa nada más que el brillo.
-La ROM hace lo mismo por omisión: `fundido_tick` devuelve "congelado" y el lazo
-principal se saltea el intérprete, al héroe, los eventos, el cronómetro, la
-sacudida y `build_oam`. Lo único que sigue es la música, que en RM2k tampoco se
-corta.
+| Comando de RM2k | opcode | manejador en `rom/src/main.s` |
+| --- | --- | --- |
+| `ControlSwitches` | `OP_SWITCH` | `op_switch` → `poner_switch` |
+| `ControlVars` | `OP_VAR` | `op_var` → `var_leer`, `var_escribir` |
+| `ConditionalBranch` | `OP_IF`, `OP_IF_VAR`, `OP_IF_ACTOR` | `op_if`, `op_if_var`, `op_if_actor` |
+| el `else` de una rama | `OP_GOTO` | `op_goto` |
+| `ShowChoice` | `OP_CHOICE` | `op_choice` → `eleccion_tick` |
+| `Wait` | `OP_DELAY` | `op_delay` |
+| `Teleport` | `OP_TELEPORT` | `op_teleport` → `cargar_mapa` |
+| `TintScreen` | `OP_TINT` | `op_tint` → `aplicar_tinte`, `subir_tinte` |
+| `ShakeScreen` | `OP_SHAKE` | `op_shake` → `sacudida_tick` |
+| `FlashScreen` | `OP_FLASH_SCREEN` | `op_flash_screen` → `destello_tick`, `tablas_de_destello` |
+| `FlashSprite` | `OP_FLASH` | `op_flash` → `flashes_tick`, `pintar_flash` |
+| `PanScreen` | `OP_PAN` | `op_pan` → `pan_tick`, `pan_cuadros` |
+| `WeatherEffects` | `OP_WEATHER` | `op_weather` → `lluvia_tick` |
+| `ShowMessage` | `OP_MESSAGE` | `op_message` → `msg_empezar`, `mensaje_tick` |
+| `MoveEvent` | `OP_ROUTE` | `op_route` → `poner_ranura`, `paso_de_ruta` |
+| `ProceedWithMovement` | `OP_WAIT_ROUTES` | `op_wait_routes` → `hay_rutas` |
+| `HaltAllMovement` | `OP_STOP_ROUTES` | `op_stop_routes` → `retomar_pagina` |
+| `ChangeEventLocation` | `OP_PLACE`, `OP_PLACE_VAR` | `op_place`, `op_place_var` |
+| `TradeEventLocations` | `OP_SWAP` | `op_swap` |
+| `ChangePartyMembers` | `OP_PARTY` | `op_party` → `cambiar_grupo` |
+| `ChangeSpriteAssociation` | `OP_ACTOR_SPRITE` | `op_actor_sprite` → `elegir_grafico_heroe` |
+| `TimerOperation` | `OP_TIMER` | `op_timer` → `timer_tick`, `timer_digitos`, `timer_oam` |
+| `PlayBGM` | `OP_BGM` | `op_bgm` → `music_start` |
+| `FadeOutBGM` | `OP_FADE_BGM` | `op_fade_bgm` → `bgm_fundido_tick` |
+| `PlaySound` | `OP_SOUND` | `op_sound` → `music_tick` |
+| `ShowBattleAnimation` | `OP_ANIMATION` | `op_animation` → `animacion_tick`, `animacion_dibujo_tick` |
+| `ShowPicture`, `MovePicture`, `ErasePicture` | `OP_PICTURE`, `OP_PICTURE_MOVE`, `OP_PICTURE_ERASE` | `op_picture`, `op_picture_move`, `op_picture_erase` → `imagen_tick` |
+| `ChangeGold` | `OP_GOLD` | `op_gold` |
+| `ChangeItems` | `OP_ITEM` | `op_item` |
+| `OpenShop` | `OP_SHOP` | `op_shop` |
+| `EnemyEncounter` | `OP_BATTLE` | `op_battle` → `pelea_arrancar` |
+| `OpenSaveMenu` | `OP_SAVE` | `op_save` → `ranuras_pantalla` |
+| `ChangeSaveAccess` y sus dos hermanas | `OP_ACCESS` | `op_access` |
+| `KeyInputProc` | `OP_KEY` | `op_key` → `tecla_de` |
+| el final de la página | `OP_DONE` | `correr_codigo` |
 
-**El brillo es el maestro de INIDISP, y son dieciséis pasos.** No hay otra
-manera barata: fundir por CGRAM es lo que hace el tinte, y `aplicar_tinte` sola
-ya cuesta un cuadro entero. Con dieciséis pasos, estirar la rampa sobre los 35
-cuadros no da un fundido más fino, sólo repite pasos —así que la rampa son 24 y
-los 11 que quedan son negro liso—. La cuenta del PPU es
-`round(canal * brillo / 15)` sobre los cinco bits, que es la tabla que arma
-`PPU::PPU()` en bsnes, y la referencia la repite en `eventos.oscurecer`.
+#### Las mecánicas que no son un opcode
 
-**Los 11 cuadros de negro no son relleno: ahí se carga el mapa.** Es la parte
-que arregla un problema viejo. La carga escribe VRAM y CGRAM por DMA y cuesta
-seis o siete cuadros que la referencia no modela, y hasta ahora eso dejaba a
-los dos lados desalineados desde el salto en adelante —está contado en "Cómo se
-verifica"—. El fundido se cuenta en **cuadros de hardware** y no en vueltas del
-lazo: `fundido_tick` hace `boot_cuadros - fundido_base`, así que la carga se
-come cuadros del negro y el fundido igual mide 70. Entre el cuadro 24, que es
-donde carga, y el 47, que es donde la rampa de vuelta sale del cero, hay 23
-cuadros de margen para una carga que tarda siete.
+Lo que el intérprete necesita alrededor: quién dispara una página, cuál está
+activa, quién le cierra el paso a quién, y qué pasa mientras la pantalla está en
+negro. Otra vez, el porqué está en el comentario de cada rutina, y las dos
+columnas son el mismo programa escrito dos veces.
 
-De ahí salieron dos cosas más, las dos verificadas contra la referencia:
+| Mecánica | en `rom/src/main.s` | del lado de Python |
+| --- | --- | --- |
+| Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rm2k.py` |
+| Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | `Interprete.probar_contacto` |
+| Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | `Interprete.probar_accion` |
+| Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | `Estado.asentado` |
+| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | `pagina_activa`, `Estado.refrescar` |
+| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `Ruta.cargar_pagina`, `Estado.cuadro_de_rutas_ev` |
+| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro`, `direccion_hacia` |
+| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `frecuencia_minima` |
+| Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | `puede_en_diagonal`, `encarar_en_diagonal` |
+| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos`, `recorrer_ruta` |
+| La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | `bloqueada` |
+| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `pasabilidad_de_evento`, `npcs_dibujables` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
+| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, `brillo_de_fundido`, `oscurecer` |
+| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | `saltos = SALTOS_MAX` en `tools/snes_expect.py` |
+| La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
+| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
+| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/snes_convert.py` |
+| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py` |
+| Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `snes_correr.py` de la WRAM |
+| La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
 
-* **OAM se rearma al cargar.** El lazo no la arma mientras el fundido dura, así
-  que la rampa de vuelta iba dibujando el mapa nuevo con los sprites del
-  viejo. Son los 1031 pixeles que la referencia cobró la primera vez que se
-  comparó adentro de un fundido; `cargar_lo_pedido` llama a `build_oam`.
-* **La rampa la emite el conversor**, en `mapdata.inc`, desde
-  `eventos.rampa_de_fundido()`. Escribirla también en `main.s` sería la
-  duplicación de siempre: dos lados que se pueden equivocar igual.
-
-**Los tres cores dejaron de coincidir acá, y es la primera vez.** snes9x y
-bsnes dan exactamente `round(canal * brillo / 15)`; **mesen-s trunca** en vez
-de redondear, y con brillo 6 un canal de 7 le da 2 donde los otros dan 3.
-Seguimos a bsnes, que es de donde sale la tabla y el que mide contra hardware,
-y a snes9x, que es el core de la tanda. Ninguna receta usa mesen-s. Lo
-desempata la SNES de taro.
-
-**Lo que esto cambió de la tanda.** Los cuadros comparados de `snes-cinematica`
-se corrieron 70 por cada teletransporte anterior —la cinemática tiene tres— y
-los quince toques de A de `apertura` también. `snes-puerta` no cambió de
-números porque el plan de la caminata ahora cuenta el fundido: 142 cuadros en
-vez de 72, y la pantalla queda quieta exactamente en el 142.
-
-**Cómo se verifica.** Los cuadros **50 y 68 de `snes-cinematica`** caen adentro
-de la rampa de vuelta del primer fundido, con el mapa 1 subiendo de brillo, y
-dan cero: son lo único de la tanda que compara la rampa misma. Que aguanten es
-el diseño funcionando —esa ROM pierde siete cuadros en la carga y el brillo del
-cuadro N sigue siendo el mismo, porque se cuenta en cuadros de hardware—. Los
-otros cuatro cuadros del caso, y los seis de `apertura` con sus quince toques,
-verifican que el fundido dura exactamente 70 y que el juego queda congelado
-adentro: si durara otra cosa, todos correrían de lugar.
-
-A mano, y contra el PPU en vez de contra la referencia: se capturó cuadro por
-cuadro el fundido de `snes-puerta 30 28 down` y se buscó, para cada uno, qué
-brillo de `eventos.oscurecer` lleva el cuadro quieto al capturado. **Los 27
-cuadros de la rampa de vuelta dan cero pixeles**, y la secuencia de brillos es
-la rampa emitida, corrida un cuadro —el mismo cuadro de retraso que tiene OAM,
-porque `brillo` se escribe en el vblank siguiente—.
-
-Y la escena del ascensor, que es lo que motivó todo esto, ahora compara: el
-héroe entra, el fundido corre, y los cuadros 20 y 40 dan cero contra la
-referencia. Lo que le sigue faltando para tener caso propio en la tanda está en
-"Lo que falta".
-
-#### La cola de páginas no era circular
-
-Las páginas que un evento dispara van a una cola de ocho —`cola`, con `cola_n`
-para las que entraron y `cola_i` para las que salieron— y el lazo las come de a
-una. **`cola_n` nunca volvía a bajar**, así que no era un anillo sino un buffer
-que se llena una sola vez por visita al mapa: llegado a ocho, `encolar_elegida`
-descartaba todo y el mapa se quedaba sin disparar nada —ni una puerta, ni un
-cartel—.
-
-El comentario que estaba puesto decía "ningún mapa del juego llega a ocho
-páginas automáticas", y es cierto **al cargar**. Lo que no vio es que la misma
-cola atiende todos los disparos de la visita: cada tecla de acción, cada
-contacto. Una cinemática larga deja el contador cerca del tope y después el
-mapa acepta una interacción y ni una más.
-
-Se arregla poniendo los dos punteros en cero cuando la cola queda vacía, que es
-lo que la vuelve circular de verdad. Medido con dieciocho toques de A sobre el
-mismo evento: antes `cola_n` llegaba a 8 y se quedaba ahí, ahora el pico es 2.
-
-Lo encontró taro jugando, y la firma fue lo que lo delató: **"me deja
-interactuar una vez y después nada"**. Salir del mapa y volver lo arreglaba
-porque `encolar_eventos` pone los punteros en cero.
-
-#### La página automática vacía congelaba el mapa
-
-En RM2k una página sin un solo comando **no arranca el intérprete**:
-`Game_Interpreter::Push` vuelve en seguida cuando la lista viene vacía, así que
-el intérprete no queda corriendo y el jugador camina. Acá esa página se volvía
-la activa, se ejecutaba en un tick, terminaba, y como una automática se repite
-mientras siga siendo la activa, volvía a arrancar en el tick siguiente. El mapa
-quedaba congelado para siempre.
-
-No es un caso raro: **es el idioma con el que RM2k desactiva un evento**. Una
-página de abajo prende el switch que activa una de arriba, y ésa está vacía y
-sin gráfico. Medido sobre los 328 mapas: **45 páginas en 35 mapas**, y en Rat
-Tracks B1 son dos que se vuelven activas en el primer cuadro, o sea que el mapa
-era injugable.
-
-Lo delató el caso nuevo `snes-heroe 21` **tardando catorce minutos**: la
-referencia se comía los 100.000 ticks de `correr_automaticos` antes de empezar a
-caminar y el emulador después corría esos 100.000 cuadros por dirección. Con el
-arreglo son nueve ticks. Y es un buen ejemplo de la forma de falla que este repo
-persigue: los dos lados hacían lo mismo, así que la comparación daba cero; lo
-único que gritaba era el reloj.
-
-El arreglo es una línea en el filtro de páginas —una automática o paralela sin
-comandos se emite con el código en `None`—, y lo miran los dos lados por el
-mismo lado, que es lo que ya consultaban para decidir si una automática cuenta:
-`eventos_auto` en la referencia y el bit 7 de la página en el conversor.
-
-#### El presupuesto de saltos se drenaba solo
-
-Hay un tope de ocho teletransportes encadenados —`saltos_restantes`— para que
-dos mapas que se apunten entre sí no cuelguen la ROM. Se reponía en
-`cargar_mapa` y se cobraba en **todo** salto, y ahí estaba el error: **un salto
-al mismo mapa no llama a `cargar_mapa`** —a propósito, para no reencolar los
-eventos automáticos— así que gastaba presupuesto y no lo reponía nunca.
-
-La escena de Talan salta tres veces adentro del mapa 3 y la apertura dos adentro
-del 1. Después de ocho, **todo teletransporte se descartaba en silencio**: las
-puertas se abren y no llevan a ningún lado. taro lo vio como algo que "a veces
-pasa y a veces no", y lo era: dependía de cuántos saltos llevara esa partida.
-
-Encima el tope fallaba **una sola vez**. Era `dec` y después `beq`, así que con
-el contador en cero el byte daba la vuelta a 255 y los siguientes doscientos
-cincuenta y cinco saltos pasaban. De ahí que salir del mapa y volver a entrar lo
-"arreglara": ese salto era el que daba la vuelta.
-
-Ahora se cobra sólo al cambiar de mapa, que es lo que hace la referencia
-—`saltos` es local a `entrar_al_mapa` y sólo lo baja el lazo que entra a un mapa
-nuevo—, y se mira antes de bajarlo.
-
-Queda una asimetría anotada: la ROM repone en cada `cargar_mapa` y la referencia
-sólo al entrar desde afuera de la cadena, así que un ping-pong A→B→A agotaría el
-tope de un lado y no del otro. **Con los datos de este juego no puede pasar** y
-está medido —un solo mapa teletransporta al entrar, la cadena más larga es de un
-salto y no hay ciclos—, pero si alguna vez aparece uno, es acá.
-
-**Cómo se encontró.** No lo encontró la tanda: lo encontró taro jugando, y lo
-cerró un volcado de memoria de mesen. Con el `.sym` del build —el dump del PRG
-coincidía byte a byte con la ROM— se leyó `saltos_restantes = 0` en la WRAM, y
-de ahí salió todo. Vale la pena recordar el camino: **un dump de memoria más el
-`.sym` contesta en un minuto lo que a ojo son horas.**
-
-#### El cuadro que el fundido regalaba al terminar
-
-Un teletransporte congela el juego setenta cuadros. Los dos lados contaban
-setenta, y la referencia gastaba **uno más**: el cuadro en que el contador llega
-al final lo consumía sin hacer nada, mientras que en la ROM `fundido_tick`
-devuelve cero y el lazo sigue con `eventos_tick`, `move_hero` y todo lo demás.
-
-Es la misma trampa que ya se había arreglado del lado de la ida —ahí está
-escrito "el cuadro **sigue**: la ROM pide el fundido desde `eventos_tick` y
-después corre `move_hero` igual"— y había quedado sin arreglar del lado de la
-vuelta.
-
-No lo cobraba ninguna prueba porque los casos de teletransporte comparan el
-cuadro final, cuando ya se acomodó todo. Lo destapó la escena de Talan, que
-empieza teletransportándose adentro del mapa y sigue caminando al héroe: un
-cuadro de más son **dos pixeles**, la cámara lo sigue, y con la cámara corrida
-difiere media pantalla. De ahí el 60% del cuadro 120 contra ceros a los dos
-lados.
-
-#### La pantalla se prende en el vblank, no donde se carga el mapa
-
-Cargar un mapa apaga la pantalla: `cargar_mapa` escribe VRAM y CGRAM por DMA y
-con el PPU dibujando esas escrituras se pierden. Prenderla de vuelta, en
-cambio, **no** se hace ahí. **`INIDISP` lo escribe únicamente `flush_video`**,
-al final del vblank, desde la variable `brillo`; quien quiera cambiar el brillo
-la escribe y espera al vblank siguiente, igual que quien mueve un sprite
-escribe OAM y espera. La única excepción es el blanking forzado de una carga,
-que `fundido_tick` escribe a mano porque ahí la pantalla ya está en negro.
-
-El motivo son dos defectos que se veían en todos los teletransportes, y que
-taro reportó por separado sin saber que eran el mismo:
-
-* medio cuadro dibujado desde el borde de abajo, "como si el mapa estuviera
-  cargando", y en un lugar distinto cada vez;
-* un cuadro entero de basura —él lo describió como un flash del cuarto
-  anterior— antes de que apareciera el mapa nuevo.
-
-Los dos salen de dónde caía el `INIDISP = $0F`. La carga tarda seis o siete
-cuadros de CPU, así que terminaba **a mitad de un cuadro**: lo que el haz
-todavía no había pintado se pintaba, y eso es la franja de abajo. Y lo que
-pintaba estaba mal, porque el scroll y OAM los escribe `flush_video` y sólo en
-el vblank: al volver de `cargar_mapa` los registros del PPU siguen apuntando a
-donde miraba la cámara antes del salto y OAM sigue siendo la del mapa anterior.
-El tilemap nuevo leído con el scroll viejo no es el cuarto viejo ni el nuevo:
-es la ventana de 64x32 leída con el corrimiento equivocado.
-
-Prendiéndola en `flush_video` el primer cuadro que se ve ya tiene el scroll,
-OAM y las paletas del mapa nuevo, y empieza donde empieza el cuadro. Cuesta un
-cuadro más de negro.
-
-**Cómo se verifica.** Se midió a mano sobre `snes-puerta 30 28 down`,
-capturando los cuadros de a uno alrededor del cruce y contando pixeles negros.
-Antes: siete cuadros negros, uno con las 22 primeras filas en negro y el resto
-dibujado —y ese resto a 47.277 pixeles de 51.712 del cuadro que sigue, o sea
-distinto de todo—, y recién después el mapa nuevo. Después: ocho cuadros
-negros y el mapa nuevo, con el primer cuadro visible idéntico bit a bit al que
-daba antes. Desde que hay fundido esto además lo cubre la tanda de costado: los
-cuadros de rampa de `snes-cinematica` sólo dan cero si el brillo cambia entre
-cuadros y no a mitad de uno.
-
-#### Pisar un evento, y pisarlo al final de una ruta forzada
-
-El otro disparo por contacto es el general: al terminar un paso, si la celda
-tiene un evento cuya página activa se dispara con "toca el héroe", se encola.
-Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`, y va **después**
-de mirar la tabla de puertas: si hubo puerta el mapa ya cambió y la celda de
-llegada no se pisa, igual que en RM2k.
-
-Con una ruta forzada la regla tiene una vuelta, y desde el 2026-09-04 está de
-los dos lados. RM2k no mira el contacto mientras `IsMoveRouteOverwritten()`,
-pero **el último paso sí cuenta**: un movimiento que es la última orden cancela
-la ruta entera antes del chequeo —`Game_Character::UpdateMovement`, comentado
-ahí mismo—. Con órdenes por leer, aunque sean giros o esperas, la ruta sigue
-puesta y no se mira nada. La ROM tenía la mitad —miraba en todos los pasos— y
-la referencia la otra —no miraba en ninguno—, y no se veía porque ninguna
-página de contacto compilaba sin ventana. Es lo que deja a la cinemática de
-apertura pisar el evento que apaga el tinte: tres celdas para arriba y el
-evento en la tercera.
-
-Y si al terminar la ruta hay una página corriendo, el contacto **no se
-pierde**: va a la cola detrás de ella, que es lo que hace RM2k con
-`ScheduleForegroundExecution`. La ROM lo descartaba con un guard escrito para
-el pad, que para el pad sobra porque `move_hero` no arranca un paso con una
-página en el frente.
-
-Lo prueba `just snes-ruta-pisa`, en el mapa 70 de `snes-pisar`: la ruta que
-termina sobre el evento abre su mensaje, la que pasa por encima y sigue no abre
-nada, y la que termina con la página todavía esperando lo abre después del
-tinte. Cada caso se rompió a propósito para saber que mira lo que dice: sin el
-guard de la ruta el segundo se va a 20470 pixeles, y con el guard viejo del pad
-el tercero a 20261.
-
-Lo que no se modela, de ningún lado y con todas las letras: una ruta que
-termine **saltando** sobre un evento de contacto —RM2k lo dispara, ni la ROM ni
-la referencia lo miran—, una puerta al final de una ruta —la ROM la cruza y la
-referencia no la mira—, y un evento disparado dos veces antes de correr, que
-entra dos veces en la cola y una sola en RM2k. Ninguna ruta del juego hace
-ninguna de las tres.
-
-#### La colisión con los eventos
-
-Desde el 2026-09-05 un evento parado en una celda le cierra el paso a quien
-quiera entrar, y el héroe se lo cierra a los eventos. Es `WouldCollide` de
-`game_map.cpp` con lo que este repo modela: dos personajes chocan si están en
-la **misma capa** —la del héroe es la del medio, `CAPA_HEROE`— y no chocan si
-alguno de los dos atraviesa paredes. Un evento sin página activa no está
-—`IsActive()`— y no choca con nadie. La celda de cada uno es la de destino
-mientras camina, que es `GetX()` en RM2k y `ev_pos_buf` o `tile_x` acá: las
-dos se mueven al empezar el paso. Y el salto también mira: aterrizar sobre
-alguien es un salto que no sale.
-
-Para saber la capa de la página activa **la tabla de páginas lleva todos los
-eventos**, no sólo los que tienen código, y cada página lleva su capa en el
-byte +12. Es lo que hace que el droide de la batalla del mapa 2, cuya página
-no compila, frene igual. Un evento con una condición que la ROM no evalúa
-sigue afuera entero, y tampoco frena: su capa es tan desconocida como su
-código.
-
-De los dos lados es la misma pasada: `bloqueada` en eventos.py y
-`celda_bloqueada` en main.s recorren los eventos parados en la celda y le
-piden la capa a la página activa de cada uno; `movil` y `movil_capa` dicen
-quién se está moviendo, para no chocar consigo mismo y para saber si el héroe
-le estorba. Cuesta una pasada por la tabla de páginas por cada evento parado
-en la celda de destino, o sea nada en la práctica: casi nunca hay uno.
+Lo que hace que el lazo entre en un cuadro —FastROM, los glifos precompuestos,
+la tabla de productos del destello, la lluvia más barata— no cambia qué se
+dibuja ni cuándo: la referencia no se tocó, y la tanda y las pruebas dan igual.
 
 ##### Atravesar paredes vale mientras dura la ruta
 
-Y acá hay una **divergencia deliberada de RM2k**, que es lo que hace que los
-cofres del Sector 30 se puedan pisar o no.
-
-La orden 36 de una ruta —`walk_everywhere_on`— es pegajosa en RM2k: escribe
-`move_route_through` de `Game_Player`, que es un campo **de la partida
-guardada** —`SaveMapEventBase` en liblcf— y que no lo repone nadie. Ni
-`CancelMoveRoute`, ni `ForceMoveRoute`, ni `MoveTo` al cambiar de mapa: los
-tres están leídos, y ninguno lo toca. Y la caminata con el pad lo lee en cada
-paso: `Game_Player::UpdateNextMovementAction` hace `SetThrough(...||
-move_route_through); Move(); ResetThrough();`. O sea que en RM2k, una página
-que prenda la 36 y no la apague deja al héroe **atravesando todo** —eventos y
-paredes— hasta el final de la partida.
-
-Medido sobre el juego entero: de las 153 páginas que mueven la bandera, **4 la
-dejan prendida**, y dos de esas cuatro están en `demo-ciudad`. Una es el
-**Hover-Tram** (mapa 13, `EV0028`), que la prende para que Talan se mueva entre
-los pasajeros y nunca la apaga; la otra es el mapa 14, "NV Get Talan to Work".
-Las dos están en el camino principal, así que el defecto lo tiene cualquiera
-que llegue caminando al Sector 30.
-
-Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. Del lado
-de la referencia eso ya era así sin que estuviera escrito —`caminar` no mira
-`ruta_heroe.atraviesa` y `paso_de_ruta` sí—, y del lado de la ROM lo dice
-`celda_bloqueada`, que lee `atravesando` —la copia que `paso_de_ruta` hace
-alrededor de cada paso de ruta— y no la pegajosa `ruta_atraviesa`. Antes leía
-la pegajosa, y eso dejaba al héroe en un estado que RM2k no tiene: atravesando
-**eventos** pero no **paredes**, porque `can_leave` y `can_enter` ya miraban
-`atravesando`. Ésa era la mitad que se veía jugando.
-
-Lo que queda como está, y conviene saberlo: para la pregunta al revés —un
-evento que camina contra el héroe— los dos lados siguen mirando la pegajosa
-(`ruta_atraviesa` acá, `estado.ruta_heroe.atraviesa` allá). Es una asimetría,
-y se deja porque los dos lados la tienen igual y ninguna ruta del juego la
-ejercita: haría falta un evento caminando encima del héroe justo después de
-una página que dejó la 36 prendida.
-
-**Cómo se verifica.** El caso `bloqueo` —`snes-pisar 2 "7 76" up 60 30
-bloqueo`—: el héroe sube hacia el droide de (7,72) y se frena en (7,73). Los
-dos de `atravesar` miran lo de arriba, con la ruta de una sola orden. Y el
-`snes-npc` de siempre cambió de resultado sin cambiar de receta: Kersh baja
-cuatro celdas desde (22,9) y el héroe está parado en (22,12), así que los dos
-pasos que caen ahí se saltean y termina en (24,11), donde antes terminaba en
-(24,13). Lo que no se modela está en "Lo que falta".
-
-#### Plantar un evento en una celda
-
-`ChangeEventLocation` es `Game_Character::MoveTo`, y lo que importa es lo que
-**no** hace: pone la celda y deja el paso en cero —`SetRemainingStep(0)`—, y
-no toca la ruta, que sigue con la orden siguiente desde ahí, ni hacia dónde
-mira, que en RM2k sólo lo cambia la variante de RM2k3. El juego lo usa 680
-veces con la celda escrita y 129 leyéndola de variables; las segundas no
-compilan, como todo lo indirecto. Sale de la cinemática de apertura, que lo
-usa seis veces para traer a Core, a Manta y al droide a escena, y destraba
-además cinco páginas automáticas, las cinco que decía `snes-destraba`.
-
-En la ROM es `OP_PLACE`: la celda va a `ev_pos_buf`, que es lo que miran las
-rutas, la tecla de acción y el contacto, y el dibujo la sigue de dos maneras.
-Un evento con ranura de ruta sólo necesita que se le corte el paso y el salto:
-`mover_eventos` lo refresca en el mismo cuadro. Uno sin ranura **no se lleva
-una**: su fila de NPC se mueve a mano, sin tocarle el tile —la pose de su
-página— y se reacomoda en el orden de dibujado. La referencia hace lo mismo
-desde `pos_ev`, que ahora es de donde se dibuja todo NPC, tenga ruta o no.
-
-Lo prueba `just snes-lugar`, en el mapa 6 de `snes-npc`: un evento plantado a
-mitad de un paso queda **exactamente** sobre la celda y sigue con los pasos
-que le faltaban, y uno sin ruta aparece en otra celda con su pose de siempre.
-Los dos se rompieron a propósito: sin el corte del paso el primero da unos 370
-pixeles en los tres cuadros del medio, y sin mover la fila el segundo da 511.
-Y una trampa que costó una vuelta: la primera versión lo plantaba en una celda
-tapada por la capa de encima, y los dos lados lo dibujaban tapado. La prueba
-daba cero con el corte sacado, porque no veía al evento.
-
-**Y dos eventos que se cambian de lugar.** `TradeEventLocations` es
-`OP_SWAP` desde el 2026-09-05: los dos blancos, y cada uno va con el mismo
-`MoveTo` de `OP_PLACE` a la celda del otro, con las dos celdas leídas antes de
-escribir ninguna. Lo usa una sola escena de las que se miran: la puerta de
-arriba a la izquierda del mapa 2, donde Manta la vuela y la puerta se cambia
-de lugar con el evento 21. Es el caso `puerta-izq` de `snes-escena`.
-
-#### Los eventos dibujados con un tile del chipset
-
-Una página puede no tener CharSet y dibujarse con un tile de la capa de arriba
-del chipset: así son las puertas y las pantallas del mapa 2, y 22 de sus 42
-eventos. Hasta el 2026-09-05 la ROM no los dibujaba —taro vio la puerta de
-arriba a la izquierda como "un portal negro" con el que igual se podía
-interactuar— porque `collect_npcs` sólo juntaba los que tenían CharSet.
-
-Ahora son un personaje más, con un CharSet inventado que no existe en disco:
-`@tile:<chipset>:<índice>`, que `render_map.Charsets` fabrica desde el atlas
-del chipset —el tile `UPPER + índice` puesto en el lugar del sprite de cada
-una de las doce poses de un CharSet de 24x32—. Con eso el resto no se entera:
-el conversor lo empaqueta y la referencia lo dibuja por el mismo camino que un
-CharSet común. El tile 0 es "sin gráfico" y no cuenta.
-
-Lo que sí se entera son **las paletas de sprite**. Un CharSet del juego usa
-sus quince colores y no comparte ninguna con otro; un tile usa nueve o diez, y
-las puertas del mapa 2 comparten casi todos. Por eso `build_characters`
-empaqueta: un personaje cuyos colores caben en una paleta ya armada va ahí,
-con la unión, y ningún color se fusiona por esto. Sin eso el mapa 2 pedía nueve
-paletas de las ocho. Y donde ni empaquetando alcanza —el mapa 8, siete
-personajes de CharSet más dos tiles que no comparten colores— decide
-`npcs_dibujables`, que corren **los dos lados con la misma función**: los
-CharSets van sí o sí, y los tiles entran en el orden del mapa mientras quepan;
-el que no entra no se dibuja y el conversor lo dice. El evento sigue ahí,
-cierra el paso y dispara igual. Antes de esto no se dibujaba ninguno, así que
-es estrictamente mejor.
-
-Dos cosas salieron de dibujarlos, y las dos las cobró la tanda:
-
-* **La ventana de mensaje no tapaba a los eventos "above".** En RM2k tapa
-  todo —`Priority_Window` es 130—, pero acá es BG2 con prioridad 1 y un
-  evento "above" va en objetos con prioridad 2, que en el modo 3 queda
-  adelante de BG2. Ningún evento con CharSet del juego usa esa capa, así que
-  nunca se había visto; el evento 3 del mapa 7, un tile "above" al lado de la
-  puerta, apareció a través de la ventana en seis casos. Se arregla con la
-  **ventana 1 del PPU** como máscara de objetos, de punta a punta, prendida
-  por un tercer canal de HDMA sólo en las líneas de la ventana de mensaje
-  —`hdma_mascara`, en `armar_hdma`—, y apagada a mano al cerrar, como
-  `BG2SC`. Es exacto: los objetos desaparecen debajo de la ventana y en
-  ninguna otra parte.
-* **La tabla de páginas cruzaba de banco.** Ver "Las tablas van en el banco
-  0".
-
-#### El gráfico sigue a la página, y el tile manda sobre el terreno
-
-Las puertas de este juego no se abren: **cambian de página**. La de seguridad
-del mapa 2 es el evento 23 en (83,71), una celda que el chipset dice pared;
-su página 1 no dibuja nada y la 2, con el switch 10 que pone el puñetazo de
-Core, dibuja el tile 111 —escombros— en la capa de abajo. Y RM2k tiene una
-regla para eso, en `Game_Map::IsPassableTile`: **un evento de la capa de
-abajo con gráfico de tile reemplaza la pasabilidad del terreno por la de su
-tile**, salvo que el tile sea de los que van por encima; de los que haya en
-la celda gana el de id más alto, y uno que atraviesa paredes no cuenta. Los
-escombros se pisan, así que la pared se pisa. taro lo vio como "la cinemática
-va perfecto pero el mapa no cambia": ni el gráfico ni la regla existían de
-ningún lado. El ascensor es lo mismo por seis: el evento 30 cambia del tile
-25 al 28 y baja de capa con el switch 11, y los 31 a 35 aparecen alrededor.
-
-Desde el 2026-09-05 los dos lados hacen las dos cosas, y con los mismos
-datos:
-
-* **`collect_npcs` da una fila por evento con gráfico en alguna página**,
-  no sólo en la activa al cargar: la fila existe escondida —`visible`— y
-  `cambia` dice si el gráfico sigue a la página activa, que vale sólo para
-  eventos cuyas condiciones la ROM entiende, porque sin sus páginas en la
-  tabla no hay cómo saber cuál gana. El mapa 2 tiene nueve así, todos tiles
-  quietos. **Un evento que camina y cambia de gráfico no se puede**: son dos
-  mecanismos sobre la misma fila —las doce poses del cartucho y el gráfico de
-  la página— y el conversor corta con el nombre del evento el día que uno lo
-  pida.
-* **La tabla de páginas lleva lo que dibuja cada página**, +20 a +23: el
-  tile, los atributos con la paleta y la prioridad de su capa, la pose con el
-  bit 7 si hay gráfico, y los bits de paso de su tile o $FF. Cada
-  (CharSet, índice, pose) de esas páginas tiene su ranura en la VRAM desde la
-  carga, así que cambiar es copiar. La fila lleva además +14 si se ve y +15
-  los bits de paso del tile que muestra ahora.
-* **El refresco los copia.** `rutas_de_pagina` ya volvía a mirar la página
-  activa de los eventos con rutas propias al cargar y al cambiar un switch;
-  ahora mira también los del bit 5 —`grafico_de_pagina`— y copia a la fila
-  el gráfico de la página que ganó, o la esconde si ninguna gana o la que
-  gana no dibuja. La clave de dibujado toma la capa de la página, y la fila
-  se reacomoda con `acomodar_npc` como la de uno que camina: el ascensor
-  abierto está en la capa de abajo y el héroe lo pisa. `build_oam` saltea
-  las filas escondidas. La referencia dibuja cada fila con el gráfico de su
-  página activa, `pagina_activa`, que es la misma pasada.
-* **Las paletas se reparten una sola vez.** Con las páginas contando, el
-  mapa 8 tiene dos eventos de CharSet que cambian de pose con la página, y
-  ésos se llevan paletas antes que los tiles: los eventos 6, 7 y 12 —dos
-  puertas y unos escombros— quedan sin dibujar, donde antes era sólo el 12.
-  Y `build_characters` ya no reparte por su cuenta: usa el reparto que hizo
-  `npcs_dibujables`, porque el mismo primer-lugar-que-entre en otro orden dio
-  otra cuenta —ocho paletas acá, nueve allá— y la ROM del mapa 8 no se armaba.
-* **Las tres comprobaciones de terreno** —`can_leave` y `can_enter` del
-  héroe, `puede_celda` de las rutas— pasan lo que dice el chipset por
-  `pasa_con_evento`, que recorre la tabla de NPCs buscando una fila visible
-  con +15 puesto parada en esa celda; el último que encuentra gana, que es el
-  de id más alto. Es un recorrido por paso y no una pasada por las páginas,
-  porque los bits ya los dejó el refresco. La referencia hace lo mismo en
-  `pasabilidad_de_evento`, que `puede_pasar` recibe como `pasa_evento`.
-  Lo que no se modela: el "conflicto consigo mismo" de un evento de tile que
-  camina, que ninguno hace.
-
-**Cómo se verifica.** `escombros`: el héroe en (85,71) camina tres a la
-izquierda con el switch 10 y llega a (82,71) pasando por la pared, cuatro
-cuadros en cero; `escombros-cerrados`, lo mismo sin el switch, y se queda en
-(84,71); `ascensor`, el héroe quieto delante del ascensor con el switch 11,
-que lo dibuja abierto; y `core-puerta` desde el cuadro 470 muestra los
-escombros apareciendo en la escena de verdad. Y una trampa de la primera
-versión, que la tanda cobró: el lazo de dibujo de la referencia pisó la
-variable `charset` que el héroe usa después, y el héroe salía dibujado con el
-tile de la última puerta.
-
-#### El ascensor no llevaba a ningún lado
-
-El ascensor del mapa 2 se abría, se dejaba pisar, y pisarlo no hacía nada.
-taro lo reportó así: "puedo interactuar con la puerta del ascensor, y se abre,
-pero entrar al tile del portal no triggerea ningún teleport".
-
-No faltaba nada de la ROM. La página del switch 11 del evento 30 es de
-contacto, arranca con un `Teleport` al (77,31) del mismo mapa —el interior de
-la cabina— y **termina con otro al mapa 3**, que es a donde lleva el ascensor.
-`demo-apertura` tenía los mapas 4, 1 y 2, así que ese último salto no se podía
-compilar, y una página que no compila se emite sin código: el evento existe, se
-dibuja, se pisa, y no hace nada. Los dos lados coincidían —la referencia compila
-con la misma función— así que la tanda daba cero y el caso `ascensor`, que mira
-la puerta abierta con el héroe quieto delante, seguía en verde.
-
-El arreglo es de afuera: `demo-apertura` se arma con **`--mapas 1 2 3`**. El
-mapa 2 pasa de 40 páginas ejecutables a 41 y el cartucho sigue entrando en los
-512 KB. Y para que no se vuelva a callar, el conversor ahora nombra los mapas
-que le faltan a las páginas que se caen por eso: ver "Las puertas".
-
-**Cómo se verifica.** No lo cubre `snes-hitos`. La razón cambió el 2026-09-05:
-ya no es la carga del mapa —el fundido se la come, ver "El fundido de los
-teletransportes"— sino los **picos del lazo**. Esta ROM pierde un cuadro en su
-primera vuelta y otro en la vuelta en que el fundido termina y la página
-retoma, y con un `ShakeScreen` de mil cuadros moviendo la cámara no hay un solo
-cuadro quieto donde ese atraso no se vea. Lo que sí se midió, con una ROM
-descartable de los mapas 2 y 3 y el héroe en (71,70) con el switch 11 y un paso
-hacia arriba:
-
-* la ROM teletransporta al héroe a (77,31) en el cuadro 9, y la referencia en
-  el 9 también;
-* corriendo la escena entera —diez mensajes— la ROM termina en el **mapa 3**,
-  celda (67,69), y la referencia termina en el mapa 3, celda (67,69);
-* los cuadros 20 y 40 —el fundido de la entrada a la cabina— dan **0 pixeles
-  de 53.248 y de 57.344** contra la referencia, ya sin desfase;
-* más allá del fundido hace falta correr la ROM un cuadro más adelante que la
-  referencia por cada cuadro que perdió, y ahí sí dan cero: los cuadros 13, 71,
-  83 y 101 de la ROM contra el 12, el 70, el 82 y el 100 de la referencia.
-
-Que la tanda pueda mirar esto sola pide que la ROM deje de perder cuadros en
-sus picos, o que la referencia los cobre; está en "Lo que falta".
-
-#### Las rutas propias de las páginas
-
-Desde el 2026-09-05 un evento cuya página activa tiene `move_type` 6 —una ruta
-propia, la que camina sola— la camina en la ROM y en la referencia, con lo que
-eso arrastra. Son 38 páginas en 13 mapas, y en el mapa 2 son los dos droides:
-el de (7,72) sube una celda a velocidad 4, suena, salta de vuelta y espera
-tres veces, y roto gira con cuatro `face_*`; el de (30,55) camina un cuadrado
-a velocidad 2, medio pixel por cuadro.
-
-* **La ranura de ruta** lleva ahora la velocidad (+17), las banderas (+18: de
-  página, se repite, saltea lo bloqueado, mira siempre igual, animación
-  continua, recargada este cuadro), la página con que se cargó (+20), lo que
-  falta del paso de 256 por celda (+22), la ruta de la página para volver a
-  ella cuando una forzada termina (+24 a +29), hacia dónde va el paso (+30,
-  que con la mirada fija no es hacia donde mira) y su capa (+31). Son doce
-  ranuras, no ocho: el mapa 127 tiene ocho páginas con ruta propia.
-* **La velocidad** es `PASO_POR_VELOCIDAD`: `1 << (1 + velocidad)` de 256 por
-  celda y por cuadro, y los pixeles son la resta tirando los dieciseisavos, de
-  los dos lados. **Una ruta forzada sobre un evento camina a la velocidad de
-  su página**, que por defecto es 3 —dieciséis cuadros por celda— y no la 4
-  del héroe: `SetupFromPage` la pone y `ForceMoveRoute` no la toca. Hasta acá
-  los dos lados caminaban a todos a 4, y por eso nadie lo vio; la fila del NPC
-  la trae en +13 y la referencia la saca de `collect_npcs`, de la misma página.
-  Las órdenes 28 y 29 la suben y la bajan, 26 y 27 fijan y sueltan la mirada.
-* **La animación es la de RM2k**, `Game_Character::UpdateAnimation`: un
-  frame de 0 a 3 y cuántos cuadros lleva en él, que sube caminando, siempre
-  con la animación continua, y quieto sólo hasta llegar al del medio; cambia
-  cada `ANIM_PARADO` cuadros caminando y cada `ANIM_CONTINUA` quieto, por
-  velocidad. El cuadro en que un salto termina ya cuenta: `UpdateAnimation`
-  corre después de que `UpdateMovement` bajó la bandera. Los tipos 2, 3 y 4
-  no giran al caminar pero sí con `face_*`, que es el `SetFacing` directo de
-  `UpdateMoveRoute`, y por eso el droide roto gira.
-* **Lo bloqueado se reintenta** si la ruta no es `skippable`: la orden no
-  avanza y se vuelve a probar cada cuadro, y es lo que deja plantarse delante
-  del droide y que se quede empujando. **El salto también**, desde el
-  2026-09-05: `BeginMoveRouteJump` fallido con `skippable` apagado vuelve el
-  cursor al `begin_jump` —`current_index = saved_index`— y corta el cuadro. Es
-  lo que hace el droide de (7,72) cuando el jugador se le planta en la celda
-  a la que vuelve saltando: se queda animando contra la pared, y salta apenas
-  el jugador se corre. Antes el salto se salteaba y la ruta seguía, y taro lo
-  vio como "deja de ejecutar su animación". Sin `end_jump` no hay a qué
-  volver y se saltea siempre. Es el caso `droide-tapado`. Las forzadas se
-  saltean lo bloqueado, como hasta ahora, pidan lo que pidan: ver "Lo que
-  falta".
-* **Se repite** volviendo al principio en el mismo cuadro, una vez por cuadro.
-  **No lee órdenes nuevas mientras el intérprete tiene una página corriendo**
-  —`IsRunning()` en `UpdateNextMovementAction`—, pero el paso en curso se
-  termina y las esperas siguen contando. Y **no la espera `OP_WAIT_ROUTES`**:
-  `ProceedWithMovement` mira sólo las forzadas.
-* **El refresco.** `Game_Map::Refresh`: al cargar el mapa y al empezar el
-  cuadro siguiente a un cambio de switch o de grupo, cada evento con rutas
-  propias vuelve a mirar cuál es su página activa; si cambió, carga la ruta
-  nueva desde el principio con la espera del giro, y si la nueva no tiene
-  ruta se queda sin órdenes. Es `rutas_de_pagina`, en dos pasadas y sólo
-  sobre las páginas de los eventos marcados por el conversor —bit 6 de +13—:
-  con todas las páginas costaba más de un cuadro, el lazo perdía uno, y se
-  vio como el droide roto girando un cuadro tarde. Por lo mismo la capa del
-  que se mueve va en la ranura y no se busca en cada paso: buscarla era otro
-  cuadro perdido, cada tanto, con el droide empujando contra el héroe.
-
-**Cómo se verifica.** Cuatro casos de `snes-escena` en el mapa 2, con el héroe
-quieto: `droide`, seis cuadros del ciclo; `droide-roto`, con el switch 22
-puesto, girando; `droide-frenado`, con el héroe en (7,71) tapándole el paso; y
-`droide-cuadrado`, el de arriba a la derecha caminando a medio pixel por
-cuadro. Más `bloqueo`, que ahora es una ruta forzada del héroe contra el droide
-en movimiento. Y todos los casos viejos con rutas forzadas cambiaron de
-resultado sin cambiar de receta, por la velocidad 3.
-
-**Lo que no se modela.** Los otros tipos de movimiento —al azar, vertical,
-horizontal, hacia el héroe: 133 páginas, 106 de ellas hacia el héroe—; el giro
-en el lugar (`AnimType_spin`, dos páginas); moverse hacia o desde el héroe
-dentro de una ruta; que una forzada retome la de la página **por donde iba**
-—acá arranca de nuevo—; y `skippable` en las forzadas.
-
-#### La frecuencia de la ruta, y encarar al héroe
-
-Hasta el 2026-09-04 una ruta con frecuencia distinta de 8 no compilaba, y el
-modelo era "girar es gratis, los pasos van seguidos y el `wait` son veinte
-cuadros". Era exacto sin saberlo: es el contador de parada de RM2k con la
-frecuencia 8. Después de cada orden el personaje se queda quieto
-`max_stop_count` cuadros —`SetMaxStopCountForStep` tras un paso,
-`ForTurn` tras un giro, `ForWait` en un `wait`— y valen `1 << (9 - f)`,
-`1 << (8 - f)` y `20 + (1 << (8 - f))`, con las dos primeras en cero para la
-8. El juego usa la 2, la 3, la 4, la 7 y la 8; la 1 daría 256 cuadros tras
-cada paso, no entra en el byte de espera y no la usa nadie: se rechaza.
-
-Las dos tablas las emite el conversor con las mismas funciones que usa la
-referencia, y la ROM las indexa con la frecuencia tal cual. Hay una vuelta que
-importa: **después del último paso no se espera nada**, porque la ruta se
-cancela ahí mismo —ver "Pisar un evento"— y `ProceedWithMovement` no la tiene
-que esperar. Un giro como última orden sí deja la ruta puesta los cuadros del
-giro, que es lo que hace RM2k dentro de un cuadro de diferencia.
-
-**`HaltAllMovement` las cancela todas de golpe**, desde el 2026-09-13. Es
-`Game_Map::RemoveAllPendingMoves`: un `CancelMoveRoute` sobre el héroe y sobre
-cada evento del mapa. Lo que cancelar quiere decir está escrito **una sola vez
-de cada lado** —`retomar_pagina` en la ROM y `Ruta.cancelar` en la referencia,
-las dos reusando el camino de "la forzada terminó sola"— para que cancelarla y
-terminarla no se puedan separar, que es justo la clase de diferencia que nadie
-ve hasta que la escena sale distinta. Y lo que **no** toca es lo mismo que allá:
-el paso o el salto en curso se terminan —`IsAnyMovePending` no los mira— y
-hacia dónde mira cada uno queda donde la ruta lo dejó, así que un
-`ProceedWithMovement` pegado atrás todavía espera los cuadros que le falten al
-paso. Hay **un solo** `HaltAllMovement` en todo el juego —la página del mapa 11
-que reordena el escondite de los Lazer Teeth cuando te descubren, y que termina
-teletransportando— así que lo que lo mide es un caso sintético, `parar-rutas`.
-
-`face_hero` es `GetDirectionToCharacter`: manda el eje con más distancia, en
-empate el vertical, y sobre la misma celda se mira abajo. Sólo sobre eventos;
-el héroe encarándose a sí mismo no lo usa ninguna página y no compila. Lo que
-lo tenía afuera no era el giro sino lo que pasaba al **pisar una ruta con
-otra**: la ROM reseteaba la ranura entera, y el evento volvía a mirar adonde
-decía su página hasta que la ruta nueva lo girara. Ahora al reusar la ranura
-se conserva lo que `ForceMoveRoute` conserva —el paso o el salto en curso se
-terminan, hacia dónde mira queda, atravesar paredes y la animación parada
-siguen— y se cortan la espera y las órdenes. El héroe igual: acá se le cortaba
-el salto y la referencia no.
-
-Lo prueban cuatro casos de la tanda: `ruta-lenta` y `npc-lento`, la frecuencia
-4 sobre el héroe y sobre un evento —dos pasos, un giro y un paso; el paso va
-del cuadro 1 al 8 y el siguiente recién arranca en el 41, el giro suelta a los
-16—, y `npc-encara` y `npc-encara-lado`, con el héroe abajo y a la derecha del
-evento. Rotos a propósito: sin la espera tras el paso, `ruta-lenta` se va a
-281 pixeles en el cuadro 20 y a 12757 en el 44; sin `face_hero`, `npc-encara`
-a 274.
-
-Lo que no se modela, de ningún lado: un movimiento **bloqueado** con una
-frecuencia baja. RM2k le pone el tope del paso sin reiniciar el contador, así
-que espera lo que le falte de la orden anterior; acá se saltea y sigue, como
-con la 8. Ninguna ruta lenta del juego choca contra nada.
-
-#### El arranque de verdad
-
-El juego no empieza donde las pruebas lo ponían. Empieza en **Map0004, `Blank
-(Leave START here)`**, una habitación vacía cuyo único trabajo es disparar un
-evento y teletransportar —el patrón clásico de RM2k—. Esa habitación no tiene ni
-una celda abierta por los cuatro lados, así que la heurística que elegía "el
-tile abierto más cercano al centro" no tenía dónde poner a nadie.
-
-Ahora, en el mapa donde el juego arranca, la posición sale del LCF. En los demás
-sigue saliendo de la heurística, porque a ésos se llega por teletransporte y de
-dónde entrás depende de por dónde viniste. La regla vive en `inicio_del_mapa()`
-y la usan el conversor y la referencia: si cada uno eligiera por su cuenta, la
-comparación estaría midiendo dos cosas distintas.
-
-#### La página activa se congela hasta el refresco
-
-Qué página de un evento está activa **no se recalcula cada vez que alguien
-pregunta**. En RM2k es `Game_Event::page`, y sólo la reescribe
-`Game_Map::Refresh()`, que corre al principio de `Game_Map::Update`:
-
-    if (GetNeedRefresh()) Refresh();
-    ...
-    UpdateMapEvents(actx);        // acá los intérpretes prenden switches
-    game_player->Update();        // y el héroe se mueve con la página VIEJA
-
-La ROM ya lo hacía sin proponérselo: la página activa vive en la fila del NPC
-—la capa, el gráfico, lo que el tile le impone a la celda— y sólo la reescribe
-el refresco, que `eventos_tick` atiende arriba de todo. **La referencia la
-calculaba viva**, con los switches del momento, y eso son dos lados haciendo
-cosas distintas.
-
-La diferencia no es de un cuadro. Un switch prendido por una página le abría el
-paso al héroe en ese mismo cuadro del lado de la referencia y en el siguiente
-del lado de la ROM; y como **una orden de ruta bloqueada se saltea y no se
-reintenta**, lo que se veía no era un cuadro de atraso sino que el héroe nunca
-cruzaba la puerta del Emitter Room. La escena de Talan entera colgaba de eso.
-
-Arreglarlo pidió tres cosas, y las tres hacen falta:
-
-* **La instantánea**, `Estado.paginas_activas`, que rehace `rutas_de_pagina` y
-  nadie más.
-* **El refresco en un solo lugar**: arriba de `Interprete.cuadro`, que es por
-  donde pasa todo cuadro. Estaba repartido en los lazos que llaman ahí, y uno
-  de ellos no lo llamaba nunca después de prender un switch.
-* **No cortar el lazo con un refresco pendiente.** Ésta fue la que costó: la
-  página que abre la puerta es un `ControlSwitches` y nada más, así que el
-  intérprete terminaba en el mismo cuadro, el lazo cortaba —"ya no pasa nada"—
-  y la instantánea quedaba vieja para siempre. Con la página calculada viva eso
-  no se notaba; con la instantánea, `puerta-emisor` dibujaba la puerta cerrada
-  después de abrirla.
-
-**Cómo se verifica.** Lo cobra `puerta-emisor`, que abre la puerta del Emitter
-Room apretando A y mira el cuadro 40: con la página activa calculada viva daba
-300 pixeles de diferencia y con la instantánea da cero. Se le hizo además un
-caso de la escena de Talan entera, `talan`.
-
-#### El intérprete de eventos
-
-RM2k tiene unos 130 comandos de evento. La ROM entiende diez —prender y apagar
-switches, esperar, teñir la pantalla, teletransportar, cambiar el grupo, caminar
-una ruta forzada, esperar a que las rutas terminen, mostrar un mensaje,
-destellar a un personaje y el cronómetro— y resuelve las páginas como RM2k: de
-cada evento gana **la de número más alto cuyas condiciones se cumplen todas**.
-
-La regla que hace que eso sea seguro es una sola: **una página se emite sólo si
-todos sus comandos se pueden ejecutar**. Si aparece uno que no modelamos, la
-página no se emite y el evento no hace nada. Ejecutar la mitad de un script
-dejaría al juego en un estado que no existe, y la comparación no lo vería porque
-la referencia haría lo mismo mal. Por lo mismo, un evento con una condición que
-no sabemos evaluar —hoy sólo el cronómetro, una página en todo el juego— queda
-entero afuera: sin saber qué página está activa, correr la equivocada es peor
-que no correr ninguna. Las de switch, actor y variable se evalúan; la de ítem
-se sabe que nunca se cumple.
-
-De las 519 páginas automáticas del juego, 42 se compilan enteras con este juego
-de comandos, y 31 sobreviven además al filtro por evento. Pero **29 de esas 31
-no hacen nada**: todos sus comandos son de los que se aceptan sin ejecutar
-porque no ejecutarlos no se ve. Las que hoy hacen algo son dos, y conviene
-tenerlo presente antes de creerle a un número grande:
-
-    mapa 3  Emitter Room               prende dos switches
-    mapa 4  Blank (Leave START here)   dos switches, tinte y teletransporte
-
-La segunda es la que abre el juego, y es la única del juego entero que ejercita
-el tinte y el teletransporte por evento.
-
-El tinte de pantalla no se podía saltear. En las puertas el fundido termina y la
-pantalla vuelve; acá se tiñe y después se teletransporta, así que el mapa de
-destino se ve teñido. En una consola con paleta eso no es un efecto de pantalla
-sino una transformación de la paleta, que la consola hace con sus unidades de
-multiplicación y división y Python repite igual. Y como el tinte es estado del
-juego y no del mapa, se vuelve a aplicar cada vez que se carga uno; con el tinte
-neutro la cuenta deja los colores donde estaban, así que el camino es siempre el
-mismo.
-
-**La cuenta son dos, y las dos salen de leer `ToneBlit` en easyrpg.** Primero la
-saturación y después el color, en ese orden.
-
-**El color es un hard light**, no una multiplicación: `2ab` para la mitad de
-abajo y el screen `1-2(1-a)(1-b)` para la de arriba. En las unidades de RM2k,
-con 100 neutro, eso es
-
-    valor <= 100:  canal * valor / 100
-    valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
-
-o sea la misma cuenta espejada en los dos ejes, y por eso `tabla_canal` arma
-siempre la de abajo y espeja la tabla terminada si el valor aclara. La mitad de
-abajo es lo que este repo venía haciendo desde el principio; la de arriba
-**estaba mal** —multiplicaba por dos y topaba en 31— y la diferencia con RM2k
-llegaba a 31 de 31 con el valor 200, o sea la pantalla entera. No lo cobró nadie
-porque ninguna página que compilara aclaraba la pantalla; dos de las once que
-destraba la saturación sí, con `(0, 120, 120)`.
-
-**La saturación es una mezcla hacia el gris**, no un factor por canal:
-`saturation_tone` saca la luminancia Y' del color —los pesos 19595, 38470 y
-7471, que suman 65536 exactos y por eso valen igual sobre canales de cinco
-bits— y acerca o aleja los tres canales de ella. Con 0 todo queda gris, con 100
-no pasa nada y con 200 la distancia al gris se triplica. Como necesita los tres
-canales a la vez, **no entra en las tablas de 32 entradas** y hay que hacerla
-color por color; por eso se saltea entera cuando el valor es el neutro, que es
-lo que hace el `apply_sat` de easyrpg.
-
-Medida contra la cuenta de easyrpg sobre ocho bits, esta versión difiere en **un
-valor de 31 como mucho**, para todos los tintes que el juego usa. Viene de que
-RM2k hace la cuenta con ocho bits y la consola tiene cinco, y es la misma
-tolerancia que la mitad de abajo ya tenía.
-
-El intérprete está escrito dos veces —en `main.s` y en `tools/eventos.py`— pero
-el bytecode es uno solo, así que lo que se ejecuta de los dos lados es el mismo
-programa.
-
-**Y el bytecode está declarado en un tercer lado, que no es ninguno de los
-dos**: `protocol/events.toml` dice, por opcode, su número y los bytes que lo
-siguen, y de ahí salen generados `tools/event_opcodes.py` y
-`rom/src/event_opcodes.inc`. Lo mismo con el stream de música, en
-`protocol/music.toml`: son tres opcodes que hasta el 2026-09-15 estaban
-escritos a mano **de los dos lados**, en `tools/snes_music.py` y en `main.s`,
-sin nada que atara las copias.
-Hasta el 2026-09-14 el número lo decidía el compilador y le llegaba al
-intérprete **adentro de los datos de un mapa**, con dos consecuencias que
-pasaron las dos: dos ramas eligieron el mismo número sin que git viera nada, y
-el largo de una instrucción estaba escrito tres veces, hasta que una copia se
-quedó con el layout viejo de un opcode que había crecido. (`main.s` sigue
-incluyendo `mapdata.inc` por las tablas del mapa: lo que salió de ahí es el
-bytecode, no todo.) Ver
-`protocol/README.md`, que está en inglés porque ahí adentro no se sabe nada de
-este juego.
-
-**Cómo se lo mira:**
-
-    just snes-evento     # mapas 4 y 1 en la ROM, arrancando en el 4
-    just snes-play       # y con sonido, en una ventana
-
-El mapa 4 es una habitación negra y vacía cuyo único trabajo es prender dos
-switches, teñir la pantalla y teletransportar. Lo que se ve al arrancar es el
-mapa 1 ya teñido de azul, sin haber tocado una tecla: el tinte es `(0, 0, 100)`,
-o sea rojo y verde a cero y azul intacto.
-
-Los dos mapas tienen que estar en la ROM. Un teletransporte a un mapa que no
-entró no se puede compilar, y entonces la página entera no se emite: con el mapa
-4 solo, la pantalla se queda en negro, y eso es correcto.
-
-**Cómo se verifica.** La referencia entra a los mapas como entra la ROM: para
-al héroe donde lo dejó la puerta o el teletransporte que lo trajo, le corre los
-eventos automáticos del mapa, y si una página pide mudarse repite el ciclo con
-el mismo tope de ocho vueltas que la consola. Los switches y el tinte viven en
-un estado que sobrevive a los mapas, porque de eso depende qué página queda
-activa en el siguiente.
-
-El tinte se aplica al final, sobre la imagen ya compuesta. En la consola no es
-un efecto de pantalla sino una transformación de CGRAM, y como cada pixel del
-fondo, de la capa de encima y de los sprites sale de una entrada de CGRAM,
-teñir cada color del render da lo mismo —siempre que la cuenta se haga sobre
-los 15 bits y no sobre los 24 del PNG, que redondearían distinto—.
-
-Eso es `just snes-evento`, y está en `snes-hitos`:
-
-    mapas 4 y 1 en la ROM, arrancando en el 4
-    la consola contra la referencia: 0 pixeles distintos de 57344
-
-En una sola comparación entran la selección de página, los dos switches, el
-tinte, el teletransporte, y que el héroe quede tapado por la capa de encima en
-la celda donde lo deja.
-
-Antes de que existiera, este camino no lo ejecutaba **ninguna** prueba, y tenía
-cuatro errores. Los tres primeros encadenados, cada uno tapando al siguiente:
-
-1. `poner_switch` pisaba `Y`, que es el cursor del bytecode del intérprete. Las
-   dos páginas que hacen algo empiezan prendiendo switches, así que el bucle
-   leía el opcode siguiente de un byte cualquiera del medio de la página y
-   cortaba ahí. Ninguna de las dos pasaba de su primer comando.
-2. El lazo de `tenir_paleta` llevaba la cuenta de colores en `X`, que adentro
-   del lazo es el índice de las tres tablas de canal. Al llegar al `cpx` valía
-   el azul del color anterior, así que el lazo no terminaba y la consola se
-   colgaba.
-3. El azul se corría cinco lugares en vez de diez, y salía en los bits del
-   verde. La pantalla se teñía de verde en lugar de azul.
-
-Y el cuarto, que apareció recién cuando hubo una referencia contra la cual
-comparar: el héroe se dibujaba **por encima** de la capa que tiene que taparlo.
-La prioridad de un objeto son los bits 5 y 4 del byte de atributos, así que el
-valor va corrido cuatro lugares, y `$20` no es prioridad 1 sino 2 —que en el
-orden del modo 3 está adelante de BG2 1 y no atrás—. Estaba escrito igual de
-mal en el conversor y en la ROM, o sea que las dos partes coincidían y sólo se
-veía parándose debajo de la capa de encima. Ninguna caminata lo hacía: todas
-terminan contra un borde del mapa.
-
-Los cuatro se ven apenas se corre la página, y no se ven de ninguna otra forma.
-La lección es la de siempre en este repo, pero al revés: acá el problema no fue
-que la referencia y la ROM se equivocaran igual, sino que **no había ninguna
-referencia que ejecutar**.
-
-#### La ventana de mensaje
-
-La ventana vive en BG2, en la mitad de arriba del banco de tiles que comparte
-con la capa de encima: del índice 0 al 255 cae el de encima y del 256 al 511 la
-ventana. Su paleta es la que queda justo debajo de la de encima, y se la paga el
-fondo: se lo aprieta en las que quedan y fusiona lo que no entre. Relevados los
-328 mapas, 290 no fusionan nada y los 38 que sí van de 1 a 16 colores, que es el
-techo —una paleta—.
-
-**Y en una ROM de varios mapas esa paleta es una sola, la de la ROM.** Las
-celdas de la ventana se emiten una sola vez, con los tres bits de paleta ya
-adentro, y cada mapa la pondría justo debajo de su capa de encima, que no
-coincide: en la ROM del arranque el mapa 4 la pondría en la 6 y los mapas 1 y
-2 en la 3. Gana la más baja —`paleta_de_la_ventana`, la misma función en el
-conversor y en la referencia— y los mapas que la tenían más arriba se vuelven a
-convertir con el fondo apretado debajo de ella; la capa de encima no se mueve,
-porque dónde arranca ya se guarda mapa por mapa. Cuesta lo de siempre de la
-ventana, sólo que en mapas que solos no pagaban: el 7 con el 269 en la misma
-ROM fusiona 13 colores de 60, y se ve. Ése es el caso `snes-ventana 7
-ventana-7-y-269 269` de la tanda: el mismo reparto que la ROM del arranque, con
-un mapa que se puede mirar en vez de una habitación negra. Nació con el 1 de
-compañero, hasta que el 1 con ventana dejó de entrar en VRAM: ver "Lo que
-falta".
-
-**El tilemap de BG2 se scrollea con la cámara, y la ventana no puede.** No es un
-caso raro: en `game_player.cpp` de easyrpg `UpdateMoveRoute` corre **antes** del
-guard de `IsMessageActive`, o sea que una ruta forzada del héroe sigue caminando
-con el mensaje en pantalla y la cámara lo sigue. En este juego hay 186 páginas
-donde eso pasa y la primera está en el mapa 1; y hay 25 páginas paralelas con
-`PanScreen`, que también corren.
-
-Se probó primero **seguir el scroll** —escribir las celdas de la ventana en las
-posiciones que en *ese* cuadro corresponden a la franja de abajo— y **no
-funciona**, por una razón que no es de implementación: el tilemap se dibuja en
-celdas de 8 pixeles y la cámara se mueve de a 2, así que una ventana estampada
-en celdas cae a `camara_x mod 8` pixeles de donde va. Medido con la cámara
-moviéndose sólo en horizontal, y comprobado corriendo la referencia esos mismos
-pixeles:
-
-    camara_x 720, resto 0    238 pixeles de diferencia
-    camara_x 722, resto 2   2627
-    camara_x 724, resto 4   2717
-    camara_x 726, resto 6   3198
-
-O sea: **un cuadro de cada cuatro por eje**. Y aparecían dos problemas más —la
-franja hay que reestamparla entera en cada cruce, no la columna que entra, y la
-fila que sale de la franja no la redibujaba nadie—. El intento vivió tres
-commits; está en `git log`.
-
-**Lo que sí funciona es HDMA**, que era la opción que se había descartado por
-2 KB de VRAM que no había. El DMA de siempre transfiere todo de una; el HDMA es
-el mismo hardware disparado **una vez por scanline**, así que un registro del
-PPU puede valer una cosa arriba de la pantalla y otra abajo. De la línea 0 a la
-143 BG2 es la capa de encima del mapa, con la cámara; de la 144 a la 223 es un
-tilemap propio de la ventana, de 32x32, con el scroll clavado:
-
-    canal 1   BG2SC          qué tilemap dibuja BG2
-    canal 2   BG2HOFS/VOFS   con qué scroll
-
-Cada canal lee una tabla de la RAM con entradas `[cuántas líneas][valor]`. Las
-144 líneas de arriba van en dos tramos porque el contador de una entrada es de
-7 bits y no llega a 144, y las dos llevan justo lo que `flush_video` ya escribía
-en los registros, así que arriba de la ventana no cambia nada.
-
-Lo que esto compra, además de que sea exacto: el tilemap de la ventana **no lo
-toca nadie más**, así que se escribe una sola vez al cargar el mapa —320 celdas
-seguidas, un solo DMA— y abrir un mensaje es prender el HDMA y cerrarlo es
-apagarlo. Ni una escritura de VRAM en el medio, ni un cuadro en negro, y
-`redibujar_franja` dejó de existir.
-
-El único cuidado: al apagar el HDMA hay que devolverle a `BG2SC` el tilemap del
-mapa, porque el HDMA lo dejó apuntando al de la ventana en la última línea que
-escribió.
-
-**Los 2 KB salen de los sprites.** Relevados los 318 mapas que convierten, el
-que más gasta usa 380 tiles de sprite de los 512 que el reparto le da, así que
-bajarlos a 448 no le saca nada a nadie y deja libre la palabra $1C00, que es
-múltiplo de 1024 y por lo tanto una base válida de tilemap. En el reparto para
-mapas con mucho fondo los 2 KB no pueden salir de ahí —esos mapas usan hasta
-320 tiles de sprite— y salen del fondo: 480 tiles en vez de 512.
-
-#### El texto se compone en caliente
-
-Una página de mensaje ya compuesta son unos 240 tiles de 4bpp, o sea 7,5 KB, y
-el juego tiene 18.808 líneas de texto: emitir una ventana por mensaje no entra
-ni cerca en 256 KB. Así que la ROM lleva la fuente y arma los tiles ella, que es
-lo que hace FF6 con su `InitDlgVWF` y su buffer de diálogo en la WRAM.
-
-**La medición que lo volvió barato.** RM2k dibuja cada glifo usando sus pixeles
-como máscara sobre un bloque de 16x16 del System —de ahí el degradé de las
-letras— y leído así pide muestrear el bloque pixel por pixel. Medido, no: **cada
-fila del glifo toma un solo color**, y la sombra es un color plano. O sea que
-todo el color se reduce a doce bytes, uno por fila, más uno para la sombra.
-
-El banco de tiles de la ventana se reparte así:
-
-    0 .. 11     la ventana vacía, deduplicada: marco y fondo estirado
-    12 .. 251   el área de texto, 30 celdas de ancho por 8 de alto
-
-Las 240 del área de texto **no se deduplican**: cada celda tiene su tile fijo,
-porque la ROM las reescribe y no puede andar buscando repetidos. De ahí sale el
-tope de **39 caracteres por línea**: con 40 la sombra del último se pasa a la
-celda 31 y harían falta ocho tiles más de los que hay. Truncar a 39 pierde el
-1,58% de los caracteres del juego, contra el 1,09% de truncar a 40.
-
-**Y el tope lo repite la ROM**, aunque el conversor no emita nunca un renglón
-más largo. No es paranoia: el buffer del compositor mide un renglón y del otro
-lado viven la tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el
-contador de la cola de poses, así que un largo de renglón malo no se ve como un
-renglón feo sino como **la pantalla entera hecha basura unos cuadros después y
-en otro mapa**: con `vq_n` alto, `vram_drenar` sube bloques de 128 bytes a
-direcciones cualquiera de la VRAM. Las dos veces que pasó, el largo malo vino de
-un puntero equivocado —el bloque de textos cruzando de banco— y las dos veces
-costó encontrarlo porque el síntoma no señalaba al texto. El tope está en
-`mensaje_tick` y no en `componer_char`, y **corta el dibujo pero no la
-lectura**: el byte se consume igual, porque si no el renglón que sigue
-arrancaría del medio de éste.
-
-Componer un renglón es cebar el buffer con el fondo de la ventana —un DMA de la
-ROM a la RAM, que va por la ventana que la WRAM tiene en el bus B— y escribirle
-los glifos encima. Lo que hace rápida la escritura es que los planos 0 y 1 de
-una fila son **bytes vecinos** en el formato de la consola, y los 2 y 3 también:
-duplicando la máscara a los dos bytes de la palabra, cada par de planos sale de
-una sola escritura de dieciséis bits, y son cuatro por fila de glifo en vez de
-dieciséis. Y la celda que la máscara no toca se saltea entera, que en la mitad
-de las fases es la mitad del trabajo.
-
-**El presupuesto por cuadro está medido y no elegido.** Se componen 5
-caracteres por vuelta del lazo. No es una optimización: si una vuelta se pasara
-del cuadro, `wait_vblank` agarraría el siguiente y el héroe caminaría más lento
-que en la referencia, que es una diferencia que ninguna captura muestra. Medido
-sobre `snes-anclada`, que es el único caso donde el héroe camina con un mensaje
-abierto: con 5 y con 6 no se pierde ningún cuadro, con 8 se pierde uno. Va en 5
-por margen, porque la vuelta cuesta distinto en cada mapa.
-
-Lo que cuesta: un mensaje de 51 caracteres tarda unos 15 cuadros en aparecer y
-uno de cuatro renglones llenos tardaría unos 36. En RM2k tampoco desentona: allá
-la ventana se abre con una animación.
-
-**De dónde sale el texto: el operando del opcode.** `OP_MESSAGE` lleva un
-desplazamiento de 16 bits dentro del bloque `mensajes`, que es de la ROM entera
-y no del mapa. El conversor lo arma mientras compila las páginas —cada
-`ShowMessage` deja su texto y se lleva su desplazamiento— y lo deduplica, que en
-el juego entero son 2477 cuadros distintos de 2895.
-
-Dieciséis bits alcanzan para el **operando**, y nada más: el bloque entero no
-entra en un banco desde que la demo lleva Lashe City —son 56 KB contra los 32 KB
-que mide la ventana de un banco de LoROM— así que el puntero que lo recorre
-tiene que cruzar. Eso costó dos veces la misma pantalla hecha basura, y las dos
-mitades están arregladas por separado:
-
-* **`msg_empezar`** suma el desplazamiento al puntero largo, sumando un banco y
-  `$8000` por cada vuelta que se pase de `$FFFF`. Lo que sigue a `$FFFF` no es
-  el `$0000` del banco de al lado sino su `$8000`, que es lo mismo que ya sabía
-  `ptr_mas` para la grilla del mapa.
-* **`msg_ptr_sig`** hace la misma cuenta para avanzar de a un byte, que es como
-  el compositor recorre el cuadro. Con un `inc` de dieciséis bits alcanzaba con
-  que **un cuadro cayera encima del borde** —la cabecera de un lado y el texto
-  del otro— para que el resto saliera de `$xx:0000`, que en LoROM no es ROM.
-
-El conversor lo sigue emitiendo con `.bloque`, que rellena hasta el banco
-siguiente cuando no entra en lo que queda: ya no hace falta para leerlo, pero
-deja el bloque alineado al banco y con eso el borde cae siempre en el
-desplazamiento 32768, que es lo que hace reproducible el caso `texto-cruza`.
-
-**Y lo mismo vale para las tablas que se leen con `lda f:tabla, x`**, aunque el
-modo largo sí sume los 24 bits: en LoROM, lo que sigue a `$15:FFFF` no es la ROM
-del banco 16 sino un espejo de la WRAM, así que una tabla a caballo de dos
-bancos se lee basura de la mitad para adelante. Las nueve que viven fuera del
-banco 0 —`item_k`, las cuatro de `item_txt`, `item_puntos`, `actor_params`,
-`equipo_inicial` y `item_glifo_celdas`— no lo declaraban, y era un error
-**latente que dependía de dónde cayeran**: apareció el 2026-09-12 al entrar los
-cuadros de las animaciones de batalla, que corren 200 KB de RODATA hacia
-adelante y dejaron `item_glifo_celdas` arrancando en `$15:FF0D`. Se veía como la
-pantalla de ítems con las letras cambiadas, y sólo al correr la lista, que es
-cuando el índice pasa de los 243 bytes que quedaban hasta el fin del banco.
-
-**Lo que no compila y por qué.** El texto de este juego usa dos códigos de
-escape de RM2k: `\|`, que es una pausa de un segundo, y `\^`, que cierra el
-cuadro sin esperar a que el jugador apriete nada. Son 35 líneas en 17 páginas, y
-las dos cosas son tiempo, no texto. Una página que los use **no compila**:
-dibujarlos como dos letras se vería, y borrarlos calladito sería peor, porque
-con `\^` la ROM quedaría esperando un A que RM2k nunca pidió y la página
-pasaría a durar lo que tarde el jugador. Cuando el compositor sepa pausar y
-autocerrar, esto se cae solo.
-
-Y llevar ventana es una decisión explícita del conversor, **`--con-ventana`**,
-que `--mensaje-de-prueba` implica. Cuesta 8 KB de VRAM y una paleta, así que una
-ROM que no la lleve no tiene dónde dibujar un mensaje y sus `ShowMessage` no
-compilan: el opcode lo habilita la ventana, no al revés.
-
-El ciclo son tres piezas y ninguna corre donde uno esperaría:
-
-* `op_message` deja el pedido y **corta el cuadro**. La página queda bloqueada:
-  `eventos_tick` ve `msg_abierto` y vuelve sin ejecutar nada.
-* El flanco de A la desbloquea —`pad_a` contra `pad_a_ant`, que es el
-  `Input::IsTriggered` de RM2k: sostener el botón no dispara de nuevo— y la
-  página sigue **en ese mismo cuadro**.
-* `mensaje_de_evento` atiende el pedido al final del cuadro, con la pantalla
-  apagada. Tiene que ser así: estampar la ventana son 640 bytes de tilemap y
-  redibujar la franja al cerrar son 2560, y eso no entra en un vblank. Está
-  medido, llamando a `redibujar_franja` de más a propósito sobre `snes-heroe 7`:
-  cada cuadro deja 532 pixeles de basura, cada 8 cuadros 262, cada 64 cuadros 0
-  y una sola vez 0. Que la basura escale con la frecuencia y no con el contenido
-  es lo que dice que el problema es el presupuesto del vblank.
-
-Y hay un detalle que cuesta descubrir: `mensaje_de_evento` empieza vaciando las
-tiras que dejó `stream_map` en ese mismo cuadro. `redibujar_franja` arranca
-poniendo `col_addr` y `row_addr` en cero, así que sin eso la columna o la fila
-que la cámara acababa de destapar se perdería.
-
-**Con un mensaje en pantalla el pad no mueve al héroe**, y la ruta forzada sí.
-No es una inconsistencia: son dos lugares distintos de easyrpg.
-`UpdateNextMovementAction` llama primero a `UpdateMoveRoute` y recién después
-vuelve si `Game_Message::IsMessageActive()`, así que la ruta camina y el input
-no. Un paso ya empezado se termina igual, porque en RM2k no se frena a mitad de
-celda.
-
-**Cómo se verifica.** `just snes-ventana` compara el dibujo —marco, fondo,
-fuente, sombra y paleta— contra la referencia, en cinco mapas elegidos por
-cómo les pega el reparto de paletas y de VRAM; el 269 está porque es el único de
-la tanda que usa el reparto para mapas con mucho fondo, o sea el que pone el
-tilemap de la ventana en otro lado. `just snes-cerrar` compara todo lo demás,
-con la misma forma que `snes-espera`: dos cuadros con margen, uno antes y uno
-después de apretar A.
-
-    cuadro  60   la ventana en pantalla y la página frenada: sin teñir
-    cuadro 400   la ventana borrada y el tinte puesto
-
-**El toque de A cae un cuadro antes del número.** `--apretar-a N` es el cuadro
-en que la referencia cierra el mensaje y lo dibuja cerrado. La ROM dibuja lo
-que armó la vuelta anterior —el mismo `RETRASO_DE_PANTALLA` de la caminata—,
-así que `snes_correr.py` aprieta en el N-1 para que su cuadro N salga cerrado
-también. Con los dos cuadros quietos de `snes-cerrar` esto no se veía: lo
-delató la apertura, con el droide caminando después del cuarto mensaje un
-cuadro atrás de la referencia, y la traza de los dos intérpretes cuadro a
-cuadro —ranura de ruta contra `Ruta`, cursor contra `ev_cur`— diciendo que el
-estado era el mismo y sólo el dibujo iba atrás. Y son **varios** toques, no
-uno: cada número es un flanco, la ROM lo suelta al cuadro siguiente para que
-el próximo también lo sea, y la referencia cuenta los cuadros a través de los
-teletransportes, que es como los cuenta el emulador.
-
-**La ventana no se tiñe.** Es lo que hace RM2k —en `Spriteset_Map::Update` el
-tono se le aplica al tilemap, a los personajes, al panorama y a las sombras, y
-la ventana no está entre ellos— y es lo que hace la ROM sin proponérselo:
-`aplicar_tinte` vuelve a subir las tres paletas del mapa desde el cartucho, y
-la de la ventana no es ninguna de ellas. La referencia decía lo contrario,
-"como en la consola", y ninguna prueba abría un mensaje sobre una pantalla ya
-teñida —`snes-cerrar` tiñe recién después de cerrarlo—. La primera que lo hizo,
-el tercer caso de `snes-ruta-pisa`, dio 4122 pixeles, todos en la ventana.
-
-Los dos cuadros difieren en 52637 pixeles de 57344, así que la prueba tiene de
-dónde agarrarse. Con una dirección —`snes-cerrar 7 200 cerrar-right right`—
-además se mantiene la cruceta apretada, y el cuadro 60 mide que el héroe no se
-haya movido ni girado.
-
-Cada mitad se verificó rompiéndola a propósito, que es la única forma de saber
-que la prueba mira lo que dice mirar:
-
-    sin `redibujar_franja` al cerrar   el cuadro 400 se va a 15789 pixeles
-    sin bloquear la página             el cuadro 60 se va a 36848
-    sin el guard del pad               el cuadro 60 de `right` se va a 22658
-
-Es la única prueba que ejercita `redibujar_franja`, que hasta que existió el
-opcode era el único pedazo de código del repo que no corría nadie.
-
-Y que la ventana no se mueva con la cámara lo prueba `just snes-anclada`: una
-ruta forzada en el mapa 6 con el mensaje abierto, que es el único caso en que la
-cámara se mueve durante un mensaje —con el pad bloqueado, lo otro no existe—.
-Los cuatro cuadros están elegidos por el resto de la cámara contra 8, que es
-justo lo que hundía al intento anterior:
-
-    cuadro  21   camara_x 722, resto 2   antes 2627 pixeles, ahora 0
-    cuadro  23   camara_x 726, resto 6   antes 3198, ahora 0
-    cuadro  50   camara_y 700, resto 4   antes 5964, ahora 0
-    cuadro 130   la ruta ya bajó doce celdas   antes 11705, ahora 0
-
-Y que el texto salga **del juego** y no de un flag lo prueba `just snes-texto`,
-que es lo único que corre ese camino. Todo lo demás de la ventana usa
-`--mensaje-de-prueba`: tres líneas inventadas en una página inventada, que
-prueban el dibujo, el bloqueo y el cierre pero no que un `ShowMessage` compile
-ni que el operando encuentre su texto.
-
-El mapa 255 se eligió midiendo. Tiene una página automática **sin condición de
-switch** —o sea que corre al entrar— cuyo código entero es esto:
-
-    07 0000     OP_MESSAGE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
-    07 7c00     OP_MESSAGE @124   otras cuatro
-    01 5003 01  el switch 848
-
-De ahí salen las tres cosas que ninguna otra receta mira. El **desplazamiento**:
-el segundo mensaje está en el 124, así que si el operando se ignorara se vería el
-primero dos veces. Los **cuatro renglones**, contra los tres del mensaje de
-prueba. Y el **encadenado**: al apretar A el primero se cierra y el segundo se
-abre en el mismo cuadro, que es la regla que los dos lados escriben por separado.
-
-Los cuadros 60 y 400 dan 0 de 57344, y **entre ellos difieren en 2869 pixeles**,
-todos en las filas de la ventana: si el A no avanzara al segundo mensaje serían
-cero y la receta daría verde sin probar nada.
-
-#### La sacudida de pantalla
-
-`ShakeScreen` es `OP_SHAKE` desde el 2026-09-05: fuerza, velocidad y cuadros,
-y con cero cuadros es `ShakeEnd`. Es `ShakeOnce` de easyrpg, que no reinicia la
-posición para que dos sacudidas seguidas se encadenen, y con `wait` el
-conversor le pone un `OP_DELAY` detrás, como a los destellos. La cuenta por
-cuadro es `Shake::NextPosition`:
-
-    amplitud = 1 + 2 * fuerza
-    nuevo    = -amplitud * sin((resta * 4 * (velocidad + 2)) % 256 * pi / 128)
-    corte    = velocidad * amplitud / 8 + 1
-    posicion = clamp(nuevo, posicion - corte, posicion + corte)
-
-RPG_RT la hace en punto flotante y trunca. Acá el seno es una tabla de 256
-bytes a escala 127, que el conversor emite al `mapdata.inc` desde la misma
-lista que usa la referencia —`SENO_SACUDIDA`—, y la división es entera, con el
-multiplicador y el divisor del hardware; el signo se saca antes y se vuelve a
-poner después, que es truncar hacia cero. **Los dos lados hacen la misma cuenta
-entera**, así que coinciden exacto entre ellos y los dos pueden diferir de
-RPG_RT en un pixel en algún cuadro. Las 29 sacudidas del juego son de la forma
-de RM2k, con fuerza hasta 9 y velocidad hasta 8: 19 pixeles de amplitud como
-mucho.
-
-La posición se le suma a la cámara **sólo al dibujar**: es `GetDisplayX`, y en
-la ROM es `pantalla_x`, que ven el scroll, la tabla HDMA de la ventana y la OAM.
-El streaming del tilemap sigue mirando `camara_x`, porque la sacudida no cambia
-lo que hay que tener cargado. La ventana de mensaje no se mueve.
-
-Cuatro cosas salieron de compararla cuadro por cuadro, que es lo que ninguna
-receta hacía hasta ahora —las esperas se miraban con margen—:
-
-* **El tinte se escribía a mitad del cuadro.** `tinte_de_evento` apagaba la
-  pantalla, recalculaba las tres paletas en CGRAM y la volvía a prender, en el
-  lazo principal: un cuadro teñido a medias en el emulador y una franja negra
-  en el hardware. Ahora `aplicar_tinte` deja las paletas en `cgram_sombra` y
-  `subir_tinte` las sube por DMA en el vblank —544 bytes como mucho, y ese
-  vblank sube dos poses en vez de cinco—; `cargar_mapa`, que tiene la pantalla
-  apagada, lo llama enseguida.
-* **El streaming carga con margen.** El toro de 64 columnas tenía al día
-  exactamente las 33 de la pantalla, y la sacudida en negativo mostraba la de
-  la izquierda, que era una ranura que nadie había escrito. `MARGEN_COLS` son
-  cuatro columnas de más a cada lado, 32 pixeles: `fill_window`, `stream_map`
-  y `build_row` cargan el mismo rango, `[win_col - 4, win_col + 60)`. Lo
-  último costó un rojo: la fila se armaba desde `win_col`, y sus cuatro
-  columnas finales pisaban en el toro las ranuras del margen de la izquierda,
-  así que la esquina de la pantalla del mapa 2 mostraba columnas de 64 más
-  adelante.
-* **Fuera del mapa hay negro.** RM2k dibuja negro más allá de los bordes, y
-  la referencia también —PIL rellena con negro—, pero la ROM no escribía las
-  columnas que caían fuera del mapa y la ranura mostraba lo que tuviera.
-  `build_column` y `build_row` escriben ahora tile 0 para lo que cae fuera,
-  que el conversor reserva vacío en el banco del fondo como ya lo reservaba
-  en el de la capa de encima; y el color de fondo —el 0 de CGRAM, el que se
-  ve donde ninguna capa dibuja— es negro y no magenta. El magenta hacía dos
-  cosas: centinela para el ojo, y **clave de recorte** de la capa de encima en
-  `render_above`, que dibuja la capa sobre ese color y después lo vuelve
-  transparente. Con negro se recortaban también los pixeles negros de los
-  tiles de encima —la sombra de una máquina del mapa 6 se volvió un tramado
-  gris—, así que la clave sigue siendo magenta, `CLAVE_RECORTE`, pero sólo
-  adentro del render.
-* **El cronómetro se dibuja con la cuenta de antes del cuadro.** La consola
-  muestra en cada cuadro la OAM que armó la vuelta anterior. Con la caminata
-  eso lo compensa la referencia por cómo modela el paso —el `hero_y` de la
-  ROM después del cuadro N es el pixel de la referencia en el N+1—, y con los
-  dígitos no había con qué: el parpadeo de los dos puntos cambiaba un cuadro
-  antes en la referencia, con el mismo estado de los dos lados. `timer_texto`
-  usa ahora la cuenta de antes de descontar el cuadro.
-
-#### El destello de un personaje va sobre su fila de paleta
-
-`FlashSprite` (11320) es `OP_FLASH`. En RM2k tiñe **ese dibujable**; acá el
-dibujable es una fila de CGRAM, así que `pintar_flash` sube la paleta del blanco
-mezclada y la vuelve a subir como estaba al terminar. De ahí sale una diferencia
-con RM2k que no es de implementación sino de hardware: **destella todo lo que
-comparta esa fila** —otro evento con el mismo gráfico, uno al que le prestaron la
-paleta, o el héroe cuando el líder es además NPC del mapa—.
-
-Hasta el 2026-09-13 el compilador se defendía **no compilando** la página que
-destellara a un evento que compartiera gráfico, porque la referencia destellaba
-sobre la imagen de un sprite solo y la diferencia era invisible para la tanda.
-Ese corte costaba **51 páginas**, medidas, y una de ellas es el `EV0027` del
-mapa 20 —la cinemática del Bum de Sector 30—, que es la que prende el evento de
-Rat Tracks B2: sin ella el jugador aparece invisible y el juego se traba.
-
-Lo que se hizo no fue aflojar el corte sino **modelar la consola**: la
-referencia arma `destello_de_fila` con el mismo reparto de paletas que usa el
-conversor y destella por fila. Con eso los dos lados vuelven a ser el mismo
-programa y lo que queda es una divergencia con RM2k, declarada en
-`assets/LIMITACIONES.md`. De paso cierra una discrepancia que ya existía y que
-nadie medía: dos gráficos distintos pueden compartir fila —`cabe` une paletas
-cuando entran en quince colores— y ahí el corte por "mismo gráfico" no protegía
-nada.
-
-Lo cobra el caso `destello-compartido` de la tanda: el mapa 6, destellando al
-Kersh que está parado ahí, que comparte fila con el héroe. **Verificado en
-rojo** antes del cambio —320 pixeles, el 0,56%, en el cuadro 2— y en cero
-después, los cinco cuadros.
-
-#### El destello de pantalla
-
-`FlashScreen` (11040) es `OP_FLASH_SCREEN` desde el 2026-09-05: color, fuerza y
-cuadros, y un `OP_DELAY` detrás si la página espera, como la sacudida. Lo
-pide la escena en que Core rompe la puerta de seguridad del mapa 2 —evento 22,
-página del switch 7, la que abre el pasillo al ascensor—, y era lo que la
-cortaba junto con `ShowBattleAnimation` (11210), que desde el 2026-09-11 suena
-y destella y desde el 2026-09-12 **también se dibuja**, achicado a una caja de
-64x64: ver "El dibujo de las animaciones de batalla". El
-juego tiene 62 destellos, 29 de ellos blancos; ninguno dura más de veinte
-décimas.
-
-**La cuenta.** `Flash::Update` baja el nivel en `nivel / cuadros_que_quedan`
-por cuadro, con `double`: de 31 en treinta cuadros es 29.97, 28.93, ... hasta
-cero en el último. Acá el nivel va a escala 256 y la resta es entera, con el
-divisor del hardware; lo que se dibuja es la parte entera, y contra la cuenta
-con `double` difiere en uno como mucho. RM2k lo dibuja como un rectángulo del
-color con alfa `nivel * 8` sobre la pantalla compuesta —`Screen::Draw`—, y
-acá es lo mismo que el tinte: **una transformación de CGRAM**. Cada canal de
-cada color de las tres paletas del mapa se acerca al del destello en
-`nivel / 31` del camino (`destellar_canal_pantalla` en eventos.py, con la
-resta del lado positivo porque el divisor no tiene signo), el resultado va a
-`pal_buf` y `flush_video` lo sube en el vblank en lugar de la sombra. La sombra
-queda como está: es el mapa teñido sin destello, y cuando el destello se apaga
-vuelve a subirse tal cual. La ventana y el cronómetro no lo reciben, y tampoco
-allá: `Priority_Screen` es 90 contra 130 y 140.
-
-**Va en dos cuadros, y eso se midió.** Pasar las doscientas y pico entradas
-de las tres paletas —a más de cien ciclos cada una, porque cada color se parte
-en tres canales y se vuelve a armar— no entra en un cuadro junto con todo lo
-demás. La primera versión lo hacía en uno y **perdía un cuadro por cuadro**:
-el destello bajaba a la mitad de velocidad y la escena terminaba treinta
-cuadros atrás de la referencia, con el cuadro 600 en rojo y los de antes en
-cero. Lo dijo `cuadros_perdidos` —ver "Los cuadros perdidos se cuentan"—, y
-con un lazo de retardo calibrado en lugar del recoloreo salió que en esos
-cuadros hay unos 11 ms de margen, y que el recoloreo entero costaba más. Así
-que con la resta impar se arman las tablas del nivel y se pasan el fondo y la
-capa de encima, y con la par se pasan los sprites y se sube todo. Lo que se
-ve cambia cuadro por medio, un destello de treinta cuadros son quince
-escalones, y la referencia hace exactamente lo mismo —`destello_mostrado` en
-`Estado.cuadro_de_destello`—. Un tinte que cambie en el cuadro impar pisa
-`pal_buf` con la paleta recién teñida y además no puede subirse sin destello,
-así que ese cuadro se hace de una y el par rehace el fondo; la referencia
-mira `tinte_cambio` para lo mismo.
-
-**Y la RAM.** `pal_buf` es a la vez donde se arma la paleta teñida y donde
-queda la sombra con destello: la primera se copia a la sombra en el mismo
-cuadro, antes de que `destello_tick` escriba, y lo que hay se sube en el
-vblank que sigue. Las tablas son bytes y no palabras ya corridas —que le
-ahorrarían los corrimientos al recoloreo— porque **el banco 0 quedó en 7905
-bytes de 7936**, con la pila arriba de todo: quedan unas decenas de bytes de
-pila más lo que `pal_buf` no use. Es lo primero que hay que aflojar si algo
-más pide RAM.
-
-Dos trampas de nombres que costaron una vuelta cada una: el destello de
-**un personaje** (`FlashSprite`) ya tenía `destellar` y `destellar_imagen` en
-la referencia, con otra cuenta, y la primera versión de esto se llamó igual y
-las tapó —un color de diferencia en toda la pantalla—; y `pal_buf` no puede
-declararse con otro nombre por `=`, porque `w65.py` resuelve los `=` antes que
-las etiquetas.
-
-**Cómo se verifica.** El caso `core-puerta` de `snes-escena`: el héroe pisa
-el evento 22 desde (87,76) con el switch 7 puesto, seis toques de A y seis
-cuadros en cero, dos de ellos —407 y 425— con el destello a la mitad. Los
-cuadros del destello se eligieron con el nivel de cada uno leído de la
-referencia y de la ROM en un pixel negro, que es como se vio que iba a la
-mitad de velocidad.
-
-#### El arranque dura siempre lo mismo
-
-Para comparar un cuadro en movimiento el cuadro N de la captura tiene que
-mostrar el tick N de la referencia, y eso depende de en qué cuadro la ROM llega
-al primer tick del intérprete. Hasta el 2026-09-05 eso dependía del mapa —la
-subida de poses, la música— y **de cada cambio de código o de datos**: un
-bucle más en `cargar_mapa` y el lazo arrancaba un cuadro después, y cada receta
-llevaba un número medido a mano, 10 en el mapa 6, 41 en el 7, 43 en el 70, 70
-con música. Se midió, y no era uniforme: el tinte en el vblank corrió un
-cuadro a los mapas con más carga y no a los otros, y el tile 0 reservado podía
-correr otro que esa medición no veía.
-
-Ahora el arranque **espera hasta el cuadro `BOOT_CUADROS`**, contado por una
-NMI mínima que sólo suma un cuadro y baja la bandera; el lazo principal corre
-su primer cuadro tres cuadros después, y todas las recetas pasan ese número
-como `--arranque`, que es el default de `snes_correr.py`. Una ROM cuyo arranque
-tarde más que eso sale sin esperar, más tarde, pero igual de fijo para ella.
-
-Eran **64 y 67** hasta el 2026-09-06, y son **112 y 115** desde que el cartucho
-lleva varios temas: el banco de muestras es uno solo para todos, creció, y
-subirlo al SPC700 va byte a byte con acuse —unos 1,4 cuadros por kilobyte—. El
-112 no sale del banco de hoy sino del techo: con la ARAM llena, 62310 B, la ROM
-llega al lazo en el cuadro 101. Sacarlo del techo tiene una ventaja que no es
-sólo margen: **llenar la ARAM deja de costar nada**, porque el arranque ya está
-pagado. El costo son ocho décimas más de mapa congelado al encender, casi todas
-en la subida al SPC700; lo que las compraría de vuelta es un driver que reciba
-por los cuatro puertos en vez del protocolo del IPL, que manda uno.
-
-Con la ROM y la referencia alineadas exacto aparecieron tres cosas que el
-margen escondía: el cuadro 400 de `snes-cinematica`, que caía con el héroe
-caminando dentro de la ventana de un teletransporte —es 480 ahora—; el
-cronómetro, de arriba; y `snes-saturar`, que pasaba `--arranque 0` fijo.
-
-**Cómo se verifica.** `snes-sacudir`, tres casos: el mapa 7 con `3 3 2 1`,
-que es la de la puerta del mapa 2; el 6 con `9 8 3 1`, la más fuerte y rápida
-que admite RM2k; y el 2 con el héroe en (4,54) y la cámara en el borde
-izquierdo, donde la sacudida asoma lo que hay fuera del mapa. La página de
-prueba sacude, espera y tiñe: los cuadros del medio miran la pantalla corrida y
-el último mira que volvió a su lugar y el tinte llegó entero. Lo que no se
-modela es la sacudida continua de RM2k3, que este juego no usa.
-
-#### La cámara corrida sin el héroe
-
-`PanScreen`. De sus cuatro operaciones el juego usa dos —112 `pan` y 21
-`reset`, y ni un `lock` ni un `unlock`— así que ésas son las que compilan.
-
-La cámara se corre tantas celdas en una dirección y se le acerca al destino
-`2 << velocidad` **dieciseisavos de pixel** por cuadro: es `pan_speed` de
-`Game_Player::StartPan` y el `dx = min(step, |remain|)` de `UpdatePan`. Las
-unidades no son un capricho heredado: la velocidad 2 —la que usa la escena de
-Talan— mueve la cámara **medio pixel por cuadro**, y en pixeles enteros eso no
-se puede contar. Así que los dos lados llevan la cámara corrida en
-dieciseisavos y la bajan a pixeles con una división **al piso**, que es lo que
-hace `Spriteset_Map` dividiendo `GetDisplayX()` por 16.
-
-Tres cosas que decidir, y por qué:
-
-* **El desplazamiento lo resuelve el conversor.** El bytecode lleva cuánto se
-  corre el destino en x y en y, con signo, y el paso por cuadro; la dirección y
-  la velocidad no llegan a la ROM. Son cuentas fijas.
-* **Los cuadros que la página espera, no.** Ésos salen de **lo que le falta** al
-  pan cuando el comando corre, y con uno todavía en curso eso no es lo que este
-  comando pidió: es el `GetPanWait` de RM2k y el comentario de
-  `CommandPanScreen` sobre el máximo. Los cuenta la ROM, con el divisor del
-  hardware.
-* **El pan entra antes del acote y no después**, al revés que la sacudida: RM2k
-  corre la posición del mapa y el borde la frena, mientras que la sacudida
-  asoma lo que hay del otro lado. Lo que **no** se modela es que en el borde
-  RM2k frena el pan y lo deja pendiente; acá el acote es de la cámara y el pan
-  sigue contando. Ninguna de las páginas que hoy compilan lo pide.
-
-Y al cambiar de mapa la cámara vuelve a cero de golpe, que es lo que hace
-`PerformTeleport` con `map_changed`. Un salto al mismo mapa no la toca.
-
-**Cómo se verifica.** Dos casos, los dos con la página de prueba corriendo la
-cámara **y esperando**, y un tinte detrás: los cuadros del medio miran la cámara
-a mitad de camino y el tinte pincha el largo de la espera al cuadro.
-
-* `pan`: dos celdas para arriba a velocidad 2 —el PanScreen de la escena de
-  Talan—, o sea 64 cuadros. La cámara baja de a ocho pixeles cada dieciséis
-  cuadros y el tinte aparece en el 66 y no en el 65.
-* `pan-vuelve`: lo mismo y después `reset` a velocidad 4, que la trae de vuelta
-  en dieciséis cuadros; el tinte cae en el 83 y no en el 82.
+La divergencia deliberada con RM2k que este lado se permite, y la que hace que
+los cofres del Sector 30 se puedan pisar o no. La orden 36 de una ruta
+—`walk_everywhere_on`— es **pegajosa** en RM2k: escribe `move_route_through` de
+`Game_Player`, que es un campo de la partida guardada —`SaveMapEventBase` en
+liblcf— y que no repone nadie, ni `CancelMoveRoute`, ni `ForceMoveRoute`, ni
+`MoveTo` al cambiar de mapa. Así que una página que la prenda y no la apague
+deja al héroe atravesándolo todo hasta el final de la partida. Medido sobre el
+juego entero: de las 153 páginas que la mueven, **4 la dejan prendida**, y dos
+de esas cuatro —el Hover-Tram del mapa 13, `EV0028`, y el mapa 14— están en el
+camino principal, así que el defecto lo tiene cualquiera que llegue caminando al
+Sector 30.
+
+Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. Del lado de
+la referencia eso ya era así sin que estuviera escrito —`caminar` no mira
+`ruta_heroe.atraviesa` y `paso_de_ruta` sí—; del lado de la ROM el porqué, con
+el síntoma que lo delató, está en `celda_bloqueada`, que es donde se lee
+`atravesando` y no la pegajosa `ruta_atraviesa`.
+
+Para la pregunta al revés —un evento que camina contra el héroe— los dos lados
+siguen mirando la pegajosa (`ruta_atraviesa` acá, `estado.ruta_heroe.atraviesa`
+allá). Es una asimetría, y se deja porque los dos la tienen igual y ninguna ruta
+del juego la ejercita: haría falta un evento caminando encima del héroe justo
+después de una página que dejó la 36 prendida.
 
 #### Varios temas en el cartucho
 
-Hasta el 2026-09-06 la ROM llevaba **un** tema. Los `PlayBGM` de las páginas
+Al principio la ROM llevaba **un** tema. Los `PlayBGM` de las páginas
 compilaban igual —el bytecode lleva el índice del tema en `Temas`— pero la ROM
 tocaba sólo el que le había tocado llevar y con cualquier otro índice no hacía
 nada. Ahora lleva todos los que entren.
@@ -3461,73 +1981,49 @@ tenían. Se le da lo que sobre de ARAM en vez de un presupuesto fijo, que
 alcanza para que los platos vuelvan a su tasa nativa, pero un bombo de tres
 temas juntos igual queda más grueso que solo. Es el precio de compartir.
 
-**Y un tema que no entra en el banco no se cae del cartucho**, desde el
-2026-09-12. Hasta ese día, cuando el banco de todos no entraba en la ARAM el
-conversor sacaba temas **de la lista entera**, desde el final. Al pasar la demo
-a los 29 mapas de Lashe City la ROM pidió 19 temas, el banco se llenó —89
-muestras y 66353 B contra los 64512 de ARAM— y se cayeron ocho. Uno era el del
-título, que va último porque agregarlo al final es lo único que no renumera el
-bytecode: `TEMA_TITULO` salió `$FF` y la pantalla de título no intentaba ni
-arrancar música.
+**Y un tema que no entra en el banco no se cae del cartucho.** Sacar temas de la
+lista entera cuando el banco no entra en la ARAM cuesta dos cosas distintas, y la
+segunda es la cara: un `PlayBGM` de ese tema no hace nada, y **su pista de MSU-1
+queda inalcanzable**, porque una pista no gasta un byte de ARAM y lo único que
+necesita es que el tema tenga número. Con los 29 mapas de Lashe City la ROM pide
+19 temas y el banco se llena —89 muestras y 66353 B contra los 64512 de ARAM—;
+entre los que se caían estaba el del título, que va último porque agregarlo al
+final es lo único que no renumera el bytecode.
 
-Que se cayera de la lista y no sólo del banco cuesta dos cosas distintas, y la
-segunda es la cara: un `PlayBGM` de ese tema no hace nada, y **la pista de
-MSU-1 queda inalcanzable**. `Fantasia_Of_The_Wind` tiene la pista 8; una pista
-no gasta ni un byte de ARAM y lo único que necesita es que el tema tenga
-número. Medido: con los archivos al lado, `MSU_HAY=1`, `MSU_SUENA=0` y el pico
-del audio en cero.
-
-Ahora la lista es completa siempre —un índice y su stream cuestan cartucho, y
+La lista es completa siempre —un índice y su stream cuestan cartucho, y
 de eso sobra— y lo que se recorta es **quién aporta programas al banco**, en
 orden de prioridad: primero el del título, después el del mapa donde la ROM
 arranca, y detrás la lista tal cual. Un tema que no aporta suena con lo que
 otros ya pusieron, porque el banco es por programa de General MIDI. Antes no
 sonaba ninguno.
 
-**Lo que cuesta, medido de nuevo el 2026-09-14 y esta vez contando notas.** Una
-nota cuyo programa no está en el banco no suena más bajo: **se cae del stream**
-—el `continue` de `build_events`— y la voz desaparece. Sobre los 21 temas de
-`demo-ciudad`, los doce primeros están al 100% y los nueve del final quedan
-así:
+**Lo que cuesta, contado en notas.** Una nota cuyo programa no está en el banco
+no suena más bajo: **se cae del stream** —el `continue` de `build_events`— y la
+voz desaparece. Los primeros de la lista quedan enteros y los últimos mutilados;
+cuáles y cuánto lo dice el informe del conversor, tema por tema.
 
-    Astpgmarch                  64,4%      Auditorium (18)
-    Gaden                       63,6%      Talan and the Director (19)
-    3D-Galax                    43,4%      idem
-    wb3shop                     72,5%      Sector 30 Back Alleys (20)
-    KSSMKEND                    42,0%      Rat Tracks B2 (26)
-    vswar                       69,2%      idem
-    Lunar_Pyramid               70,4%      Sector 27 Back Alleys (28)
-    dcbest                      27,5%      Sector 27 Warehouse (32, 33)
-    golden_axe-turtlevillage2   12,2%      LasheCityVehicle (36)
-
-Es lo que taro oyó jugando en la SNES el 2026-09-13 y describió como que la
-música *"pierde calidad progresivamente"*. **No es progresivo**: es un tema
-distinto por mapa, y el recorte se lleva a los últimos de la lista, que es más
-o menos el orden en que se visitan los mapas. El 20 suena mejor que el 19, y él
-lo dijo así. Y **no lo tapa el MSU-1**, porque ninguno de esos nueve tiene
-pista: en la oficina del director las dos corridas son el mismo camino.
+Jugando no se oye como un deterioro progresivo aunque lo parezca: es un tema
+distinto por mapa, y el recorte se lleva a los últimos de la lista, que es más o
+menos el orden en que se visitan los mapas. Y **no lo tapa el MSU-1**: los temas
+que el recorte alcanza son justamente los que no tienen pista.
 
 **El lever para decidirlo de oído es `--banco-entero`**, que le saca el tope a
-`build_varios`:
-
-    hoy                  58 muestras, 57517 B, tasa mediana 11521 Hz, 9 mutilados
-    con --banco-entero   95 muestras, 67376 B, tasa mediana  8109 Hz, 0 mutilados
-
-O sea, o los doce primeros perfectos y los nueve últimos con la mitad de las
-notas, o los veintiuno enteros y todos un 30% más chillones. Con
+`build_varios`. Corriendo el conversor con y sin el flag se ve el canje en sus
+dos líneas —cuántas muestras entran, cuántos bytes ocupan, la tasa mediana y
+cuántos temas quedan mutilados—: o los primeros perfectos y los últimos con la
+mitad de las notas, o todos enteros y todos bastante más chillones. Con
 `--banco-entero` el banco deja de entrar en la ARAM de una vez, y eso está
 bien: ahí vive **un paquete de mapa por vez**. Cuál de las dos suena peor no lo
 contesta un número.
 
 **Por qué el límite sigue estando, ahora que el audio sube por paquetes de
 mapa.** En la ARAM no vive el banco entero sino el directorio y **un** paquete,
-así que el hardware aguanta bastante más: con los diecinueve temas aportando,
-el directorio son 617 B y el peor paquete 54945 de 63831, o sea que entra. Lo
-que no aguanta es el oído: los mismos 40 KB melódicos repartidos entre
-diecinueve programas en vez de once bajan la tasa mediana de 12,5 a 8,4 kHz, y
-eso se lo cobran los once temas que hoy suenan bien. El límite se queda hasta
-que haya un presupuesto **por paquete** en vez de por banco; está en "Lo que
-falta".
+así que el hardware aguanta de sobra: el conversor imprime el directorio y el
+peor paquete, y entran. Lo que no aguanta es el oído: los mismos 40 KB
+melódicos repartidos entre casi el doble de programas bajan la tasa mediana a
+la mitad, y eso se lo cobran los temas que hoy suenan bien. El límite se queda
+hasta que haya un presupuesto **por paquete** en vez de por banco; está en "Lo
+que falta".
 
 **En la ROM cambia poco.** Tres tablas de un byte —`tema_lo`, `tema_hi`,
 `tema_bk`— en el banco 0, porque se leen con un índice; `music_start` toma el
@@ -3542,15 +2038,10 @@ stream lo recorre `advance`, que hace el mismo salto. Puesto igual, un stream
 de más de 32 KB alineaba a banco **y cruzaba lo mismo**: eran hasta 32 KB de
 relleno por bloque a cambio de nada.
 
-**Lo que sí costó caro es el arranque.** La subida al SPC700 va byte a byte con
+**Lo que sí cuesta caro es el arranque.** La subida al SPC700 va byte a byte con
 acuse, unos 1,4 cuadros por kilobyte, así que un banco de 62 KB tarda el doble
-que uno de 32. Con `BOOT_CUADROS` en 64 la ROM se pasaba y el lazo arrancaba en
-el cuadro 101 en vez del 67: dos casos de la tanda se pusieron rojos con el
-mapa 18 y 85 cuadros perdidos, que eran RAM sin inicializar. Ahora
-`BOOT_CUADROS` son 112, medidos **sobre el techo y no sobre el banco de hoy**
-—con la ARAM llena la ROM llega al lazo en el 101—, y las recetas pasan
-`--arranque 115`. Cuesta ocho décimas más de arranque y a cambio llenar la ARAM
-ya no cuesta nada. Ver "El arranque dura siempre lo mismo".
+que uno de 32, y `BOOT_CUADROS` está dimensionado sobre el techo por eso: ver
+"El arranque dura siempre lo mismo".
 
 **Cómo se verifica.** `just snes-bgm <tema>`, que arma la ROM de las primeras
 secuencias con `--tema-de-arranque`, la corre sin pantalla, graba el audio y se
@@ -3565,296 +2056,16 @@ banco de todos.
 es visual y esto pide grabar cuarenta segundos de audio por tema. O sea que
 este camino no lo corre nadie salvo que se lo pida a mano.
 
-Los cuatro pasan: `escape_newyork` 96%, `TF3_1_awe` 98%, `evilrhys` 83% y
-`hzstream` 90% —éste con el banco de los cuatro, 62310 B, o sea la ARAM casi
-llena—.
-
-**`evilrhys` es el ruidoso y conviene saberlo antes de asustarse**: en tres
-corridas dio 66%, 75% y 83%, contra un techo de 95% que le da FluidSynth
-tocando el mismo MIDI. La medida se toma sobre sesenta ventanas de una
+**`evilrhys` es el ruidoso y conviene saberlo antes de asustarse**: tres
+corridas seguidas del mismo tema dan porcentajes que se llevan quince puntos
+entre sí, contra el techo que le da FluidSynth tocando el mismo MIDI. La medida
+se toma sobre sesenta ventanas de una
 grabación que arranca donde haya señal, así que en un tema con poca nota
 sostenida el corrimiento elegido cambia bastante el número. Lo que **no**
 cambia es el banco compartido: las escrituras melódicas de su stream son las
 mismas con banco propio y con banco compartido. Lo que sí lo tiene al límite es
 que tiene ocho canales melódicos para seis voces, así que dos no suenan nunca y
 los seis que quedan son monofónicos.
-
-#### El `FadeOutBGM`
-
-Apaga el tema que esté sonando en los milisegundos que pida. Es lo único que
-separaba a taro de la puerta del Emitter Room: la página de tecla del evento 5
-del mapa 3 son tres comandos —un sonido, este fundido y el switch que abre la
-puerta— y sin él no compilaba ninguna, así que apretar A no hacía nada.
-
-No cuesta un cuadro: `Game_Interpreter::CommandFadeOutBGM` llama a `BgmFade` y
-devuelve **true** en el mismo, o sea que la página sigue de largo. Así que no
-mueve un solo cuadro de los que la tanda compara, y la referencia sólo tiene
-que saltear sus tres bytes.
-
-Lo que hace la ROM es bajar el **volumen general del DSP**, MVOL de los dos
-canales, y cortar el tema cuando llega a cero. Tres decisiones:
-
-* **El paso lo emite el conversor**, no la ROM: el bytecode lleva cuánto baja
-  el nivel por cuadro y no los milisegundos de RM2k. El 65816 no divide, y el
-  divisor del hardware es de ocho bits: los 5000 ms de esa puerta son 300
-  cuadros y no entran. Es `eventos.paso_de_fundido`, y es la misma clase de
-  número que el índice de mapa de un teletransporte.
-* **El nivel es de dieciséis bits** y de él sale el volumen multiplicando por
-  `TEMA_VOLUMEN` con el multiplicador del hardware. Bajar el registro de siete
-  bits de a uno daría noventa y seis escalones para trescientos cuadros, y eso
-  se oye.
-* **`TEMA_VOLUMEN` y los dos registros los emite `sdsp.py`** en
-  `musicdata.inc`, porque el stream ya los escribe al arrancar: tenerlos
-  además a mano en `main.s` serían dos lados que se pueden equivocar igual.
-
-Un `PlayBGM` cancela el fundido —el stream vuelve a escribir el volumen al
-arrancar—, y un `FadeOutBGM` con el tema ya apagado no hace nada.
-
-**Cómo se verifica.** La tanda lo cubre por donde puede, que es la pantalla: el
-caso `puerta-emisor` habla con esa puerta y compara el cuadro 10 con la puerta
-cerrada y el 40 con la puerta abierta. Es filoso por construcción —entre los dos
-cuadros hay 300 pixeles— y por eso no cae en la trampa de los dos lados
-equivocados igual: si la página no compilara, los dos dibujarían la puerta
-cerrada y el caso daría cero.
-
-El audio no lo compara nadie, así que el fundido en sí se midió a mano, con una
-ROM del mapa 16 —que sí tiene tema propio y suena desde el arranque— y la
-página de prueba con `--fundir-bgm 1000`:
-
-    python3 tools/snes_convert.py --grupo 11 --map-id 16 --fundir-bgm 1000 \
-        --pagina-de-prueba 240 100 100 0 -o rom/build/fb/mapdata.inc
-
-`bgm_nivel` baja de a 1093 por cuadro, que es lo que dice `paso_de_fundido`
-para 1000 ms, y el pico del audio del emulador acompaña: 16174, 9859, 5476,
-1737 y cero a los sesenta cuadros. La misma ROM sin `--fundir-bgm` sigue entre
-12000 y 24000 en el cuadro 130, o sea que lo que baja es el fundido y no el
-tema.
-
-#### La frecuencia se sube y se baja a mitad de una ruta
-
-Las órdenes 30 y 31 —`increase/decrease_movement_frequence`— mueven la
-frecuencia de la ruta de a uno, topando en 8 y en 1. De la frecuencia salen los
-cuadros quieto después de cada orden, así que cambiarla a mitad de camino
-cambia el ritmo de lo que queda.
-
-**Las usa una sola ruta de todo el juego**: la que sacude a Manta en la escena
-del Emitter Room, que baja de 8 a 6 y no vuelve a subir. Sin ellas esa página
-no compila, y por eso entraron.
-
-Lo único que no es mecánico es el tope de abajo. **Con la frecuencia 1 la
-espera tras un paso son 256 cuadros** y no entran en el byte de
-`ruta_tras_paso`, así que una ruta que llegue ahí no se puede correr. La salida
-no fue topar en 2 —eso sería que los dos lados se equivoquen igual el día que
-alguna ruta lo pidiera— sino **rechazar la ruta al compilarla**:
-`eventos.frecuencia_minima` recorre las órdenes desde la frecuencia inicial y
-devuelve la más baja por la que pasa, y si es menor que `RUTA_FRECUENCIA_MIN`
-la ruta no se emite. Con una ruta que se repite se recorre nueve veces y no
-una: la frecuencia se topa en los dos extremos, así que una que baje más de lo
-que sube termina en 1 sí o sí. Ninguna ruta del juego cae en el guard hoy.
-
-Con eso, la ROM y la referencia topan las dos en 1, como RM2k, y el camino que
-la ROM no sabe recorrer simplemente no se compila.
-
-**Cómo se verifica.** Dos casos nuevos, y los dos son filosos por construcción
-—se midió contra la misma ruta sin las órdenes—:
-
-* `ruta-frec`: el héroe camina seis celdas con un 31 y un 30 en el medio. En el
-  cuadro 30 la referencia lo deja ocho pixeles más arriba que sin las órdenes,
-  y en el 40, dieciséis; como la cámara lo sigue, eso corre la pantalla entera.
-* `npc-frec`: lo mismo sobre un evento, donde la diferencia es sólo el sprite:
-  271 pixeles en el cuadro 40 y 448 en el 60.
-
-#### Cambiar el gráfico a mitad de una ruta
-
-La orden 34, `change_graphic`, que 437 rutas de este juego usan y que "Lo que
-falta" venía anotando como lo más caro que quedaba. Es la última de `MoveCommand` de
-las que este juego usa, y la única con **operando**: detrás del 34 va el índice
-del gráfico. Todo lo demás del bytecode de una ruta es un byte por orden, así
-que el que recorra una ruta ya compilada tiene que pasar por `recorrer_ruta` —
-plano, el operando se leería como una orden, y con un 30 o un 31 ahí adentro
-cambiaría la frecuencia sin que nadie lo pidiera.
-
-**El caso más común es desaparecer.** De las 437 órdenes, **185 cambian a
-`nobodyhere`**, un CharSet sin un solo pixel opaco. Ahí no hay nada que subir a
-la VRAM: la fila se esconde, que es lo que ya hacía `esconder_npc`. Verlo
-primero cambió el tamaño del problema.
-
-**Lo caro es la paleta, no el cartucho.** Un gráfico al que una ruta cambia es
-un personaje más para la consola: pide una de las ocho paletas de sprite y sus
-doce poses en el cartucho, porque después de cambiar el evento **sigue
-caminando** y el ciclo tiene que salir de algún lado. Las doce poses son seis
-kilobytes y de eso sobra; las paletas no. Forzarlas rompía tres mapas —el 108,
-el 114 y el 207 pedían nueve de las ocho—, así que entran **mientras quepan**,
-que es la misma regla que ya corría para los eventos dibujados con un tile del
-chipset. El que no entra no se dibuja: la orden lo esconde en vez de cambiarlo,
-los dos lados hacen lo mismo y el conversor lo dice al convertir. Pasa en esos
-tres mapas y con un solo gráfico, `ABLDalia:3`.
-
-Que el reparto de paletas lo decida `npcs_dibujables` **con los gráficos de
-ruta adentro** no es un detalle de orden: esa función es la regla única que
-corren los dos lados, así que si el conversor contara un personaje más que la
-referencia, un evento de tile podría entrar de un lado y no del otro.
-
-**Cómo viaja el índice.** `Graficos` numera los gráficos por mapa —hermano de
-`Temas` y de `Mensajes`, pero por mapa, porque el banco de sprites es por
-mapa— y la ROM lo resuelve con `ruta_grafico`, dos bytes por gráfico: de qué
-personaje salen sus doce poses y con qué paleta. Esa tabla se copia a la RAM al
-cargar el mapa, como la de NPCs, y por una razón concreta: leerla del cartucho
-pediría un puntero largo en la página directa, y **la página directa está
-llena** —259 bytes de los 256 al intentarlo—. Copiarla cuesta dieciséis bytes
-de RAM y el mapa que más gráficos pide de todo el juego pide seis.
-
-Hay un invariante del que esto depende y conviene tenerlo escrito: **el blanco
-de una orden 34 siempre tiene ranura propia en la VRAM**. La orden sólo existe
-adentro de un `MoveEvent`, así que su blanco está en `blancos_de_ruta` y por lo
-tanto en `movibles`, y un evento que camina no comparte ranura ni con otro
-igual. Sin eso, subir la pose nueva pisaría la de los NPCs quietos que
-compartieran esa ranura.
-
-Aplicarla es escribir tres campos de la fila: de qué personaje salen las poses,
-la paleta —bits 1 a 3 de los atributos, sin tocar el resto— y $FF en la pose
-que hay en la VRAM, que es lo que hace que `refrescar_npc` la vuelva a subir.
-La pose del ciclo **no se toca**: el evento sigue caminando donde estaba, que
-es lo que hace `SetSpriteGraphic`. Y no cuesta un cuadro: en `UpdateMoveRoute`
-cae en la rama que no toca el contador de parada.
-
-**Sobre el héroe no se compila**, como las diagonales. Su gráfico sale de la
-tabla de actores —`place_hero` lo busca por el id del líder— y una ruta que se
-lo cambie tendría que pisar ese mecanismo. Son 89 rutas de páginas automáticas
-y diez páginas más; queda en "Lo que falta". El corte importa más acá que con
-las diagonales: si una 34 llegara al héroe, `paso_de_ruta` la saltearía y
-leería el operando **como si fuera una orden**.
-
-Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
-`BeginMoveRouteJump` sólo mira los `move_*`, los que giran y el `end_jump`.
-Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
-por corrección y no porque pase.
-
-Con esto **la escena de Talan compila y corre**, y tiene caso propio: `talan`,
-el más largo de la tanda —mil doscientos cuadros de los 233 comandos—.
-
-**Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
-evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los
-cuadros 10 y 25 lo miran con el suyo y el 40 y el 70 con el nuevo, **caminando**,
-que es lo que separa "cambió el gráfico" de "cambió y se quedó quieto". El
-primero cambia a `Future1:0` y el segundo a `nobodyhere`, o sea que desaparece.
-Los dos medidos contra la misma ruta sin la orden: 146 pixeles de diferencia el
-primero y 207 el segundo —el sprite entero—, y cero en los cuadros de antes del
-cambio.
-
-#### Las diagonales de ruta
-
-Las órdenes 4 a 7 —`move_upright`, `move_downright`, `move_downleft`,
-`move_upleft`—, que 26 rutas de este juego usan.
-
-**Las camina sólo un evento.** De esas 26 rutas ninguna es del héroe, y por eso
-la ROM no las tiene sobre él: el paso del héroe está escrito una vez por
-dirección —`try_up` y sus tres hermanas, cada una con su borde de mapa, sus dos
-permisos y su `step_dx`/`step_dy`— y darle diagonales sería duplicarlas para
-cero rutas. El conversor rechaza la página que le dé una al héroe, igual que
-rechaza al héroe encarándose a sí mismo. Sin ese corte los dos lados se
-separan en silencio: la referencia camina la diagonal y la ROM se va hacia la
-izquierda, que es donde cae el descarte de `paso_de_ruta`. No es hipotético
-—pasó escribiendo las pruebas de esto—, así que `--ruta-de-evento` lleva el
-mismo corte: ahí el blanco 0 es el héroe y un evento es su índice **más uno**.
-
-**Nadie mira la celda diagonal.** `Game_Character::Move` prueba dos eles:
-primero vertical y después horizontal, y si ésa no sale, primero horizontal y
-después vertical. Alcanza con que **una** esté libre entera, codo incluido, y
-cada pata se consulta como un paso derecho —las dos caras, la que se deja y la
-que se entra, y quién está parado dónde—. La consecuencia visible es que no se
-cruza el vértice de dos paredes en diagonal, pero sí se pasa si hay por dónde
-rodear. En la ROM es `puede_celda_diag`, que llama dos veces a `puede_celda`
-corriendo `celda_x`/`celda_y` hasta el codo y devolviéndolas; del lado de
-Python es `eventos.puede_en_diagonal`, con la misma forma.
-
-**No se gira hacia el rincón.** El charset tiene cuatro poses y ninguna apunta
-a un rincón, así que `UpdateFacing` hace otra cosa: si la pose de antes es una
-de las dos componentes del paso se queda como está, y si no se da vuelta 180°.
-Caminar arriba-derecha mirando abajo deja mirando arriba; mirando arriba no
-cambia nada.
-
-Y eso obliga a saber la pose de **antes**, que no siempre está puesta: en
-veinte de las veintiséis rutas la diagonal es la primera orden, así que en la
-ranura todavía está `RUTA_EV_SIN_MIRAR` y la pose de verdad es la de la página
-del evento —`npc_buf + 10`, la misma que usa el dibujo—. `encarar_diagonal` la
-resuelve ahí y la escribe; del lado de Python es `Ruta.mirando_pagina`, que
-`Estado.ruta_de_evento` saca de `collect_npcs` igual que la velocidad.
-
-Ahí hay una asimetría que conviene tener anotada: **la ROM lee esa pose viva**
-—el refresco reescribe `npc_buf + 10` cuando un evento cambia de página— y la
-referencia se queda con la del mapa recién cargado. Que las dos coincidan no es
-suerte: los 21 eventos del juego que caminan una diagonal **miran para el mismo
-lado en todas sus páginas**, así que no hay refresco que las separe. El día que
-eso deje de ser cierto, `miradas` tiene que pasar a leerse de la página activa.
-
-Lo demás sale por tabla y no por comparaciones: `paso_dx`/`paso_dy` pasaron a
-ocho entradas, y con eso mover la celda, descontar los pixeles que le faltan al
-paso —en diagonal hay que descontar en los **dos** ejes— y sumar el
-desplazamiento adentro de un salto quedaron escritos una sola vez cada uno.
-
-**Cómo se verifica.** Dos casos, `npc-diagonal` y `npc-diagonal-gira`.
-
-El primero no corre en el mapa 6, que es el de siempre y está abierto por los
-cuatro lados: ahí la regla de paso no se ejerce. Va en el **mapa 10**, donde el
-evento 0 está en (3,10) con una pared pegada a la derecha y otra justo abajo, y
-las tres respuestas posibles salen de esa sola celda: arriba-derecha no se
-puede por ninguna de las dos eles y se saltea sin costar un cuadro,
-abajo-izquierda **sólo** se puede rodeando primero por la izquierda —o sea que
-la salva la segunda ele— y arriba-izquierda se puede por las dos. Medido contra
-un control: la ruta que baja en diagonal mueve al evento 340 pixeles respecto
-de una que espera, y la trabada da cero contra ella.
-
-El segundo es el giro de 180°: el evento mira a la izquierda y camina
-abajo-derecha. Da idéntico a mirar a la derecha desde el principio y distinto a
-mirar hacia abajo, que es lo que separa la regla de RM2k de "no girar nunca".
-
-#### El cronómetro
-
-`TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
-arriba a la izquierda con cinco glifos de la imagen de System —los diez dígitos
-y los dos puntos, de 8x16 a partir de (32,32)— como diez objetos de 8x8 con
-prioridad 3, que es la que los pone adelante de las dos capas. Los glifos van al
-final del banco de sprites, en una fila de dieciséis: el glifo `i` ocupa el tile
-`TIMER_BASE + i` y el `TIMER_BASE + 16 + i`, o sea su mitad de arriba y la de
-abajo. Se llevan una de las ocho paletas de sprite, así que en una ROM con
-cronómetro un mapa puede usar siete personajes y no ocho.
-
-Tres cosas salen de leer RM2k y no de mirar la pantalla:
-
-* **Al llegar a cero desaparece.** `Game_Party::UpdateTimers` llama a
-  `StopTimer` cuando los segundos dan cero, y `StopTimer` apaga la cuenta **y la
-  visibilidad**: el último valor que se ve es 00:01, no un 00:00 congelado.
-* **El tinte no lo toca.** `Priority_Timer` es 140 y `Priority_Screen` 90: en
-  RM2k la pantalla se oscurece y el cronómetro no. Acá el tinte es una
-  transformación de CGRAM, así que `aplicar_tinte` vuelve a subir la paleta del
-  cronómetro sin teñir. Puede hacerlo porque los dígitos tienen paleta propia;
-  la ventana de mensaje no puede, porque la suya está en la mitad del mapa, y
-  por eso ésa sí se tiñe.
-* **Los dos puntos parpadean** medio segundo sí y medio no, que es el
-  `frames % 60 < 30 -> continue` de `Sprite_Timer::Draw`.
-
-La cuenta no se guarda en cuadros sino partida en segundos y resto, y eso no es
-una optimización sino lo que evita dividir por 60 sesenta veces por segundo:
-bajar un cuadro es restarle uno al resto, y cuando da la vuelta baja un segundo.
-Los cuatro dígitos se recalculan ahí, una vez por segundo. El tope son 1092
-segundos —dieciocho minutos—, que es lo que entra en la cuenta de cuadros de
-dieciséis bits; el cronómetro más largo del juego son diez minutos.
-
-**No destraba ninguna página**, y está medido: las seis del juego que usan
-`TimerOperation` están todas cortadas por otra cosa. La que interesa es el
-despertador del pad de Talan —mapa 7, evento 4—, que necesita además
-`TintScreen` con saturación, `ChangeGold` y cinco órdenes de ruta que no
-caminamos.
-
-**Cómo se lo mira:**
-
-    just snes-timer                                  # diez minutos
-    just snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 10 timer-cero
-
-Los dos casos corren con la pantalla teñida desde el cuadro 13, que es lo que
-prueba que los dígitos no se tiñen. El primero mira el parpadeo y el cambio de
-segundo —el 61 lleva 10:00 a 09:59— y el segundo, la desaparición.
 
 #### Cómo se verifica
 
@@ -3864,40 +2075,43 @@ exacto**, la cruceta se contesta cuadro por cuadro y el framebuffer sale del
 callback ya en 256x224. No hay servidor X, ni capturas de pantalla, ni recortes,
 ni un solo `sleep`.
 
-Eso no es sólo velocidad —la tanda pasó de 19m30s a medio minuto—, es lo que
-hace que la prueba signifique algo. Antes decía "apretá derecha ocho segundos,
-seguro alcanza": cuántos cuadros se emulaban en esos segundos dependía de la
-carga de la máquina, y una máquina ocupada dejaba al héroe corto de la pared y
-disparaba la comparación sin que nada estuviera roto. Ahora N cuadros son N
-cuadros.
+Eso no es sólo velocidad —la tanda entera cuesta medio minuto—, es lo que hace
+que la prueba signifique algo: **N cuadros son N cuadros**. Manejando un emulador
+por segundos de reloj, cuántos cuadros entran en esos segundos depende de la
+carga de la máquina, y una máquina ocupada deja al héroe corto de la pared y
+dispara la comparación sin que nada esté roto.
 
 Y los cuadros tampoco se eligen. La referencia camina celda por celda hasta
 chocar, así que sabe cuántas son; el paso del héroe son 256 unidades de RM2k
 por celda a `PASO_POR_VELOCIDAD` por cuadro —ocho cuadros por celda a la
-velocidad 4, la de arranque; desde el 2026-09-10 una ruta con 28 o 29 la
-cambia y queda cambiada, como en RM2k, y `cuadros_por_celda(estado)` la
-sigue—. `snes_expect.py` escribe ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el
-margen: ocho cuadros, una celda, porque la ROM llega uno o dos después —el pad
-se lee una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva
-dieciséis, porque obliga a cargar el mapa entero y eso la referencia no lo
-modela: medido, siete cuadros.
+velocidad 4, la de arranque; una ruta con 28 o 29 la cambia y queda cambiada,
+como en RM2k, y `cuadros_por_celda(estado)` la sigue—. `snes_expect.py` escribe
+ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el margen:
+ocho cuadros, una celda, porque la ROM llega uno o dos después —el pad se lee
+una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva dieciséis,
+porque obliga a cargar el mapa entero y eso la referencia no lo modela: medido,
+siete cuadros.
 
 **Andan los tres cores instalados —snes9x, bsnes y mesen-s— y los tres dibujan
-el mismo cuadro a 15 bits**, que es la precisión a la que se compara: 0 pixeles
-de 57344, medido en el mapa 7 a los 180 cuadros. Que tres emuladores
+el mismo cuadro a 15 bits**, que es la precisión a la que se compara: se
+comprueba corriendo el mismo caso con `CORE=bsnes` y con `CORE=mesen-s`. Que
+tres emuladores
 independientes coincidan es lo que vuelve creíble a cualquiera de ellos. Los
 tres tardaron en andar por errores del frontend y no de ellos —bsnes ignora los
 datos de la ROM y abre el archivo él mismo, mesen-s quiere los callbacks después
 de `retro_init` y un directorio de sistema—; el detalle de qué pedía cada uno
 está en el docstring de `tools/retro.py`.
 
+**Con el brillo maestro a medias dejan de coincidir**, y es el único lugar donde
+pasa: snes9x y bsnes redondean `canal * brillo / 15` y **mesen-s trunca**, o sea
+que con brillo 6 un canal de 7 le da 2 donde los otros dan 3. `oscurecer` sigue
+a bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
+snes9x, que es el core de la tanda; ninguna receta usa mesen-s. Lo desempata la
+SNES de taro.
+
 Se elige con `CORE`: `CORE=bsnes just snes-heroe 7`. La tanda corre en snes9x
-porque es 23 veces más rápido —2747 cuadros por segundo contra 121—, y bsnes
-entra por `snes-bsnes`, dos casos que cuestan veinte segundos. Antes de todo
-esto había un `MOTOR=mednafen` que corría la tanda por el camino viejo, y se
-sacó: mantenía cinco ramas y los segundos elegidos a ojo, y no lo corría nadie.
-Un camino que ninguna prueba ejecuta es, en este repo, la manera en que
-sobreviven los errores.
+porque emula un orden de magnitud más rápido que bsnes, y bsnes entra por
+`snes-bsnes`, dos casos que cuestan veinte segundos.
 
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
 
@@ -3945,7 +2159,7 @@ final, donde el héroe ya está parado. Compara cuatro cuadros de una ruta de do
 celdas con esperas en el medio, elegidos de modo que cada error conocido dé rojo;
 el comentario de la receta dice cuáles y por qué. Corre en el mapa 6 porque es
 mudo, que cuando se eligió importaba: el arranque duraba distinto con música y
-sin ella. Desde el 2026-09-05 dura siempre lo mismo y eso dejó de pesar.
+sin ella. Ahora dura siempre lo mismo y eso dejó de pesar.
 
 La prioridad 2 es la que llevan los eventos marcados "above", y no hay forma de
 ejercitarla con los eventos del juego. Se relevaron los 328 mapas: **hay
@@ -3972,116 +2186,6 @@ el medio. `just snes-parado MAPA TX TY` planta al héroe en una celda elegida y
 compara sin caminar, que además no depende de cuántos segundos se mantenga la
 cruceta. Así se reprodujo el error de la banda de OAM.
 
-**Dónde recortar la captura se le pregunta a X, no a los pixeles.** Se captura
-el display entero de Xvfb y hay que quedarse con los 256x224 de la consola. La
-primera versión buscaba el primer pixel distinto del fondo del servidor, que es
-negro —y el mapa 1 es casi todo negro. En cuanto los sprites dejaron de
-dibujarse envueltos arriba, el recorte se deslizó 93 líneas y la comparación
-falló por algo que no tenía nada que ver con la ROM. Ahora `screenshot.sh` le
-pide la geometría de la ventana a X y se la pasa a `snes_crop.py`.
-
-Buscar esa ventana tiene su propia trampa: `xdotool search --name` no la
-encuentra, porque sin gestor de ventanas mednafen publica `_NET_WM_NAME` y
-`search` mira `WM_NAME`. Hay que enumerar y preguntarle el nombre a cada una.
-
-#### Los cuadros perdidos se cuentan
-
-Desde el 2026-09-05 la NMI queda prendida después del arranque y `boot_cuadros`
-sigue contando vblanks. Al final de cada vuelta del lazo principal,
-`contar_perdidos` mira cuántos pasaron desde la vuelta anterior: uno es lo
-normal, y cada uno de más es un cuadro que la vuelta se comió, porque tardó
-más que un cuadro y `wait_vblank` tuvo que esperar al siguiente. Se mira al
-final de la vuelta y no a la salida de `wait_vblank`, donde la NMI de ese
-cuadro puede no haber corrido todavía. `cuadros_perdidos` satura en 255.
-
-Lo lee `snes_correr.py` de la WRAM del emulador, por la tabla de símbolos que
-`w65.py --simbolos` deja al lado de la ROM —`<rom>.sym`, que `snes-build`
-pide siempre—, y lo imprime en la línea de cada captura cuando no es cero. Es
-un dato, no una aserción: **los saltos de mapa pierden cuadros hoy** —la
-cinemática de apertura suma 8 en los primeros 300 y 20 al final, todos en
-teletransportes— y la comparación ya los cobra donde importan. Lo demás que
-se midió el 2026-09-05: abrir un mensaje pierde uno cada tanto, el cronómetro
-uno, `saturar` cuatro. Ninguno cambia un pixel de los que se comparan.
-
-Sirve para dos cosas. Para saber **por qué** una comparación da rojo —un
-droide un cuadro corrido puede ser un lazo lento, y hasta ahora la única forma
-de verlo era trazar la WRAM cuadro a cuadro— y para medir cuánto margen hay:
-un lazo de retardo de N ciclos en el lazo principal, y ver desde qué N empieza
-a perder. Así salió que el destello de pantalla no entraba en un cuadro y
-cuántos milisegundos había, ver "El destello de pantalla". Y de paso, con
-`retro.Consola.ram()` y la tabla de símbolos, cualquier variable de la ROM se
-lee por nombre: fue lo que dijo que la tabla de páginas se leía de la WRAM.
-
-#### La música no espera al lazo
-
-Hasta el 2026-09-11 la música avanzaba un cuadro por vuelta del lazo, así
-que una vuelta de dos cuadros la tocaba a la mitad de velocidad. taro lo
-escuchó en la apertura: la lluvia, el tinte, el trueno y el mensaje juntos
-pierden cuadro por medio —71 de 140, medido— y el tema se arrastraba. Pidió
-que el audio ande siempre, aunque cueste más atraso en la imagen y en los
-controles.
-
-Ahora la toca **`irq_musica`, una IRQ vertical en la línea `IRQ_LINEA`**
-(112), una vez por cuadro de hardware, tarde lo que tarde el lazo. Va en el
-medio de la parte visible y no en la NMI porque el vblank es del DMA del
-lazo: el cuadro de música tarda hasta veinte líneas, y en el vblank no sobra
-eso. Ninguna pantalla llama más a `music_tick`.
-
-Una interrupción cae en cualquier punto del código principal, y eso pide tres
-cuidados:
-
-* **Nada de lo que corre adentro usa la ventana de WMADD ni `temp`.** El
-  estado de los efectos de sonido vive en la RAM lejana y se lee con el
-  direccionamiento largo, que `w65.py` aprendió para esto (`lda f:$7E30A0`).
-* **El fundido del tema multiplica a mano.** El multiplicador y el divisor
-  comparten el registro del resultado, y el código principal los usa en
-  treinta lugares: una interrupción entre la escritura y la lectura le
-  cambiaría la cuenta.
-* **Lo que el código principal le escribe a la música va con `sei`**:
-  `music_start`, `music_boot`, el `FadeOutBGM`, el pendiente de `PlaySound` y
-  el volumen que baja el título. La IRQ no se pierde: se atrasa hasta el
-  `plp`.
-
-Lo medido: la demo con un lazo de retardo agregado, que pierde 255 cuadros
-contra 108 en 1500, recorre el stream exactamente igual cuadro por cuadro
-desde que el tema arranca —1307 cuadros, cero distintos—. `snes-check` sobre
-el mapa 67 sigue diciendo que coincide con el MIDI (58 de 60 ventanas). El
-atraso de la imagen se trabajó aparte: ver "El costo de la apertura".
-
-#### El costo de la apertura
-
-La otra mitad del pedido de taro: que la escena con lluvia, tinte, trueno y
-texto no se arrastre. Medido con una sonda de línea de barrido —una copia de
-`main.s` que anota la línea después de cada llamada del lazo—, la apertura
-perdía **181 cuadros en 3000**, casi todos en los tres tramos del trueno y en
-los mensajes. Ahora pierde **20**, todos sueltos: teletransportes y el cambio
-de tinte. Lo que se hizo, en orden de lo que rindió:
-
-* **FastROM.** La cabecera decía `$20`, ROM lenta: cada byte que la CPU saca
-  del cartucho —las instrucciones, para empezar— a 2,68 MHz. El código corre
-  ahora desde el espejo del banco $80 con `MEMSEL` en 1, que va a 3,58. Los
-  bancos $80 a $BF son los mismos que $00 a $3F, así que no se mueve nada: el
-  reset y la IRQ entran con un `jml` (que `w65.py` aprendió) y de ahí cada
-  `jsr` y `rts` se queda donde está. Es lo que se llevó los tramos del trueno.
-* **El compositor de mensajes con los glifos ya compuestos.** Pintaba cada
-  fila del glifo dos veces —la sombra y el glifo— y la corría de a un bit hasta
-  su fase: unas 25 líneas por carácter, 125 por cuadro con `MSG_CHARS` en 5.
-  La x de un carácter es `8 + 6 * columna`, así que cae en cuatro fases y no
-  en ocho, y el conversor emite los 95 glifos ya compuestos en las cuatro
-  —`fuente_prerender`, con la sombra y el glifo combinados en el orden de
-  `Font::Render`—: componer es leer, enmascarar y escribir. El cuadro de un
-  mensaje bajó de 134 líneas a 73. Son 59 KB de tablas, y por eso el cartucho
-  pasó a 2 MB.
-* **La lluvia**: ver "La lluvia", de 58 a 24 líneas en `lluvia_tick` y de 130
-  a 84 en `build_oam`.
-* **El destello lee sus productos de una tabla** (`prod31_tabla`, 1 KB) en vez
-  del multiplicador y el divisor con sus esperas: 20 líneas de 150.
-
-Nada de esto cambia qué se dibuja ni cuándo: la referencia no se tocó, y la
-tanda y las pruebas dan igual. La tanda no mide cuadros perdidos —compara por
-tick, ver `snes_correr.py`—, así que los números de arriba son de la sonda y
-de `cuadros_perdidos`, no de un caso.
-
 ### El personaje
 
 Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
@@ -4091,7 +2195,7 @@ de un personaje.
 
 #### Las poses se suben en caliente
 
-Desde el 2026-09-05 **en VRAM vive una pose por personaje**, y las doce de
+**En VRAM vive una pose por personaje**, y las doce de
 cada uno que cambia de pose viven en el cartucho. Antes iban todas a VRAM, y
 el día que compiló la escena de apertura —Core, Manta, el droide y Kersh
 caminando en el mismo mapa— pidió 768 tiles de objeto contra los 512 que
@@ -4129,19 +2233,12 @@ Y va **en el mismo vblank que la OAM que ya cuenta con la pose nueva**, que es
 lo que mantiene el ritmo de antes: la OAM que se arma en el cuadro N sube en
 el vblank N+1, y las poses que ese armado encoló suben ahí mismo, antes que
 ella. Subirlas en el vblank N las mostraría un cuadro antes, y la tanda lo
-vería. Es la pieza reusable que taro pidió: por acá pasan las poses hoy, y
-mañana una imagen de `ShowPicture` o lo que haga falta.
+vería. Es una pieza reusable: por acá pasan las poses hoy, y mañana una imagen
+de `ShowPicture` o lo que haga falta.
 
 Lo prueba toda la tanda —cada caso con alguien caminando pasa por acá— y en
 su caso real, `apertura`: los cuatro de la escena caminando, el tinte apagado
 y el primer mensaje abierto, cero pixeles.
-
-Dos cosas se rompieron al hacerlo, y vale la pena tenerlas escritas. Los
-glifos del cronómetro se ponían al final de la imagen de VRAM redondeando a
-una fila de la grilla; con la imagen chica caían adentro de la última fila del
-bloque del héroe, y la primera pose que subía pisaba el 0 y los dos puntos.
-Ahora redondean a una fila de bloques. Y la segunda es de la música y está en
-"Trampas del hardware": un stream vacío leía un byte más allá del final.
 
 Y los sprites son **siempre de 4 bits por pixel**: no hay un modo 3 para ellos
 como para el fondo. Talan tiene 36 colores y entran 15, así que acá sí hay que
@@ -4156,13 +2253,8 @@ camina en el lugar, que además es lo que hace RM2k.
 
 `snes_expect.py` arma en Python lo que la consola debería mostrar —el mapa, la
 cámara siguiendo al héroe, y el héroe en su pose parada con los colores ya
-fusionados— y se compara pixel por pixel.
-
-    parado    héroe en (160,112)  cámara (40,8)    0 pixeles distintos
-    derecha   héroe en (304,112)  cámara (64,8)    0
-    izquierda héroe en   (0,112)  cámara  (0,8)    0
-    arriba    héroe en   (160,0)  cámara (40,0)    0
-    abajo     héroe en (160,224)  cámara (40,16)   0
+fusionados— y se compara pixel por pixel. Son los cinco casos de
+`just snes-heroe <mapa>`: la parada y las cuatro direcciones.
 
 Encontró dos cosas que a ojo no se veían:
 
@@ -4180,15 +2272,14 @@ la pantalla.
 El "Trans" de una página —`translucent`— en RM2k dibuja el evento con
 opacidad 160 de 255. La consola tiene transparencia de verdad, el color math,
 pero la aplica a todos los sprites de las paletas 4 a 7 a la vez: un mapa con
-translúcidos tendría que dejarles esas cuatro paletas solas, y el 9 —donde
-están los fuegos de los barriles que taro pidió el 2026-09-11— lleva once
-personajes en las ocho.
+translúcidos tendría que dejarles esas cuatro paletas solas, y el 9 —donde están
+los fuegos de los barriles— lleva once personajes en las ocho.
 
-Hasta el 2026-09-12 iban **tramados**: parte de sus pixeles se caían, que es lo
-que hacían los juegos de la época. Y ahí se vio que en este juego eso no
-alcanza. **Los fuegos del mapa 9 están sobre negro casi puro**: no hay nada que
-asomarse por los huecos, así que la trama no simula transparencia, agujerea la
-llama. Ningún patrón lo arregla, porque el problema no es la densidad.
+Tramarlos —dejar caer parte de sus pixeles, que es lo que hacían los juegos de la
+época— tampoco alcanza en este juego. **Los fuegos del mapa 9 están sobre negro
+casi puro**: no hay nada que asomarse por los huecos, así que la trama no simula
+transparencia, agujerea la llama. Ningún patrón lo arregla, porque el problema no
+es la densidad.
 
 Así que la mezcla **se calcula en el conversor y queda horneada en el
 gráfico**. Lo que lo permite es una medición: las 70 páginas translúcidas del
@@ -4275,7 +2366,7 @@ Y dejó dos cosas que valen aunque la rama no entre:
   tanda se aparta de la consola**: si algún día se compara color math, el caso
   va a `snes-bsnes`.
 
-**Menos el save point**, que desde el 2026-09-12 va **opaco**: está en
+**Menos el save point**, que va **opaco**: está en
 `rm2k.SIN_TRAMA` y `lcf` no le pega el sufijo. Es una divergencia deliberada de
 RM2k y la referencia hace lo mismo, así que la comparación sigue midiendo. Se
 probaron los otros dos caminos y los dos se cayeron: con la trama, en una
@@ -4289,10 +2380,8 @@ paleta propia, contra los 41 del bloque entero y la paleta prestada de antes.
 
 Un sprite va siempre a 4 bits, o sea 15 colores y el 0 transparente, y los
 CharSets de este juego tienen entre 20 y 48. Así que se fusiona, y **lo que
-importa no es cuántos entran sino cuáles 15**. taro lo reportó el 2026-09-12 en
-tres lugares a la vez: las caras de Talan y de Core grises en el menú, Talan
-gris en el mapa, y el save point "que en algún momento perdió uno o dos colores
-y pasó de azul/celeste/blanco a gris". Eran tres causas distintas.
+importa no es cuántos entran sino cuáles 15**: mal elegidos, las caras del menú y
+los personajes del mapa salen grises. Son tres reglas distintas.
 
 **El criterio de fusión.** `pixeles.merge_least_used` mataba al color con
 menos píxeles y lo mandaba a su vecino más cercano. Eso es exactamente al
@@ -4316,7 +2405,7 @@ en la de Core. La pantalla de título sigue con `reducir`: son 240 colores de
 
 **Contar sólo las poses que se ven.** `sprite_colors` recorría siempre el
 bloque de doce poses, aunque el evento muestre una. La deduplicación ya existía
-en tiles y en VRAM desde el 2026-09-05 y nunca había bajado al conteo de
+en tiles y en VRAM y nunca había bajado al conteo de
 colores. Ahora `poses_del_mapa` dice qué puede mostrar cada gráfico —las doce
 para el que camina, el que gira hacia el héroe y el que cambia de gráfico con
 la 34; los **tres cuadros de su fila** para el que anima quieto, que cambia de
@@ -4356,7 +2445,7 @@ no se fusiona nada.
 
 #### El giro hacia el héroe
 
-Desde el 2026-09-11 el NPC que el héroe dispara —con A o por contacto— se da
+El NPC que el héroe dispara —con A o por contacto— se da
 vuelta hacia él mientras dura su página, como en RM2k. Las reglas están en
 GIRO, en `tools/eventos.py`, y la ROM las sigue en `giro_disparar`.
 
@@ -4370,10 +2459,10 @@ quieto gira en la suya. El estado vive en la RAM lejana y la página lleva dos
 bytes más —ahora son 32— con la entrada de sus poses y su pose, que es lo que
 un refresco compara para saber si el giro sobrevive a un cambio de página.
 
-Un error que valió un caso: el giro guardaba la **fila** del NPC, y las filas
-se reordenan cuando alguien camina. Al terminar le devolvía el tile al evento
-que había quedado en esa fila. Ahora se la busca por evento cada vez. Lo
-encontró `bum-vuelve`; `gemelo` mira el quieto con un gemelo al lado.
+La fila del NPC **se busca por evento cada vez** y no se guarda: las filas se
+reordenan cuando alguien camina, así que una guardada le devuelve el tile al
+evento que haya quedado en ella. Lo cobran `bum-vuelve` y `gemelo`, que mira el
+quieto con un gemelo al lado.
 
 ### La colisión
 
@@ -4391,11 +2480,9 @@ compromete a una celda vecina y recorre sus 16 pixeles sin poder frenar. Por eso
 el estado es la celda más cuántos pixeles faltan del paso en curso, y mientras
 falten no se acepta otra dirección.
 
-    parado     héroe en (160,112)   0 pixeles distintos de 57344
-    derecha    héroe en (224,112)   0     frena en la celda 14 de 19
-    izquierda  héroe en  (48,112)   0     en la 3
-    arriba     héroe en  (160,80)   0     en la 5
-    abajo      héroe en (160,160)   0     en la 10
+Caminando en cada dirección hasta que la tabla lo frene, el héroe para en la
+celda 14 de 19 yendo a la derecha, en la 3 a la izquierda, en la 5 para arriba
+y en la 10 para abajo.
 
 Que frene en celdas interiores y no en los bordes del mapa es lo que dice que la
 tabla se está mirando de verdad.
@@ -4407,21 +2494,10 @@ arranca en `$1FFF` y crece hacia abajo, contra la BSS. No hay más: la pila del
 65816 vive en el banco 0 y ese banco es el espejo de `$7E0000`-`$7E1FFF`, así
 que los `$7E2000` para arriba no le sirven.
 
-Hasta el 2026-09-06 nadie contaba ese choque. `w65.py` comprobaba que la BSS
-entrara en los 7936 bytes del área, y entraba: llegó a ocuparlos **exactos**, y
-entonces el primer `jsr` empezó a escribir arriba de `pal_buf`, que es lo último
-que hay. Y así estuvo un rato, porque la BSS venía dejando catorce bytes y la
-pila más honda medida son veinticuatro: le pisaba diez bytes a la cola de la
-paleta y no se notaba.
-
-Lo que sí se notó: catorce bytes más de BSS —los del `PanScreen`— y el caso
-`core-puerta` se caía en el cuadro 406 con **la RAM entera pisada**. No al
-armarse, no al arrancar: cuatrocientos cuadros adentro de una escena. Costó una
-tarde llegar, y lo que la cerró fue reproducirlo con el `main.s` de antes más
-catorce bytes de relleno: ahí quedó claro que no era el código nuevo sino el
-lugar donde caían las variables.
-
-Dos cosas salieron de eso, y las dos van juntas:
+Comprobar que la BSS entre en los 7936 bytes del área no alcanza: si los ocupa
+exactos, el primer `jsr` escribe arriba de `pal_buf`, que es lo último que hay.
+Eso no se ve al armar ni al arrancar sino cuatrocientos cuadros adentro de una
+escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
 
 * **`w65.py` reserva la pila.** `PILA_RESERVADA` son 256 bytes que la BSS no
   puede tocar, y pasarse es un error al armar. El número está medido: la pila
@@ -4436,9 +2512,10 @@ Dos cosas salieron de eso, y las dos van juntas:
   bytes, y ninguno puede quedar corto en silencio porque el conversor corta si
   un mapa se pasa.
 
-Hoy la BSS termina en `$1E5F` y quedan **417 bytes** hasta la pila, de los
-cuales 256 son la reserva. Lo que siga pidiendo RAM tiene que aflojar algo, y
-ahora `w65.py` lo va a decir en vez de dejarlo pasar.
+Cuánto queda hoy entre el final de la BSS y la pila lo dice la tabla de
+símbolos que `w65` deja al lado de la ROM, y el margen es de un par de cientos
+de bytes contando la reserva. Lo que siga pidiendo RAM tiene que aflojar algo,
+y `w65` lo va a decir al armar en vez de dejarlo pasar.
 
 ### Las tablas van en el banco 0
 
@@ -4447,31 +2524,28 @@ esté la tabla. Ese registro vale 0 al arrancar y nunca lo tocamos, así que una
 tabla en otro banco se lee del lugar equivocado — sin ningún error, con bytes
 que casualmente están ahí.
 
-Pasó con la tabla de colisión: la ROM leía su propio código como si fuera
-pasabilidad, y el personaje no se movía. Y pasaba desde antes con las tablas de
-`ppu_reset`, que viven en el mismo segmento: **ese arreglo estaba funcionando a
-medias.** Lo que sí funcionaba eran las escrituras directas —apagar el HDMA, los
-scrolls— y los borrados por DMA, que llevan el banco explícito. Alcanzó para que
-la corrupción de pantalla desapareciera, y por eso no se notó.
+Y se arregla a medias con facilidad, porque lo que sigue funcionando son las
+escrituras directas —apagar el HDMA, los scrolls— y los borrados por DMA, que
+llevan el banco explícito: alcanza para que la corrupción de pantalla
+desaparezca y el error de fondo quede.
 
-Ahora hay un segmento `TABLAS` que el enlazador pone en el banco 0. Todo lo que
+Hay un segmento `TABLAS` que el enlazador pone en el banco 0. Todo lo que
 la CPU recorra con un índice tiene que estar ahí.
 
 **Y el banco 0 son 32 K, así que la que crece con el contenido se muda.** Van
-tres: la tabla de bloques, la de textos y, desde el 2026-09-12, `mapa_tabla` —el
-registro de 144 bytes por mapa—. Con los 28 mapas de Lashe City eran 4 KB sobre
-los 530 que quedaban libres. Una tabla mudada se lee con `lda f:tabla, x`, que
-lleva el banco en la instrucción y no en el registro de banco de datos; cuesta
-un byte por instrucción y **obliga a que el índice sea X**, porque el
-direccionamiento absoluto largo indexado con Y no existe. Los dos usos de
-`mapa_tabla` con Y pasaron a X, con X yendo y volviendo por la pila.
+tres: la tabla de bloques, la de textos y `mapa_tabla`, el registro de 144
+bytes por mapa —con los 28 mapas de Lashe City son 4 KB—. Una tabla mudada se
+lee con `lda f:tabla, x`, que lleva el banco en la instrucción y no en el
+registro de banco de datos; cuesta un byte por instrucción y **obliga a que el
+índice sea X**, porque el direccionamiento absoluto largo indexado con Y no
+existe. Los dos usos de `mapa_tabla` con Y pasaron a X, con X yendo y volviendo
+por la pila.
 
-Y una tabla mudada necesita su `.bloque` igual que las de acá abajo: la primera
-versión de esto no lo tenía, `mapa_tabla` cayó en `$03FFB1` y sus 144 bytes se
-partieron contra el final del banco. Lo cobró un solo caso de la tanda —el mapa
-5 arrancando en negro—, y los demás no lo vieron porque su tabla caía en otro
-lado. Es exactamente la clase de error que aparece o desaparece al agregar un
-byte en cualquier otra parte del cartucho.
+Y una tabla mudada necesita su `.bloque` igual que las de acá abajo, o se parte
+contra el final del banco. Es exactamente la clase de error que aparece o
+desaparece al agregar un byte en cualquier otra parte del cartucho, y que un
+solo caso de la tanda cobra mientras los demás no lo ven, porque depende de
+dónde caiga la tabla.
 
 Y lo que no entre en un banco no puede recorrerse con un índice, punto: la
 grilla de celdas llega a 40 KB. Ésa se lee con un puntero de 24 bits, y ahí
@@ -4482,14 +2556,12 @@ saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla que se recorra con `[ptr], y` sin cruzar de banco **tiene que
 declararse con `.bloque`**, que es lo que le dice al enlazador que la ponga
-entera de un lado. La tabla de páginas de evento no lo hacía —"sus punteros son
-simbólicos", decía el comentario, que es verdad y no tiene nada que ver— y
-sobrevivió hasta el 2026-09-05, cuando los sprites del mapa 2 crecieron con
-los eventos de tile y la tabla quedó a caballo de `$02FFFF`: la ROM leyó las
-últimas páginas desde `$03:0000`, que es el espejo de la WRAM, y con ellas la
-página de prueba de la sacudida al borde, que nunca arrancó. La tanda lo cobró
-con un fondo corrido seis pixeles y nada que dijera por qué; lo dijo la RAM:
-`pg_evento` valía `$5555`, que es con lo que snes9x llena la memoria.
+entera de un lado. Que sus punteros sean simbólicos no alcanza: la tabla de
+páginas de evento quedó a caballo de `$02FFFF` el día que los sprites de un mapa
+crecieron, y de ahí para adelante la ROM la leyó desde `$03:0000`, que es el
+espejo de la WRAM. La tanda lo cobra con un fondo corrido seis pixeles y nada
+que diga por qué; lo dice la RAM, con `pg_evento` en `$5555`, que es con lo que
+snes9x llena la memoria.
 
 ### Cómo está armado
 
@@ -4533,14 +2605,8 @@ Y que sea un banco *reducido* resulta ser una ventaja técnica grande. Sus
 muestras son diez veces más cortas que las de un SoundFont completo como FluidR3
 y ya vienen a 22 kHz, así que **el banco entero entra en ARAM sin remuestrear
 nada** — y remuestrear era, por lejos, lo que más calidad costaba. Con FluidR3
-el piano había que bajarlo de 32 kHz a 8230; ahora no se toca.
-
-    PIANO64      5940 B      STRNG71B     6417 B      RDCYM60B     5076 B
-    HARP_57A     2142 B      SOLKK60A     1386 B      CHH__60A       756 B
-    CABA_60       621 B      MARCS60        648 B
-
-Los ocho a 22 kHz, su tasa original. En total **23 KB de los 64**, con 42 libres.
-El banco anterior usaba 52 KB y remuestreaba todo.
+el piano había que bajarlo de 32 kHz a 8230; ahora no se toca. Cuántas muestras
+entran y cuántos bytes ocupan lo imprime el conversor.
 
 Tres detalles que deciden si suena bien o suena mal:
 
@@ -4625,44 +2691,49 @@ tema de prueba contra el 95% de la Mega Drive.
 
 ### Toolchain
 
-**Dos cosas: `python` y `mednafen`.** Las dos están en pacman y en apt. No hace
-falta ningún contenedor para compilar ni para verificar.
+**Tres cosas: `python`, `cargo` y un core de libretro.** Las tres están en pacman
+y en apt, y no hace falta ningún contenedor para compilar ni para verificar.
+`cargo` lo pide el ensamblador de 65816, que es el binario de `w65/`: toda receta
+que ensambla `main.s` depende de `w65-binario`.
 
 Llegar ahí costó escribir dos ensambladores propios, y por la misma razón las
 dos veces: **nada clonado de internet ni compilado de fuentes sin revisar.**
 
-    tools/spc700.py   el SPC700 no tiene ensamblador empaquetado en ningún lado
-    tools/w65.py      el 65816 sí (cc65), pero no en los repos de Arch
+    tools/spc700.py     el SPC700 no tiene ensamblador empaquetado en ningún lado
+    w65/, tools/w65.py  el 65816 sí (cc65), pero no en los repos de Arch
 
 El segundo es el interesante, porque había alternativa: clonar cc65 y
 compilarlo. Se descartó porque eso mete código sin auditar en la misma caja
 donde viven el repo y las credenciales, que es justo lo que se quería evitar.
-`w65.py` reemplaza a `ca65` **y** a `ld65` — el layout de la ROM es fijo, así
-que emite el binario directo, sin enlazador.
+Reemplaza a `ca65` **y** a `ld65` —el layout de la ROM es fijo, así que emite el
+binario directo, sin enlazador— y está escrito dos veces: `w65/` en Rust, que es
+la que arma las ROMs, y `tools/w65.py`, que es la segunda opinión que la valida.
+Ver `AGENTS.md`.
 
 Que se pueda confiar en él no es una promesa. Ver más abajo.
 
 ### Cómo se verifica el ensamblador
 
-`just snes-validar` ensambla el mismo fuente con las dos cadenas y compara los
-32.768 bytes. Es la única cosa que todavía usa el contenedor, y sólo para eso:
-`ca65` es el patrón contra el que se mide.
+`just snes-validar` ensambla el mismo fuente con las dos cadenas y compara el
+binario entero: `ca65` es el patrón contra el que se mide, y es el **único
+oráculo externo** del repo — todo lo demás compara la ROM contra algo nuestro.
 
-    main.s:     271 bytes de instrucciones — idénticas
-    cobertura:  281 bytes de instrucciones — idénticas
+Compara dos fuentes, y el segundo hace falta porque el primero no alcanza. La
+ROM del proyecto es casi toda datos y relleno: un empate ahí prueba poco, y
+sobre todo no toca las entradas de la tabla de opcodes que `main.s` nunca usa.
+Una entrada sin probar es una trampa para el día que alguien la use. Así que
+`tools/w65_coverage.py` genera un fuente sintético con **cada mnemónico en cada
+modo de direccionamiento que la tabla declara** y se compara eso también.
 
-Lo segundo hace falta porque lo primero no alcanza. La ROM del proyecto tiene
-271 bytes de instrucciones y 32 KB de datos y relleno: un empate ahí prueba poco,
-y sobre todo no toca las sesenta entradas de la tabla de opcodes que `main.s`
-nunca usa. Una entrada sin probar es una trampa para el día que alguien la use.
-Así que `tools/w65_coverage.py` genera un fuente sintético con **cada mnemónico
-en cada modo de direccionamiento que la tabla declara** — 71 mnemónicos, 143
-instrucciones — y se compara eso también.
+Correrlo cada vez que se toquen las tablas. Mientras dé idéntico, el ensamblador
+es correcto para todo lo que el proyecto puede expresar.
 
-Correrlo cada vez que se toquen las tablas. Mientras dé idéntico, `w65.py` es
-correcto para todo lo que el proyecto puede expresar.
+Y esa cadena tiene un eslabón más: `just w65-comparar` ensambla con las dos
+implementaciones —`w65/` en Rust y `tools/w65.py`— y exige que la ROM **y** la
+tabla de símbolos salgan byte por byte iguales. Un cambio en una sin la otra
+rompe esa igualdad, así que se tocan las dos o no se toca ninguna.
 
-**Y además hace cuatro controles que ca65 no hace**, los cuatro agregados
+**Y además hacen cuatro controles que ca65 no hace**, los cuatro agregados
 después de que el error correspondiente costara una tarde: etiqueta repetida,
 constante redefinida con otro valor, el área de RAM que no entra, y el operando
 que no entra en su ancho —que es cómo se descubrió que `lda [dp], y` con la
@@ -4698,9 +2769,8 @@ declaración era falsa igual; ahora dice la verdad.
 medidas, ninguna de las cuales necesita escuchar.
 
 Para un tono suelto alcanza con la frecuencia: `wavtone.py` la saca por
-autocorrelación, y si se pidió un La de 440 tiene que dar 440.
-
-    tono de prueba: 440.4 Hz medidos contra 440 pedidos, 1 cent de diferencia
+autocorrelación, y si se pidió un La de 440 tiene que dar 440, dentro de un
+cent.
 
 Para un tema entero eso no sirve, porque suenan varias notas a la vez. Así que
 `snes_check.py` lo hace al revés: del MIDI ya sabemos qué notas deberían estar
@@ -4708,20 +2778,14 @@ sonando en cada momento, así que en vez de preguntarle al audio qué frecuencia
 tiene se le pregunta cuánta energía tiene en esa frecuencia. La prueba está en
 que además se mide un **señuelo** un cuarto de tono más arriba, que no cae en
 ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
-energía como la nota buena.
-
-    tema 11h035: 57 de 60 ventanas con la nota por encima de su señuelo (95%)
+energía como la nota buena. El puntaje es cuántas de las sesenta ventanas
+tienen la nota por encima de su señuelo.
 
 Cuánto de lo que falta es culpa nuestra lo dice `just snes-referencia`, que
 toca el mismo MIDI con FluidSynth en la PC —el mismo SoundFont del que salen
-nuestras muestras— y lo mide con la misma vara:
-
-    FluidSynth en la PC:  59 de 60 ventanas (98%)
-    nuestra SNES:         57 de 59 ventanas (97%)
-
-O sea que estamos **a una ventana de la referencia**, contra el mismo
-sintetizador y con el mismo banco. Sin ese número un 97% no significa nada:
-podría ser el máximo alcanzable o podría faltar mucho.
+nuestras muestras— y lo mide con la misma vara. **Ese par de números es lo que
+hay que mirar, y no el nuestro solo**: un 97% no significa nada sin saber si el
+techo del sintetizador es 98 o 100.
 
 La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
 1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
@@ -4772,208 +2836,9 @@ cuatro comparaciones.
 
 ### Trampas del hardware
 
-Todas éstas costaron horas y ninguna da error: la consola hace algo distinto de
-lo que uno pidió, en silencio. Están acá porque van a volver.
-
-**Un DMA de tamaño cero transfiere 65536 bytes, no ninguno.** Un mapa sin capa
-de encima mandaba una paleta vacía y arrasaba CGRAM entera, paletas de sprites
-incluidas. Cualquier tamaño que salga de un conteo tiene que garantizarse
-distinto de cero.
-
-**CGRAM y VRAM sólo aceptan escrituras con el PPU sin dibujar.** Obvio dicho
-así, y sin embargo mordió dos veces el mismo día, las dos cuando el intérprete
-de eventos se mudó de `cargar_mapa` —donde la pantalla estaba apagada— al lazo
-principal, donde no. Un teletransporte cargaba el mapa nuevo y no llegaba nada a
-la VRAM: se seguía viendo el viejo, como si el salto no hubiera ocurrido. Y un
-tinte entraba **a medias**: quedaban teñidos la capa de encima y un sprite, y el
-resto no, según qué escritura pescara el vblank.
-
-Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
-encontró taro jugando, dos veces seguidas.
-
-Y la salida que se le dio entonces —apagar la pantalla a mitad del cuadro para
-escribir el tinte— era otra trampa: en el hardware son líneas negras mientras
-dura la cuenta, y en el emulador un cuadro teñido de la mitad para abajo. Lo
-vio la sacudida de pantalla, la primera receta que compara cuadro por cuadro.
-Desde el 2026-09-05 el tinte se arma en RAM y se sube en el vblank, como todo
-lo demás: ver "La sacudida de pantalla".
-
-**El botón de reset resetea al SPC700; un `jml reset` no.** La línea de reset
-de la consola les llega a los dos procesadores, así que después de apretarlo el
-SPC700 vuelve a su ROM del IPL y saluda con `$AA`/`$BB`, que es lo que
-`spc_upload` espera para empezar a subir el driver. Un reinicio de adentro del
-juego —el `jml f:reset` con el que `op_battle` hace el Game Over— no tiene esa
-línea: el SPC700 sigue corriendo **nuestro** driver, el saludo no llega nunca y
-`spc_upload` se queda en su `wait_ready` para siempre. Lo peor es cómo se ve:
-la pantalla ya está encendida y el mapa ya está dibujado —el arranque prende el
-PPU justo antes de subir el audio, a propósito, para no hacer mirar una
-pantalla negra siete décimas de segundo— así que parece un juego que se colgó y
-no un arranque a medias. taro lo reportó como "pantalla en negro, softlock o
-crash" al abrir el cofre trampa de los Rat Tracks, que es una de las quince
-páginas del juego que pierden con Game Over.
-
-El arreglo es el **comando 4 del driver**: prender el bit 7 de `$F1`, que vuelve
-a mapear la ROM del IPL en `$FFC0`, y saltar ahí. El IPL arranca de cero y el
-65816 ve exactamente lo mismo que cuando la consola se enciende. Se manda desde
-`reset`, antes de `spc_upload` y sin esperar acuse —del otro lado ya no queda
-quién lo devuelva—, y con el IPL corriendo no molesta: mientras espera su `$CC`
-mira el puerto 0, y el comando va por el 2 y el 3.
-
-Y la forma en que esto se escondió vale más que el bug: `test_game_over.py`
-existía, corría este camino y **pasaba**, porque miraba `mapa_actual`, que
-`cargar_mapa` deja puesto mucho antes de la subida al SPC700. Lo único que
-distingue "el arranque terminó" de "el arranque se colgó" es que el lazo vuelva
-a contar `vueltas`.
-
-**Un byte más allá del final es de otro.** `music_frame`, con un stream
-vacío —un `OP_END` solo—, volvía al principio, leía el `OP_END` otra vez y se
-iba, dejando el puntero un byte después del final por el `advance`. Al cuadro
-siguiente leía **ese** byte como opcode. Fue `$FF` desde siempre, de casualidad
-—el primer byte del bloque de al lado—, hasta que las poses en caliente
-cambiaron el reparto de la ROM y pasó a ser `$00`: "escribí un registro del DSP
-y esperá el eco del SPC700", y otro, y otro, media pantalla por cuadro, y el
-lazo principal a la mitad de velocidad. Ningún mapa con música lo tiene, y los
-mudos son casi todos. Lo delataron tres casos de la tanda con un cuadro
-repetido, y lo ubicó una sonda: la línea de barrido al final de cada fase del
-lazo, leída de la WRAM con `retro.py`. Ahora un stream vacío apaga la música.
-
-**La RAM arranca con basura, y el emulador rápido la arranca de otra manera.**
-Ésta es la trampa que hace invisibles a las otras: una variable que nadie
-inicializa puede dar verde en las 60 comparaciones y fallar en hardware real.
-Pasó con `ruta_n`/`ruta_i`, que sin poner en cero hacían creer a `move_hero`
-que había una ruta forzada pendiente, y el héroe no leía el pad nunca. La tanda
-entera estaba verde.
-
-Acá decía "snes9x llena la WRAM de ceros al encender", y **no es cierto**. Se
-midió el 2026-09-04 con `msg_abierto`: sin su `stz`, `snes-cerrar` se cae en las
-doce corridas de snes9x, y da igual dónde caiga la variable —se probó pegada a
-`port0` y al final de BSS—. O sea que snes9x tampoco deja esos bytes en cero.
-
-Lo que sí se sostiene es más fino, y conviene tenerlo escrito porque cambia
-cuándo hay que desconfiar: lo que snes9x deja es **siempre lo mismo**, así que
-esconde los errores que un patrón fijo esconde y no los otros. Medido el mismo
-día, con el error de `ruta_n`/`ruta_i` puesto de vuelta a mano y diez corridas
-por core:
-
-    snes9x   0 de 10 en rojo
-    bsnes    2 de 10
-
-O sea que sea cual sea el valor que snes9x deja ahí, hace que `ruta_i < ruta_n`
-dé falso las diez veces, y el error desaparece. `msg_abierto` no tiene con quién
-empatar: alcanza con que no sea cero y se ve siempre. La regla práctica no
-cambia —toda variable se inicializa— pero la razón sí: no es que snes9x sea
-benévolo, es que es previsible.
-
-Contra eso está `snes-bsnes`, que corre dos casos con `bsnes_entropy=High`:
-bsnes llena la WRAM de basura, como la consola. Comentando esas dos líneas de
-`main.s` y corriendo veinte veces el mapa 7, la basura rompe el cuadro 11 veces
-de 20 —con `Low`, 3; con `None`, ninguna—. O sea que no lo agarra siempre, pero
-lo agarra la mitad de las veces y sin que nadie tenga que jugar. Con la ROM sana
-las veinte corridas dan el mismo cuadro, así que esto no vuelve inestable a la
-tanda.
-
-La carga de mapa se arregla apagando la pantalla, como ya hacía `cruzar_puerta`.
-Para el tinte se intentó primero diferirlo a `flush_video`, que corre en el
-vblank, **y no alcanza**: `aplicar_tinte` arma tres tablas de canal de treinta y
-dos entradas y sube tres paletas por DMA, y eso se pasa del vblank. El resultado
-era un tinte a medias distinto en cada intento —una vez la capa de encima y un
-sprite; otra el fondo teñido, el héroe en negro y los NPCs sin tocar—. La única
-forma que aguanta es apagar la pantalla, igual que para cargar un mapa: cuesta
-un cuadro en negro, que en RM2k tampoco desentona porque el motor original funde
-a negro en las transiciones.
-
-**Un bloque de cero bytes no es un bloque.** La subida al SPC700 va por el
-protocolo del IPL —dirección, un puerto en no-cero, el índice—, y con cero bytes
-del otro lado nadie contesta: la ROM se queda esperando el handshake. Pasaba con
-cualquier mapa sin música, que son la mayoría. Lo peor era el síntoma: el
-cuelgue es *después* de encender la pantalla y dibujar el mapa, así que la ROM
-tenía toda la pinta de andar y lo único raro era que el héroe no se movía. Es la
-misma familia que el DMA de tamaño cero, y la misma lección: cualquier cantidad
-que salga de un conteo hay que garantizarla distinta de cero antes de usarla.
-
-Su primo: **un stream de música vacío colgaba `music_frame`**, porque al llegar
-al final vuelve a empezar y lo primero que encuentra es otro final. Los dos
-estuvieron escondidos mientras `musicdata.inc` lo generaba una receta aparte y
-siempre tenía un tema de verdad; aparecieron el mismo día, apenas el conversor
-empezó a emitir la música del mapa.
-
-**Un DMA no sigue el mapeo de LoROM.** Su dirección de origen se incrementa
-linealmente, y el byte que sigue a `$02FFFF` no es la ROM del banco 3 sino la
-RAM. Un bloque que cruce ese límite se sube bien hasta ahí y basura después.
-`w65.py` tiene `.bloque N` para rellenar hasta el banco siguiente, y el
-conversor lo declara antes de cada bloque. Ese relleno es lo que terminó
-obligando a pasar el cartucho de 128 a 256 KB: los datos entran, lo que no entra
-es el acolchado de bloques de 25 y 42 KB.
-
-**Un puntero de 24 bits tampoco lo sigue.** El byte que sigue a `$01FFFF` está
-en `$028000`, no en `$020000`: un banco de LoROM sólo tiene sus 32 K de arriba.
-Cualquier tabla que no entre en un banco —la grilla de celdas llega a 40 KB—
-tiene que avanzarse con esa corrección. Está en `ptr_mas` y `ptr_menos`.
-
-**`lda tabla, x` direcciona el banco de datos, no el banco de la tabla.** Ese
-registro vale 0 y no lo tocamos, así que todo lo que la CPU recorra con un
-índice tiene que estar en el banco 0 — de ahí el segmento `TABLAS`.
-
-**Los registros de scroll comparten un único latch entre todos los planos.**
-Escribir BG1 bajo, BG2 bajo, BG1 alto, BG2 alto mezcla los valores. Hay que
-completar cada registro antes de pasar al siguiente.
-
-**El PPU muestra la línea `vofs+1` en el primer scanline**, no la `vofs`. Con el
-scroll en 0 el mapa queda corrido una línea.
-
-**La X de un objeto tiene nueve bits**, y el noveno vive en la tabla chica de
-OAM. Sin él, un sprite en `-8` se lee como positivo y salta al otro lado.
-
-**La Y de un objeto tiene ocho, y la pantalla 224 líneas.** Los valores 224 a
-255 quedan ambiguos, y el PPU los resuelve siempre para el mismo lado: los lee
-como "un poco más arriba del borde de arriba" y dibuja el objeto envuelto. Un
-NPC que se iba por abajo se guardaba con una Y de esa banda y reaparecía arriba
-—primero los pies, después entero— antes de desaparecer.
-
-La ambigüedad no se puede sacar, y encima hace falta: es la que hace que un
-objeto en `y = -31` muestre su última línea en la línea 0. Lo que no puede pasar
-es que le llegue un objeto que de verdad está abajo, así que el descarte de
-`emit_object` va en 224 y no en 256. La cuenta de la X es la misma y va en 256.
-
-Ninguna de las caminatas del arnés lo tocaba: todas terminan contra un borde del
-mapa, y ahí la cámara está pegada y los NPCs no quedan nunca en esa banda. Por
-eso `snes-hitos` ahora incluye una parada quieta en (75,88) del mapa 1, donde
-hay cuatro NPCs justo debajo del borde.
-
-**La consola lee los controles sola al empezar el vblank, pero no arranca en el
-mismo ciclo.** Preguntar sólo "¿terminó?" pasa de largo y lee registros a medio
-armar; hay que esperar a que empiece. Y si antes se hace algo largo —el DMA de
-OAM— se llega con la lectura ya terminada y esperar su arranque cuesta el cuadro
-siguiente entero.
-
-**OAM sólo se puede escribir en el vblank, y armarla lleva tiempo.** Con treinta
-personajes no entra armarla y subirla en el mismo vblank: se sube la del cuadro
-anterior apenas abre, y se arma la del siguiente después.
-
-**El ancho de A y de X/Y es estado, y el ensamblador lo cree.** Las directivas
-`.a8` y `.a16` no describen: mandan. Un `cruzar:` puesto justo debajo de un
-camino que terminaba en `.a8` hereda ese estado aunque se llegue ahí por un
-salto con A en 16 bits, y entonces un `and #$00FF` sale con un byte de operando,
-el CPU lee dos, y se come la instrucción siguiente. La pantalla queda negra y no
-hay ningún error. Toda etiqueta a la que se salte desde otro ancho tiene que
-declararlo.
-
-Y la misma trampa del otro lado: `tax` con X de 16 bits transfiere los dos bytes
-del acumulador, incluido el alto, que con A en 8 bits nadie tocó y trae lo que
-dejó la operación anterior. Una cuenta de direcciones hecha en 8 bits y cerrada
-con `tax` funciona mientras ese byte alto sea cero.
-
-**La prioridad de un objeto son los bits 5 y 4 del byte de atributos**, no los
-0 y 1: `vhoopppN`. Escribir `$20` creyendo que es prioridad 1 da prioridad 2, y
-en el modo 3 el orden es `objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 /
-BG1 0 / objetos 0`, así que ese lugar de más cruza justo la capa de encima. El
-sprite se sigue viendo, sólo que del lado equivocado de una capa.
-
-Los dos valores viven en un solo lugar, `tools/snes_convert.py`: el de cada NPC
-va armado dentro de su byte de atributos y el del héroe llega a la ROM como
-`HERO_PRIORITY` en `mapdata.inc`. Tenerlos también escritos en `main.s` era la
-duplicación de siempre —dos lados que se pueden equivocar igual— y así fue como
-este error sobrevivió a la primera comparación.
+Las del 65816 y las del PPU viven en el código, pegadas a la instrucción o al
+registro que muerden: se llega a ellas desde ahí, no desde acá. Lo que queda son
+las dos que no tienen una línea donde vivir, porque valen para `main.s` entero.
 
 **Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
 llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
@@ -4981,29 +2846,26 @@ cursor que tiene que sobrevivir a una llamada —el del bytecode del intérprete
 es— hay que guardarlo con `phy` en el que llama, y el que llama es el único que
 sabe que hace falta.
 
-**La consola arranca con lo que dejó el programa anterior.** El emulador arranca
-en cero. Hay que escribir los 43 registros del PPU, no sólo los que se usan, y
-cortar el HDMA antes que nada.
-
-**En una línea no entran más de 34 tiles de 8x8 de sprite.** Un objeto de 32x32
-aporta cuatro, así que a partir de nueve personajes juntos se pierden los
-últimos. No tiene arreglo; se declara y se excluyen esas líneas de la
-comparación.
+**El ancho de A y de X/Y es estado, y el ensamblador lo cree.** Las directivas
+`.a8` y `.a16` no describen: mandan. Toda etiqueta a la que se salte desde otro
+ancho tiene que declarar el suyo, y toda transferencia entre registros de ancho
+distinto —`tax` con X de 16 bits, `ldx` con un índice de un solo byte— se lleva
+el byte de al lado. Nada de esto da error: sale una instrucción de un largo
+distinto del que el CPU lee, o un índice con basura en el byte alto.
 
 ### El inventario, y lo que una condición de ítem hace
 
 RM2k elige la página de número más alto cuyas condiciones se cumplen. Las de
 switch y de actor en el grupo la ROM las evalúa desde siempre; las de **ítem**
-desde el 2026-09-10 a la noche, cuando apareció el inventario. Un byte por
-ítem del LDB —450, `ITEMS_N` los cuenta con el 0 que no se usa— en la RAM
-lejana, `FAR_ITEMS`, indexado por el número de RM2k; `ChangeItems` compila a
-`OP_ITEM` con el ítem y cuánto se suma, con signo, y la cuenta queda en
-[0, 99] como `Game_Party::AddItem`. El juego lo usa 509 veces, siempre con
-ítem y cantidad constantes. Cambiar un ítem pide el refresco de páginas, como
-`CommandChangeItems`. La página lleva el ítem que pide en +28 y
-`condiciones_ok` mira que la cuenta no sea cero —`GetItemCount`, sin equipo
-todavía—. El inventario viaja en la partida, que por eso mide 773 bytes y las
-ranuras de SRAM van cada 1024.
+aparecieron con el inventario. Un byte por ítem del LDB —450, `ITEMS_N` los
+cuenta con el 0 que no se usa— en la RAM lejana, `FAR_ITEMS`, indexado por el
+número de RM2k; `ChangeItems` compila a `OP_ITEM` con el ítem y cuánto se suma,
+con signo, y la cuenta queda en [0, 99] como `Game_Party::AddItem`. El juego lo
+usa 509 veces, siempre con ítem y cantidad constantes. Cambiar un ítem pide el
+refresco de páginas, como `CommandChangeItems`. La página lleva el ítem que
+pide en +28 y `condiciones_ok` mira que la cuenta no sea cero —`GetItemCount`,
+sin equipo todavía—. El inventario viaja en la partida, que por eso mide 773
+bytes y las ranuras de SRAM van cada 1024.
 
 Durante un día, antes de eso, la página con ítem se emitía con `switch_a =
 SWITCH_IMPOSIBLE` —un switch que nadie prende— porque `ChangeItems` se
@@ -5012,7 +2874,7 @@ aceptaba sin hacer nada y el grupo no tenía ítems jamás; la máquina quedó e
 afuera: no se dibujaba, no frenaba y no disparaba. Son 45 eventos; EV0041 del
 mapa 8 es uno.
 
-**Y la rama por objeto, desde el 2026-09-13.** Es la misma pregunta que la
+**Y la rama por objeto.** Es la misma pregunta que la
 condición de página —`GetItemCount(id) > 0`, sin `GetEquippedItemCount` porque
 no hay equipo— pero adentro de un `ConditionalBranch`, la clase 4. Compila al
 mismo `OP_IF` que el switch, con el número de RM2k adelante y la polaridad tal
@@ -5026,13 +2888,12 @@ un comentario que quedó viejo el día que el inventario apareció.
 
 `ConditionalBranch` clase 5 es "el héroe", y adentro lleva siete preguntas
 distintas —el `switch (com.parameters[2])` del caso 5 de
-`Game_Interpreter::CommandConditionalBranch`—. La ROM contesta tres desde el
-2026-09-13: **está en el grupo** (la 0, que ya estaba), **sabe esta
-habilidad** (la 4) y **tiene puesto este objeto** (la 5). Son **+28 páginas
-del juego entero**, de 5170 a 5198 de las 5603 disparables, y van juntas
-porque van juntas en el juego: las 10 páginas que preguntan por una habilidad
-preguntan además por el equipo, así que la 4 sola destraba cero y la 5 sola
-+18.
+`Game_Interpreter::CommandConditionalBranch`—. La ROM contesta tres: **está en
+el grupo** (la 0, que ya estaba), **sabe esta habilidad** (la 4) y **tiene
+puesto este objeto** (la 5). Son **+28 páginas del juego entero**, de 5170 a
+5198 de las 5603 disparables, y van juntas porque van juntas en el juego: las
+10 páginas que preguntan por una habilidad preguntan además por el equipo, así
+que la 4 sola destraba cero y la 5 sola +18.
 
 Las dos nuevas no entran en `OP_IF`, que tiene un solo operando: llevan el
 actor **y** el ítem o la habilidad. Por eso hay un opcode aparte, `OP_IF_ACTOR`
@@ -5072,7 +2933,7 @@ orientación de un personaje, son 124 comandos en 31 páginas y destraba **cero*
 —esas páginas están frenadas por otra cosa igual— y la 2, el cronómetro, es un
 comando en una página y también cero.
 
-**La condición por variable se evalúa** desde el 2026-09-10 a la noche: la
+**La condición por variable se evalúa**: la
 página lleva la ranura, la comparación y el valor (+24 a +27, `PAGINA_BYTES`
 28), `condiciones_ok` los lee de la tabla y los compara con `comparar_var`,
 la misma comparación con signo de `ConditionalBranch` —RM2k usa
@@ -5086,14 +2947,14 @@ juego.
 
 El juego declara cinco mil y usa 81. La ROM lleva **esas 81**, con una ranura
 cada una: el conversor las cuenta en los 328 mapas antes de compilar nada
-—`indexar_variables`, un tercio de segundo— y el bytecode habla de ranuras,
-así que cuestan 162 bytes de RAM y no diez kilobytes. La referencia arma el
-mismo índice, que es lo que hace que los dos lados lean el mismo stream. Hasta
-el 2026-09-10 a la noche el índice era de los mapas de cada ROM y una partida
-guardada con una ROM no valía para otra con más mapas: las ranuras se
-corrían. Viven en la RAM lejana —`FAR_VARIABLES`, por la ventana de `WMDATA`,
-como el estado de los paralelos— y viajan en la partida guardada, que por eso
-pasó de 256 a 512 bytes de SRAM por ranura.
+—`indexar_variables`, un tercio de segundo— y el bytecode habla de ranuras, así
+que cuestan 162 bytes de RAM y no diez kilobytes. La referencia arma el mismo
+índice, que es lo que hace que los dos lados lean el mismo stream. Antes el
+índice era de los mapas de cada ROM y una partida guardada con una ROM no valía
+para otra con más mapas: las ranuras se corrían. Viven en la RAM lejana
+—`FAR_VARIABLES`, por la ventana de `WMDATA`, como el estado de los paralelos—
+y viajan en la partida guardada, que por eso pasó de 256 a 512 bytes de SRAM
+por ranura.
 
 Son de **dieciséis bits con signo**. RM2k las lleva a 32 y las topa en ±999999,
 pero ninguna del juego pasa de unos cientos —segundos del cronómetro, un azar de
@@ -5139,26 +3000,25 @@ gratis en bytes —cuatro menos de banco 0, porque el `lda #1 / sta refresco`
 estaba repetido tres veces— y por eso la ranura tiene que entrar en siete bits:
 son 81 variables y `ranura_de_variable` se rompe si alguna pasara de 127.
 
-Lo que costaba no tenerlo, medido el 2026-09-13: el mapa 8 tiene una página
-paralela que escribe cuatro variables por cuadro —las coordenadas del héroe
-contra las de otro evento— y con el refresco pedido en cada una,
-`rutas_de_pagina` recorría sus 68 eventos y sus 106 páginas una vez por cuadro.
-La vuelta del lazo medía unas 388 líneas de las 262 de un cuadro, así que
-`wait_vblank` esperaba siempre al vblank siguiente: **el juego entero corría a
-30 cuadros por segundo**, la mitad exacta, y taro lo vio como "slow motion"
-apenas saliendo del pad de Talan. Con el filtro puesto, 60. Ninguna de esas
-cuatro variables la mira ninguna condición de página del juego; sobre los 328
-mapas, **14 tienen una condición por variable y ninguno tiene dos**.
+Lo que cuesta no tenerlo, medido: el mapa 8 tiene una página paralela que escribe
+cuatro variables por cuadro —las coordenadas del héroe contra las de otro
+evento— y con el refresco pedido en cada una `rutas_de_pagina` recorre sus 68
+eventos y sus 106 páginas una vez por cuadro. La vuelta del lazo mide unas 388
+líneas de las 262 de un cuadro, así que `wait_vblank` espera siempre al vblank
+siguiente y **el juego entero corre a 30 cuadros por segundo**, la mitad exacta.
+Con el filtro puesto, 60. Ninguna de esas cuatro variables la mira ninguna
+condición de página del juego; sobre los 328 mapas, **14 tienen una condición por
+variable y ninguno tiene dos**.
 
 **Y la otra mitad de la misma idea: la página activa de un paralelo tampoco se
 recalcula por cuadro.** El HQ de los Lazer Teeth —el mapa 11, once eventos con
-página paralela— iba a 30 cuadros por segundo por una causa parecida y distinta:
-ahí no había ningún refresco pendiente, pero `un_paralelo` llamaba igual a
-`pagina_desde_eleg` una vez por paralelo y por cuadro, que resuelve qué página
-está activa y le lee del cartucho los veinticuatro bytes de la cabecera por la
-ventana de banco. Once veces por cuadro, para contestar siempre lo mismo. Con el
-décimo el lazo se pasaba del cuadro, y pasarse no cuesta un poco: se pierde el
-vblank entero y se cae a la mitad exacta.
+página paralela— se cae a 30 cuadros por segundo por una causa parecida y
+distinta: sin refresco pendiente, `un_paralelo` igual llama a `pagina_desde_eleg`
+una vez por paralelo y por cuadro, que resuelve qué página está activa y le lee
+del cartucho los veinticuatro bytes de la cabecera por la ventana de banco. Once
+veces por cuadro, para contestar siempre lo mismo. Con el décimo el lazo se pasa
+del cuadro, y pasarse no cuesta un poco: se pierde el vblank entero y se cae a la
+mitad exacta.
 
 En RM2k la respuesta se calcula una sola vez: `Game_Event::page` es una
 instantánea y sólo la reescribe `Game_Map::Refresh`. Acá la instantánea ya
@@ -5202,291 +3062,25 @@ página con azar se compara pixel por pixel: el Tram Officer del mapa 9 tira un
 número de 0 a 100 y dice "It's here!" si sale 90 o más; los dos lados sacan 97.
 No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.
 
-`CallEvent` —la página de otro evento, en el lugar— **se compila en línea**
-desde el 2026-09-12: el cuerpo del llamado se emite donde está la llamada, y no
-hace falta ninguna pila de intérpretes porque el llamado corre entero antes de
-que siga el que llamó. No toca ni la ROM ni la referencia: las dos corren el
-mismo bytecode. Si el llamado **no** compila, la llamada se saltea, que es lo
-que el port venía haciendo con el comando entero; exigir que compilara costaría
-183 de las 221 páginas que compilan y llaman. Con eso el Tram Officer del mapa
-9 sube al Hover-Tram, que es lo único que lo usaba en los mapas 1 a 10.
+`CallEvent` —la página de otro evento, en el lugar— **se compila en línea**: el
+cuerpo del llamado se emite donde está la llamada, y no hace falta ninguna pila
+de intérpretes porque el llamado corre entero antes de que siga el que llamó.
+No toca ni la ROM ni la referencia: las dos corren el mismo bytecode. Si el
+llamado **no** compila, la llamada se saltea, que es lo que el port venía
+haciendo con el comando entero; exigir que compilara costaría 183 de las 221
+páginas que compilan y llaman. Con eso el Tram Officer del mapa 9 sube al
+Hover-Tram, que es lo único que lo usaba en los mapas 1 a 10.
 
 ### Lo que falta
 
-* **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
-  compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
-  de verdad **antes** del paquete de audio por mapa: ahora en la ARAM viven el
-  directorio y un paquete, no el banco. Medido con los diecinueve temas de la
-  demo aportando: directorio 617 B, peor paquete 54945 de 63831, o sea que el
-  hardware entra de sobra. Lo que no entra es la calidad: repartir los 40 KB de
-  `ARAM_BUDGET` entre 45 programas en vez de 27 baja la tasa mediana de 12,5 a
-  8,4 kHz **para todos**, incluidos los once que hoy suenan bien. Lo que lo
-  resuelve es darle a cada programa lo que su peor paquete puede pagar en vez
-  de una parte del banco entero; mientras no esté, los temas que no aportan
-  suenan incompletos —del 8% al 70% de sus notas— y el recorte va por
-  prioridad: ver "Varios temas en el cartucho".
-* **La música, del lado del SPC700.** Hoy la toca el 65816 desde una IRQ
-  —ver "La música no espera al lazo"—, y funciona, pero cuesta hasta veinte
-  líneas por cuadro y obliga a las reglas de la interrupción. El paso que
-  sigue, acordado con taro el 2026-09-11, **no** es un secuenciador en el
-  SPC700 como los de los juegos comerciales, sino uno chico que lea el mismo
-  stream de hoy desde un buffer circular en la ARAM, a su propio ritmo, y que
-  el 65816 sólo mantenga lleno. El conversor y `snes-check` no cambian, y los
-  efectos de sonido pasarían allá también. Se encara cuando haga falta el
-  margen del lazo, o si en la consola el audio muestra algo que el emulador
-  no.
-* **El sistema de imágenes, más allá del cartel.** Desde el 2026-09-12 la ROM
-  dibuja **un** `ShowPicture` por cartucho: ver "El cartel de 'One year
-  previously'", y ahí están los números de lo que costaría el resto —34
-  comandos en el juego, 20 carteles distintos, y cinco de ellos de 320x240
-  exactos, que con objetos no se pueden hacer—. Los que no entran se siguen
-  aceptando sin hacerse.
-* **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende
-  —mover en los cuatro sentidos, girar en los cuatro, esperar, saltar,
-  atravesar paredes y parar o seguir la animación— y `play_sound_effect` se
-  acepta sin hacerlo, y la **transparencia** también, desde
-  el 2026-09-05: subirla y bajarla de a un octavo son las órdenes 40 y 41, y
-  las ocho rutas del juego que las usan son las cuatro pantallas del mapa 2
-  atenuándose mientras Manta hackea, que sin eso dejaban afuera la escena
-  entera; se pierde el fundido, que sobre tiles de fondo la SNES no hace
-  barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
-  consume entera en el cuadro y no deja nada que esperar. Falta **fijar la
-  mirada** —las órdenes 26 y 27, que sobre el héroe se aceptan y se tiran por
-  decisión y no por olvido: ver ESTADO.md—. **Moverse hacia el héroe** —la
-  orden 9, +33 páginas— y **cambiar el gráfico del héroe** —la 34, +29— se
-  hacen desde el 2026-09-12; las otras nueve órdenes de movimiento que faltan
-  suman +1 entre todas, medido, y por eso siguen afuera. La
-  velocidad ya está, desde el 2026-09-05, con las rutas propias de las
-  páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
-  2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; las
-  **diagonales** —las órdenes 4 a 7, +7 páginas— desde ese mismo día; y
-  **cambiar el gráfico sobre un evento** —+25 páginas—, ver "Cambiar el
-  gráfico a mitad de una ruta". Las tres últimas van sobre eventos y no sobre
-  el héroe. Sigue siendo lo que más corta, aunque bastante menos.
+**Está en `ESTADO.md`**, que es el archivo de lo que está a medias: acá
+envejecía sin que nadie lo notara. Y lo que se puede preguntar en vez de leer,
+se pregunta:
 
-  Y una que apareció midiendo lo anterior, el 2026-09-06: **sobre el héroe, la
-  ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
-  velocidad— y **la referencia no**. `paso_de_ruta` las saltea con un "acá no
-  llegan" que dejó de ser cierto: `Ruta` es la misma clase para el héroe y para
-  los eventos, así que la referencia le cambia la velocidad y la ROM lo deja
-  caminando igual. En el juego hay 163 rutas sobre el héroe con la orden 28 y
-  148 con la 29; **de las páginas que hoy compilan, siete tienen una**, y una
-  de ésas es el evento 1 del **mapa 7, Talan's Pad**, que es adonde va el juego
-  después del Emitter Room. No lo cobra ninguna prueba porque ningún caso mira
-  una de esas páginas, y no es lo mismo que lo de arriba: no es un comando que
-  falte sino dos lados que ya no hacen lo mismo. **Las 28 y 29 sobre el héroe
-  se hacen desde el 2026-09-10**: su paso dejó de ser fijo —`step_left` cuenta
-  medias unidades de RM2k, 128 por celda, y baja `paso_medio_por_vel` por
-  cuadro— y la velocidad vive en `FAR_HERO_VEL`, viaja en la partida y queda
-  como la dejó la última ruta, que es lo que hace RM2k: sólo la frecuencia se
-  repone. Las 26 y 27 se siguen tirando.
-
-  Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
-  está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la
-  dirección que el personaje ya tenía, y para un evento que todavía no giró
-  ésa es la que trae su página, que la ruta no lee. **Encarar al héroe** y la
-  **frecuencia** ya están, desde el 2026-09-04: ver "La frecuencia de la ruta,
-  y encarar al héroe".
-* **El cartucho es de 512 KB desde el 2026-09-05.** Con las poses en el
-  cartucho una vez por ROM, la del arranque con los mapas 4, 1 y 2, ventana y
-  música se armaba con 1,6 KB libres de los 224 de datos —el "22 KB" que
-  decía esto era de antes de los droides—, y los sprites de los eventos de
-  tile la pasaron por 3,7 KB. Así que `ROM_BANKS` es 16, el área de datos
-  480 KB y la cabecera dice `$09`. **Es un cambio de mapeo que ningún caso de
-  la tanda ve**: los tres emuladores cargan el archivo del doble sin
-  preguntar, y el cartucho real lo lee taro con el FX Pak. Y no es la única
-  salida: el acolchado de bloques es de **20 KB** en esa ROM —un bloque de
-  18 KB que no entra en lo que queda del banco deja 12 KB vacíos—, y un
-  enlazador que acomode los bloques en los huecos los recuperaría. No se hizo
-  porque el crecimiento sigue: cada personaje que cambia de pose son 6 KB.
-
-  Y dos ideas de taro para cuando haga falta apretar assets, anotadas para no
-  perderlas: **paletas calculadas sobre todas las imágenes del juego** a la
-  vez —CharSets, ChipSets y texto—, unificando los negros y grises casi
-  iguales entre imágenes, con un impacto visual mínimo; y **hornear en un
-  ChipSet propio a los sprites que son decoración**, como el público del
-  Auditorio, que no se mueve nunca. Ninguna de las dos se encara ahora.
-* **Lo que la colisión con los eventos no modela.** Está desde el 2026-09-05
-  —ver "La colisión con los eventos"— y deja afuera `overlap_forbidden`, 17
-  páginas del juego; el conflicto de un evento con gráfico de tile contra su
-  propio bloque; que un evento de contacto de la capa del héroe dispare al
-  chocar con él —`CheckCollisonOnMoveFailure`—; y que una ruta forzada que
-  no se puede saltear **reintente** el paso bloqueado en vez de saltearlo,
-  que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
-  lo que más cerca está de verse: en la apertura la colisión no frena ningún
-  paso, medido, pero el droide del mapa 2 vive de eso.
-* **El cartucho es de 4 MB desde el 2026-09-13**: `ROM_BANKS` es 128 y la
-  cabecera dice `$0C`. Antes fue de 2 MB, y lo pidieron los glifos ya compuestos
-  del compositor de mensajes; los 4 MB los pidieron las tres vueltas del
-  2026-09-12 juntas —Lashe City, las animaciones dibujadas y la batalla—, que se
-  pasaban por 218 KB.
-
-  **Los dos últimos bancos del archivo no se usan**, y ésa es la parte que hay
-  que entender antes de tocar esto. `lorom_address` le da a cada byte del
-  archivo la dirección `banco:8000`, y en la consola **los bancos $7E y $7F son
-  la WRAM**: un dato ubicado ahí se leería como memoria de trabajo. Se llega a
-  ellos por el espejo $FE/$FF, pero entonces un puntero de 24 bits que cruce de
-  $7D:FFFF al siguiente —lo que hace `advance`— aterrizaría en la WRAM en vez de
-  saltar al espejo, y sería un error silencioso en el peor lugar: un stream de
-  música o una tira de mapa leyendo basura a mitad de camino. Así que el archivo
-  mide 4 MB justos, que es lo que la cabecera declara y lo que el FX Pak espera,
-  y `BANCOS_PROHIBIDOS` hace que el asignador se detenga 64 KB antes.
-
-  La SRAM no se entera de nada: en LoROM vive en la **mitad baja** de los bancos
-  $70 a $7D, y el cartucho usa la alta.
-* **Los cuadros que el lazo pierde en sus picos.** Ya no los produce el
-  teletransporte —el fundido se come la carga, ver "El fundido de los
-  teletransportes"— pero siguen: la primera vuelta de una ROM con muchas
-  páginas se pasa del cuadro, y también la vuelta en que un fundido termina y
-  la página retoma. La referencia no los modela, así que a partir de ahí la ROM
-  va N cuadros atrás y sólo se la puede comparar donde la pantalla esté quieta.
-  Eso es lo único que le falta a la escena del ascensor para tener caso propio
-  en la tanda. La salida no es un desfase a mano en las recetas —eso es un
-  número que se ajusta hasta que dé verde— sino aflojar los picos, o que la
-  receta lea `cuadros_perdidos`, que ya viaja en la salida de cada captura.
-* **Las otras transiciones de RM2k.** El fundido está, que es la que este juego
-  usa —`transition_out` y `transition_in` valen 0 en su base—, pero
-  `Transition::Type` tiene 38 y un evento puede pedir cualquiera con
-  `EraseScreen`/`ShowScreen`. Las de bloques, persianas y barridos no son un
-  brillo maestro: piden tapar la pantalla por regiones, que en la consola es
-  otra máquina.
-* **Los teletransportes que siguen sin resolverse.** Los que están adentro de
-  cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
-  donde el juego arranca ya no: es automático, entra con los cinco comandos que
-  la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
-* **El resto de los temas.** Desde el 2026-09-06 el cartucho lleva **varios**:
-  los que pidan los `PlayBGM` compilados, compartiendo un solo banco de
-  muestras. Con las primeras secuencias son tres o cuatro y usan 62310 de los
-  64512 B de ARAM. El techo no es la cantidad de temas —el banco se achica
-  solo— sino la resolución: con los treinta y pico del juego entero cada
-  instrumento quedaría en una miga, y sin aviso. Ver "Varios temas en el
-  cartucho".
-
-  Lo que subiría ese techo es un **driver que sepa recibir datos**: hoy las
-  muestras se suben una sola vez al arrancar con el protocolo del IPL, que manda
-  un byte por acuse y desaparece al saltar al driver. Con un banco por tema el
-  costo sería medio segundo de transferencia en cada `PlayBGM` —y habría que
-  modelarlo en la referencia, que es lo que lo descartó—; con los cuatro
-  puertos en vez de uno, en cambio, se acorta el arranque, que hoy son 112
-  cuadros dimensionados para una ARAM llena.
-
-  Y un efecto que conviene tener presente: `snes-check` compara el audio contra
-  el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
-  nombrarlo. Para eso está `just snes-bgm <tema>`.
-
-* **La cinemática de apertura, entera.** Corre con ventana desde el
-  2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y
-  `escape_newyork` sonando; el 3 entró para que el ascensor lleve a algún
-  lado, ver "El ascensor no llevaba a ningún lado"—, y el caso `apertura` de la tanda la compara hasta
-  el final con los quince toques de A que la cierran: el tinte se apaga, Core y
-  Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
-  con dos `ChangeEventLocation` y un switch. De ahí el juego sigue con el
-  jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
-  **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
-  el toque de A resincroniza los dos lados.
-* **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **209**. Eran 16 antes de los cuadros de
-  texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
-  FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte, 137
-  con los saltos y las demás órdenes de ruta, 142 con `ChangeEventLocation`,
-  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06, 184
-  con las diagonales del mismo día, y **209 con la orden 34** sobre eventos. El
-  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
-  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
-
-      ConditionalBranch         +27      FullHeal               +1
-      ControlVars                +4      FlashSprite            +0
-      ChangeItems                +3      CallEvent              +0
-
-  Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +10 de techo, que es lo que quedaba dándole la 34 y las diagonales **al
-  héroe**. La 34 al héroe se hizo el 2026-09-12; quedan las diagonales. Puestos todos juntos se llega a **281 de 489**, y lo que seguiría
-  cortando después sigue siendo `MoveEvent`, ahora con 49 páginas —rutas con
-  saltos, apuntadas a un vehículo, o de las que le cambian el gráfico al
-  héroe—. Después vienen los 16 cuadros de texto con códigos de escape y
-  `ShowChoice` con 12.
-
-  Y dos trampas más de las de medir, las dos del mismo día y las dos con la
-  misma forma: la columna realista de `MoveEvent` daba **menos** que la base.
-  La lista de órdenes de `destraba.py` no tenía la **transparencia**, y su
-  filtro pedía que la ruta tuviera al menos una orden; `traducir` acepta las
-  dos cosas —la transparencia la tira, y una ruta vacía no la emite—. Ninguna
-  de las dos se había visto porque hasta ese día ninguna página tenía a la vez
-  una de ésas y algo más que la trabara.
-
-  **Dos veces se corrigió este número, y las dos por lo mismo: medía un techo.**
-  La primera versión contaba qué comando corta **primero** cada página
-  —ShowMessage 144, CallEvent 98, MoveEvent 60—, y eso no es lo que se destraba:
-  una página cortada por un cuadro de texto puede estar cortada además por otras
-  cuatro cosas. Corregido eso, quedaba la otra mitad del problema: aceptar un
-  código entero cuenta lo que se destrabaría si el comando estuviera hecho **para
-  todos los casos que el juego usa**, y una implementación real cubre menos.
-  `MoveEvent` sobre otro evento daba +40 contando rutas que la ROM no va a saber
-  caminar y blancos que no existen; con las órdenes que ya hace son +16, y con
-  todas +31. Por eso `destraba.py` ahora muestra las dos columnas, y los
-  candidatos que todavía no tienen filtro hay que leerlos como el techo que son.
-
-  Los cuadros de texto, en cambio, aguantaron las dos correcciones: eran +55 y
-  hechos dieron exactamente 55.
-
-  Dos trampas que costaron una medición mal hecha cada una, y que están
-  anotadas en `tools/destraba.py` para no volver a pisarlas:
-
-  * RM2k emite un `ShowMessage` y después un **`ShowMessage_2` por cada línea
-    de más** del mismo cuadro. Contándolos aparte, los cuadros de texto
-    parecían destrabar tres páginas y no cincuenta y cinco.
-  * `CallEvent` aceptado sin hacerlo daba **+97**, que es falso: el evento
-    común llamado tiene que compilar él también, y los de este juego se cortan
-    casi todos en `FullHeal` y en `ControlVars`. Hecho de verdad destraba cero
-    hasta que esos dos existan.
-
-  Puestas todas juntas se llega a 314 de 489, y lo que sigue cortando después
-  es una cola larga: `ShowBattleAnimation` 23, `ShowChoice` 13,
-  `ChangeScreenTransitions` 10, `JumpToLabel` 8.
-
-  Y una nota que sigue valiendo: de las páginas con `MoveEvent`, la mayoría
-  mueve **otro evento** y no al héroe, o sea que piden que los NPCs caminen, que
-  es una feature aparte de la ruta forzada que ya anda.
-* **Componer el texto del mensaje en caliente.** Es lo que separa al opcode que
-  ya existe de que esas 144 páginas compilen: hoy la ROM lleva una sola ventana
-  ya compuesta por el conversor, porque una por mensaje son 7,5 KB y no entran.
-  Hace falta la fuente en la ROM y armar los 240 tiles desde el 65816, como hace
-  FF6 con su `InitDlgVWF` y su buffer de diálogo en la WRAM. Ver "La ventana de
-  mensaje".
-* **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
-  4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
-  probable es compartir los tiles entre los mapas que usan el mismo chipset:
-  son 43 chipsets para 328 mapas.
-* **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
-  hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
-  Village once, así que no convierten. Los dos venían tapados detrás del
-  problema de las paletas de la capa de encima, que ya está resuelto. Los
-  eventos dibujados con un tile del chipset se empaquetan desde el 2026-09-05
-  y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
-  eventos dibujados con un tile del chipset".
-* **Un evento que camina y cambia de gráfico con la página.** Ver "El
-  gráfico sigue a la página": el conversor corta. Y con eso, `change_graphic`
-  en una ruta sigue afuera.
-* **El panorama.** El mapa 2 tiene uno —`screen`, puntitos sobre azul que
-  desplaza en diagonal solo— y es lo que taro vio faltar cuando la pantalla
-  grande se enciende. El modo 3 tiene dos capas de fondo y las dos están
-  tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
-  tercera o el modo 1, que la conversión no usa. No es prioridad.
-
-  De ahí sale que **`ChangePBG` se acepte y se tire** desde el 2026-09-13: si
-  no hay panorama, no hay nada que cambiarle. Se tira al compilar, como las
-  órdenes de ruta 26 y 27, así que la referencia tampoco lo modela y los dos
-  lados quedan iguales por construcción. Aparece **una sola vez en todo el
-  juego** —siete comandos en la página del viaje en el Hover-Tram, donde el
-  paisaje de la tarde corre por detrás y cambia de velocidad al arrancar y al
-  frenar— y sin él esa página no compila: o sea que lo que esto compra es el
-  viaje entero, y lo que cuesta es que las ventanillas se vean quietas.
-* **El ataque y el decaimiento** siguen saliendo de las ocho familias de
-  `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
-  suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
-* **Una muestra por instrumento.** Un piano real está multi-muestreado cada
-  pocas notas; nosotros tomamos la del do central y transponemos. En los
-  extremos del teclado eso se nota.
+* qué comandos se aceptan y no se hacen lo dice `ACEPTADOS_SIN_HACER`, en
+  `tools/eventos.py`, que es una lista ejecutable y no puede desincronizarse;
+* cuántas páginas destraba cada cosa que falta lo dice `just snes-destraba`;
+* qué órdenes de ruta no sabemos caminar, también.
 
 ## Referencias
 

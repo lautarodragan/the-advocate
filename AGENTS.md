@@ -15,6 +15,47 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
 trabaja, no al final—.
 
+## Dónde va cada cosa que uno quiere dejar escrita
+
+Dos reglas, de taro, el 2026-09-15. Las dos salen del mismo problema: lo que se
+escribe a mano en un documento envejece sin avisar, y lo que vive lejos del
+código no lo lee nadie cuando hace falta.
+
+**Un número se escribe sólo si es propiedad del hardware o del formato.** Los
+32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
+ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
+va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
+compilan es `just snes-destraba`, cuántos casos pasan es `just snes-hitos`,
+cuánto pesa el cartucho lo dice el build.
+
+El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
+y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de ésos
+lo había escrito yo una hora antes.
+
+**Un porqué se queda en el README sólo si es una decisión de arquitectura que
+no tiene una línea de código donde vivir**: por qué modo 3 fijo, por qué LoROM,
+por qué los translúcidos van horneados. **Un porqué que protege una línea
+concreta va como comentario en esa línea.** El razonamiento es de taro y es
+difícil de discutir: nadie que esté editando una rutina va a buscar la razón en
+un README de cinco mil líneas, así que ahí no protege a nadie.
+
+Y si el error no es de los que se vuelven a cometer, no va a ningún lado: el
+`git log` ya lo tiene.
+
+**Se asume que todo el código escrito es intencional**, sabiendo que puede no
+serlo. No se documenta cada caso intencional, porque los no intencionales son
+la excepción. Ante algo que parece un error, el primer paso es **`git blame`**:
+sirve para separar "esto es a propósito" de "esto se rompió en algún cambio",
+que es la diferencia entre tocarlo con confianza y tocarlo a ciegas. Recién con
+la intención demostrada —y demostrada errónea, o parcialmente errónea— se
+arregla.
+
+Al revés también: **si uno escribe a propósito algo que se ve raro, lo aclara
+ahí mismo.** El ejemplo de taro: "acá la variable que se llama NUMBER es de
+tipo string y no number, por contraintuitivo que sea, pero no se puede arreglar
+porque así lo espera una API que no controlamos". Eso es lo que un comentario
+tiene que decir; lo que el código ya dice, no.
+
 ## Los proyectos independientes están en inglés
 
 Todo este repo va en castellano —comentarios, documentación y mensajes de
@@ -57,9 +98,7 @@ mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 ninguna receta de compilación llama a los de Rust.
 
 **`w65/` sí: desde el 2026-09-15 es el que arma las ROMs.** Toda receta que
-ensambla `main.s` depende de `w65-binario`, así que **compilar la ROM necesita
-cargo** —es la única dependencia nueva del toolchain, y si falta, la receta lo
-dice y explica cómo instalarlo—. `tools/w65.py` **no se borra**: es la segunda
+ensambla `main.s` depende de `w65-binario`. `tools/w65.py` **no se borra**: es la segunda
 implementación que valida a la primera, y de eso vive `just w65-comparar`.
 Borrarlo es una decisión de taro y todavía no la tomó.
 
@@ -86,6 +125,20 @@ ahí es el bytecode, no las tablas del mapa.) Al repartir trabajo entre
 sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
+
+## `git blame` y los cambios mecánicos
+
+`.git-blame-ignore-revs` lista los commits que `git blame` tiene que saltear:
+renombres masivos y reformateos, que sin esto contestan "fue el renombre" en
+cada línea que tocaron. El criterio para meter uno es que su cambio **no pueda
+alterar el comportamiento**, y en este repo eso se demuestra, no se supone: los
+dos que hay adentro tienen las dos ROMs saliendo byte por byte iguales.
+
+Si no funciona no esperado, podemos pasarlo como argumento: git blame --ignore-revs-file .git-blame-ignore-revs <archivo>.
+
+Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
+no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
+`git log -S '<texto>'`, que busca por contenido y por eso ignora el ruido solo.
 
 ## La regla que sostiene todo
 
@@ -139,11 +192,31 @@ que revela menos y da más margen. Hoy tiene:
     /extras/ref         liblcf, easyrpg-player y Game-Decompilations
     /extras/soundfonts  de donde salen las muestras
     /extras/capturas    donde taro deja capturas para que yo las mire
+    /extras/ref/cc65    compilado acá: de ahí salen `ca65` y `ld65`
 
 Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
-con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no. Antes esto
-era un directorio `screenshots-manuales/` adentro del repo, que ensuciaba el
-árbol con archivos que nunca fueron del proyecto.
+con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
+
+**`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
+empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
+internet en la misma caja donde vive el repo: `snes-validar` corría `ca65` en un
+podman aparte, desde el host. taro dio esa regla por caduca —venía de cuando
+cada comando se envolvía en su propio contenedor— así que `cc65` se clonó y se
+compiló en `/extras/ref/cc65`, y los binarios están enlazados en
+`/usr/local/bin`. Si el contenedor se recrea desde la imagen, se rearman con
+`git clone --depth 1 https://github.com/cc65/cc65.git` y `make -j8 bin`.
+
+Lo que se comprobó del clon antes de usarlo, para que el próximo no lo dé por
+descuido ni lo repita: el repo **no trae binarios commiteados** —los de `bin/`
+salen de sus 989 fuentes de C—, el build **no baja nada de internet** ni escribe
+fuera de su directorio, y `ca65` usa **55 símbolos externos y ninguno es de red
+ni de ejecución** —no importa `socket`, `connect`, `exec*`, `fork`, `system`,
+`popen` ni `dlopen`—. Lo que **no** se comprobó: los tags del proyecto no están
+firmados, el clon es `--depth 1` y no tiene historia, y nadie leyó los 989
+archivos. Y el build corrió con red y como root: auditar después no deshace eso.
+
+Contra el riesgo que más importa hay una defensa que no depende de la auditoría:
+**la salida de `ca65` se compara byte por byte** contra nuestro ensamblador.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
@@ -215,8 +288,7 @@ mientras corre y la deja con casos en rojo que no lo están. Con más de un
 agente, cada uno con el suyo: `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
 
 **Las tareas en segundo plano que lanzamos nosotros las podemos matar
-nosotros.** Desde el 2026-09-13: taro dio libertad de matar lo que uno o sus
-sub-agentes hayan lanzado. Lo que sigue sin tocarse es lo que lanzó él.
+nosotros.**
 
 Lo que más se acumula son las **esperas armadas por los agentes** —`until !
 pgrep -f "snes-hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
@@ -237,26 +309,19 @@ por uno salteando el `$$`.
 Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 —que es estado global— y las tandas no se mezclan.
 
-Hasta el 2026-09-12 la regla era la contraria, y el porqué sigue valiendo como
-advertencia: los hitos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que
-son justo donde un merge mal hecho no se ve. Lo que cambió es que el trabajo se
-volvió paralelizable de verdad —dos maneras distintas de resolver lo mismo, para
-comparar— y que el setup ya está armado: worktrees y `pruebas-manuales/`. taro
-aceptó el costo de los conflictos de git a cambio de eso.
-
 Lo que hay que hacer siempre:
 
-* **Traerle los builds al repo principal.** Los worktrees viven en `/extras`, que
-  él no tiene montado en el host: una ROM que quede ahí adentro no la puede
-  probar. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` que diga qué
-  mirar y con qué limitaciones se chocó.
+* **Traer los builds al repo principal.** Los worktrees viven en `/extras`, que
+  no está montado en el host. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` 
+  que diga qué  mirar y con qué limitaciones se chocó.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
-  agente.** La del agente tiene su arreglo y **ninguno de los demás**. El
-  2026-09-14 taro probó una armada en la rama de audio: la música sonaba bien
-  —era lo que esa rama arreglaba— y el Rat King le colgó la consola con un bug
-  que hacía horas estaba arreglado en otras cinco ramas. Perdió una sesión de
-  juego persiguiendo algo ya resuelto. La del agente sirve para aislar **su**
-  cambio; la que se juega, no.
+  agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
+  La del agente sirve para aislar **su** cambio; la que se juega, no.
+* **Decirle de qué commit sale, y que mergee `main` antes de entregar.** Un
+  worktree se saca de donde esté `main` al lanzarlo, y `main` se mueve: el
+  2026-09-15 uno trabajó cuatro horas sobre un README **doce commits viejo** y
+  vio 5.499 líneas donde había 4.717. La reconciliación después es trabajo
+  perdido que se evita con una línea en el encargo.
 * **Pasarle al agente lo que ya está medido**, para que no lo vuelva a averiguar
   y para que no lo mida distinto.
 * **Pedirle el límite medido y no la implementación forzada.** Cuando el punto
@@ -277,9 +342,8 @@ Lo que hay que hacer siempre:
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
-  lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó —sí en
-  la interfaz de taro—, así que un ayudante colgado queda sin dueño: él lo ve y
-  yo no puedo decirle de quién era. Lo mismo con los `sleep` largos para esperar
+  lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
+  Lo mismo con los `sleep` largos para esperar
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
@@ -319,11 +383,7 @@ Así que al mergear una rama de sub-agente:
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.
 * **Mirar a mano las firmas que las dos ramas tocaron**: quién pasa qué a quién
   y con cuántos bits.
-* **Y la prosa también colisiona, no sólo el código.** El 2026-09-15 los dos
-  agentes escribieron en `ESTADO.md` que lo suyo era "el tercer proyecto
-  independiente del repo". Es la misma colisión de "el siguiente libre" que la
-  de los opcodes, pero en un lugar donde ninguna prueba mira: git mergea los
-  dos párrafos sin una queja y quedan dos terceros. Al mergear documentación de
+* **Y la prosa también colisiona, no sólo el código.** Al mergear documentación de
   dos ramas hay que **leerla**, no sólo resolver los conflictos que git marcó.
 * **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una
   tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
@@ -383,6 +443,5 @@ que algo "contesta siempre lo mismo".
 
 ## Git
 
-Los commits van directo a `main`. **El push lo hace taro**, con su YubiKey: no
-intentarlo. Los mensajes van en castellano y explican el porqué, no el qué —el
-diff ya dice el qué—.
+Los commits van directo a `main`. No hacemos `git push`. 
+Los mensajes van en castellano y explican el porqué, no el qué —el diff ya dice el qué—.

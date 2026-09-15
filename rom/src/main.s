@@ -1011,7 +1011,10 @@ grupo_listo:
     ; sin inicializar, `ruta_i < ruta_n` da falso las diez corridas de snes9x y
     ; el error desaparece; en bsnes con entropía alta se ve. La tanda entera
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
-    ; en mednafen. Está medido en "Trampas del hardware" del README.
+    ; en mednafen. Está medido: con estas dos sin inicializar a mano y diez
+    ; corridas por core, snes9x da 0 de 10 en rojo y bsnes 2 de 10. Contra eso
+    ; existe `snes-bsnes`, que corre dos casos con `bsnes_entropy=High`; el
+    ; justfile tiene el resto de los números.
     stz ev_activo
     jsr limpiar_esperas
     stz ruta_n                  ; sin ruta forzada pendiente
@@ -1724,6 +1727,17 @@ puesto:
 ; el PPU dibujando, y el resultado era un tinte a medias distinto cada vez —una
 ; vez la capa de encima y un sprite, otra vez el fondo con el héroe en negro y
 ; los NPCs sin teñir—.
+;
+; Y esto la tanda no lo cobra: snes9x **acepta** las escrituras a CGRAM con el
+; PPU dibujando y mednafen no, así que un tinte roto puede dar verde en las
+; sesenta comparaciones y verse mal en la consola. Cuando algo de CGRAM o VRAM
+; anda acá adentro y no en el hardware, ésta es la primera sospecha.
+;
+; La otra salida que se probó —apagar la pantalla a mitad del cuadro, escribir
+; el tinte y volver a prenderla— es otra trampa de las que el emulador tapa: en
+; la consola son líneas negras mientras dura la cuenta, y en el emulador un
+; cuadro teñido de la mitad para abajo. La vio la sacudida de pantalla, que es
+; la primera receta que compara cuadro por cuadro.
 ;
 ; Apagar la pantalla es lo que ya hacen `cruzar_puerta` y el teletransporte por
 ; la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
@@ -5149,12 +5163,6 @@ op_flash_screen:
     jsr destello_de_codigo
     jmp otro
 
-; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
-; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
-; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
-; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
-; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
-; por el evento que se acaba de mandar a caminar.
 ; Arranca un destello sobre un personaje. No corta el cuadro: si la página
 ; espera, el conversor le pone un OP_DELAY detrás, que es exactamente lo que
 ; hace `CommandFlashSprite` con `SetupWait(tenths)`.
@@ -5326,6 +5334,12 @@ cancelado:
     ply
     jmp otro
 
+; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
+; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
+; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
+; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
+; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
+; por el evento que se acaba de mandar a caminar.
 op_wait_routes:
     jsr hay_rutas
     beq op_wait_routes_next
@@ -7852,6 +7866,14 @@ si:
 .endproc
 
 ; Enciende o apaga el switch de temp según A.
+;
+; **Pisa X e Y**, y quien llama desde el intérprete tiene que salvar Y, que es el
+; cursor del bytecode: por eso el `phy`/`ply` de `op_switch`. Sin él el lazo de
+; `correr_codigo` sigue leyendo desde el byte que quedó en Y —un desplazamiento
+; de la tabla de switches— así que la página se corta en su primer comando y el
+; evento no hace nada. Las dos páginas del juego que hacen algo arrancan
+; prendiendo switches, así que el síntoma es "ninguna página corre" y no "esta
+; página falla".
 .proc poner_switch
 .a8
 .i16
@@ -21072,6 +21094,12 @@ otro:
     ; que sale de la columna, y a partir de la 39 eso cae **afuera** del buffer,
     ; encima del HDMA de la ventana, de la imagen de OAM y de `vq_n`. Ver el
     ; comentario de `componer_char`, más abajo.
+    ;
+    ; Y el tope va acá aunque el conversor no emita nunca un renglón más largo,
+    ; porque **el síntoma no señala al texto**: con `vq_n` pisado, `vram_drenar`
+    ; sube bloques de 128 bytes a direcciones cualquiera de la VRAM, así que un
+    ; largo de renglón malo se ve como la pantalla entera hecha basura unos
+    ; cuadros más tarde y en otro mapa.
     lda comp_col
     cmp #MENSAJE_COLS
     bcs sin_dibujar

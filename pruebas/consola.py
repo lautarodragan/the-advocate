@@ -422,7 +422,7 @@ class Partida:
         self.consola.escribir_ram(self.simbolos["refresco"], [1])
         return self
 
-    def ir_al_mapa(self, map_id, x, y, cuadros=90):
+    def ir_al_mapa(self, map_id, x, y, cuadros=90, tinte=True):
         """Teletransporta a la partida, como lo haría una puerta del juego.
 
         No hay atajo acá: se le pide a la ROM el mismo fundido que pide una
@@ -457,6 +457,23 @@ class Partida:
         self.consola.escribir_ram(self.simbolos["fundido"], [1])
         self.consola.escribir_ram(self.simbolos["fundido_base"],
                                   [self.palabra("vueltas") & 0xFF])
+        # Y la pantalla se destiñe, que es lo único que este salto hace y una
+        # puerta de verdad no.
+        #
+        # El tinte **sobrevive al cambio de mapa**, y con razón: es lo que hace
+        # RM2k y lo que la referencia modela. Pero saltar acá no es cruzar una
+        # puerta: es aparecer en un mapa al que la partida no llegó jugando, sin
+        # haber corrido las páginas que en el juego habrían dejado la pantalla
+        # como corresponde. Con el mapa de arranque de las demos, que tiñe de
+        # azul en su cinemática, eso dejaba el mapa entero azul y parecía el
+        # defecto que uno estaba buscando: costó una hora el 2026-09-13, y
+        # estuvo escrito como trampa en AGENTS.md hasta que esto lo hizo
+        # innecesario. Con `tinte=False` se conserva, para una prueba que
+        # quiera justamente mirar que sobrevive.
+        if tinte:
+            for nombre in ("tinte_r", "tinte_g", "tinte_b", "tinte_s"):
+                self.consola.escribir_ram(self.simbolos[nombre],
+                                          [self.simbolos["TINTE_NEUTRO"]])
         self.correr(cuadros)
         return self
 

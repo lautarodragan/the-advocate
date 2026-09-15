@@ -144,9 +144,16 @@ VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 
 # Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
-# prioridad son los bits 5 y 4. Estos dos valores son los únicos del
-# programa: la ROM recibe el del héroe en HERO_PRIORITY y el de cada NPC
-# viene armado en su byte de atributos.
+# prioridad son los bits 5 y 4, no los 0 y 1: escribir $20 creyendo que es
+# prioridad 1 da prioridad 2, y en el orden de más arriba ese lugar de más cruza
+# justo la capa de encima. No falla nada y el sprite se sigue viendo: sólo que
+# del lado equivocado de una capa, o sea tapando el techo por el que debería
+# caminar por debajo.
+#
+# Estos dos valores son los únicos del programa: la ROM recibe el del héroe en
+# HERO_PRIORITY y el de cada NPC viene armado en su byte de atributos. Tenerlos
+# escritos también en `main.s` fue lo que dejó que este error sobreviviera a la
+# primera comparación: los dos lados se equivocaron igual y dio cero.
 OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
 OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
 
