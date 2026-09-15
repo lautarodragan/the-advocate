@@ -1,0 +1,32 @@
+# Commits que `git blame` tiene que saltear.
+#
+# Van acá los cambios **mecánicos y sin efecto**: renombres masivos, reformateos,
+# mudanzas de archivo. Sin esto, `git blame` sobre cualquier línea que tocaron
+# contesta "fue el renombre", que es cierto y es inútil: lo que uno quiere saber
+# es quién escribió la lógica.
+#
+# El criterio para agregar uno: que su cambio **no pueda alterar el
+# comportamiento**. Los dos de abajo lo tienen demostrado, no supuesto — las dos
+# ROMs salieron byte por byte iguales.
+#
+# No entra un commit que renombra *y* arregla algo de paso. Si hace falta,
+# se parte en dos commits y se ignora sólo el mecánico.
+#
+# Cómo usarlo:
+#
+#     git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
+#
+# o, para no tener que acordarse, una sola vez por clone:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# **Ese `git config` falla adentro del contenedor**, donde `.git/config` está
+# montado de sólo lectura: ahí va el flag a mano. Desde el host anda.
+
+# Los 40 opcodes del bytecode pasaron a llamarse en inglés. 506 usos en 18
+# archivos, 496 líneas cambiadas y 496 borradas: el mismo texto con otro nombre.
+5ba5d05bed0265bca1ee53f3c6818bf86ea2e399
+
+# Las etiquetas del intérprete tomaron el nombre del opcode que atienden
+# (`op_lugar` -> `op_place`). 121 usos, 120 y 120.
+ec9436950f7b868eb87587acb5ac3a495b4a87ac
