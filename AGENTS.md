@@ -42,6 +42,20 @@ un README de cinco mil líneas, así que ahí no protege a nadie.
 Y si el error no es de los que se vuelven a cometer, no va a ningún lado: el
 `git log` ya lo tiene.
 
+**Se asume que todo el código escrito es intencional**, sabiendo que puede no
+serlo. No se documenta cada caso intencional, porque los no intencionales son
+la excepción. Ante algo que parece un error, el primer paso es **`git blame`**:
+sirve para separar "esto es a propósito" de "esto se rompió en algún cambio",
+que es la diferencia entre tocarlo con confianza y tocarlo a ciegas. Recién con
+la intención demostrada —y demostrada errónea, o parcialmente errónea— se
+arregla.
+
+Al revés también: **si uno escribe a propósito algo que se ve raro, lo aclara
+ahí mismo.** El ejemplo de taro: "acá la variable que se llama NUMBER es de
+tipo string y no number, por contraintuitivo que sea, pero no se puede arreglar
+porque así lo espera una API que no controlamos". Eso es lo que un comentario
+tiene que decir; lo que el código ya dice, no.
+
 ## Los proyectos independientes están en inglés
 
 Todo este repo va en castellano —comentarios, documentación y mensajes de

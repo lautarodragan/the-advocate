@@ -762,6 +762,225 @@ no se pueden hacer** —serían 56 de los 128 de OAM y 32 de los 34 tiles por
 línea—. Ésas piden prestarle una capa al cartel, y con eso el mapa se recarga
 al borrarlo.
 
+## Lo que falta del port
+
+Mudado del README el 2026-09-15: es lo que está a medias, o sea de este
+archivo. Lo derivable no está acá y no debería volver: qué comandos se aceptan
+sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/eventos.py`, y cuánto
+destraba cada uno, `just snes-destraba`.
+
+* **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
+  compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
+  de verdad **antes** del paquete de audio por mapa: ahora en la ARAM viven el
+  directorio y un paquete, no el banco, y con todos los temas de la demo
+  aportando el hardware entra de sobra: lo dice el informe del conversor. Lo
+  que no entra es la calidad: repartir los 40 KB de `ARAM_BUDGET` entre casi el
+  doble de programas baja la tasa mediana a la mitad **para todos**, incluidos
+  los que hoy suenan bien. Lo que lo resuelve es darle a cada programa lo que
+  su peor paquete puede pagar en vez de una parte del banco entero; mientras no
+  esté, los temas que no aportan suenan incompletos y el recorte va por
+  prioridad: ver "Varios temas en el cartucho".
+* **La música, del lado del SPC700.** Hoy la toca el 65816 desde una IRQ —ver
+  "La música no espera al lazo"—, y funciona, pero cuesta hasta veinte líneas
+  por cuadro y obliga a las reglas de la interrupción. El paso que sigue,
+  acordado con taro el 2026-09-11, **no** es un secuenciador en el SPC700 como
+  los de los juegos comerciales, sino uno chico que lea el mismo stream de hoy
+  desde un buffer circular en la ARAM, a su propio ritmo, y que el 65816 sólo
+  mantenga lleno. El conversor y `snes-check` no cambian, y los efectos de
+  sonido pasarían allá también. Se encara cuando haga falta el margen del lazo,
+  o si en la consola el audio muestra algo que el emulador no.
+* **El sistema de imágenes, más allá del cartel.** La ROM dibuja **un**
+  `ShowPicture` por cartucho: ver "El cartel de 'One year previously'", y ahí
+  están los números de lo que costaría el resto —34 comandos en el juego, 20
+  carteles distintos, y cinco de ellos de 320x240 exactos, que con objetos no
+  se pueden hacer—. Los que no entran se siguen aceptando sin hacerse.
+* **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende —mover
+  en los cuatro sentidos, girar en los cuatro, esperar, saltar, atravesar
+  paredes y parar o seguir la animación— y `play_sound_effect` se acepta sin
+  hacerlo, y la **transparencia** también: subirla y bajarla de a un octavo son
+  las órdenes 40 y 41, y las ocho rutas del juego que las usan son las cuatro
+  pantallas del mapa 2 atenuándose mientras Manta hackea, que sin eso dejaban
+  afuera la escena entera; se pierde el fundido, que sobre tiles de fondo la
+  SNES no hace barato. Una ruta que se queda sin órdenes por esto no se emite:
+  RM2k la consume entera en el cuadro y no deja nada que esperar. Falta **fijar
+  la mirada** —las órdenes 26 y 27, que sobre el héroe se aceptan y se tiran
+  por decisión y no por olvido: ver ESTADO.md—. **Moverse hacia el héroe** —la
+  orden 9, +33 páginas— y **cambiar el gráfico del héroe** —la 34, +29— se
+  hacen; las otras nueve órdenes de movimiento que faltan suman +1 entre todas,
+  medido, y por eso siguen afuera. La velocidad ya está, con las rutas propias
+  de las páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31—, ver
+  "La frecuencia se sube y se baja a mitad de una ruta"; las **diagonales**
+  —las órdenes 4 a 7, +7 páginas—; y **cambiar el gráfico
+  sobre un evento** —+25 páginas—, ver "Cambiar el gráfico a mitad de una
+  ruta". Las tres últimas van sobre eventos y no sobre el héroe. Sigue siendo
+  lo que más corta, aunque bastante menos.
+
+  Y una que apareció midiendo eso: **sobre el héroe, la
+  ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
+  velocidad— y **la referencia no**. `paso_de_ruta` las saltea con un "acá no
+  llegan" que dejó de ser cierto: `Ruta` es la misma clase para el héroe y para
+  los eventos, así que la referencia le cambia la velocidad y la ROM lo deja
+  caminando igual. En el juego hay 163 rutas sobre el héroe con la orden 28 y
+  148 con la 29; **de las páginas que hoy compilan, siete tienen una**, y una
+  de ésas es el evento 1 del **mapa 7, Talan's Pad**, que es adonde va el juego
+  después del Emitter Room. No lo cobra ninguna prueba porque ningún caso mira
+  una de esas páginas, y no es lo mismo que lo de arriba: no es un comando que
+  falte sino dos lados que ya no hacen lo mismo. **Las 28 y 29 sobre el héroe
+  se hacen**: su paso dejó de ser fijo —`step_left` cuenta
+  medias unidades de RM2k, 128 por celda, y baja `paso_medio_por_vel` por
+  cuadro— y la velocidad vive en `FAR_HERO_VEL`, viaja en la partida y queda
+  como la dejó la última ruta, que es lo que hace RM2k: sólo la frecuencia se
+  repone. Las 26 y 27 se siguen tirando.
+
+  Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
+  está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la
+  dirección que el personaje ya tenía, y para un evento que todavía no giró
+  ésa es la que trae su página, que la ruta no lee. **Encarar al héroe** y la
+  **frecuencia** ya están: ver "La frecuencia de la ruta,
+  y encarar al héroe".
+* **El acolchado de bloques.** Agrandar el cartucho **es un cambio de mapeo que
+  ningún caso de la tanda ve**: los tres emuladores cargan el archivo del doble
+  sin preguntar, así que lo prueba el cartucho real. Y no es la única salida:
+  el acolchado que dejan los `.bloque` llega a **20 KB** —un bloque de 18 KB que
+  no entra en lo que queda del banco deja 12 KB vacíos— y un enlazador que
+  acomode los bloques en los huecos los recuperaría. No se hizo porque el
+  crecimiento sigue: cada personaje que cambia de pose son 6 KB.
+
+  Y dos ideas de taro para cuando haga falta apretar assets, anotadas para no
+  perderlas: **paletas calculadas sobre todas las imágenes del juego** a la
+  vez —CharSets, ChipSets y texto—, unificando los negros y grises casi
+  iguales entre imágenes, con un impacto visual mínimo; y **hornear en un
+  ChipSet propio a los sprites que son decoración**, como el público del
+  Auditorio, que no se mueve nunca. Ninguna de las dos se encara ahora.
+* **Lo que la colisión con los eventos no modela.** Está
+  —ver "La colisión con los eventos"— y deja afuera `overlap_forbidden`, 17
+  páginas del juego; el conflicto de un evento con gráfico de tile contra su
+  propio bloque; que un evento de contacto de la capa del héroe dispare al
+  chocar con él —`CheckCollisonOnMoveFailure`—; y que una ruta forzada que
+  no se puede saltear **reintente** el paso bloqueado en vez de saltearlo,
+  que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
+  lo que más cerca está de verse: en la apertura la colisión no frena ningún
+  paso, medido, pero el droide del mapa 2 vive de eso.
+* **El cartucho es de 4 MB**: `ROM_BANKS` es 128 y la cabecera dice `$0C`. Es
+  el techo de LoROM, así que de acá no se crece: lo que siga pidiendo cartucho
+  tiene que recuperar acolchado o compartir tiles entre mapas.
+
+  **Los dos últimos bancos del archivo no se usan**, y ésa es la parte que hay
+  que entender antes de tocar esto. `lorom_address` le da a cada byte del
+  archivo la dirección `banco:8000`, y en la consola **los bancos $7E y $7F son
+  la WRAM**: un dato ubicado ahí se leería como memoria de trabajo. Se llega a
+  ellos por el espejo $FE/$FF, pero entonces un puntero de 24 bits que cruce de
+  $7D:FFFF al siguiente —lo que hace `advance`— aterrizaría en la WRAM en vez de
+  saltar al espejo, y sería un error silencioso en el peor lugar: un stream de
+  música o una tira de mapa leyendo basura a mitad de camino. Así que el archivo
+  mide 4 MB justos, que es lo que la cabecera declara y lo que el FX Pak espera,
+  y `BANCOS_PROHIBIDOS` hace que el asignador se detenga 64 KB antes.
+
+  La SRAM no se entera de nada: en LoROM vive en la **mitad baja** de los
+  bancos $70 a $7D, y el cartucho usa la alta.
+* **Los cuadros que el lazo pierde en sus picos.** Ya no los produce el
+  teletransporte —el fundido se come la carga, ver "El fundido de los
+  teletransportes"— pero siguen: la primera vuelta de una ROM con muchas
+  páginas se pasa del cuadro, y también la vuelta en que un fundido termina y
+  la página retoma. La referencia no los modela, así que a partir de ahí la
+  ROM va N cuadros atrás y sólo se la puede comparar donde la pantalla esté
+  quieta. Eso es lo único que le falta a la escena del ascensor del mapa 2
+  para tener caso propio en la tanda. La salida no es un desfase a mano en
+  las recetas —eso es un número que se ajusta hasta que dé verde— sino
+  aflojar los picos, o que la receta lea `cuadros_perdidos`, que ya viaja en
+  la salida de cada captura.
+* **Las otras transiciones de RM2k.** El fundido está, que es la que este
+  juego usa —`transition_out` y `transition_in` valen 0 en su base—, pero
+  `Transition::Type` tiene 38 y un evento puede pedir cualquiera con
+  `EraseScreen`/`ShowScreen`. Las de bloques, persianas y barridos no son un
+  brillo maestro: piden tapar la pantalla por regiones, que en la consola es
+  otra máquina.
+* **Los teletransportes que siguen sin resolverse.** Los que están adentro de
+  cinemáticas con variables y condiciones que todavía no modelamos. El del
+  mapa donde el juego arranca ya no: es automático, entra con los cinco
+  comandos que la ROM entiende, y `Blank (Leave START here)` ahora se sale
+  solo.
+* **El resto de los temas.** El cartucho lleva **varios**: los que pidan los
+  `PlayBGM` compilados, compartiendo un solo banco de muestras. El techo no
+  es la cantidad de temas —el banco se achica solo— sino la resolución: con
+  los treinta y pico del juego entero cada instrumento quedaría en una miga,
+  y sin aviso. Ver "Varios temas en el cartucho".
+
+  Lo que subiría ese techo es un **driver que sepa recibir datos**: hoy las
+  muestras se suben una sola vez al arrancar con el protocolo del IPL, que manda
+  un byte por acuse y desaparece al saltar al driver. Con un banco por tema el
+  costo sería medio segundo de transferencia en cada `PlayBGM` —y habría que
+  modelarlo en la referencia, que es lo que lo descartó—; con los cuatro
+  puertos en vez de uno, en cambio, se acorta el arranque, que hoy es
+  `BOOT_CUADROS`, dimensionado para una ARAM llena.
+
+  Y un efecto que conviene tener presente: `snes-check` compara el audio contra
+  el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
+  nombrarlo. Para eso está `just snes-bgm <tema>`.
+
+* **La cinemática de apertura, entera.** Corre con ventana
+  —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y `escape_newyork`
+  sonando; el 3 va para que el ascensor del mapa 2 lleve a algún lado, que si no
+  su página no compila— y el caso `apertura` de la tanda la compara hasta
+  el final con los quince toques de A que la cierran: el tinte se apaga, Core y
+  Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
+  con dos `ChangeEventLocation` y un switch. De ahí el juego sigue con el
+  jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
+  **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
+  el toque de A resincroniza los dos lados.
+* **Lo que le falta al juego entero.** Cuántas de las páginas automáticas con
+  comandos compilan enteras, y cuántas destrabaría cada comando que falta, lo
+  imprime **`just snes-destraba`**, y ése es el único lugar del que hay que
+  sacarlo: los números que estuvieron escritos acá envejecieron sin avisar, y
+  llegaron a contradecirse entre sí en dos archivos del repo.
+
+  **Ese número hay que leerlo con cuidado, y por eso `tools/destraba.py` muestra
+  dos columnas.** Contar qué comando corta *primero* cada página no mide lo que
+  se destraba: una página cortada por un cuadro de texto puede estar cortada
+  además por otras cuatro cosas. Y aceptar un código entero cuenta lo que se
+  destrabaría con el comando hecho **para todos los casos que el juego usa**, que
+  es un techo: sobre `MoveEvent`, contar las rutas que la ROM no va a saber
+  caminar y los blancos que no existen infla el número frente a contar sólo las
+  órdenes que ya hace. Los candidatos que todavía no tienen filtro son techos.
+
+  Y una nota que sigue valiendo: de las páginas con `MoveEvent`, la mayoría
+  mueve **otro evento** y no al héroe, o sea que piden que los NPCs caminen, que
+  es una feature aparte de la ruta forzada que ya anda.
+* **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
+  4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
+  probable es compartir los tiles entre los mapas que usan el mismo chipset:
+  son 43 chipsets para 328 mapas.
+* **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
+  hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
+  Village once, así que no convierten. Los dos venían tapados detrás del
+  problema de las paletas de la capa de encima, que ya está resuelto. Los
+  eventos dibujados con un tile del chipset se empaquetan
+  y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
+  eventos dibujados con un tile del chipset".
+* **Un evento que camina y cambia de gráfico con la página.** Ver "El
+  gráfico sigue a la página": el conversor corta. Y con eso, `change_graphic`
+  en una ruta sigue afuera.
+* **El panorama.** El mapa 2 tiene uno —`screen`, puntitos sobre azul que
+  desplaza en diagonal solo— y se nota faltando cuando la pantalla grande se
+  enciende. El modo 3 tiene dos capas de fondo y las dos están
+  tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
+  tercera o el modo 1, que la conversión no usa. No es prioridad.
+
+  De ahí sale que **`ChangePBG` se acepte y se tire**: si
+  no hay panorama, no hay nada que cambiarle. Se tira al compilar, como las
+  órdenes de ruta 26 y 27, así que la referencia tampoco lo modela y los dos
+  lados quedan iguales por construcción. Aparece **una sola vez en todo el
+  juego** —siete comandos en la página del viaje en el Hover-Tram, donde el
+  paisaje de la tarde corre por detrás y cambia de velocidad al arrancar y al
+  frenar— y sin él esa página no compila: o sea que lo que esto compra es el
+  viaje entero, y lo que cuesta es que las ventanillas se vean quietas.
+* **El ataque y el decaimiento** siguen saliendo de las ocho familias de
+  `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
+  suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
+* **Una muestra por instrumento.** Un piano real está multi-muestreado cada
+  pocas notas; nosotros tomamos la del do central y transponemos. En los
+  extremos del teclado eso se nota.
+
 ## Lo que se dejó afuera a propósito
 
 * **El panorama del mapa 2** —los puntitos sobre azul cuando se enciende la
