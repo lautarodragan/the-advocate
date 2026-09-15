@@ -239,12 +239,10 @@ que están cerca, en vez de los 41 todos los cuadros.
 Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
 refactors: **no hay features hasta que cierre**.
 
-1. **El tinte que sobrevive al cambio de mapa deja de ser una trampa.** Hoy
-   `AGENTS.md` avisa que inyectar un mapa directo lo deja todo azul —el tinte
-   del mapa de arranque sigue puesto— y que hay que poner `tinte_r/g/b` en 100
-   antes de mirar. Eso lo tiene que hacer el arnés solo: en el juego real
-   siempre se llega desde otro mapa, así que es un artefacto de inyectar.
-   Arreglarlo borra la aclaración, que es mejor que documentarla.
+1. ~~El tinte que sobrevive al cambio de mapa~~ **hecho el 2026-09-15**:
+   `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
+   al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
+   fallaba, dos pasaban—. taro los miró y los bendijo.
 2. **Enchufar `brr/` y `tiles/`, y borrar los tres de Python** —`sf2.py`,
    `pixeles.py`, `brr.py`— **más `w65.py`**. El argumento de dejarlos como
    segunda implementación no se sostiene: si el port se equivoca, **la ROM
