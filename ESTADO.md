@@ -11,8 +11,86 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-14.
+Última vez que se tocó: 2026-09-15.
 
+
+## La etapa en curso: partir el pipeline, y cero features hasta terminarla
+
+Decidido el 2026-09-15, con estas palabras: **"cero nuevos features antes de
+terminar toda esta etapa de refactors"**. Hasta que esto cierre, no se propone
+ni se empieza una feature; si algo parece urgente, se dice y decide taro.
+
+El porqué es suyo y conviene tenerlo entero, porque ordena las decisiones de
+diseño de toda la etapa: el juego llegó más lejos de lo que esperaba, quiere
+aplicarle las reglas de arquitectura que le gusta tener en cualquier proyecto,
+y quiere **depender menos de IA y tener un buen mapa mental**, para lo cual
+necesita cada cosa separada y definida. A eso suma que el 90% de lo que hicimos
+es reutilizable por otros, y que *"un binario estáticamente vinculado que
+recibe un input y genera un output se puede aprender a usar fácilmente, sin
+entender sus detalles de implementación; y si encima tiene buen manejo de
+argumentos y reporte de errores, cualquier IA puede aprender a usarlo
+inmediatamente, sin gastar muchos tokens y con mínimo espacio para error"**.
+
+De ahí sale el criterio que se le aplica a cada pieza nueva: **`--help` y los
+mensajes de error son features, no prolijidad.** El modelo hecho es
+`protocol/`: argumentos con clap, errores que nombran el archivo y lo que se
+esperaba, y dos códigos de salida distintos (1 = algo quedó viejo, 2 = la
+llamada está mal).
+
+Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
+
+1. **los conversores puros**, un proyecto por responsabilidad: `brr/` (muestras
+   → BRR, con el lector de SoundFont) y `tiles/` (PNG → tiles y paletas). Son
+   puros y lo sabemos **porque el conversor ya los cachea**;
+2. **`w65/`**, el ensamblador de 65816. El contrato más limpio del repo;
+3. **el asignador** —paletas, ARAM, VRAM— que es lo que queda de
+   `snes_convert.py` cuando le sacás los conversores, más el secuenciador de
+   MIDI al SPC700, que **no** es un conversor tonto: conoce el driver y usa
+   `protocol/music.toml`;
+4. **el compilador de eventos**: JSON → bytecode y tablas. No es Ditto y no
+   puede serlo: Ditto es un transcodificador bidireccional y sin pérdida, y
+   esto es un compilador unidireccional, con pérdida y atado a un target. Lo
+   que sí sale de acá es `tools/lcf.py` + `tools/ditto_schema.py` (2.793
+   líneas), que en Rust pasan a ser `use ditto`. Y `tools/rm2k.py` —534 líneas
+   de semántica de RM2k— se **duplica** a Rust a propósito, con la copia de
+   Python quedando sólo para la referencia, hasta que se vayan las dos juntas;
+5. **el arnés del emulador**, y no antes: un arnés en Rust llamando a una
+   referencia en Python es peor que cualquiera de los dos extremos. `retro.py`
+   habla con el core por ctypes, así que ahí no hay nada nativo de Python;
+6. **se elimina `tools/snes_expect.py`**, la referencia, y con ella la regla de
+   que un cambio en la ROM y su cambio en la referencia van juntos.
+
+**Las pruebas se quedan en Python**, y no es deuda: es diseño. Decisión de taro
+—un lenguaje interpretado y menos estricto tiene ventajas ahí, y compilar para
+correr la tanda suma tiempo sin aportar casi nada—, y tiene un efecto
+estructural que conviene nombrar: mientras el conversor sea Rust y la
+referencia Python, **la frontera del lenguaje hace imposible que compartan
+código**, que es lo que hoy pasa y no debería (`snes_expect.py` le importa 25
+funciones a `snes_convert.py`).
+
+### Cómo se reemplaza la referencia, que es el paso 6
+
+Golden files, confirmados **jugando** por taro, uno por uno. Lo que se pierde
+hay que decirlo: un golden caza regresiones, no errores de nacimiento — una
+feature que sale mal desde el día uno hornea el bug adentro del golden. Se
+acepta porque la evidencia dice que la referencia tampoco los cazaba: los bugs
+de esta semana —Delcentric, la colisión pegada del Hover-Tram, el HP de los
+enemigos, la música, el menú de batalla— los encontró él jugando, no la tanda.
+Donde la referencia sí se ganaba el sueldo era el pixel, que es justo donde un
+golden funciona mejor.
+
+Dos condiciones acordadas:
+
+* **actualizar un golden tiene que ser un acto deliberado**, con la receta
+  imprimiendo qué cambió y exigiendo un flag; la tanda **nunca** regenera. Es
+  el único modo de falla real del esquema;
+* **no se borra la referencia hasta que los goldens existan y estén
+  bendecidos**. Capturar los 170 casos es barato; la bendición sólo la puede
+  dar él.
+
+Y lo que reemplaza a la referencia para las features **nuevas**: mirar las
+capturas. taro quiere presupuesto para eso —"la IA es excelente para leer
+imágenes"— pero **fuera de la tanda**, que con visión sería demasiado cara.
 
 ## El objetivo, y dónde estamos
 
