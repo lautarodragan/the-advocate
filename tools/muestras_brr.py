@@ -10,18 +10,19 @@ disco del conversor y la memoria de lo ya pedido.
 conversor pide 34.493 codificaciones para **608 muestras distintas** y 70.279
 zonas del SoundFont para **100 selectores distintos**. Sin memoria serían
 104.772 arranques de proceso; con ella son 708, y las 708 —binario, archivos
-temporales y todo— cuestan **1,33 s** de una conversión de 100 s.
+temporales y todo— cuestan **1,33 s** de una conversión de 102 s.
 
 Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
 juntar todas las muestras en una sola invocación ahorraría 0,35 s de esos
-100 s: menos del medio por ciento, a cambio de un modo más en `brr/`. Y encima
+102 s: menos del medio por ciento, a cambio de un modo más en `brr/`. Y encima
 no se pueden juntar del todo: `snes_samples.build_bank` decide el presupuesto
 de la muestra siguiente mirando cuánto ocupó la anterior, así que los trabajos
 no existen todos juntos en ningún momento.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,8 +33,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cache_disco
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BINARIO = os.environ.get("ABL_BRR", os.path.join(RAIZ, "brr", "target",
-                                                 "release", "brr"))
+BRR = os.path.join(RAIZ, "brr")
+BINARIO = os.environ.get("ABL_BRR",
+                         os.path.join(BRR, "target", "release", "brr"))
+
+# El mismo texto que da la receta `brr-binario`, por lo mismo que en
+# `w65_bin.py`: el que corre pytest directo se choca con esto y no con ella.
+FALTA_CARGO = (
+    "falta cargo: desde el 2026-09-15 el códec BRR y el lector de SoundFont\n"
+    "son un binario de Rust (brr/) y hay que compilarlo para armar las\n"
+    "muestras de la ROM.\n"
+    "  en Arch:   pacman -S rust   (o rustup, y 'rustup default stable')\n"
+    "  y después: just brr-binario")
 
 # Propiedades del formato, no nuestras: el DSP lee bloques de nueve bytes que
 # guardan dieciséis muestras, y vuelve del loop al principio de uno.
@@ -44,7 +55,7 @@ BLOQUE_BYTES = 9
 # este archivo: si cambia cualquiera de los dos, lo guardado deja de valer. El
 # binario compilado no entra a propósito —cambia con cada versión del
 # compilador sin que el BRR cambie—, y tampoco `Cargo.lock`, que hoy no tiene
-# ninguna dependencia que toque las muestras_brr.
+# ninguna dependencia que toque las muestras.
 FUENTES = ("brr/src/codec.rs", "brr/src/wav.rs", "brr/Cargo.toml",
            "tools/muestras_brr.py")
 
@@ -56,6 +67,34 @@ class Error(Exception):
 _version = None
 _codificadas = {}
 _extraidas = {}
+_compilado = False
+
+
+def binario():
+    """La ruta al códec, ya compilado y al día.
+
+    Igual que `w65_bin.binario()` y por la misma razón: las recetas que
+    convierten de arriba de todo dependen de `brr-binario`, pero **pytest no
+    tiene recetas** —`python3 -m pytest pruebas` convierte mapas, y convertir
+    un mapa codifica muestras—, y las recetas que convierten llamando a otra
+    tampoco la tienen. Se compila a pedido y una sola vez por proceso.
+    """
+    global _compilado
+    if _compilado or "ABL_BRR" in os.environ:
+        return BINARIO
+
+    if shutil.which("cargo") is None:
+        # Sin cargo no se puede comprobar que esté al día, pero quien no tiene
+        # cargo tampoco tiene cómo haber cambiado los fuentes de Rust.
+        if os.path.exists(BINARIO):
+            _compilado = True
+            return BINARIO
+        raise SystemExit(FALTA_CARGO)
+
+    subprocess.run(["cargo", "build", "--release", "--quiet"],
+                   check=True, cwd=BRR)
+    _compilado = True
+    return BINARIO
 
 
 def _correr(args):
@@ -66,14 +105,13 @@ def _correr(args):
     decir cómo se compila antes que dejar un "command not found" suelto.
     """
     try:
-        hecho = subprocess.run([BINARIO] + args, capture_output=True)
+        hecho = subprocess.run([binario()] + args, capture_output=True)
     except OSError as e:
         # Un SystemExit y no una excepción: que falte el binario no es un error
         # de programa, es que hay que compilarlo, y un traceback de veinte
         # líneas tapa la única línea que dice cómo.
-        raise SystemExit("no se pudo correr %s: %s\n"
-                         "el códec BRR es un binario de Rust (brr/); "
-                         "compilalo con `just brr-binario`" % (BINARIO, e))
+        raise SystemExit("no se pudo correr %s: %s\n\n%s"
+                         % (BINARIO, e, FALTA_CARGO))
     if hecho.returncode:
         raise Error("%s salió con %d: %s"
                     % (" ".join([os.path.basename(BINARIO)] + args),
