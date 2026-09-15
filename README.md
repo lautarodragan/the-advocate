@@ -2575,15 +2575,16 @@ Eso deja el mismo reparto que en la Mega Drive: **toda la lógica en Python, y e
 la consola sólo un intérprete de un stream de escrituras.** El driver del SPC700
 son **20 bytes**.
 
-    rom/src/main.s      65816: arranque, carga al SPC700, reproductor
-    rom/snes.cfg        enlazado LoROM de 32 KB
-    rom/record.sh       corre la ROM sin pantalla y graba el audio a WAV
-    tools/spc700.py      ensamblador de SPC700, porque no hay uno empaquetado
-    tools/brr.py         codificador del formato de muestras de la SNES
-    tools/sdsp.py        registros del DSP y el banco de timbres
-    tools/snes_music.py  el MIDI del mapa a muestras y stream
-    tools/snes_check.py  compara lo que suena contra el MIDI
-    tools/wavtone.py     mide la frecuencia de un WAV, para un tono suelto
+    rom/src/main.s        65816: arranque, carga al SPC700, reproductor
+    rom/snes.cfg          enlazado LoROM de 32 KB
+    rom/record.sh         corre la ROM sin pantalla y graba el audio a WAV
+    tools/spc700.py       ensamblador de SPC700, porque no hay uno empaquetado
+    brr/                  códec BRR y lector de SoundFont, en Rust
+    tools/muestras_brr.py el puente entre el conversor y ese binario
+    tools/sdsp.py         registros del DSP y el banco de timbres
+    tools/snes_music.py   el MIDI del mapa a muestras y stream
+    tools/snes_check.py   compara lo que suena contra el MIDI
+    tools/wavtone.py      mide la frecuencia de un WAV, para un tono suelto
 
 ### El banco de muestras
 

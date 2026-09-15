@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Muestra qué trae el SoundFont para los instrumentos que usa el juego.
 
-Sirve para dos cosas: verificar que el lector de sf2.py entiende el archivo, y
-decidir el presupuesto de ARAM antes de convertir nada. Lo que importa de cada
-muestra es cuántos cuadros tiene y si trae loop: sin loop, una nota sostenida se
-corta, y con loop podemos guardar sólo el ataque más un ciclo.
+Leer el banco lo hace `brr sf2`, y `brr sf2 --list-samples` ya lista todo lo
+que un banco tiene. Lo que esto agrega es lo único que el binario no puede
+saber, porque no sabe nada de este juego: **qué programas y qué golpes pide el
+MIDI de un mapa**. Con eso se decide el presupuesto de ARAM antes de convertir
+nada, que es para lo que existe.
+
+De cada muestra importa cuántos cuadros tiene y si trae loop: sin loop, una
+nota sostenida se corta, y con loop podemos guardar sólo el ataque más un
+ciclo.
 
 Uso:
     python3 tools/sf2_inspect.py --map-id 67
@@ -20,17 +25,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
 import midi
-import sf2
+import muestras_brr
 from render_map import GAME_DIR, find_resource
 
 SOUNDFONT = "/usr/share/soundfonts/FluidR3_GM.sf2"
 REFERENCE_KEY = 60      # do central: la nota con la que se elige la zona
 DRUM_BANK = 128         # donde General MIDI guarda los kits de percusión
 DRUM_PROGRAM = 0        # el kit estándar
-
-LOOP_NAMES = {sf2.LOOP_NONE: "sin loop",
-              sf2.LOOP_CONTINUOUS: "loop",
-              sf2.LOOP_UNTIL_RELEASE: "loop hasta soltar"}
 
 
 def drums_of_map(map_id, game_dir):
@@ -63,41 +64,38 @@ def programs_of_map(map_id, game_dir):
     return used, music["name"]
 
 
-def report_drum(font, note, hits):
+def report_drum(soundfont, note, hits):
     """La percusión vive en el banco 128, y ahí cada nota es un instrumento.
 
     Un kit no está multi-muestreado por altura como un piano: cada tecla trae su
     propia grabación —el bombo, el charles, el plato— y por eso hay que pedir
     una zona por cada nota que el MIDI use, no una por preset.
     """
-    zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+    sample = muestras_brr.extraer("drum:%d" % note, soundfont)
     if sample is None:
         print("  nota %3d (%4d golpes)  SIN MUESTRA" % (note, hits))
         return None
 
-    modes = zone.get(sf2.GEN_SAMPLE_MODES, sf2.LOOP_NONE)
     print("  nota %3d (%4d golpes)  %-26s %6d cuadros a %5d Hz, %s"
-          % (note, hits, sample.name[:26], sample.frames, sample.rate,
-             LOOP_NAMES.get(modes, "?")))
+          % (note, hits, sample.nombre[:26], sample.cuadros, sample.tasa,
+             "loop" if sample.loop else "sin loop"))
     return sample
 
 
-def report(font, program, label=""):
-    zone, sample = font.zone_for(program, REFERENCE_KEY)
+def report(soundfont, program, label=""):
+    sample = muestras_brr.extraer("program:%d@%d" % (program, REFERENCE_KEY),
+                                  soundfont)
     if sample is None:
         print("  programa %3d %-14s SIN PRESET" % (program, label))
         return None
 
-    modes = zone.get(sf2.GEN_SAMPLE_MODES, sf2.LOOP_NONE)
-    loop = sample.loop_end - sample.loop_start
-    root = zone.get(sf2.GEN_ROOT_KEY) or sample.root_key
-
     print("  programa %3d %-14s %-22s %6d cuadros a %5d Hz, nota %3d, %s"
-          % (program, label, sample.name[:22], sample.frames, sample.rate,
-             root, LOOP_NAMES.get(modes, "?")))
-    if modes != sf2.LOOP_NONE:
+          % (program, label, sample.nombre[:22], sample.cuadros, sample.tasa,
+             sample.nota, "loop" if sample.loop else "sin loop"))
+    if sample.loop:
+        loop = sample.loop_end - sample.loop_start
         print("               loop de %d cuadros (%.0f ms)"
-              % (loop, 1000.0 * loop / sample.rate))
+              % (loop, 1000.0 * loop / sample.tasa))
     return sample
 
 
@@ -112,31 +110,28 @@ def main():
     parser.add_argument("--soundfont", default=SOUNDFONT)
     args = parser.parse_args()
 
-    font = sf2.SoundFont(args.soundfont)
-    print("%s: %d presets, %d instrumentos, %d muestras, %.0f MB de PCM"
-          % (os.path.basename(args.soundfont), len(font.presets) - 1,
-             len(font.instruments) - 1, len(font.samples) - 1,
-             font.pcm_size / 1e6))
+    presets = muestras_brr.presets(args.soundfont)
+    print("%s: %d presets" % (os.path.basename(args.soundfont), len(presets)))
     print()
 
     if args.programs:
         print("Programas pedidos:")
         for program in args.programs:
-            report(font, program)
+            report(args.soundfont, program)
         return
 
     if args.drums:
         hits = drums_of_map(args.map_id, args.game_dir)
+        kit = [n for b, p, n in presets
+               if b == DRUM_BANK and p == DRUM_PROGRAM]
         print("Percusión del mapa %d, banco %d preset %d (%s):"
               % (args.map_id, DRUM_BANK, DRUM_PROGRAM,
-                 font.preset_name(font.find_preset(DRUM_PROGRAM, DRUM_BANK))
-                 if font.find_preset(DRUM_PROGRAM, DRUM_BANK) is not None
-                 else "no está"))
+                 kit[0] if kit else "no está"))
         total = 0
         for note, count in hits.items():
-            sample = report_drum(font, note, count)
+            sample = report_drum(args.soundfont, note, count)
             if sample:
-                total += sample.frames
+                total += sample.cuadros
         print("  %d cuadros en total antes de remuestrear" % total)
         return
 
@@ -150,7 +145,7 @@ def main():
     for channel, program in sorted(used.items()):
         seen.setdefault(program, []).append(channel)
     for program, channels in seen.items():
-        report(font, program, "canal %s" % ",".join(map(str, channels)))
+        report(args.soundfont, program, "canal %s" % ",".join(map(str, channels)))
 
 
 if __name__ == "__main__":

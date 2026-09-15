@@ -40,15 +40,15 @@ protocolo-pruebas:
   cd protocol && cargo test
 
 # --- brr -------------------------------------------------------------------
-# El códec BRR y el lector de SoundFont en Rust. **No arma la ROM**: eso lo
-# siguen haciendo `tools/brr.py` y `tools/sf2.py`, y el port convive con ellos
-# hasta que esté probado. Sus pruebas son muestras generadas adentro de la
-# prueba —silencio, rampa, cuadrada, impulso, saturación— más los mensajes de
-# error, así que no necesitan ni el juego ni un soundfont.
+# El códec BRR y el lector de SoundFont en Rust, y **el que arma las muestras
+# de la ROM** desde el 2026-09-15: `tools/brr.py` y `tools/sf2.py` ya no
+# existen. Sus pruebas son muestras generadas adentro de la prueba —silencio,
+# rampa, cuadrada, impulso, saturación— más los mensajes de error, así que no
+# necesitan ni el juego ni un soundfont.
 #
-# Lo que **no** cubren es lo único que autoriza a reemplazar al Python: que las
-# 608 muestras de `demo-ciudad` salgan byte por byte iguales. Eso se midió a
-# mano con un script descartable; está en ESTADO.md con el número.
+# Lo que **no** cubren es lo único que autorizó a reemplazar al Python: que las
+# 608 muestras de `demo-ciudad` salgan byte por byte iguales. Eso ahora lo
+# cobra cualquier demo, porque las muestras viajan adentro del `.sfc`.
 brr-pruebas:
   cd brr && cargo test
 
@@ -142,20 +142,20 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 herramientas:
   cargo install --locked --path w65 --root {{cargo_root}}
   cargo install --locked --path protocol --root {{cargo_root}}
+  cargo install --locked --path brr --root {{cargo_root}}
   cargo install --locked --path ditto --root {{cargo_root}}
 
 w65-pruebas:
   cd w65 && cargo test
 
 # --- Super Nintendo --------------------------------------------------------
-# El port. El toolchain son tres cosas: python, cargo y un core de libretro. El
-# ensamblador de 65816 es nuestro —`w65/`, en Rust, desde el 2026-09-15— y la
+# El port. El toolchain son tres cosas: python, un core de libretro y las
+# herramientas de Rust del PATH —`w65` arma la ROM y `brr` sus muestras—. La
 # ROM se corre desde Python cuadro a cuadro (tools/retro.py), sin emulador con
 # ventana ni servidor X.
 #
-# **cargo es nuevo acá**: antes compilar la ROM no lo necesitaba. Lo trae
-# `w65-binario`, de la que dependen `snes-build` y las demos, y que es la que
-# dice qué falta si no está.
+# Las herramientas se instalan con `just herramientas` y no se compilan acá;
+# si falta alguna, el que la busca dice cuál y cómo tenerla.
 
 # Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
 # las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin

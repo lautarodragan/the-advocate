@@ -39,8 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import brr
-import sf2
+import muestras_brr
 
 # El sintetizador por software de Windows, que es con el que se compuso y se
 # escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
@@ -54,7 +53,7 @@ import sf2
 SOUNDFONT = os.environ.get(
     "ABL_SOUNDFONT",
     "/extras/soundfonts/Microsoft GS Wavetable Synth.sf2")
-BLOCK = brr.BLOCK_SAMPLES          # 16 muestras por bloque de BRR
+BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
 
@@ -64,10 +63,9 @@ PEAK = 0x6800                      # a cuánto se normaliza cada muestra
 ARAM_BUDGET = 40 * 1024
 DRUM_BUDGET = 16 * 1024
 
-# La percusión de General MIDI: banco 128, kit estándar, y cada tecla es un
-# instrumento distinto en vez de una altura distinta.
-DRUM_BANK = 128
-DRUM_PROGRAM = 0
+# La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
+# instrumento distinto en vez de una altura distinta. Eso es del formato, así
+# que quien lo sabe es `brr sf2`: acá se pide `drum:36` y nada más.
 DRUM_SECONDS = 0.5
 
 MIN_RATE = 4000
@@ -138,12 +136,13 @@ def plan_rate(attack_frames, loop_frames, source_rate, budget):
     frames = attack_frames + loop_frames
     if not frames:
         return MIN_RATE
-    allowed = budget * BLOCK / float(brr.BLOCK_BYTES)     # muestras que entran
+    # Cuantas muestras entran en el presupuesto.
+    allowed = budget * BLOCK / float(muestras_brr.BLOQUE_BYTES)
     rate = source_rate * allowed / frames
     return int(max(MIN_RATE, min(MAX_RATE, min(rate, source_rate))))
 
 
-def build_voice(font, program, budget, key=REFERENCE_KEY):
+def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
     """Extrae un instrumento del SoundFont y lo deja en BRR.
 
     El ajuste fino está en que el loop caiga justo en un bloque. Se elige
@@ -151,54 +150,46 @@ def build_voice(font, program, budget, key=REFERENCE_KEY):
     sale la tasa real, que puede diferir un poco de la pedida. Después el
     ataque se lleva al múltiplo de 16 más cercano con esa misma tasa.
     """
-    zone, sample = font.zone_for(program, key)
+    sample = muestras_brr.extraer("program:%d@%d" % (program, key), soundfont)
     if sample is None:
         return None
 
-    modes = zone.get(sf2.GEN_SAMPLE_MODES, sf2.LOOP_NONE)
-    looped = modes in (sf2.LOOP_CONTINUOUS, sf2.LOOP_UNTIL_RELEASE)
+    # Qué zona cubre la nota, si el loop vale y de dónde sale la nota raíz son
+    # decisiones del formato, y las toma `brr sf2`: acá el loop ya viene en
+    # cuadros y relativo al PCM extraído, y `loop` ya dice que no cuando la
+    # zona no repite o cuando el loop está vacío.
+    looped = sample.loop
+    attack_frames = sample.loop_start if looped else sample.cuadros
+    loop_frames = sample.loop_end - sample.loop_start if looped else 0
 
-    start, end = sample.start, sample.end
-    loop_start = sample.loop_start if looped else end
-    loop_end = sample.loop_end if looped else end
-    if not looped or loop_end <= loop_start:
-        looped = False
-        loop_start = loop_end = end
-
-    attack_frames = loop_start - start
-    loop_frames = loop_end - loop_start
-    rate = plan_rate(attack_frames, loop_frames, sample.rate, budget)
-    ratio = rate / float(sample.rate)
+    rate = plan_rate(attack_frames, loop_frames, sample.tasa, budget)
+    ratio = rate / float(sample.tasa)
 
     if looped:
         # El loop primero: su largo tiene que ser múltiplo de 16, y de ese
         # redondeo sale la tasa que realmente vamos a declarar.
         loop_out = max(BLOCK, int(round(loop_frames * ratio / BLOCK)) * BLOCK)
         ratio = loop_out / float(loop_frames)
-        rate = int(round(sample.rate * ratio))
+        rate = int(round(sample.tasa * ratio))
     else:
         loop_out = 0
 
     attack_out = int(round(attack_frames * ratio / BLOCK)) * BLOCK
 
-    audio = resample(font.pcm(start, loop_start), attack_out)
+    audio = resample(sample.pcm[:attack_frames], attack_out)
     if looped:
-        audio += resample(font.pcm(loop_start, loop_end), loop_out)
+        audio += resample(sample.pcm[sample.loop_start:sample.loop_end],
+                          loop_out)
     audio = normalize(audio)
 
-    root = zone.get(sf2.GEN_ROOT_KEY)
-    if root is None or root > 127:
-        root = sample.root_key
-    # El SoundFont corrige la afinación en cents por tres lados distintos.
-    cents = (sample.correction + zone.get(sf2.GEN_FINE_TUNE, 0)
-             + 100 * zone.get(sf2.GEN_COARSE_TUNE, 0))
-
-    data = brr.encode(audio, loop_block=attack_out // BLOCK if looped else None)
-    return Voice(program, sample.name, data, rate * 2.0 ** (-cents / 1200.0),
-                 root, attack_out // BLOCK if looped else 0, len(audio))
+    data = muestras_brr.codificar(
+        audio, loop_block=attack_out // BLOCK if looped else None)
+    return Voice(program, sample.nombre, data,
+                 rate * 2.0 ** (-sample.cents / 1200.0), sample.nota,
+                 attack_out // BLOCK if looped else 0, len(audio))
 
 
-def build_drum(font, note, budget, seconds=DRUM_SECONDS):
+def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
     """Un golpe de percusión del kit estándar.
 
     En General MIDI la percusión vive en el banco 128 y cada tecla es un
@@ -210,23 +201,19 @@ def build_drum(font, note, budget, seconds=DRUM_SECONDS):
     más que todos los instrumentos melódicos juntos. Se corta y el resto lo hace
     la envolvente del DSP, que es justamente para lo que sirve.
     """
-    zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+    sample = muestras_brr.extraer("drum:%d" % note, soundfont)
     if sample is None:
         return None
 
-    frames = min(sample.frames, int(seconds * sample.rate))
-    rate = plan_rate(frames, 0, sample.rate, budget)
-    out = int(round(frames * rate / float(sample.rate)) / BLOCK) * BLOCK
+    frames = min(sample.cuadros, int(seconds * sample.tasa))
+    rate = plan_rate(frames, 0, sample.tasa, budget)
+    out = int(round(frames * rate / float(sample.tasa)) / BLOCK) * BLOCK
     if out < BLOCK:
         return None
 
-    audio = normalize(resample(font.pcm(sample.start, sample.start + frames),
-                               out))
-    data = brr.encode(audio, loop_block=None)
-    root = zone.get(sf2.GEN_ROOT_KEY)
-    if root is None or root > 127:
-        root = sample.root_key
-    return Voice(note, sample.name, data, rate, root, 0, out)
+    audio = normalize(resample(sample.pcm[:frames], out))
+    data = muestras_brr.codificar(audio, loop_block=None)
+    return Voice(note, sample.nombre, data, rate, sample.nota, 0, out)
 
 
 def brightness(samples, rate):
@@ -256,21 +243,20 @@ def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
     doble del centroide, que deja lugar para lo que hay por encima— y recién si
     la suma no entra se bajan todas en la misma proporción.
     """
-    font = sf2.SoundFont(soundfont)
-
     wanted = {}
     for note in notes:
-        zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+        sample = muestras_brr.extraer("drum:%d" % note, soundfont)
         if sample is None:
             continue
-        frames = min(sample.frames, int(DRUM_SECONDS * sample.rate))
-        audio = font.pcm(sample.start, sample.start + min(frames, 8192))
-        rate = 2.4 * brightness(audio, sample.rate)
-        wanted[note] = (max(MIN_RATE, min(MAX_RATE, rate)), frames, sample.rate)
+        frames = min(sample.cuadros, int(DRUM_SECONDS * sample.tasa))
+        audio = sample.pcm[:min(frames, 8192)]
+        rate = 2.4 * brightness(audio, sample.tasa)
+        wanted[note] = (max(MIN_RATE, min(MAX_RATE, rate)), frames, sample.tasa)
 
     # Lo que costaría darle a cada uno lo que pide, en bytes de BRR.
     def cost(rate, frames, source_rate):
-        return frames * (rate / source_rate) * brr.BLOCK_BYTES / BLOCK
+        return (frames * (rate / source_rate)
+                * muestras_brr.BLOQUE_BYTES / BLOCK)
 
     # Primero la pregunta simple: ¿entran todos a su tasa original? Bajar la
     # tasa sin filtrar antes mete replegado, así que si hay lugar no se toca
@@ -289,7 +275,7 @@ def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
         rate, frames, source_rate = wanted[note]
         share = (cost(source_rate, frames, source_rate) if scale is None
                  else cost(rate * scale, frames, source_rate))
-        drum = build_drum(font, note, max(512, int(share)))
+        drum = build_drum(soundfont, note, max(512, int(share)))
         if drum is not None:
             drums.append(drum)
     return drums
@@ -319,7 +305,6 @@ def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
     y que se quede en 21. Dos o tres vueltas alcanzan para converger; después no
     queda nadie con hambre.
     """
-    font = sf2.SoundFont(soundfont)
     parte = budget // max(1, len(programs))
     reparto = {program: parte for program in programs}
     hechas = {}
@@ -327,8 +312,8 @@ def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
     for _ in range(max(1, VUELTAS_DE_REPARTO)):
         for program in programs:
             if program not in hechas:
-                hechas[program] = build_voice(font, program, reparto[program],
-                                              key)
+                hechas[program] = build_voice(soundfont, program,
+                                              reparto[program], key)
         voices = [hechas[p] for p in programs if hechas[p] is not None]
         sobra = budget - sum(len(v.data) for v in voices)
         hambrientos = [v.program for v in voices
