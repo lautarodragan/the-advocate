@@ -1,28 +1,42 @@
-# Lo que la referencia decía el 2026-09-15
+# Lo que la ROM dibuja, congelado
 
-Son los 1.017 artefactos que `tools/snes_expect.py` produce para los 170 casos
-de `rom/hitos.txt`, congelados: 466 imágenes esperadas, 535 máscaras de líneas
-a excluir y 16 planes.
+563 capturas del emulador —una por cuadro que la tanda mira— y los 16 planes
+que dicen cuántos ticks correr en cada mapa y dirección.
 
-**Por qué existen.** Hasta ahora cada caso de la tanda corría la referencia y
-comparaba la ROM contra lo que ésta acababa de calcular. Eso tiene un agujero
-que este repo ya pagó dos veces: el conversor alimenta **los dos lados**, así
-que un error suyo mueve la ROM y la referencia juntas y la comparación da cero
-—pasó con los códigos de comando de las puertas y con la prioridad de OAM—.
-Contra un archivo congelado, ese cambio se ve.
+**No son lo que la referencia calcula: son lo que la ROM hace.** Empezaron
+siendo lo primero, el 2026-09-15, y se cambiaron el mismo día por una razón
+medida.
 
-**Cómo se hicieron.** Corriendo la tanda con los 170 casos en verde y copiando
-lo que la referencia produjo. No hubo que bendecir nada a mano: **es
-exactamente lo que la tanda ya aceptaba**. Y se verificó re-derivándolos: una
-segunda corrida completa dio los 1.017 byte por byte iguales, así que la
-referencia es determinista y el congelado es fiel.
+## Por qué la captura y no la referencia
 
-**La regla, que es lo único que hace que esto sirva.** Cambiar uno de estos
-archivos tiene que ser un **acto deliberado**: va a git, se mira, y se explica
-en el commit por qué el render cambió. Si regenerarlos fuera automático —o si
-la tanda lo hiciera sola— dejarían de cumplir ninguna función, que es lo mismo
-que pasa con cualquier snapshot testing.
+La referencia no puede modelar **cuál** sprite descarta el PPU cuando un
+scanline pasa los 34 tiles de objeto, así que cada caso traía una máscara de
+líneas a excluir. Eran 25 máscaras, 1.496 líneas, **382.976 píxeles —6,7
+pantallas enteras— que la tanda miraba y descartaba.**
 
-Los nombres son únicos entre casos: se comprobó sobre los 1.017 que ninguno se
-repite, así que la clave es el nombre del archivo y no el número de caso, que
-es posicional y se correría al insertar uno.
+El emulador sí lo sabe, porque lo emula. Medido: dos corridas completas de la
+tanda dan las **563 capturas byte por byte iguales**, así que comparar captura
+contra captura congelada no necesita máscara, y esas 6,7 pantallas pasan a
+estar cubiertas. La comparación deja de ser "cero salvo estas líneas" y es
+cero.
+
+## Lo que esto cuesta, dicho claro
+
+La tanda pasa a comparar **la ROM contra sí misma**: detecta cambios, no
+errores. Antes la referencia era una segunda implementación y podía discrepar;
+hoy, en los píxeles donde podían discrepar ya sabemos que no lo hacen —la tanda
+estaba en verde—, y en los que faltaban la única fuente posible era el
+emulador.
+
+Lo que sostiene la corrección pasa a ser que taro juegue.
+
+## La regla
+
+Cambiar uno de estos archivos es un **acto deliberado**: va a git, se mira, y
+el commit explica por qué el render cambió. Si regenerarlos fuera automático
+—o si la tanda lo hiciera sola— dejarían de cumplir ninguna función, que es lo
+mismo que pasa con cualquier snapshot testing.
+
+Los nombres son únicos entre casos —comprobado sobre los 1.017 artefactos del
+congelado anterior—, así que la clave es el nombre del archivo y no el número
+de caso, que es posicional y se correría al insertar uno en `rom/hitos.txt`.
