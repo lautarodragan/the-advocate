@@ -30,9 +30,18 @@ APAGADO = os.environ.get("SIN_CACHE") == "1"
 def version_de(*archivos):
     """El hash de los fuentes de los que sale un valor, para meterlo en la
     clave: rutas relativas a `tools/`."""
+    return version_de_fuentes(*[os.path.join("tools", a) for a in archivos])
+
+
+def version_de_fuentes(*rutas):
+    """Lo mismo, con las rutas relativas a la raíz del repo.
+
+    Existe porque no todo lo que el conversor cachea sale de `tools/`: las
+    muestras las codifica `brr/`, que es Rust y vive afuera.
+    """
     h = hashlib.sha256()
-    for nombre in archivos:
-        with open(os.path.join(RAIZ, "tools", nombre), "rb") as f:
+    for ruta in rutas:
+        with open(os.path.join(RAIZ, ruta), "rb") as f:
             h.update(f.read())
     return h.hexdigest()
 

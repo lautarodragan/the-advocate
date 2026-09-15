@@ -26,10 +26,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import brr
 import lcf
 import musica
 import midi
+import muestras_brr
 import sdsp
 import snes_samples
 import spc700
@@ -41,6 +41,8 @@ TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 # queda la ROM de arranque para sus variables, así que se empieza más arriba.
 DRIVER_ADDR = 0x0200
 SAMPLES_ADDR = 0x0400
+
+BLOQUE = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 
 # Y cuánto queda para las muestras: de $0400 hasta el final de los 64 KB.
 # Entero, sin reserva: el eco está apagado —FLG con el bit de "no escribir el
@@ -242,7 +244,7 @@ def build_samples(voices):
     directory = bytearray()
     address = SAMPLES_ADDR + 4 * len(voices)
     for voice in voices:
-        loop = address + voice.loop_block * brr.BLOCK_BYTES
+        loop = address + voice.loop_block * muestras_brr.BLOQUE_BYTES
         directory += address.to_bytes(2, "little")
         directory += loop.to_bytes(2, "little")
         address += len(voice.data)
@@ -318,16 +320,17 @@ def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA):
     crudo, fuente = leido
     segundos = len(crudo) / float(fuente)
     guardar = min(len(crudo), int(SE_MAX_SEGUNDOS * fuente))
-    salen = max(brr.BLOCK_SAMPLES,
+    salen = max(BLOQUE,
                 int(round(guardar * tasa / float(fuente)))
-                // brr.BLOCK_SAMPLES * brr.BLOCK_SAMPLES)
+                // BLOQUE * BLOQUE)
     audio = snes_samples.normalize(snes_samples.resample(crudo[:guardar],
                                                          salen))
     loop = None
     if guardar < len(crudo):
-        largo_loop = int(SE_LOOP_SEGUNDOS * tasa) // brr.BLOCK_SAMPLES
-        loop = max(0, salen // brr.BLOCK_SAMPLES - max(1, largo_loop))
-    return Efecto(nombre, brr.encode(audio, loop_block=loop), tasa, loop,
+        largo_loop = int(SE_LOOP_SEGUNDOS * tasa) // BLOQUE
+        loop = max(0, salen // BLOQUE - max(1, largo_loop))
+    return Efecto(nombre, muestras_brr.codificar(audio, loop_block=loop),
+                  tasa, loop,
                   segundos)
 
 
@@ -968,7 +971,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     filas_m = []
     for i, v in enumerate(voces or [None]):
         largo = len(v.data) if v is not None else len(SILENCIO)
-        loop = v.loop_block * brr.BLOCK_BYTES if v is not None else 0
+        loop = v.loop_block * muestras_brr.BLOQUE_BYTES if v is not None else 0
         filas_m.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
                        "<%d, >%d, <%d, >%d" % (i, i, i, largo, largo, loop, loop))
     # Qué muestras usa cada tema, y el paquete de cada mapa. Dos bloques con
