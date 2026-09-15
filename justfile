@@ -40,6 +40,19 @@ protocolo *args:
 protocolo-pruebas:
   cd protocol && cargo test
 
+# --- brr -------------------------------------------------------------------
+# El códec BRR y el lector de SoundFont en Rust. **No arma la ROM**: eso lo
+# siguen haciendo `tools/brr.py` y `tools/sf2.py`, y el port convive con ellos
+# hasta que esté probado. Sus pruebas son muestras generadas adentro de la
+# prueba —silencio, rampa, cuadrada, impulso, saturación— más los mensajes de
+# error, así que no necesitan ni el juego ni un soundfont.
+#
+# Lo que **no** cubren es lo único que autoriza a reemplazar al Python: que las
+# 608 muestras de `demo-ciudad` salgan byte por byte iguales. Eso se midió a
+# mano con un script descartable; está en ESTADO.md con el número.
+brr-pruebas:
+  cd brr && cargo test
+
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
 # conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este
