@@ -300,7 +300,27 @@ refactors: **no hay features hasta que cierre**.
    rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
    y nadie lo notó **porque necesitaba podman y nunca se corría**.
 
-6. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+6. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. Va
+   **después** de migrar a `ca65`: allá hay módulos de verdad —compilación
+   separada con `ld65`— además de `.include`, así que el corte puede querer ser
+   otro; y mientras tanto `main.s` se sigue moviendo con el asignador.
+
+   Ya está probado que se puede y que es barato: se sacó la sección de la
+   pantalla de título a un archivo aparte con `.include` y **las dos ROMs
+   salieron con el mismo md5**. Tiene que ser así, porque `.include` es
+   inclusión textual: mientras la concatenación sea idéntica, la salida lo es
+   por construcción, y el md5 alcanza de red.
+
+   Las fronteras ya están dibujadas: **82 marcas de sección** con nombre de
+   subsistema y 450 `.proc`. Tres trampas a mirar en cada corte: el `.segment`
+   es estado y cruza el `.include` (hay 8 en todo el archivo, casi todos al
+   principio); las etiquetas anónimas `:+`/`:-` se resuelven textualmente, así
+   que hay que cortar en fronteras de `.proc` o de sección; y **reordenar los
+   includes sí cambia la ROM**, porque el acomodo sigue el orden de aparición
+   —partir sin reordenar es seguro, reordenar es otra decisión y ahí el md5
+   deja de servir de red—.
+
+7. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
    de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
    en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
    número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
