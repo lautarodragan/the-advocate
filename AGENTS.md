@@ -128,6 +128,24 @@ sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
 
+## `git blame` y los cambios mecánicos
+
+`.git-blame-ignore-revs` lista los commits que `git blame` tiene que saltear:
+renombres masivos y reformateos, que sin esto contestan "fue el renombre" en
+cada línea que tocaron. El criterio para meter uno es que su cambio **no pueda
+alterar el comportamiento**, y en este repo eso se demuestra, no se supone: los
+dos que hay adentro tienen las dos ROMs saliendo byte por byte iguales.
+
+    git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
+
+**Adentro del contenedor hay que pasar el flag a mano**, porque `git config`
+falla con `.git/config` montado de sólo lectura. Desde el host se configura una
+vez con `git config blame.ignoreRevsFile .git-blame-ignore-revs` y ya.
+
+Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
+no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
+`git log -S '<texto>'`, que busca por contenido y por eso ignora el ruido solo.
+
 ## La regla que sostiene todo
 
 Nada se da por bueno porque se vea bien: se compara pixel por pixel, a 15 bits,
