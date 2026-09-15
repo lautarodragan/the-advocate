@@ -743,6 +743,13 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     que deciden qué página está activa en el siguiente, y el tinte se queda
     puesto hasta que otro lo cambie.
     """
+    # El presupuesto se repone **acá**, o sea al entrar desde afuera de la
+    # cadena, y la ROM lo repone en cada `cargar_mapa`. Es una asimetría
+    # deliberada y conviene tenerla anotada: un ping-pong A→B→A agotaría el
+    # tope de este lado y no del otro, y la comparación se separaría sin que
+    # nadie tocara un pixel. Con los datos de este juego no puede pasar —está
+    # medido: un solo mapa teletransporta al entrar, la cadena más larga es de
+    # un salto y no hay ciclos—, así que el día que aparezca uno, es acá.
     saltos = SALTOS_MAX
     # El presupuesto de cuadros es de toda la entrada, no de cada mapa: una
     # página que teletransporta y sigue corriendo cruza el corte, y volver a
