@@ -284,8 +284,23 @@ la ROM. Es el cuarto proyecto independiente, después de `ditto/`,
 este juego ni a la SNES** —es un ensamblador de 65816 y nada más—, y los dos
 códigos de salida son 1 si el fuente no ensambla y 2 si la llamada está mal.
 
-**Los dos conviven, y las recetas que arman ROMs siguen llamando al de
-Python.** El criterio de aceptación se cumplió: `just w65-comparar` ensambla el
+**Desde el 2026-09-15 las ROMs las arma el de Rust**: toda receta que ensambla
+`main.s` depende de `w65-binario`, y el de Python se queda **sólo** como la
+segunda implementación que la valida —`just w65-comparar`—. Lo que eso cuesta
+es que **compilar la ROM ahora necesita cargo**, que antes no; si falta, la
+receta lo dice y explica cómo instalarlo en vez de reventar con "command not
+found". Medido: la tanda entera pasó de **7m43s a 6m17s** con cuatro trabajos
+—y con otro agente compitiendo por la CPU en las dos—, ensamblar `demo-ciudad`
+de 11,1 s a 0,41 s, y el `cargo build` al día cuesta 0,025 s por receta; el
+worktree de la foto es nuevo, así que la tanda paga además una compilación en
+frío de 14,7 s, una sola vez.
+
+Lo que **no** migró, a propósito: `snes-validar` —el otro eslabón de la cadena,
+ca65 contra w65.py— y `pruebas/consola.py`, que arma sus ROMs llamando a
+`tools/w65.py` desde Python. Migrar ésa última es la próxima ganancia grande y
+no se hizo acá: `just pruebas` son 7m41s y casi todo es ensamblar.
+
+El criterio de aceptación original se cumplió: `just w65-comparar` ensambla el
 mismo `main.s` con los dos y la ROM y la tabla de símbolos salen **byte por
 byte iguales**, verificado con los `mapdata.inc` de `demo-ciudad` y de
 `demo-titulo` —los únicos dos que el `main.s` de hoy acepta; el resto de
@@ -298,8 +313,7 @@ w65-pruebas` son 67 casos que no dependen del juego: fuentes chicos escritos
 adentro de la prueba, y sobre todo los mensajes de error.
 
 **Los flags cambiaron de nombre al inglés** —`--include`, `--symbols`,
-`--no-checksum`—, así que migrar el justfile es un paso aparte y todavía sin
-hacer.
+`--no-checksum`—, que es lo único que hubo que traducir al migrar el justfile.
 
 Tres cosas que aparecieron del original y **no se tocaron**, para no mover la
 ROM:

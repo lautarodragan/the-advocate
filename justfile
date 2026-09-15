@@ -107,10 +107,40 @@ tiles-pruebas:
   cd tiles && cargo test
 
 # --- w65 -------------------------------------------------------------------
-# El ensamblador de 65816 en Rust. **Todavía no reemplaza a `tools/w65.py`**:
-# conviven, y las recetas que arman ROMs siguen llamando al de Python. Adentro
-# de w65/ no hay una sola mención a este juego ni a la SNES, igual que en
-# ditto/ y protocol/: es un ensamblador y nada más.
+# El ensamblador de 65816 en Rust, y **el que arma las ROMs** desde el
+# 2026-09-15: todas las recetas que ensamblan `main.s` lo llaman a él.
+# `tools/w65.py` no se va: se queda como la segunda implementación que valida a
+# ésta, que es de lo que vive `just w65-comparar`. Adentro de w65/ no hay una
+# sola mención a este juego ni a la SNES, igual que en ditto/ y protocol/: es un
+# ensamblador y nada más.
+#
+# Por eso mismo sus flags están en inglés y no son los del Python:
+# `--include`, `--symbols`, `--no-checksum`.
+w65 := "./w65/target/release/w65"
+
+# Compilar el ensamblador antes de usarlo, que es lo que cuesta que sea Rust:
+# **desde acá, armar la ROM necesita cargo**. Es la única dependencia nueva del
+# toolchain, y la razón de que el mensaje de abajo exista.
+#
+# Por qué una receta y no un `cargo build` adentro de cada una: hay nueve
+# lugares que ensamblan, y el "falta cargo" tiene que estar escrito una sola
+# vez. Y por qué en cada invocación y no una sola al principio: cargo al día
+# cuesta 0,025 s —medido—, y un binario viejo usado en silencio es exactamente
+# la forma en que esto fallaría sin que se vea. La tanda lo paga en serio una
+# sola vez: su worktree es nuevo, así que el primer caso compila desde cero
+# —14,7 s— y los otros 169 pagan los 0,025 s.
+w65-binario:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if ! command -v cargo >/dev/null 2>&1; then
+    echo "falta cargo: desde el 2026-09-15 el ensamblador de 65816 es un" >&2
+    echo "binario de Rust (w65/) y hay que compilarlo para armar la ROM." >&2
+    echo "  en Arch:   pacman -S rust   (o rustup, y 'rustup default stable')" >&2
+    echo "  y después: just w65-binario" >&2
+    exit 1
+  fi
+  cd w65 && cargo build --release --quiet
+
 w65-pruebas:
   cd w65 && cargo test
 
@@ -125,20 +155,24 @@ w65-pruebas:
 # viejo gana y los dos ensambladores cortan por un símbolo que no existe. Los
 # `.inc` generados de `rom/src` igual se encuentran, porque `.include` cae al
 # directorio del fuente cuando no está en los `-I`.
-w65-comparar INC="rom/build/demo-ciudad":
-  cd w65 && cargo build --release
+w65-comparar INC="rom/build/demo-ciudad": w65-binario
   python3 tools/w65.py rom/src/main.s -I {{INC}} \
       -o /tmp/w65-py.sfc --simbolos /tmp/w65-py.sym
-  ./w65/target/release/w65 rom/src/main.s -I {{INC}} \
+  {{w65}} rom/src/main.s -I {{INC}} \
       -o /tmp/w65-rs.sfc --symbols /tmp/w65-rs.sym
   sha256sum /tmp/w65-py.sfc /tmp/w65-rs.sfc /tmp/w65-py.sym /tmp/w65-rs.sym
   python3 -c "import sys; a=open('/tmp/w65-py.sfc','rb').read(); b=open('/tmp/w65-rs.sfc','rb').read(); c=open('/tmp/w65-py.sym').read(); d=open('/tmp/w65-rs.sym').read(); sys.exit(0 if a==b and c==d else 'w65: NO son iguales')"
   @echo "iguales byte por byte"
 
 # --- Super Nintendo --------------------------------------------------------
-# El port. Todo el toolchain son dos cosas: python y un core de libretro. El
-# ensamblador de 65816 es nuestro (tools/w65.py) y la ROM se corre desde Python
-# cuadro a cuadro (tools/retro.py), sin emulador con ventana ni servidor X.
+# El port. El toolchain son tres cosas: python, cargo y un core de libretro. El
+# ensamblador de 65816 es nuestro —`w65/`, en Rust, desde el 2026-09-15— y la
+# ROM se corre desde Python cuadro a cuadro (tools/retro.py), sin emulador con
+# ventana ni servidor X.
+#
+# **cargo es nuevo acá**: antes compilar la ROM no lo necesitaba. Lo trae
+# `w65-binario`, de la que dependen `snes-build` y las demos, y que es la que
+# dice qué falta si no está.
 #
 # El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
 # w65.py contra ca65. No se necesita para compilar.
@@ -190,8 +224,8 @@ snes-convert mapa="7":
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
       --descartar-eventos --reference {{snes_pngs}}/python.png
 
-snes-build:
-  python3 tools/w65.py rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym
+snes-build: w65-binario
+  {{w65}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --symbols {{snes_rom}}.sym
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
@@ -2975,7 +3009,7 @@ _cam-y:
 # El `--arranque 150` no es un número medido sino un piso: BOOT_CUADROS son 112
 # y el título se dibuja en la vuelta siguiente, así que cualquier cosa desde
 # ahí muestra lo mismo. La pantalla está quieta hasta que alguien apriete algo.
-snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
+snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8": w65-binario
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}} {{snes_dir}}/sintitulo
@@ -3045,9 +3079,9 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mapas {{mapas}} --con-ventana \
       -o {{snes_dir}}/sintitulo/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I {{snes_dir}}/sintitulo \
+  {{w65}} rom/src/main.s -I {{snes_dir}}/sintitulo \
       -o {{snes_dir}}/sintitulo/sintitulo.sfc \
-      --simbolos {{snes_dir}}/sintitulo/sintitulo.sfc.sym
+      --symbols {{snes_dir}}/sintitulo/sintitulo.sfc.sym
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
       -o {{snes_pngs}}/{{nombre}}-juego.png --teclas start --cuadros 300 \
       --arranque 0
@@ -3100,7 +3134,7 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
 #                          sprite, y los 64 KB no alcanzan para los dos más la
 #                          ventana. Y la elección del 36 es una sola página:
 #                          o compilan los cuatro destinos o no compila ninguno.
-snes-demo nombre="demo-ciudad" titulo="":
+snes-demo nombre="demo-ciudad" titulo="": w65-binario
   #!/usr/bin/env bash
   set -euo pipefail
   titulo="{{titulo}}"
@@ -3110,9 +3144,9 @@ snes-demo nombre="demo-ciudad" titulo="":
               32 33 34 36 \
       --con-ventana --con-timer ${titulo:+--con-titulo} \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La persecución en auto, que no entra en `demo-ciudad` y no hace falta que
 # entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
@@ -3178,15 +3212,15 @@ snes-demo nombre="demo-ciudad" titulo="":
 # Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
 # solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
 # tiene la lista escrita a mano.
-snes-demo-carrera nombre="demo-carrera":
+snes-demo-carrera nombre="demo-carrera": w65-binario
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
       --con-ventana --con-timer --switch 171 --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La cinemática de los Neon Vipers, que es donde taro vio la pantalla hecha
 # basura el 2026-09-14. **El mapa es el 14, `NV Get Talan to Work`**, no el 11:
@@ -3205,14 +3239,14 @@ snes-demo-carrera nombre="demo-carrera":
 # de la tanda.
 #
 # `--grupo 14` es Talan, igual que en la carrera y en las piedras.
-snes-demo-vipers nombre="demo-vipers":
+snes-demo-vipers nombre="demo-vipers": w65-binario
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 14 \
       --con-ventana --con-timer \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # El minijuego de las piedras del `Lazer Teeth HQ`, para jugarlo sin caminar
 # media Lashe City. Un solo mapa —el 11— y el héroe **parado abajo de la reja**.
@@ -3232,14 +3266,14 @@ snes-demo-vipers nombre="demo-vipers":
 #
 # Aparte de `snes-demo` por lo mismo que la carrera: el mapa inicial es otro y
 # la lista de mapas no se parece en nada.
-snes-demo-piedras nombre="demo-piedras":
+snes-demo-piedras nombre="demo-piedras": w65-binario
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
       --con-ventana --con-timer --inicio 26 52 \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # Los cofres del Sector 30 y de los Rat Tracks, para probar la colisión sin
 # cruzar media Lashe City. Tres mapas —el 20, el 21 y el 26— y el héroe parado
@@ -3254,14 +3288,14 @@ snes-demo-piedras nombre="demo-piedras":
 # con ésta, a ninguno.
 #
 # `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
-snes-demo-cofres nombre="demo-cofres":
+snes-demo-cofres nombre="demo-cofres": w65-binario
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
       --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La misma demo que `demo-ciudad` pero **arrancando en el mapa que se le diga**,
 # para escuchar su tema sin tener que caminar hasta ahí. Nació de los dos
@@ -3298,7 +3332,7 @@ snes-demo-cofres nombre="demo-cofres":
 # temas del final de la lista no aportan ninguna muestra y se les caen del
 # stream las notas cuyo programa no está —del 28% al 88%, medido—; con él no se
 # le cae ninguna nota a nadie y lo que baja es la resolución de todas.
-snes-musica mapa tema banco="":
+snes-musica mapa tema banco="": w65-binario
   #!/usr/bin/env bash
   set -euo pipefail
   nombre="musica-{{mapa}}-{{tema}}{{ if banco == "" { "" } else { "-banco-entero" } }}"
@@ -3320,9 +3354,9 @@ snes-musica mapa tema banco="":
       --con-ventana --con-timer --banco-sin-prioridad \
       {{ if banco == "" { "" } else { "--banco-entero" } }} \
       -o rom/build/$nombre/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/$nombre \
+  {{w65}} rom/src/main.s -I rom/build/$nombre \
       -o rom/build/$nombre/$nombre.sfc \
-      --simbolos rom/build/$nombre/$nombre.sfc.sym
+      --symbols rom/build/$nombre/$nombre.sfc.sym
 
 # El cofre trampa de los Rat Tracks B1, al lado del héroe: la demo más corta
 # posible para ver el Game Over de la pelea que ese cofre abre. Arranca en
@@ -3334,14 +3368,14 @@ snes-musica mapa tema banco="":
 # la consola clavada en el arranque, con el mapa dibujado y el juego muerto. Ver
 # README, "Trampas del hardware". Lleva también el mapa 26 para poder seguir a
 # los Rat Tracks B2 y probar de paso el jefe, que pierde igual.
-snes-demo-trampa nombre="demo-trampa":
+snes-demo-trampa nombre="demo-trampa": w65-binario
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
       --con-ventana --con-timer --inicio 22 36 \
       -o rom/build/{{nombre}}/mapdata.inc
-  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # Las dos de una vez.
 snes-demos:
@@ -3361,6 +3395,12 @@ snes-msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
 
 # --- verificación del ensamblador ------------------------------------------
+# **Sigue midiendo `tools/w65.py` y no `w65/`, a propósito**: desde el
+# 2026-09-15 las ROMs las arma el de Rust, y la cadena que lo sostiene tiene dos
+# eslabones —ca65 contra w65.py acá, y w65.py contra w65/ en `w65-comparar`—.
+# Cambiar este lado al binario de Rust rompería el primero sin agregar nada, y
+# además no se puede probar desde adentro del contenedor: necesita podman.
+#
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
 # se genera un fuente con cada mnemónico en cada modo de direccionamiento que la
 # tabla declara, se ensambla con las dos cadenas y se comparan los bytes.
