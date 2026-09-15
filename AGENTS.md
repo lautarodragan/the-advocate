@@ -193,6 +193,11 @@ cuál, y el que manda es `demo-ciudad`.
 Medirlo es meter un `.res N` en `TABLAS` y buscar por bisección el N más grande
 que todavía arma: `w65` corta con "el área no entra: 32705 bytes en 32704".
 
+**El tinte de pantalla sobrevive al cambio de mapa.** Saltar a un mapa desde el
+de arranque lo deja todo azul —el tinte es 0,0,100— y parece el defecto que uno
+está buscando. Para mirar un mapa inyectado hay que poner `tinte_r/g/b` en 100
+primero. Costó una hora el 2026-09-13.
+
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
