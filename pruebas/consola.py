@@ -592,7 +592,10 @@ def huella():
     fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
 
     **El ensamblador entra por el binario y no por sus fuentes**: desde el
-    2026-09-15 es Rust, y hasta entonces se colaba solo por el `tools/*.py`.
+    2026-09-15 es Rust y se instala en el PATH, y hasta entonces se colaba solo
+    por el `tools/*.py`. Si no entrara, tocar `w65/` no invalidaría nada y las
+    pruebas correrían contra ROMs armadas con un ensamblador viejo, en
+    silencio.
     Va el binario y no `w65/src/*.rs` porque es lo que de verdad ensambló:
     con los fuentes, un `cargo build` que falla dejaría la huella nueva y el
     ensamblador viejo.

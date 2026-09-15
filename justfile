@@ -29,10 +29,9 @@ check:
 # número lo decidía eventos.py y le llegaba a main.s adentro de mapdata.inc,
 # que es cómo dos ramas pudieron elegir el mismo sin que git viera nada.
 protocolo *args:
-  cd protocol && cargo build --release
-  ./protocol/target/release/protocol protocol/events.toml \
+  protocol protocol/events.toml \
       --python tools/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
-  ./protocol/target/release/protocol protocol/music.toml \
+  protocol protocol/music.toml \
       --python tools/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
 
 # Las pruebas del generador: los errores que tiene que dar ante una declaración
@@ -83,8 +82,7 @@ ditto-vuelta-entera:
 # Después de correrlo, lo que manda es el `git diff`: si el juego no cambió,
 # tiene que dar vacío.
 datos DIR="data":
-  cd ditto && cargo build --release
-  ./ditto/target/release/ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{DIR}}
+  ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{DIR}}
 
 # Lo mismo pero a otro lado, para mirarlo sin tocar el del repo.
 ditto-volcado DIR="/extras/volcado-ditto":
@@ -127,30 +125,24 @@ tiles-pruebas:
 # Lo que falta para eso es `.bloque` —el acomodo de bloques en bancos—, que cae
 # en el asignador, así que la migración es de otra vuelta y hasta entonces el
 # que arma las ROMs es éste.
-w65 := "./w65/target/release/w65"
+w65 := "w65"
 
-# Compilar el ensamblador antes de usarlo, que es lo que cuesta que sea Rust:
-# **desde acá, armar la ROM necesita cargo**. Es la única dependencia nueva del
-# toolchain, y la razón de que el mensaje de abajo exista.
+# Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
+# PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
+cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
+# --- Las herramientas de Rust ----------------------------------------------
+# `w65/`, `protocol/`, `brr/`, `tiles/` y `ditto/` son proyectos aparte, y el
+# port los consume **desde el PATH**, como consume python3 o un core de
+# libretro: ningún script ni prueba de este juego llama a `cargo`.
 #
-# Por qué una receta y no un `cargo build` adentro de cada una: hay nueve
-# lugares que ensamblan, y el "falta cargo" tiene que estar escrito una sola
-# vez. Y por qué en cada invocación y no una sola al principio: cargo al día
-# cuesta 0,025 s —medido—, y un binario viejo usado en silencio es exactamente
-# la forma en que esto fallaría sin que se vea. La tanda lo paga en serio una
-# sola vez: su worktree es nuevo, así que el primer caso compila desde cero
-# —14,7 s— y los otros 169 pagan los 0,025 s.
-w65-binario:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  if ! command -v cargo >/dev/null 2>&1; then
-    echo "falta cargo: desde el 2026-09-15 el ensamblador de 65816 es un" >&2
-    echo "binario de Rust (w65/) y hay que compilarlo para armar la ROM." >&2
-    echo "  en Arch:   pacman -S rust   (o rustup, y 'rustup default stable')" >&2
-    echo "  y después: just w65-binario" >&2
-    exit 1
-  fi
-  cd w65 && cargo build --release --quiet
+# Se instalan una vez y quedan. `CARGO_ROOT` dice dónde: por omisión
+# `/usr/local`, que es lo que corresponde adentro del contenedor y está en el
+# PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, que es el default de
+# cargo.
+herramientas:
+  cargo install --locked --path w65 --root {{cargo_root}}
+  cargo install --locked --path protocol --root {{cargo_root}}
+  cargo install --locked --path ditto --root {{cargo_root}}
 
 w65-pruebas:
   cd w65 && cargo test
@@ -212,7 +204,7 @@ snes-convert mapa="7":
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
       --descartar-eventos --reference {{snes_pngs}}/python.png
 
-snes-build: w65-binario
+snes-build:
   {{w65}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --symbols {{snes_rom}}.sym
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
@@ -2998,7 +2990,7 @@ _cam-y:
 # El `--arranque 150` no es un número medido sino un piso: BOOT_CUADROS son 112
 # y el título se dibuja en la vuelta siguiente, así que cualquier cosa desde
 # ahí muestra lo mismo. La pantalla está quieta hasta que alguien apriete algo.
-snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8": w65-binario
+snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}} {{snes_dir}}/sintitulo
@@ -3123,7 +3115,7 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8": w65-binario
 #                          sprite, y los 64 KB no alcanzan para los dos más la
 #                          ventana. Y la elección del 36 es una sola página:
 #                          o compilan los cuatro destinos o no compila ninguno.
-snes-demo nombre="demo-ciudad" titulo="": w65-binario
+snes-demo nombre="demo-ciudad" titulo="":
   #!/usr/bin/env bash
   set -euo pipefail
   titulo="{{titulo}}"
@@ -3201,7 +3193,7 @@ snes-demo nombre="demo-ciudad" titulo="": w65-binario
 # Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
 # solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
 # tiene la lista escrita a mano.
-snes-demo-carrera nombre="demo-carrera": w65-binario
+snes-demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
@@ -3228,7 +3220,7 @@ snes-demo-carrera nombre="demo-carrera": w65-binario
 # de la tanda.
 #
 # `--grupo 14` es Talan, igual que en la carrera y en las piedras.
-snes-demo-vipers nombre="demo-vipers": w65-binario
+snes-demo-vipers nombre="demo-vipers":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 14 \
       --con-ventana --con-timer \
@@ -3255,7 +3247,7 @@ snes-demo-vipers nombre="demo-vipers": w65-binario
 #
 # Aparte de `snes-demo` por lo mismo que la carrera: el mapa inicial es otro y
 # la lista de mapas no se parece en nada.
-snes-demo-piedras nombre="demo-piedras": w65-binario
+snes-demo-piedras nombre="demo-piedras":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
       --con-ventana --con-timer --inicio 26 52 \
@@ -3277,7 +3269,7 @@ snes-demo-piedras nombre="demo-piedras": w65-binario
 # con ésta, a ninguno.
 #
 # `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
-snes-demo-cofres nombre="demo-cofres": w65-binario
+snes-demo-cofres nombre="demo-cofres":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
       --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
@@ -3321,7 +3313,7 @@ snes-demo-cofres nombre="demo-cofres": w65-binario
 # temas del final de la lista no aportan ninguna muestra y se les caen del
 # stream las notas cuyo programa no está —del 28% al 88%, medido—; con él no se
 # le cae ninguna nota a nadie y lo que baja es la resolución de todas.
-snes-musica mapa tema banco="": w65-binario
+snes-musica mapa tema banco="":
   #!/usr/bin/env bash
   set -euo pipefail
   nombre="musica-{{mapa}}-{{tema}}{{ if banco == "" { "" } else { "-banco-entero" } }}"
@@ -3358,7 +3350,7 @@ snes-musica mapa tema banco="": w65-binario
 # porqué está en `main.s`, en el `APU_CMD_IPL` que `reset` manda antes de
 # `spc_upload`. Lleva también el mapa 26 para poder seguir a
 # los Rat Tracks B2 y probar de paso el jefe, que pierde igual.
-snes-demo-trampa nombre="demo-trampa": w65-binario
+snes-demo-trampa nombre="demo-trampa":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
       --con-ventana --con-timer --inicio 22 36 \
