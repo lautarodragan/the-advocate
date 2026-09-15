@@ -41,6 +41,11 @@ el generador —Rust con clap, desde el 2026-09-15—, sus comentarios y su READ
 van **en inglés**. Los mensajes de
 commit siguen en castellano, como todo lo del repo.
 
+Desde el 2026-09-15 vale igual para **`w65/`**, el ensamblador de 65816 en
+Rust: adentro no se nombra a ABL ni a la SNES, y sus flags son ingleses
+—`--include`, `--symbols`— aunque `tools/w65.py`, que todavía convive con él,
+los tenga en castellano.
+
 Y lo que sale generado de ahí va **en inglés también**, aunque caiga en
 `tools/` o en `rom/src/`: es la salida de esa herramienta, no fuente de este
 árbol, y dice arriba que es generada y de dónde. El 2026-09-14 la regla era la

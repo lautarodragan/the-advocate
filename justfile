@@ -77,6 +77,29 @@ datos DIR="data":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}}
 
+# --- w65 -------------------------------------------------------------------
+# El ensamblador de 65816 en Rust. **Todavía no reemplaza a `tools/w65.py`**:
+# conviven, y las recetas que arman ROMs siguen llamando al de Python. Adentro
+# de w65/ no hay una sola mención a este juego ni a la SNES, igual que en
+# ditto/ y protocol/: es un ensamblador y nada más.
+w65-pruebas:
+  cd w65 && cargo test
+
+# La única forma de dar por bueno el port: los dos ensambladores sobre el mismo
+# fuente, y **la ROM y la tabla de símbolos byte por byte iguales**. Hay que
+# darle un directorio con un `mapdata.inc` y un `musicdata.inc`, porque el
+# acomodo de bancos depende de los datos y un cartucho chico no ejercita lo
+# mismo que uno grande: el que manda es `demo-ciudad`.
+w65-comparar INC="rom/build/demo-ciudad":
+  cd w65 && cargo build --release
+  python3 tools/w65.py rom/src/main.s -I rom/src -I {{INC}} \
+      -o /tmp/w65-py.sfc --simbolos /tmp/w65-py.sym
+  ./w65/target/release/w65 rom/src/main.s -I rom/src -I {{INC}} \
+      -o /tmp/w65-rs.sfc --symbols /tmp/w65-rs.sym
+  sha256sum /tmp/w65-py.sfc /tmp/w65-rs.sfc /tmp/w65-py.sym /tmp/w65-rs.sym
+  python3 -c "import sys; a=open('/tmp/w65-py.sfc','rb').read(); b=open('/tmp/w65-rs.sfc','rb').read(); c=open('/tmp/w65-py.sym').read(); d=open('/tmp/w65-rs.sym').read(); sys.exit(0 if a==b and c==d else 'w65: NO son iguales')"
+  @echo "iguales byte por byte"
+
 # --- Super Nintendo --------------------------------------------------------
 # El port. Todo el toolchain son dos cosas: python y un core de libretro. El
 # ensamblador de 65816 es nuestro (tools/w65.py) y la ROM se corre desde Python
