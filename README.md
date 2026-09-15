@@ -103,6 +103,7 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
     tools/render_map.py   el render en sí
     tools/list_maps.py    inventario de mapas
     tools/event_codes.py  generado: nombres de los opcodes de evento
+    tools/opcodes.py      generado desde protocol/events.toml: el bytecode
 
 El formato binario de RM2k ya no lo lee ningún Python de acá: lo lee Ditto, una
 sola vez, y lo deja en `data/`. Ver "Los datos en formato versionable".
@@ -2787,6 +2788,19 @@ tolerancia que la mitad de abajo ya tenía.
 El intérprete está escrito dos veces —en `main.s` y en `tools/eventos.py`— pero
 el bytecode es uno solo, así que lo que se ejecuta de los dos lados es el mismo
 programa.
+
+**Y el bytecode está declarado en un tercer lado, que no es ninguno de los
+dos**: `protocol/events.toml` dice, por opcode, su número y los bytes que lo
+siguen, y de ahí salen generados `tools/opcodes.py` y `rom/src/opcodes.inc`.
+Hasta el 2026-09-14 el número lo decidía el compilador y le llegaba al
+intérprete **adentro de los datos de un mapa**, con dos consecuencias que
+pasaron las dos: dos ramas eligieron el mismo número sin que git viera nada, y
+el largo de una instrucción estaba escrito tres veces, hasta que una copia se
+quedó con el layout viejo de un opcode que había crecido. (`main.s` sigue
+incluyendo `mapdata.inc` por las tablas del mapa: lo que salió de ahí es el
+bytecode, no todo.) Ver
+`protocol/README.md`, que está en inglés porque ahí adentro no se sabe nada de
+este juego.
 
 **Cómo se lo mira:**
 

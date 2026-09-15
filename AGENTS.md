@@ -33,6 +33,25 @@ Y sus pruebas no dependen del juego: el corpus se lo pasa el justfile en
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje en vez de fallar.
 
+## `protocol/` también está en inglés
+
+Misma regla y mismo porqué que `ditto/`: adentro de `protocol/` no hay una sola
+mención a ABL ni a la SNES —declara el bytecode de eventos y nada más—, así que
+el TOML, el generador, sus comentarios y su README van **en inglés**. Los
+mensajes de commit siguen en castellano, como todo lo del repo.
+
+Lo que sale generado de ahí —`tools/opcodes.py` y `rom/src/opcodes.inc`— cae en
+árboles escritos en castellano y lleva **el idioma del árbol donde cae**, no el
+de su fuente. Los dos dicen arriba que son generados y de dónde.
+
+Y lo importante: **el número de un opcode se elige en `protocol/events.toml` y
+en ningún otro lado.** (`mapdata.inc` sigue existiendo y `main.s` lo sigue
+incluyendo: lo que salió de ahí es el bytecode, no las tablas del mapa.) Antes lo declaraba `tools/eventos.py` y le llegaba al
+intérprete adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el
+mismo sin que git viera nada. Al repartir trabajo entre sub-agentes esto sigue
+valiendo —hay que darles el número de antemano—, pero ahora la colisión es un
+conflicto de git en un archivo y no un bug que viaja adentro de un merge.
+
 ## La regla que sostiene todo
 
 Nada se da por bueno porque se vea bien: se compara pixel por pixel, a 15 bits,

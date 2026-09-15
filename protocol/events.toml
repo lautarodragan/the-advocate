@@ -1,0 +1,375 @@
+# The event bytecode: one entry per opcode, its number and its layout.
+#
+# This file is the source of truth for both ends of the contract — the
+# compiler that emits the bytes and the interpreter that reads them — and it
+# is owned by neither. Everything else is generated from here; see README.md.
+#
+# Generated, do not edit by hand:
+#   tools/opcodes.py      constants, sizes and layout, for the compiler
+#   rom/src/opcodes.inc   the equates, for the interpreter
+#
+# An instruction is its opcode byte followed by `args`, in order. An opcode
+# that ends in a variable number of entries declares `repeated`, and the `arg`
+# that holds how many entries follow carries `count = "<name of the group>"`.
+# Those are the only two shapes there are. If a new opcode does not fit, the
+# answer is to change the opcode, not to grow this grammar: the moment this
+# file can describe behaviour, it stopped being a declaration.
+#
+# Types: `byte` (1), `word` (2, little endian), `long` (3, little endian).
+# `signed = true` says how to read it back; nothing writes it differently.
+
+[[opcode]]
+name = "OP_FIN"
+code = 0x00
+args = []
+
+[[opcode]]
+name = "OP_SWITCH"
+code = 0x01
+args = [
+  { name = "id", type = "word" },
+  { name = "value", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_TELEPORT"
+code = 0x02
+args = [
+  { name = "map", type = "word" },
+  { name = "x", type = "word" },
+  { name = "y", type = "word" },
+]
+
+[[opcode]]
+name = "OP_ESPERAR"
+code = 0x03
+args = [
+  { name = "frames", type = "word" },
+]
+
+[[opcode]]
+name = "OP_TINTE"
+code = 0x04
+args = [
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "saturation", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_GRUPO"
+code = 0x05
+args = [
+  { name = "operation", type = "byte" },
+  { name = "actor", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_RUTA"
+code = 0x06
+args = [
+  { name = "target", type = "byte" },
+  { name = "frequency", type = "byte" },
+  { name = "length", type = "byte", count = "commands" },
+]
+repeated = { name = "commands", args = [
+  { name = "order", type = "byte" },
+] }
+
+[[opcode]]
+name = "OP_MENSAJE"
+code = 0x07
+args = [
+  { name = "offset", type = "word" },
+]
+
+[[opcode]]
+name = "OP_RUTAS"
+code = 0x08
+args = []
+
+[[opcode]]
+name = "OP_FLASH"
+code = 0x09
+args = [
+  { name = "target", type = "byte" },
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "power", type = "byte" },
+  { name = "frames", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_TIMER"
+code = 0x0A
+args = [
+  { name = "operation", type = "byte" },
+  { name = "seconds", type = "word" },
+  { name = "visible", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_BGM"
+code = 0x0B
+args = [
+  { name = "track", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_LUGAR"
+code = 0x0C
+args = [
+  { name = "target", type = "byte" },
+  { name = "x", type = "word" },
+  { name = "y", type = "word" },
+]
+
+[[opcode]]
+name = "OP_TRUEQUE"
+code = 0x0D
+args = [
+  { name = "first", type = "byte" },
+  { name = "second", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_SACUDIR"
+code = 0x0E
+args = [
+  { name = "power", type = "byte" },
+  { name = "speed", type = "byte" },
+  { name = "frames", type = "word" },
+]
+
+[[opcode]]
+name = "OP_DESTELLO"
+code = 0x0F
+args = [
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "power", type = "byte" },
+  { name = "frames", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_FUNDIR_BGM"
+code = 0x10
+args = [
+  { name = "step", type = "word" },
+]
+
+[[opcode]]
+name = "OP_PAN"
+code = 0x11
+args = [
+  { name = "operation", type = "byte" },
+  { name = "dx", type = "word", signed = true },
+  { name = "dy", type = "word", signed = true },
+  { name = "step", type = "byte" },
+  { name = "wait", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_SI"
+code = 0x12
+args = [
+  { name = "kind", type = "byte" },
+  { name = "operand", type = "word" },
+  { name = "polarity", type = "byte" },
+  { name = "destination", type = "word" },
+]
+
+[[opcode]]
+name = "OP_IR"
+code = 0x13
+args = [
+  { name = "destination", type = "word" },
+]
+
+[[opcode]]
+name = "OP_ELEGIR"
+code = 0x14
+args = [
+  { name = "length", type = "byte", count = "options" },
+  { name = "on_cancel", type = "byte" },
+]
+repeated = { name = "options", args = [
+  { name = "window", type = "word" },
+  { name = "destination", type = "word" },
+] }
+
+[[opcode]]
+name = "OP_ORO"
+code = 0x15
+args = [
+  { name = "sign", type = "byte" },
+  { name = "amount", type = "long" },
+]
+
+[[opcode]]
+name = "OP_GUARDAR"
+code = 0x16
+args = []
+
+[[opcode]]
+name = "OP_VAR"
+code = 0x17
+args = [
+  { name = "slot", type = "byte" },
+  { name = "operation", type = "byte" },
+  { name = "kind", type = "byte" },
+  { name = "a", type = "word" },
+  { name = "b", type = "word" },
+]
+
+[[opcode]]
+name = "OP_SI_VAR"
+code = 0x18
+args = [
+  { name = "slot", type = "byte" },
+  { name = "kind", type = "byte" },
+  { name = "comparison", type = "byte" },
+  { name = "value", type = "word" },
+  { name = "destination", type = "word" },
+]
+
+[[opcode]]
+name = "OP_ITEM"
+code = 0x19
+args = [
+  { name = "item", type = "word" },
+  { name = "delta", type = "byte", signed = true },
+]
+
+[[opcode]]
+name = "OP_ACCESO"
+code = 0x1A
+args = [
+  { name = "bit", type = "byte" },
+  { name = "allowed", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_TIENDA"
+code = 0x1B
+args = [
+  { name = "kind", type = "byte" },
+  { name = "layout", type = "byte" },
+  { name = "length", type = "byte", count = "goods" },
+]
+repeated = { name = "goods", args = [
+  { name = "item", type = "word" },
+] }
+
+[[opcode]]
+name = "OP_CLIMA"
+code = 0x1C
+args = [
+  { name = "kind", type = "byte" },
+  { name = "power", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_SONIDO"
+code = 0x1D
+args = [
+  { name = "index", type = "word" },
+]
+
+[[opcode]]
+name = "OP_ANIMACION"
+code = 0x1E
+args = [
+  { name = "animation", type = "byte" },
+  { name = "target", type = "byte" },
+  { name = "length", type = "byte", count = "frames" },
+]
+repeated = { name = "frames", args = [
+  { name = "cell", type = "byte" },
+  { name = "x", type = "byte" },
+  { name = "y", type = "byte" },
+  { name = "palette", type = "byte" },
+  { name = "tiles", type = "byte" },
+  { name = "flip", type = "byte" },
+  { name = "sound", type = "byte" },
+  { name = "spare", type = "byte" },
+] }
+
+[[opcode]]
+name = "OP_IMAGEN"
+code = 0x1F
+args = [
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "saturation", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_IMAGEN_MOVER"
+code = 0x20
+args = [
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "saturation", type = "byte" },
+  { name = "frames", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_IMAGEN_BORRAR"
+code = 0x21
+args = []
+
+[[opcode]]
+name = "OP_BATALLA"
+code = 0x22
+args = [
+  { name = "troop", type = "word" },
+  { name = "on_win", type = "word" },
+  { name = "on_escape", type = "word" },
+  { name = "on_lose", type = "word" },
+]
+
+[[opcode]]
+name = "OP_PARAR_RUTAS"
+code = 0x23
+args = []
+
+[[opcode]]
+name = "OP_SI_ACTOR"
+code = 0x24
+args = [
+  { name = "subkind", type = "byte" },
+  { name = "actor", type = "byte" },
+  { name = "data", type = "word" },
+  { name = "destination", type = "word" },
+]
+
+[[opcode]]
+name = "OP_ACTOR_GRAF"
+code = 0x25
+args = [
+  { name = "actor", type = "byte" },
+  { name = "graphic", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_TECLA"
+code = 0x26
+args = [
+  { name = "slot", type = "byte" },
+  { name = "flags", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_LUGAR_VAR"
+code = 0x27
+args = [
+  { name = "target", type = "byte" },
+  { name = "x_slot", type = "byte" },
+  { name = "y_slot", type = "byte" },
+]

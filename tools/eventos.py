@@ -24,6 +24,12 @@ import rm2k
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
+# salen de `protocol/events.toml`, que es de los dos lados —de esto y del
+# intérprete en main.s— y de ninguno. Ver protocol/README.md.
+from opcodes import *          # noqa: F401,F403
+from opcodes import LARGO_DE_OPCODE, largo_de_opcode  # noqa: F401
+
 # --- los comandos de RM2k que sabemos ejecutar ------------------------------
 END = 10
 CONTROL_SWITCHES = 10210
@@ -924,125 +930,149 @@ def asociaciones_de(game_maps):
 # --- los opcodes que emitimos -----------------------------------------------
 # Uno por comando, con los operandos ya resueltos: la ROM no vuelve a mirar el
 # LCF ni conoce sus números.
-OP_FIN      = 0x00
-OP_SWITCH   = 0x01      # id (word), valor (byte)
-OP_TELEPORT = 0x02      # mapa (word), x (word), y (word). El mapa iba en un
-                        # byte y eso le ponía **al formato** un techo de 256
-                        # mapas: el juego tiene 328. Hoy no molesta —las
-                        # demos llevan 29— pero era un techo escrito, y
-                        # sacarlo cuando todavía es barato es más barato que
-                        # sacarlo el día que una demo se pase.
-OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
-                        # segundos, o sea 360, y no entran en un byte
-OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
-OP_GRUPO    = 0x05      # operación (byte), actor (byte)
-OP_RUTA     = 0x06      # blanco (byte), frecuencia (byte), cuántos comandos (byte), y los
-                        # comandos. El blanco es 0 para el héroe, y si no el
-                        # índice del evento en la tabla del mapa más uno.
-                        #
-                        # **El índice no es el id de RM2k.** 39 mapas de este
-                        # juego tienen huecos en la numeración de eventos, así
-                        # que una ruta apuntada al id 8 movería al que esté
-                        # octavo en la lista, que puede ser cualquier otro. Lo
-                        # traduce el conversor, que es el único que ve el mapa.
-OP_MENSAJE  = 0x07      # desplazamiento (word) dentro del bloque `mensajes`:
-                        # abre esa ventana y bloquea la página hasta que el
-                        # jugador apriete A
-OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
-                        # ninguna ruta forzada corriendo
-OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
-                        # a 31) y cuántos cuadros dura (byte)
-OP_LUGAR    = 0x0C      # blanco (byte, como en OP_RUTA: el índice del evento
-                        # más uno), x (word), y (word). Planta al evento en la
-                        # celda y le corta el paso en curso; no toca su ruta ni
-                        # hacia dónde mira, que es lo que hace `MoveTo`.
-OP_TRUEQUE  = 0x0D      # dos blancos (byte cada uno, como en OP_LUGAR): los
-                        # dos eventos se cambian de celda entre sí, cada uno
-                        # con `MoveTo`, que es `CommandTradeEventLocations`.
-OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
-                        # `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
-                        # pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
-OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
-                        # (byte): `FlashOnce`, el destello de la pantalla
-                        # entera. Ver `Estado.cuadro_de_destello`.
-OP_SI       = 0x12      # tipo (byte), operando (word), polaridad (byte),
-                        # destino (word):
-                        # `ConditionalBranch` con condición de switch. Si no se
-                        # cumple, el cursor salta al destino, que es el `else`
-                        # o el `end` de esa misma rama. La polaridad es la de
-                        # RM2k al revés y a propósito: allá `parameters[2] == 0`
-                        # quiere decir "tiene que estar prendido", así que acá
-                        # 0 es "prendido" y 1 es "apagado", igual que el dato.
-                        #
-                        # El destino es **absoluto** dentro de la página, no
-                        # relativo: el cursor de la ROM es un índice de 16 bits
-                        # en el mismo array, así que asignarlo es todo el salto.
-OP_IR       = 0x13      # destino (word): el salto sin condición que se emite
-                        # donde estaba el `else`, para que la rama de arriba se
-                        # saltee la de abajo.
-OP_GUARDAR  = 0x16      # sin operandos: la partida a la SRAM del cartucho.
-                        # Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
-                        # y el evento la pisa. Lo que se guarda lo dice
-                        # `partida_tabla` en main.s, que es el único lugar donde
-                        # está escrito. No cuesta un cuadro: en RM2k el menú
-                        # bloquea, y acá no hay nada que mirar.
-OP_ORO      = 0x15      # signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
-                        # `ChangeGold`, y va en tres bytes porque el tope de
-                        # RM2k son 999999 y el juego usa el valor entero: hay un
-                        # comando que da exactamente eso.
-                        #
-                        # La ROM recorta a [0, ORO_MAX] como
-                        # `Game_Party::GainGold`. Todavía no hay dónde mostrarlo
-                        # —el menú no existe— pero sí quién lo pregunta: la rama
-                        # de oro de `ConditionalBranch`.
-OP_ELEGIR   = 0x14      # cuántas opciones (byte), qué hace cancelar (byte), y
-                        # después una entrada por opción: el cuadro de texto
-                        # (word) y el destino (word). Es `ShowChoice`.
-                        #
-                        # **Un cuadro de texto por opción, no uno solo.** Los
-                        # cuadros llevan las mismas líneas y se diferencian en
-                        # dónde está el cursor, así que mover el cursor es
-                        # recomponer la ventana con otro desplazamiento y no
-                        # dibujar nada nuevo. Cuesta unas decenas de bytes por
-                        # elección y ahorra un tile de sprite, una paleta y todo
-                        # el código de dibujarlo: en la consola no hay dónde
-                        # poner un cursor que no sea un sprite, y los sprites de
-                        # este mapa ya están repartidos entre los personajes.
-                        #
-                        # El destino es absoluto dentro de la página, como el de
-                        # OP_SI, y el cuerpo de cada opción termina en un OP_IR
-                        # al final de la elección.
-OP_PAN      = 0x11      # operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
-                        # corre el destino en x y en y (word con signo cada
-                        # uno, en 1/16 de pixel), el paso por cuadro (byte) y
-                        # si la página espera (byte).
-                        #
-                        # La dirección y la distancia vienen resueltas a un
-                        # desplazamiento con signo, y la velocidad a su paso:
-                        # son cuentas fijas y el conversor las hace una vez.
-                        # Lo que **no** se puede resolver acá son los cuadros
-                        # que la página espera: salen de lo que le falta al pan
-                        # cuando el comando corre, y con uno todavía en curso
-                        # eso no es lo que este comando pidió. Ver `GetPanWait`
-                        # y el comentario de `CommandPanScreen` sobre el
-                        # máximo.
-OP_FUNDIR_BGM = 0x10    # paso (word): cuánto baja por cuadro el volumen del
-                        # tema, en 1/65536 de lo que estuviera sonando.
-                        #
-                        # Va el paso y no los milisegundos que trae RM2k
-                        # porque el 65816 no divide sin hardware y la cuenta
-                        # es siempre la misma: `ceil(65536 / cuadros)`. Es la
-                        # misma clase de número que el índice de mapa de un
-                        # teletransporte —resuelto por el conversor para que
-                        # la ROM no lo vuelva a mirar—, y lo hace
-                        # `paso_de_fundido`.
-OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca
-                        # los que llevó —los primeros `TEMA_TOTAL`— y con
-                        # cualquier otro no hace nada. Ver `Temas`.
-OP_TIMER    = 0x0A      # operación (byte), segundos (word), visible (byte).
-                        # Los cinco bytes son fijos aunque cada operación use
-                        # dos: así el intérprete lo saltea sin mirar cuál es,
-                        # que es lo que hace `recorrer_codigo` del conversor.
+#
+# **Los números y los layouts están en `protocol/events.toml`**, no acá: esto
+# es lo que hay que saber de cada uno y que una declaración no puede decir.
+#
+# OP_SWITCH: id (word), valor (byte)
+#
+# OP_TELEPORT: mapa (word), x (word), y (word). El mapa iba en un
+#     byte y eso le ponía **al formato** un techo de 256
+#     mapas: el juego tiene 328. Hoy no molesta —las
+#     demos llevan 29— pero era un techo escrito, y
+#     sacarlo cuando todavía es barato es más barato que
+#     sacarlo el día que una demo se pase.
+#
+# OP_ESPERAR: cuadros (word): la cinemática espera seis
+#     segundos, o sea 360, y no entran en un byte
+#
+# OP_TINTE: r, g, b, sat (byte cada uno)
+#
+# OP_GRUPO: operación (byte), actor (byte)
+#
+# OP_RUTA: blanco (byte), frecuencia (byte), cuántos comandos (byte), y los
+#     comandos. El blanco es 0 para el héroe, y si no el
+#     índice del evento en la tabla del mapa más uno.
+#
+#     **El índice no es el id de RM2k.** 39 mapas de este
+#     juego tienen huecos en la numeración de eventos, así
+#     que una ruta apuntada al id 8 movería al que esté
+#     octavo en la lista, que puede ser cualquier otro. Lo
+#     traduce el conversor, que es el único que ve el mapa.
+#
+# OP_MENSAJE: desplazamiento (word) dentro del bloque `mensajes`:
+#     abre esa ventana y bloquea la página hasta que el
+#     jugador apriete A
+#
+# OP_RUTAS: sin operandos: la página no sigue hasta que no quede
+#     ninguna ruta forzada corriendo
+#
+# OP_FLASH: blanco (byte), r, g, b, potencia (byte cada uno, de 0
+#     a 31) y cuántos cuadros dura (byte)
+#
+# OP_LUGAR: blanco (byte, como en OP_RUTA: el índice del evento
+#     más uno), x (word), y (word). Planta al evento en la
+#     celda y le corta el paso en curso; no toca su ruta ni
+#     hacia dónde mira, que es lo que hace `MoveTo`.
+#
+# OP_TRUEQUE: dos blancos (byte cada uno, como en OP_LUGAR): los
+#     dos eventos se cambian de celda entre sí, cada uno
+#     con `MoveTo`, que es `CommandTradeEventLocations`.
+#
+# OP_SACUDIR: fuerza (byte), velocidad (byte), cuadros (word):
+#     `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
+#     pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
+#
+# OP_DESTELLO: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
+#     (byte): `FlashOnce`, el destello de la pantalla
+#     entera. Ver `Estado.cuadro_de_destello`.
+#
+# OP_SI: tipo (byte), operando (word), polaridad (byte),
+#     destino (word):
+#     `ConditionalBranch` con condición de switch. Si no se
+#     cumple, el cursor salta al destino, que es el `else`
+#     o el `end` de esa misma rama. La polaridad es la de
+#     RM2k al revés y a propósito: allá `parameters[2] == 0`
+#     quiere decir "tiene que estar prendido", así que acá
+#     0 es "prendido" y 1 es "apagado", igual que el dato.
+#
+#     El destino es **absoluto** dentro de la página, no
+#     relativo: el cursor de la ROM es un índice de 16 bits
+#     en el mismo array, así que asignarlo es todo el salto.
+#
+# OP_IR: destino (word): el salto sin condición que se emite
+#     donde estaba el `else`, para que la rama de arriba se
+#     saltee la de abajo.
+#
+# OP_GUARDAR: sin operandos: la partida a la SRAM del cartucho.
+#     Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
+#     y el evento la pisa. Lo que se guarda lo dice
+#     `partida_tabla` en main.s, que es el único lugar donde
+#     está escrito. No cuesta un cuadro: en RM2k el menú
+#     bloquea, y acá no hay nada que mirar.
+#
+# OP_ORO: signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
+#     `ChangeGold`, y va en tres bytes porque el tope de
+#     RM2k son 999999 y el juego usa el valor entero: hay un
+#     comando que da exactamente eso.
+#
+#     La ROM recorta a [0, ORO_MAX] como
+#     `Game_Party::GainGold`. Todavía no hay dónde mostrarlo
+#     —el menú no existe— pero sí quién lo pregunta: la rama
+#     de oro de `ConditionalBranch`.
+#
+# OP_ELEGIR: cuántas opciones (byte), qué hace cancelar (byte), y
+#     después una entrada por opción: el cuadro de texto
+#     (word) y el destino (word). Es `ShowChoice`.
+#
+#     **Un cuadro de texto por opción, no uno solo.** Los
+#     cuadros llevan las mismas líneas y se diferencian en
+#     dónde está el cursor, así que mover el cursor es
+#     recomponer la ventana con otro desplazamiento y no
+#     dibujar nada nuevo. Cuesta unas decenas de bytes por
+#     elección y ahorra un tile de sprite, una paleta y todo
+#     el código de dibujarlo: en la consola no hay dónde
+#     poner un cursor que no sea un sprite, y los sprites de
+#     este mapa ya están repartidos entre los personajes.
+#
+#     El destino es absoluto dentro de la página, como el de
+#     OP_SI, y el cuerpo de cada opción termina en un OP_IR
+#     al final de la elección.
+#
+# OP_PAN: operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
+#     corre el destino en x y en y (word con signo cada
+#     uno, en 1/16 de pixel), el paso por cuadro (byte) y
+#     si la página espera (byte).
+#
+#     La dirección y la distancia vienen resueltas a un
+#     desplazamiento con signo, y la velocidad a su paso:
+#     son cuentas fijas y el conversor las hace una vez.
+#     Lo que **no** se puede resolver acá son los cuadros
+#     que la página espera: salen de lo que le falta al pan
+#     cuando el comando corre, y con uno todavía en curso
+#     eso no es lo que este comando pidió. Ver `GetPanWait`
+#     y el comentario de `CommandPanScreen` sobre el
+#     máximo.
+#
+# OP_FUNDIR_BGM: paso (word): cuánto baja por cuadro el volumen del
+#     tema, en 1/65536 de lo que estuviera sonando.
+#
+#     Va el paso y no los milisegundos que trae RM2k
+#     porque el 65816 no divide sin hardware y la cuenta
+#     es siempre la misma: `ceil(65536 / cuadros)`. Es la
+#     misma clase de número que el índice de mapa de un
+#     teletransporte —resuelto por el conversor para que
+#     la ROM no lo vuelva a mirar—, y lo hace
+#     `paso_de_fundido`.
+#
+# OP_BGM: el índice del tema en `Temas` (byte). La ROM toca
+#     los que llevó —los primeros `TEMA_TOTAL`— y con
+#     cualquier otro no hace nada. Ver `Temas`.
+#
+# OP_TIMER: operación (byte), segundos (word), visible (byte).
+#     Los cinco bytes son fijos aunque cada operación use
+#     dos: así el intérprete lo saltea sin mirar cuál es,
+#     que es lo que hace `recorrer_codigo` del conversor.
 
 # El operando es un desplazamiento y no un texto, y eso es lo que hace que
 # entre. Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
@@ -1613,7 +1643,8 @@ COND_VARIABLE = 1
 # ±999999, pero ninguna del juego pasa de unos cientos —segundos de
 # cronómetro, un azar de 0 a 100, contadores—. Lo que no entra en el word no
 # compila, que es más honesto que truncar.
-OP_VAR = 0x17       # ranura (byte), operación (byte), clase (byte), a (word), b (word)
+#
+# OP_VAR: ranura (byte), operación (byte), clase (byte), a (word), b (word)
 # El bit de arriba de la **ranura**, en OP_VAR y en OP_TECLA: si esta escritura
 # pide el refresco de páginas.
 #
@@ -1635,8 +1666,9 @@ OP_VAR = 0x17       # ranura (byte), operación (byte), clase (byte), a (word), 
 # enmascara con $7F. Si alguna vez hicieran falta más de 128, esto se muda.
 VAR_REFRESCO = 0x80
 VAR_RANURA_MAX = 0x7F
-OP_SI_VAR = 0x18    # ranura (byte), clase (byte), comparación (byte), valor (word),
-                    # destino (word): como OP_SI, el destino va último para el parcheo
+#
+# OP_SI_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
+#     destino (word): como OP_SI, el destino va último para el parcheo
 # El inventario, desde el 2026-09-10 a la noche: un byte por ítem del LDB en la
 # RAM lejana —`FAR_ITEMS`, pegado a las variables—, indexado por el número de
 # RM2k, y `ChangeItems` compila a OP_ITEM con el ítem y cuánto se suma, con
@@ -1645,7 +1677,8 @@ OP_SI_VAR = 0x18    # ranura (byte), clase (byte), comparación (byte), valor (w
 # constantes: el ítem por variable no compila. Con esto la condición de página
 # por ítem se evalúa de verdad —`GetItemCount(id) > 0`, sin equipo todavía— y
 # deja de ser "nunca activa". Cambiar un ítem pide el refresco de páginas.
-OP_ITEM = 0x19      # ítem (word), delta (byte con signo)
+#
+# OP_ITEM: ítem (word), delta (byte con signo)
 ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
                     # test_items.py contra RPG_RT.ldb
 ITEM_MAX = 99
@@ -1659,7 +1692,8 @@ ITEM_MAX = 99
 # los dos primeros y **$03 para el tercero**, o sea prohibir las otras dos cosas
 # de una. Con el bit puesto por el conversor el opcode no tiene cuenta que
 # hacer y acepta los permisos que haga falta.
-OP_ACCESO = 0x1A    # el bit en FAR_ACCESO (byte), permitido (byte)
+#
+# OP_ACCESO: el bit en FAR_ACCESO (byte), permitido (byte)
 # Los HP y los estados, que fuera de batalla **no bajan nunca** en este juego:
 # medido sobre los 328 mapas, los 11 `ChangeHP` suman —siete de a 1 al grupo,
 # cuatro de 300 y 999 a un actor—, los 16 `ChangeCondition` quitan un estado y
@@ -1673,7 +1707,8 @@ OP_ACCESO = 0x1A    # el bit en FAR_ACCESO (byte), permitido (byte)
 # OP_ELEGIR. Como guardar, la pantalla se abre adentro del intérprete y no
 # cuesta ningún tick: el mapa no corre mientras se ve. Las ramas de "compró"
 # y "no compró" no compilan; ninguna de las 43 tiendas del juego las usa.
-OP_TIENDA = 0x1B    # tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
+#
+# OP_TIENDA: tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
 # El clima, desde el 2026-09-11: `WeatherEffects` compila a OP_CLIMA con el tipo
 # y la fuerza, y la lluvia se dibuja. Es `Game_Screen::UpdateRain` con la regla
 # de RM2k —cada gota vive doce cuadros, baja cuatro pixeles y corre uno a la
@@ -1702,7 +1737,8 @@ OP_TIENDA = 0x1B    # tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
 #
 # El diez por ciento de chance es `azar & 255 < 26`, 10,2%: con `% 100` la
 # ROM gastaba el divisor en cada gota apagada de cada cuadro.
-OP_CLIMA = 0x1C     # tipo, fuerza
+#
+# OP_CLIMA: tipo, fuerza
 CLIMA_LLUVIA = 1
 LLUVIA_GOTAS = (15, 45, 75)
 LLUVIA_VIDA = 12
@@ -1731,7 +1767,8 @@ def lluvia_pixeles(x, y):
 # propio: ver `build_efectos` en snes_music.py. Suenan en la voz 7, que se le
 # roba a la música mientras duran. No se ven, así que la referencia sólo los
 # salta: no cuestan ningún tick, como en RM2k.
-OP_SONIDO = 0x1D    # índice (word)
+#
+# OP_SONIDO: índice (word)
 
 # Las animaciones de batalla sobre el mapa, desde el 2026-09-11: sus sonidos y
 # sus destellos, **sin el dibujo**. `ShowBattleAnimation` compila a
@@ -1750,7 +1787,8 @@ OP_SONIDO = 0x1D    # índice (word)
 # escalones; acá es un `FlashScreen` o un `FlashSprite` que arranca en la
 # primera y baja lineal en `ANIM_DESTELLO_CUADROS`. Es la misma luz y dura lo
 # mismo, y los dos lados hacen esta cuenta.
-OP_ANIMACION = 0x1E     # n, y n entradas de ANIM_ENTRADA bytes
+#
+# OP_ANIMACION: n, y n entradas de ANIM_ENTRADA bytes
 ANIM_ENTRADA = 8
 ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 # Diez, que es lo que dura el de RM2k, y **par** a propósito: el destello de
@@ -1798,9 +1836,10 @@ def dibujo_blanco(anim, blanco):
 # quieta en 100. O sea que la imagen aparece **negra**, sube a su color y vuelve
 # a negro; en la consola eso es teñir sus quince entradas de CGRAM, que es
 # exactamente la cuenta que el tinte de pantalla ya hacía.
-OP_IMAGEN = 0x1F        # r, g, b, sat
-OP_IMAGEN_MOVER = 0x20  # r, g, b, sat, cuadros (byte)
-OP_IMAGEN_BORRAR = 0x21
+#
+# OP_IMAGEN: r, g, b, sat
+#
+# OP_IMAGEN_MOVER: r, g, b, sat, cuadros (byte)
 # Cuántos cuadros puede durar un `MovePicture` para que entre en el byte de
 # `OP_IMAGEN_MOVER`. Los dos de la página duran 210 y 120.
 IMAGEN_CUADROS_MAX = 255
@@ -1824,7 +1863,8 @@ IMAGEN_CUADROS_MAX = 255
 # Los destinos son **absolutos dentro de la página**, como los de `OP_SI`.
 # Un manejador que la página no tenga apunta al final del bloque, o sea al
 # `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
-OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word)
+#
+# OP_BATALLA: tropa (word), victoria (word), huida (word), derrota (word)
 # El destino que quiere decir "acá no se sigue: esto es un Game Over". Va en el
 # lugar de la derrota cuando el `EnemyEncounter` trae `defeat_mode` 0, que en
 # RM2k es `Scene_Gameover`. Es un destino imposible —los tres son absolutos
@@ -1847,7 +1887,8 @@ BATALLA_PERDER = 0xFFFF
 # escondite de los Lazer Teeth cuando te descubren— y por eso vale: sin él esa
 # página no compila y el HQ no se puede volver a jugar después de que te
 # agarren.
-OP_PARAR_RUTAS = 0x23   # sin operandos
+#
+# OP_PARAR_RUTAS: sin operandos
 
 # Las dos preguntas de actor que no entran en `OP_SI`, desde el 2026-09-13:
 # "¿tiene puesto este objeto?" y "¿sabe esta habilidad?". No entran porque
@@ -1858,7 +1899,8 @@ OP_PARAR_RUTAS = 0x23   # sin operandos
 # No lleva polaridad: RM2k no le da ninguna a estas dos —la rama de abajo es el
 # `else`— igual que a "está en el grupo". El destino va último, como en todos,
 # porque es lo que `con_destino` parchea al cerrar la rama.
-OP_SI_ACTOR = 0x24  # sub (byte), actor (byte), dato (word), destino (word)
+#
+# OP_SI_ACTOR: sub (byte), actor (byte), dato (word), destino (word)
 
 HALT_ALL_MOVEMENT = 11350
 
@@ -1900,7 +1942,8 @@ CHANGE_PBG = 11720
 # libre" a la vez y sin verse: salieron $23 dos veces y $24 dos veces, git las
 # mergeó sin un solo conflicto —cada una en su línea— y lo que se rompía era el
 # recorrido del bytecode. Lo cuida `test_ningun_opcode_comparte_numero_con_otro`.
-OP_ACTOR_GRAF = 0x25    # actor (byte), gráfico (byte)
+#
+# OP_ACTOR_GRAF: actor (byte), gráfico (byte)
 
 # `KeyInputProc`: ranura de variable (byte) y qué teclas mira (byte).
 #
@@ -1926,7 +1969,6 @@ OP_ACTOR_GRAF = 0x25    # actor (byte), gráfico (byte)
 # porque el intérprete no tiene dónde guardarlo: el que espera **rebobina su
 # propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
 # distinguir la primera vuelta de las otras.
-OP_TECLA = 0x26
 # Interruptor de **medición**, apagado por defecto: acepta el `KeyInputProc`
 # sin espera, que es el volante de la persecución en auto. Existe para que el
 # número de lo que falta se vuelva a sacar con un comando —ver el `raise` de
@@ -1969,8 +2011,9 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #
 # **El número se elige mirando los que ya están**, no el último que uno
 # recuerde: ver el aviso de `OP_ACTOR_GRAF`.
-OP_LUGAR_VAR = 0x27     # blanco (byte, como en OP_LUGAR), ranura de la x
-                        # (byte), ranura de la y (byte)
+#
+# OP_LUGAR_VAR: blanco (byte, como en OP_LUGAR), ranura de la x
+#     (byte), ranura de la y (byte)
 
 
 def tecla_de(banderas, apretadas):
@@ -5380,25 +5423,11 @@ class Estado:
         return self.grupo[0] if self.grupo else None
 
 
-# Cuánto ocupa cada opcode, para recorrer una página compilada sin ejecutarla.
-# Es **la** tabla: el conversor y `blancos_de_ruta` recorren con esto, y
-# `ejecutar` avanza con las mismas cuentas. Había dos copias —una acá y otra
-# en el conversor— y la de acá se quedó con el OP_RUTA viejo cuando el nuevo
-# sumó la frecuencia, y sin OP_LUGAR: doce casos de la tanda en rojo, y
-# hasta ahí un recorrido que podía dar mal **sin decirlo** a quién le tocan
-# las doce poses. OP_RUTA no está: lleva las órdenes detrás y lo mide
-# `largo_de_opcode`.
-LARGO_DE_OPCODE = {
-    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 7, OP_ESPERAR: 3, OP_TINTE: 5,
-    OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
-    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
-    OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
-    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
-    OP_CLIMA: 3, OP_SONIDO: 3,
-    OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
-    OP_BATALLA: 9, OP_PARAR_RUTAS: 1, OP_ACTOR_GRAF: 3, OP_TECLA: 3,
-    OP_SI_ACTOR: 7, OP_LUGAR_VAR: 4,
-}
+# Cuánto ocupa cada opcode se deriva de sus argumentos declarados, así que
+# `LARGO_DE_OPCODE` y `largo_de_opcode` vienen de `opcodes.py`, generado desde
+# `protocol/events.toml`. Antes se escribían a mano, y había dos copias —una
+# acá y otra en el conversor—: la de acá se quedó con el OP_RUTA viejo cuando
+# el nuevo sumó la frecuencia, y fueron doce casos de la tanda en rojo.
 
 
 # La sacudida de pantalla, `Shake::NextPosition` de easyrpg:
@@ -5425,23 +5454,6 @@ def sacudida_siguiente(fuerza, velocidad, resta, posicion):
     nuevo = -cociente if seno > 0 else cociente
     corte = (velocidad * amplitud) // 8 + 1
     return max(posicion - corte, min(posicion + corte, nuevo))
-
-
-def largo_de_opcode(codigo, i):
-    """Cuántos bytes ocupa el opcode que empieza en `codigo[i]`."""
-    op = codigo[i]
-    if op == OP_RUTA:
-        return 4 + codigo[i + 3]
-    if op == OP_ELEGIR:
-        return 3 + 4 * codigo[i + 1]
-    if op == OP_TIENDA:
-        return 4 + 2 * codigo[i + 3]
-    if op == OP_ANIMACION:
-        return 4 + ANIM_ENTRADA * codigo[i + 3]
-    largo = LARGO_DE_OPCODE.get(op)
-    if largo is None:
-        raise ValueError("opcode %d que no sé medir" % op)
-    return largo
 
 
 def recorrer_codigo(codigo):

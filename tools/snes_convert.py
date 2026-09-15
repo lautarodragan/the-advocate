@@ -3357,15 +3357,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
         "; su tabla se copia a la RAM como la de NPCs.\n"
         "RUTA_GRAF_MAX = %d\n"
-        "; Los opcodes del intérprete de eventos.\n"
-        "OP_FIN      = $%02X\n"
-        "OP_SWITCH   = $%02X\n"
-        "OP_TELEPORT = $%02X\n"
-        "OP_ESPERAR  = $%02X\n"
-        "OP_TINTE    = $%02X\n"
-        "OP_GRUPO    = $%02X\n"
-        "OP_RUTA     = $%02X\n"
-        "OP_MENSAJE  = $%02X\n"
         "; La cabecera de un cuadro de texto, que es el primer byte del que\n"
         "; `OP_MENSAJE` nombra: los renglones en los tres bits de abajo, el\n"
         "; autocierre del `\\^` en el bit 3 y cuantas pausas de `\\|` lleva en\n"
@@ -3374,25 +3365,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "CABECERA_LINEAS     = $%02X\n"
         "CABECERA_AUTOCIERRE = $%02X\n"
         "CUADROS_DE_PAUSA    = %d\n"
-        "OP_RUTAS    = $%02X\n"
-        "OP_FLASH    = $%02X\n"
-        "OP_TIMER    = $%02X\n"
-        "OP_BGM      = $%02X\n"
-        "OP_LUGAR    = $%02X\n"
-        "; El mismo, con la celda en dos variables. Ver OP_LUGAR_VAR en\n"
-        "; eventos.py y `op_lugar_var` en main.s.\n"
-        "OP_LUGAR_VAR = $%02X\n"
-        "OP_TRUEQUE  = $%02X\n"
-        "OP_SACUDIR  = $%02X\n"
-        "OP_DESTELLO = $%02X\n"
-        "OP_FUNDIR_BGM = $%02X\n"
-        "OP_PAN      = $%02X\n"
-        "OP_SI       = $%02X\n"
-        "OP_IR       = $%02X\n"
-        "OP_ELEGIR   = $%02X\n"
-        "OP_ORO      = $%02X\n"
-        "OP_GUARDAR  = $%02X\n"
-        "OP_VAR      = $%02X\n"
         "; El bit de arriba de la ranura de OP_VAR y de OP_TECLA: si la\n"
         "; escritura pide el refresco de páginas. Lo resuelve el conversor\n"
         "; mirando qué variables miran las condiciones de página de este\n"
@@ -3400,33 +3372,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; eventos.py: sin esto media Lashe City corría a 30 cuadros.\n"
         "VAR_REFRESCO = $%02X\n"
         "VAR_RANURA   = $%02X\n"
-        "OP_SI_VAR   = $%02X\n"
-        "OP_ITEM     = $%02X\n"
-        "OP_ACCESO   = $%02X\n"
-        "OP_TIENDA   = $%02X\n"
-        "OP_CLIMA    = $%02X\n"
-        "OP_SONIDO   = $%02X\n"
-        "OP_ANIMACION = $%02X\n"
         "ANIM_ENTRADA = %d\n"
         "ANIM_SONIDO  = %d\n"
         "ANIM_DESTELLO = %d\n"
-        "; El cartel del ShowPicture: sus tres opcodes, dónde cae su esquina\n"
-        "; en la pantalla de la consola y cuántos objetos de 32x32 mide.\n"
+        "; El cartel del ShowPicture: dónde cae su esquina en la pantalla\n"
+        "; de la consola y cuántos objetos de 32x32 mide.\n"
         "; Las coordenadas ya vienen escaladas de 320x240 a 256x224 y la X\n"
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/imagen.py.\n"
-        "OP_IMAGEN   = $%02X\n"
-        "OP_IMAGEN_MOVER = $%02X\n"
-        "OP_IMAGEN_BORRAR = $%02X\n"
-        "OP_BATALLA  = $%02X\n"
-        "OP_PARAR_RUTAS = $%02X\n"
-        "; `ChangeSpriteAssociation`: a qué gráfico de la tabla del mapa\n"
-        "; le cambia el sprite a un actor. Ver OP_ACTOR_GRAF en\n"
-        "; eventos.py y `op_actor_graf` en main.s.\n"
-        "OP_ACTOR_GRAF = $%02X\n"
-        "; `KeyInputProc`: la ranura de la variable y qué teclas mira.\n"
-        "; Ver OP_TECLA en eventos.py y `op_tecla` en main.s.\n"
-        "OP_TECLA      = $%02X\n"
+        "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
+        "; OP_TECLA. Ver `op_tecla` en main.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -3497,7 +3452,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "COND_ACTOR  = %d\n"
         "; Y las dos preguntas de actor que llevan dos operandos, con su\n"
         "; opcode propio: ver OP_SI_ACTOR en eventos.py.\n"
-        "OP_SI_ACTOR = $%02X\n"
         "COND_ACTOR_HABILIDAD = %d\n"
         "COND_ACTOR_EQUIPO    = %d\n"
         "ORO_MAX     = %d\n"
@@ -3710,27 +3664,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
            PUERTA_BYTES, PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
-           eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
-           eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
-           eventos.OP_RUTA, eventos.OP_MENSAJE,
            eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
-           eventos.CUADROS_DE_PAUSA, eventos.OP_RUTAS,
-           eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
-           eventos.OP_LUGAR, eventos.OP_LUGAR_VAR,
-           eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
-           eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
-           eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
-           eventos.OP_ORO, eventos.OP_GUARDAR,
-           eventos.OP_VAR, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
-           eventos.OP_SI_VAR,
-           eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
-           eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
-           eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
-           eventos.OP_IMAGEN, eventos.OP_IMAGEN_MOVER,
-           eventos.OP_IMAGEN_BORRAR, eventos.OP_BATALLA,
-           eventos.OP_PARAR_RUTAS,
-           eventos.OP_ACTOR_GRAF,
-           eventos.OP_TECLA, eventos.TECLA_ESPERA,
+           eventos.CUADROS_DE_PAUSA, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
+           eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO, eventos.TECLA_ESPERA,
            eventos.TECLA_DIRS, eventos.TECLA_DECISION,
            eventos.TECLA_CANCELAR, eventos.TECLA_ARRANCA,
            eventos.TECLA_VALOR_DECISION, eventos.TECLA_VALOR_CANCELAR,
@@ -3754,8 +3690,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.AZAR_SEMILLA, eventos.ENC_SEMILLA,
            eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ITEM,
-           eventos.COND_ACTOR,
-           eventos.OP_SI_ACTOR, eventos.COND_ACTOR_HABILIDAD,
+           eventos.COND_ACTOR, eventos.COND_ACTOR_HABILIDAD,
            eventos.COND_ACTOR_EQUIPO,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,

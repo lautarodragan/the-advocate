@@ -589,6 +589,14 @@ VENTANA_VOFS = 111
 ; segunda no vive 32 palabras más adelante sino 1024.
 VIEW_COLS_TILEMAP = 32
 
+; Los opcodes del bytecode de eventos. Está generado desde
+; protocol/events.toml, que es de los dos lados —de este intérprete y
+; del compilador en tools/eventos.py— y de ninguno. Hasta el 2026-09-14
+; estos equates venían adentro de mapdata.inc, o sea que el número de un
+; opcode llegaba acá dentro de los datos de un mapa. mapdata.inc sigue
+; haciendo falta por las tablas del mapa; el bytecode ya no.
+.include "opcodes.inc"
+
 .include "musicdata.inc"
 .include "mapdata.inc"
 

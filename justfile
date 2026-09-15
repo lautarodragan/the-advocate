@@ -13,6 +13,17 @@ maps:
 check:
   python3 tools/list_maps.py --render
 
+# --- El protocolo del bytecode ---------------------------------------------
+# Los opcodes de los eventos: su número y su layout. La declaración está en
+# protocol/events.toml y no es ni del compilador ni del intérprete; de ahí salen
+# generados tools/opcodes.py y rom/src/opcodes.inc, los dos commiteados.
+#
+# `--check` es lo que corre la tanda: falla si alguno quedó viejo. Antes el
+# número lo decidía eventos.py y le llegaba a main.s adentro de mapdata.inc,
+# que es cómo dos ramas pudieron elegir el mismo sin que git viera nada.
+protocolo *args:
+  python3 protocol/generate.py {{args}}
+
 # --- Ditto -----------------------------------------------------------------
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
 # conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este
