@@ -236,6 +236,46 @@ que están cerca, en vez de los 41 todos los cuadros.
 
 ### Lo próximo
 
+Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
+refactors: **no hay features hasta que cierre**.
+
+1. **El tinte que sobrevive al cambio de mapa deja de ser una trampa.** Hoy
+   `AGENTS.md` avisa que inyectar un mapa directo lo deja todo azul —el tinte
+   del mapa de arranque sigue puesto— y que hay que poner `tinte_r/g/b` en 100
+   antes de mirar. Eso lo tiene que hacer el arnés solo: en el juego real
+   siempre se llega desde otro mapa, así que es un artefacto de inyectar.
+   Arreglarlo borra la aclaración, que es mejor que documentarla.
+2. **Enchufar `brr/` y `tiles/`, y borrar los tres de Python** —`sf2.py`,
+   `pixeles.py`, `brr.py`— **más `w65.py`**. El argumento de dejarlos como
+   segunda implementación no se sostiene: si el port se equivoca, **la ROM
+   cambia y la tanda se pone roja**, así que la comparación ya la hace el
+   criterio de aceptación. Tener dos implementaciones sólo obliga a tocar las
+   dos. Cómo se comparaban queda en el `git log`.
+3. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
+   la decisión sino los goldens: los 170 casos comparan contra
+   `snes_expect.py`, no contra PNG. Capturarlos es barato; **bendecirlos sólo
+   puede taro**. Para que no sea una tarde de mirar imágenes, la receta tiene
+   que mostrarlos agrupados por mapa, una vez cada uno, y marcar los que
+   difieren de lo que la referencia dice hoy: ésos son los únicos que necesitan
+   su ojo.
+4. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+   de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
+   en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
+   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
+   global variable, y la tanda deja de convertir y ensamblar 170 veces listas
+   casi iguales. Va **después** de los goldens, porque cambiar qué cartucho
+   arma cada caso mueve los PNG.
+
+**Lo que se decidió no hacer:** dejar de armar `demo-ciudad`. Es la misma
+receta que `demo-titulo` con `--con-titulo` de más, o sea un subconjunto, pero
+esta semana difirieron de verdad —el reporte del MSU-1 fue "la que tiene título
+no carga la música de alta calidad, la otra sí"— y `demo-ciudad` fue el control
+que permitió aislar que era el arranque con título. Cuesta un minuto.
+
+**Y un número que cierra una pregunta vieja:** un cartucho con todos los mapas
+es imposible. **29 mapas ocupan el 74,4% de los 4 MB** y el juego tiene 328.
+
+
 **Está arriba, en "La etapa en curso": no hay features hasta terminar los
 refactors.** Lo que quedó pedido o pensado y espera a que esa etapa cierre,
 para no volver a pensarlo:

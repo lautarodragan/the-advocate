@@ -98,9 +98,7 @@ mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 ninguna receta de compilación llama a los de Rust.
 
 **`w65/` sí: desde el 2026-09-15 es el que arma las ROMs.** Toda receta que
-ensambla `main.s` depende de `w65-binario`, así que **compilar la ROM necesita
-cargo** —es la única dependencia nueva del toolchain, y si falta, la receta lo
-dice y explica cómo instalarlo—. `tools/w65.py` **no se borra**: es la segunda
+ensambla `main.s` depende de `w65-binario`. `tools/w65.py` **no se borra**: es la segunda
 implementación que valida a la primera, y de eso vive `just w65-comparar`.
 Borrarlo es una decisión de taro y todavía no la tomó.
 
@@ -136,17 +134,7 @@ cada línea que tocaron. El criterio para meter uno es que su cambio **no pueda
 alterar el comportamiento**, y en este repo eso se demuestra, no se supone: los
 dos que hay adentro tienen las dos ROMs saliendo byte por byte iguales.
 
-**En este clone ya está configurado** —taro corrió `git config
-blame.ignoreRevsFile .git-blame-ignore-revs` desde el host el 2026-09-15— así
-que `git blame` lo saltea solo y no hay que pasar nada. `.git/config` es de
-sólo lectura acá adentro pero es **el mismo archivo** que el del host, así que
-lo que él configura allá vale acá.
-
-En un clone nuevo, o si alguna vez no anda, es esto:
-
-    git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
-
-y configurarlo **falla adentro del contenedor**: se corre desde el host.
+Si no funciona no esperado, podemos pasarlo como argumento: git blame --ignore-revs-file .git-blame-ignore-revs <archivo>.
 
 Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
 no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
@@ -206,9 +194,7 @@ que revela menos y da más margen. Hoy tiene:
     /extras/capturas    donde taro deja capturas para que yo las mire
 
 Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
-con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no. Antes esto
-era un directorio `screenshots-manuales/` adentro del repo, que ensuciaba el
-árbol con archivos que nunca fueron del proyecto.
+con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
@@ -261,7 +247,7 @@ que todavía arma: `w65` corta con "el área no entra: 32705 bytes en 32704".
 **El tinte de pantalla sobrevive al cambio de mapa.** Saltar a un mapa desde el
 de arranque lo deja todo azul —el tinte es 0,0,100— y parece el defecto que uno
 está buscando. Para mirar un mapa inyectado hay que poner `tinte_r/g/b` en 100
-primero. Costó una hora el 2026-09-13.
+primero.
 
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
@@ -285,8 +271,7 @@ mientras corre y la deja con casos en rojo que no lo están. Con más de un
 agente, cada uno con el suyo: `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
 
 **Las tareas en segundo plano que lanzamos nosotros las podemos matar
-nosotros.** Desde el 2026-09-13: taro dio libertad de matar lo que uno o sus
-sub-agentes hayan lanzado. Lo que sigue sin tocarse es lo que lanzó él.
+nosotros.**
 
 Lo que más se acumula son las **esperas armadas por los agentes** —`until !
 pgrep -f "snes-hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
@@ -307,26 +292,19 @@ por uno salteando el `$$`.
 Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 —que es estado global— y las tandas no se mezclan.
 
-Hasta el 2026-09-12 la regla era la contraria, y el porqué sigue valiendo como
-advertencia: los hitos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que
-son justo donde un merge mal hecho no se ve. Lo que cambió es que el trabajo se
-volvió paralelizable de verdad —dos maneras distintas de resolver lo mismo, para
-comparar— y que el setup ya está armado: worktrees y `pruebas-manuales/`. taro
-aceptó el costo de los conflictos de git a cambio de eso.
-
 Lo que hay que hacer siempre:
 
-* **Traerle los builds al repo principal.** Los worktrees viven en `/extras`, que
-  él no tiene montado en el host: una ROM que quede ahí adentro no la puede
-  probar. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` que diga qué
-  mirar y con qué limitaciones se chocó.
+* **Traer los builds al repo principal.** Los worktrees viven en `/extras`, que
+  no está montado en el host. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` 
+  que diga qué  mirar y con qué limitaciones se chocó.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
-  agente.** La del agente tiene su arreglo y **ninguno de los demás**. El
-  2026-09-14 taro probó una armada en la rama de audio: la música sonaba bien
-  —era lo que esa rama arreglaba— y el Rat King le colgó la consola con un bug
-  que hacía horas estaba arreglado en otras cinco ramas. Perdió una sesión de
-  juego persiguiendo algo ya resuelto. La del agente sirve para aislar **su**
-  cambio; la que se juega, no.
+  agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
+  La del agente sirve para aislar **su** cambio; la que se juega, no.
+* **Decirle de qué commit sale, y que mergee `main` antes de entregar.** Un
+  worktree se saca de donde esté `main` al lanzarlo, y `main` se mueve: el
+  2026-09-15 uno trabajó cuatro horas sobre un README **doce commits viejo** y
+  vio 5.499 líneas donde había 4.717. La reconciliación después es trabajo
+  perdido que se evita con una línea en el encargo.
 * **Pasarle al agente lo que ya está medido**, para que no lo vuelva a averiguar
   y para que no lo mida distinto.
 * **Pedirle el límite medido y no la implementación forzada.** Cuando el punto
@@ -347,9 +325,8 @@ Lo que hay que hacer siempre:
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
-  lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó —sí en
-  la interfaz de taro—, así que un ayudante colgado queda sin dueño: él lo ve y
-  yo no puedo decirle de quién era. Lo mismo con los `sleep` largos para esperar
+  lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
+  Lo mismo con los `sleep` largos para esperar
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
@@ -389,11 +366,7 @@ Así que al mergear una rama de sub-agente:
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.
 * **Mirar a mano las firmas que las dos ramas tocaron**: quién pasa qué a quién
   y con cuántos bits.
-* **Y la prosa también colisiona, no sólo el código.** El 2026-09-15 los dos
-  agentes escribieron en `ESTADO.md` que lo suyo era "el tercer proyecto
-  independiente del repo". Es la misma colisión de "el siguiente libre" que la
-  de los opcodes, pero en un lugar donde ninguna prueba mira: git mergea los
-  dos párrafos sin una queja y quedan dos terceros. Al mergear documentación de
+* **Y la prosa también colisiona, no sólo el código.** Al mergear documentación de
   dos ramas hay que **leerla**, no sólo resolver los conflictos que git marcó.
 * **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una
   tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
@@ -453,6 +426,5 @@ que algo "contesta siempre lo mismo".
 
 ## Git
 
-Los commits van directo a `main`. **El push lo hace taro**, con su YubiKey: no
-intentarlo. Los mensajes van en castellano y explican el porqué, no el qué —el
-diff ya dice el qué—.
+Los commits van directo a `main`. No hacemos `git push`. 
+Los mensajes van en castellano y explican el porqué, no el qué —el diff ya dice el qué—.
