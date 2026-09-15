@@ -260,6 +260,11 @@ Lo que hay que hacer siempre:
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
   viajó adentro de un merge que ya se había dado por verificado.
+* **Decirle que namespacee sus archivos temporales.** El scratchpad es
+  **compartido entre agentes**, y dos que trabajan en paralelo eligen el mismo
+  nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
+  mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
+  hace>/…` alcanza.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó —sí en
   la interfaz de taro—, así que un ayudante colgado queda sin dueño: él lo ve y
@@ -303,6 +308,12 @@ Así que al mergear una rama de sub-agente:
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.
 * **Mirar a mano las firmas que las dos ramas tocaron**: quién pasa qué a quién
   y con cuántos bits.
+* **Y la prosa también colisiona, no sólo el código.** El 2026-09-15 los dos
+  agentes escribieron en `ESTADO.md` que lo suyo era "el tercer proyecto
+  independiente del repo". Es la misma colisión de "el siguiente libre" que la
+  de los opcodes, pero en un lugar donde ninguna prueba mira: git mergea los
+  dos párrafos sin una queja y quedan dos terceros. Al mergear documentación de
+  dos ramas hay que **leerla**, no sólo resolver los conflictos que git marcó.
 * **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una
   tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
   siguiente libre" mirando su copia, así que dos ramas eligen el mismo y git no
