@@ -90,6 +90,22 @@ datos DIR="data":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}}
 
+# --- tiles -----------------------------------------------------------------
+# De un PNG a tiles, paletas y tilemap, en Rust. **Todavía no reemplaza a
+# nadie**: `tools/pixeles.py` y el empaquetado de `tools/snes_convert.py` siguen
+# siendo los que arman la ROM, y ninguna receta de compilación llama a esto.
+# Adentro de tiles/ no hay una sola mención a este juego ni al port: habla de
+# 4bpp, planos de bits y color de 15 bits, que es el formato y no el proyecto.
+#
+# Sus pruebas son imágenes generadas adentro de la prueba —una celda sólida, una
+# espejada, una que hay que fusionar, una que no entra— más los mensajes de
+# error, así que no necesitan el juego. Lo que sí lo necesita es la comparación
+# contra el Python, que va por `TILES_CORPUS`: un directorio de llamadas
+# grabadas, y sin la variable esas pruebas se saltean con un mensaje, igual que
+# `DITTO_CORPUS`. Cómo se graba el corpus y qué dio, en ESTADO.md.
+tiles-pruebas:
+  cd tiles && cargo test
+
 # --- w65 -------------------------------------------------------------------
 # El ensamblador de 65816 en Rust. **Todavía no reemplaza a `tools/w65.py`**:
 # conviven, y las recetas que arman ROMs siguen llamando al de Python. Adentro
