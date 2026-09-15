@@ -249,14 +249,29 @@ refactors: **no hay features hasta que cierre**.
    cambia y la tanda se pone roja**, así que la comparación ya la hace el
    criterio de aceptación. Tener dos implementaciones sólo obliga a tocar las
    dos. Cómo se comparaban queda en el `git log`.
-3. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
+3. **Las 47 recetas de la tanda pasan a pytest**, comparando contra la
+   referencia **igual que ahora**. Esto se creía atado a los goldens y **no lo
+   está**: `consola.py` corre la ROM y da la imagen, `snes_expect.py` es un
+   módulo de Python, así que un caso de pytest puede comparar exactamente como
+   compara la receta. Lo que hay que escribir es la sincronización que hoy
+   viaja como archivos entre tres CLIs —el `--plan` de teclas por cuadro, el
+   `--saltar` de pixeles excluidos, el `--arranque`—, que adentro de Python son
+   objetos.
+
+   Es el trabajo que más destraba: se lleva puesto el grueso del justfile
+   —47 recetas y 1.037 líneas, de un archivo de 3.437—, los casos corren en
+   paralelo con pytest, y las ROMs se comparten solas porque `armar()` ya
+   cachea por huella. Eso último es el objetivo de taro de que **las pruebas no
+   compilen nada**, y sale por el mismo trabajo.
+
+4. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
    la decisión sino los goldens: los 170 casos comparan contra
    `snes_expect.py`, no contra PNG. Capturarlos es barato; **bendecirlos sólo
    puede taro**. Para que no sea una tarde de mirar imágenes, la receta tiene
    que mostrarlos agrupados por mapa, una vez cada uno, y marcar los que
    difieren de lo que la referencia dice hoy: ésos son los únicos que necesitan
    su ojo.
-4. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Decidido
+5. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Decidido
    por taro el 2026-09-15: prefiere un proyecto mantenido, popular y con once
    años de historia antes que sostener el nuestro, y de paso gana compatibilidad
    con el ecosistema y baja la curva de aprendizaje. La razón original de
@@ -285,7 +300,7 @@ refactors: **no hay features hasta que cierre**.
    rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
    y nadie lo notó **porque necesitaba podman y nunca se corría**.
 
-5. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+6. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
    de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
    en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
    número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
