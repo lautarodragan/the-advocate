@@ -107,9 +107,20 @@ y 121 usos. El resto de main.s —`ruta_frec`, `mapa_actual`, `celda_bloqueada`�
 sigue en castellano: lo que se movió es el vocabulario que viene de
 `protocol/events.toml` y nada más.
 
-Queda una sola cosa de ahí: los opcodes del stream del SPC700 —`OP_DSP`,
-`OP_WAIT`, `OP_END`— son un segundo protocolo sin dueño declarado, hoy a mano
-en main.s. Son tres símbolos y un stream mucho más chico que el de eventos.
+Y el stream del SPC700 también (`f141b87`), que estaba peor: sus tres opcodes
+estaban escritos a mano **de los dos lados** —`tools/snes_music.py` escribe el
+stream, `main.s` lo lee— sin nada que atara las copias. Ahora son
+`protocol/music.toml`.
+
+Eso obligó a generalizar el generador, y ahí apareció que **tenía las rutas de
+salida clavadas al layout de este repo**: hoy es `generate.py DECLARACIÓN
+--python X --asm Y [--check]`, con `--help` y errores que nombran el archivo y
+el opcode. Los generados pasaron a `event_opcodes` y `music_opcodes`, y su API
+a inglés (`OPCODE_SIZE`, `opcode_size`), porque son la salida de una
+herramienta en inglés y no fuente de este árbol.
+
+Los dos bytecodes caen en el mismo espacio de símbolos del ensamblador: pueden
+compartir número pero no nombre, y eso lo cuida una prueba.
 
 **Lo que sigue**: los cortes que quedaron
 pensados en la charla del 2026-09-14: separar los conversores tontos de PNG y
