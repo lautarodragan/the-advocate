@@ -101,8 +101,8 @@ el espacio de símbolos: `OP_FIN` quedó `OP_DONE` y `OP_ESPERAR` quedó
 `OP_DELAY`. Las ROMs siguen byte por byte iguales.
 
 Quedan dos cosas de ahí, las dos chicas y las dos decisión de taro: las
-etiquetas del intérprete (`op_lugar`, `op_tecla`) no se tocaron, así que un
-`cmp #OP_PLACE` salta a `op_lugar`; y los opcodes del stream del SPC700 son un
+etiquetas del intérprete (`op_place`, `op_key`) no se tocaron, así que un
+`cmp #OP_PLACE` salta a `op_place`; y los opcodes del stream del SPC700 son un
 segundo protocolo sin dueño declarado, que hoy vive a mano en main.s.
 
 **Lo que sigue**: los cortes que quedaron
@@ -829,7 +829,7 @@ encuentros al azar". Lo que hay que saber para trabajar encima:
   que es lo que AGENTS.md manda— así que bajó `item_switch` a RODATA, 124
   bytes: es la tabla más grande de las que se leen con X y no están en ningún
   lazo por cuadro. Con eso quedan **89 libres**, medidos igual.
-* **`op_batalla` se partió en dos**: su cuerpo es ahora `pelea_arrancar`, y lo
+* **`op_battle` se partió en dos**: su cuerpo es ahora `pelea_arrancar`, y lo
   llaman el opcode y el encuentro. Un encuentro pelea **sin bytecode**, así que
   no tiene cursor que guardar ni manejadores a los que saltar. **Es lo único
   que esta vuelta le toca a la pelea**; `batalla.py` no se tocó.
@@ -1061,7 +1061,7 @@ y a la velocidad que le dejó `RaceController1`, que es exactamente lo que taro
 describió. El comando vale **+5 páginas** del juego entero —mapas 49, 51, 52,
 54 y 285— sobre una base de 5348 de 5603 disparables.
 
-Lo importante: **los dos lados ya lo hacen**. `op_tecla` en `main.s` y
+Lo importante: **los dos lados ya lo hacen**. `op_key` en `main.s` y
 `OP_KEY` en `eventos.py` cubren la forma que no espera; el único que la
 rechaza es el `raise` de `KEY_INPUT_PROC`, y lo rechaza por el arnés. Medido
 con `TECLA_SIN_ESPERA=1`, que es el interruptor que se agregó para no tener que
@@ -1239,7 +1239,7 @@ que el oro y la pantalla de ítems ya pagan, y que la columna del máximo se
 corrió a x=192.
 
 **Dos: perder un encuentro al azar no era Game Over**, y de ahí salían los
-otros dos síntomas del reporte. `op_batalla` mira `BA_RESULT` y resuelve el
+otros dos síntomas del reporte. `op_battle` mira `BA_RESULT` y resuelve el
 destino de la derrota; el encuentro al azar arranca la pelea sin bytecode
 —`pelea_arrancar` desde `move_hero`— y nadie miraba el resultado. Como
 `modo_fin` guarda los HP de la pelea en `FAR_HP`, después de una derrota el
@@ -1626,10 +1626,10 @@ llamados antes, sobre las **5667** páginas disparables (3468 con comandos):
   suena**: ver `assets/LIMITACIONES.md`, "Perder una pelea es volver al
   arranque". Lo cobra `pruebas/test_game_over.py` —la tanda no puede: la
   referencia se va siempre por la victoria— comprobado en rojo desarmando el
-  `bne` de `op_batalla`.
+  `bne` de `op_battle`.
 
 **El banco 0.** El Game Over cuesta **10 bytes** de `CODE` (el `iny`/`bne`/`jml`
-de `op_batalla` y el `phk`/`plb` que `reset` necesitaba para que lo llamen con
+de `op_battle` y el `phk`/`plb` que `reset` necesitaba para que lo llamen con
 el banco de datos del bytecode). Para hacerle lugar bajaron a RODATA
 `pass_salir`, `pass_entrar`, `hdma_mascara`, `fuente_pre_lo` y `fuente_pre_bk`:
 **24 bytes netos**, contando el `f:` que cada acceso paga. Medido con el mismo

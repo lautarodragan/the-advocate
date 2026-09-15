@@ -8,7 +8,7 @@ Tracks: hasta el 2026-09-13 ninguna compilaba y el jefe no aparecía nunca.
 
 Ahora compilan, con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 —$FFFF, un destino imposible adentro de una página— y la ROM lo resuelve en
-`op_batalla` con un `jml reset`. **La imagen no se dibuja**; ver
+`op_battle` con un `jml reset`. **La imagen no se dibuja**; ver
 `assets/LIMITACIONES.md`.
 
 Esto va acá y no en la tanda de pixeles por una razón que conviene tener
@@ -221,7 +221,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 # --- y el otro camino a una pelea: el encuentro al azar ---------------------
 #
 # Hasta el 2026-09-13 el Game Over era sólo del `EnemyEncounter` de una página:
-# `op_batalla` miraba `BA_RESULT` y saltaba al destino, y `BATALLA_PERDER` lo
+# `op_battle` miraba `BA_RESULT` y saltaba al destino, y `BATALLA_PERDER` lo
 # mandaba a `reset`. El encuentro al azar arranca la pelea **sin bytecode**
 # —`pelea_arrancar` desde `move_hero`— así que nadie miraba el resultado y
 # perder devolvía el control al mapa.

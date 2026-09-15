@@ -1869,7 +1869,7 @@ IMAGEN_CUADROS_MAX = 255
 # lugar de la derrota cuando el `EnemyEncounter` trae `defeat_mode` 0, que en
 # RM2k es `Scene_Gameover`. Es un destino imposible —los tres son absolutos
 # adentro de la página y ninguna del juego llega a 64 KB— así que no hace falta
-# un opcode nuevo ni un byte más en cada pelea. La ROM lo mira en `op_batalla`.
+# un opcode nuevo ni un byte más en cada pelea. La ROM lo mira en `op_battle`.
 BATALLA_PERDER = 0xFFFF
 
 # `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
@@ -2021,7 +2021,7 @@ def tecla_de(banderas, apretadas):
 
     `apretadas` es el conjunto de lo que el jugador tiene puesto: los enteros
     0 a 3 para las direcciones, "a" y "b" para las dos teclas. La usan los dos
-    lados —acá la referencia, allá `op_tecla`— y el orden es el de `CheckInput`.
+    lados —acá la referencia, allá `op_key`— y el orden es el de `CheckInput`.
 
     **Qué conjunto se le pasa depende de la forma del comando**, y eso lo
     decide quien llama: la que espera mira los **flancos** de este cuadro
@@ -6550,7 +6550,7 @@ def ejecutar(codigo, estado, desde=0):
             # misma** hasta que haya tecla, así que se la vuelve a ejecutar
             # cuadro a cuadro. `(i, 0, None)` es exactamente eso: el cursor
             # queda en este opcode y no hay cuadros que esperar, que es lo
-            # mismo que hace `op_tecla` en la ROM con `sty ev_cur`.
+            # mismo que hace `op_key` en la ROM con `sty ev_cur`.
             ranura, banderas = codigo[i + 1], codigo[i + 2]
             pide_refresco = bool(ranura & VAR_REFRESCO)
             ranura &= VAR_RANURA_MAX

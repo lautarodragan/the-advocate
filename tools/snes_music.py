@@ -946,7 +946,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         "$%02X" % PISTAS_MSU.get(t["nombre"], 0xFF)
         for t in (temas or [{"nombre": ""}]))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
-    # Fuera del banco 0: `op_sonido` los lee con `lda f:sonido_tabla, x`.
+    # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
     tabla_se = "sonido_tabla:\n" + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (

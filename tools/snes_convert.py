@@ -3381,7 +3381,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        "; OP_KEY. Ver `op_tecla` en main.s.\n"
+        "; OP_KEY. Ver `op_key` en main.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"

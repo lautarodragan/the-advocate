@@ -750,7 +750,7 @@ def sonido_muestra(una, indice):
 def se_disparado(una):
     """La muestra del efecto que la ROM acaba de dejar pendiente.
 
-    `op_sonido` y `sonido_tocar` copian los siete bytes de la fila a `SE_NUEVO`
+    `op_sound` y `sonido_tocar` copian los siete bytes de la fila a `SE_NUEVO`
     y prenden `SE_PENDIENTE`; `irq_musica` lo levanta en el cuadro siguiente y
     a partir de ahí lo que queda es `SE_CUADROS`. Acá se mira `SE_NUEVO`, que
     es lo que sobrevive a leer la RAM entre cuadro y cuadro.

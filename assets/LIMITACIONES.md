@@ -240,7 +240,7 @@ Game Over del proyecto, su tema, y al apretar una tecla la pantalla de título.
 Son **15 páginas del juego**, entre ellas las tres del jefe de los Rat Tracks.
 
 Este port hace la última parte y no las dos primeras: el destino de la derrota
-es `BATALLA_PERDER` y `op_batalla` resuelve con un `jml reset`, o sea la
+es `BATALLA_PERDER` y `op_battle` resuelve con un `jml reset`, o sea la
 pantalla de título si el cartucho la lleva, con la partida guardada esperando en
 la SRAM. **La imagen no se dibuja** —una de 320x240 pediría prestarle una capa
 al cartel, ver "Lo que costaría el sistema entero" en ESTADO.md— y **el tema de

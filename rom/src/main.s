@@ -272,7 +272,7 @@ ENC_STRIDE = 8
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3A00
 ; La misma dirección pero larga, para los pocos que la tocan desde afuera de
-; la pelea: `op_batalla` corre con el banco de datos del bytecode.
+; la pelea: `op_battle` corre con el banco de datos del bytecode.
 BAT_LARGO = $7E0000
 ; **Todo lo de acá se nombra con dirección de dieciséis bits, no larga**, y el
 ; código de la pelea corre con el banco de datos en $7E. Es lo que le deja usar
@@ -914,7 +914,7 @@ rapido:
     ; El banco de datos, en el del código. En un reset de verdad el 65816 lo
     ; deja en cero y todo lo de acá abajo funcionaría igual, pero desde el
     ; 2026-09-13 acá se llega también con un `jml` —el Game Over de
-    ; `op_batalla`— y ahí el banco de datos es el del bytecode, o sea un banco
+    ; `op_battle`— y ahí el banco de datos es el del bytecode, o sea un banco
     ; del cartucho: `sta INIDISP` escribiría la ROM en vez del PPU.
     phk
     plb
@@ -1171,7 +1171,7 @@ cargar:
     ; IPL**. Acá se llega de dos maneras y sólo una de las dos deja al SPC700
     ; como recién encendido. Con el botón de reset de la consola la línea les
     ; llega a los dos procesadores y el IPL arranca solo; con el `jml reset`
-    ; del Game Over de `op_batalla`, no: el SPC700 sigue corriendo el driver y
+    ; del Game Over de `op_battle`, no: el SPC700 sigue corriendo el driver y
     ; el saludo $AA/$BB que `spc_upload` espera no llega **nunca**. Ése era el
     ; cuelgue del cofre trampa de los Rat Tracks —pantalla encendida, mapa
     ; dibujado y el juego clavado—, y el mismo lo tenía cualquier Game Over.
@@ -3975,49 +3975,49 @@ otro:
     ; que corre unas pocas veces por cuadro. El orden ya no significa nada.
     cmp #OP_MESSAGE
     bne :+
-    jmp op_mensaje
+    jmp op_message
 :   cmp #OP_SWITCH
     bne :+
     jmp op_switch
 :   cmp #OP_ROUTE
     bne :+
-    jmp op_ruta
+    jmp op_route
 :   cmp #OP_PARTY
     bne :+
-    jmp op_grupo
+    jmp op_party
 :   cmp #OP_DELAY
     bne :+
-    jmp op_esperar
+    jmp op_delay
 :   cmp #OP_TINT
     bne :+
-    jmp op_tinte
+    jmp op_tint
 :   cmp #OP_FLASH
     bne :+
     jmp op_flash
 :   cmp #OP_WAIT_ROUTES
     bne :+
-    jmp op_rutas
+    jmp op_wait_routes
 :   cmp #OP_BGM
     bne :+
     jmp op_bgm
 :   cmp #OP_PLACE
     bne :+
-    jmp op_lugar
+    jmp op_place
 :   cmp #OP_PLACE_VAR
     bne :+
-    jmp op_lugar_var
+    jmp op_place_var
 :   cmp #OP_SWAP
     bne :+
-    jmp op_trueque
+    jmp op_swap
 :   cmp #OP_SHAKE
     bne :+
-    jmp op_sacudir
+    jmp op_shake
 :   cmp #OP_FLASH_SCREEN
     bne :+
-    jmp op_destello
+    jmp op_flash_screen
 :   cmp #OP_FADE_BGM
     bne :+
-    jmp op_fundir_bgm
+    jmp op_fade_bgm
 :   cmp #OP_PAN
     bne :+
     jmp op_pan
@@ -4026,55 +4026,55 @@ otro:
     jmp op_timer
 :   cmp #OP_IF
     bne :+
-    jmp op_si
+    jmp op_if
 :   cmp #OP_GOTO
     bne :+
-    jmp op_ir
+    jmp op_goto
 :   cmp #OP_CHOICE
     bne :+
-    jmp op_elegir
+    jmp op_choice
 :   cmp #OP_GOLD
     bne :+
-    jmp op_oro
+    jmp op_gold
 :   cmp #OP_ITEM
     bne :+
     jmp op_item
 :   cmp #OP_ACCESS
     bne :+
-    jmp op_acceso
+    jmp op_access
 :   cmp #OP_ACTOR_SPRITE
     bne :+
-    jmp op_actor_graf
+    jmp op_actor_sprite
 :   cmp #OP_KEY
     bne :+
-    jmp op_tecla
+    jmp op_key
 :   cmp #OP_SHOP
     bne :+
-    jmp op_tienda
+    jmp op_shop
 :   cmp #OP_BATTLE
     bne :+
-    jmp op_batalla
+    jmp op_battle
 :   cmp #OP_WEATHER
     bne :+
-    jmp op_clima
+    jmp op_weather
 :   cmp #OP_ANIMATION
     bne :+
-    jmp op_animacion
+    jmp op_animation
 :   cmp #OP_SOUND
     bne :+
-    jmp op_sonido
+    jmp op_sound
 :   cmp #OP_PICTURE
     bne :+
-    jmp op_imagen
+    jmp op_picture
 :   cmp #OP_PICTURE_MOVE
     bne :+
-    jmp op_imagen_mover
+    jmp op_picture_move
 :   cmp #OP_PICTURE_ERASE
     bne :+
-    jmp op_imagen_borrar
+    jmp op_picture_erase
 :   cmp #OP_SAVE
     bne :+
-    jmp op_guardar
+    jmp op_save
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -4083,13 +4083,13 @@ otro:
     jmp op_var
 :   cmp #OP_IF_VAR
     bne :+
-    jmp op_si_var
+    jmp op_if_var
 :   cmp #OP_IF_ACTOR
     bne :+
-    jmp op_si_actor
+    jmp op_if_actor
 :   cmp #OP_STOP_ROUTES
     bne :+
-    jmp op_parar_rutas
+    jmp op_stop_routes
 :   stz ev_activo               ; OP_DONE, o algo que no conocemos: se corta
     rts
 
@@ -4102,7 +4102,7 @@ otro:
 ; 240 tiles de 4bpp, o sea 7,5 KB, y los 2895 del juego serían 21 MB. Lo que
 ; viaja en el cartucho es un byte por letra y lo compone el 65816, que es la
 ; salida de FF6.
-op_mensaje:
+op_message:
     ; El mensaje no aparece en este cuadro: hay que componerle el texto, y eso
     ; lleva unos cuantos. La ventana se prende sola cuando el compositor
     ; termina; mientras tanto la página ya está bloqueada.
@@ -4127,7 +4127,7 @@ op_mensaje:
 ; al que va el cursor si la condición no se cumple, o sea el `else` o el `end`
 ; que le corresponde. Quién es ese destino lo resolvió el conversor, que es el
 ; único que ve la página entera; acá saltar es asignar Y.
-op_si:
+op_if:
     ; El primer byte dice **qué se pregunta**, con el número de RM2k tal cual: 0
     ; un switch, 3 el oro, 5 si un actor está en el grupo. Ver `bytes_de_rama`.
     ;
@@ -4300,7 +4300,7 @@ si_no_cumple:
 ;
 ; Al entrar, Y apunta al sub. Los dos caminos terminan en `sia_si` o en
 ; `sia_no` con Y ya apuntando al destino.
-op_si_actor:
+op_if_actor:
     lda [cod_ptr], y
     sta temp                    ; el sub
     iny
@@ -4416,7 +4416,7 @@ sia_si:
 ;
 ; No hay dónde mostrarlo —el menú no existe— pero sí quién lo pregunta: la rama
 ; de oro de `ConditionalBranch`.
-op_oro:
+op_gold:
     lda [cod_ptr], y            ; el signo: 0 suma, 1 resta
     sta temp
     iny
@@ -4550,7 +4550,7 @@ item_guardar:
 
 ; `OpenShop`: tipo, juego, cuántos y la lista, de a dos bytes cada ítem. La
 ; tienda se abre acá adentro y, al salir, el mapa vuelve y la página sigue.
-op_tienda:
+op_shop:
 .a8
 .i16
     lda [cod_ptr], y
@@ -4568,9 +4568,9 @@ op_tienda:
     phb
     phk
     plb
-op_tienda_otro:
+op_shop_other:
     lda eleg_cancel
-    beq op_tienda_listo
+    beq op_shop_done
     rep #$20
 .a16
     lda [cod_ptr], y            ; el ítem
@@ -4581,7 +4581,7 @@ op_tienda_otro:
 .a8
     lda f:item_k, x
     cmp #$FF
-    beq op_tienda_sigue         ; uno que esta ROM no conoce
+    beq op_shop_next         ; uno que esta ROM no conoce
     pha
     rep #$20
 .a16
@@ -4596,10 +4596,10 @@ op_tienda_otro:
     pla
     sta WMDATA
     inc comp_mask + 1
-op_tienda_sigue:
+op_shop_next:
     dec eleg_cancel
-    bra op_tienda_otro
-op_tienda_listo:
+    bra op_shop_other
+op_shop_done:
     phy
     jsr tienda_pantalla
     ; Los flancos que cerraron la tienda son de ella, como en el menú.
@@ -4618,7 +4618,7 @@ op_tienda_listo:
 ; `EnemyEncounter`: la tropa y los tres destinos, todos de dieciséis bits. La
 ; pelea se juega acá adentro y, al salir, el mapa vuelve —como en la tienda— y
 ; la página sigue por el destino que le tocó al resultado.
-op_batalla:
+op_battle:
 .a8
 .i16
     rep #$20
@@ -4633,9 +4633,9 @@ op_batalla:
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
     ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
     lda f:BAT_LARGO + BA_RESULT
-    jmp op_batalla_destino
+    jmp op_battle_destination
 
-op_batalla_destino:
+op_battle_destination:
 .a8
 .i16
     rep #$20
@@ -4675,7 +4675,7 @@ sigue_la_pagina:
 
 ; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
-op_sonido:
+op_sound:
     jsr sonido_de_codigo
     jmp otro
 
@@ -4684,7 +4684,7 @@ op_sonido:
 ; otro tono y `OP_PICTURE_ERASE` lo saca. Ninguno corta el cuadro: si la página
 ; espera lo que dura el fundido, el conversor le pone un OP_DELAY detrás,
 ; igual que al `FlashScreen` y a la sacudida.
-op_imagen:
+op_picture:
     ldx #$0000
 img_poner:
     lda [cod_ptr], y
@@ -4706,7 +4706,7 @@ img_poner_sat:
     jsr imagen_paleta
     jmp otro
 
-op_imagen_mover:
+op_picture_move:
     ldx #$0000
 img_mover:
     lda [cod_ptr], y
@@ -4753,7 +4753,7 @@ img_mover_desde:
 img_mover_fin:
     jmp otro
 
-op_imagen_borrar:
+op_picture_erase:
     lda #0
     sta f:CARTEL_ACTIVA
     jmp otro
@@ -4765,7 +4765,7 @@ op_imagen_borrar:
 ;
 ; Los dos primeros bytes son del **dibujo**, que va por su cuenta y dura más
 ; que la línea de tiempo: ver `animacion_dibujo_empezar`.
-op_animacion:
+op_animation:
     lda [cod_ptr], y            ; el número de animación de RM2k
     sta temp
     iny
@@ -4807,7 +4807,7 @@ op_animacion:
     jmp otro
 
 ; `WeatherEffects`: el tipo y la fuerza. No cuesta ningún tick.
-op_clima:
+op_weather:
 .a8
 .i16
     lda [cod_ptr], y
@@ -4829,7 +4829,7 @@ op_clima:
 ; permisos sin tocar este opcode: antes el operando era el número del permiso y
 ; el bit salía de un `inc a`, que da $01 y $02 para los dos primeros y **$03
 ; para el tercero**, o sea prohibir las otras dos cosas de una.
-op_acceso:
+op_access:
 .a8
 .i16
     lda [cod_ptr], y            ; el bit: $01 guardar, $02 el menú, $04 escapar
@@ -4862,7 +4862,7 @@ acceso_listo:
 
 ; El salto sin condición que el conversor pone donde estaba el `else`, para que
 ; la rama de arriba se saltee la de abajo.
-op_ir:
+op_goto:
     rep #$20
 .a16
     lda [cod_ptr], y
@@ -4876,7 +4876,7 @@ op_ir:
 ; el jugador elige, `eleccion_tick` le pone al cursor el destino de la opción
 ; marcada. Por eso acá no se guarda `ev_cur`: lo que se guarda es dónde está la
 ; tabla, que es de donde salen los dos, el cuadro que se dibuja y el destino.
-op_elegir:
+op_choice:
     lda [cod_ptr], y            ; cuántas opciones
     sta eleg_n
     iny
@@ -4923,7 +4923,7 @@ op_switch:
 ; la del héroe se **copia** a RAM, y la de un evento se guarda como puntero al
 ; bytecode. Copiarla existe desde antes y tiene un tope, RUTA_MAX; el puntero no
 ; lo tiene, porque el código del mapa vive en la ROM y no se va a ningún lado.
-op_ruta:
+op_route:
     lda [cod_ptr], y            ; sobre quién
     sta ruta_blanco
     iny
@@ -4935,7 +4935,7 @@ op_ruta:
     stz ruta_cuantas + 1
     iny
     lda ruta_blanco
-    bne op_ruta_evento
+    bne op_route_event
 
     ; --- el héroe: la ruta se copia a RAM y la camina `move_hero`, no el
     ; intérprete: en RM2k `ForceMoveRoute` es asincrónico y la página sigue.
@@ -4968,7 +4968,7 @@ fin_copia:
 
     ; --- un evento: no se copia nada. Se anota dónde empieza la ruta dentro del
     ; bytecode y en qué orden va, y el cursor de la página saltea las órdenes.
-op_ruta_evento:
+op_route_event:
     phy
     jsr ruta_para_evento
     ply
@@ -4988,7 +4988,7 @@ op_ruta_evento:
 ; desde acá, y hacia dónde mira no cambia; la dirección la toca sólo RM2k3. La
 ; cinemática de apertura lo usa seis veces para traer a Core, a Manta y al
 ; droide a escena.
-op_lugar:
+op_place:
     lda [cod_ptr], y            ; el blanco: el índice del evento más uno
     dec a
     sta temp
@@ -5011,25 +5011,25 @@ op_lugar:
     sep #$20
 .a8
     phy
-lugar_plantar:                  ; con Y ya en la pila: ver `op_lugar_var`
+lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
     jsr plantar_evento
     ply
     jmp otro
 
 ; `ChangeEventLocation` con la celda en **dos variables**, que es la otra rama
-; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_lugar`: el mismo
+; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_place`: el mismo
 ; `MoveTo`, o sea la celda cambia ya, el paso en curso se corta y ni la ruta ni
 ; hacia dónde mira se tocan. Ver OP_PLACE_VAR en eventos.py.
 ;
 ; Las dos lecturas van **antes** de escribir ninguna de las dos palabras, como
-; en `op_trueque`: una variable que se leyera después de haber movido al evento
+; en `op_swap`: una variable que se leyera después de haber movido al evento
 ; ya podría valer otra cosa si es una de las de coordenadas de `ControlVars`.
 ; En este juego no pasa —el minijuego del mapa 11 las calcula antes— pero es la
 ; misma regla y no cuesta nada.
 ;
 ; `var_leer` no toca X ni `temp`, así que el desplazamiento de la fila se
 ; calcula una sola vez y sobrevive a las dos lecturas.
-op_lugar_var:
+op_place_var:
 .a8
 .i16
     lda [cod_ptr], y            ; el blanco: el índice del evento más uno
@@ -5069,9 +5069,9 @@ op_lugar_var:
     bra lugar_plantar
 
 ; `TradeEventLocations`: los dos eventos se cambian de celda, y cada uno es un
-; `MoveTo` como el de `op_lugar` —la celda, el corte del paso, y el dibujo que
+; `MoveTo` como el de `op_place` —la celda, el corte del paso, y el dibujo que
 ; la sigue—. Las dos celdas se leen antes de escribir ninguna.
-op_trueque:
+op_swap:
     lda [cod_ptr], y            ; el primero: el índice más uno
     dec a
     sta trueque_a
@@ -5120,7 +5120,7 @@ op_trueque:
 ; sacudidas seguidas se encadenen suaves, o `ShakeEnd` con cero cuadros. No
 ; corta el cuadro: si la página espera, el conversor le pone un OP_DELAY
 ; detrás, como con los destellos.
-op_sacudir:
+op_shake:
     lda [cod_ptr], y            ; fuerza
     sta sacudida_fuerza
     iny
@@ -5142,7 +5142,7 @@ con_cuadros:
 
 ; `FlashOnce`: el color, el nivel a escala 256 y los cuadros. No corta el
 ; cuadro: si la página espera, el conversor le pone un OP_DELAY detrás.
-op_destello:
+op_flash_screen:
     jsr destello_de_codigo
     jmp otro
 
@@ -5261,7 +5261,7 @@ otro_tema:
 ; vale 1 —el SPC700 está callado a propósito— y el que baja es el volumen del
 ; MSU-1. Sin esta salida, un `FadeOutBGM` no hacía nada y la pista seguía
 ; sonando para siempre.
-op_fundir_bgm:
+op_fade_bgm:
     lda f:MSU_SUENA
     bne fundir
     lda music_apagada
@@ -5310,7 +5310,7 @@ fundir_nada:
 ; ROM de prueba no llevaba título, y sin título el conversor emitía la pantalla
 ; de ranuras como un byte de relleno con `RANURA_TILES` en cero. Hoy va en toda
 ; ROM.
-op_guardar:
+op_save:
     phy
     lda #1                      ; modo guardar
     jsr ranuras_pantalla
@@ -5323,13 +5323,13 @@ cancelado:
     ply
     jmp otro
 
-op_rutas:
+op_wait_routes:
     jsr hay_rutas
-    beq op_rutas_sigue
+    beq op_wait_routes_next
     dey                         ; el cursor vuelve al opcode
     sty ev_cur
     rts
-op_rutas_sigue:
+op_wait_routes_next:
     jmp otro
 
 ; `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
@@ -5346,7 +5346,7 @@ op_rutas_sigue:
 ; que es la misma rutina que corre cuando una forzada termina sola: cancelarla
 ; y terminarla no se pueden separar, que es justo la clase de diferencia que
 ; nadie ve hasta que la escena sale distinta.
-op_parar_rutas:
+op_stop_routes:
 .a8
 .i16
     ; El héroe. Se le vacían las órdenes y la espera; el paso en curso no.
@@ -5596,7 +5596,7 @@ var_personaje_listo:
 ; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
 ; valor de dieciséis bits y el destino si no se cumple. La comparación es con
 ; signo: después de restar, "menor" es N distinto de V.
-op_si_var:
+op_if_var:
 .a8
 .i16
     lda [cod_ptr], y
@@ -5651,7 +5651,7 @@ si_var_sigue:
     iny
     jmp otro
 
-op_grupo:
+op_party:
     lda [cod_ptr], y            ; 0 = agregar, 1 = sacar
     sta temp
     iny
@@ -5675,7 +5675,7 @@ op_grupo:
 ; `aplicar_tinte` detrás por lo mismo que en `cambiar_grupo`: la fila de CGRAM
 ; que el líder tenía prestada queda con sus quince colores encima de los del
 ; mapa, y hay que reponerla desde el cartucho.
-op_actor_graf:
+op_actor_sprite:
 .a8
 .i16
     lda [cod_ptr], y            ; el actor
@@ -5705,7 +5705,7 @@ graf_no_lidera:
 ; lo mismo que hace la referencia devolviendo `(i, 0, None)`, y es lo que evita
 ; tener que guardar "estoy esperando" en algún lado —el intérprete de un evento
 ; paralelo son siete bytes y no le sobra ninguno—.
-op_tecla:
+op_key:
 .a8
 .i16
     lda [cod_ptr], y            ; la ranura de la variable
@@ -5747,7 +5747,7 @@ tecla_guardar:
     jsr var_escribir            ; `SetNeedRefreshForVarChange`, como ControlVars:
     jmp otro                    ; lo decide la ranura. Ver `var_escribir`
 
-op_esperar:
+op_delay:
     ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
     ; que no había cuadros que dejar pasar porque esto corría con la pantalla
     ; apagada mientras se cargaba el mapa. Eso dejó de ser cierto: el intérprete
@@ -5836,7 +5836,7 @@ pan_leer_paso:
 pan_sin_espera:
     jmp otro
 
-op_tinte:
+op_tint:
     lda [cod_ptr], y
     sta tinte_r
     iny
@@ -5893,7 +5893,7 @@ op_teleport:
 ; Una pelea de punta a punta, con la tropa ya puesta en `BA_TROPA`: guardar el
 ; tema del mapa, cargar el audio de la pelea, pelearla y volver al mapa.
 ;
-; Está separada de `op_batalla` desde que hay encuentros al azar, que la
+; Está separada de `op_battle` desde que hay encuentros al azar, que la
 ; arrancan **sin bytecode**: allá no hay cursor que guardar ni manejadores a
 ; los que saltar. Lo de adentro no cambió de lugar.
 .proc pelea_arrancar
@@ -6005,7 +6005,7 @@ anotado:
 ; el refresco de páginas; `temp + 2`: el valor.
 ;
 ; El refresco se marca **acá y no en cada opcode** porque por acá pasan las
-; tres escrituras que hay —`op_var` y las dos ramas de `op_tecla`— y así el
+; tres escrituras que hay —`op_var` y las dos ramas de `op_key`— y así el
 ; bit se mira una sola vez. Es `Game_Map::SetNeedRefreshForVarChange`, que
 ; tampoco marca por cualquier escritura: le pregunta al `map_cache` si alguna
 ; condición de página del mapa mira esa variable. Acá esa pregunta la contestó
@@ -10117,7 +10117,7 @@ listo:
     rts
 .endproc
 
-; Lo que le falta a `op_lugar` después de escribir la celda: que el dibujo la
+; Lo que le falta a `op_place` después de escribir la celda: que el dibujo la
 ; siga. Entra con el índice del evento en `temp`.
 ;
 ; Si el evento tiene ranura de ruta alcanza con cortarle el paso y el salto:
@@ -11584,7 +11584,7 @@ otro:
 ; control—, que es lo mismo con lo que se cierra un mensaje.
 ;
 ; `temp + 3` es el único de los cuatro que está libre acá: `temp` trae la
-; ranura y `temp + 1` las banderas, y `op_tecla` guarda la respuesta en
+; ranura y `temp + 1` las banderas, y `op_key` guarda la respuesta en
 ; `temp + 2` **después** de volver de acá.
 .proc tecla_valor
 .a8
@@ -14393,7 +14393,7 @@ listo:
 .endproc
 
 ; La tienda: `ti_tipo`, `ti_juego` y `FAR_TIENDA` con `ti_nt` ítems, puestos
-; por `op_tienda`. Vuelve cuando el jugador sale.
+; por `op_shop`. Vuelve cuando el jugador sale.
 .proc tienda_pantalla
 .a8
 .i16
@@ -14798,7 +14798,7 @@ ba_t_bgm:
 ; en un byte —y `mapa_actual`, que es lo que se pasa al salir, tampoco—.
 ;
 ; Con `BA_PAQUETE` en $FFFF —una ROM sin peleas— no hay nada que cargar; no
-; puede pasar, porque acá se llega desde `op_batalla`, pero el opcode existe
+; puede pasar, porque acá se llega desde `op_battle`, pero el opcode existe
 ; en el bytecode de todas.
 .proc batalla_audio_cargar
 .a8
@@ -14821,7 +14821,7 @@ listo:
 .endproc
 
 ; El tema de la pelea: A es el índice, o $FF para dejarla callada. Lo llaman
-; `op_batalla` —al entrar y al salir— y la pelea al ganar, por el puente de
+; `op_battle` —al entrar y al salir— y la pelea al ganar, por el puente de
 ; arriba.
 ;
 ; Callar no es `FadeOutBGM`: es lo mismo que hace `tema_asegurar` antes de
@@ -16123,7 +16123,7 @@ mirar:
                                 ; "están todas" y el tema del título sonaba
                                 ; contra un directorio de silencios. Es de
                                 ; dieciséis bits, como la dirección: el mismo
-                                ; cuidado que `op_sonido` se toma con `xba`.
+                                ; cuidado que `op_sound` se toma con `xba`.
     sep #$20
 .a8
     beq falta
@@ -16170,7 +16170,7 @@ listo:
 ; principal, y si ése estaba recorriendo la RAM lejana o usando `temp`, se lo
 ; pisaría. Se llega con el direccionamiento largo, que lleva el banco en la
 ; instrucción. Lo único que escribe acá el código principal es el pendiente,
-; en `op_sonido`, y lo hace con las interrupciones cortadas.
+; en `op_sound`, y lo hace con las interrupciones cortadas.
 FAR_SE       = $30A0
 SE_CUADROS   = $7E0000 + FAR_SE
 SE_PENDIENTE = SE_CUADROS + 2
@@ -17930,7 +17930,7 @@ hay:
 .endproc
 
 ; Empieza el dibujo de la animación `temp` sobre `temp + 1`. Lo llama
-; `op_animacion`, y la nueva reemplaza a la que hubiera, como la línea de
+; `op_animation`, y la nueva reemplaza a la que hubiera, como la línea de
 ; tiempo. Si este mapa no dibuja, o el número no tiene dibujo, no pasa nada:
 ; los sonidos y los destellos siguen igual.
 .proc animacion_dibujo_empezar
@@ -22123,7 +22123,7 @@ menu_sin_pagina:
     ; que los emita. Sin esto la derrota devolvía el control al mapa con todo
     ; el grupo en cero HP, y de ahí en más cada pelea se perdía sola antes de
     ; abrirse —`batalla_correr` contesta derrota con nadie en pie—. Ver
-    ; `op_batalla_destino`, que hace lo mismo con `BATALLA_PERDER`.
+    ; `op_battle_destination`, que hace lo mismo con `BATALLA_PERDER`.
     lda f:BAT_LARGO + BA_RESULT
     cmp #BA_DERROTA
     bne sin_derrota
@@ -25181,7 +25181,7 @@ done:
 ; acá no se puede volver con `jsr`, porque `jsr` no cambia el banco de
 ; programa.
 ;
-; **El banco de datos es $7E mientras dura la pelea.** Lo pone `op_batalla`
+; **El banco de datos es $7E mientras dura la pelea.** Lo pone `op_battle`
 ; antes del `jsl` y lo repone al volver. Es lo que le deja a este código usar
 ; direccionamiento absoluto sobre su estado: `inc`, `stz`, `ldx` y `cpy` no
 ; tienen modo largo, así que con `f:` cada uno pediría pasar por el
@@ -25401,7 +25401,7 @@ partida_tabla:
     .word 0, 0
 
 ; Las cuatro tablas que bajaron del banco 0 el 2026-09-13, para hacerle lugar
-; al Game Over de `op_batalla`. Las tres que se indexan se leen con
+; al Game Over de `op_battle`. Las tres que se indexan se leen con
 ; `lda f:tabla, x` —absoluto largo, que no depende del banco de datos— y por eso
 ; van con X y no con Y: el 65816 no tiene `long,Y`. `hdma_mascara` no se indexa:
 ; su dirección y su banco se los pasa `armar_hdma` al canal de HDMA.
@@ -29090,7 +29090,7 @@ listo:
     rts
 .endproc
 
-; La pelea entera. Se entra con `jsl` desde `op_batalla`, con el banco de datos
+; La pelea entera. Se entra con `jsl` desde `op_battle`, con el banco de datos
 ; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
 ;
 ; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la

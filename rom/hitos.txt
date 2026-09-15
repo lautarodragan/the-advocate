@@ -111,7 +111,7 @@ snes-lugar 6 "4 21 10" "" "22 12" "10 60" 115 lugar-quieto
 # del mapa 11. La página pone 21 y 13 en dos variables y recién después planta
 # al evento 3, así que el cuadro tiene que salir igual que el de `lugar`, que
 # lo planta con los números escritos. Verificado en rojo: sumándole uno a la y
-# en `op_lugar_var` da 392 pixeles, y leyendo la variable de la y también para
+# en `op_place_var` da 392 pixeles, y leyendo la variable de la y también para
 # la x, 246.
 snes-vars 6 "60 1" "31 0 0 21 0 32 0 0 13 0 31 10 0 4 32" "22 12" "20 60" "12 0 0 50" 115 lugar-var "" ""
 snes-destello
@@ -344,7 +344,7 @@ snes-hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
 # la cámara, o sea la escena entera contra ninguna.
 snes-hablar 13 "2 7" 24 900 "10 30 60" 115 tram-viaje "" "16"
 # `HaltAllMovement`, el único del juego: ver el comentario de `snes-parar`.
-# Verificado en rojo con `op_parar_rutas` cambiado por un `jmp otro` pelado
+# Verificado en rojo con `op_stop_routes` cambiado por un `jmp otro` pelado
 # —o sea el comando aceptado y no hecho, sólo en la ROM—: 59,89% en el cuadro
 # 34. Los cuadros llegan hasta el 40 y no más lejos a propósito: del 47 en
 # adelante este mapa tiene los diez pixeles de los tiles animados que ESTADO

@@ -587,7 +587,7 @@ menú, que fue el alcance de la primera vuelta.
 Tres cosas de cómo está hecho, porque las tres costaron un día:
 
 * **Bloquea adentro del intérprete y no cuesta ningún tick.** La pantalla corre
-  su propio lazo de cuadros desde `op_guardar`, igual que desde el título, y
+  su propio lazo de cuadros desde `op_save`, igual que desde el título, y
   `vueltas` no avanza mientras se ve. Es lo que hace RM2k: la escena apilada
   para el reloj del mapa, y la página sigue por el comando siguiente cuando se
   cierra. Por eso la referencia no modela nada —`OP_SAVE` ocupa su byte y no
@@ -945,7 +945,7 @@ con victoria y huida en el comando de abajo y la derrota en `BATALLA_PERDER`.
 **`BATALLA_PERDER` es $FFFF**, o sea un destino imposible —los tres son
 absolutos adentro de la página y ninguna del juego llega a 64 KB—, así que el
 Game Over no cuesta un opcode nuevo ni un byte más en las otras peleas. La ROM
-lo mira en `op_batalla` con un `iny`/`bne`, que es el `cmp #$FFFF` barato, y
+lo mira en `op_battle` con un `iny`/`bne`, que es el `cmp #$FFFF` barato, y
 responde con `jml reset`: **Game Over es volver al arranque**, o sea a la
 pantalla de título si el cartucho la lleva, con la partida guardada esperando en
 la SRAM. Es lo que `Scene_Gameover` hace al final, menos la imagen y menos el
@@ -1307,7 +1307,7 @@ allá quedan nada más que cuatro `jsl` y el puente a la pelea, 43 bytes. Ni és
 entraban: `demo-ciudad` tenía ocho libres, así que bajó `item_switch` a RODATA
 —124 bytes, la tabla más grande de las que se leen con X y no están en un lazo
 por cuadro— y quedaron ochenta y nueve. Y la pelea se arranca con
-`pelea_arrancar`, que es el cuerpo de `op_batalla` sacado a una rutina aparte:
+`pelea_arrancar`, que es el cuerpo de `op_battle` sacado a una rutina aparte:
 un encuentro al azar pelea **sin bytecode**, así que no tiene cursor que
 guardar ni manejadores a los que saltar.
 
@@ -1373,7 +1373,7 @@ Tres cosas que no son obvias:
   batalla son 18 muestras y 51.480 B de los 64.512 de ARAM. Metiéndolo en el
   paquete del mapa 2, los 24 efectos de ese mapa —49.068 B, que hoy entran
   todos— se caían casi enteros. Con paquete aparte el mapa no paga nada
-  mientras no se pelee: `op_batalla` carga `BA_PAQUETE` al entrar y el del
+  mientras no se pelee: `op_battle` carga `BA_PAQUETE` al entrar y el del
   mapa al salir. Cuesta **65 cuadros medidos** de imagen congelada al volver,
   y otro tanto al entrar; es el mismo precio que paga cada cambio de mapa, con
   la diferencia de que allá lo tapa un fundido.
@@ -1386,7 +1386,7 @@ sale en cada golpe— y los cuatro están verificados en rojo con su defecto
 puesto.
 
 Y de ahí salió un defecto que no era del audio: **el banco de datos de
-`op_batalla` no es el 0**, así que `music_apagada` y `tema_actual`, que son
+`op_battle` no es el 0**, así que `music_apagada` y `tema_actual`, que son
 absolutos de la BSS, se leían del banco del cartucho donde vive la página. Es
 la misma trampa que ya tenían los puentes `ba_t_*` del otro lado.
 
@@ -3059,7 +3059,7 @@ compilan: el opcode lo habilita la ventana, no al revés.
 
 El ciclo son tres piezas y ninguna corre donde uno esperaría:
 
-* `op_mensaje` deja el pedido y **corta el cuadro**. La página queda bloqueada:
+* `op_message` deja el pedido y **corta el cuadro**. La página queda bloqueada:
   `eventos_tick` ve `msg_abierto` y vuelve sin ejecutar nada.
 * El flanco de A la desbloquea —`pad_a` contra `pad_a_ant`, que es el
   `Input::IsTriggered` de RM2k: sostener el botón no dispara de nuevo— y la
@@ -4796,7 +4796,7 @@ lo demás: ver "La sacudida de pantalla".
 de la consola les llega a los dos procesadores, así que después de apretarlo el
 SPC700 vuelve a su ROM del IPL y saluda con `$AA`/`$BB`, que es lo que
 `spc_upload` espera para empezar a subir el driver. Un reinicio de adentro del
-juego —el `jml f:reset` con el que `op_batalla` hace el Game Over— no tiene esa
+juego —el `jml f:reset` con el que `op_battle` hace el Game Over— no tiene esa
 línea: el SPC700 sigue corriendo **nuestro** driver, el saludo no llega nunca y
 `spc_upload` se queda en su `wait_ready` para siempre. Lo peor es cómo se ve:
 la pantalla ya está encendida y el mapa ya está dibujado —el arranque prende el
