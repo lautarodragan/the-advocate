@@ -63,7 +63,7 @@ RETRASO_DE_PANTALLA = 1
 
 
 def simbolos(rom):
-    """La tabla que `w65.py` deja al lado de la ROM. Sin ella no hay reloj de
+    """La tabla que `w65` deja al lado de la ROM. Sin ella no hay reloj de
     ticks: una ROM armada a mano no tiene por qué tenerla."""
     try:
         with open(rom + ".sym") as handle:
@@ -186,7 +186,7 @@ def cuadros_perdidos(consola, rom):
     """Cuántos cuadros perdió el lazo principal de la ROM, leído de su WRAM.
 
     La ROM los cuenta en `cuadros_perdidos` —ver `contar_perdidos` en main.s—
-    y la dirección sale de la tabla de símbolos que w65.py deja al lado de la
+    y la dirección sale de la tabla de símbolos que w65 deja al lado de la
     ROM, `<rom>.sym`. Sin tabla no se dice nada: una ROM armada a mano no
     tiene por qué tenerla. Es un dato en la salida, no una aserción: los
     saltos de mapa pierden cuadros hoy, y la comparación ya los cobra.

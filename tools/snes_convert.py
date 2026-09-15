@@ -3309,7 +3309,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=(),
          encuentros=None):
-    """El .inc que arma w65.py junto con main.s.
+    """El .inc que arma w65 junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
     `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point
