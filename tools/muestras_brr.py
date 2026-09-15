@@ -68,9 +68,12 @@ def _correr(args):
     try:
         hecho = subprocess.run([BINARIO] + args, capture_output=True)
     except OSError as e:
-        raise Error("no se pudo correr %s: %s\n"
-                    "el códec BRR es un binario de Rust (brr/); compilalo con"
-                    " `just brr-binario`" % (BINARIO, e))
+        # Un SystemExit y no una excepción: que falte el binario no es un error
+        # de programa, es que hay que compilarlo, y un traceback de veinte
+        # líneas tapa la única línea que dice cómo.
+        raise SystemExit("no se pudo correr %s: %s\n"
+                         "el códec BRR es un binario de Rust (brr/); "
+                         "compilalo con `just brr-binario`" % (BINARIO, e))
     if hecho.returncode:
         raise Error("%s salió con %d: %s"
                     % (" ".join([os.path.basename(BINARIO)] + args),
