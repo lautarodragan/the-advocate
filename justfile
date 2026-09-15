@@ -157,7 +157,6 @@ w65-pruebas:
 # **cargo es nuevo acá**: antes compilar la ROM no lo necesitaba. Lo trae
 # `w65-binario`, de la que dependen `snes-build` y las demos, y que es la que
 # dice qué falta si no está.
-#
 
 # Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
 # las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin
