@@ -65,6 +65,21 @@ sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
 
+## Y `brr/` también
+
+Tercer proyecto independiente, misma regla: adentro de `brr/` —el códec BRR y
+el lector de SoundFont, en Rust desde el 2026-09-15— el código, los
+comentarios, los nombres de las pruebas y el README van **en inglés**, y no hay
+una sola mención a ABL ni al port. El BRR sí es un formato de la consola, así
+que hablar del SPC700 o de la SNES *como formato* está bien; lo que no va es
+"nuestro conversor". Los mensajes de commit, en castellano.
+
+**`tools/brr.py` y `tools/sf2.py` siguen siendo los que arman la ROM.** El port
+convive con ellos y no los reemplaza; lo que ata a los dos lados es que las
+muestras salgan byte por byte iguales, que es lo medido en ESTADO.md. Un cambio
+en el codificador de un lado sin el otro rompe esa igualdad, que es la única
+razón por la que se puede confiar en el port.
+
 ## La regla que sostiene todo
 
 Nada se da por bueno porque se vea bien: se compara pixel por pixel, a 15 bits,

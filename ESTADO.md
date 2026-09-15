@@ -152,6 +152,46 @@ encuentros al azar sí filtran por terreno**. La simplificación del port aguant
 igual, pero por otro motivo: ninguna excluye un terreno que su mapa pise de
 verdad. La prueba ahora mide eso.
 
+## El códec de audio, portado a `brr/` (2026-09-15)
+
+`brr/` es el tercer proyecto independiente del repo, después de `ditto/` y
+`protocol/`: un binario en Rust que codifica PCM a BRR —el formato de muestras
+del SPC700— y que lee SoundFonts para sacar de ahí las muestras. Es el port de
+`tools/brr.py` y `tools/sf2.py`, que **siguen existiendo y siguen siendo los
+que arman la ROM**: nada del conversor los dejó de usar, y la convivencia es a
+propósito hasta que el port esté probado de verdad.
+
+Lo medido, que es lo único que autoriza a reemplazarlos algún día: se
+interceptó cada llamada a `brr.encode` de una conversión entera de
+`demo-ciudad` —los 29 mapas de la receta— y salieron **608 muestras
+distintas**. Las 608 dan **byte por byte iguales** entre el Python y el Rust.
+No es una muestra: es el conjunto completo de las que esa ROM usa. El lector de
+SoundFont se comparó aparte contra el de Python sobre cinco bancos
+—`Microsoft GS Wavetable Synth`, `FluidR3_GM`, `MuseScore`, `AWE32` y
+`32MBGM`—, 984 programas y golpes, comparando nombre, tasa, nota raíz, cents,
+loop **y el PCM crudo**: cero diferencias.
+
+De paso, dos divergencias contra el DSP de verdad que **ya estaban en el
+Python** y que el port conserva idénticas a propósito, porque arreglarlas
+cambiaría el audio:
+
+* El chip decodifica en media escala (`(nibble << shift) >> 1`, y al final
+  `(int16_t)(s * 2)`; ver `SPC_DSP.cpp` de bsnes en `/extras/ref`), así que con
+  **shift 0 pierde el bit bajo del nibble** y el modelo de `brr.py` no. En el
+  corpus son 128 bloques de 85629, todos muy callados: inaudible, pero real.
+* Al pasarse de 16 bits el chip **envuelve** y el Python **satura**. En las
+  1370064 muestras del corpus esto **no pasa ni una vez**, así que hoy no
+  cambia nada; el margen lo da que `snes_samples.normalize` deja el pico en
+  0x6800.
+
+Y una diferencia de interfaz, no de bytes: `brr.encode` acepta callado un
+`loop_block` más allá del final de la muestra, y el binario lo rechaza diciendo
+cuántos bloques hay. Hoy ningún llamador lo hace.
+
+Tarda **2,0 s contra 29,9 s** en codificar las 608, y eso incluye arrancar el
+proceso 608 veces; medido con otro agente compitiendo por CPU, así que el
+número es un piso.
+
 ## El bytecode declarado en un solo lado (2026-09-15)
 
 `protocol/events.toml` declara los 40 opcodes —su número y los bytes que los
