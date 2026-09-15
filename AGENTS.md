@@ -15,6 +15,33 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
 trabaja, no al final—.
 
+## Dónde va cada cosa que uno quiere dejar escrita
+
+Dos reglas, de taro, el 2026-09-15. Las dos salen del mismo problema: lo que se
+escribe a mano en un documento envejece sin avisar, y lo que vive lejos del
+código no lo lee nadie cuando hace falta.
+
+**Un número se escribe sólo si es propiedad del hardware o del formato.** Los
+32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
+ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
+va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
+compilan es `just snes-destraba`, cuántos casos pasan es `just snes-hitos`,
+cuánto pesa el cartucho lo dice el build.
+
+El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
+y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de ésos
+lo había escrito yo una hora antes.
+
+**Un porqué se queda en el README sólo si es una decisión de arquitectura que
+no tiene una línea de código donde vivir**: por qué modo 3 fijo, por qué LoROM,
+por qué los translúcidos van horneados. **Un porqué que protege una línea
+concreta va como comentario en esa línea.** El razonamiento es de taro y es
+difícil de discutir: nadie que esté editando una rutina va a buscar la razón en
+un README de cinco mil líneas, así que ahí no protege a nadie.
+
+Y si el error no es de los que se vuelven a cometer, no va a ningún lado: el
+`git log` ya lo tiene.
+
 ## Los proyectos independientes están en inglés
 
 Todo este repo va en castellano —comentarios, documentación y mensajes de
