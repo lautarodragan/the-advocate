@@ -21072,6 +21072,12 @@ otro:
     ; que sale de la columna, y a partir de la 39 eso cae **afuera** del buffer,
     ; encima del HDMA de la ventana, de la imagen de OAM y de `vq_n`. Ver el
     ; comentario de `componer_char`, más abajo.
+    ;
+    ; Y el tope va acá aunque el conversor no emita nunca un renglón más largo,
+    ; porque **el síntoma no señala al texto**: con `vq_n` pisado, `vram_drenar`
+    ; sube bloques de 128 bytes a direcciones cualquiera de la VRAM, así que un
+    ; largo de renglón malo se ve como la pantalla entera hecha basura unos
+    ; cuadros más tarde y en otro mapa.
     lda comp_col
     cmp #MENSAJE_COLS
     bcs sin_dibujar
