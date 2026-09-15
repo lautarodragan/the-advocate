@@ -1190,7 +1190,14 @@ def oscurecer(palabra, brillo):
 
     Es lo que hace el PPU con INIDISP, y la cuenta sale de la tabla que arma
     `PPU::PPU()` en bsnes: `round(canal * brillo / 15)` sobre los cinco bits de
-    cada canal. Los tres cores dan lo mismo, comprobado.
+    cada canal.
+
+    Es el único lugar donde los tres cores dejan de coincidir: snes9x y bsnes
+    redondean y **mesen-s trunca**, o sea que con brillo 6 un canal de 7 le da 2
+    donde los otros dan 3. Se sigue a bsnes —de donde sale la tabla, y el que
+    mide contra hardware— y a snes9x, que es el core de la tanda; una
+    comparación corrida con `CORE=mesen-s` adentro de un fundido va a dar rojo
+    sin que nada esté roto.
     """
     if brillo >= BRILLO_MAX:
         return palabra

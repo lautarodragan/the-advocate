@@ -5149,12 +5149,6 @@ op_flash_screen:
     jsr destello_de_codigo
     jmp otro
 
-; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
-; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
-; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
-; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
-; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
-; por el evento que se acaba de mandar a caminar.
 ; Arranca un destello sobre un personaje. No corta el cuadro: si la página
 ; espera, el conversor le pone un OP_DELAY detrás, que es exactamente lo que
 ; hace `CommandFlashSprite` con `SetupWait(tenths)`.
@@ -5326,6 +5320,12 @@ cancelado:
     ply
     jmp otro
 
+; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
+; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
+; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
+; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
+; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
+; por el evento que se acaba de mandar a caminar.
 op_wait_routes:
     jsr hay_rutas
     beq op_wait_routes_next
@@ -7852,6 +7852,14 @@ si:
 .endproc
 
 ; Enciende o apaga el switch de temp según A.
+;
+; **Pisa X e Y**, y quien llama desde el intérprete tiene que salvar Y, que es
+; el cursor del bytecode: por eso el `phy`/`ply` de `op_switch`. Sin él el lazo
+; de `correr_codigo` sigue leyendo desde
+; el byte que quedó en Y —un desplazamiento de la tabla de switches— así que la
+; página se corta en su primer comando y el evento no hace nada. Las dos
+; páginas del juego que hacen algo arrancan prendiendo switches, así que el
+; síntoma es "ninguna página corre" y no "esta página falla".
 .proc poner_switch
 .a8
 .i16
