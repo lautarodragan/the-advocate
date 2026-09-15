@@ -69,6 +69,15 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Al
     w65/        el ensamblador de 65816
     tiles/      de una imagen a tiles, paletas y tilemap
 
+**Se consumen desde el PATH, no desde `target/release`.** Se instalan con
+`just herramientas` —`cargo install --locked --path …`— y a partir de ahí son
+herramientas del sistema, como `python3` o un core de libretro: **ningún script
+ni prueba de este juego llama a `cargo`**. Es de taro, el 2026-09-15, y lo que
+evita es que cada corrida de la tanda quede atada al toolchain de Rust.
+
+`CARGO_ROOT` dice dónde instalan; por omisión `/usr/local`, que acá está en el
+PATH. Desde el host, `CARGO_ROOT=~/.cargo`.
+
 La regla para saber si algo va adentro de uno de ésos es una sola: **si no
 necesita saber nada de este juego, es un proyecto aparte y va en inglés.**
 Adentro no se nombra a ABL ni al port, y sus flags son ingleses aunque el

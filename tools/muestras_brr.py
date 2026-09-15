@@ -21,6 +21,7 @@ de la muestra siguiente mirando cuánto ocupó la anterior, así que los trabajo
 no existen todos juntos en ningún momento.
 """
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -32,32 +33,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import cache_disco
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BRR = os.path.join(RAIZ, "brr")
-BINARIO = os.environ.get("ABL_BRR",
-                         os.path.join(BRR, "target", "release", "brr"))
+FALTA = """falta `brr`, el códec de muestras del SPC700.
 
-# El mismo texto que da la receta `brr-binario`, por lo mismo que en
-# `w65_bin.py`: el que corre pytest directo se choca con esto y no con ella.
-FALTA_CARGO = (
-    "falta cargo: desde el 2026-09-15 el códec BRR y el lector de SoundFont\n"
-    "son un binario de Rust (brr/) y hay que compilarlo para armar las\n"
-    "muestras de la ROM.\n"
-    "  en Arch:   pacman -S rust   (o rustup, y 'rustup default stable')\n"
-    "  y después: just brr-binario")
+Es un binario de Rust que vive en `brr/` y se instala como herramienta del
+sistema, no se compila en cada corrida:
+
+    just herramientas
+
+Eso hace `cargo install --locked --path brr`. Si falta cargo, en Arch es
+`pacman -S rust`."""
 
 # Propiedades del formato, no nuestras: el DSP lee bloques de nueve bytes que
 # guardan dieciséis muestras, y vuelve del loop al principio de uno.
 BLOQUE_MUESTRAS = 16
 BLOQUE_BYTES = 9
-
-# Lo que le da la clave al caché en disco. Van los fuentes del codificador y
-# este archivo: si cambia cualquiera de los dos, lo guardado deja de valer. El
-# binario compilado no entra a propósito —cambia con cada versión del
-# compilador sin que el BRR cambie—, y tampoco `Cargo.lock`, que hoy no tiene
-# ninguna dependencia que toque las muestras.
-FUENTES = ("brr/src/codec.rs", "brr/src/wav.rs", "brr/Cargo.toml",
-           "tools/muestras_brr.py")
 
 
 class Error(Exception):
@@ -67,55 +56,49 @@ class Error(Exception):
 _version = None
 _codificadas = {}
 _extraidas = {}
-_compilado = False
 
 
 def binario():
-    """La ruta al códec, ya compilado y al día.
+    """La ruta del `brr` del PATH, igual que `w65_bin.binario()`.
 
-    Igual que `w65_bin.binario()` y por la misma razón: las recetas que
-    convierten de arriba de todo dependen de `brr-binario`, pero **pytest no
-    tiene recetas** —`python3 -m pytest pruebas` convierte mapas, y convertir
-    un mapa codifica muestras—, y las recetas que convierten llamando a otra
-    tampoco la tienen. Se compila a pedido y una sola vez por proceso.
+    Levanta `SystemExit` si no está: que falte una herramienta del sistema no
+    es un error de programa, y un traceback de veinte líneas tapa la única
+    línea que dice cómo tenerla.
     """
-    global _compilado
-    if _compilado or "ABL_BRR" in os.environ:
-        return BINARIO
+    ruta = shutil.which("brr")
+    if ruta is None:
+        raise SystemExit(FALTA)
+    return ruta
 
-    if shutil.which("cargo") is None:
-        # Sin cargo no se puede comprobar que esté al día, pero quien no tiene
-        # cargo tampoco tiene cómo haber cambiado los fuentes de Rust.
-        if os.path.exists(BINARIO):
-            _compilado = True
-            return BINARIO
-        raise SystemExit(FALTA_CARGO)
 
-    subprocess.run(["cargo", "build", "--release", "--quiet"],
-                   check=True, cwd=BRR)
-    _compilado = True
-    return BINARIO
+def _version_del_codec():
+    """Qué versión de "el codificador" produjo lo que hay en el caché.
+
+    Van este archivo y **el binario instalado**, no los fuentes de `brr/`: el
+    binario del PATH se instala aparte, así que un árbol con `brr/src` tocado y
+    sin `just herramientas` corrido sigue codificando con el de antes. Lo que
+    la clave tiene que describir es lo que produjo los bytes.
+    """
+    h = hashlib.sha256()
+    for ruta in (os.path.abspath(__file__), binario()):
+        with open(ruta, "rb") as f:
+            h.update(f.read())
+    return h.hexdigest()
 
 
 def _correr(args):
     """El binario, con sus dos códigos de salida separados del resto.
 
     1 y 2 son respuestas suyas —"no hay nada que matchee" y "la llamada está
-    mal"—; cualquier otra cosa es que no se lo pudo correr, y ahí conviene
-    decir cómo se compila antes que dejar un "command not found" suelto.
+    mal"—; cualquier otra cosa es que no se lo pudo correr.
     """
     try:
         hecho = subprocess.run([binario()] + args, capture_output=True)
     except OSError as e:
-        # Un SystemExit y no una excepción: que falte el binario no es un error
-        # de programa, es que hay que compilarlo, y un traceback de veinte
-        # líneas tapa la única línea que dice cómo.
-        raise SystemExit("no se pudo correr %s: %s\n\n%s"
-                         % (BINARIO, e, FALTA_CARGO))
+        raise SystemExit("no se pudo correr `brr`: %s\n\n%s" % (e, FALTA))
     if hecho.returncode:
-        raise Error("%s salió con %d: %s"
-                    % (" ".join([os.path.basename(BINARIO)] + args),
-                       hecho.returncode,
+        raise Error("brr %s salió con %d: %s"
+                    % (" ".join(args), hecho.returncode,
                        hecho.stderr.decode("utf-8", "replace").strip()))
     return hecho.stdout.decode("utf-8", "replace")
 
@@ -154,7 +137,7 @@ def codificar(muestras, loop_block=None):
         return hecha
 
     if _version is None:
-        _version = cache_disco.version_de_fuentes(*FUENTES)
+        _version = _version_del_codec()
     en_disco = cache_disco.clave(_version, str(loop_block),
                                  " ".join(str(x) for x in clave[0]))
     hecha = cache_disco.leer("brr", en_disco)

@@ -8,8 +8,9 @@ crudo todavía: los tres opcodes estaban escritos a mano de los dos lados, en
 
 Desde el 2026-09-15 los declara `protocol/`, que no es de ninguno de los dos
 lados, y de ahí salen generados los cuatro archivos de `GENERADOS`. El
-generador es un binario de Rust, así que estos casos necesitan `cargo`; lo
-generado está commiteado, así que **compilar la ROM no lo necesita**.
+generador es un binario de Rust que se instala con `just herramientas` y se usa
+desde el PATH, así que estos casos lo necesitan instalado; lo generado está
+commiteado, así que **compilar la ROM no necesita ni eso**.
 
 Eso mueve el problema en vez de resolverlo si los generados se pueden quedar
 viejos, así que acá se exige que regenerar no cambie nada y que las dos puntas
@@ -49,14 +50,14 @@ def declarados(modulo):
 def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
     """Regenerar no cambia nada: si no, el árbol tiene dos verdades."""
     hecho = subprocess.run(
-        ["cargo", "run", "--release", "--quiet",
-         "--manifest-path", os.path.join(REPO, "protocol", "Cargo.toml"), "--",
+        ["protocol",
          os.path.join(REPO, "protocol", nombre + ".toml"),
          "--python", os.path.join(REPO, py),
          "--asm", os.path.join(REPO, inc), "--check"],
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
-        "el generador no pudo correr:\n%s" % hecho.stderr)
+        "el generador no pudo correr —¿falta `just herramientas`?—:\n%s"
+        % hecho.stderr)
     assert hecho.returncode == 0, (
         "hay un generado desactualizado:\n%s%s" % (hecho.stdout, hecho.stderr))
 
