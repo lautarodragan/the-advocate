@@ -100,10 +100,16 @@ tiene sus propios `OP_DSP`, `OP_WAIT` y `OP_END` a mano en main.s y comparten
 el espacio de símbolos: `OP_FIN` quedó `OP_DONE` y `OP_ESPERAR` quedó
 `OP_DELAY`. Las ROMs siguen byte por byte iguales.
 
-Quedan dos cosas de ahí, las dos chicas y las dos decisión de taro: las
-etiquetas del intérprete (`op_place`, `op_key`) no se tocaron, así que un
-`cmp #OP_PLACE` salta a `op_place`; y los opcodes del stream del SPC700 son un
-segundo protocolo sin dueño declarado, que hoy vive a mano en main.s.
+Y las etiquetas del intérprete también (`ec94369`): la etiqueta es el nombre
+del opcode en minúsculas y lo que cuelga de ella la sigue, así que `op_lugar`
+pasó a `op_place` y `op_tienda_listo` a `op_shop_done`. Son 37 de 45 etiquetas
+y 121 usos. El resto de main.s —`ruta_frec`, `mapa_actual`, `celda_bloqueada`—
+sigue en castellano: lo que se movió es el vocabulario que viene de
+`protocol/events.toml` y nada más.
+
+Queda una sola cosa de ahí: los opcodes del stream del SPC700 —`OP_DSP`,
+`OP_WAIT`, `OP_END`— son un segundo protocolo sin dueño declarado, hoy a mano
+en main.s. Son tres símbolos y un stream mucho más chico que el de eventos.
 
 **Lo que sigue**: los cortes que quedaron
 pensados en la charla del 2026-09-14: separar los conversores tontos de PNG y
