@@ -27,8 +27,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
 # salen de `protocol/events.toml`, que es de los dos lados —de esto y del
 # intérprete en main.s— y de ninguno. Ver protocol/README.md.
-from opcodes import *          # noqa: F401,F403
-from opcodes import LARGO_DE_OPCODE, largo_de_opcode  # noqa: F401
+from event_opcodes import *   # noqa: F401,F403
+from event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
 # --- los comandos de RM2k que sabemos ejecutar ------------------------------
 END = 10
@@ -1999,7 +1999,7 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 # y el paso en curso se corta— pero los dos números se leen al correr.
 #
 # Va en un opcode propio y no en un bit de `OP_PLACE` porque los operandos son
-# otros: dos ranuras de un byte contra dos palabras. `LARGO_DE_OPCODE` es una
+# otros: dos ranuras de un byte contra dos palabras. `OPCODE_SIZE` es una
 # tabla, así que un opcode que mida distinto según un bit no lo sabe recorrer
 # ni el conversor ni la ROM.
 #
@@ -3830,7 +3830,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # Va en un opcode aparte y no en un bit de `OP_PLACE` porque los
             # operandos son otros —dos ranuras de un byte contra dos palabras—
             # y un opcode de largo variable es lo que el recorrido del
-            # bytecode no sabe hacer: `LARGO_DE_OPCODE` es una tabla.
+            # bytecode no sabe hacer: `OPCODE_SIZE` es una tabla.
             return bytes([OP_PLACE_VAR, blanco, ranura_de_variable(p[2]),
                           ranura_de_variable(p[3])])
         if not (0 <= p[2] <= 0xFFFF and 0 <= p[3] <= 0xFFFF):
@@ -5424,7 +5424,7 @@ class Estado:
 
 
 # Cuánto ocupa cada opcode se deriva de sus argumentos declarados, así que
-# `LARGO_DE_OPCODE` y `largo_de_opcode` vienen de `opcodes.py`, generado desde
+# `OPCODE_SIZE` y `opcode_size` vienen de `opcodes.py`, generado desde
 # `protocol/events.toml`. Antes se escribían a mano, y había dos copias —una
 # acá y otra en el conversor—: la de acá se quedó con el OP_ROUTE viejo cuando
 # el nuevo sumó la frecuencia, y fueron doce casos de la tanda en rojo.
@@ -5461,7 +5461,7 @@ def recorrer_codigo(codigo):
     i = 0
     while i < len(codigo):
         yield i, codigo
-        i += largo_de_opcode(codigo, i)
+        i += opcode_size(codigo, i)
 
 
 def blancos_de_ruta(paginas):
@@ -5730,7 +5730,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # calcula a mano porque esta página no sale de comandos de RM2k, así que
         # no pasa por el parcheo; el bytecode que resulta es el mismo byte por
         # byte, que es lo que hace que pruebe algo.
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF] + 4
+        destino = len(codigo) + OPCODE_SIZE[OP_IF] + 4
         codigo += bytes([OP_IF, COND_SWITCH, cual & 0xFF, cual >> 8, 0,
                          destino & 0xFF, destino >> 8])
         codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
@@ -5908,7 +5908,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # acá porque esta página no pasa por `compilar_pagina`.
         import lcf
         numero, *color = rama_item
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF] + LARGO_DE_OPCODE[OP_TINT]
+        destino = len(codigo) + OPCODE_SIZE[OP_IF] + OPCODE_SIZE[OP_TINT]
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_ITEM, numero, 0, 0, 0, 0])), destino)
         codigo += bytes([OP_TINT]) + bytes(color)
@@ -5930,8 +5930,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # acá porque esta página no pasa por `compilar_pagina`.
         import lcf
         sub, actor, dato, *color = rama_actor
-        destino = (len(codigo) + LARGO_DE_OPCODE[OP_IF_ACTOR]
-                   + LARGO_DE_OPCODE[OP_TINT])
+        destino = (len(codigo) + OPCODE_SIZE[OP_IF_ACTOR]
+                   + OPCODE_SIZE[OP_TINT])
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_ACTOR, actor, sub, dato, 0, 0])), destino)
         codigo += bytes([OP_TINT]) + bytes(color)
@@ -5942,7 +5942,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # ahí el valor sale de un azar.
         import lcf
         v, comparacion, valor, adentro, despues = rama_var
-        destino = len(codigo) + LARGO_DE_OPCODE[OP_IF_VAR] + 4
+        destino = len(codigo) + OPCODE_SIZE[OP_IF_VAR] + 4
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_VARIABLE, v, 0, valor, comparacion, 0])),
             destino)

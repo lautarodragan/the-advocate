@@ -36,21 +36,33 @@ mensaje en vez de fallar.
 ## `protocol/` también está en inglés
 
 Misma regla y mismo porqué que `ditto/`: adentro de `protocol/` no hay una sola
-mención a ABL ni a la SNES —declara el bytecode de eventos y nada más—, así que
-el TOML, el generador, sus comentarios y su README van **en inglés**. Los
-mensajes de commit siguen en castellano, como todo lo del repo.
+mención a ABL ni a la SNES —declara bytecodes y nada más—, así que los TOML,
+el generador, sus comentarios y su README van **en inglés**. Los mensajes de
+commit siguen en castellano, como todo lo del repo.
 
-Lo que sale generado de ahí —`tools/opcodes.py` y `rom/src/opcodes.inc`— cae en
-árboles escritos en castellano y lleva **el idioma del árbol donde cae**, no el
-de su fuente. Los dos dicen arriba que son generados y de dónde.
+Y lo que sale generado de ahí va **en inglés también**, aunque caiga en
+`tools/` o en `rom/src/`: es la salida de esa herramienta, no fuente de este
+árbol, y dice arriba que es generada y de dónde. El 2026-09-14 la regla era la
+contraria —"el idioma del árbol donde cae"— y duró un día: al generalizar el
+generador para el segundo bytecode quedó claro que hacerlo hablar castellano lo
+ata a este repo, que es justo lo que no puede pasar.
 
-Y lo importante: **el número de un opcode se elige en `protocol/events.toml` y
-en ningún otro lado.** (`mapdata.inc` sigue existiendo y `main.s` lo sigue
-incluyendo: lo que salió de ahí es el bytecode, no las tablas del mapa.) Antes lo declaraba `tools/eventos.py` y le llegaba al
-intérprete adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el
-mismo sin que git viera nada. Al repartir trabajo entre sub-agentes esto sigue
-valiendo —hay que darles el número de antemano—, pero ahora la colisión es un
-conflicto de git en un archivo y no un bug que viaja adentro de un merge.
+Y lo importante: **el número de un opcode se elige en la declaración y en
+ningún otro lado.** Hay dos: `protocol/events.toml`, el bytecode que interpreta
+`ejecutar`, y `protocol/music.toml`, el stream que lee `irq_musica`. Los dos
+caen en el mismo espacio de símbolos del ensamblador, así que dos opcodes de
+bytecodes distintos pueden compartir **número** pero no **nombre** —por eso
+`OP_FIN` se llama `OP_DONE`: `OP_END` ya era del stream de música—, y eso lo
+cuida una prueba.
+
+Antes el de eventos lo declaraba `tools/eventos.py` y le llegaba al intérprete
+adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el mismo sin
+que git viera nada; el de música estaba escrito a mano de los dos lados.
+(`mapdata.inc` sigue existiendo y `main.s` lo sigue incluyendo: lo que salió de
+ahí es el bytecode, no las tablas del mapa.) Al repartir trabajo entre
+sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
+colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
+un merge.
 
 ## La regla que sostiene todo
 

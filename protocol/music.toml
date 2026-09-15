@@ -1,0 +1,30 @@
+name = "music"
+
+# The music stream: what the SPC700 driver reads, one opcode at a time.
+#
+# It is much smaller than the event bytecode —three opcodes— and it had the
+# same problem twice over: both sides wrote the numbers down by hand, each in
+# its own file, with nothing connecting them. A stream where the two sides
+# disagree does not fail: it plays the wrong thing.
+#
+# See README.md for the grammar and for what is deliberately not declared here.
+
+[[opcode]]
+name = "OP_DSP"
+code = 0x00
+args = [
+  { name = "register", type = "byte" },
+  { name = "value", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_WAIT"
+code = 0x01
+args = [
+  { name = "frames", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_END"
+code = 0xFF
+args = []

@@ -1,12 +1,11 @@
+name = "event"
+
 # The event bytecode: one entry per opcode, its number and its layout.
 #
 # This file is the source of truth for both ends of the contract — the
 # compiler that emits the bytes and the interpreter that reads them — and it
-# is owned by neither. Everything else is generated from here; see README.md.
-#
-# Generated, do not edit by hand:
-#   tools/opcodes.py      constants, sizes and layout, for the compiler
-#   rom/src/opcodes.inc   the equates, for the interpreter
+# is owned by neither. What is generated from it, and where it lands, is the
+# caller's business: see README.md.
 #
 # An instruction is its opcode byte followed by `args`, in order. An opcode
 # that ends in a variable number of entries declares `repeated`, and the `arg`

@@ -77,8 +77,8 @@ verdad. La prueba ahora mide eso.
 ## El bytecode declarado en un solo lado (2026-09-15)
 
 `protocol/events.toml` declara los 40 opcodes —su número y los bytes que los
-siguen— y de ahí salen generados y commiteados `tools/opcodes.py` y
-`rom/src/opcodes.inc`. Antes el número lo elegía `tools/eventos.py` y le
+siguen— y de ahí salen generados y commiteados `tools/event_opcodes.py` y
+`rom/src/event_opcodes.inc`. Antes el número lo elegía `tools/eventos.py` y le
 llegaba al intérprete **adentro de `mapdata.inc`**, o sea dentro de los datos
 de un mapa: el que emite los bytes le declaraba al que los implementa qué
 significan. De ahí salieron las dos colisiones de opcodes del 2026-09-13 y las

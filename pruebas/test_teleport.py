@@ -11,7 +11,7 @@ cuenten los mismos bytes**. Si no coinciden, el intérprete lee el bytecode
 corrido y eso no da ningún error: da una página que hace cualquier cosa. Por eso
 el segundo test no mira sólo el teletransporte sino **todos los opcodes de todas
 las páginas del juego**: recorre el bytecode con los largos de
-`LARGO_DE_OPCODE` y exige caer justo en el final. Un opcode al que el emisor le
+`OPCODE_SIZE` y exige caer justo en el final. Un opcode al que el emisor le
 ponga un byte de más o de menos se cae ahí, sea cual sea.
 """
 
@@ -39,7 +39,7 @@ def compilar_un_teleport(destino):
 
 def test_el_destino_viaja_en_dos_bytes():
     codigo = compilar_un_teleport(LEJOS)
-    assert len(codigo) == eventos.LARGO_DE_OPCODE[eventos.OP_TELEPORT]
+    assert len(codigo) == eventos.OPCODE_SIZE[eventos.OP_TELEPORT]
     estado = eventos.Estado()
     eventos.ejecutar(codigo + bytes([eventos.OP_DONE]), estado)
     # El mapa, y de paso la celda, que es lo que se correría si el largo
@@ -106,9 +106,9 @@ def test_los_largos_de_opcode_cuadran_en_todo_el_juego():
         cuantas += 1
         i = 0
         while i < len(codigo):
-            i += eventos.largo_de_opcode(codigo, i)
+            i += eventos.opcode_size(codigo, i)
         assert i == len(codigo), (
-            "%s evento %d página %d: el recorrido por LARGO_DE_OPCODE termina "
+            "%s evento %d página %d: el recorrido por OPCODE_SIZE termina "
             "en %d y la página mide %d" % (nombre, evento, numero, i,
                                            len(codigo)))
     # Que no pase por vacío: si `paginas_del_juego` dejara de devolver nada,

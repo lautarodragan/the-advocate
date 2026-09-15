@@ -589,13 +589,16 @@ VENTANA_VOFS = 111
 ; segunda no vive 32 palabras más adelante sino 1024.
 VIEW_COLS_TILEMAP = 32
 
-; Los opcodes del bytecode de eventos. Está generado desde
-; protocol/events.toml, que es de los dos lados —de este intérprete y
-; del compilador en tools/eventos.py— y de ninguno. Hasta el 2026-09-14
-; estos equates venían adentro de mapdata.inc, o sea que el número de un
-; opcode llegaba acá dentro de los datos de un mapa. mapdata.inc sigue
-; haciendo falta por las tablas del mapa; el bytecode ya no.
-.include "opcodes.inc"
+; Los dos bytecodes que esta ROM lee, generados desde protocol/: el de los
+; eventos, que interpreta `ejecutar`, y el del stream de música, que lee
+; `irq_musica`. Cada uno lo declara un archivo que no es ni del que emite los
+; bytes ni del que los lee.
+;
+; El de eventos venía adentro de mapdata.inc hasta el 2026-09-14, o sea que el
+; número de un opcode llegaba acá dentro de los datos de un mapa; el de música
+; estaba escrito a mano de los dos lados hasta el 2026-09-15.
+.include "event_opcodes.inc"
+.include "music_opcodes.inc"
 
 .include "musicdata.inc"
 .include "mapdata.inc"
@@ -24756,9 +24759,9 @@ pal_buf:  .res 512
 
 ; --- música ----------------------------------------------------------------
 ; El stream son opcodes: escribir un registro del DSP, esperar cuadros, o fin.
-OP_DSP  = $00
-OP_WAIT = $01
-OP_END  = $FF
+; Los tres los declara `protocol/music.toml` y el equate sale generado: hasta
+; el 2026-09-15 estaban escritos a mano acá **y** en tools/snes_music.py, que
+; es el que escribe el stream, sin nada que atara las dos copias.
 
 ; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
 ; consola es PAL: seis cada cinco son exactamente 60 por cada 50.

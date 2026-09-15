@@ -53,10 +53,11 @@ ARAM_LIBRE = 0x10000 - SAMPLES_ADDR
 # bloques de BRR, no se pase de los 64 KB por unos cientos de bytes.
 ARAM_MARGEN = 1024
 
-# Opcodes del stream, los mismos que interpreta music_frame en main.s.
-OP_DSP = 0x00
-OP_WAIT = 0x01
-OP_END = 0xFF
+# Los opcodes del stream **no se declaran acá**: salen de
+# `protocol/music.toml`, que es del que escribe el stream y del que lo lee, y
+# de ninguno. Hasta el 2026-09-15 estaban escritos a mano de los dos lados, en
+# este archivo y en main.s, sin nada que los atara.
+from music_opcodes import *   # noqa: E402,F401,F403
 
 # La percusión se lleva dos voces. Con una sola, un bombo y un charles que caen
 # en el mismo cuadro se pisan, y en un patrón de batería eso pasa todo el

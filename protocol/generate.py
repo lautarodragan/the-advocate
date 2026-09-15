@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-"""Generates both ends of the event bytecode from `events.toml`.
+"""Generate both ends of a bytecode from its declaration.
 
-    python3 protocol/generate.py            # writes the two files
-    python3 protocol/generate.py --check    # fails if they are out of date
+    generate.py DECLARATION.toml --python OUT.py --asm OUT.inc
+    generate.py DECLARATION.toml --python OUT.py --asm OUT.inc --check
 
-The declaration is owned by neither side, so neither side parses it: what is
-committed is the generated code, and a test makes regenerating a no-op. That
-way a changed opcode shows up as a readable diff on both ends at once, which
-is the whole point — the number used to live in the compiler and reach the
-interpreter inside a map's data.
+A bytecode has two sides that must agree byte for byte: whatever emits the
+bytes, and whatever reads them. This takes one declaration of the opcodes and
+writes the constants for each side, so the numbers have one owner and a change
+is a diff on both ends at once.
 
-The ROM still includes `mapdata.inc`: the map tables and the rest of the
-constants are still emitted by the converter. What left is the bytecode.
+The generated files are meant to be **committed**, and `--check` —which exits
+non-zero and names what is stale— is meant to run in the test suite. Nothing
+parses the declaration at run time.
 
-The two outputs are written in the language of the tree they land in, which is
-Spanish; only this directory is in English. Nothing else is generated here:
-what an opcode *does* is hand-written 65816 and always will be.
+Where the files go is not this tool's business: pass the paths. That is what
+keeps this directory independent of whatever project uses it.
+
+See README.md for the grammar. What an opcode *does* is not declared here and
+never will be: this generates numbers and sizes, not behaviour.
 """
 
 import argparse
@@ -23,23 +25,29 @@ import pathlib
 import sys
 import tomllib
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "protocol" / "events.toml"
-PYTHON_OUT = ROOT / "tools" / "opcodes.py"
-ASM_OUT = ROOT / "rom" / "src" / "opcodes.inc"
-
 SIZES = {"byte": 1, "word": 2, "long": 3}
 
 
+class Bad(Exception):
+    """A problem in the declaration, reported with the file and the opcode."""
+
+
 class Opcode:
-    def __init__(self, entry):
+    def __init__(self, entry, where):
+        for field in ("name", "code"):
+            if field not in entry:
+                raise Bad(f"{where}: an opcode with no `{field}`")
         self.name = entry["name"]
         self.code = entry["code"]
         self.args = entry.get("args", [])
         self.repeated = entry.get("repeated")
         for a in self.args:
-            if a["type"] not in SIZES:
-                raise SystemExit(f"{self.name}: unknown type {a['type']!r}")
+            if "name" not in a:
+                raise Bad(f"{where}: {self.name} has an argument with no name")
+            if a.get("type") not in SIZES:
+                raise Bad(f"{where}: {self.name}.{a['name']} has type "
+                          f"{a.get('type')!r}; it must be one of "
+                          f"{', '.join(SIZES)}")
 
     @property
     def fixed_size(self):
@@ -58,44 +66,67 @@ class Opcode:
             if a.get("count"):
                 return at
             at += SIZES[a["type"]]
-        raise SystemExit(f"{self.name}: `repeated` with no argument counting it")
+        raise Bad(f"{self.name}: `repeated` with no argument counting it")
 
 
-def load():
-    with open(SOURCE, "rb") as f:
-        opcodes = [Opcode(e) for e in tomllib.load(f)["opcode"]]
+def load(path):
+    try:
+        with open(path, "rb") as f:
+            declaration = tomllib.load(f)
+    except FileNotFoundError:
+        raise Bad(f"{path}: no such declaration")
+    except tomllib.TOMLDecodeError as e:
+        raise Bad(f"{path}: {e}")
+
+    name = declaration.get("name")
+    if not name:
+        raise Bad(f"{path}: no top-level `name` for this bytecode")
+    if "opcode" not in declaration:
+        raise Bad(f"{path}: not a single [[opcode]]")
+
+    opcodes = [Opcode(e, path) for e in declaration["opcode"]]
     seen = {}
     for o in opcodes:
         if o.code in seen:
-            raise SystemExit(
-                f"{o.name} and {seen[o.code]} both take 0x{o.code:02X}")
+            raise Bad(f"{path}: {o.name} and {seen[o.code]} both take "
+                      f"0x{o.code:02X}")
         seen[o.code] = o.name
         counted = {a["count"] for a in o.args if a.get("count")}
         if o.repeated and counted != {o.repeated["name"]}:
-            raise SystemExit(f"{o.name}: nothing counts {o.repeated['name']!r}")
+            raise Bad(f"{path}: {o.name} declares `repeated` "
+                      f"{o.repeated['name']!r} and no argument counts it")
         if counted and not o.repeated:
-            raise SystemExit(f"{o.name}: counts a group that is not declared")
-    return opcodes
+            raise Bad(f"{path}: {o.name} counts {counted.pop()!r}, "
+                      f"which is not declared")
+    return name, opcodes
 
 
-def python_source(opcodes):
-    out = [
-        '"""Los opcodes del bytecode de eventos: su número y su layout.',
-        "",
-        "Generado por protocol/generate.py desde protocol/events.toml.",
-        "**No editar a mano**: el cambio se hace allá y se regenera. La prueba",
-        "`test_protocolo.py` exige que regenerar no cambie nada.",
-        '"""',
-        "",
+def header(name, source, comment):
+    # Only the declaration's file name: with the path, the generated text would
+    # depend on how the caller spelled it, and `--check` would call a file
+    # stale for having been generated from an equivalent path.
+    source = pathlib.Path(source).name
+    return [
+        f"{comment} The {name} opcodes: their numbers and their layout.",
+        comment,
+        f"{comment} Generated by protocol/generate.py from {source}.",
+        f"{comment} **Do not edit.** Change the declaration and generate again;",
+        f"{comment} a test fails if this file is out of date.",
     ]
+
+
+def python_source(name, opcodes, source):
+    out = ['"""' + f"The {name} opcodes: their numbers and their layout.", ""]
+    out += header(name, source, "")[2:]
+    out += ['"""', ""]
     for o in opcodes:
         out.append(f"{o.name:<16} = 0x{o.code:02X}")
     out += [
         "",
         "",
-        "# Cuántos bytes ocupa cada instrucción de largo fijo, contando el opcode.",
-        "# Se deriva de los argumentos declarados, no se escribe.",
-        "LARGO_DE_OPCODE = {",
+        "# How many bytes each fixed-size instruction takes, opcode included.",
+        "# Derived from the declared arguments; never written down.",
+        "OPCODE_SIZE = {",
     ]
     for o in opcodes:
         if not o.repeated:
@@ -103,9 +134,9 @@ def python_source(opcodes):
     out += [
         "}",
         "",
-        "# Las de largo variable, como (base, dónde está la cuenta, cuánto mide",
-        "# cada entrada): el largo es base + cuenta * entrada.",
-        "LARGO_VARIABLE = {",
+        "# The variable-size ones, as (base, where the count is, how big one",
+        "# entry is): the size is base + count * entry.",
+        "VARIABLE_SIZE = {",
     ]
     for o in opcodes:
         if o.repeated:
@@ -114,7 +145,7 @@ def python_source(opcodes):
     out += [
         "}",
         "",
-        "# Los argumentos de cada uno, en orden, como (nombre, bytes, con signo).",
+        "# Each one's arguments, in order, as (name, bytes, signed).",
         "LAYOUT = {",
     ]
     for o in opcodes:
@@ -126,65 +157,75 @@ def python_source(opcodes):
         "}",
         "",
         "",
-        "def largo_de_opcode(codigo, i):",
-        '    """Cuántos bytes ocupa el opcode que empieza en `codigo[i]`."""',
-        "    op = codigo[i]",
-        "    variable = LARGO_VARIABLE.get(op)",
+        "def opcode_size(code, i=0):",
+        '    """How many bytes the opcode starting at `code[i]` takes."""',
+        "    op = code[i]",
+        "    variable = VARIABLE_SIZE.get(op)",
         "    if variable is not None:",
-        "        base, cuenta, entrada = variable",
-        "        return base + entrada * codigo[i + cuenta]",
-        "    largo = LARGO_DE_OPCODE.get(op)",
-        "    if largo is None:",
-        '        raise ValueError(f"opcode desconocido: 0x{op:02X}")',
-        "    return largo",
+        "        base, count, entry = variable",
+        "        return base + entry * code[i + count]",
+        "    size = OPCODE_SIZE.get(op)",
+        "    if size is None:",
+        '        raise ValueError(f"unknown opcode: 0x{op:02X}")',
+        "    return size",
         "",
     ]
     return "\n".join(out)
 
 
-def asm_source(opcodes):
-    out = [
-        "; Los opcodes del bytecode de eventos.",
-        ";",
-        "; Generado por protocol/generate.py desde protocol/events.toml.",
-        "; **No editar a mano.** Hasta el 2026-09-14 estos equates salían",
-        "; adentro de mapdata.inc: el compilador le declaraba al intérprete",
-        "; los números que el intérprete implementa, y se los mandaba dentro",
-        "; de los datos de un mapa.",
-        "",
-    ]
+def asm_source(name, opcodes, source):
+    out = header(name, source, ";") + [""]
     for o in opcodes:
         out.append(f"{o.name:<16} = ${o.code:02X}")
     out.append("")
     return "\n".join(out)
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="Generate a bytecode's constants for both of its sides.",
+        epilog="Both outputs are optional: pass the ones you need.")
+    ap.add_argument("declaration", help="the .toml declaring the opcodes")
+    ap.add_argument("--python", metavar="PATH", help="write a Python module here")
+    ap.add_argument("--asm", metavar="PATH",
+                    help="write 65816 assembler equates here")
     ap.add_argument("--check", action="store_true",
-                    help="do not write; fail if a generated file is stale")
-    args = ap.parse_args()
+                    help="write nothing; exit 1 if an output is out of date")
+    args = ap.parse_args(argv)
 
-    opcodes = load()
-    wanted = {PYTHON_OUT: python_source(opcodes), ASM_OUT: asm_source(opcodes)}
+    if not args.python and not args.asm:
+        ap.error("nothing to write: pass --python, --asm, or both")
+
+    try:
+        name, opcodes = load(args.declaration)
+    except Bad as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+
+    wanted = {}
+    if args.python:
+        wanted[args.python] = python_source(name, opcodes, args.declaration)
+    if args.asm:
+        wanted[args.asm] = asm_source(name, opcodes, args.declaration)
 
     stale = []
     for path, text in wanted.items():
+        path = pathlib.Path(path)
         current = path.read_text() if path.exists() else None
         if current == text:
             continue
         if args.check:
-            stale.append(path.relative_to(ROOT))
+            stale.append(str(path))
         else:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)
-            print(f"escrito {path.relative_to(ROOT)}")
+            print(f"wrote {path}")
     if stale:
-        print("desactualizados: " + ", ".join(str(p) for p in stale),
-              file=sys.stderr)
-        print("correr: python3 protocol/generate.py", file=sys.stderr)
+        print("out of date: " + ", ".join(stale), file=sys.stderr)
+        print("run the same command without --check", file=sys.stderr)
         return 1
     if args.check:
-        print(f"{len(opcodes)} opcodes, los dos archivos al día")
+        print(f"{len(opcodes)} {name} opcodes, {len(wanted)} file(s) up to date")
     return 0
 
 

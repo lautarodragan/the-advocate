@@ -103,7 +103,8 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
     tools/render_map.py   el render en sí
     tools/list_maps.py    inventario de mapas
     tools/event_codes.py  generado: nombres de los opcodes de evento
-    tools/opcodes.py      generado desde protocol/events.toml: el bytecode
+    tools/event_opcodes.py  generado desde protocol/events.toml
+    tools/music_opcodes.py  generado desde protocol/music.toml
 
 El formato binario de RM2k ya no lo lee ningún Python de acá: lo lee Ditto, una
 sola vez, y lo deja en `data/`. Ver "Los datos en formato versionable".
@@ -2791,7 +2792,11 @@ programa.
 
 **Y el bytecode está declarado en un tercer lado, que no es ninguno de los
 dos**: `protocol/events.toml` dice, por opcode, su número y los bytes que lo
-siguen, y de ahí salen generados `tools/opcodes.py` y `rom/src/opcodes.inc`.
+siguen, y de ahí salen generados `tools/event_opcodes.py` y
+`rom/src/event_opcodes.inc`. Lo mismo con el stream de música, en
+`protocol/music.toml`: son tres opcodes que hasta el 2026-09-15 estaban
+escritos a mano **de los dos lados**, en `tools/snes_music.py` y en `main.s`,
+sin nada que atara las copias.
 Hasta el 2026-09-14 el número lo decidía el compilador y le llegaba al
 intérprete **adentro de los datos de un mapa**, con dos consecuencias que
 pasaron las dos: dos ramas eligieron el mismo número sin que git viera nada, y
