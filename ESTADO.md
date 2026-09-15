@@ -47,7 +47,8 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
 1. **los conversores puros**, un proyecto por responsabilidad: `brr/` (muestras
    → BRR, con el lector de SoundFont) y `tiles/` (PNG → tiles y paletas). Son
-   puros y lo sabemos **porque el conversor ya los cachea**;
+   puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
+   hechos y conviven con su Python; lo que falta medido está más abajo;
 2. **`w65/`**, el ensamblador de 65816. El contrato más limpio del repo;
 3. **el asignador** —paletas, ARAM, VRAM— que es lo que queda de
    `snes_convert.py` cuando le sacás los conversores, más el secuenciador de
@@ -157,6 +158,83 @@ de la base, que es `animations` y no `troops`— y que **doce tropas de los
 encuentros al azar sí filtran por terreno**. La simplificación del port aguanta
 igual, pero por otro motivo: ninguna excluye un terreno que su mapa pise de
 verdad. La prueba ahora mide eso.
+
+## Las primitivas de imagen, portadas a `tiles/` (2026-09-15)
+
+`tiles/` es el quinto proyecto independiente, y sigue las mismas reglas que los
+otros cuatro: **adentro no hay una sola mención a este juego ni al port**. Es el
+port de `tools/pixeles.py` entero más el empaquetado de SNES que vivía adentro
+de `tools/snes_convert.py` —`quantize`, `pack_tile`, `unpack_tile`,
+`cgram_word` y `entry`—. Los dos lados de Python **siguen existiendo y siguen
+siendo los que arman la ROM**: ninguna receta de compilación llama al binario, y
+la convivencia es a propósito.
+
+De un PNG salen tiles, paletas y tilemap en un solo comando, porque son una
+sola decisión: qué paleta le toca a una celda decide cuáles son sus índices, y
+eso decide si es el mismo tile que otra celda. `tiles inspect` contesta si una
+imagen entra sin escribir nada, y `tiles render` deshace la vuelta para mirar
+qué salió, como `brr decode`.
+
+### Lo medido
+
+Dos comparaciones distintas, las dos con `SIN_CACHE=1`:
+
+* **206.319 llamadas grabadas** de una conversión entera de `demo-ciudad` —los
+  29 mapas de la receta—, interceptando cada primitiva. Dan idénticas:
+  `pack_tile` 50.000, `to_indices` 50.000, `entry` 50.000, `luma_distance`
+  50.000 —esas cuatro son el tope que se le puso a la captura—, `cgram_word`
+  5.888, `merge_least_visible` **391 de 391**, `cut_tiles` 6. Las dos que no,
+  abajo.
+* **455 imágenes byte por byte iguales** de punta a punta: PNG → tiles, paleta
+  y tilemap, en 8 bits, contra el mismo camino armado con las primitivas de
+  Python. Son todos los PNG del juego y del RTP que entran en 1024 tiles
+  —ChipSet, CharSet, FaceSet, Battle, Monster, Picture, Panorama, System,
+  Backdrop, Title, GameOver—; los 52 que sobran piden más de 1024 y los dos
+  lados los rechazan. Esto es lo que cubre la lectura del PNG, que las llamadas
+  grabadas no tocan.
+
+Tarda **0,079 s contra 0,491 s** en el camino caro —4 bits con fusión, sobre
+`BLAgents.png`— y **0,004 s contra 0,056 s** en el de 8 bits, incluyendo
+arrancar el proceso. Medido con otro agente compitiendo por CPU.
+
+### `try_pack` no es reproducible afuera de CPython, y hay que saberlo
+
+Es el hallazgo de esta vuelta y **no se arregló en el Python**, que es lo que se
+pidió. `pixeles.try_pack` recorre `sorted(sets, key=lambda s: -len(s))`, y
+`sets` es un `set` de `frozenset`: los empates de tamaño —que son el caso
+normal, no la excepción— los desempata **el orden de iteración de una tabla de
+hash**, que no es parte de la entrada y no se puede deducir de ella.
+
+Que eso cambia el resultado está medido, y en el propio Python: de las 32
+llamadas grabadas, **3 dan otra cosa si el mismo `set` se arma insertando al
+revés**, y dos de ésas pasan de "no entra" a entrar en dos paletas.
+
+`tiles/` desempata por los colores mismos, que es un orden total. Contra lo
+grabado: **25 de 32 idénticas**, 1 con las mismas paletas en otro orden, 6
+distintas — y en ninguna es peor. En `reduce_colors` se ve el costo del otro
+lado: en una de las dos llamadas grabadas, el orden de CPython obliga a
+**fusionar 2 colores** y el determinista **no fusiona ninguno**. O sea que el
+reparto de hoy tira dos colores de más por un empate que nadie eligió.
+
+Esto es lo único que impide decir "idéntico" y, cuando le toque el turno al
+paso 3 del refactor, hay que decidirlo de frente: o el asignador se queda con
+el orden determinista y se acepta que el tilemap de algunos mapas cambie, o se
+reproduce el hash de CPython adentro de un crate que no debería saber que
+CPython existe.
+
+### Dos cosas más del original, anotadas y no tocadas
+
+* **`try_pack` no rechaza un tile que no entra en ninguna paleta**: si todavía
+  queda una libre, lo mete ahí y devuelve un grupo de más de 15 colores. El
+  comentario de `convert_above` dice lo contrario. Con 19 colores en una celda,
+  `convert_above` no fusiona: se muere con `ValueError: negative count` armando
+  la CGRAM. Nadie lo pisó porque ninguna imagen del juego tiene una celda así.
+  `tiles/` mantiene `try_pack` igual —es la primitiva— y pregunta por la celda
+  más cargada antes, así que dice "the cell at column 12, row 3 has 19 colours
+  and a 4bpp palette holds 15".
+* El `merge_least_visible` de Python **sí** es determinista de punta a punta:
+  todos sus desempates terminan en el color. Las 391 llamadas grabadas dan
+  iguales, mapeo y orden de fusiones incluidos.
 
 ## El códec de audio, portado a `brr/` (2026-09-15)
 

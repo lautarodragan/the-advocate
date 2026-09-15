@@ -20,12 +20,13 @@ trabaja, no al final—.
 Todo este repo va en castellano —comentarios, documentación y mensajes de
 commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
 de punta a punta: código, comentarios, nombres de pruebas y README. Al
-2026-09-15 son cuatro:
+2026-09-15 son cinco:
 
     ditto/      lee y escribe los formatos de RPG Maker 2000
     protocol/   declara un bytecode y genera las constantes de sus dos lados
     brr/        códec BRR y lector de SoundFont
     w65/        el ensamblador de 65816
+    tiles/      de una imagen a tiles, paletas y tilemap
 
 La regla para saber si algo va adentro de uno de ésos es una sola: **si no
 necesita saber nada de este juego, es un proyecto aparte y va en inglés.**
@@ -45,14 +46,15 @@ del árbol donde cae"— y duró un día: al generalizar el generador para el
 segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
-`DITTO_CORPUS` y sin esa variable las que lo necesitan se saltean con un
+`DITTO_CORPUS` y `tiles/` por `TILES_CORPUS` —un directorio de llamadas
+grabadas—, y sin esas variables las que las necesitan se saltean con un
 mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 
 ### Los que conviven con su equivalente en Python
 
-`brr/` y `w65/` **todavía no reemplazan a nadie**: `tools/brr.py`, `tools/sf2.py`
-y `tools/w65.py` siguen siendo los que arman la ROM, y ninguna receta de
-compilación los llama. Lo que ata cada par es que la salida sea **byte por
+`brr/`, `w65/` y `tiles/` **todavía no reemplazan a nadie**: `tools/brr.py`,
+`tools/sf2.py`, `tools/w65.py` y `tools/pixeles.py` siguen siendo los que arman
+la ROM, y ninguna receta de compilación los llama. Lo que ata cada par es que la salida sea **byte por
 byte igual** —las muestras en un caso, la ROM y la tabla de símbolos en el
 otro—, y eso es lo único por lo que se puede confiar en el port. Un cambio en
 un lado sin el otro rompe esa igualdad: si hay que tocar el codificador o el
