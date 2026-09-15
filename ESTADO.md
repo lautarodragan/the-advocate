@@ -93,10 +93,19 @@ antes, medido dos veces contra un worktree de `main` limpio. Están en
 justamente por eso conviene jugarlo un rato —es un cambio que toca el
 compilador y el intérprete a la vez—.
 
-**Lo que sigue**, y taro ya lo eligió como próximo paso: renombrar los opcodes
-al inglés. Es mecánico —toca los 83 lugares que emiten bytes más el
-intérprete— y ahora se hace en un archivo y se regenera lo demás, con la ROM
-byte por byte igual como criterio. Después de eso, los cortes que quedaron
+**Y el renombre ya está hecho** (`5ba5d05`): los 40 opcodes se llaman en
+inglés, que es el idioma de su declaración. Son 506 usos en 18 archivos y 32 de
+los 40 cambian. Dos no son la traducción obvia porque el stream del SPC700
+tiene sus propios `OP_DSP`, `OP_WAIT` y `OP_END` a mano en main.s y comparten
+el espacio de símbolos: `OP_FIN` quedó `OP_DONE` y `OP_ESPERAR` quedó
+`OP_DELAY`. Las ROMs siguen byte por byte iguales.
+
+Quedan dos cosas de ahí, las dos chicas y las dos decisión de taro: las
+etiquetas del intérprete (`op_lugar`, `op_tecla`) no se tocaron, así que un
+`cmp #OP_PLACE` salta a `op_lugar`; y los opcodes del stream del SPC700 son un
+segundo protocolo sin dueño declarado, que hoy vive a mano en main.s.
+
+**Lo que sigue**: los cortes que quedaron
 pensados en la charla del 2026-09-14: separar los conversores tontos de PNG y
 MIDI del asignador de paletas y de ARAM, el compilador de JSON a datos de ROM
 como binario propio, y el corredor de libretro —`snes_correr` + `snes_compare`
