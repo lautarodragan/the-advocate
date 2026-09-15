@@ -249,20 +249,36 @@ refactors: **no hay features hasta que cierre**.
    cambia y la tanda se pone roja**, así que la comparación ya la hace el
    criterio de aceptación. Tener dos implementaciones sólo obliga a tocar las
    dos. Cómo se comparaban queda en el `git log`.
-3. **Las 47 recetas de la tanda pasan a pytest**, comparando contra la
-   referencia **igual que ahora**. Esto se creía atado a los goldens y **no lo
-   está**: `consola.py` corre la ROM y da la imagen, `snes_expect.py` es un
-   módulo de Python, así que un caso de pytest puede comparar exactamente como
-   compara la receta. Lo que hay que escribir es la sincronización que hoy
-   viaja como archivos entre tres CLIs —el `--plan` de teclas por cuadro, el
-   `--saltar` de pixeles excluidos, el `--arranque`—, que adentro de Python son
-   objetos.
+3. **Las 47 recetas de la tanda pasan a pytest.** Ya no contra la referencia:
+   **contra las capturas congeladas** de `pruebas/golden/tanda/`, que están
+   desde el 2026-09-15. Lo que hay que escribir es lo que hoy viaja como
+   archivos entre tres CLIs: el `--plan` —cuántos ticks correr, que sigue
+   haciendo falta y está congelado— y el `--arranque`. El `--saltar` ya no: con
+   goldens de captura no hay máscara.
 
-   Es el trabajo que más destraba: se lleva puesto el grueso del justfile
-   —47 recetas y 1.037 líneas, de un archivo de 3.437—, los casos corren en
-   paralelo con pytest, y las ROMs se comparten solas porque `armar()` ya
-   cachea por huella. Eso último es el objetivo de taro de que **las pruebas no
-   compilen nada**, y sale por el mismo trabajo.
+   Es el trabajo que más destraba: se lleva puesto el grueso del justfile —47
+   recetas, 1.037 líneas—, los casos corren en paralelo con pytest, y las ROMs
+   se comparten solas porque `armar()` ya cachea por huella. Eso último es el
+   objetivo de que **las pruebas no compilen nada**, y sale por el mismo
+   trabajo.
+
+   **Antes de borrar una receta hay que leerle el comentario.** Varias llevan
+   trampas que no son del caso sino del **arnés**, y el que herede el caso las
+   va a necesitar: la celda (22,8) de `tecla` —un toque de dirección lo lee
+   también el héroe—, el cuadro que se saltea en `ruta-evento` porque la ROM
+   sube CGRAM en el vblank siguiente, el `--toques-hardware` que ignoraba
+   `--apretar-a`. Si se borran de corrido eso se pierde y no está en ningún
+   otro lado.
+
+   Y **`mednafen` y `bsnes` no son casos como los demás**: son la única cosa
+   que compara contra otro emulador. Ahora que las goldens son capturas de
+   snes9x, la tanda entera compara snes9x contra snes9x, así que ésos dos son
+   lo único que puede decir "anda acá y no en la consola". Si en la mudanza se
+   les congela una golden de snes9x, se vuelven decoración.
+
+   Y `rom/hitos.txt` queda como **único lugar** donde vive el porqué de cada
+   caso, así que su cabecera —que todavía habla de `just snes-hitos`— hay que
+   rehacerla en esa vuelta.
 
 4. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
    la decisión sino los goldens: los 170 casos comparan contra
@@ -300,7 +316,27 @@ refactors: **no hay features hasta que cierre**.
    rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
    y nadie lo notó **porque necesitaba podman y nunca se corría**.
 
-6. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+6. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. Va
+   **después** de migrar a `ca65`: allá hay módulos de verdad —compilación
+   separada con `ld65`— además de `.include`, así que el corte puede querer ser
+   otro; y mientras tanto `main.s` se sigue moviendo con el asignador.
+
+   Ya está probado que se puede y que es barato: se sacó la sección de la
+   pantalla de título a un archivo aparte con `.include` y **las dos ROMs
+   salieron con el mismo md5**. Tiene que ser así, porque `.include` es
+   inclusión textual: mientras la concatenación sea idéntica, la salida lo es
+   por construcción, y el md5 alcanza de red.
+
+   Las fronteras ya están dibujadas: **82 marcas de sección** con nombre de
+   subsistema y 450 `.proc`. Tres trampas a mirar en cada corte: el `.segment`
+   es estado y cruza el `.include` (hay 8 en todo el archivo, casi todos al
+   principio); las etiquetas anónimas `:+`/`:-` se resuelven textualmente, así
+   que hay que cortar en fronteras de `.proc` o de sección; y **reordenar los
+   includes sí cambia la ROM**, porque el acomodo sigue el orden de aparición
+   —partir sin reordenar es seguro, reordenar es otra decisión y ahí el md5
+   deja de servir de red—.
+
+7. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
    de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
    en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
    número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
