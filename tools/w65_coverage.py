@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Genera un fuente que ejerce cada entrada de las tablas de w65.py.
+"""Genera un fuente que ejerce cada entrada de las tablas del ensamblador.
 
 La ROM del proyecto tiene 271 bytes de instrucciones, y con eso alcanza para
-verificar lo que el proyecto usa hoy. Pero las tablas de w65.py tienen unas
-sesenta entradas más que nadie ejerce, y una entrada sin probar es una trampa
-puesta para el día que alguien la use.
+verificar lo que el proyecto usa hoy. Pero las tablas del ensamblador tienen
+unas sesenta entradas más que nadie ejerce, y una entrada sin probar es una
+trampa puesta para el día que alguien la use.
 
 Así que se arma un fuente sintético con cada mnemónico en cada modo de
 direccionamiento que la tabla declara, se ensambla con las dos cadenas y se
@@ -20,11 +20,39 @@ Uso:
 
 import argparse
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import w65
+import w65_bin
+
+
+def tablas():
+    """Las tres tablas del ensamblador, leídas de `w65 --list-opcodes`.
+
+    Se le preguntan **al ensamblador que se va a comparar** y no a una segunda
+    copia escrita acá: una copia se desfasa en silencio, y el desfase tomaría
+    justo la forma de "esta entrada dejó de estar cubierta", que es lo único
+    que este generador existe para evitar. Hasta el 2026-09-15 las leía de
+    `tools/w65.py`, que era el ensamblador de entonces.
+    """
+    salida = subprocess.run([w65_bin.binario(), "--list-opcodes"],
+                            check=True, capture_output=True, text=True).stdout
+    implicitos, ramas, modales = [], [], {}
+    for linea in salida.splitlines():
+        campos = linea.split()
+        if campos[0] == "implied":
+            implicitos.append(campos[1])
+        elif campos[0] == "branch":
+            ramas.append(campos[1])
+        elif campos[0] == "modal":
+            # `modal lda imm A9 dp A5 …`: pares modo/opcode, y acá sólo
+            # interesa qué modos declara.
+            modales[campos[1]] = set(campos[2::2])
+        else:
+            raise AssertionError("línea que no entiendo: %r" % linea)
+    return implicitos, ramas, modales
 
 # Un símbolo que entra en un byte y otro que no, para forzar página directa y
 # absoluto sin depender de en qué segmento esté declarado.
@@ -33,6 +61,7 @@ ABS_VALUE = 0x2140
 
 
 def lines():
+    IMPLIED, BRANCHES, OPCODES = tablas()
     out = [
         "; Generado por tools/w65_coverage.py. No editar.",
         ".p816",
@@ -45,20 +74,20 @@ def lines():
     ]
 
     out.append("; --- implícitos ---")
-    for mnemonic in sorted(w65.IMPLIED):
+    for mnemonic in sorted(IMPLIED):
         out.append("    %s" % mnemonic)
 
     out.append("; --- ramas, hacia atrás y hacia adelante ---")
     out.append("atras:")
-    for mnemonic in sorted(w65.BRANCHES):
+    for mnemonic in sorted(BRANCHES):
         out.append("    %s atras" % mnemonic)
-    for mnemonic in sorted(w65.BRANCHES):
+    for mnemonic in sorted(BRANCHES):
         out.append("    %s adelante" % mnemonic)
     out.append("adelante:")
 
     out.append("; --- inmediatos de un byte ---")
     out += ["    .a8", "    .i8"]
-    for mnemonic, modes in sorted(w65.OPCODES.items()):
+    for mnemonic, modes in sorted(OPCODES.items()):
         if "imm" in modes:
             out.append("    %s #$12" % mnemonic)
         if "imm8" in modes:
@@ -66,7 +95,7 @@ def lines():
 
     out.append("; --- inmediatos de dos bytes ---")
     out += ["    .a16", "    .i16"]
-    for mnemonic, modes in sorted(w65.OPCODES.items()):
+    for mnemonic, modes in sorted(OPCODES.items()):
         if "imm" in modes:
             out.append("    %s #$1234" % mnemonic)
     out += ["    .a8", "    .i8"]
@@ -77,7 +106,7 @@ def lines():
              ("absx", "%s abs_sym,x"), ("absy", "%s abs_sym,y"),
              ("dpil", "%s [zp_sym]"), ("dpily", "%s [zp_sym],y"),
              ("dpi", "%s (zp_sym)"), ("dpiy", "%s (zp_sym),y")]
-    for mnemonic, modes in sorted(w65.OPCODES.items()):
+    for mnemonic, modes in sorted(OPCODES.items()):
         for mode, form in forms:
             if mode in modes:
                 out.append("    " + form % mnemonic)
@@ -133,11 +162,12 @@ def main():
     with open(args.output, "w") as handle:
         handle.write(text)
 
+    implicitos, ramas, modales = tablas()
     instructions = sum(1 for line in lines() if line.startswith("    ")
                        and not line.startswith("    ."))
     print("%s: %d instrucciones, %d mnemónicos"
           % (args.output, instructions,
-             len(w65.IMPLIED) + len(w65.BRANCHES) + len(w65.OPCODES)))
+             len(implicitos) + len(ramas) + len(modales)))
 
 
 if __name__ == "__main__":

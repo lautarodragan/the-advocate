@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Compara la ROM de w65.py contra la de ca65 + ld65, byte por byte.
+"""Compara la ROM de w65 contra la de ca65 + ld65, byte por byte.
 
 Es la razón por la que se puede confiar en un ensamblador propio. Mientras el
 contenedor de Debian con cc65 exista, se ensambla el mismo fuente con las dos
-cadenas y se comparan los 32.768 bytes. Si son idénticos, w65.py es correcto
+cadenas y se comparan los 32.768 bytes. Si son idénticos, w65 es correcto
 para todo lo que este proyecto usa; y como el proyecto no usa nada que no esté
 en rom/src/main.s, eso alcanza.
 
@@ -40,13 +40,13 @@ def main():
     ours = open(sys.argv[1], "rb").read()
     theirs = open(sys.argv[2], "rb").read()
 
-    print("w65.py: %d bytes" % len(ours))
-    print("ca65:   %d bytes" % len(theirs))
+    print("w65:  %d bytes" % len(ours))
+    print("ca65: %d bytes" % len(theirs))
 
-    # Los dos tamaños ya no coinciden: w65.py arma el cartucho entero, que son
-    # 256 KB, y snes.cfg describe uno de 32. Lo que se compara es el primer
+    # Los dos tamaños ya no coinciden: w65 arma el cartucho entero y
+    # snes.cfg describe uno de 32 KB. Lo que se compara es el primer
     # banco, que es donde el fuente de cobertura pone todo, y del resto se
-    # comprueba que sea relleno: si w65.py hubiera emitido algo ahí, sería un
+    # comprueba que sea relleno: si w65 hubiera emitido algo ahí, sería un
     # byte que no pidió nadie.
     if len(ours) < len(theirs):
         print("DIFIEREN en el tamaño: la nuestra es más corta.")

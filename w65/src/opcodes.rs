@@ -88,6 +88,36 @@ static BRANCHES: &[(&str, u8)] = &[
 /// an immediate takes one byte or two.
 static INDEX_WIDTH: &[&str] = &["ldx", "ldy", "cpx", "cpy"];
 
+/// The whole instruction table, as lines of `kind mnemonic …`, for a caller
+/// that wants to generate a source exercising every entry. Three kinds:
+///
+/// ```text
+///   implied rts 60
+///   branch  bne D0
+///   modal   lda imm A9 dp A5 abs AD …
+/// ```
+///
+/// It exists because a table nobody exercises is a trap set for whoever first
+/// uses an entry, and the only honest way to exercise it is to read it from
+/// the assembler itself rather than from a second copy that drifts.
+pub fn table() -> String {
+    let mut out = String::new();
+    for (name, code) in IMPLIED {
+        out.push_str(&format!("implied {name} {code:02X}\n"));
+    }
+    for (name, code) in BRANCHES {
+        out.push_str(&format!("branch {name} {code:02X}\n"));
+    }
+    for (name, modes) in OPCODES {
+        out.push_str(&format!("modal {name}"));
+        for (mode, code) in modes.iter() {
+            out.push_str(&format!(" {mode} {code:02X}"));
+        }
+        out.push('\n');
+    }
+    out
+}
+
 pub fn modes_of(mnemonic: &str) -> Option<Modes> {
     OPCODES.iter().find(|(m, _)| *m == mnemonic).map(|(_, modes)| *modes)
 }
@@ -144,6 +174,29 @@ mod tests {
         }
         for (name, _) in BRANCHES {
             assert!(modes_of(name).is_none(), "{name} is both a branch and modal");
+        }
+    }
+
+    /// The printed table is what `--list-opcodes` hands to whoever generates a
+    /// source exercising every entry, so a mnemonic missing from it is an
+    /// entry that silently stops being tested.
+    #[test]
+    fn the_printed_table_lists_every_mnemonic_once() {
+        let text = table();
+        let names: Vec<&str> = text
+            .lines()
+            .map(|line| line.split_whitespace().nth(1).expect("a kind and a name"))
+            .collect();
+        assert_eq!(names.len(), IMPLIED.len() + BRANCHES.len() + OPCODES.len());
+        for name in &names {
+            assert_eq!(names.iter().filter(|other| *other == name).count(), 1, "{name} twice");
+        }
+        for (name, modes) in OPCODES {
+            let line = text
+                .lines()
+                .find(|line| line.starts_with(&format!("modal {name} ")))
+                .unwrap_or_else(|| panic!("{name} is not in the printed table"));
+            assert_eq!(line.split_whitespace().count(), 2 + modes.len() * 2);
         }
     }
 
