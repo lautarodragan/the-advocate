@@ -13,6 +13,12 @@ Se escribe **mientras se trabaja**, no al final.
 
 Última vez que se tocó: 2026-09-15.
 
+**Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
+y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
+translúcidos con el color math del PPU en vez de con trama). Todas las demás
+ramas de sub-agente están mergeadas y sus worktrees borrados —eran 18 y ocupaban
+7,1 GB—.
+
 
 ## La etapa en curso: partir el pipeline, y cero features hasta terminarla
 
