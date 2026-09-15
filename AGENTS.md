@@ -50,13 +50,22 @@ mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 
 ### Los que conviven con su equivalente en Python
 
-`brr/` y `w65/` **todavía no reemplazan a nadie**: `tools/brr.py`, `tools/sf2.py`
-y `tools/w65.py` siguen siendo los que arman la ROM, y ninguna receta de
-compilación los llama. Lo que ata cada par es que la salida sea **byte por
-byte igual** —las muestras en un caso, la ROM y la tabla de símbolos en el
-otro—, y eso es lo único por lo que se puede confiar en el port. Un cambio en
-un lado sin el otro rompe esa igualdad: si hay que tocar el codificador o el
-ensamblador, se toca en los dos o no se toca.
+`brr/` **todavía no reemplaza a nadie**: `tools/brr.py` y `tools/sf2.py` siguen
+siendo los que arman el audio de la ROM, y ninguna receta de compilación llaman
+al de Rust.
+
+**`w65/` sí: desde el 2026-09-15 es el que arma las ROMs.** Toda receta que
+ensambla `main.s` depende de `w65-binario`, así que **compilar la ROM necesita
+cargo** —es la única dependencia nueva del toolchain, y si falta, la receta lo
+dice y explica cómo instalarlo—. `tools/w65.py` **no se borra**: es la segunda
+implementación que valida a la primera, y de eso vive `just w65-comparar`.
+Borrarlo es una decisión de taro y todavía no la tomó.
+
+Lo que ata cada par es que la salida sea **byte por byte igual** —las muestras
+en un caso, la ROM y la tabla de símbolos en el otro—, y eso es lo único por lo
+que se puede confiar en el port. Un cambio en un lado sin el otro rompe esa
+igualdad: si hay que tocar el codificador o el ensamblador, se toca en los dos
+o no se toca.
 
 ## El número de un opcode se elige en la declaración
 
