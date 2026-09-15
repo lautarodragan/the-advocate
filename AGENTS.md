@@ -15,6 +15,47 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
 trabaja, no al final—.
 
+## Dónde va cada cosa que uno quiere dejar escrita
+
+Dos reglas, de taro, el 2026-09-15. Las dos salen del mismo problema: lo que se
+escribe a mano en un documento envejece sin avisar, y lo que vive lejos del
+código no lo lee nadie cuando hace falta.
+
+**Un número se escribe sólo si es propiedad del hardware o del formato.** Los
+32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
+ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
+va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
+compilan es `just snes-destraba`, cuántos casos pasan es `just snes-hitos`,
+cuánto pesa el cartucho lo dice el build.
+
+El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
+y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de ésos
+lo había escrito yo una hora antes.
+
+**Un porqué se queda en el README sólo si es una decisión de arquitectura que
+no tiene una línea de código donde vivir**: por qué modo 3 fijo, por qué LoROM,
+por qué los translúcidos van horneados. **Un porqué que protege una línea
+concreta va como comentario en esa línea.** El razonamiento es de taro y es
+difícil de discutir: nadie que esté editando una rutina va a buscar la razón en
+un README de cinco mil líneas, así que ahí no protege a nadie.
+
+Y si el error no es de los que se vuelven a cometer, no va a ningún lado: el
+`git log` ya lo tiene.
+
+**Se asume que todo el código escrito es intencional**, sabiendo que puede no
+serlo. No se documenta cada caso intencional, porque los no intencionales son
+la excepción. Ante algo que parece un error, el primer paso es **`git blame`**:
+sirve para separar "esto es a propósito" de "esto se rompió en algún cambio",
+que es la diferencia entre tocarlo con confianza y tocarlo a ciegas. Recién con
+la intención demostrada —y demostrada errónea, o parcialmente errónea— se
+arregla.
+
+Al revés también: **si uno escribe a propósito algo que se ve raro, lo aclara
+ahí mismo.** El ejemplo de taro: "acá la variable que se llama NUMBER es de
+tipo string y no number, por contraintuitivo que sea, pero no se puede arreglar
+porque así lo espera una API que no controlamos". Eso es lo que un comentario
+tiene que decir; lo que el código ya dice, no.
+
 ## Los proyectos independientes están en inglés
 
 Todo este repo va en castellano —comentarios, documentación y mensajes de
@@ -86,6 +127,30 @@ ahí es el bytecode, no las tablas del mapa.) Al repartir trabajo entre
 sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
+
+## `git blame` y los cambios mecánicos
+
+`.git-blame-ignore-revs` lista los commits que `git blame` tiene que saltear:
+renombres masivos y reformateos, que sin esto contestan "fue el renombre" en
+cada línea que tocaron. El criterio para meter uno es que su cambio **no pueda
+alterar el comportamiento**, y en este repo eso se demuestra, no se supone: los
+dos que hay adentro tienen las dos ROMs saliendo byte por byte iguales.
+
+**En este clone ya está configurado** —taro corrió `git config
+blame.ignoreRevsFile .git-blame-ignore-revs` desde el host el 2026-09-15— así
+que `git blame` lo saltea solo y no hay que pasar nada. `.git/config` es de
+sólo lectura acá adentro pero es **el mismo archivo** que el del host, así que
+lo que él configura allá vale acá.
+
+En un clone nuevo, o si alguna vez no anda, es esto:
+
+    git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
+
+y configurarlo **falla adentro del contenedor**: se corre desde el host.
+
+Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
+no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
+`git log -S '<texto>'`, que busca por contenido y por eso ignora el ruido solo.
 
 ## La regla que sostiene todo
 
@@ -192,6 +257,11 @@ cuál, y el que manda es `demo-ciudad`.
 
 Medirlo es meter un `.res N` en `TABLAS` y buscar por bisección el N más grande
 que todavía arma: `w65` corta con "el área no entra: 32705 bytes en 32704".
+
+**El tinte de pantalla sobrevive al cambio de mapa.** Saltar a un mapa desde el
+de arranque lo deja todo azul —el tinte es 0,0,100— y parece el defecto que uno
+está buscando. Para mirar un mapa inyectado hay que poner `tinte_r/g/b` en 100
+primero. Costó una hora el 2026-09-13.
 
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
