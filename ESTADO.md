@@ -74,6 +74,34 @@ encuentros al azar sí filtran por terreno**. La simplificación del port aguant
 igual, pero por otro motivo: ninguna excluye un terreno que su mapa pise de
 verdad. La prueba ahora mide eso.
 
+## El bytecode declarado en un solo lado (2026-09-15)
+
+`protocol/events.toml` declara los 40 opcodes —su número y los bytes que los
+siguen— y de ahí salen generados y commiteados `tools/opcodes.py` y
+`rom/src/opcodes.inc`. Antes el número lo elegía `tools/eventos.py` y le
+llegaba al intérprete **adentro de `mapdata.inc`**, o sea dentro de los datos
+de un mapa: el que emite los bytes le declaraba al que los implementa qué
+significan. De ahí salieron las dos colisiones de opcodes del 2026-09-13 y las
+tres copias del largo de cada instrucción, una de las cuales se quedó vieja y
+puso doce casos de la tanda en rojo. Ahora el largo **se deriva** del layout
+declarado y no se escribe en ningún lado; `just protocolo --check` falla si un
+generado quedó viejo.
+
+Las dos ROMs de `just snes-demos` salen **byte por byte iguales** a las de
+antes, medido dos veces contra un worktree de `main` limpio. Están en
+`pruebas-manuales/protocolo/` con su LEEME: no hay nada nuevo que mirar, y
+justamente por eso conviene jugarlo un rato —es un cambio que toca el
+compilador y el intérprete a la vez—.
+
+**Lo que sigue**, y taro ya lo eligió como próximo paso: renombrar los opcodes
+al inglés. Es mecánico —toca los 83 lugares que emiten bytes más el
+intérprete— y ahora se hace en un archivo y se regenera lo demás, con la ROM
+byte por byte igual como criterio. Después de eso, los cortes que quedaron
+pensados en la charla del 2026-09-14: separar los conversores tontos de PNG y
+MIDI del asignador de paletas y de ARAM, el compilador de JSON a datos de ROM
+como binario propio, y el corredor de libretro —`snes_correr` + `snes_compare`
++ `retro.py`— que no tiene una línea de este juego adentro.
+
 Y con eso se borró el volcado viejo de Python: `tools/export_json.py`,
 `tools/lcf_bin.py` —el lector de binarios, que es el `lcf.py` de antes—,
 `tools/gen_schema.py` y `tools/lcf_schema.py`. Son 3.133 líneas que quedaron
