@@ -122,8 +122,9 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
 efectos por el SPC700.
 
-Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
+Las páginas automáticas que compilan enteras son **350 de 489** —medido el
+2026-09-15 con `just snes-destraba`; el 332 que decía acá y el 281 y el 314 que
+decía el README eran los tres viejos—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
 eran 5170 antes de las dos preguntas de actor de una rama, y 5016 antes de la
 clase 6 de `ControlVars`. El 5156 que decía acá era de antes del merge
 `f336b63`; medido de nuevo el 2026-09-13 sobre `5461d6d`, la base es 5170.

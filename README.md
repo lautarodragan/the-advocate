@@ -4969,19 +4969,18 @@ que el port venía haciendo con el comando entero; exigir que compilara costarí
   **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
   el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **209**, y esto es cuántas pasarían a
-  compilar con cada comando que falta —`just snes-destraba`—:
+  con comandos, hoy compilan enteras **350** —medido el 2026-09-15 con `just
+  snes-destraba`, que es el único número de éstos que hay que creerle: los que
+  estaban escritos acá, 281 y 314, eran los dos viejos y además se
+  contradecían—. Lo que falta, y cuántas páginas destrabaría cada cosa:
 
-      ConditionalBranch         +27      FullHeal               +1
-      ControlVars                +4      FlashSprite            +0
-      ChangeItems                +3      CallEvent              +0
+      ConditionalBranch         +48      ControlVars            +5
+      FlashSprite                +0      PlaySound              +0
+      MoveEvent, las que faltan  +0      y el resto             +0
 
-  Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +10 de techo, que es lo que queda dándole las diagonales al héroe. Puestos
-  todos juntos se llega a **281 de 489**, y lo que seguiría cortando después
-  sigue siendo `MoveEvent`, ahora con 49 páginas —rutas con saltos, apuntadas a
-  un vehículo, o de las que le cambian el gráfico al héroe—. Después vienen los
-  16 cuadros de texto con códigos de escape y `ShowChoice` con 12.
+  Y lo que seguiría cortando después de todas ésas: `ChangeEventLocation` con
+  31 páginas, `ShowChoice` con 15, `ChangeScreenTransitions` con 12 y
+  `EnemyEncounter` con 5.
 
   **Ese número hay que leerlo con cuidado, y por eso `tools/destraba.py` muestra
   dos columnas.** Contar qué comando corta *primero* cada página no mide lo que
