@@ -2715,8 +2715,8 @@ Que se pueda confiar en él no es una promesa. Ver más abajo.
 ### Cómo se verifica el ensamblador
 
 `just snes-validar` ensambla el mismo fuente con las dos cadenas y compara el
-binario entero. Es la única cosa que todavía usa el contenedor, y sólo para eso:
-`ca65` es el patrón contra el que se mide.
+binario entero: `ca65` es el patrón contra el que se mide, y es el **único
+oráculo externo** del repo — todo lo demás compara la ROM contra algo nuestro.
 
 Compara dos fuentes, y el segundo hace falta porque el primero no alcanza. La
 ROM del proyecto es casi toda datos y relleno: un empate ahí prueba poco, y

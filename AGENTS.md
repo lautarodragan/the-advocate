@@ -192,9 +192,31 @@ que revela menos y da más margen. Hoy tiene:
     /extras/ref         liblcf, easyrpg-player y Game-Decompilations
     /extras/soundfonts  de donde salen las muestras
     /extras/capturas    donde taro deja capturas para que yo las mire
+    /extras/ref/cc65    compilado acá: de ahí salen `ca65` y `ld65`
 
 Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
 con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
+
+**`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
+empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
+internet en la misma caja donde vive el repo: `snes-validar` corría `ca65` en un
+podman aparte, desde el host. taro dio esa regla por caduca —venía de cuando
+cada comando se envolvía en su propio contenedor— así que `cc65` se clonó y se
+compiló en `/extras/ref/cc65`, y los binarios están enlazados en
+`/usr/local/bin`. Si el contenedor se recrea desde la imagen, se rearman con
+`git clone --depth 1 https://github.com/cc65/cc65.git` y `make -j8 bin`.
+
+Lo que se comprobó del clon antes de usarlo, para que el próximo no lo dé por
+descuido ni lo repita: el repo **no trae binarios commiteados** —los de `bin/`
+salen de sus 989 fuentes de C—, el build **no baja nada de internet** ni escribe
+fuera de su directorio, y `ca65` usa **55 símbolos externos y ninguno es de red
+ni de ejecución** —no importa `socket`, `connect`, `exec*`, `fork`, `system`,
+`popen` ni `dlopen`—. Lo que **no** se comprobó: los tags del proyecto no están
+firmados, el clon es `--depth 1` y no tiene historia, y nadie leyó los 989
+archivos. Y el build corrió con red y como root: auditar después no deshace eso.
+
+Contra el riesgo que más importa hay una defensa que no depende de la auditoría:
+**la salida de `ca65` se compara byte por byte** contra nuestro ensamblador.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
