@@ -115,11 +115,18 @@ tiles-pruebas:
 # —`--include`, `--symbols`, `--no-checksum`—.
 #
 # `tools/w65.py`, la primera implementación, se borró el 2026-09-15 junto con
-# `w65-comparar`, que las comparaba byte por byte. El argumento de taro: si el
-# de Rust se equivoca, la ROM cambia y la tanda se pone roja, así que la
-# comparación ya la hace el criterio de aceptación; tener dos implementaciones
-# sólo obligaba a tocar las dos. Lo que queda de verificación externa es
-# `snes-validar`, contra ca65, que es otro ensamblador y no una copia nuestra.
+# `w65-comparar` y `snes-validar`, que lo comparaban byte por byte contra este
+# binario y contra ca65. El argumento de taro: si el ensamblador se equivoca, la
+# ROM cambia y la tanda se pone roja, así que la comparación ya la hace el
+# criterio de aceptación, y entre los golden files, los md5 y jugarla a mano una
+# regresión drástica se ve igual. Mantener cadenas de verificación sólo obligaba
+# a tocar los dos lados de cada una.
+#
+# Y esto tiene fecha de vencimiento: el port va a pasar a `ca65` + `ld65`, por
+# preferir un proyecto mantenido y con ecosistema antes que sostener el nuestro.
+# Lo que falta para eso es `.bloque` —el acomodo de bloques en bancos—, que cae
+# en el asignador, así que la migración es de otra vuelta y hasta entonces el
+# que arma las ROMs es éste.
 w65 := "./w65/target/release/w65"
 
 # Compilar el ensamblador antes de usarlo, que es lo que cuesta que sea Rust:
@@ -3376,51 +3383,6 @@ snes-demos:
 # el MSU-1 no se enciende.
 snes-msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
-
-# --- verificación del ensamblador ------------------------------------------
-# **Mide `w65/` contra ca65**, y desde el 2026-09-15 es la única verificación
-# del ensamblador que no es la tanda: ese día se borró `tools/w65.py`, que era
-# la segunda implementación, y con ella el eslabón "w65.py contra w65/". Queda
-# éste, que es el que vale más de los dos, porque ca65 no es código nuestro.
-#
-# El fuente de cobertura sale de las tablas del propio binario
-# —`w65 --list-opcodes`—, así que una entrada nueva entra sola en la comparación.
-#
-# w65 reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
-# se genera un fuente con cada mnemónico en cada modo de direccionamiento que la
-# tabla declara, se ensambla con las dos cadenas y se comparan los bytes.
-#
-# Correr esto cada vez que se toquen las tablas de opcodes. Corre entera acá
-# adentro: `ca65` y `ld65` salen de `/extras/ref/cc65`, y cómo se rearman si el
-# contenedor se recrea desde la imagen está en AGENTS.md. Hasta el 2026-09-15
-# esto envolvía a ca65 en un podman propio, que era la forma vieja de correr
-# todo; la receta llevaba tanto sin correr que apuntaba a un `-w /abl/snes` que
-# hace rato se llama `rom/`.
-#
-# Lo que compara es el primer banco: w65 arma el cartucho entero y snes.cfg
-# describe uno de 32 KB. Del resto se comprueba que sea relleno.
-#
-# Lo que valida es la codificación de instrucciones, que es lo que se puede
-# equivocar en silencio. El layout de la ROM —banqueo LoROM, 128 KB, checksum—
-# ya no se compara: ca65 necesitaría una configuración bastante más compleja
-# para expresarlo, y main.s dejó de entrar en los 32 KB de snes.cfg cuando el
-# banco de muestras creció. A cambio, el layout sí se verifica de punta a punta
-# cada vez que la ROM arranca y suena en el emulador.
-#
-# rom/snes.cfg y rom/Makefile existen sólo para esto.
-
-snes-validar: w65-binario
-  #!/usr/bin/env bash
-  set -euo pipefail
-  python3 tools/w65_coverage.py -o rom/build/cobertura.s
-  # ca65 y ld65 corren desde rom/, que es donde vive snes.cfg y adonde apuntan
-  # las rutas relativas que lleva adentro.
-  cd rom
-  ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s
-  ld65 -C snes.cfg -o build/cobertura-ca65.sfc build/cobertura.o
-  cd ..
-  {{w65}} --no-checksum rom/build/cobertura.s -o rom/build/cobertura-w65.sfc
-  python3 tools/w65_check.py rom/build/cobertura-w65.sfc rom/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
 # La música de un mapa a mano. Normalmente no hace falta: `snes-convert` ya la

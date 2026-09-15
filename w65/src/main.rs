@@ -40,11 +40,11 @@ const MISUSE: u8 = 2;
 )]
 struct Args {
     /// The top-level source to assemble
-    source: Option<PathBuf>,
+    source: PathBuf,
 
     /// Where to write the cartridge image
     #[arg(short, long, value_name = "PATH")]
-    output: Option<PathBuf>,
+    output: PathBuf,
 
     /// Look here for .include files, before the source's own directory. May be
     /// repeated
@@ -59,10 +59,6 @@ struct Args {
     /// that does not write one
     #[arg(long)]
     no_checksum: bool,
-
-    /// Print the instruction table and exit, without assembling anything
-    #[arg(long)]
-    list_opcodes: bool,
 }
 
 enum Failure {
@@ -73,38 +69,20 @@ enum Failure {
 }
 
 fn run(args: &Args) -> Result<(), Failure> {
-    if args.list_opcodes {
-        print!("{}", opcodes::table());
-        return Ok(());
-    }
-
-    // `source` and `output` are required to assemble but not to list, which is
-    // why clap does not enforce them: a required argument that one mode does
-    // not want cannot be expressed there. The cost is these two messages, and
-    // they say the same thing clap would have said.
-    let source = args
-        .source
-        .as_ref()
-        .ok_or_else(|| Failure::Usage("a source to assemble is required".into()))?;
-    let output = args
-        .output
-        .as_ref()
-        .ok_or_else(|| Failure::Usage("--output <PATH> is required".into()))?;
-
     // Read the source here rather than letting the assembler trip over it, so
     // that "you pointed me at nothing" and "your program is wrong" do not come
     // out with the same exit code.
-    if !source.is_file() {
-        return Err(Failure::Usage(format!("{}: not a file I can read", source.display())));
+    if !args.source.is_file() {
+        return Err(Failure::Usage(format!("{}: not a file I can read", args.source.display())));
     }
 
     let mut assembler = assembler::Assembler::new(!args.no_checksum, &args.include);
     let rom = assembler
-        .assemble(source)
+        .assemble(&args.source)
         .map_err(|error| Failure::Source(error.to_string()))?;
 
-    write(output, &rom).map_err(Failure::Usage)?;
-    println!("{} -> {} ({} bytes)", source.display(), output.display(), rom.len());
+    write(&args.output, &rom).map_err(Failure::Usage)?;
+    println!("{} -> {} ({} bytes)", args.source.display(), args.output.display(), rom.len());
 
     if let Some(path) = &args.symbols {
         let mut table: Vec<(&String, i64)> = assembler
