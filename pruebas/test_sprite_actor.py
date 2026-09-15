@@ -8,7 +8,7 @@ comando está del otro lado del salto.
 
 Por eso vive en `FAR_ACTOR_GRAF` y viaja en `partida_tabla`, y por eso hacen
 falta estas dos pruebas: la tanda de pixeles cubre que el cambio **se vea**
-—`snes-sprite-actor`, verificado en rojo— pero no puede cubrir que sobreviva,
+—`sprite-actor`, verificado en rojo— pero no puede cubrir que sobreviva,
 porque un caso suyo es un mapa y un puñado de cuadros.
 
 Lo que se escribe acá es el byte, a mano, en vez de armar una ROM con una

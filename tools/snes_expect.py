@@ -1156,7 +1156,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # Lo que lo destapó es el volante de la persecución en auto: su página
         # paralela le vuelve a poner la ruta al héroe **en todos los cuadros**,
         # así que el pad no lo mueve nunca. Medido con
-        # `TECLA_SIN_ESPERA=1 just snes-heroe 52`, que es lo que acepta esa
+        # `TECLA_SIN_ESPERA=1 just heroe 52`, que es lo que acepta esa
         # página: sin esto, apretando la izquierda da **55,42%** de pixeles
         # distintos; con esto, **0,59%**.
         #
@@ -1975,7 +1975,7 @@ def main():
             #
             # Y con ventana el reparto es otro: le reserva una paleta y el
             # fondo fusiona. Esto faltaba, y no se veía porque en los mapas que
-            # corría `snes-ventana` el fondo no llegaba a fusionar y las
+            # corría `ventana` el fondo no llegaba a fusionar y las
             # paletas quedaban iguales igual. En el mapa 1 sí llega.
             naturales[map_id] = (game_map, base, above_img,
                                  snes_convert.convert_layers(
@@ -2024,7 +2024,7 @@ def main():
     # y en los dos el {} de -o lleva lo que está variando.
     #
     # Con avance la etiqueta es el avance aunque haya uno solo. Antes eso
-    # dependía de si eran uno o varios, y `snes-caminando` con un solo avance
+    # dependía de si eran uno o varios, y `caminando` con un solo avance
     # escribía la referencia como `-right` y después la buscaba como `-60`: la
     # receta no andaba con menos de dos.
     #
@@ -2253,7 +2253,7 @@ def main():
             # posición, y `animacion_dibujo_oam` se saltea la animación.
             anclas[npc["evento"] + 1] = (px, py)
         # El último campo es si va por encima de la capa de encima. Para el
-        # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
+        # héroe es falso salvo en la ROM de `encima`, donde su prioridad
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
         # el hardware lo pone adelante de BG2. Su capa para ordenarlo contra
         # los NPCs no cambia: la prioridad es de la PPU y la capa es de RM2k.
@@ -2449,8 +2449,8 @@ def main():
         # cartucho y la de la ventana no es ninguna de ellas, así que queda
         # como la subió `load_ventana`. Acá decía lo contrario, "como en la
         # consola", y ninguna prueba abría un mensaje sobre una pantalla
-        # teñida: `snes-cerrar` tiñe recién después de cerrarlo. La primera
-        # que lo hizo, `snes-ruta-pisa` con la cola, dio 4122 pixeles.
+        # teñida: `cerrar` tiñe recién después de cerrarlo. La primera
+        # que lo hizo, `ruta-pisa` con la cola, dio 4122 pixeles.
         if estado.mensaje is not None:
             import ventana as ventana_mod
             skin = ventana_mod.skin(args.game_dir,

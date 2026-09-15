@@ -1,4 +1,4 @@
-# abl-snes — A Blurred Line en Super Nintendo
+# abl-audio — A Blurred Line en Super Nintendo
 
 Un port de *A Blurred Line*, un juego hecho en RPG Maker 2000, a la Super
 Nintendo. Acá está todo: cómo se lee el juego original, cómo se lo vuelca a un
@@ -259,7 +259,7 @@ VRAM por tile, 64 bytes en vez de 32; con 92 tiles son 5,8 KB de los 64.
 
 El resultado se verifica pixel por pixel contra el render de Python, a 15 bits,
 que es la profundidad real de la consola. Cuántos pixeles difieren, de los
-57344 de la pantalla, lo dice `just snes-heroe 7`.
+57344 de la pantalla, lo dice `just heroe 7`.
 
 En la Mega Drive esto no se podía hacer: los 9 bits obligaban a fusionar
 colores, así que sólo se podía comparar por forma. Acá la comparación es exacta.
@@ -279,7 +279,7 @@ ancho del mapa menos el de la pantalla, que el conversor emite como `CAM_MAX_X`
 y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
 comparación falla.
 
-Las cuatro direcciones salen de una sola corrida, `just snes-heroe 7`. Que la
+Las cuatro direcciones salen de una sola corrida, `just heroe 7`. Que la
 cámara llegue justo a 64 y a 16, que es el tamaño del mapa 7 menos el de la
 pantalla, prueba a la vez el movimiento y el tope.
 
@@ -475,7 +475,7 @@ el dibujo más uno. En el vblank queda un `lda` y un `beq`.
 igual que OAM, el dibujo que corresponde es el del tick tal cual y no el del
 anterior: mirar el anterior da rojo en **un tick de cada 24** —el del cambio, y
 nada más—, que en el mapa 5 son 18349 pixeles. El caso que lo cobra es
-`snes-caminando 5 left` con el avance 46, que es el tick 24 justo: un avance de
+`caminando 5 left` con el avance 46, que es el tick 24 justo: un avance de
 N pixeles es el tick N/2 + 1, así que se le puede pedir a la tanda el cuadro
 exacto en que el agua cambia.
 
@@ -487,8 +487,8 @@ caminata. Sin eso la escena de Core y Manta se va un dibujo desde el primer
 teletransporte.
 
 Los dos casos nuevos de la tanda están medidos con la fase rota a propósito, que
-es lo único que prueba que miran algo: `snes-caminando 5 left "40 46 48 50"`
-cobra 18349 pixeles y `snes-caminando 3 down "54 56 58 60"` cobra 211. Hacen
+es lo único que prueba que miran algo: `caminando 5 left "40 46 48 50"`
+cobra 18349 pixeles y `caminando 3 down "54 56 58 60"` cobra 211. Hacen
 falta los dos: el mapa 5 no tiene tiles animados y la corrida de agua del 3 sale
 vacía.
 
@@ -517,7 +517,7 @@ ve peor que las dos quietas—. Medido sobre los 328 mapas del juego: 312 tienen
 cuatro o menos.
 
 La fase se midió como la del agua, y la cobra
-`snes-escena 8 "9 55" 0 down "20 30 40 50"`: la celda (9,55) lo deja en pantalla
+`escena 8 "9 55" 0 down "20 30 40 50"`: la celda (9,55) lo deja en pantalla
 y los cuatro cuadros caen en tres columnas distintas del ciclo. Sin el `inc` que
 corrige la fase se queda una columna atrás, que son 76 pixeles.
 
@@ -594,7 +594,7 @@ con ese grupo, con el cursor en la primera fila y después sobre la de Talan,
 que es lo que la repinta en el vblank. Contra una referencia sin grupo o con
 Kersh son unos 400 pixeles, así que el cero no es vacío.
 
-Lo cobra `just snes-guardar` en seis cuadros, todos en cero: la pantalla al
+Lo cobra `just guardar` en seis cuadros, todos en cero: la pantalla al
 abrirse y con el cursor dos ranuras abajo, contra `titulo.py --modo 1`; y el
 mapa de vuelta después de cancelar y después de elegir, en dos ticks, contra la
 referencia. Los toques de adentro de la pantalla van con `--toques-hardware`,
@@ -700,7 +700,7 @@ el permiso, como `OpenSaveMenu`.
 Mientras el menú se ve **el reloj del juego no corre**, igual que con la
 pantalla de ranuras, así que para la referencia el menú no cuesta ningún tick
 y después de cerrarlo los dos lados van por el mismo cuadro. Lo cobra
-`just snes-menu`: el menú como se abre y con el cursor movido contra
+`just menu`: el menú como se abre y con el cursor movido contra
 `titulo.py --menu`, y el mapa después de cerrar contra `snes_expect.py`. Lo que
 la tanda no alcanza lo mira `pruebas/test_menu.py`: el menú con un grupo y oro
 puestos, guardar desde el menú, los dos permisos puestos por el bytecode, B a
@@ -750,7 +750,7 @@ y el segundo renglón salía cortado. Cuando el cursor se sale de las once
 filas, la lista se repinta entera con la pantalla apagada, que es un cuadro
 en negro.
 
-Lo cobran `just snes-items` —la pantalla como se entra y con el cursor sobre
+Lo cobran `just items` —la pantalla como se entra y con el cursor sobre
 la consola contra `titulo.py --items`, y el mapa después de usarla contra
 `snes_expect.py`— y `pruebas/test_items_pantalla.py`: la consola prende el 710
 y no se gasta, un ítem en gris no hace nada, catorce ítems en once filas se
@@ -782,9 +782,9 @@ de un DMA por cuadro. Componer no tiene apuro, y `pantallas.py` es la
 referencia con el mismo compositor de celdas. El DMA va **después** de leer el
 control: al revés, sus diez líneas hacían que `read_pad` llegara con la
 lectura automática terminada, cada vuelta duraba dos cuadros y la mitad de los
-toques se perdía. Lo cobró `snes-equipo`.
+toques se perdía. Lo cobró `equipo`.
 
-Lo cobran `just snes-equipo` —las ranuras de Kersh con su equipo inicial, la
+Lo cobran `just equipo` —las ranuras de Kersh con su equipo inicial, la
 lista del arma con los parámetros que quedarían, y el mapa después de volver—
 y `pruebas/test_equipo.py`: el equipo inicial en la RAM, equipar desde el
 menú, la lanza a dos manos que saca el escudo, la línea vacía, y el equipo en
@@ -932,8 +932,8 @@ pega y uno que falla se ven igual.
 droide del mapa 2.** La de los Lazer Teeth del mapa 9 —la tropa 86, cuatro
 enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
-cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
-mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+cuatro la ejercita `just batalla` con la página de prueba, que es el
+mismo recurso que usa `guardar` con la pantalla de ranuras.
 
 #### El menú: las cinco órdenes del ABL
 
@@ -1123,7 +1123,7 @@ HP en cero—, que es la misma razón por la que esta pantalla muestra los HP de
 los enemigos y RM2k no. Y una escena es **por tropa** y no por fondo: dos
 tropas con el mismo fondo llevan las dos escenas, a 32 KB cada una.
 
-Lo cobra la tanda, con los dos fondos del juego: `snes-batalla` con la tropa
+Lo cobra la tanda, con los dos fondos del juego: `batalla` con la tropa
 86 —cuatro battlers iguales, uno de ellos topado contra el borde— y con la 82
 —uno solo—, los dos en cero. Verificado que da rojo corriéndole a la ROM el
 `BG1VOFS` un scanline.
@@ -1230,7 +1230,7 @@ que no tiene cursor que guardar ni manejadores a los que saltar.
   ella despierta se caen dos casos de `test_condicional.py`. Ver
   `CHANGE_ENCOUNTER_STEPS` en eventos.py.
 
-**Lo cobra `snes-encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1—
+**Lo cobra `encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1—
 caminando para arriba, con
 `--encuentros-de-prueba 8` para que el encuentro salga en el paso 8 y no en el
 130. Compara dos cuadros: el mapa un paso antes, y la pantalla de la pelea
@@ -1505,7 +1505,7 @@ Cómo funciona, del lado de la ROM:
   El fundido escala contra ese techo y no contra 255, o su primer cuadro
   **subiría** la música antes de bajarla.
 
-Y del lado del cartucho, `tools/msu.py` (receta `snes-msu`): renderiza el MIDI
+Y del lado del cartucho, `tools/msu.py` (receta `msu`): renderiza el MIDI
 con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
@@ -1717,7 +1717,7 @@ de la animación de batalla. No es elegante: es que en el banco 0 no entraba
 —la BSS estaba en 7680 de 7680— y esto se lee y se escribe unas pocas veces por
 cuadro, así que el direccionamiento largo no se nota.
 
-Lo cobra `snes-cinematica 4 7 ... cartel` en `rom/hitos.txt`: cinco cuadros
+Lo cobra `cinematica 4 7 ... cartel` en `rom/hitos.txt`: cinco cuadros
 contra la referencia, **los cinco en cero**. El de la mitad de cada rampa no es
 adorno: es el único que ejercita la interpolación cuadro a cuadro, que es donde
 la ROM y la referencia pueden separarse en un valor sin que se vea.
@@ -2043,16 +2043,16 @@ acuse, unos 1,4 cuadros por kilobyte, así que un banco de 62 KB tarda el doble
 que uno de 32, y `BOOT_CUADROS` está dimensionado sobre el techo por eso: ver
 "El arranque dura siempre lo mismo".
 
-**Cómo se verifica.** `just snes-bgm <tema>`, que arma la ROM de las primeras
+**Cómo se verifica.** `just bgm <tema>`, que arma la ROM de las primeras
 secuencias con `--tema-de-arranque`, la corre sin pantalla, graba el audio y se
-lo pasa a `snes_check`. El flag existe porque `snes-check` escucha desde el
+lo pasa a `snes_check`. El flag existe porque `audio-check` escucha desde el
 arranque y los mapas de estas secuencias no traen música propia —la prende un
 `PlayBGM`—, así que sin él la ROM sale callada; no toca el bytecode, es el
 mismo stream prendido antes. Lo que la prueba mira es justamente lo del banco
 compartido: que las notas de cada tema salgan de los índices de muestra del
 banco de todos.
 
-**`snes-bgm` no está en `snes-hitos`**, y conviene tenerlo presente: la tanda
+**`bgm` no está en `hitos`**, y conviene tenerlo presente: la tanda
 es visual y esto pide grabar cuarenta segundos de audio por tema. O sea que
 este camino no lo corre nadie salvo que se lo pida a mano.
 
@@ -2109,11 +2109,11 @@ a bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
 snes9x, que es el core de la tanda; ninguna receta usa mesen-s. Lo desempata la
 SNES de taro.
 
-Se elige con `CORE`: `CORE=bsnes just snes-heroe 7`. La tanda corre en snes9x
+Se elige con `CORE`: `CORE=bsnes just heroe 7`. La tanda corre en snes9x
 porque emula un orden de magnitud más rápido que bsnes, y bsnes entra por
-`snes-bsnes`, dos casos que cuestan veinte segundos.
+`bsnes`, dos casos que cuestan veinte segundos.
 
-`just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
+`just hitos` corre seis mapas, uno por cada cosa que puede romperse:
 
     73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero
     6             recorre 100 celdas por los dos ejes: la ventana da tres vueltas
@@ -2142,16 +2142,16 @@ mundos distintos, y por eso mismo equivocarla los equivoca a los dos juntos y la
 comparación sigue dando cero. Ese lado se revisa leyendo, no corriendo.
 
 Y tres más para las prioridades de objeto contra la capa de encima, que es por
-donde ya se coló el cuarto error. `snes-evento` deja al héroe tapado, pero
+donde ya se coló el cuarto error. `evento` deja al héroe tapado, pero
 entero: los 768 pixeles de su sprite están debajo de la capa, así que un héroe
 que directamente no se dibujara daría la misma pantalla. Las dos paradas en la
 celda (66,40) del mapa 1 son la misma escena con un solo bit distinto —ahí la
 capa tapa 512 de 768 y la silueta tiene que partirse en el lugar exacto—:
-primero con el héroe en prioridad 1, debajo, y después con `snes-encima`, que lo
+primero con el héroe en prioridad 1, debajo, y después con `encima`, que lo
 sube a prioridad 2 y lo pone adelante. Entre las dos referencias hay 284 pixeles
 de diferencia, así que el par no puede dar cero por casualidad.
 
-Y una ruta forzada, `snes-ruta`, que es la única prueba que compara al héroe
+Y una ruta forzada, `ruta`, que es la única prueba que compara al héroe
 **mientras** camina un guión y no donde termina. La diferencia importa: los dos
 errores que destapó —los dos de la referencia, no de la ROM— eran del contador
 de cuadros del ciclo de animación, y ninguno de los dos se ve en el cuadro
@@ -2182,7 +2182,7 @@ cada dirección.
 
 Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
-el medio. `just snes-parado MAPA TX TY` planta al héroe en una celda elegida y
+el medio. `just parado MAPA TX TY` planta al héroe en una celda elegida y
 compara sin caminar, que además no depende de cuántos segundos se mantenga la
 cruceta. Así se reprodujo el error de la banda de OAM.
 
@@ -2254,7 +2254,7 @@ camina en el lugar, que además es lo que hace RM2k.
 `snes_expect.py` arma en Python lo que la consola debería mostrar —el mapa, la
 cámara siguiendo al héroe, y el héroe en su pose parada con los colores ya
 fusionados— y se compara pixel por pixel. Son los cinco casos de
-`just snes-heroe <mapa>`: la parada y las cuatro direcciones.
+`just heroe <mapa>`: la parada y las cuatro direcciones.
 
 Encontró dos cosas que a ojo no se veían:
 
@@ -2364,7 +2364,7 @@ Y dejó dos cosas que valen aunque la rama no entre:
   —truncan—, y snes9x redondea para arriba cuando la suma de un canal es impar.
   Son trece pixeles y no se ven, pero es **la primera vez que el emulador de la
   tanda se aparta de la consola**: si algún día se compara color math, el caso
-  va a `snes-bsnes`.
+  va a `bsnes`.
 
 **Menos el save point**, que va **opaco**: está en
 `rm2k.SIN_TRAMA` y `lcf` no le pega el sufijo. Es una divergencia deliberada de
@@ -2576,7 +2576,7 @@ la consola sólo un intérprete de un stream de escrituras.** El driver del SPC7
 son **20 bytes**.
 
     rom/src/main.s        65816: arranque, carga al SPC700, reproductor
-    rom/snes.cfg          enlazado LoROM de 32 KB
+    rom/audio.cfg          enlazado LoROM de 32 KB
     rom/record.sh         corre la ROM sin pantalla y graba el audio a WAV
     tools/spc700.py       ensamblador de SPC700, porque no hay uno empaquetado
     brr/                  códec BRR y lector de SoundFont, en Rust
@@ -2715,7 +2715,7 @@ Que se pueda confiar en él no es una promesa. Ver más abajo.
 
 ### Cómo se verifica el ensamblador
 
-`just snes-validar` ensambla el mismo fuente con las dos cadenas y compara el
+`just audio-validar` ensambla el mismo fuente con las dos cadenas y compara el
 binario entero: `ca65` es el patrón contra el que se mide, y es el **único
 oráculo externo** del repo — todo lo demás compara la ROM contra algo nuestro.
 
@@ -2782,7 +2782,7 @@ ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
 energía como la nota buena. El puntaje es cuántas de las sesenta ventanas
 tienen la nota por encima de su señuelo.
 
-Cuánto de lo que falta es culpa nuestra lo dice `just snes-referencia`, que
+Cuánto de lo que falta es culpa nuestra lo dice `just referencia`, que
 toca el mismo MIDI con FluidSynth en la PC —el mismo SoundFont del que salen
 nuestras muestras— y lo mide con la misma vara. **Ese par de números es lo que
 hay que mirar, y no el nuestro solo**: un 97% no significa nada sin saber si el
@@ -2832,7 +2832,7 @@ tiene `LIBS =` vacío.
     cp bsnes_libretro.so /usr/lib/libretro/
 
 Probado leyendo `vueltas` con el core parcheado: bsnes declara 131072 bytes y
-da los mismos números que snes9x, cuadro por cuadro. `just snes-bsnes` pasa sus
+da los mismos números que snes9x, cuadro por cuadro. `just bsnes` pasa sus
 cuatro comparaciones.
 
 ### Trampas del hardware
@@ -3080,7 +3080,7 @@ se pregunta:
 
 * qué comandos se aceptan y no se hacen lo dice `ACEPTADOS_SIN_HACER`, en
   `tools/eventos.py`, que es una lista ejecutable y no puede desincronizarse;
-* cuántas páginas destraba cada cosa que falta lo dice `just snes-destraba`;
+* cuántas páginas destraba cada cosa que falta lo dice `just destraba`;
 * qué órdenes de ruta no sabemos caminar, también.
 
 ## Referencias

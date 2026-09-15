@@ -113,7 +113,7 @@ tiles-pruebas:
 # —`--include`, `--symbols`, `--no-checksum`—.
 #
 # `tools/w65.py`, la primera implementación, se borró el 2026-09-15 junto con
-# `w65-comparar` y `snes-validar`, que lo comparaban byte por byte contra este
+# `w65-comparar` y `audio-validar`, que lo comparaban byte por byte contra este
 # binario y contra ca65. El argumento de taro: si el ensamblador se equivoca, la
 # ROM cambia y la tanda se pone roja, así que la comparación ya la hace el
 # criterio de aceptación, y entre los golden files, los md5 y jugarla a mano una
@@ -157,14 +157,14 @@ w65-pruebas:
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;
 # si falta alguna, el que la busca dice cuál y cómo tenerla.
 
-# Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
+# Una corrida aislada. `CORRIDA=algo just hitos` deja el mapdata, la ROM y
 # las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda exactamente donde estaba, para que `mednafen
 # rom/build/abl.sfc` y las rutas escritas en el README sigan valiendo.
 #
 # Existe por dos cosas que hasta ahora hacían imposible compilar mientras algo
 # corría: rom/src/mapdata.inc es estado global —lo pisa cualquier
-# snes-convert— y la ROM tenía un solo nombre posible. La ROM además se llama
+# convert— y la ROM tenía un solo nombre posible. La ROM además se llama
 # como la corrida, que además la hace reconocible cuando se la abre a mano.
 # Con qué grupo arrancan las pruebas. En RM2k el gráfico del héroe es el del
 # primero del grupo, y este juego arranca con el actor 10 —`DummyHero`, cuyo
@@ -175,14 +175,14 @@ w65-pruebas:
 #
 # Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
 # maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
-# está acá y no escondida en un default: `GRUPO=10 just snes-hitos` corre con el
+# está acá y no escondida en un default: `GRUPO=10 just hitos` corre con el
 # grupo de verdad.
 grupo    := env_var_or_default("GRUPO", "11")
 # Con qué core de libretro se corre. snes9x es el de la tanda por una razón
 # medida: bsnes emula 121 cuadros por segundo contra 2747 de snes9x, y con él
-# los cuatro minutos de `snes-hitos` se irían a media hora. bsnes entra por
-# `snes-bsnes`, que corre dos casos y cuesta veinte segundos. Para mirar
-# cualquier otro caso con otro core: `CORE=bsnes just snes-heroe 7`. Los tres
+# los cuatro minutos de `hitos` se irían a media hora. bsnes entra por
+# `bsnes`, que corre dos casos y cuesta veinte segundos. Para mirar
+# cualquier otro caso con otro core: `CORE=bsnes just heroe 7`. Los tres
 # que hay instalados —snes9x, bsnes y mesen-s— dibujan el mismo cuadro a 15
 # bits; ver `tools/retro.py`.
 core     := env_var_or_default("CORE", "snes9x")
@@ -199,22 +199,22 @@ snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
 # gráfico entre sus páginas y no entra en las ocho paletas de sprite: sin el
 # flag el conversor corta, que es lo que se quiere en un build de verdad. Acá se
 # está mirando cómo se dibuja el héroe y da lo mismo, así que se deja pasar.
-snes-convert mapa="7":
+convert mapa="7":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
       --descartar-eventos --reference {{snes_pngs}}/python.png
 
-snes-build:
+build:
   {{w65}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --symbols {{snes_rom}}.sym
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
-snes-shot nombre="mapa" cuadros="240" teclas="":
+shot nombre="mapa" cuadros="240" teclas="":
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --cuadros {{cuadros}} --teclas $(echo "{{teclas}}" | tr 'A-Z' 'a-z')
 
 # La captura contra el render de Python, pixel por pixel y a 15 bits.
-snes-compare nombre="mapa" x="0" y="0":
+compare nombre="mapa" x="0" y="0":
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png {{snes_pngs}}/python.png \
       --camara {{x}} {{y}} -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
@@ -226,9 +226,9 @@ snes-compare nombre="mapa" x="0" y="0":
 # dirección, una tanda escribía `none.png` nueve veces y `down.png` otras
 # nueve: en serie es sobreescritura inofensiva, pero cuando algo falla el PNG
 # que uno querría mirar ya lo pisó un mapa posterior. Quien tenga dos casos con
-# el mismo mapa y la misma dirección —snes-varios contra snes-heroe— pasa el
+# el mismo mapa y la misma dirección —varios contra heroe— pasa el
 # nombre a mano.
-snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + direccion):
+walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + direccion):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}}
@@ -257,13 +257,13 @@ snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + di
 # exactamente en el 142. Eso es un dato en sí mismo —la carga del mapa pasa
 # adentro del negro y no corre el reloj—; el margen de 16 quedó de cuando la
 # ROM se tomaba siete cuadros de más que nadie contaba, y ahora es aire nomás.
-snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen + "-" + destino):
+puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen + "-" + destino):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       --plan {{snes_pngs}}/plan-{{nombre}}.txt --margen 16 \
@@ -279,13 +279,13 @@ snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen
 # El tinte solo, contra la cuenta de Python y sin referencia de por medio: toma
 # la misma pantalla capturada de la consola sin teñir y teñida, y pregunta si la
 # transformación de una a la otra es exactamente canal * valor / 100 sobre los
-# 15 bits. Es una segunda opinión sobre snes-evento, que compara un camino
-# entero; si snes-evento falla y esto da cero, el tinte no es el problema.
+# 15 bits. Es una segunda opinión sobre evento, que compara un camino
+# entero; si evento falla y esto da cero, el tinte no es el problema.
 #
 # La captura sin teñir sale de plantar al héroe en el destino del
 # teletransporte, que es la misma pantalla sin el evento:
-#     just snes-parado 1 7 65 destino
-snes-tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
+#     just parado 1 7 65 destino
+tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
   python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 
 # El intérprete de eventos, para mirarlo con los ojos. El juego arranca en el
@@ -298,13 +298,13 @@ snes-tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b=
 # entró no se puede compilar, y entonces la página no se emite y el evento no
 # hace nada. Con el mapa 4 solo, la pantalla se queda en negro y eso es correcto.
 #
-# Después de esto, `just snes-play` lo muestra con sonido.
-snes-evento origen="4" destino="1" nombre="evento":
+# Después de esto, `just play` lo muestra con sonido.
+evento origen="4" destino="1" nombre="evento":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
-  just snes-shot {{nombre}} 240 ""
+  just build
+  just shot {{nombre}} 240 ""
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
@@ -314,26 +314,26 @@ snes-evento origen="4" destino="1" nombre="evento":
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
-# —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
+# —eso ya lo cubre hitos— sino que se vea bien cuando su registro no está
 # al principio de la tabla: con el índice 0 el desplazamiento es cero y
 # cualquier cuenta mal hecha da el resultado correcto por casualidad.
-snes-varios primero="18" otros="7 19" indice="2":
+varios primero="18" otros="7 19" indice="2":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{primero}} --mapas {{otros}} \
       --inicial {{indice}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
-  just snes-walk {{primero}} none "{{otros}}" {{indice}} varios-{{primero}}-none
-  just snes-walk {{primero}} down "{{otros}}" {{indice}} varios-{{primero}}-down
+  just build
+  just walk {{primero}} none "{{otros}}" {{indice}} varios-{{primero}}-none
+  just walk {{primero}} down "{{otros}}" {{indice}} varios-{{primero}}-down
 
 # Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
 # puntual caminando depende de cuánto se mantenga la cruceta; acá la celda se
 # fija y la captura no se negocia.
-snes-parado mapa="1" tx="75" ty="88" nombre="parado":
+parado mapa="1" tx="75" ty="88" nombre="parado":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
-  just snes-shot {{nombre}} 240 ""
+  just build
+  just shot {{nombre}} 240 ""
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
       --dir down --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
@@ -355,12 +355,12 @@ snes-parado mapa="1" tx="75" ty="88" nombre="parado":
 # y la silueta tiene que coincidir de los dos lados. Con la prioridad
 # equivocada la comparación se va a 284 pixeles, que es lo que se midió
 # poniendo #OBJ_PRIORITY_ABOVE a mano en place_hero.
-snes-encima mapa="1" tx="66" ty="40" nombre="encima":
+encima mapa="1" tx="66" ty="40" nombre="encima":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
       --heroe-encima -o {{snes_inc}}/mapdata.inc
-  just snes-build
-  just snes-shot {{nombre}} 240 ""
+  just build
+  just shot {{nombre}} 240 ""
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
       --dir down --heroe-encima --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
@@ -385,13 +385,13 @@ snes-encima mapa="1" tx="66" ty="40" nombre="encima":
 #   74   Una ruta forzada de `MoveEvent` sobre el héroe: `face_up` y una espera.
 #        Su página pide al actor 21 en el grupo, así que sin arrancar con él no
 #        corre. Es la única página del juego que compila y ejercita una ruta.
-snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
+pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{arranca}} --map-id {{mapa}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   python3 tools/snes_expect.py --grupo {{arranca}} --map-id {{mapa}} \
       --walk none --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
@@ -417,7 +417,7 @@ snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
 #
 # Se compara contra las mismas referencias de Python que usa la tanda: lo que se
 # cruza son dos emuladores contra un mismo tercero, no uno contra el otro.
-snes-mednafen:
+mednafen:
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -425,7 +425,7 @@ snes-mednafen:
   # 1) la apertura: dos switches, un tinte y un teletransporte.
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 4 --mapas 1 \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id 4 --mapas 1 \
       --saltar {{snes_pngs}}/saltar-med-evento.txt \
       -o {{snes_pngs}}/esperado-med-evento.png
@@ -446,7 +446,7 @@ snes-mednafen:
   # 2) caminar: si el control no responde, acá se ve.
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 73 \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id 73 --walk right \
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/esperado-med-walk.png
@@ -464,7 +464,7 @@ snes-mednafen:
 # fuente, el marco, la paleta y dónde caen las celdas en el tilemap.
 #
 # La cadena entera queda atada de punta a punta: la referencia en Python está
-# verificada contra una captura de EasyRPG por `snes-oraculo`, y esto verifica
+# verificada contra una captura de EasyRPG por `oraculo`, y esto verifica
 # la consola contra la referencia.
 #
 # Los mapas de la tanda no son varias veces lo mismo. La ventana se lleva la
@@ -495,7 +495,7 @@ snes-mednafen:
 # apretaron igual. Es el reparto de la ROM del arranque —mapa 4 con los mapas 1
 # y 2—, con un mapa que se puede mirar en vez de una habitación negra. Nació
 # con el 1 de compañero, hasta que el 1 dejó de entrar.
-snes-ventana mapa="7" nombre="ventana" mapas="":
+ventana mapa="7" nombre="ventana" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -506,7 +506,7 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       ${mapas:+--mapas $mapas} \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --mapas $mapas \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
@@ -522,10 +522,10 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 # Un mensaje de verdad: se abre desde el intérprete, bloquea la página, y se
 # cierra cuando el jugador aprieta A.
 #
-# El nombre es por lo último, que es lo que no existía: `snes-ventana` ya
+# El nombre es por lo último, que es lo que no existía: `ventana` ya
 # dibujaba la ventana, pero no había forma de **cerrar** un mensaje.
 #
-# Es lo que `snes-ventana` no prueba. Allá la ventana se abre y se queda, así que
+# Es lo que `ventana` no prueba. Allá la ventana se abre y se queda, así que
 # lo único que se compara es el dibujo; acá se comparan las dos mitades que
 # faltaban:
 #
@@ -539,7 +539,7 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 # ventana seguiría ahí.
 #
 # Los cuadros se miran con margen y no en el borde, por lo mismo que
-# `snes-espera`: el arranque de la ROM no lo modela la referencia. A los 60
+# `espera`: el arranque de la ROM no lo modela la referencia. A los 60
 # cuadros los dos lados tienen el mensaje abierto hace rato, y a los 400 hace
 # rato que se cerró. A se aprieta en el 200 y se deja apretado: la ROM cierra
 # con el flanco —`pad_a` contra `pad_a_ant`, que es el `IsTriggered` de RM2k—
@@ -561,7 +561,7 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 # recetas desde que el arranque de la ROM es fijo —ver "El arranque dura
 # siempre lo mismo" en el README—: el cuadro N de la captura es el tick N de
 # la referencia, en cualquier mapa.
-snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="115":
+cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="115":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -571,7 +571,7 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="11
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
       --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
       --walk {{direccion}} \
@@ -587,7 +587,7 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="11
   done
 
 # Los dos escapes de texto de RM2k: `\|`, que pausa el cuadro, y `\^`, que lo
-# cierra sin que el jugador apriete nada. Es `snes-cerrar` sin la A.
+# cierra sin que el jugador apriete nada. Es `cerrar` sin la A.
 #
 # Lo que compara, y por qué son estos dos cuadros:
 #
@@ -611,7 +611,7 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="11
 #
 # `pausas` son cuántos `\|` lleva la cola, que es lo que el juego varía: 25
 # cuadros usan `\|\^`, diez `\|\|\^` y dos `\|\|\|\^`.
-snes-autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque="115":
+autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque="115":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -623,7 +623,7 @@ snes-autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
       --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
@@ -644,7 +644,7 @@ snes-autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque
 # pantalla, así que lo único comparable es **cuánto tardan**, y eso es
 # exactamente lo que espera el `ProceedWithMovement` que va detrás.
 #
-# La página es inventada, por lo mismo que `snes-espera` y `snes-encima`:
+# La página es inventada, por lo mismo que `espera` y `encima`:
 # ninguna página del juego que compile manda a caminar a un evento sin depender
 # de un switch, así que este camino no lo correría nada. Lo sintético es la
 # entrada, no la comparación.
@@ -668,14 +668,14 @@ snes-autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque
 # vblank siguiente, así que ese cuadro sale partido —mitad con la paleta vieja y
 # mitad con la nueva— y la referencia no modela eso. Un cuadro de más o de menos
 # en la cuenta de la ruta corre el borde y el 89 o el 91 se caen.
-snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91" arranque="115" nombre="ruta-evento":
+ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91" arranque="115" nombre="ruta-evento":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --ruta-de-evento {{ruta}} --pagina-de-prueba 0 0 0 50 \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --ruta-de-evento {{ruta}} --pagina-de-prueba 0 0 0 50 \
@@ -689,7 +689,7 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 
 # Un evento **con gráfico** caminando en pantalla.
 #
-# Es la otra mitad de MoveEvent. `snes-ruta-evento` mueve a uno invisible y lo
+# Es la otra mitad de MoveEvent. `ruta-evento` mueve a uno invisible y lo
 # único que se ve de él es cuánto tarda; acá el evento se dibuja, así que se
 # comparan tres cosas más que allá no existían:
 #
@@ -713,7 +713,7 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 # Tres casos más, desde el 2026-09-04:
 #
 # * `npc-lento`, la frecuencia 4 sobre un evento: dos pasos, un giro y un paso,
-#   con el mismo ritmo que `ruta-lenta` en `snes-ruta`. Los cuadros 20 y 88 son
+#   con el mismo ritmo que `ruta-lenta` en `ruta`. Los cuadros 20 y 88 son
 #   quieto después de un paso y de un giro, el 44 y el 100 a mitad de paso.
 # * `npc-encara` y `npc-encara-lado`, `face_hero`: es
 #   `GetDirectionToCharacter`, manda el eje con más distancia y en empate el
@@ -754,14 +754,14 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 # Verificado en rojo con el defecto puesto: sin el desvío de la 9 en
 # `cuadro_de_ruta_ev` la ROM la manda a `mover` con una dirección que no es
 # 0..3, y el cuadro 5 ya da 479 pixeles.
-snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="115" nombre="npc" frecuencia="8":
+npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="115" nombre="npc" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --ruta-de-evento {{ruta}} --frecuencia {{frecuencia}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --ruta-de-evento {{ruta}} --frecuencia {{frecuencia}} \
@@ -814,14 +814,14 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
 # —el control `2 2 2 2` da lo mismo—. Son dos tiles animados del chipset
 # cambiando de paso un cuadro antes de un lado que del otro. Está anotado en
 # ESTADO.md; no es de esta vuelta y no se investigó.
-snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cuadros="10 25 40 70" arranque="115" nombre="grafico":
+grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cuadros="10 25 40 70" arranque="115" nombre="grafico":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --ruta-de-evento {{ruta}} \
       --grafico-de-prueba {{grafico}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --ruta-de-evento {{ruta}} \
@@ -857,14 +857,14 @@ snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cu
 # pixeles enteros: en pixeles ese caso no se puede contar.
 #
 # La página de prueba corre la cámara **y espera**, y después tiñe, como la de
-# `snes-sacudir`: los cuadros del medio miran la cámara a mitad de camino, y el
+# `sacudir`: los cuadros del medio miran la cámara a mitad de camino, y el
 # último mira que llegó y que el tinte se aplicó. Ese tinte es lo que hace
 # filoso al caso: si los cuadros que espera la página salieran mal, aparecería
 # en otro cuadro.
 #
 # El caso de la tanda es el del juego: dos celdas para arriba a velocidad 2, o
 # sea 64 cuadros, que es el PanScreen de la escena de Talan en el mapa 3.
-snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nombre="pan" celda="" lluvia="":
+pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nombre="pan" celda="" lluvia="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -875,7 +875,7 @@ snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nom
       --pan-de-prueba {{pan}} --pagina-de-prueba 0 0 0 50 \
       ${lluvia:+--lluvia-de-prueba $lluvia} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${celda:+--hero-tile $celda} \
@@ -904,7 +904,7 @@ snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nom
 # la pantalla volvió a su lugar y el tinte se aplicó. El mapa 7 tiene la cámara
 # en el borde izquierdo, así que la sacudida asoma lo que hay a la izquierda
 # del mapa; el segundo caso, en el 6, tiene la cámara en el medio.
-snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115" nombre="sacudir" celda="" lluvia="":
+sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115" nombre="sacudir" celda="" lluvia="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -915,7 +915,7 @@ snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115"
       --sacudida-de-prueba {{sacudida}} --pagina-de-prueba 0 0 0 50 \
       ${lluvia:+--lluvia-de-prueba $lluvia} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${celda:+--hero-tile $celda} \
@@ -937,7 +937,7 @@ snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115"
 # muestra **y espera**, y después tiñe: los cuadros del medio miran los
 # destellos del tick 34 al 50 y el último que la espera fue la de los 56
 # cuadros de la animación. Ver OP_ANIMATION en eventos.py.
-snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranque="115" nombre="animacion" celda="":
+animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranque="115" nombre="animacion" celda="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -946,7 +946,7 @@ snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranqu
       ${celda:+--inicio $celda} \
       --animacion-de-prueba {{animacion}} --pagina-de-prueba 0 0 0 50 \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${celda:+--hero-tile $celda} \
@@ -964,7 +964,7 @@ snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranqu
 #
 # Es `MoveTo`, y la vuelta que tiene está en lo que **no** hace: no toca la ruta
 # ni hacia dónde mira, y corta el paso en curso —`SetRemainingStep(0)`—. Dos
-# casos, en el mapa 6 de `snes-npc`, con el evento 3 que arranca en (22,9):
+# casos, en el mapa 6 de `npc`, con el evento 3 que arranca en (22,9):
 #
 # * a mitad de su ruta: cuatro para abajo, y después de esperar 12 cuadros —a
 #   mitad del segundo paso— lo plantan en (21,13). Se dibuja **exactamente**
@@ -986,7 +986,7 @@ snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranqu
 # antes del corte, así que la ROM sin el corte también daba cero. El 14 es el
 # del corte —el evento arranca el tercer paso desde la celda nueva—, el 15 uno
 # después, el 20 caminando, y el 60 terminó.
-snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="14 15 20 60" arranque="115" nombre="lugar":
+lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="14 15 20 60" arranque="115" nombre="lugar":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -994,7 +994,7 @@ snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="1
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} ${ruta:+--ruta-de-evento $ruta} \
       --lugar-de-prueba {{lugar}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} ${ruta:+--ruta-de-evento $ruta} \
@@ -1020,7 +1020,7 @@ snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="1
 # media hora de juego.
 #
 # El ítem es el 90, el Idol, que es justamente el que pregunta el Hover-Tram.
-snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-item":
+rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-item":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1028,7 +1028,7 @@ snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros=
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} ${items:+--items-de-prueba $items} \
       --rama-item-de-prueba {{item}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} ${items:+--items-de-prueba $items} \
@@ -1043,7 +1043,7 @@ snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros=
 
 # Las dos ramas de actor con dos operandos: "sabe esta habilidad" —sub 4— y
 # "tiene puesto este objeto" —sub 5—. La página de prueba tiñe la pantalla sólo
-# si la rama se cumple, igual que `snes-rama-item`, así que la diferencia entre
+# si la rama se cumple, igual que `rama-item`, así que la diferencia entre
 # el caso que se cumple y el que no **es** la respuesta de la rama.
 #
 # Existe porque ninguna página del juego que compile las usa: las 36 que
@@ -1055,14 +1055,14 @@ snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros=
 # del LDB: Kersh es el actor 11, lleva puesto el ítem 82 —Modified Blaster— y
 # el 85, no lleva el 84 —que es de Core—, y a nivel 20 sabe las habilidades 131
 # y 146 y no la 152.
-snes-rama-actor mapa="6" rama="5 11 82 12 0 0 100" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-equipo":
+rama-actor mapa="6" rama="5 11 82 12 0 0 100" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-equipo":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} \
       --rama-actor-de-prueba {{rama}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} \
@@ -1092,7 +1092,7 @@ snes-rama-actor mapa="6" rama="5 11 82 12 0 0 100" celda="22 12" cuadros="2 30" 
 # página en el 26, no en el 24— con las dos ya paradas y el tinte puesto, y el
 # 60 y el 120 de control, donde sin el corte las rutas habrían terminado en
 # otra celda.
-snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cuadros="20 26 60 120" arranque="115" nombre="parar-rutas":
+parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cuadros="20 26 60 120" arranque="115" nombre="parar-rutas":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1103,7 +1103,7 @@ snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cu
       ${heroe:+--ruta-de-prueba $heroe} \
       --parar-de-prueba {{parar}} --pagina-de-prueba 0 12 0 0 \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} ${ruta:+--ruta-de-evento $ruta} \
@@ -1142,7 +1142,7 @@ snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cu
 #
 # Tres cuadros quedan afuera y están medidos. El 13 es el del tinte, que la ROM
 # aplica con la pantalla apagada y sale partido —55926 pixeles—: es el mismo
-# borde que `snes-espera` mira con margen. El 14 es el que le sigue, con 71, y el
+# borde que `espera` mira con margen. El 14 es el que le sigue, con 71, y el
 # 24 es el último del destello, con 55: los dos son el retraso de un cuadro que
 # tiene subir la paleta en el vblank, que es lo que hay que hacer para que la
 # pantalla no salga con media paleta vieja. Los demás dan cero, incluido el 15
@@ -1163,7 +1163,7 @@ snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cu
 # caminamos. Se hace igual porque es autocontenido y porque el cronómetro se ve
 # en pantalla desde el minuto diez del juego.
 #
-# Por eso la página es sintética, como la de `snes-destello`: sin ella no
+# Por eso la página es sintética, como la de `destello`: sin ella no
 # habría con qué comparar.
 #
 # Dos cosas se prueban aparte y las dos son bordes:
@@ -1185,14 +1185,14 @@ snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cu
 #   dibujado. Con un segundo entero el corte cae en el cuadro 60, y el 61 lo
 #   agarra ya vacío. Un 00:00 congelado sería lo que sale de modelarlo como "se
 #   para", que es el error que este caso mira.
-snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="timer":
+timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="timer":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --timer-de-prueba {{timer}} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --timer-de-prueba {{timer}} \
@@ -1225,13 +1225,13 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
 # variable y usarla en el mismo renglón siguiente. El caso `lugar-var` de la
 # tanda es exactamente eso: dos escrituras y un plantado.
 #
-# `ruta` es opcional y es la misma de `snes-npc` —blanco y órdenes, con el
+# `ruta` es opcional y es la misma de `npc` —blanco y órdenes, con el
 # blanco el índice del evento más uno—. Existe para la clase 6, las coordenadas
 # de un personaje: leer la celda de un evento **quieto** no distingue la celda
 # viva de la que trae el mapa, y es justo esa diferencia la que importa. Con la
 # ruta puesta el evento ya se movió cuando la página lee, así que el número que
 # muestra el cronómetro sólo sale si los dos lados lo movieron igual.
-snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="vars" items="" ruta="":
+vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="vars" items="" ruta="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1241,7 +1241,7 @@ snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="
       --inicio {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
       ${items:+--items-de-prueba $items} ${ruta:+--ruta-de-evento $ruta} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
@@ -1277,7 +1277,7 @@ snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="
 #   Ninguna página que compilara aclaraba, así que no lo cobró nadie; dos de las
 #   once que destraba esto sí, con (0, 120, 120).
 #
-# Los tres casos que van en `snes-hitos` están elegidos por lo que miran:
+# Los tres casos que van en `hitos` están elegidos por lo que miran:
 #
 #   0 0 0 0        el gris puro: sin color y sin saturación queda todo negro,
 #                  que es lo que prueba que la luminancia no se cuela
@@ -1285,13 +1285,13 @@ snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="
 #                  todo al gris. Es el (60,60,60,0) del juego sin el oscurecido
 #   0 120 120 200  el de los mapas 229 y 230: aclara **y** sobresatura, o sea
 #                  las dos mitades nuevas a la vez
-snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="saturar" arranque="115":
+saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="saturar" arranque="115":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   for n in {{antes}} {{despues}}; do
     python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
@@ -1305,7 +1305,7 @@ snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="satur
 
 # El destello de **pantalla**: FlashScreen, que no es el de abajo.
 #
-# `snes-destello` destella a un personaje —tiñe su paleta de sprite— y esto
+# `destello` destella a un personaje —tiñe su paleta de sprite— y esto
 # destella la pantalla entera, o sea las tres paletas del mapa. Son caminos
 # distintos en la ROM —`destellar_fondo` contra `destellar_sprites`— y hasta el
 # 2026-09-08 el de la pantalla **no lo corría ninguna prueba**: ninguna página
@@ -1317,14 +1317,14 @@ snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="satur
 # nueve entradas hay en pantalla, 401 de 57344. Con el bug puesto da 387 de
 # diferencia; en otras partes del mismo mapa da **cero**, que es por lo que un
 # caso mal ubicado no habría probado nada.
-snes-relampago mapa="1" destello="31 31 31 31 12" celda="22 56" cuadros="2 5 9" arranque="115" nombre="relampago":
+relampago mapa="1" destello="31 31 31 31 12" celda="22 56" cuadros="2 5 9" arranque="115" nombre="relampago":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --destello-de-prueba {{destello}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --destello-de-prueba {{destello}} \
@@ -1361,7 +1361,7 @@ snes-relampago mapa="1" destello="31 31 31 31 12" celda="22 56" cuadros="2 5 9" 
 # `elegir_grafico_heroe`, y lo llaman los dos —el opcode acá y `cargar_mapa`
 # allá—. Que el byte sobreviva al salto y a guardar lo cobra
 # `pruebas/test_sprite_actor.py`.
-snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 12" cuadros="10 30" tinte="20 100 100 100" arranque="115" nombre="sprite-actor":
+sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 12" cuadros="10 30" tinte="20 100 100 100" arranque="115" nombre="sprite-actor":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1369,7 +1369,7 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
       --inicio {{celda}} --sprite-de-prueba {{sprite}} \
       --grafico-de-prueba {{grafico}} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --sprite-de-prueba {{sprite}} \
@@ -1410,7 +1410,7 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
 #                                      divergencia anterior a todo esto: en la
 #                                      ROM la ruta forzada manda sobre el pad y
 #                                      en la referencia la caminata del arnés no
-#                                      la mira. Medido: `just snes-heroe 52` da
+#                                      la mira. Medido: `just heroe 52` da
 #                                      **55,42%** caminando a la izquierda —la
 #                                      única dirección que pelea contra el
 #                                      empujón— y cero en las otras cuatro.
@@ -1451,7 +1451,7 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
 # Qué número quedó en la variable lo dice además `pruebas/test_tecla.py`, contra
 # `eventos.tecla_de`, que es la misma función que corre la referencia, y para
 # las cuatro direcciones y cancelar: el cronómetro sólo muestra una por caso.
-snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 100 0 0" apretar="40" walk="none" vars="" timer="" arranque="115" nombre="tecla-espera" tocar="":
+tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 100 0 0" apretar="40" walk="none" vars="" timer="" arranque="115" nombre="tecla-espera" tocar="":
   #!/usr/bin/env bash
   set -euo pipefail
   # Los dos opcionales, como variables de bash: `${x:+...}` necesita una
@@ -1468,7 +1468,7 @@ snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 10
       ${vars:+--vars-de-prueba {{vars}}} \
       ${timer:+--timer-de-prueba {{timer}}} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
       --walk {{walk}} $([ "{{walk}}" = none ] || echo --dir {{walk}}) \
@@ -1488,14 +1488,14 @@ snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 10
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
-snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="115" nombre="destello":
+destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="115" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --flash-de-prueba {{flash}} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --flash-de-prueba {{flash}} \
@@ -1532,7 +1532,7 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
 # 60 el mensaje está abierto. La diferencia entre los dos son 19895 pixeles, así
 # que si la tecla no disparara nada se vería.
 #
-# Y el segundo caso de `snes-hitos` prende el switch **25** en vez del 24, o sea
+# Y el segundo caso de `hitos` prende el switch **25** en vez del 24, o sea
 # que la página de los caños no queda activa y apretar A no tiene que hacer
 # nada. Es lo único que ejercita que se miren las condiciones: con el 24 puesto
 # se cumplen todas, así que una ROM que las ignorara daría lo mismo.
@@ -1558,7 +1558,7 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
 # con la llamada salteada en los dos, ese mismo cuadro da 34,64%, o sea que la
 # escena **ya divergía** cuando el comando se aceptaba sin hacerse. Queda
 # anotado en ESTADO.md.
-snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar" ruta="" mapas="":
+hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar" ruta="" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1568,7 +1568,7 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
       --inicio {{celda}} --con-ventana --switch {{switch}} \
       ${ruta:+--ruta-de-evento $ruta} ${mapas:+--mapas $mapas} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir down --con-ventana --switch {{switch}} \
@@ -1585,12 +1585,12 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # Una escena del juego disparada por el héroe, con los toques de A que la
 # cierran.
 #
-# Es la forma general de lo que `snes-hablar` y `snes-pisar` hacen de a una
+# Es la forma general de lo que `hablar` y `pisar` hacen de a una
 # cosa: el héroe arranca en una celda con una ruta forzada de la página de
 # prueba —`12` es girar hacia arriba, `0` es dar un paso hacia arriba— y con
 # eso dispara la página que está enfrente con A o la que pisa, y de ahí en
 # adelante la escena se compara entera con `--apretar-a`, igual que la
-# apertura en `snes-cinematica`. Los cuadros de los toques salen de correr la
+# apertura en `cinematica`. Los cuadros de los toques salen de correr la
 # referencia sola y anotar dónde abre cada mensaje; hay que rehacerlos si cambia
 # lo que la página tarda.
 #
@@ -1638,7 +1638,7 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # congela el reloj, así que `toques` la cierra con B por **cuadros de
 # hardware** —`--toques-hardware`, que es lo único que puede caer ahí— y de ahí
 # en más los dos lados van por el mismo tick. Es el caso que ESTADO.md pedía:
-# el save point de verdad y no la página de prueba de `snes-guardar`. No es
+# el save point de verdad y no la página de prueba de `guardar`. No es
 # vacío: sin el B la ROM se queda en la pantalla y el arnés no llega al tick 60
 # —"la ROM no llegó al tick 60"—, verificado el 2026-09-10.
 #
@@ -1650,7 +1650,7 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # mapa y lo abría. Ahora los dos caminos aprietan A, y con el A en el tick 10
 # el cuadro de hardware 30 es "Save in which slot?", en cero contra
 # `titulo.py --ranuras 4 --modo 1`.
-snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="" toques="":
+escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="" toques="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1662,7 +1662,7 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115"
       --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
       ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir {{dir}} --con-ventana --ruta-de-prueba {{ruta}} \
@@ -1754,7 +1754,7 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115"
 # come— sino los picos del lazo, que en esta ROM son siete cuadros repartidos
 # por el camino; el toque de A los resincroniza, porque de ahí en adelante los
 # dos lados cuentan desde el mismo cuadro.
-snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque="115" nombre="cinematica" ventana="" apretar="" switch="":
+cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque="115" nombre="cinematica" ventana="" apretar="" switch="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1768,7 +1768,7 @@ snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque
   python3 tools/snes_convert.py --grupo 10 --map-id {{origen}} \
       --mapas {{destino}} ${ventana:+--con-ventana} ${switch:+--switch $switch} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo 10 --map-id {{origen}} \
       --mapas {{destino}} ${ventana:+--con-ventana} ${switch:+--switch $switch} \
@@ -1806,9 +1806,9 @@ snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque
 # paso de más mientras el mensaje se componía.
 #
 # El caso `bloqueo` —desde el 2026-09-05— es lo contrario: que un evento de la
-# capa del héroe **no** se pueda pisar. Nació acá, con `snes-pisar 2 "7 76" up`
+# capa del héroe **no** se pueda pisar. Nació acá, con `pisar 2 "7 76" up`
 # y el droide del mapa 2 quieto en (7,72); desde que el droide camina solo vive
-# en `snes-escena`, con una ruta forzada de cuatro pasos hacia arriba que se
+# en `escena`, con una ruta forzada de cuatro pasos hacia arriba que se
 # frena contra él, porque la caminata colapsada de esta receta no puede
 # describir un mapa donde alguien se mueve mientras tanto. Es `WouldCollide`:
 # ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
@@ -1819,7 +1819,7 @@ snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque
 # 36 —`walk_everywhere_on`— puesta y la ruta sin un solo paso: lo que se mira es
 # que la bandera que deja no siga valiendo para la caminata con el pad. Ver
 # "Atravesar paredes vale mientras dura la ruta" en README.md.
-snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar" ruta="":
+pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar" ruta="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1827,7 +1827,7 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana ${ruta:+--ruta-de-prueba $ruta} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
       --walk {{direccion}} --hero-tile {{celda}} --con-ventana \
@@ -1840,7 +1840,7 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 
 # El texto del juego, no el que le dictamos a la ROM.
 #
-# Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa
+# Todo lo que hay arriba —`ventana`, `cerrar`, `anclada`— usa
 # `--mensaje-de-prueba`, o sea tres líneas inventadas que el conversor mete en
 # una página que tampoco sale del juego. Eso probaba el dibujo, el bloqueo y el
 # cierre, pero no el camino que ahora existe: que un `ShowMessage` de RM2k
@@ -1882,7 +1882,7 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 # pantalla hecha basura en Delcentric Factory. Reproducirlo de verdad pide un
 # cartucho de diez mapas hablados —minutos por caso—; con el relleno lo hace uno
 # de un mapa. Ver `Mensajes.__init__`.
-snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
+texto mapa="255" apretar="200" nombre="texto" relleno="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1890,7 +1890,7 @@ snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       ${relleno:+--relleno-de-mensajes $relleno} \
       --con-ventana -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${relleno:+--relleno-de-mensajes $relleno} \
@@ -1905,7 +1905,7 @@ snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
 
 # La ventana quieta mientras la cámara se mueve.
 #
-# Es lo único que ni `snes-ventana` ni `snes-cerrar` pueden mirar: en los dos la
+# Es lo único que ni `ventana` ni `cerrar` pueden mirar: en los dos la
 # cámara está parada. Y con el pad bloqueado durante un mensaje, lo único que la
 # mueve es **una ruta forzada**, que es exactamente el caso de RM2k que obligó a
 # esta arquitectura: `UpdateMoveRoute` corre antes del guard de
@@ -1928,11 +1928,11 @@ snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
 #   cuadro  50   camara_y 700, resto 4   (antes: 5964)
 #   cuadro 130   la ruta ya bajó doce celdas   (antes: 11705)
 #
-# El mapa 6 por lo mismo que `snes-ruta`: es 100x100 y abierto, así que la ruta
+# El mapa 6 por lo mismo que `ruta`: es 100x100 y abierto, así que la ruta
 # camina sin chocar, y es **mudo**, que es lo que hace usable el desfasaje de
 # arranque —la ROM llega al primer cuadro del intérprete en 10, contra 44 en un
 # mapa con música, y la referencia no modela nada de eso—.
-snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arranque="115" nombre="anclada":
+anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arranque="115" nombre="anclada":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1942,7 +1942,7 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
       --ruta-de-prueba {{ruta}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
@@ -1957,7 +1957,7 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 
 # La pantalla de batalla, contra `pantallas.py --batalla`.
 #
-# Es el hermano de `snes-guardar` y de `snes-tienda`: la pelea bloquea adentro
+# Es el hermano de `guardar` y de `audio-tienda`: la pelea bloquea adentro
 # del intérprete y **no cuesta ningún tick**, así que no se puede comparar
 # contra `snes_expect.py` —de ese lado no hay nada dibujado, a propósito: ver
 # `OP_BATTLE` en tools/eventos.py—. Lo que se compara es la pantalla, contra
@@ -1996,7 +1996,7 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
 # mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
 # prueba nada.
-snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2" relleno="":
+batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2" relleno="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -2010,7 +2010,7 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
       --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
       --fondo-de-prueba "{{fondo}}" \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
       --fondo "{{fondo}}" \
@@ -2025,7 +2025,7 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
 
 # La pelea **peleada hasta el final**, y el mapa comparado al volver.
 #
-# Es lo que `snes-batalla` no puede mirar: aquélla abre la pantalla de la pelea
+# Es lo que `batalla` no puede mirar: aquélla abre la pantalla de la pelea
 # y la compara contra `pantallas.py`, pero nunca sale de ahí. Lo que llegó a la
 # SD de taro el 2026-09-13 estaba justo del otro lado: la escena de la batalla
 # sube 32 KB de VRAM —las palabras $4000 a $8000— y `volver_al_mapa` reponía
@@ -2058,7 +2058,7 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
 # **Verificado que dan rojo** sacando `volver_de_batalla` y dejando el
 # `volver_al_mapa` de antes: 74,30% de los pixeles el primero y 77,49% el
 # segundo, en los dos cuadros de cada uno.
-snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 100" ventana="" arranque="115" nombre="vuelta":
+vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 100" ventana="" arranque="115" nombre="vuelta":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -2067,7 +2067,7 @@ snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 
       ${ventana:+--con-ventana} \
       --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
       --fondo-de-prueba "{{fondo}}" -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${ventana:+--con-ventana} \
@@ -2105,14 +2105,14 @@ snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 
 # paso 8, y lo que se ejercita es exactamente lo mismo: la tabla de `pmod`, el
 # acumulado, el azar y la elección de tropa. Los dos lados toman el mismo
 # número por el mismo flag.
-snes-encuentro mapa="21" pasos="8" walk="up" grupo="11 12 13" cuadros="200" nombre="encuentro":
+encuentro mapa="21" pasos="8" walk="up" grupo="11 12 13" cuadros="200" nombre="encuentro":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --con-ventana --encuentros-de-prueba {{pasos}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   # La referencia dice en qué paso sale, contra qué tropa y con qué grupo se
   # pelea —que no es el del arranque: las páginas del mapa lo cambian mientras
@@ -2160,7 +2160,7 @@ snes-encuentro mapa="21" pasos="8" walk="up" grupo="11 12 13" cuadros="200" nomb
 # +0 y una sola aparece —la 10, una vez, en una página que ni siquiera se
 # dispara—. Un número viejo de esta pregunta mandó a hacer trabajo que no
 # existía; ahora se vuelve a sacar en un segundo.
-snes-destraba:
+destraba:
   python3 tools/destraba.py
 
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
@@ -2173,13 +2173,13 @@ snes-destraba:
 # del juego es rmg2000 y no ttyp0, que era lo que decía el camino del código que
 # leí. Las dos veces la ventana se veía perfectamente bien.
 #
-# No entra en `snes-hitos` y es a propósito: levanta un Xvfb, corre el juego
+# No entra en `hitos` y es a propósito: levanta un Xvfb, corre el juego
 # durante medio minuto y depende de EasyRPG bajado a /extras. Se corre a mano
 # cuando se toca la ventana o la fuente. El detalle está en `rom/easyrpg.sh`.
 #
 # Lo único que puede diferir sin ser un error es la flecha roja de "seguir" que
 # EasyRPG anima mientras espera al jugador, que nosotros no dibujamos.
-snes-oraculo mapa="145" segundos="20":
+oraculo mapa="145" segundos="20":
   #!/usr/bin/env bash
   set -euo pipefail
   rom/easyrpg.sh {{mapa}} {{segundos}}
@@ -2222,9 +2222,9 @@ snes-oraculo mapa="145" segundos="20":
 # referencia y la ROM se equivocan igual, la comparación da cero—, y acá el
 # tercero en discordia es el juego original.
 #
-#   just snes-mensaje 1        la primera página de mensaje del mapa 1
-#   just snes-mensaje 1 4 4    la quinta, agrandada cuatro veces
-snes-mensaje mapa="1" indice="0" escala="1":
+#   just mensaje 1        la primera página de mensaje del mapa 1
+#   just mensaje 1 4 4    la quinta, agrandada cuatro veces
+mensaje mapa="1" indice="0" escala="1":
   mkdir -p {{snes_pngs}}
   python3 tools/snes_mensaje.py --map-id {{mapa}} --indice {{indice}} \
       --escala {{escala}} -o {{snes_pngs}}/mensaje-{{mapa}}-{{indice}}.png
@@ -2297,7 +2297,7 @@ snes-mensaje mapa="1" indice="0" escala="1":
 #   97, y el `wait` del 137 dura 36. Los cuadros 20 y 88 son quieto después de
 #   un paso y de un giro, el 44 y el 100 a mitad de paso, el 150 adentro del
 #   `wait`, y el 400 asentado.
-snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="115" nombre="ruta" inicio="" frecuencia="8":
+ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="115" nombre="ruta" inicio="" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -2305,10 +2305,10 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120
   if [ -n "{{inicio}}" ]; then desde="--inicio {{inicio}}"; celda="--hero-tile {{inicio}}"; fi
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} $desde \
       --ruta-de-prueba {{ruta}} --frecuencia {{frecuencia}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   # Las referencias de todos los cuadros salen de una sola conversión, por lo
-  # mismo que las de los avances de snes-caminando.
+  # mismo que las de los avances de caminando.
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none $celda \
       --ruta-de-prueba {{ruta}} --frecuencia {{frecuencia}} --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
@@ -2331,7 +2331,7 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120
 # sea: los pasos del medio no pisan nada, el último sí. La ROM tenía la mitad
 # —miraba en todos— y la referencia la otra —no miraba en ninguno—.
 #
-# El mapa 70 es el de `snes-pisar`: la columna x = 12 es pasillo de (12,3) a
+# El mapa 70 es el de `pisar`: la columna x = 12 es pasillo de (12,3) a
 # (12,8) y el evento de contacto está en (12,4), con un cuadro de texto. Tres
 # casos, todos con el héroe plantado en (12,8):
 #
@@ -2346,10 +2346,10 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120
 #   después del tinte. La ROM lo descartaba; ahora lo encola.
 #
 # El desfasaje de arranque del mapa 70 es 43, medido barriendo contra la
-# referencia del cuadro 16: con 40 —el de `snes-pisar`, que nunca lo necesitó
+# referencia del cuadro 16: con 40 —el de `pisar`, que nunca lo necesitó
 # exacto porque el pad sostenido llega igual— el héroe queda tres cuadros atrás
 # y la pose no coincide.
-snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" arranque="115" nombre="ruta-pisa":
+ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" arranque="115" nombre="ruta-pisa":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -2357,7 +2357,7 @@ snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 2
       --inicio {{celda}} --con-ventana \
       --ruta-de-prueba {{ruta}} --pagina-de-prueba {{pagina}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --con-ventana \
@@ -2385,7 +2385,7 @@ snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 2
 # valor que rompa—, pero lo agarra la mitad de las veces y no cuesta nada. Con
 # la ROM sana, 20 de 20 dan el mismo cuadro.
 #
-# Son los mismos dos casos que `snes-mednafen` y por lo mismo: uno que tiñe
+# Son los mismos dos casos que `mednafen` y por lo mismo: uno que tiñe
 # desde un evento —CGRAM y el intérprete— y uno que camina —la RAM del control—.
 # No la reemplaza: mednafen no es un core de libretro, así que también prueba
 # que `tools/retro.py` no se esté equivocando parejo con los tres cores.
@@ -2396,7 +2396,7 @@ snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 2
 # clase de escritura que snes9x perdona; ahí ya nos mordió dos veces, con el
 # tinte aplicado mientras el PPU dibujaba.
 #
-# Va `snes-cerrar` y no `snes-ventana` porque cubre lo mismo y algo más: su
+# Va `cerrar` y no `ventana` porque cubre lo mismo y algo más: su
 # primer cuadro es la ventana dibujada, igual que allá, y el segundo es el
 # cierre. De paso trae `msg_abierto`, que es una variable de RAM que si nadie
 # pone en cero deja la página bloqueada para siempre —medido: sin su `stz`, el
@@ -2404,19 +2404,19 @@ snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 2
 #
 # Va por CORE y no por `just --set` porque las recetas se llaman entre ellas: la
 # variable de entorno cruza a los `just` de adentro y el `--set` no.
-snes-bsnes:
+bsnes:
   #!/usr/bin/env bash
   set -euo pipefail
-  CORE=bsnes just snes-evento 4 1 bsnes-evento
-  CORE=bsnes just snes-caminando 73 right 60 bsnes-73-right
-  CORE=bsnes just snes-cerrar 7 200 bsnes-cerrar
+  CORE=bsnes just evento 4 1 bsnes-evento
+  CORE=bsnes just caminando 73 right 60 bsnes-73-right
+  CORE=bsnes just cerrar 7 200 bsnes-cerrar
 
 # Que una espera espere de verdad, con una página inventada.
 #
 # El intérprete corre cuadro a cuadro desde que dejó de colapsar el tiempo, pero
 # **ninguna página del juego que compile tiene una espera**, así que ese camino
 # —el corazón del cambio— no lo ejercitaba nada. Es el mismo caso que
-# `snes-encima`, que existe porque ningún evento del juego llega a la prioridad
+# `encima`, que existe porque ningún evento del juego llega a la prioridad
 # 2: lo sintético es la entrada, no la comparación. Los dos lados corren el mismo
 # bytecode y se comparan como siempre, la ROM contra la referencia.
 #
@@ -2426,13 +2426,13 @@ snes-bsnes:
 # cada lado. Con margen a los dos lados eso no importa y la prueba sigue siendo
 # filosa: si la espera no esperara, a los 60 cuadros ya estaría teñida. Entre las
 # dos capturas hay 57247 pixeles de diferencia.
-snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
+espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --pagina-de-prueba {{espera}} 0 0 50 -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   for n in {{antes}} {{despues}}; do
     python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
         --pagina-de-prueba {{espera}} 0 0 50 --cuadros $n \
@@ -2447,7 +2447,7 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
   done
 
 # La pantalla de ranuras abierta por el save point —`OpenSaveMenu`— y el mapa
-# de vuelta al cerrarla. La página de prueba es la de `snes-espera` con
+# de vuelta al cerrarla. La página de prueba es la de `espera` con
 # `--guardar-de-prueba`: espera, abre la pantalla, y después tiñe.
 #
 # Cuatro cuadros:
@@ -2468,7 +2468,7 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
 #                       guarda y el mapa vuelve igual. Lo que quedó en la SRAM
 #                       lo mira `pruebas/test_guardar.py`, no esto.
 #
-# Los dos primeros van con `--sin-contador`, como `snes-titulo`: ahí no hay
+# Los dos primeros van con `--sin-contador`, como `titulo`: ahí no hay
 # tick que esperar. Los otros dos aprietan con `--toques-hardware`, que cuenta
 # cuadros de hardware desde el arranque, porque un toque por tick no puede caer
 # adentro de una pantalla que no cuenta ticks. La pantalla se abre en el cuadro
@@ -2480,14 +2480,14 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
 # cuadros —`cuadros_perdidos` lo cuenta— y la pantalla se enciende en el que
 # sigue. Por eso `vuelve` es 122 y no 121: el 121 sale negro. En RM2k el cierre
 # de la escena lleva una transición, así que no desentona.
-snes-guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
+guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --pagina-de-prueba {{espera}} 0 0 50 --guardar-de-prueba \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   abre=$(( {{espera}} + 10 ))
   python3 tools/titulo.py -o $pre.esperado.png --ranuras 4 --modo 1
@@ -2532,17 +2532,17 @@ snes-guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
 #                   `volver_al_mapa` reponga todo y que el B que cerró no lo
 #                   vuelva a abrir.
 #
-# Las dos primeras con `--sin-contador`, como `snes-guardar`: ahí no hay tick
+# Las dos primeras con `--sin-contador`, como `guardar`: ahí no hay tick
 # que esperar. Los toques van en cuadros de hardware. Lo que la tanda no puede
 # —un grupo y oro puestos, guardar desde el menú, los permisos, B a mitad de
 # un paso— lo mira `pruebas/test_menu.py`.
-snes-menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
+menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   grupo=$(echo {{grupo}} | tr ' ' ',')
   python3 tools/titulo.py -o $pre.esperado.png --menu $grupo
@@ -2578,14 +2578,14 @@ snes-menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
 #   items-vuelve-N  A usa la consola, que prende el switch 710 y vuelve derecho
 #                   al mapa, y el mapa del tick N contra la referencia. Que el
 #                   switch quede prendido lo mira `pruebas/test_items_pantalla.py`.
-snes-items mapa="73" abre="40" vuelve="60 120" nombre="items":
+items mapa="73" abre="40" vuelve="60 120" nombre="items":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   dar="81 1 1 13 17 1"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/titulo.py -o $pre.esperado.png --items 1:13,17:1,81:1
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
@@ -2624,14 +2624,14 @@ snes-items mapa="73" abre="40" vuelve="60 120" nombre="items":
 #                   del menú al mapa—, y el mapa del tick N contra la
 #                   referencia. Lo que equipar cambia en la RAM lo mira
 #                   `pruebas/test_equipo.py`.
-snes-equipo mapa="73" abre="40" vuelve="60 120" nombre="equipo":
+equipo mapa="73" abre="40" vuelve="60 120" nombre="equipo":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   dar="17 1 20 1"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   pre={{snes_pngs}}/{{nombre}}
   a=$(( {{abre}} + 12 ))
   python3 tools/pantallas.py -o $pre.esperado.png --equipo 11 --items 17:1,20:1
@@ -2680,21 +2680,21 @@ snes-equipo mapa="73" abre="40" vuelve="60 120" nombre="equipo":
 # están medidos con la fase rota a propósito, que es lo único que prueba que
 # miran algo:
 #
-#   snes-caminando 5 left "40 46 48 50"   el agua, que cambia en el tick 24 (46
+#   caminando 5 left "40 46 48 50"   el agua, que cambia en el tick 24 (46
 #                                         px): 18349 pixeles, 32% de la pantalla
-#   snes-caminando 3 down "54 56 58 60"   los tiles animados, que cambian en el
+#   caminando 3 down "54 56 58 60"   los tiles animados, que cambian en el
 #                                         tick 30 (58 px): 211 pixeles
 #
 # El mapa 3 no aporta agua aunque tenga 4899 celdas de autotile de agua: en
 # `Future1` los tres dibujos de esa zona son iguales, así que su corrida sale
 # vacía. Y el mapa 5 no aporta tiles animados porque no tiene ninguno. Hacen
 # falta los dos casos.
-snes-caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-" + direccion):
+caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-" + direccion):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   # Las referencias de todos los avances salen de una sola corrida, por lo
   # mismo que las de las cinco direcciones: convertir el mapa es lo caro y no
   # depende del avance.
@@ -2712,13 +2712,13 @@ snes-caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-"
 # Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
 # de la VRAM.
-snes-relevar desde="0":
+relevar desde="0":
   python3 tools/snes_survey.py --desde {{desde}}
 
 # Cuánto llega a caminar el héroe en cada mapa, con las mismas reglas que la
 # ROM. Sirve para elegir contra qué mapa probar el redibujado: uno enorme lleno
 # de paredes frena en la tercera celda y no prueba nada.
-snes-recorrido desde="66":
+recorrido desde="66":
   python3 tools/snes_recorrido.py --desde {{desde}}
 
 # La tanda de regresión: un mapa por cada cosa que puede romperse.
@@ -2765,7 +2765,7 @@ snes-recorrido desde="66":
 # casualidad.
 #
 # Los tres del final son las prioridades de objeto contra la capa de encima.
-# `snes-evento` ya deja al héroe tapado, pero entero —768 de 768 pixeles—, y un
+# `evento` ya deja al héroe tapado, pero entero —768 de 768 pixeles—, y un
 # héroe que no se dibujara en absoluto daría la misma pantalla. Los dos de la
 # celda (66,40) del mapa 1 son la misma escena con un solo bit distinto: ahí la
 # capa tapa 512 de 768, así que la silueta tiene que partirse en el lugar
@@ -2775,18 +2775,18 @@ snes-recorrido desde="66":
 #
 # El tercero es el único evento marcado "above" del juego: el Package del mapa
 # 261. Su prioridad no se puede ejercitar ahí —la capa de encima de ese mapa no
-# lo toca por dos pixeles, ver `snes-encima`—, pero sí el resto del camino: con
+# lo toca por dos pixeles, ver `encima`—, pero sí el resto del camino: con
 # el héroe en (59,2) los dos sprites se pisan, y el Package tiene que quedar
 # adelante aunque el héroe esté más abajo en la pantalla. Tratarlo como un NPC
 # común mueve 79 pixeles.
 #
 # Cuántos cuadros dura cada caminata no se elige: lo dice la referencia, que
-# camina celda por celda y sabe cuántas son. Ver `snes-caminando`.
+# camina celda por celda y sabe cuántas son. Ver `caminando`.
 #
-# La lista vive en rom/hitos.txt y no acá, para que ésta y snes-hitos-paralelo
+# La lista vive en rom/hitos.txt y no acá, para que ésta y hitos-paralelo
 # corran la misma: escrita dos veces, la que se olvide un caso sigue dando
 # verde y nadie se entera.
-snes-hitos:
+hitos:
   #!/usr/bin/env bash
   set -uo pipefail
   # Sin tilde a propósito: bash no admite acentos en los nombres de variable,
@@ -2812,7 +2812,7 @@ assets-medir que="todo":
 # Las pruebas de estado: se le pregunta a la ROM en qué mapa está, qué switch
 # tiene prendido, qué evento corre. No miran la pantalla.
 #
-# Son la otra mitad de la red y no un reemplazo de `snes-hitos`: ésta compara
+# Son la otra mitad de la red y no un reemplazo de `hitos`: ésta compara
 # pixeles contra la referencia de Python y cobra los errores de PPU —una paleta
 # mal repartida, una prioridad de OAM—; aquélla cobra los de lógica sin
 # depender de que la referencia esté bien, que es donde la comparación de
@@ -2856,7 +2856,7 @@ pruebas *args:
 #   viaja, así que la receta avisa si ve alguno.
 # * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
 #   no para que la tanda termine antes.
-snes-hitos-foto trabajos="4" donde="":
+hitos-foto trabajos="4" donde="":
   #!/usr/bin/env bash
   set -uo pipefail
   # **Cada corrida en su propio directorio.** El default era uno fijo, y la
@@ -2881,19 +2881,19 @@ snes-hitos-foto trabajos="4" donde="":
   git worktree remove --force "$donde" 2>/dev/null || true
   git worktree add --detach "$donde" "$foto" >/dev/null
   echo "foto $foto -> $donde"
-  ( cd "$donde" && just snes-hitos-paralelo {{trabajos}} )
+  ( cd "$donde" && just hitos-paralelo {{trabajos}} )
   estado=$?
   git worktree remove --force "$donde" 2>/dev/null || true
   rmdir "$(dirname "$donde")" 2>/dev/null || true
   echo "la foto era $foto; para ver qué se agregó encima: git diff $foto"
   exit $estado
 
-snes-hitos-paralelo trabajos="4":
+hitos-paralelo trabajos="4":
   #!/usr/bin/env bash
   set -uo pipefail
   mkdir -p rom/build
   # Por xargs viajan números de línea y no los casos. xargs procesa comillas y
-  # se come las de `snes-evento 4 "7 19 1" tabla`, que entonces le llega a just
+  # se come las de `evento 4 "7 19 1" tabla`, que entonces le llega a just
   # como seis argumentos sueltos; el caso se cae y la tanda sigue con uno menos.
   # Pasando el número y releyendo la línea adentro, el texto no cruza nunca el
   # quoting de xargs.
@@ -2929,11 +2929,11 @@ snes-hitos-paralelo trabajos="4":
 # paletas, reuso y espejados. Lo único que cambia es dónde termina el héroe y
 # dónde queda la cámara. Medido en el mapa 52: 71,6 s de a una contra 15,0 s
 # todas juntas, con los PNG y los archivos de --saltar idénticos.
-snes-heroe mapa="7":
+heroe mapa="7":
   #!/usr/bin/env bash
   set -euo pipefail
-  just snes-convert {{mapa}}
-  just snes-build
+  just convert {{mapa}}
+  just build
   # La referencia va primero porque es la que dice cuántos cuadros dura cada
   # caminata: sabe cuántas celdas se recorren, y el paso son ocho cuadros. Antes
   # el orden daba igual, porque el emulador corría un número de segundos
@@ -2962,17 +2962,17 @@ _tecla direccion:
 # del mapa, así que dónde tiene que quedar no se estima: es exactamente
 # CAM_MAX_X y CAM_MAX_Y, que salen del tamaño del mapa. Si la ROM se moviera de
 # más, de menos, o no frenara, la comparación falla.
-snes-mapa mapa="7" cuadros="300":
-  just snes-convert {{mapa}}
-  just snes-build
-  just snes-shot {{mapa}}-centro {{cuadros}}
-  just snes-compare {{mapa}}-centro 0 0
-  just snes-shot {{mapa}}-derecha {{cuadros}} "Right"
-  just snes-compare {{mapa}}-derecha $(just _cam-x) 0
-  just snes-shot {{mapa}}-abajo {{cuadros}} "Down"
-  just snes-compare {{mapa}}-abajo 0 $(just _cam-y)
-  just snes-shot {{mapa}}-esquina {{cuadros}} "Right Down"
-  just snes-compare {{mapa}}-esquina $(just _cam-x) $(just _cam-y)
+mapa mapa="7" cuadros="300":
+  just convert {{mapa}}
+  just build
+  just shot {{mapa}}-centro {{cuadros}}
+  just compare {{mapa}}-centro 0 0
+  just shot {{mapa}}-derecha {{cuadros}} "Right"
+  just compare {{mapa}}-derecha $(just _cam-x) 0
+  just shot {{mapa}}-abajo {{cuadros}} "Down"
+  just compare {{mapa}}-abajo 0 $(just _cam-y)
+  just shot {{mapa}}-esquina {{cuadros}} "Right Down"
+  just compare {{mapa}}-esquina $(just _cam-x) $(just _cam-y)
 
 # Los topes de la cámara salen del .inc que generó el conversor, así que las
 # recetas no repiten números que dependen del mapa.
@@ -2990,14 +2990,14 @@ _cam-y:
 # El `--arranque 150` no es un número medido sino un piso: BOOT_CUADROS son 112
 # y el título se dibuja en la vuelta siguiente, así que cualquier cosa desde
 # ahí muestra lo mismo. La pantalla está quieta hasta que alguien apriete algo.
-snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
+titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}} {{snes_dir}}/sintitulo
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mapas {{mapas}} --con-ventana --con-titulo \
       -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   # Dos cuadros: el menú como se entra, y el cursor una opción más abajo.
   # El segundo no es un adorno: es lo único que ejercita el DMA que sube el
   # otro tilemap, que es como está hecho el cursor. Y de paso cobra que
@@ -3084,7 +3084,7 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
 # sin música y sin cámara. La referencia hace lo mismo, así que no es un bug de
 # la ROM: es una demo mal armada. Pasó el 2026-09-10, armándolas a mano con el
 # `grupo` del justfile; por eso ahora son una receta y el número está escrito
-# acá. `snes-cinematica` usa el 10 por la misma razón.
+# acá. `cinematica` usa el 10 por la misma razón.
 #
 # Con cronómetro, para hacerle lugar al rojo de los dígitos; ver "Lashe City" en
 # ESTADO.md. Desde el 2026-09-10 llevan también Lashe City Interiors (10) y
@@ -3115,7 +3115,7 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
 #                          sprite, y los 64 KB no alcanzan para los dos más la
 #                          ventana. Y la elección del 36 es una sola página:
 #                          o compilan los cuatro destinos o no compila ninguno.
-snes-demo nombre="demo-ciudad" titulo="":
+demo nombre="demo-ciudad" titulo="":
   #!/usr/bin/env bash
   set -euo pipefail
   titulo="{{titulo}}"
@@ -3190,10 +3190,10 @@ snes-demo nombre="demo-ciudad" titulo="":
 # medido hoy— está en `KEY_INPUT_PROC` en eventos.py. De las 46 páginas del
 # mapa 49 compilan **45** desde el 2026-09-13: la única que no es ésa.
 #
-# Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
+# Aparte de `demo` porque el mapa inicial es otro y porque no comparte un
 # solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
 # tiene la lista escrita a mano.
-snes-demo-carrera nombre="demo-carrera":
+demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
@@ -3220,7 +3220,7 @@ snes-demo-carrera nombre="demo-carrera":
 # de la tanda.
 #
 # `--grupo 14` es Talan, igual que en la carrera y en las piedras.
-snes-demo-vipers nombre="demo-vipers":
+demo-vipers nombre="demo-vipers":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 14 \
       --con-ventana --con-timer \
@@ -3243,11 +3243,11 @@ snes-demo-vipers nombre="demo-vipers":
 # vez —que lo gira sin moverlo, porque la reja no se pisa— y después A.
 #
 # `--grupo 14` es Talan, que es con quien el juego llega hasta acá, igual que
-# en `snes-demo-carrera`. Con el grupo de pruebas el héroe sería Kersh.
+# en `demo-carrera`. Con el grupo de pruebas el héroe sería Kersh.
 #
-# Aparte de `snes-demo` por lo mismo que la carrera: el mapa inicial es otro y
+# Aparte de `demo` por lo mismo que la carrera: el mapa inicial es otro y
 # la lista de mapas no se parece en nada.
-snes-demo-piedras nombre="demo-piedras":
+demo-piedras nombre="demo-piedras":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
       --con-ventana --con-timer --inicio 26 52 \
@@ -3269,7 +3269,7 @@ snes-demo-piedras nombre="demo-piedras":
 # con ésta, a ninguno.
 #
 # `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
-snes-demo-cofres nombre="demo-cofres":
+demo-cofres nombre="demo-cofres":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
       --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
@@ -3282,8 +3282,8 @@ snes-demo-cofres nombre="demo-cofres":
 # para escuchar su tema sin tener que caminar hasta ahí. Nació de los dos
 # defectos de audio que taro reportó jugando en la SNES el 2026-09-13.
 #
-#   just snes-musica 20 wb3shop
-#   just snes-musica 20 wb3shop banco-entero
+#   just musica 20 wb3shop
+#   just musica 20 wb3shop banco-entero
 #
 # Los cinco que taro señaló, con el mapa donde suenan y cuánto les sobrevive:
 #
@@ -3313,7 +3313,7 @@ snes-demo-cofres nombre="demo-cofres":
 # temas del final de la lista no aportan ninguna muestra y se les caen del
 # stream las notas cuyo programa no está —del 28% al 88%, medido—; con él no se
 # le cae ninguna nota a nadie y lo que baja es la resolución de todas.
-snes-musica mapa tema banco="":
+musica mapa tema banco="":
   #!/usr/bin/env bash
   set -euo pipefail
   nombre="musica-{{mapa}}-{{tema}}{{ if banco == "" { "" } else { "-banco-entero" } }}"
@@ -3350,7 +3350,7 @@ snes-musica mapa tema banco="":
 # porqué está en `main.s`, en el `APU_CMD_IPL` que `reset` manda antes de
 # `spc_upload`. Lleva también el mapa 26 para poder seguir a
 # los Rat Tracks B2 y probar de paso el jefe, que pierde igual.
-snes-demo-trampa nombre="demo-trampa":
+demo-trampa nombre="demo-trampa":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
       --con-ventana --con-timer --inicio 22 36 \
@@ -3360,34 +3360,34 @@ snes-demo-trampa nombre="demo-trampa":
       --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # Las dos de una vez.
-snes-demos:
-  just snes-demo demo-ciudad
-  just snes-demo demo-titulo 1
+demos:
+  just demo demo-ciudad
+  just demo demo-titulo 1
 
 # Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
 # —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
-# `snes-demo` porque no hace falta para jugar: sin estos archivos la ROM suena
+# `demo` porque no hace falta para jugar: sin estos archivos la ROM suena
 # como siempre, por el SPC700. Y porque es cara —renderiza el MIDI con
 # fluidsynth y normaliza en Python— y pesa: son 10,6 MB por minuto de música.
 #
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
 # el MSU-1 no se enciende.
-snes-msu nombre="demo-ciudad":
+msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
-# La música de un mapa a mano. Normalmente no hace falta: `snes-convert` ya la
+# La música de un mapa a mano. Normalmente no hace falta: `convert` ya la
 # genera junto con el mapdata, que es lo que garantiza que los dos describan la
 # misma ROM. Esto queda para mirar un tema suelto sin armar nada más.
-snes-music mapa="67":
+music mapa="67":
   mkdir -p {{snes_inc}}
   python3 tools/snes_music.py --map-id {{mapa}} -o {{snes_inc}}/musicdata.inc
 
 # Corre la ROM sin pantalla, graba el audio y compara lo que suena contra el
 # MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
-snes-check mapa="67" segundos="60" tema="":
+audio-check mapa="67" segundos="60" tema="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -3403,17 +3403,17 @@ snes-check mapa="67" segundos="60" tema="":
 # sino que **sus notas salgan del banco compartido**: los índices de muestra
 # que su stream escribe son los del banco de todos, no los de uno propio.
 #
-# `--tema-de-arranque` está para esto: `snes-check` escucha desde el arranque,
+# `--tema-de-arranque` está para esto: `audio-check` escucha desde el arranque,
 # y los mapas de las primeras secuencias no traen música propia —la prende un
 # `PlayBGM`—, así que sin el flag la ROM sale callada y no hay qué medir. El
 # flag no toca el bytecode: es el mismo stream, prendido antes.
-snes-bgm tema="escape_newyork" mapa="4" mapas="1 2 3" segundos="40":
+bgm tema="escape_newyork" mapa="4" mapas="1 2 3" segundos="40":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --con-ventana \
       --mapas {{mapas}} --tema-de-arranque {{tema}} -o {{snes_inc}}/mapdata.inc
-  just snes-build
+  just build
   rom/record.sh {{snes_rom}} {{snes_pngs}}/bgm-{{tema}}.wav {{segundos}}
   python3 tools/snes_check.py {{snes_pngs}}/bgm-{{tema}}.wav \
       --map-id {{mapa}} --tema {{tema}}
@@ -3421,7 +3421,7 @@ snes-bgm tema="escape_newyork" mapa="4" mapas="1 2 3" segundos="40":
 # El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
 # salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto
 # de lo que falta es culpa nuestra y cuánto es de la medición.
-snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
+referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   fluidsynth -F rom/shots/referencia.wav -r 48000 \
       "{{banco}}" \
@@ -3429,9 +3429,9 @@ snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth
   python3 tools/snes_check.py rom/shots/referencia.wav --map-id {{mapa}}
 
 # Todo junto: convertir, compilar y verificar.
-snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
+audio mapa="67": (music mapa) build (audio-check mapa)
 
 # La ROM en una ventana, con sonido. Va en el host: acá adentro no hay
 # dispositivo de audio, y el ALSA propio de mednafen abre hw:0.
-snes-play:
+play:
   mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl {{snes_rom}}

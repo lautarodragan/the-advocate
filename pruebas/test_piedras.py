@@ -45,7 +45,7 @@ from render_map import GAME_DIR                              # noqa: E402
 # El mapa solo: el minijuego no sale de ahí y armar el cartucho es lo caro.
 MAPAS = (11, [])
 # Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
-# mirando hacia arriba. Es la misma celda que usa `just snes-demo-piedras`.
+# mirando hacia arriba. Es la misma celda que usa `just demo-piedras`.
 DEBAJO_DE_LA_REJA = (26, 52)
 REJA = (26, 51)
 # El evento que hace de piedra, y dónde lo deja el mapa antes de que nadie lo

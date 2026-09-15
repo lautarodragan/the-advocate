@@ -4,7 +4,7 @@ El save point de Lashe City —`SaveByTalansPad0`, el evento 67 del mapa 8— pi
 `OpenSaveMenu`, y eso abre la pantalla de ranuras adentro del intérprete: se
 elige una con el cursor, se guarda ahí y la página sigue. Lo que se guarda lo
 dice `partida_tabla` en `main.s`; cómo se ve la pantalla lo cobra
-`just snes-guardar`.
+`just guardar`.
 
 Esto no lo puede cubrir la tanda de pixeles: guardar no cambia un pixel. Lo que
 se mira acá es lo único que importa —que lo guardado sobreviva a apagar la

@@ -116,7 +116,7 @@ class Reloj:
             # Todavía no corrió ni un cuadro, así que el reset tampoco: la RAM
             # es la basura con que arranca el emulador —snes9x la llena de
             # $55— y el contador leería 21845. Pasa con `--arranque 0`, que es
-            # como corre `snes-espera`.
+            # como corre `espera`.
             consola.correr(1)
         self.direccion = None
         # Los cuadros corridos, para el respaldo: **bsnes no expone la WRAM**
@@ -302,7 +302,7 @@ def main():
     # `RETRASO_DE_PANTALLA` restado—, así que vale en el camino de las escenas
     # sin sacarlo del lazo de `correr_con_a`. Ver su ayuda. Vale en los dos
     # caminos igual: un flag que se ignore calladito en uno de los dos es como
-    # se dejó un caso en verde que no apretaba nada, ver `snes-tecla`.
+    # se dejó un caso en verde que no apretaba nada, ver `tecla`.
     cuando, cuando_hw, tocar = {}, {}, {}
     for lista, donde, flag in ((args.toques, cuando, "--toques"),
                                (args.toques_hardware, cuando_hw,
@@ -320,7 +320,7 @@ def main():
         consola.correr(args.arranque)
         reloj = Reloj(consola, args.rom, not args.sin_contador)
         sostenidos = tuple(args.teclas or ())
-        # Y `--apretar-a`, que este camino **ignoraba**: `snes-escena` le pasa
+        # Y `--apretar-a`, que este camino **ignoraba**: `escena` le pasa
         # los dos flags cuando la escena tiene toques, y `savepoint-guarda`
         # nunca apretó el A que abre el save point. Pasaba igual porque
         # guardar no cambia un pixel, y el B del cuadro 40 caía en el mapa sin
@@ -354,7 +354,7 @@ def main():
     # RETRASO_DE_PANTALLA, el mismo +1 de la caminata— así que para que su
     # cuadro N salga cerrado el flanco tiene que caer en la vuelta N-1: el pad
     # se aprieta un cuadro antes. Con los cuadros quietos que miraba
-    # `snes-cerrar` esto no se veía; se vio en la apertura, con el droide
+    # `cerrar` esto no se veía; se vio en la apertura, con el droide
     # caminando después del cuarto mensaje un cuadro atrás de la referencia.
     presiones = {n - RETRASO_DE_PANTALLA for n in args.apretar_a or ()}
 

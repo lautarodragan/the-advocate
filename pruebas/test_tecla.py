@@ -1,6 +1,6 @@
 """`KeyInputProc`: la página se para hasta que el jugador aprieta la tecla.
 
-La tanda de pixeles lo cubre en `snes-tecla`, que es lo que vale: ahí el cuadro
+La tanda de pixeles lo cubre en `tecla`, que es lo que vale: ahí el cuadro
 en que la pantalla se tiñe es el cuadro en que se apretó. Lo que se mira acá es
 lo que un pixel no dice: **qué número quedó en la variable**, que es lo que las
 páginas del juego leen después con un `ConditionalBranch`, y que la variable

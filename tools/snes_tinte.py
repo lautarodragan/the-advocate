@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verifica el tinte de la consola contra la cuenta de Python, sin referencia.
 
-Es una segunda opinión sobre `snes-evento`, y mide otra cosa. Aquella compara
+Es una segunda opinión sobre `evento`, y mide otra cosa. Aquella compara
 la consola contra el render de Python, o sea contra un camino entero: mapa,
 paleta, sprites y evento. Esta toma dos capturas de la *misma* consola —una sin
 teñir y otra teñida— y pregunta sólo si la transformación de una a la otra es

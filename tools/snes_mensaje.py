@@ -11,8 +11,8 @@ Es la única forma de salir del agujero de siempre: si la referencia y la ROM se
 equivocan igual, la comparación da cero. Una captura del juego original es el
 tercero en discordia.
 
-    just snes-mensaje 1          la primera página de mensaje del mapa 1
-    just snes-mensaje 1 4        la quinta
+    just mensaje 1          la primera página de mensaje del mapa 1
+    just mensaje 1 4        la quinta
 """
 import argparse
 import os

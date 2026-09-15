@@ -840,7 +840,7 @@ def notas_que_suenan(leido, banco):
 def build_nombre(name, game_dir=GAME_DIR):
     """Un tema solo, con el banco armado nada más que para él.
 
-    Queda para `snes-music` y `snes-check`, que miran un tema suelto. La ROM no
+    Queda para `music` y `audio-check`, que miran un tema suelto. La ROM no
     pasa por acá desde que lleva varios: ver `build_varios`.
     """
     driver, samples, temas, _banco, _afuera = build_varios([name], game_dir)

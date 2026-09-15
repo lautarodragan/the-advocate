@@ -108,7 +108,7 @@ imágenes"— pero **fuera de la tanda**, que con visión sería demasiado cara.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando
 vuelta a vuelta.
 
-Al 2026-09-15: `just snes-hitos-foto` son **170 casos, todos en verde**, y
+Al 2026-09-15: `just hitos-foto` son **170 casos, todos en verde**, y
 `just pruebas` **177 en verde y 1 `xfail`**. El `xfail` no es adorno, y desde
 el 2026-09-13 se sabe de quién es: es un defecto de la **página de prueba** de
 guardado y no del juego. Está abajo, en "Lo que la tanda no cubre".
@@ -123,7 +123,7 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **350 de 489** —medido el
-2026-09-15 con `just snes-destraba`; el 332 que decía acá y el 281 y el 314 que
+2026-09-15 con `just destraba`; el 332 que decía acá y el 281 y el 314 que
 decía el README eran los tres viejos—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
 eran 5170 antes de las dos preguntas de actor de una rama, y 5016 antes de la
 clase 6 de `ControlVars`. El 5156 que decía acá era de antes del merge
@@ -293,7 +293,7 @@ refactors: **no hay features hasta que cierre**.
    junto con él y no antes, porque hacerla antes es escribir el empaquetado de
    bancos dos veces.
 
-   Con eso se van `snes-validar`, `tools/w65_check.py` y
+   Con eso se van `audio-validar`, `tools/w65_check.py` y
    `tools/w65_coverage.py`: sin dos cadenas no hay nada que comparar. taro no
    compra el valor del oráculo —con goldens, md5 y sus pruebas a mano, una
    regresión drástica se ve igual— y hay evidencia a favor: esa receta estaba
@@ -505,7 +505,7 @@ de cada una está en `README.md`.
   tile del chipset y, desde la orden 34, para los gráficos a los que una ruta
   cambia: ahí la orden esconde al evento en vez de cambiarlo. Forzarlos rompía
   tres mapas —el 108, el 114 y el 207—.
-* **La tanda se corre sobre una foto del árbol.** `just snes-hitos-foto` la
+* **La tanda se corre sobre una foto del árbol.** `just hitos-foto` la
   saca con `git stash create` y la corre en un worktree de `/extras`, así que
   editar mientras corre dejó de ser un problema. El riesgo que queda no es de
   git sino de cabeza —si la tanda sale en rojo con otro cambio ya encima, hay
@@ -743,7 +743,7 @@ entera del Emitter Room. Lo que la tanda no mira:
   toques hay que dejar treinta cuadros desde que el mensaje se abre, no veinte:
   con veinte, el toque del cuadro 1976 llegó **uno** antes de tiempo.
 
-* **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
+* **El audio.** `just bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
   demo pasaron el 2026-09-06 —96%, 98%, 83% y 90%—, pero eso hay que volver a
   correrlo a mano.
@@ -768,7 +768,7 @@ entera del Emitter Room. Lo que la tanda no mira:
 
 * **La RAM sin inicializar, del todo.** `snes9x` —con el que corre casi toda la
   tanda— deja siempre la misma basura, así que una variable que nadie
-  inicializa da verde. Lo mitigan `snes-mednafen` y `snes-bsnes`, que corren
+  inicializa da verde. Lo mitigan `mednafen` y `bsnes`, que corren
   con la WRAM llena de basura al encender, pero la detección es
   **probabilística**: con un error de esta clase puesto a mano, el cuadro sale
   mal 11 corridas de 20. Si molesta, la salida es correr el caso de bsnes
@@ -781,7 +781,7 @@ entera del Emitter Room. Lo que la tanda no mira:
   título, y dos más; **tres los encontró taro jugando, con la tanda en verde**.
   El caso extremo quedó medido: sacando el `jsr ppu_init` que arregla el
   segundo, snes9x sigue dando **cero pixeles de diferencia**. Lo mitigan
-  `snes-mednafen` y `snes-bsnes`, y el reset de snes9x **no borra la WRAM**, así
+  `mednafen` y `bsnes`, y el reset de snes9x **no borra la WRAM**, así
   que una prueba que dependa de que algo no sobreviva a un reinicio tiene que
   ensuciarla a mano.
 
@@ -849,7 +849,7 @@ al borrarlo.
 Mudado del README el 2026-09-15: es lo que está a medias, o sea de este
 archivo. Lo derivable no está acá y no debería volver: qué comandos se aceptan
 sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/eventos.py`, y cuánto
-destraba cada uno, `just snes-destraba`.
+destraba cada uno, `just destraba`.
 
 * **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
   compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
@@ -868,7 +868,7 @@ destraba cada uno, `just snes-destraba`.
   acordado con taro el 2026-09-11, **no** es un secuenciador en el SPC700 como
   los de los juegos comerciales, sino uno chico que lea el mismo stream de hoy
   desde un buffer circular en la ARAM, a su propio ritmo, y que el 65816 sólo
-  mantenga lleno. El conversor y `snes-check` no cambian, y los efectos de
+  mantenga lleno. El conversor y `audio-check` no cambian, y los efectos de
   sonido pasarían allá también. Se encara cuando haga falta el margen del lazo,
   o si en la consola el audio muestra algo que el emulador no.
 * **El sistema de imágenes, más allá del cartel.** La ROM dibuja **un**
@@ -996,9 +996,9 @@ destraba cada uno, `just snes-destraba`.
   puertos en vez de uno, en cambio, se acorta el arranque, que hoy es
   `BOOT_CUADROS`, dimensionado para una ARAM llena.
 
-  Y un efecto que conviene tener presente: `snes-check` compara el audio contra
+  Y un efecto que conviene tener presente: `audio-check` compara el audio contra
   el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
-  nombrarlo. Para eso está `just snes-bgm <tema>`.
+  nombrarlo. Para eso está `just bgm <tema>`.
 
 * **La cinemática de apertura, entera.** Corre con ventana
   —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y `escape_newyork`
@@ -1012,7 +1012,7 @@ destraba cada uno, `just snes-destraba`.
   el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero.** Cuántas de las páginas automáticas con
   comandos compilan enteras, y cuántas destrabaría cada comando que falta, lo
-  imprime **`just snes-destraba`**, y ése es el único lugar del que hay que
+  imprime **`just destraba`**, y ése es el único lugar del que hay que
   sacarlo: los números que estuvieron escritos acá envejecieron sin avisar, y
   llegaron a contradecirse entre sí en dos archivos del repo.
 

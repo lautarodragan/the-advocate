@@ -1,7 +1,7 @@
 """La batalla por turnos: los HP, el daño, el orden de turnos y por dónde sigue
 la página.
 
-Es la mitad de la red que la tanda de pixeles no puede cubrir. `snes-batalla`
+Es la mitad de la red que la tanda de pixeles no puede cubrir. `batalla`
 compara **la pantalla** contra `pantallas.pantalla_batalla` y no puede hacer
 más: la pelea bloquea adentro del intérprete y no cuesta ningún tick, así que
 del lado de `snes_expect.py` no hay nada dibujado —ver `OP_BATTLE` en
@@ -20,7 +20,7 @@ Las dos peleas de la intro, medidas el 2026-09-12:
 
 La segunda no es culpa de la batalla: su página la corta un `MoveEvent` con la
 orden de ruta 9 —"hacia el héroe"—, que la ROM no camina. Por eso la tropa de
-cuatro enemigos la ejercita `just snes-batalla`, con la página de prueba.
+cuatro enemigos la ejercita `just batalla`, con la página de prueba.
 """
 
 import os
@@ -80,7 +80,7 @@ class Pelea:
     """La pelea de la consola, manejada por cuadros de hardware.
 
     Por cuadros y no por ticks porque **el reloj del juego no corre mientras se
-    ve**: es lo mismo que hace `snes-guardar` con la pantalla de ranuras, y lo
+    ve**: es lo mismo que hace `guardar` con la pantalla de ranuras, y lo
     que le da sentido a que la referencia diga que una batalla no cuesta ningún
     tick.
     """

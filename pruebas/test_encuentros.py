@@ -254,7 +254,7 @@ def test_el_area_tapa_con_el_rectangulo_semiabierto(juego):
 
 
 def test_el_paso_ocho_del_caso_de_la_tanda(juego):
-    """El caso `snes-encuentro`, del lado de la referencia.
+    """El caso `encuentro`, del lado de la referencia.
 
     Si esto cambia —otra semilla, otra cuenta— el caso de la tanda pasa a
     comparar contra otra tropa y hay que rehacer su línea de `hitos.txt`. Vale

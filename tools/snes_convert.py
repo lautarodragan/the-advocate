@@ -1817,7 +1817,7 @@ LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x6000, 128),
 
 # Y el tercero sin ventana, que es el hermano de `LAYOUT_VENTANA_SPRITE`: cambia
 # tiles de fondo por tiles de sprite. Lo pidió el mismo mapa, el 17, cuando
-# `snes-heroe 17` lo armó sin ventana: **444 tiles de sprite** contra los 384
+# `heroe 17` lo armó sin ventana: **444 tiles de sprite** contra los 384
 # del reparto ancho. El comentario de arriba decía que sin ventana `sprites` no
 # se mira porque el que más gasta usa 380; el 17 rompió ese número.
 #
@@ -2088,7 +2088,7 @@ def convert_ventana(sys_img, font_id=None):
     """La ventana de mensaje: tiles, paleta, celdas y lo que la fuente necesita.
 
     La imagen la arma `ventana.py`, que sigue las reglas de easyrpg-player y
-    está verificada contra una captura del juego original: ver `snes-oraculo`.
+    está verificada contra una captura del juego original: ver `oraculo`.
     Acá se la corta en celdas de 8x8 y se separa lo fijo de lo que la ROM
     compone.
 
@@ -3010,7 +3010,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     rearmar acá: dos mapas cuyos eventos compilan a los mismos bytes comparten
     el bloque y la etiqueta no lleva el número de este mapa. Rearmarla era lo
     que hacía —`"evcodigo_%d" % numero`— y al encender la deduplicación la
-    tanda lo cobró enseguida: `snes-varios` no ensamblaba porque nombraba un
+    tanda lo cobró enseguida: `varios` no ensamblaba porque nombraba un
     `evcodigo_2` que ya no existía.
 
     No pasa por `bloque()` porque sus punteros son simbólicos: apuntan adentro
@@ -3539,7 +3539,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; La capa del héroe, para ordenarlo contra los NPCs.\n"
         "HERO_LAYER  = %d\n"
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
-        "; toda ROM que no sea la de `snes-encima`, que la sube a $20\n"
+        "; toda ROM que no sea la de `encima`, que la sube a $20\n"
         "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
         "; a ejercitarla: ver 'Cómo se verifica' en README.md.\n"
         "HERO_PRIORITY = $%02X\n"
@@ -4397,7 +4397,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `item_actores` va también fuera del banco 0 —se lee con
         # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
         # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
-        # 2026-09-13 `just snes-demo demo-ciudad` cortaba con "el área no
+        # 2026-09-13 `just demo demo-ciudad` cortaba con "el área no
         # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
         # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
         # así que el ciclo de más del direccionamiento largo no se nota.
@@ -5584,7 +5584,7 @@ def main():
     parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
                         help="hace que la ROM arranque tocando ese tema en vez\n"
                              "del que le toca al mapa. Existe para poder\n"
-                             "verificar cada tema del cartucho con snes-check,\n"
+                             "verificar cada tema del cartucho con audio-check,\n"
                              "que escucha desde el arranque: los mapas donde\n"
                              "esto empieza no traen música propia y sin el flag\n"
                              "la ROM sale callada. No cambia el bytecode")
@@ -6010,7 +6010,7 @@ def main():
         #
         # Un `Teleport` a un mapa que no entró corta la página entera, y una
         # página que no compila no hace **nada**: ni el teletransporte ni lo que
-        # venía antes. `snes-evento` lo dice en su comentario desde siempre,
+        # venía antes. `evento` lo dice en su comentario desde siempre,
         # pero el conteo de arriba no distingue esta razón de las otras por las
         # que una página se cae, y es la única que se arregla desde afuera
         # —sumando el mapa— y no tocando el compilador. Así se pasó por alto la

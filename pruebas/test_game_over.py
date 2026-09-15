@@ -239,7 +239,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 RAT_TRACKS_B1 = 21
 # Cada cuántos pasos sale un encuentro, en vez de los 80 que dice el árbol:
 # con los de verdad la prueba caminaría minutos. Es `--encuentros-de-prueba`,
-# el mismo que usa el caso `snes-encuentro` de la tanda.
+# el mismo que usa el caso `encuentro` de la tanda.
 PASOS = 8
 # El grupo de la intro, que **gana** las peleas de ese mapa en un turno: es lo
 # que hace que el control no dependa de ningún tiro de dado. Medido el

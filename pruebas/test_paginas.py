@@ -49,7 +49,7 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     """El KeyChest del mapa 133: la primera página pide la variable 123 >= 8,
     la segunda un switch y la tercera un ítem. La tabla lleva la ranura, la
     comparación y el valor de la primera, nada en la segunda, y el ítem en la
-    tercera. Que la ROM elija con eso lo cobra `snes-vars 133 ... cofre` en
+    tercera. Que la ROM elija con eso lo cobra `vars 133 ... cofre` en
     rom/hitos.txt."""
     eventos.indexar_variables(GAME_DIR)
     paginas = paginas_de(133, 2)

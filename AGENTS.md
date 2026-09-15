@@ -25,7 +25,7 @@ código no lo lee nadie cuando hace falta.
 32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
 ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
 va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
-compilan es `just snes-destraba`, cuántos casos pasan es `just snes-hitos`,
+compilan es `just destraba`, cuántos casos pasan es `just hitos`,
 cuánto pesa el cartucho lo dice el build.
 
 El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
@@ -168,7 +168,7 @@ intérprete de eventos: ahí no había con qué comparar.
 **Decir "verificado" obliga a nombrar qué se corrió.** El commit `c64e4d9`
 decía "Verificado: mapas 7 y 4 en cero" sobre un camino que ninguna prueba
 ejecutaba, y detrás había tres errores encadenados. Si un camino nuevo no lo
-cubre `snes-hitos`, el mensaje tiene que decirlo con todas las letras.
+cubre `hitos`, el mensaje tiene que decirlo con todas las letras.
 
 ## Dónde corre esto
 
@@ -182,7 +182,7 @@ acá queda escrito en su disco. El resto del sistema es descartable, y por eso
 Lo que el contenedor cambia en la práctica:
 
 * **No hay podman adentro.** Las recetas que lo usan —todo el port a Mega
-  Drive, y `snes-validar`— van desde el host. El justfile lo aclara en cada
+  Drive, y `audio-validar`— van desde el host. El justfile lo aclara en cada
   una.
 * **`.git/config` y `.git/info` están montados de sólo lectura**, y
   `.git/hooks` es un tmpfs vacío: `git config` falla y ningún hook corre.
@@ -208,7 +208,7 @@ con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
-internet en la misma caja donde vive el repo: `snes-validar` corría `ca65` en un
+internet en la misma caja donde vive el repo: `audio-validar` corría `ca65` en un
 podman aparte, desde el host. taro dio esa regla por caduca —venía de cuando
 cada comando se envolvía en su propio contenedor— así que `cc65` se clonó y se
 compiló en `/extras/ref/cc65`, y los binarios están enlazados en
@@ -249,7 +249,7 @@ rinda tenerlo. Una receta por cada script convertiría al justfile en ruido.
 
 **Receta de `just`** cuando se va a volver a correr: si entra en una cadena de
 verificación, si conviene que quede escrito cómo se armó algo, o si taro lo va
-a correr desde el host. `snes-evento` nació así, y de paso dejó de existir la
+a correr desde el host. `evento` nació así, y de paso dejó de existir la
 ROM armada a mano que mandó a mirar el mapa equivocado.
 
 **Script descartable** cuando contesta una pregunta de una sola vez: cuántos
@@ -258,7 +258,7 @@ y se tira.
 
 ## Trampas del entorno
 
-**`rom/src/mapdata.inc` es estado global.** Lo pisa cualquier `snes-convert`,
+**`rom/src/mapdata.inc` es estado global.** Lo pisa cualquier `convert`,
 y no está en git. Una ROM ensamblada a mano se lleva los datos del último mapa
 que se haya convertido, aunque el código sea el correcto: así se terminó
 mirando el mapa 6 creyendo que era la demo del hito 12. **Las ROMs salen de una
@@ -285,7 +285,7 @@ byte iguales. Ver `tools/cache_disco.py`.
 recompila desde `main.s`, así que editarlo a mitad de camino mezcla dos
 versiones y el resultado no dice nada.
 
-Para no tener que acordarse, está **`just snes-hitos-foto`**: saca una foto del
+Para no tener que acordarse, está **`just hitos-foto`**: saca una foto del
 árbol con `git stash create` —incluye lo que no está commiteado—, la pone en un
 worktree en `/extras` y corre la tanda ahí, así que se puede seguir editando.
 Cuesta 0,034 s y 19 MB, y al terminar imprime el hash de la foto, que es lo que
@@ -294,13 +294,13 @@ trackear **no** entran en la foto —la receta avisa si ve alguno—, dos tandas
 la vez se pelean por CPU, y **se pelean por el directorio**: la receta arranca
 borrando el worktree, así que una segunda tanda le borra el árbol a la primera
 mientras corre y la deja con casos en rojo que no lo están. Con más de un
-agente, cada uno con el suyo: `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
+agente, cada uno con el suyo: `just hitos-foto 4 /extras/hitos-foto-<quien>`.
 
 **Las tareas en segundo plano que lanzamos nosotros las podemos matar
 nosotros.**
 
 Lo que más se acumula son las **esperas armadas por los agentes** —`until !
-pgrep -f "snes-hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
+pgrep -f "hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
 
 * **Nunca terminan solas**, porque su propia línea de comando contiene el texto
   que el `pgrep` busca, así que se encuentran a sí mismas.
@@ -423,7 +423,7 @@ Y en cualquier caso, al retomar conviene mirar, en este orden:
    `~/.claude/projects/<proyecto>/<sesión>/subagents/agent-<id>.jsonl`. Son
    megas: se lee **del final hacia atrás, una entrada por vez**, mirando qué
    herramienta usó última. Nunca entero.
-4. **Lo que dejó corriendo**: `pgrep -af "snes_correr|snes-hitos"` y
+4. **Lo que dejó corriendo**: `pgrep -af "snes_correr|hitos"` y
    `git worktree list`.
 
 Y para el agente nuevo que lo reemplace: pasarle lo que el anterior dejó escrito

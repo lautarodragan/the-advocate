@@ -436,7 +436,7 @@ class Recorrido:
         agrega un hito nuevo sin romper la prueba, y se bendice después.
 
         **La tolerancia es grande a propósito.** No es una comparación pixel
-        por pixel como la de `snes-hitos`: acá los cuadros no están elegidos
+        por pixel como la de `hitos`: acá los cuadros no están elegidos
         para ser deterministas —el agua se mueve, los NPCs caminan, el reloj
         corre— y apretar el umbral traería rojos que no son defectos. Lo que
         tiene que cazar es la corrupción, y taro lo dijo mejor: "incluso si no
@@ -743,7 +743,7 @@ class Recorrido:
         """Parado sobre un save point, tocarle A y elegir `ranura`.
 
         Es el camino de guardado **del juego** —`OpenSaveMenu`, el evento 66
-        del mapa 8— y no el de la página de prueba que usan `just snes-guardar`
+        del mapa 8— y no el de la página de prueba que usan `just guardar`
         y `test_titulo.py`. Hasta el 2026-09-13 ninguna prueba lo recorría, y
         por eso el `xfail` de guardar con pantalla de título no podía decir de
         quién era el defecto.

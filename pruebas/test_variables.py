@@ -1,7 +1,7 @@
 """Las variables de RM2k: que la ROM las calcule, las compare y las guarde.
 
 Lo que se ve de una variable lo cobra la tanda —el cronómetro puesto desde una
-variable, `snes-vars`—; acá se le pregunta a la ROM por su RAM lejana, que es
+variable, `vars`—; acá se le pregunta a la ROM por su RAM lejana, que es
 donde viven, y por los switches que una rama por variable prendió.
 
 La página de prueba las escribe con los mismos números que RM2k: variable,

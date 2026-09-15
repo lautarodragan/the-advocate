@@ -1,6 +1,6 @@
 """La pantalla de título: que sus dos opciones hagan lo que dicen.
 
-Lo que se ve —la imagen, el menú, el cursor— lo cobra `just snes-titulo` pixel
+Lo que se ve —la imagen, el menú, el cursor— lo cobra `just titulo` pixel
 por pixel. Lo que **no** puede cobrar es lo de acá: que elegir una opción u otra
 deje la partida en estados distintos, porque las dos terminan mostrando el mismo
 mapa y la diferencia está en la RAM.

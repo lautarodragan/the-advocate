@@ -599,7 +599,7 @@ IGNORABLES = {
 # SPC700 al arrancar, así que cambiar de tema en caliente pide varios bancos en
 # el cartucho y volver a subir en mitad del juego; es una feature de audio, no
 # un comando más. Lo que se pierde: una página que cambie la música deja la que
-# venía sonando. La pantalla no lo nota, pero `snes-check` compararía el audio
+# venía sonando. La pantalla no lo nota, pero `audio-check` compararía el audio
 # contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
 # la prueba mediría lo que no es. Ver "Lo que falta" en README.md.
 # WeatherEffects prende o apaga la lluvia. Se acepta sin dibujarla, y la deuda
@@ -634,7 +634,7 @@ WEATHER_EFFECTS = 11070
 # Suena desde el 2026-09-11 (ver OP_SOUND); hasta ahí se aceptaba sin
 # tocarlo, y era la deuda más barata de todas las que hay acá: **no se
 # ve**. La pantalla que se compara es exactamente la misma con y sin sonido, y
-# el audio que sí se compara —`snes-check`, contra el MIDI del mapa— tampoco
+# el audio que sí se compara —`audio-check`, contra el MIDI del mapa— tampoco
 # cambia, porque el tema de fondo sigue sonando igual.
 #
 # Lo que costaba hacerlo era la ARAM: la ROM sube **un solo banco de muestras**
@@ -1802,7 +1802,7 @@ ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 # pantalla trabaja en dos fases según la paridad de lo que le queda —ver
 # `destello_tick`—, y un `FlashScreen` del juego dura siempre décimas por seis.
 # Con once la primera fase era la par, un camino que ninguna página toma y
-# donde la ROM y la referencia no coinciden: `snes-animacion` lo mostró.
+# donde la ROM y la referencia no coinciden: `animacion` lo mostró.
 ANIM_DESTELLO_CUADROS = 10
 ANIMACIONES = {}
 # El **dibujo**, desde el 2026-09-12. El opcode lleva dos bytes más: el número
@@ -3404,7 +3404,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # y en la referencia la caminata del arnés no la mira: camina por
             # celdas enteras y sólo se frena con un mensaje abierto.
             #
-            # Medido: con esta forma aceptada, `just snes-heroe 52` da **55,42%
+            # Medido: con esta forma aceptada, `just heroe 52` da **55,42%
             # de pixeles distintos** caminando a la izquierda, desde el cuadro
             # 60; las otras cuatro direcciones dan cero, y es exactamente la
             # única que pelea contra el empujón hacia la derecha que la página
@@ -3425,7 +3425,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # Es el pedazo más delicado de `snes_expect.py`.
             #
             # Y hay un segundo problema, que apareció con la medición y no es
-            # de precisión: con la carrera corriendo, `snes-heroe 52` **no
+            # de precisión: con la carrera corriendo, `heroe 52` **no
             # termina**. El volante le vuelve a poner la ruta al héroe para
             # siempre, así que "apretar hasta chocar contra la pared" deja de
             # tener final y el lazo corta en su tope de 10000 vueltas —27566
@@ -3434,7 +3434,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # es de la carrera y está en `rom/hitos.txt`.
             #
             # Para reproducir las dos mediciones sin tocar código:
-            # `TECLA_SIN_ESPERA=1 just snes-heroe 52`.
+            # `TECLA_SIN_ESPERA=1 just heroe 52`.
             if not PERMITIR_TECLA_SIN_ESPERA:
                 raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
                                 "héroe no manda sobre el pad en la referencia")
@@ -3752,7 +3752,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 continue
             # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03,
             # cuando los dos lados empezaron a coincidir *durante* la caminata y
-            # no sólo al final: lo prueba `snes-ruta`, que compara cuatro
+            # no sólo al final: lo prueba `ruta`, que compara cuatro
             # cuadros de una ruta de doce celdas con esperas en el medio. Todo
             # lo demás de `rpg::MoveCommand::Code` —moverse hacia el héroe o
             # desde él, girar en el lugar, los switches— sigue afuera.
@@ -4975,7 +4975,7 @@ class Estado:
         una variable lo pide en cada cuadro, así que un lazo que espere a que
         no quede ninguno no termina nunca. Lo encontró el mapa 11 —el Lazer
         Teeth HQ— cuyas once páginas paralelas compilan desde que existe la
-        clase 6 de `ControlVars`: el plan de `snes-heroe 11` pasó de 9 ticks a
+        clase 6 de `ControlVars`: el plan de `heroe 11` pasó de 9 ticks a
         110008, o sea cuarenta minutos de emulador por dirección.
 
         El refresco se hace igual, al principio del cuadro siguiente: lo único
@@ -5646,7 +5646,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
     cuadro a cuadro desde que dejó de colapsar el tiempo, pero **ninguna página
     del juego que compile tiene una espera**, así que ese camino —el corazón del
-    cambio— no lo ejercitaba nada. Es el mismo caso que `snes-encima`, que
+    cambio— no lo ejercitaba nada. Es el mismo caso que `encima`, que
     existe porque ningún evento del juego llega a la prioridad 2.
 
     Lo sintético es la entrada, no la comparación: los dos lados corren este
@@ -5830,7 +5830,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
         # que lo que venga después es lo que prueba que la página **siguió**
         # cuando se apretó A. Con el tinte detrás, antes de apretar la pantalla
-        # está sin teñir y después está teñida, igual que en `snes-espera`.
+        # está sin teñir y después está teñida, igual que en `espera`.
         codigo += bytes([OP_MESSAGE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_DELAY, espera & 0xFF, espera >> 8])
@@ -6756,7 +6756,7 @@ def ejecutar(codigo, estado, desde=0):
             # de una comparación llevaría a la ROM a sacar.
             #
             # **Desde el 2026-09-13 hay dos pruebas de pixeles que sí cruzan
-            # una batalla**: `snes-vuelta`, que la pelea a fuerza de A y
+            # una batalla**: `vuelta`, que la pelea a fuerza de A y
             # compara el mapa al volver. Acá decía que no se podía porque el
             # resultado depende del azar, y el azar está clavado —
             # `BATALLA_SEMILLA`—, así que la misma tanda de toques da siempre
@@ -6766,12 +6766,12 @@ def ejecutar(codigo, estado, desde=0):
             #
             # Mientras eso no existió, el mapa volvía de la pelea con media
             # VRAM pisada y nadie se enteraba. Lo que la pantalla de la pelea
-            # muestra lo sigue cobrando `just snes-batalla`, y lo que la pelea
+            # muestra lo sigue cobrando `just batalla`, y lo que la pelea
             # le hace a los HP, `pruebas/test_batalla.py`.
             i = codigo[i + 3] | (codigo[i + 4] << 8)
         elif op == OP_SHOP:
             # La tienda, como guardar: no cuesta ningún tick y de este lado no
-            # hay nada que dibujar. Lo que muestra lo cobran `snes-tienda` y
+            # hay nada que dibujar. Lo que muestra lo cobran `audio-tienda` y
             # `pruebas/test_tienda.py`.
             i += 4 + 2 * codigo[i + 3]
         elif op == OP_SAVE:
@@ -6784,7 +6784,7 @@ def ejecutar(codigo, estado, desde=0):
             # adentro del intérprete y `vueltas` no avanza mientras se ve, así
             # que en ticks los dos lados siguen leyendo el mismo stream en el
             # mismo cuadro, tarde lo que tarde el jugador en elegir. Lo que la
-            # pantalla muestra lo cobra `just snes-guardar` contra
+            # pantalla muestra lo cobra `just guardar` contra
             # `titulo.py --ranuras`, y lo que la ROM escribe,
             # `pruebas/test_guardar.py`.
             i += 1
@@ -7170,7 +7170,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             # Es el idioma con el que RM2k desactiva un evento —una página de
             # abajo prende el switch que activa una de arriba, y ésa está
             # vacía—, así que no es un caso raro: en Rat Tracks B1 son dos, y el
-            # mapa era injugable. Lo delató `snes-heroe 21` al tardar catorce
+            # mapa era injugable. Lo delató `heroe 21` al tardar catorce
             # minutos, porque la referencia se comía sus 100.000 ticks de
             # `correr_automaticos` antes de empezar a caminar.
             #
