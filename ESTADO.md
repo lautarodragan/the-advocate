@@ -256,7 +256,36 @@ refactors: **no hay features hasta que cierre**.
    que mostrarlos agrupados por mapa, una vez cada uno, y marcar los que
    difieren de lo que la referencia dice hoy: ésos son los únicos que necesitan
    su ojo.
-4. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+4. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Decidido
+   por taro el 2026-09-15: prefiere un proyecto mantenido, popular y con once
+   años de historia antes que sostener el nuestro, y de paso gana compatibilidad
+   con el ecosistema y baja la curva de aprendizaje. La razón original de
+   escribir uno propio —no compilar fuentes de internet en esta caja— era una
+   interpretación mía llevada al extremo sin preguntarle.
+
+   **La distancia está medida**: de 30.300 líneas de `main.s`, `ca65` acepta
+   todo salvo `.bloque` (974 usos), `.alinear` (28), `.controlar` (10) y dos
+   `lda #-1`. Los tres últimos son traducción directa —`.align`, `.assert`,
+   `$FFFF`—. El fuente ya está en el dialecto de ca65 porque `w65` se escribió
+   imitándolo.
+
+   **El único trabajo de fondo es `.bloque`**, que lo emite el conversor y dice
+   "lo que sigue mide N bytes, rellená hasta el próximo banco si no entra"
+   —existe porque un DMA que cruza de banco lee la WRAM—. `ld65` no acomoda
+   bloques de tamaño variable: alguien tiene que decidir en qué banco va cada
+   uno, y ése sólo puede ser el conversor. **Eso es exactamente el asignador del
+   punto anterior**, así que la migración no agrega trabajo, lo redirige: va
+   junto con él y no antes, porque hacerla antes es escribir el empaquetado de
+   bancos dos veces.
+
+   Con eso se van `snes-validar`, `tools/w65_check.py` y
+   `tools/w65_coverage.py`: sin dos cadenas no hay nada que comparar. taro no
+   compra el valor del oráculo —con goldens, md5 y sus pruebas a mano, una
+   regresión drástica se ve igual— y hay evidencia a favor: esa receta estaba
+   rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
+   y nadie lo notó **porque necesitaba podman y nunca se corría**.
+
+5. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
    de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
    en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
    número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
