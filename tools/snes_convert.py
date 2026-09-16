@@ -6110,7 +6110,7 @@ def main():
     # escritos: depende de todo lo que haya antes en RODATA, y el orden es el
     # de los `.include` de main.s —la música primero—. Ver `tools/bancos.py`.
     resueltos, rellenaron = bancos.resolver([musica, args.output])
-    print("acomodo de bancos: %d bloque(s), %d con relleno"
+    print("acomodo de bancos: %d bloque(s), %d empiezan banco"
           % (resueltos, rellenaron))
     for i, tema in enumerate(hechos):
         # El porcentaje de notas que llegan al stream va acá y no escondido:

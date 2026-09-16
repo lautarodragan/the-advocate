@@ -64,7 +64,7 @@ pub const AREAS: &[Area] = &[
         name: "DATA",
         start: 0x08000,
         size: BANK_SIZE * (ROM_BANKS - RESERVED_BANKS) - 0x08000,
-        segments: &["FAR", "RODATA"],
+        segments: DATA_SEGMENTS,
     },
 ];
 
@@ -89,11 +89,40 @@ pub const RAM_AREAS: &[Area] = &[
     Area { name: "RAM", start: 0x0100, size: 0x1F00 - STACK_RESERVE, segments: &["BSS"] },
 ];
 
+/// `BANKnn` is a segment pinned to the start of bank `nn`. It is how data that
+/// is laid out bank by bank upstream says where each bank begins, and what a
+/// linker config with one memory area per bank expects: a segment that does
+/// not fill its bank leaves the rest of it as padding, instead of having the
+/// next one start right after it.
+const DATA_SEGMENTS: &[&str] = &[
+    "FAR", "RODATA",
+    // generated: "BANK02" .. "BANK7D", one per bank that holds data
+    "BANK02", "BANK03", "BANK04", "BANK05", "BANK06", "BANK07", "BANK08", "BANK09", "BANK0A", "BANK0B", "BANK0C", "BANK0D", "BANK0E", "BANK0F", "BANK10", "BANK11", "BANK12", "BANK13", "BANK14", "BANK15", "BANK16", "BANK17", "BANK18", "BANK19", "BANK1A", "BANK1B", "BANK1C", "BANK1D", "BANK1E", "BANK1F", "BANK20", "BANK21", "BANK22", "BANK23", "BANK24", "BANK25", "BANK26", "BANK27", "BANK28", "BANK29", "BANK2A", "BANK2B", "BANK2C", "BANK2D", "BANK2E", "BANK2F", "BANK30", "BANK31", "BANK32", "BANK33", "BANK34", "BANK35", "BANK36", "BANK37", "BANK38", "BANK39", "BANK3A", "BANK3B", "BANK3C", "BANK3D", "BANK3E", "BANK3F", "BANK40", "BANK41", "BANK42", "BANK43", "BANK44", "BANK45", "BANK46", "BANK47", "BANK48", "BANK49", "BANK4A", "BANK4B", "BANK4C", "BANK4D", "BANK4E", "BANK4F", "BANK50", "BANK51", "BANK52", "BANK53", "BANK54", "BANK55", "BANK56", "BANK57", "BANK58", "BANK59", "BANK5A", "BANK5B", "BANK5C", "BANK5D", "BANK5E", "BANK5F", "BANK60", "BANK61", "BANK62", "BANK63", "BANK64", "BANK65", "BANK66", "BANK67", "BANK68", "BANK69", "BANK6A", "BANK6B", "BANK6C", "BANK6D", "BANK6E", "BANK6F", "BANK70", "BANK71", "BANK72", "BANK73", "BANK74", "BANK75", "BANK76", "BANK77", "BANK78", "BANK79", "BANK7A", "BANK7B", "BANK7C", "BANK7D",
+];
+
 /// Every segment name, in the order the areas lay them out. The index into
 /// this list is how a segment is identified inside the assembler.
 pub const SEGMENTS: &[&str] = &[
-    "CODE", "TABLAS", "HEADER", "VECTORS", "FAR", "RODATA", "ZEROPAGE", "BSS",
+    "CODE", "TABLAS", "HEADER", "VECTORS", "FAR", "RODATA",
+    "BANK02", "BANK03", "BANK04", "BANK05", "BANK06", "BANK07", "BANK08", "BANK09", "BANK0A", "BANK0B", "BANK0C", "BANK0D", "BANK0E", "BANK0F", "BANK10", "BANK11", "BANK12", "BANK13", "BANK14", "BANK15", "BANK16", "BANK17", "BANK18", "BANK19", "BANK1A", "BANK1B", "BANK1C", "BANK1D", "BANK1E", "BANK1F", "BANK20", "BANK21", "BANK22", "BANK23", "BANK24", "BANK25", "BANK26", "BANK27", "BANK28", "BANK29", "BANK2A", "BANK2B", "BANK2C", "BANK2D", "BANK2E", "BANK2F", "BANK30", "BANK31", "BANK32", "BANK33", "BANK34", "BANK35", "BANK36", "BANK37", "BANK38", "BANK39", "BANK3A", "BANK3B", "BANK3C", "BANK3D", "BANK3E", "BANK3F", "BANK40", "BANK41", "BANK42", "BANK43", "BANK44", "BANK45", "BANK46", "BANK47", "BANK48", "BANK49", "BANK4A", "BANK4B", "BANK4C", "BANK4D", "BANK4E", "BANK4F", "BANK50", "BANK51", "BANK52", "BANK53", "BANK54", "BANK55", "BANK56", "BANK57", "BANK58", "BANK59", "BANK5A", "BANK5B", "BANK5C", "BANK5D", "BANK5E", "BANK5F", "BANK60", "BANK61", "BANK62", "BANK63", "BANK64", "BANK65", "BANK66", "BANK67", "BANK68", "BANK69", "BANK6A", "BANK6B", "BANK6C", "BANK6D", "BANK6E", "BANK6F", "BANK70", "BANK71", "BANK72", "BANK73", "BANK74", "BANK75", "BANK76", "BANK77", "BANK78", "BANK79", "BANK7A", "BANK7B", "BANK7C", "BANK7D",
+    "ZEROPAGE", "BSS",
 ];
+
+/// Where a segment starts, given where the previous one ended. Only `BANKnn`
+/// moves: it jumps forward to its bank, and it is an error for the previous
+/// segments to have already gone past it.
+pub fn segment_start(name: &str, offset: u32) -> Result<u32, String> {
+    let Some(bank) = name.strip_prefix("BANK") else { return Ok(offset) };
+    let bank = u32::from_str_radix(bank, 16).map_err(|_| format!("bad bank segment {name}"))?;
+    let start = bank * BANK_SIZE;
+    if offset > start {
+        return Err(format!(
+            "{name} has to start at file offset ${start:X}, and what comes before it already \
+             reaches ${offset:X}"
+        ));
+    }
+    Ok(start)
+}
 
 pub const ZP_SEGMENT: &str = "ZEROPAGE";
 

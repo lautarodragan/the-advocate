@@ -632,6 +632,9 @@ impl Assembler {
             let mut offset = area.start;
             for name in area.segments {
                 let segment = layout::segment_index(name).expect("declared segment");
+                if !self.items[segment].is_empty() {
+                    offset = layout::segment_start(name, offset).map_err(bad)?;
+                }
                 for index in 0..self.items[segment].len() {
                     let item = &mut self.items[segment][index];
                     match item.kind {
@@ -746,6 +749,9 @@ impl Assembler {
             let mut offset = area.start;
             for name in area.segments {
                 let segment = layout::segment_index(name).expect("declared segment");
+                if !self.items[segment].is_empty() {
+                    offset = layout::segment_start(name, offset).map_err(bad)?;
+                }
                 for (index, item) in self.items[segment].iter().enumerate() {
                     let data = self.emit_item(item, self.addresses[segment][index]).map_err(
                         |error| bad(format!("{error}\n  at {}", item.origin)),
@@ -1272,6 +1278,24 @@ mod tests {
     fn assert_refuses_an_action_it_would_not_honour() {
         let error = assemble("STRIDE = 12\n.assert STRIDE = 12, warning, \"x\"\n").unwrap_err();
         assert!(error.0.contains("warning"), "{error}");
+    }
+
+    #[test]
+    fn a_bank_segment_starts_at_its_bank_and_leaves_the_rest_as_padding() {
+        let rom = assemble(
+            ".segment \"BANK03\"\nthree: .byte $33\n.segment \"BANK02\"\ntwo: .byte $22\n",
+        )
+        .unwrap();
+        assert_eq!(rom[0x10000], 0x22);
+        assert_eq!(rom[0x10001], 0x00);
+        assert_eq!(rom[0x18000], 0x33);
+    }
+
+    #[test]
+    fn a_bank_segment_refuses_to_start_behind_what_came_before() {
+        let source = ".segment \"FAR\"\n.res $10000\n.segment \"BANK02\"\n.byte 1\n";
+        let error = assemble(source).unwrap_err();
+        assert!(error.0.contains("BANK02"), "{error}");
     }
 
     #[test]

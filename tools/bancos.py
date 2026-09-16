@@ -10,16 +10,14 @@ nuestra: `.bloque N` quería decir "lo que sigue mide N bytes, rellená si no
 entra". Funcionaba, pero ataba el port a tener un ensamblador propio: `ld65` no
 sabe acomodar bloques de tamaño variable, y ésa es la única razón por la que la
 directiva existía. Quien sí conoce los tamaños es el conversor, porque los
-emite, así que la cuenta se hace acá y lo que llega al ensamblador es relleno
-explícito.
+emite, así que el reparto se hace acá: lo que llega al ensamblador es un
+segmento por banco, `BANKnn`, que es lo que espera un `.cfg` de `ld65` con un
+área por banco.
 
-**Lo único que este módulo asume del mapa de memoria es que RODATA arranca
-pegado a un banco.** No necesita saber en cuál: el relleno sólo depende de
-cuánto se lleva acumulado desde ese arranque. Que el arranque esté alineado lo
-comprueba el ensamblador, que es quien conoce las áreas.
+**Lo único que este módulo asume del mapa de memoria es en qué banco arrancan
+los datos generados**, `PRIMER_BANCO`. El resto lo sabe el `.cfg`.
 """
 
-import re
 
 BANCO = 0x8000
 
@@ -60,72 +58,113 @@ def _tamano(linea):
     return ancho * _operandos(partes[1] if len(partes) > 1 else "")
 
 
-def resolver(rutas, segmento="RODATA"):
-    """Reemplaza cada `.bloque N` de esos archivos por el relleno que le toca.
+# El banco donde arrancan los datos generados. El 0 es el código y las tablas,
+# y el 1 es `FAR`, el código a mano que vive afuera del banco 0.
+PRIMER_BANCO = 2
+
+
+def segmento_de(banco):
+    """El nombre del segmento que va fijo al principio de `banco`."""
+    return "BANK%02X" % banco
+
+
+def _partir(linea, entran):
+    """Parte una línea de datos en los primeros `entran` bytes y el resto.
+
+    Sólo se puede entre operandos: una palabra partida entre dos bancos no es
+    una palabra. Si el corte cae en el medio de una, es un error.
+    """
+    codigo, _, comentario = linea.partition(";")
+    directiva, resto = codigo.strip().split(None, 1)
+    ancho = ANCHOS[directiva]
+    if entran % ancho:
+        raise ValueError("el final del banco cae en el medio de un operando "
+                         "de %d bytes: %r" % (ancho, linea.strip()))
+    operandos = [o.strip() for o in resto.split(",")]
+    cuantos = entran // ancho
+    cola = ("  ; " + comentario.strip()) if comentario.strip() else ""
+    primera = ("    %s %s%s" % (directiva, ", ".join(operandos[:cuantos]), cola)
+               if cuantos else None)
+    segunda = "    %s %s" % (directiva, ", ".join(operandos[cuantos:]))
+    return primera, segunda, (len(operandos) - cuantos) * ancho
+
+
+def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
+    """Reparte en bancos lo que esos archivos mandan a `segmento`.
+
+    Cada `.segment "RODATA"` pasa a ser el segmento del banco que corre, y cada
+    `.bloque N` que no entra en lo que queda se convierte en el cambio al banco
+    siguiente. Una línea de datos que no entra entera —la grilla de celdas mide
+    más que un banco, y se recorre con un puntero, no por DMA— se parte entre
+    los dos, así que sus bytes quedan contiguos en el archivo.
 
     `rutas` va **en el orden en que el ensamblador las va a leer**, que es el
-    de los `.include`: el acomodo depende de todo lo que haya antes. Sólo se
-    cuenta lo que cae en `segmento`; lo que un archivo mande a otro —las tablas
-    del banco 0— no mueve este offset.
+    de los `.include`: el reparto depende de todo lo que haya antes. Lo que un
+    archivo mande a otro segmento —las tablas del banco 0— no cuenta.
 
-    Devuelve cuántos `.bloque` se resolvieron y cuántos rellenaron de verdad.
+    Devuelve cuántos `.bloque` se resolvieron y cuántos empezaron banco.
     """
-    offset = 0
-    resueltos, rellenaron = 0, 0
+    banco, usado = primer_banco, 0
+    resueltos, empezaron = 0, 0
     for ruta in rutas:
         with open(ruta) as handle:
             lineas = handle.read().splitlines()
         salida, actual = [], None
+
+        def cambiar(porque=""):
+            nonlocal banco, usado
+            banco, usado = banco + 1, 0
+            salida.append('.segment "%s"%s' % (segmento_de(banco), porque))
+
         for linea in lineas:
             directiva = linea.split(";")[0].strip()
             if directiva.startswith(".segment"):
                 actual = directiva.split(None, 1)[1].strip().strip('"')
-                salida.append(linea)
+                salida.append('.segment "%s"' % segmento_de(banco)
+                              if actual == segmento else linea)
                 continue
             if actual != segmento:
                 salida.append(linea)
                 continue
+            # Un banco lleno se deja antes de escribir nada más, etiquetas
+            # incluidas: una etiqueta al final de un banco apuntaría a la
+            # dirección que sigue a `$FFFF`, que no es la ROM.
+            if usado == BANCO and directiva:
+                cambiar()
             if directiva.startswith(".bloque "):
                 pide = int(directiva.split()[1])
-                queda = BANCO - offset % BANCO
-                relleno = queda if pide > queda else 0
                 resueltos += 1
-                if relleno:
-                    rellenaron += 1
-                    salida.append(".res %d%s"
-                                  % (relleno, _porque(linea, pide)))
-                    offset += relleno
+                if pide > BANCO - usado:
+                    empezaron += 1
+                    cambiar("  ; lo que sigue mide %d y no entraba" % pide)
                 continue
             if directiva.startswith(".align "):
                 # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
                 # sabe hacer. Acá sólo hay que contarla.
                 unidad = int(directiva.split()[1])
-                offset += (unidad - offset % unidad) % unidad
+                usado += (unidad - usado % unidad) % unidad
                 salida.append(linea)
                 continue
-            offset += _tamano(linea)
-            salida.append(linea)
+            tamano = _tamano(linea)
+            if usado + tamano <= BANCO:
+                usado += tamano
+                salida.append(linea)
+                continue
+            primera, segunda, queda = _partir(linea, BANCO - usado)
+            if primera:
+                salida.append(primera)
+            cambiar()
+            salida.append(segunda)
+            usado = queda
         colados = [l for l in salida if l.split(";")[0].strip()
                    .startswith(".bloque")]
         if colados:
-            # Un `.bloque` que llegue al ensamblador no rompe hoy —la
-            # directiva todavía existe para los dos de `main.s`— así que
-            # pasaría callado, y el día que se vaya rompería lejos de acá.
+            # Un `.bloque` que llegue al ensamblador no lo entiende nadie más
+            # que `w65`, así que pasaría callado hasta el día que se vaya.
             raise ValueError(
                 "%s dejó %d `.bloque` sin resolver, el primero %r: está fuera "
                 "de %s, y ahí el acomodo no se puede calcular"
                 % (ruta, len(colados), colados[0].strip(), segmento))
         with open(ruta, "w") as handle:
             handle.write("\n".join(salida) + "\n")
-    return resueltos, rellenaron
-
-
-def _porque(linea, pide):
-    """El comentario que llevaba el `.bloque`, más lo que hacía falta.
-
-    Un `.res 4096` suelto no dice nada; el número que lo explica es el tamaño
-    del bloque que venía detrás, que es el que no entraba.
-    """
-    comentario = linea.split(";", 1)
-    cola = ("  ; " + comentario[1].strip()) if len(comentario) > 1 else ""
-    return "  ; hasta el próximo banco: lo que sigue mide %d%s" % (pide, cola)
+    return resueltos, empezaron

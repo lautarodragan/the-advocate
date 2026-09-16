@@ -29,51 +29,76 @@ def resolver(texto, tmp_path, segundo=None):
     return [open(r).read() for r in rutas], cuenta
 
 
-def test_un_bloque_que_entra_no_deja_relleno(tmp_path):
+B2, B3 = '.segment "BANK02"', '.segment "BANK03"'
+
+
+def bytes_(n):
+    return "    .byte " + ",".join(["$00"] * n) + "\n"
+
+
+def test_rodata_pasa_a_ser_el_banco_donde_arrancan_los_datos(tmp_path):
     (salida,), cuenta = resolver(
-        '.segment "RODATA"\n.bloque 16\n    .byte $00\n', tmp_path)
-    assert ".res" not in salida
+        '.segment "RODATA"\n.bloque 16\n' + bytes_(1), tmp_path)
+    assert B2 in salida and "RODATA" not in salida and ".bloque" not in salida
     assert cuenta == (1, 0)
 
 
-def test_un_bloque_que_no_entra_rellena_hasta_el_banco(tmp_path):
-    """El caso que da sentido a todo: 32 bytes libres y un bloque de 64."""
+def test_un_bloque_que_no_entra_empieza_el_banco_siguiente(tmp_path):
+    """El caso que da sentido a todo: 32 bytes libres y un bloque de más."""
     (salida,), cuenta = resolver(
-        '.segment "RODATA"\n'
-        + "    .byte " + ",".join(["$00"] * 16) + "\n" * 1
-        + ".bloque %d\n" % (bancos.BANCO - 8), tmp_path)
-    assert ".res %d" % (bancos.BANCO - 16) in salida
+        '.segment "RODATA"\n' + bytes_(16)
+        + ".bloque %d\netiqueta:\n" % (bancos.BANCO - 8), tmp_path)
+    assert salida.index(B3) < salida.index("etiqueta:")
     assert cuenta == (1, 1)
 
 
-def test_el_relleno_se_mide_desde_el_arranque_del_banco(tmp_path):
-    """Exactamente en el borde no hay que rellenar: entra justo."""
+def test_el_borde_justo_entra(tmp_path):
     (salida,), _ = resolver(
         '.segment "RODATA"\n.bloque %d\n' % bancos.BANCO, tmp_path)
-    assert ".res" not in salida
+    assert B3 not in salida
 
 
-def test_lo_que_no_es_rodata_no_mueve_el_offset(tmp_path):
+def test_un_banco_lleno_se_deja_antes_de_la_etiqueta(tmp_path):
+    """Una etiqueta en el final de un banco apuntaría afuera de la ROM."""
+    (salida,), _ = resolver(
+        '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16)
+        + "etiqueta:\n" + bytes_(1), tmp_path)
+    assert salida.index(B3) < salida.index("etiqueta:")
+
+
+def test_lo_que_no_entra_se_parte_entre_los_dos_bancos(tmp_path):
+    """La grilla de celdas: más grande que un banco, contigua en el archivo."""
+    (salida,), _ = resolver(
+        '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
+        + bytes_(8) + "    .word $1111,$2222,$3333,$4444,$5555,$6666\n",
+        tmp_path)
+    antes, despues = salida.split(B3)
+    assert "$1111, $2222, $3333, $4444" in antes
+    assert "$5555, $6666" in despues and "$4444" not in despues
+
+
+def test_una_palabra_no_se_parte(tmp_path):
+    with pytest.raises(ValueError, match="medio de un operando"):
+        resolver('.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
+                 + bytes_(15) + "    .word $1111,$2222\n", tmp_path)
+
+
+def test_lo_que_no_es_rodata_no_cuenta(tmp_path):
     """Las tablas del banco 0 van por otra área y no corren a los datos."""
     (salida,), _ = resolver(
-        '.segment "RODATA"\n'
-        + "    .byte " + ",".join(["$00"] * 16) + "\n"
-        + '.segment "TABLAS"\n'
-        + "    .byte " + ",".join(["$00"] * (bancos.BANCO - 16)) + "\n"
+        '.segment "RODATA"\n' + bytes_(16)
+        + '.segment "TABLAS"\n' + bytes_(bancos.BANCO - 16)
         + '.segment "RODATA"\n'
-        + ".bloque %d\n" % (bancos.BANCO - 8), tmp_path)
-    # Si las tablas contaran, acá ya no entraría y habría relleno.
-    assert ".res %d" % (bancos.BANCO - 16) in salida
+        + ".bloque %d\n" % (bancos.BANCO - 16), tmp_path)
+    assert B3 not in salida
+    assert '.segment "TABLAS"' in salida
 
 
 def test_el_segundo_archivo_sigue_donde_terminó_el_primero(tmp_path):
-    """El acomodo depende de todo lo anterior: por eso van en orden."""
     (_, segundo), _ = resolver(
-        '.segment "RODATA"\n'
-        + "    .byte " + ",".join(["$00"] * 16) + "\n",
-        tmp_path,
+        '.segment "RODATA"\n' + bytes_(16), tmp_path,
         segundo='.segment "RODATA"\n.bloque %d\n' % (bancos.BANCO - 8))
-    assert ".res %d" % (bancos.BANCO - 16) in segundo
+    assert B3 in segundo
 
 
 @pytest.mark.parametrize("linea,bytes_", [
@@ -96,8 +121,8 @@ def test_cuánto_ocupa_cada_línea(linea, bytes_):
 def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
     """`.align` es de `ca65`, así que sobrevive al paso.
 
-    Lo que no puede pasar es que deje de contarse: si su relleno no entra en el
-    offset, todos los bloques de abajo se acomodan contra un número corrido.
+    Lo que no puede pasar es que deje de contarse: si su relleno no entra en la
+    cuenta, todos los bloques de abajo se acomodan contra un número corrido.
     """
     (salida,), _ = resolver(
         '.segment "RODATA"\n'
@@ -106,7 +131,7 @@ def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
         + ".bloque %d\n" % (bancos.BANCO - 1), tmp_path)
     assert ".align 2" in salida
     # Con la alineación contada van dos bytes, y lo que sigue ya no entra.
-    assert ".res %d" % (bancos.BANCO - 2) in salida
+    assert B3 in salida
 
 
 def test_un_bloque_fuera_de_rodata_no_pasa_callado(tmp_path):
