@@ -377,6 +377,23 @@ Lo que hay que hacer siempre:
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
+### Lo verificable y lo opinable no comparten commit
+
+De taro, el 2026-09-16, y sirve para cualquier limpieza grande: **primero el
+cambio mecánico solo, en su commit, verificado; después el de criterio, guiado
+por el diff del anterior.**
+
+El caso que lo mostró: borrar 784 líneas de código muerto y arreglar los
+comentarios que lo citaban. El borrado lo verifican dos redes —`just pruebas` y
+la ROM byte por byte—; arreglar la prosa no lo verifica nada. Mezclados, un
+error de criterio viaja adentro de un cambio que "pasó las pruebas" y ahí ya no
+lo mira nadie.
+
+Y tiene un segundo beneficio que fue el que lo decidió: **el diff del primer
+commit es la lista del segundo**, completa por construcción. La lista escrita a
+mano que se iba a usar en cambio no tenía once citas colgando adentro del
+propio archivo, ni dos definiciones muertas de otros, ni un parámetro muerto.
+
 ### Un merge sin conflictos no es un merge verificado
 
 Dos ramas que cambian **la misma convención en archivos o líneas distintas**

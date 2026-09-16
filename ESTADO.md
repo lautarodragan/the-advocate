@@ -67,18 +67,19 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
    donde hay que decidir qué pasa con el modelo de `tools/eventos.py`: quedaron
-   seis funciones sin llamador —`altura_del_salto`, `destellar_pantalla`,
-   `lluvia_tono`, `oscurecer`, `destellar_canal_pantalla` y
-   `brillo_de_fundido`—, y no se borraron porque son la definición escrita de la
-   aritmética del PPU y de RM2k, citada por comentarios vivos del conversor y
-   por el README. **Que decida taro**;
-5. **el arnés del emulador**, y no antes: un arnés en Rust llamando a una
-   referencia en Python es peor que cualquiera de los dos extremos. `retro.py`
-   habla con el core por ctypes, así que ahí no hay nada nativo de Python;
-6. ~~se elimina `tools/snes_expect.py`, la referencia~~ **hecho el 2026-09-16**.
-   Con ella se fue la regla de que un cambio en la ROM y su cambio en la
-   referencia van juntos: la reescrita está en `AGENTS.md`, en "La regla que
-   sostiene todo".
+
+**Y con la referencia se fue su modelo.** Quedaban 51 definiciones que no
+llamaba nadie —las cuentas que replicaban lo que hace la ROM: el brillo de un
+fundido, la curva de un salto, el nivel de un destello— y taro decidió el
+2026-09-16 que se fueran, contra la opción de dejarlas como documentación. El
+argumento que ganó: **documentación con forma de código se pudre sin que nadie
+lo note**. Un comentario que miente se nota leyéndolo; una función muerta que
+miente, no, porque no se ejecuta y ninguna prueba la toca. Lo que decían quedó
+absorbido por los comentarios de `main.s` que las citaban, o dicho como regla
+sin nombrar a nadie.
+
+`tools/eventos.py` pasó de 7.340 líneas a **6.057**, que es lo que hay que
+portar en la vuelta del compilador de eventos.
 
 **Las pruebas se quedan en Python**, y no es deuda: es diseño. Decisión de taro
 —un lenguaje interpretado y menos estricto tiene ventajas ahí, y compilar para
