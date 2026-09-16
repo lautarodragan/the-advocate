@@ -4576,9 +4576,6 @@ class Estado:
         # falta ponerla a mano es al entrar a un mapa, antes de que corra
         # ningún cuadro. Ver `poner_heroe`.
         self.heroe = (0, 0)
-        # Los intérpretes paralelos del mapa cargado. Los arma
-        # `entrar_a_un_mapa`; antes de entrar a ninguno no hay ninguno.
-        self.paralelos = []
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
         # que hace `Game_Message`— pero todo lo demás sí: la ruta forzada del
@@ -4597,7 +4594,7 @@ class Estado:
         self.mensajes = None
         # Los cuadros que le quedan a la pausa del `\|`, y si el cuadro se
         # cierra solo cuando se termine —el `\^`—. Ver `cola_de_escapes` y
-        # `Interprete.cuadro`.
+        # `eventos_tick` en la ROM, que es quien las descuenta.
         self.msg_pausa = 0
         self.msg_autocierre = False
         # El oro del grupo. No se muestra en ningún lado —el menú no existe—
@@ -4654,7 +4651,7 @@ class Estado:
         self.tinte_cambio = False
         self.timer_visible = False
         # Si el refresco pendiente lo pidió un **intérprete paralelo**. Existe
-        # por lo mismo que la excepción de los autos en `asentado`: un paralelo
+        # por lo mismo que la excepción de los autos de Lashe City: un paralelo
         # que escribe una variable pide refresco todos los cuadros
         # —`SetNeedRefreshForVarChange`— así que esperar a que deje de pedirlo
         # es esperar para siempre. El refresco se hace igual; lo único que no
@@ -4773,65 +4770,6 @@ class Estado:
         """Un cuadro de la ruta forzada del héroe."""
         return self.ruta_heroe.cuadro(puede, saltar, existe=existe)
 
-    def entrar_a_un_mapa(self, posiciones, paginas=(), velocidades=None,
-                         miradas=None):
-        """Las posiciones de los eventos del mapa nuevo, en celdas.
-
-        Las rutas que estuvieran corriendo se tiran: en RM2k son de los eventos
-        del mapa que se deja, y allá no queda nadie caminando. Es el equivalente
-        de que `cargar_mapa` vuelva a copiar la tabla desde la ROM.
-        """
-        self.rutas_ev = {}
-        self.flashes = {}
-        # Y el gráfico que una orden 34 le haya puesto al héroe: las poses
-        # viven en el banco de sprites **del mapa**, así que el gráfico de allá
-        # no existe acá y la ROM lo repone en `elegir_grafico_heroe` al cargar.
-        # Es una divergencia declarada de RM2k, donde `Game_Player` se lleva su
-        # gráfico de un mapa al otro, y no se nota en el juego: la única página
-        # que cambia el gráfico del héroe y después salta —el `EV0047` del mapa
-        # 8— lo vuelve a poner en el comando siguiente al teletransporte.
-        self.ruta_heroe.grafico = None
-        self.giro = None            # las filas del mapa nuevo son otras
-        self.animacion = None       # y la animación de batalla no sigue
-        self.anim_dibujo = None     # ni su dibujo: sus tiles son de un mapa
-        self.anim_cuadro = None
-        # Y el cartel se borra al cambiar de mapa: es el
-        # `flags.erase_on_map_change` de `Game_Pictures`, que viene prendido de
-        # fábrica y que este juego no apaga en ninguna de sus imágenes.
-        self.imagen = None
-        # Y la cámara corrida vuelve a cero, de golpe: es lo que hace
-        # `PerformTeleport` con `map_changed`, devolviéndole a `pan_current` y a
-        # `pan_finish` el valor por omisión. Un salto al mismo mapa no pasa por
-        # acá y no la toca, igual que en RM2k.
-        self.pan_x = self.pan_y = 0
-        self.pan_dest_x = self.pan_dest_y = 0
-        self.pos_ev = dict(posiciones)
-        # Los intérpretes paralelos, uno por evento con página paralela que
-        # compiló. **Son del mapa y no del `Interprete` de turno**: en la ROM
-        # viven en `FAR_PAR_ESTADO`, que `cargar_mapa` pone a cero y nadie más
-        # toca. Armarlos en `Interprete.__init__` los reiniciaba cada vez que
-        # alguien hacía uno —la tecla de acción, un contacto, la caminata— y
-        # entonces un auto que va por la mitad de su página volvía a empezar.
-        # Ver `paralelos_del_mapa`.
-        self.paralelos = paralelos_del_mapa(paginas)
-        # Y las rutas propias de las páginas activas, que arrancan solas al
-        # entrar, como `Game_Event::SetupFromPage`. Se vuelven a mirar cuando
-        # cambia un switch o el grupo: `refrescar`.
-        self.paginas_rutas = paginas
-        self.velocidades = velocidades or {}
-        # Y hacia dónde mira la página de cada uno. Sale de `collect_npcs`,
-        # como la velocidad, así que se queda con la del mapa recién cargado.
-        # La ROM la lee viva de la fila del NPC, que el refresco reescribe
-        # cuando un evento cambia de página; que las dos coincidan igual no es
-        # suerte: **los 21 eventos del juego que caminan una diagonal miran
-        # para el mismo lado en todas sus páginas**, así que no hay refresco
-        # que las separe. El día que eso deje de ser cierto, esto tiene que
-        # pasar a leerse de la página activa.
-        self.miradas = miradas or {}
-        self.refresco = False
-        self.aplicar = False
-        self.rutas_de_pagina()
-
     def girar(self, indice, pagina, celda, heroe):
         """El giro hacia el héroe de un evento que él disparó: ver GIRO.
 
@@ -4920,16 +4858,6 @@ class Estado:
             elif ruta is not None and ruta.ordenes_pagina:
                 ruta.sin_pagina()
 
-    def paginas_caminando(self):
-        """Si alguna ruta propia de página tiene algo por hacer. No entra en
-        `algo_corriendo` a propósito: `OP_WAIT_ROUTES` no las espera, y una que se
-        repite no termina nunca. Lo mira sólo el lazo con presupuesto de
-        cuadros, para no cortar antes de tiempo un mapa donde alguien camina
-        solo."""
-        return any(r.de_pagina and (r.ordenes or r.paso_resta or r.espera
-                                    or r.salto_resta)
-                   for r in self.rutas_ev.values())
-
     def refrescar(self):
         """El refresco pendiente, si un switch o el grupo cambió desde el
         último. Se hace al empezar el cuadro, antes del intérprete, que es
@@ -4971,7 +4899,7 @@ class Estado:
         """Si hay un refresco pendiente **de los que hacen esperar**.
 
         Uno pedido por un intérprete paralelo no cuenta, y es la misma
-        excepción que la de los autos en `asentado`: un paralelo que escribe
+        excepción que la de los autos de Lashe City: un paralelo que escribe
         una variable lo pide en cada cuadro, así que un lazo que espere a que
         no quede ninguno no termina nunca. Lo encontró el mapa 11 —el Lazer
         Teeth HQ— cuyas once páginas paralelas compilan desde que existe la
@@ -5026,36 +4954,6 @@ class Estado:
         if indice in self.rutas_ev:
             self.rutas_ev[indice].cortar_paso()
 
-    def cuadro_de_paralelos(self, paginas, mover_evento=None):
-        """Un cuadro de cada evento con página paralela, **y su paso detrás**.
-
-        `Game_Event::Update` corre el intérprete paralelo del evento y a
-        continuación llama a `Game_Character::Update()`, o sea que lo mueve
-        —easyrpg, `game_event.cpp:580`—, y `UpdateMapEvents` hace eso evento por
-        evento. No es lo mismo que correr todos los intérpretes y después mover
-        a todos, y la diferencia se ve cuando una página paralela le fuerza una
-        ruta a **otro** evento: en Lashe City el `Car4` le pisa la suya al
-        `Car2` en cada cuadro, y con los pasos todos al final el pisotón gana y
-        el `Car2` no camina nunca. En EasyRPG y en el RPG Maker original los
-        cuatro autos andan.
-
-        `mover_evento` es quien sabe dar ese paso: lo pone el que arma el
-        cuadro, que es el único que tiene la pasabilidad del mapa. **Sin él el
-        evento no camina**, y ése era el último rojo de la tanda: el camino
-        colapsado —la entrada y la caminata de `hero_position`— llamaba acá sin
-        pasarlo, o directamente no llamaba, así que el `Car3` del mapa 8 se
-        quedaba clavado en su celda de arranque mientras el de la ROM se iba de
-        cámara.
-
-        Vive en el estado y no en `Interprete` porque es del **mapa**: en la
-        ROM son `FAR_PAR_ESTADO`, que sólo pone a cero `cargar_mapa`.
-        """
-        for paralelo in self.paralelos:
-            paralelo.cuadro(pagina_activa(paginas, paralelo.evento, self),
-                            self)
-            if mover_evento is not None:
-                mover_evento(paralelo.evento)
-
     def rutas_pendientes(self):
         """Si queda alguna ruta forzada sin terminar, la del héroe incluida.
 
@@ -5077,29 +4975,6 @@ class Estado:
         for ruta in self.rutas_ev.values():
             ruta.cancelar()
 
-    def asentado(self, paginas):
-        """Si el mapa terminó de asentarse, o sea `algo_corriendo` al revés y
-        **sin contar lo que mueven los intérpretes paralelos**.
-
-        Lo mira el único lazo que corre "hasta que todo se aquiete", que es la
-        entrada sin presupuesto de cuadros. Un evento con página paralela no se
-        aquieta nunca —para eso existe: los cuatro autos de Lashe City dan
-        vueltas mientras el mapa esté cargado— así que mirarlo con
-        `algo_corriendo` a secas se comía las diez mil vueltas del tope. Es el
-        mismo motivo por el que el cronómetro tampoco entra en `algo_corriendo`.
-
-        `rutas_pendientes` no se toca: eso es `Game_Map::IsAnyMovePending` y es
-        global a propósito, porque una página que espera a las rutas espera
-        también a las de los autos, allá y en la consola.
-        """
-        paralelos = {p.evento for p in self.paralelos}
-        return not (self.sacudida_resta > 0 or self.destello_nivel > 0
-                    or bool(self.flashes) or self.pan_falta() > 0
-                    or self.ruta_heroe.pendiente
-                    or any(ruta.pendiente
-                           for indice, ruta in self.rutas_ev.items()
-                           if indice not in paralelos))
-
     def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
                            congelada=False, solo=None, existe=None):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
@@ -5114,7 +4989,8 @@ class Estado:
         """
         # `solo` es la vuelta de un evento suelto, la que corre pegada a su
         # intérprete paralelo; los que se movieron así quedan anotados para que
-        # la pasada de todos no los mueva dos veces. Ver `cuadro_de_paralelos`.
+        # la pasada de todos no los mueva dos veces. Es `Game_Event::Update`,
+        # que corre el intérprete paralelo del evento y lo mueve en seguida.
         for indice, ruta in list(self.rutas_ev.items()):
             if solo is not None:
                 if indice not in solo:
@@ -5143,18 +5019,6 @@ class Estado:
                 self.pos_ev[indice] = (x + dx, y + dy)
         if solo is None:
             self.rutas_ev_movidas.clear()
-
-    def algo_corriendo(self):
-        """Si queda algo andando solo: una ruta forzada, un destello, la
-        sacudida de pantalla o la cámara corriéndose.
-
-        Lo mira quien decide cuándo dejar de contar cuadros. Sin los destellos
-        acá, una página que sólo destella termina en el primer cuadro y el
-        destello no avanza nunca: se queda encendido para siempre.
-        """
-        return (self.sacudida_resta > 0 or self.destello_nivel > 0
-                or bool(self.flashes) or self.rutas_pendientes()
-                or self.pan_falta() > 0 or self.animacion is not None)
 
     def cuadro_de_destello(self):
         """Un cuadro del destello de pantalla: `Flash::Update` sin el continuo,
@@ -5616,22 +5480,6 @@ SWITCH_DE_PRUEBA = 1023
 # 1003 y el 1023 es el de la página de prueba.
 SWITCH_IMPOSIBLE = 1021
 
-def evento_de_prueba(game_map):
-    """Qué número de evento le toca a la página inventada: el primero libre.
-
-    Tiene que **entrar en la tabla** —la ROM lleva un byte de estado por
-    evento, indexado por este número— y no chocar con ninguno del mapa. Y tiene
-    que ser **bajo**: los barridos de la ROM van de cero a `ev_total`, así que
-    un número alto los obliga a recorrer eventos que no existen. Con el 119
-    fijo, un mapa de cuatro eventos barría ciento veinte, y eso alcanzaba para
-    perder el cuadro.
-
-    Antes de eso fue 9999, que entraba en el bytecode pero se caía de la tabla:
-    la ROM lo descartaba en silencio y la página de prueba no arrancaba nunca.
-    """
-    return len(game_map.events)
-
-
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
@@ -6017,457 +5865,6 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([tinte[3] if len(tinte) > 3 else TINTE_NEUTRO])
     return codigo + bytes([OP_DONE])
 
-
-# Cuántas páginas se pueden arrancar encadenadas en un mismo cuadro. En RM2k el
-# tope no es de páginas sino de comandos —`loop_limit = 10000` en
-# `game_interpreter.h`— repartido entre todas las que arranquen en el cuadro.
-# Acá se cuenta por página, que es más grueso: sólo se nota con una página que
-# termine sin hacer nada y vuelva a activarse, o sea la que en RM2k cuelga el
-# juego. El número tiene que ser el mismo que `ARRANQUES_MAX` en la ROM.
-ARRANQUES_MAX = 8
-
-
-class Interprete:
-    """El intérprete corriendo, con su cursor y su espera, cuadro a cuadro.
-
-    Antes esto era una sola pasada: la página entera se ejecutaba de golpe, con
-    la pantalla apagada mientras se cargaba el mapa, y las esperas se salteaban.
-    Eso colapsaba el tiempo. Todo lo que en RM2k pasa *durante* una página —una
-    espera de seis segundos, un NPC caminando su ruta, un fundido— no existía:
-    quedaba nada más el estado final. Y como el 46% de las páginas automáticas
-    del juego terminan en un teletransporte, lo que ocurría antes del salto era
-    además imposible de verificar, porque el cuadro que se compara ya está en el
-    mapa de destino.
-
-    Ahora avanza un cuadro por vuelta, igual que `eventos_tick` en la ROM:
-    ejecuta opcodes hasta toparse con una espera o con un teletransporte, y ahí
-    devuelve el control.
-    """
-
-    def __init__(self, paginas, estado):
-        self.estado = estado
-        # Qué eventos tienen una página esperando turno. Es el
-        # `waiting_execution` de EasyRPG y el `ev_flags` de la ROM: un evento,
-        # no un puntero, y por eso no puede entrar dos veces.
-        #
-        # Antes esto era una cola armada **una sola vez acá**, con las páginas
-        # automáticas activas al cargar el mapa. Una que se volvía activa
-        # después —porque una página prendió su switch— no arrancaba nunca, y
-        # como la ROM hacía lo mismo la comparación daba cero. Con eso quedaba
-        # muerta la segunda mitad del recuerdo de CORE y MANTA, que prende su
-        # switch recién después de aterrizar en el mapa.
-        self.esperando_ev = set()
-        self.paginas = paginas
-        self.eventos = sorted({p["evento"] for p in paginas})
-        # Los eventos que tienen **alguna** página automática que compiló. Son
-        # los únicos a los que un refresco les puede sacar o poner la marca, y
-        # es el bit 7 que el conversor le pone a sus páginas para que la ROM
-        # sepa a quiénes mirar sin leerlas todas.
-        self.eventos_auto = {p["evento"] for p in paginas
-                             if p["trigger"] == TRIGGER_AUTOMATICO
-                             and p["codigo"]}
-        # Los paralelos **no** se arman acá: son del mapa y viven en el estado,
-        # que sobrevive a los intérpretes. Ver `Estado.entrar_a_un_mapa`.
-        self.codigo = None
-        self.cursor = 0
-        self.esperando = 0
-
-    def pendiente(self):
-        """La página que está corriendo, para que sobreviva a un teletransporte.
-
-        En RM2k el salto no reinicia nada: `CommandTeleport` hace `index++` y
-        devuelve false, así que la misma página retoma en el comando siguiente
-        una vez cambiado el mapa. El código vive en el cartucho, que no se mueve.
-        """
-        if self.codigo is None:
-            return None
-        return (self.codigo, self.cursor, self.esperando)
-
-    def retomar(self, pendiente):
-        """Vuelve a poner la página que venía corriendo antes del salto."""
-        self.codigo, self.cursor, self.esperando = pendiente
-
-    def ocupado(self):
-        """Si hay una página corriendo o esperando su turno."""
-        return self.codigo is not None or bool(self.esperando_ev)
-
-    def probar_accion(self, x, y, mirando, estado):
-        """La tecla de acción: la celda propia y la de adelante.
-
-        Las dos están en `Game_Player::CheckActionEvent`, y **cada una pide la
-        capa contraria**: la propia es `CheckEventTriggerHere`, que pide
-        `GetLayer() != Layers_same`, y la de adelante es
-        `CheckEventTriggerThere`, que pide `== Layers_same`. Tiene sentido: un
-        evento de la capa del héroe le cierra el paso, así que nunca llegaría a
-        pararse encima.
-
-        El orden es el de allá —primero la propia— y se prueban las dos, que es
-        lo que hace el `result |=`.
-
-        Lo de "hasta tres mostradores" no está: son las celdas de tipo counter,
-        que dejan hablar del otro lado de un mostrador.
-        """
-        propia = self.probar_celda(x, y, TRIGGER_ACCION, estado,
-                                   capa_propia=True, heroe=(x, y))
-        dx, dy = RUTA_PASOS[mirando]
-        adelante = self.probar_celda(x + dx, y + dy, TRIGGER_ACCION, estado,
-                                     capa_propia=False, heroe=(x, y))
-        return propia or adelante
-
-    def probar_contacto(self, x, y, estado):
-        """El contacto: el evento de la celda que el héroe acaba de pisar.
-
-        Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`, que
-        corre cuando el paso termina.
-        """
-        return self.probar_celda(x, y, TRIGGER_TOCA_HEROE, estado,
-                                 heroe=(x, y))
-
-    def probar_celda(self, x, y, trigger, estado, capa_propia=None,
-                     heroe=None):
-        """Encola la página activa del evento de esa celda si la dispara eso.
-
-        `capa_propia` dice cuál de las dos reglas de capa se aplica: `True` es
-        la celda del héroe, que pide una capa **distinta** de la suya, y `False`
-        la de adelante, que pide la **suya**. `None` no mira la capa, que es lo
-        que hace el contacto.
-        """
-        indice = estado.evento_en((x, y))
-        if indice is None:
-            return False
-        pagina = pagina_activa(self.paginas, indice, estado)
-        if pagina is not None and capa_propia is not None:
-            if (pagina["capa"] == LAYER_MISMA) == capa_propia:
-                return False
-        if (pagina is not None and pagina["trigger"] == trigger
-                and pagina["codigo"]):
-            self.esperando_ev.add(indice)
-            if heroe is not None:
-                estado.girar(indice, pagina, (x, y), heroe)
-            return True
-        return False
-
-    def refrescar_y_remarcar(self, eligiendo):
-        """Un refresco, y las marcas que deja.
-
-        Es `Game_Event::RefreshPage`: al rehacer la página activa, el evento
-        que se queda sin una automática pierde la marca —incluido el que se
-        queda sin página del todo, que es el
-        `ClearWaitingForegroundExecution` del `if (!new_page)`— y el que la
-        conserva la mantiene. Sin lo primero, una página que acaba de terminar
-        volvía a arrancar en el mismo cuadro: en la cinemática de apertura eso
-        reiniciaba la escena entera.
-        """
-        antes = self.estado.refresco
-        if eligiendo:
-            self.estado.refrescar_eligiendo()
-        else:
-            self.estado.refrescar()
-        if antes:
-            self.esperando_ev -= self.eventos_auto
-            self.esperando_ev |= set(self.automaticos())
-
-    def automaticos(self):
-        """Los eventos cuya página activa es una automática que compiló.
-
-        Es `Game_Event::CheckEventAutostart`, que RM2k pregunta **cada cuadro**
-        y para todos los eventos. La respuesta sólo cambia cuando cambia la
-        página activa —o sea en un refresco— así que la ROM la guarda en el bit
-        `FLAG_AUTO` de `ev_flags` y la rehace ahí; acá se recalcula, que sale
-        igual porque `pagina_activa` lee la instantánea.
-        """
-        salida = []
-        for evento in self.eventos:
-            pagina = pagina_activa(self.paginas, evento, self.estado)
-            if (pagina is not None
-                    and pagina["trigger"] == TRIGGER_AUTOMATICO
-                    and pagina["codigo"]):
-                salida.append(evento)
-        return salida
-
-    def cuadro_de_paralelos(self, mover_evento=None):
-        """Un cuadro de cada evento con página paralela, **y su paso detrás**.
-
-        `Game_Event::Update` corre el intérprete paralelo del evento y a
-        continuación llama a `Game_Character::Update()`, o sea que lo mueve
-        —easyrpg, `game_event.cpp:580`—, y `UpdateMapEvents` hace eso evento por
-        evento. No es lo mismo que correr todos los intérpretes y después mover
-        a todos, y la diferencia se ve cuando una página paralela le fuerza una
-        ruta a **otro** evento: en Lashe City el `Car4` le pisa la suya al
-        `Car2` en cada cuadro, y con los pasos todos al final el pisotón gana y
-        el `Car2` no camina nunca. En EasyRPG y en el RPG Maker original los
-        cuatro autos andan.
-
-        `mover_evento` es quien sabe dar ese paso: lo pone el que arma el cuadro,
-        que es el único que tiene la pasabilidad del mapa. Sin él —los lazos que
-        no dibujan— se corre como antes y los pasos van todos al final.
-        """
-        self.estado.cuadro_de_paralelos(self.paginas, mover_evento)
-
-    def _arrancar(self):
-        """La página del primer evento que espere. False si no hay ninguna.
-
-        El orden es por número de evento, que es el mismo en que
-        `Game_Map::Update` recorre `events`. La página se resuelve **acá** y no
-        cuando se marcó el evento: entre una cosa y la otra pudo haber un
-        refresco y ser otra la activa.
-        """
-        while self.esperando_ev:
-            evento = min(self.esperando_ev)
-            # Se desmarca sepa o no correrse, igual que el
-            # `ClearWaitingForegroundExecution` de `Game_Map::Update`. Si es
-            # automática, el barrido del cuadro que viene la vuelve a marcar.
-            self.esperando_ev.discard(evento)
-            pagina = pagina_activa(self.paginas, evento, self.estado)
-            if pagina is not None and pagina["codigo"]:
-                self.codigo, self.cursor = pagina["codigo"], 0
-                self.evento_corriendo = evento
-                return True
-        return False
-
-    @property
-    def terminado(self):
-        # También las automáticas que el barrido del cuadro que viene va a
-        # marcar: sin eso esto decía "terminado" en el cuadro en que una página
-        # prende el switch que activa a otra, y los lazos que lo miran cortaban
-        # justo antes de que arrancara.
-        # Y tampoco con un refresco pendiente: la página que acaba de terminar
-        # pudo prender el switch que activa a otra, y `automaticos` lee la
-        # instantánea, que recién se rehace en el refresco del cuadro que viene.
-        return (self.codigo is None and not self.esperando_ev
-                and not self.estado.refresco_frena() and not self.automaticos())
-
-    def cuadro(self, apreto_a=False, mover_evento=None, direccion=None,
-               tocados=()):
-        """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
-
-        `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
-        que lo tenga apretado: RM2k cierra el mensaje con `IsTriggered`, o sea
-        con el flanco. En la ROM eso es `pad_a` contra `pad_a_ant`.
-
-        `tocados` son los botones que el arnés aprieta **sólo en este cuadro**
-        —`--tocar` de las dos mitades—: las direcciones como enteros 0 a 3 y
-        "b". Es lo que le hacía falta a la forma de `KeyInputProc` que espera
-        la cruceta, que antes ningún caso podía producir.
-
-        **El refresco pendiente se hace acá**, arriba de todo, que es donde lo
-        hace `Game_Map::Update`: `if (GetNeedRefresh()) Refresh();` y recién
-        después los intérpretes y el héroe. Estaba en los lazos que llaman acá,
-        y uno de ellos no lo llamaba nunca después de prender un switch: la
-        página activa quedaba sin rehacer y nadie se enteraba porque se
-        calculaba viva. Un solo lugar es lo que hace que no vuelva a pasar.
-        """
-        # Lo que el jugador tiene apretado este cuadro, para `KeyInputProc` y
-        # para nadie más. `direccion` es la que el arnés sostiene desde el
-        # arranque —`--walk`—, que es lo único que sabe sostener; A es un toque
-        # de un cuadro, así que su estado y su flanco son lo mismo; `tocados`
-        # son los toques anotados. El cuadro anterior queda en `pad_ant`, que
-        # es de donde sale el flanco. Ver `Estado.pad`.
-        self.estado.pad_ant = self.estado.pad
-        self.estado.pad = frozenset(
-            ({"a"} if apreto_a else set())
-            | ({direccion} if direccion is not None else set())
-            | set(tocados))
-        self.refrescar_y_remarcar(eligiendo=False)
-        # `Game_Event::CheckEventAutostart`, cada cuadro y para todos. Que
-        # corra **también mientras la página de ese evento está corriendo** es
-        # lo que hace que una automática se repita al terminar, mientras siga
-        # siendo la activa; la que apaga su propia condición no se repite,
-        # porque el refresco la saca de la lista.
-        #
-        # Va **antes** del intérprete, que es el orden de `Game_Map::Update`:
-        # una página que se vuelve activa en medio de otra arranca recién en el
-        # cuadro siguiente. La ROM se saltea el lazo cuando no hay ninguna
-        # automática activa —lleva la cuenta en `auto_n`—; acá el lazo no
-        # cuesta nada y se deja el que se lee igual que la fuente.
-        self.esperando_ev.update(self.automaticos())
-        # Los paralelos, **antes** del héroe y antes del mensaje: en
-        # `Game_Map::Update` el orden es refresco, `UpdateMapEvents`,
-        # `game_player->Update()`, `UpdateMessage` y recién ahí
-        # `UpdateForegroundEvents`. O sea que un evento paralelo sigue
-        # corriendo con un cuadro de texto abierto y con otra página en curso,
-        # que es justo para lo que existe.
-        antes = self.estado.refresco
-        self.cuadro_de_paralelos(mover_evento)
-        # Lo que los paralelos acaban de pedir se anota como suyo: ver
-        # `Estado.refresco_frena`.
-        self.estado.refresco_de_paralelo = self.estado.refresco and not antes
-        if self.estado.mensaje is not None:
-            if self.estado.msg_pausa:
-                # La pausa del `\|`, y **A no la saltea**: en
-                # `Window_Message::Update` el `if (wait_count > 0) { --wait_count;
-                # return; }` va antes de `WaitForInput()`, así que mientras
-                # corre el botón no se mira. La cuenta arranca en el cuadro que
-                # sigue al que abrió el mensaje, de los dos lados.
-                self.estado.msg_pausa -= 1
-                return False
-            if self.estado.msg_autocierre:
-                # El `\^`: se cierra sin que nadie apriete nada. No es "el
-                # mensaje no se muestra": se mostró todos los cuadros que
-                # duraron las pausas, y las 40 veces que este juego lo usa
-                # llevan por lo menos una.
-                self.estado.msg_autocierre = False
-            elif not apreto_a:
-                return False
-            # Se cierra y la página sigue **en el mismo cuadro**, que es lo que
-            # hace la ROM: `eventos_tick` limpia `msg_abierto` y cae en el
-            # `jsr correr_codigo` de siempre. Cerrar acá y seguir el cuadro
-            # siguiente sería un cuadro de diferencia entre los dos lados.
-            self.estado.mensaje = None
-            if self.estado.eleccion is not None:
-                # Si lo que estaba abierto era una elección, A no retoma la
-                # página donde quedó: la manda al cuerpo de la opción marcada.
-                #
-                # **Acá el cursor siempre está en la primera opción**, y no es
-                # una simplificación escondida: la tanda de pixeles sólo sabe
-                # apretar A, así que mover el cursor es un camino que no puede
-                # ejercitar. Modelarlo igual sería escribir de este lado código
-                # que ninguna prueba corre, que es la manera en que este repo ya
-                # se equivocó tres veces. Moverlo lo hace la ROM y lo cubre una
-                # prueba de estado, que sí puede apretar abajo; ver
-                # `pruebas/test_elegir.py` y "Lo que la tanda no cubre".
-                eleccion = self.estado.eleccion
-                self.estado.eleccion = None
-                self.cursor = eleccion["destinos"][eleccion["sel"]]
-        if self.esperando == ESPERAR_RUTAS:
-            if self.estado.rutas_pendientes():
-                return False
-            self.esperando = 0
-        elif self.esperando:
-            self.esperando -= 1
-            return False
-        # El `while (!interp.IsRunning())` de
-        # `Game_Map::UpdateForegroundEvents`: una página que termina deja
-        # arrancar a la que siga esperando **en este mismo cuadro**.
-        arranques = ARRANQUES_MAX
-        while True:
-            if self.codigo is None and not self._arrancar():
-                return False
-            corte = ejecutar(self.codigo, self.estado, self.cursor)
-            # El refresco pendiente, al salir del intérprete: es el
-            # `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` del final
-            # de `Game_Interpreter::Update`. De él depende que el idioma de
-            # RM2k funcione: la página que prende el switch que la desactiva
-            # deja de ser la activa antes de que se decida qué corre después.
-            # Sin esto, al terminar seguía pareciendo automática y volvía a
-            # arrancar en el mismo cuadro.
-            self.refrescar_y_remarcar(eligiendo=True)
-            if corte is None:               # la página terminó
-                self.codigo = None
-                # Y el evento que giraba vuelve a su pose, si era el suyo: el
-                # `UpdateFacing` de `OnFinishForegroundEvent`.
-                giro = self.estado.giro
-                if (giro is not None
-                        and giro["evento"] == getattr(self, "evento_corriendo",
-                                                      None)):
-                    self.estado.giro = None
-                arranques -= 1
-                if not arranques:
-                    return False
-                continue
-            self.cursor, self.esperando, salto = corte
-            return salto
-
-
-def paralelos_del_mapa(paginas):
-    """Un intérprete paralelo por evento con página paralela que compiló.
-
-    Van por el **mismo** bit 7 que las automáticas: en la ROM ese bit quiere
-    decir "mirale las páginas a este evento en el refresco", y quién es
-    automática y quién paralela lo dice el trigger de la página que gane. Ver
-    `tabla_de_paginas` en snes_convert.py.
-    """
-    return [Paralelo(evento) for evento in
-            sorted({p["evento"] for p in paginas
-                    if p["trigger"] == TRIGGER_PARALELO and p["codigo"]})]
-
-
-class Paralelo:
-    """El intérprete de un evento con página paralela.
-
-    Es `Game_Event::Update`: corre **todos los cuadros**, aparte del de primer
-    plano y sin que le importe si hay un mensaje abierto o una página corriendo.
-    Y cuando su página termina, la vuelve a empezar: RPG_RT hace el `Push` justo
-    antes de cada `Update` si el intérprete no está corriendo, así que una
-    página que se agota en un cuadro se reinicia al siguiente para siempre.
-
-    Su estado —dónde va y cuánto le falta esperar— es del **evento**, no de una
-    ranura: si la página activa cambia, RM2k rehace el intérprete, así que acá
-    se compara contra la que estaba y se arranca de cero.
-    """
-
-    def __init__(self, evento):
-        self.evento = evento
-        self.pagina = None          # la que estaba, para notar el cambio
-        self.cursor = 0
-        self.esperando = 0
-        self.corriendo = False
-
-    def cuadro(self, pagina, estado):
-        """Un cuadro de este evento. `pagina` es su página activa, o None."""
-        if pagina is None or not pagina["codigo"]:
-            self.pagina = pagina
-            self.corriendo = False
-            self.cursor = self.esperando = 0
-            return
-        if pagina is not self.pagina:
-            # `Game_Event::Setup`: otra página, otro intérprete.
-            self.pagina = pagina
-            self.corriendo = False
-            self.cursor = self.esperando = 0
-        if self.esperando == ESPERAR_RUTAS:
-            if estado.rutas_pendientes():
-                return
-            self.esperando = 0
-        elif self.esperando:
-            self.esperando -= 1
-            return
-        if not self.corriendo:
-            self.cursor = 0
-            self.corriendo = True
-        corte = ejecutar(pagina["codigo"], estado, self.cursor)
-        if corte is None:
-            # Terminó. No se reinicia en este mismo cuadro: el `Push` de RPG_RT
-            # corre una vez por `Update`, así que le toca al que viene.
-            self.corriendo = False
-            self.cursor = self.esperando = 0
-            return
-        self.cursor, self.esperando, _salto = corte
-
-
-def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None,
-                       mover_evento=None):
-    """Corre las páginas automáticas del mapa hasta que pidan un salto.
-
-    Atajo para quien no necesita mirar el tiempo: adelanta cuadros hasta que el
-    intérprete pida mudarse o se quede sin páginas. Lo que sí mira el tiempo
-    —la referencia de la pantalla— usa `Interprete` directamente.
-
-    El salto pendiente se borra al entrar, que es el `stz salto_hay` de la ROM:
-    sin eso, el primer mapa que teletransporta dejaría el salto puesto y el
-    mapa de destino saldría saltando de nuevo al mismo lado sin haber corrido
-    ningún evento.
-    """
-    estado.salto = None
-    interprete = Interprete(paginas, estado)
-    for _ in range(cuadros):
-        # `mover_evento` va sí o sí cuando el mapa tiene eventos que caminan
-        # desde una página paralela: sin él sus intérpretes corren pero nadie
-        # les da el paso. Ver `Estado.cuadro_de_paralelos`.
-        if interprete.cuadro(mover_evento=mover_evento):
-            return estado.salto
-        # Las rutas de los eventos avanzan acá porque este lazo es el dueño del
-        # tiempo. Sin esto, una página que espere a que terminen —OP_WAIT_ROUTES— no
-        # terminaría nunca: nadie las estaría caminando.
-        if avanzar is not None:
-            avanzar()
-        if interprete.terminado or estado.mensaje is not None:
-            # Con un mensaje abierto no hay a quién esperar: acá no hay
-            # jugador. Se corta con la ventana en pantalla, que es exactamente
-            # lo que hace la consola si nadie aprieta nada. Quien quiera
-            # comparar el cierre pasa cuadros y dice en cuál se aprieta A.
-            break
-    return None
 
 
 # Lo que `ejecutar` devuelve como "cuántos cuadros esperar" cuando la espera no
@@ -6882,7 +6279,7 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_WAIT_ROUTES:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
-            # ser, y quien decide es `Interprete.cuadro` mirando si queda alguna
+            # ser, y quien decide es `eventos_tick` mirando si queda alguna
             # pendiente. Si no queda ninguna no cuesta ni un cuadro, que es lo
             # que hace el `while` de `Game_Interpreter::Update`.
             if not estado.rutas_pendientes():
@@ -6892,7 +6289,7 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_CHOICE:
             # Abre la ventana con las opciones y corta el cuadro, igual que un
             # mensaje. La diferencia es que la página no retoma donde quedó: el
-            # cursor se lo pone `Interprete.cuadro` cuando el jugador elige, y
+            # cursor se lo pone `eventos_tick` cuando el jugador elige, y
             # sale del destino de la opción que haya quedado.
             #
             # El cursor arranca en cero, que es `Window_Selectable` con su
@@ -6912,7 +6309,7 @@ def ejecutar(codigo, estado, desde=0):
             return (i, 0, False)
         elif op == OP_MESSAGE:
             # Abre la ventana y corta el cuadro. El cursor queda en el comando
-            # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta
+            # siguiente, pero `eventos_tick` no vuelve a llegar acá hasta
             # que alguien apriete A: la página queda bloqueada, que es lo que
             # hace `Game_Message` en RM2k.
             estado.mensaje = codigo[i + 1] | (codigo[i + 2] << 8)
@@ -7171,7 +6568,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             # vacía—, así que no es un caso raro: en Rat Tracks B1 son dos, y el
             # mapa era injugable. Lo delató `heroe 21` al tardar catorce
             # minutos, porque la referencia se comía sus 100.000 ticks de
-            # `correr_automaticos` antes de empezar a caminar.
+            # páginas automáticas antes de empezar a caminar.
             #
             # Se apaga poniéndole el código en None, que es lo que los dos lados
             # ya miran para decidir si una página automática cuenta

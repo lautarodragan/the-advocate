@@ -5869,8 +5869,15 @@ def main():
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
             # de ningún dato del juego: existe porque ninguna página que compile
             # tiene una espera, así que el intérprete cuadro a cuadro no lo
-            # ejercitaba nada. La referencia arma la misma con la misma función.
-            # El primer índice libre del mapa; ver `eventos.evento_de_prueba`.
+            # ejercitaba nada.
+            #
+            # Va en el **primer índice libre del mapa**, y tiene que ser ése y
+            # no uno fijo: la ROM lleva un byte de estado por evento indexado
+            # por este número, así que uno alto se cae de la tabla —con 9999 la
+            # ROM lo descartaba en silencio y la página no arrancaba nunca— y
+            # uno apenas alto obliga a los barridos de cero a `ev_total` a
+            # recorrer eventos que no existen: con el 119 fijo, un mapa de
+            # cuatro eventos barría ciento veinte y eso perdía el cuadro.
             mapa["EV_COUNT_PRUEBA"] = len(mapa["ev_pos"]) // EV_STRIDE
             espera, tinte = 0, ()
             if args.pagina_de_prueba:
