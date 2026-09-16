@@ -31,7 +31,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                            # noqa: E402
-import w65_bin                                          # noqa: E402
+import ensamblar                                        # noqa: E402
 from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
@@ -649,17 +649,13 @@ def huella():
     Se mira el contenido y no la fecha: `git checkout` de ida y vuelta deja
     fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
 
-    **El ensamblador entra por el binario y no por sus fuentes**: desde el
-    2026-09-15 es Rust y se instala en el PATH, y hasta entonces se colaba solo
-    por el `tools/*.py`. Si no entrara, tocar `w65/` no invalidaría nada y las
-    pruebas correrían contra ROMs armadas con un ensamblador viejo, en
-    silencio.
-    Va el binario y no `w65/src/*.rs` porque es lo que de verdad ensambló:
-    con los fuentes, un `cargo build` que falla dejaría la huella nueva y el
-    ensamblador viejo.
+    **El ensamblador y el linker entran por sus binarios**, `ca65` y `ld65` del
+    PATH: si no entraran, recompilarlos no invalidaría nada y las pruebas
+    correrían contra ROMs armadas con los viejos, en silencio. El envoltorio
+    que los llama ya entra con el `tools/*.py`.
     """
     h = hashlib.sha256()
-    partes = [os.path.join(RAIZ, "rom", "src", "main.s"), w65_bin.binario()]
+    partes = [os.path.join(RAIZ, "rom", "src", "main.s")] + ensamblar.binarios()
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:
@@ -777,12 +773,9 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     convertir += ["-o", inc]
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
 
-    # El ensamblador es el binario de Rust, el mismo que usan las recetas. Sus
-    # flags son ingleses porque w65/ es un proyecto aparte; ver AGENTS.md.
-    subprocess.run([w65_bin.binario(),
-                    os.path.join(RAIZ, "rom", "src", "main.s"),
-                    "-I", destino, "-o", sfc, "--symbols", sfc + ".sym"],
-                   check=True, capture_output=True, cwd=RAIZ)
+    # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
+    ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
+                        destino, sfc, sfc + ".sym")
     with open(sello, "w") as archivo:
         archivo.write(actual)
 

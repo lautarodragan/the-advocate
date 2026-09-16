@@ -5175,7 +5175,7 @@ def main():
     parser.add_argument("--map-id", type=int, default=7)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "rom/src/mapdata.inc"))
+                        default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
     parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
                         help="mete en el mapa inicial una página automática "
                              "que abre una ventana de mensaje con estas "

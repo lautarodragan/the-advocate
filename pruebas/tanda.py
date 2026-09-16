@@ -38,7 +38,7 @@ from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                             # noqa: E402
-import w65_bin                                           # noqa: E402
+import ensamblar                                         # noqa: E402
 from snes_correr import ARRANQUE                         # noqa: E402
 
 # Dónde viven las capturas congeladas y los planes.
@@ -107,10 +107,9 @@ def cartucho(nombre, *flags, grupo=None):
                   "--grupo"] + grupo + [str(f) for f in flags]
                  + ["-o", inc])
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
-    subprocess.run([w65_bin.binario(),
-                    os.path.join(RAIZ, "rom", "src", "main.s"),
-                    "-I", destino, "-o", sfc, "--symbols", sfc + ".sym"],
-                   check=True, capture_output=True, cwd=RAIZ)
+    # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
+    ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
+                        destino, sfc, sfc + ".sym")
     with open(sello, "w") as archivo:
         archivo.write(actual)
     return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)

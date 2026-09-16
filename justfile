@@ -87,33 +87,23 @@ ditto-volcado DIR="/extras/volcado-ditto":
 tiles-pruebas:
   cd tiles && cargo test
 
-# El ensamblador de 65816, y **el único que arma las ROMs**: todas las recetas
-# que ensamblan `main.s` lo llaman a él, y también `pruebas/consola.py`, que
-# arma las suyas desde pytest. Se instala con `just herramientas` y se usa desde
-# el PATH. Adentro de w65/ no hay una sola mención a este juego ni a la SNES,
-# igual que en ditto/ y protocol/, y por eso sus flags están en inglés
-# —`--include`, `--symbols`, `--no-checksum`—.
-#
-# Tiene fecha de vencimiento: el port va a pasar a `ca65` + `ld65`, por preferir
-# un proyecto mantenido antes que sostener el nuestro. Lo que falta para eso es
-# `.bloque` —el acomodo de bloques en bancos—, que cae en el asignador.
-w65 := "w65"
+# Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
+# leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
+# `pruebas/consola.py`. El mapa de memoria lo escribe el conversor al lado de
+# los `.inc`. Ver tools/ensamblar.py.
+ensamblar := "python3 tools/ensamblar.py"
 
 # Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # --- Las herramientas de Rust ----------------------------------------------
-# `w65/`, `protocol/`, `brr/` y `ditto/` son proyectos aparte, y el port los
+# `protocol/`, `brr/` y `ditto/` son proyectos aparte, y el port los
 # consume **desde el PATH**, como consume python3 o un core de libretro: ningún
 # script ni prueba de este juego llama a `cargo`. Se instalan una vez y quedan.
 herramientas:
-  cargo install --locked --path w65 --root {{cargo_root}}
   cargo install --locked --path protocol --root {{cargo_root}}
   cargo install --locked --path brr --root {{cargo_root}}
   cargo install --locked --path ditto --root {{cargo_root}}
-
-w65-pruebas:
-  cd w65 && cargo test
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las
@@ -158,7 +148,7 @@ nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
-snes_inc := if corrida == "" { "rom/src" } else { snes_dir }
+snes_inc := if corrida == "" { "rom/build/inc" } else { snes_dir }
 snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
 
 # ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
@@ -173,7 +163,7 @@ convert mapa="7":
       --descartar-eventos --reference {{snes_pngs}}/python.png
 
 build:
-  {{w65}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --symbols {{snes_rom}}.sym
+  {{ensamblar}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
@@ -394,9 +384,9 @@ demo nombre="demo-ciudad" titulo="":
               32 33 34 36 \
       --con-ventana --con-timer ${titulo:+--con-titulo} \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La persecución en auto, que no entra en `demo-ciudad` y no hace falta que
 # entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
@@ -447,9 +437,9 @@ demo-carrera nombre="demo-carrera":
       --mapas 50 51 52 53 54 \
       --con-ventana --con-timer --switch 171 --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La cinemática de los Neon Vipers. **El mapa es el 14, `NV Get Talan to Work`**,
 # no el 11: la escena pasa en la calle de enfrente del escondite de los Lazer
@@ -470,9 +460,9 @@ demo-vipers nombre="demo-vipers":
   python3 tools/snes_convert.py --grupo 14 --map-id 14 \
       --con-ventana --con-timer \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # El minijuego de las piedras del `Lazer Teeth HQ`, para jugarlo sin caminar
 # media Lashe City. Un solo mapa —el 11— y el héroe **parado abajo de la reja**.
@@ -497,9 +487,9 @@ demo-piedras nombre="demo-piedras":
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
       --con-ventana --con-timer --inicio 26 52 \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # Los cofres del Sector 30 y de los Rat Tracks, para probar la colisión sin
 # cruzar media Lashe City. Tres mapas —el 20, el 21 y el 26— y el héroe parado
@@ -519,9 +509,9 @@ demo-cofres nombre="demo-cofres":
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
       --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # La misma demo que `demo-ciudad` pero **arrancando en el mapa que se le diga**,
 # para escuchar su tema sin tener que caminar hasta ahí.
@@ -568,9 +558,9 @@ musica mapa tema banco="":
       --con-ventana --con-timer --banco-sin-prioridad \
       {{ if banco == "" { "" } else { "--banco-entero" } }} \
       -o rom/build/$nombre/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/$nombre \
+  {{ensamblar}} rom/src/main.s -I rom/build/$nombre \
       -o rom/build/$nombre/$nombre.sfc \
-      --symbols rom/build/$nombre/$nombre.sfc.sym
+      --simbolos rom/build/$nombre/$nombre.sfc.sym
 
 # El cofre trampa de los Rat Tracks B1, al lado del héroe: la demo más corta
 # posible para ver el Game Over de la pelea que ese cofre abre. Arranca pegado al
@@ -587,9 +577,9 @@ demo-trampa nombre="demo-trampa":
   python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
       --con-ventana --con-timer --inicio 22 36 \
       -o rom/build/{{nombre}}/mapdata.inc
-  {{w65}} rom/src/main.s -I rom/build/{{nombre}} \
+  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --symbols rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
 # Las dos de una vez.
 demos:

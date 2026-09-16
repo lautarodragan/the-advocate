@@ -1041,7 +1041,7 @@ def main():
     parser.add_argument("--map-id", type=int, default=67)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "rom/src/musicdata.inc"))
+                        default=os.path.join(REPO, "rom/build/inc/musicdata.inc"))
     args = parser.parse_args()
 
     name, driver, samples, stream, seconds, summary = build(args.map_id,

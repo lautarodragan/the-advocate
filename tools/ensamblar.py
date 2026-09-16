@@ -1,0 +1,173 @@
+"""Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
+
+    python3 tools/ensamblar.py rom/src/main.s -I rom/build/demo-ciudad \\
+        -o rom/build/demo-ciudad/demo-ciudad.sfc --simbolos …/demo-ciudad.sfc.sym
+
+Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
+hacen lo mismo salvo tres cosas, y son las que viven acá:
+
+* **El checksum de la cabecera.** Los emuladores no lo miran, pero los menús de
+  los flash carts leen la cabecera para saber el mapeo, y con basura pueden
+  adivinar mal.
+* **La tabla de símbolos, en el formato que leen las pruebas**: una línea por
+  símbolo, `nombre valor`, con el valor en decimal. `ld65` la da en su archivo
+  de depuración, que trae mucho más.
+* **Negarse a armar con un `.inc` generado al lado de `main.s`.** `ca65` busca
+  los `.include` primero en el directorio del archivo que incluye y recién
+  después en los `-I`, así que uno viejo en `rom/src/` taparía al del cartucho
+  sin decir nada: la ROM saldría con los datos de otro.
+
+Lo que **no** tiene equivalente es un control que hacía `w65`: que cada salto
+llegue a su etiqueta con los registros al ancho que ella declara.
+
+El mapa de memoria no está acá: lo escribe el conversor, `memoria.cfg`, al lado
+de los `.inc`. Ver `tools/bancos.py`.
+"""
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+
+# Los que escribe el conversor. Si alguno aparece junto a la fuente, tapa al del
+# directorio que se pasa con -I.
+GENERADOS = ("mapdata.inc", "musicdata.inc")
+
+# Dónde va el checksum en el archivo: `$FFDE` del banco 0, y su complemento en
+# `$FFDC`.
+CHECKSUM = 0x7FDE
+COMPLEMENTO = 0x7FDC
+
+FALTA = """falta `%s`, del proyecto cc65.
+
+No viene empaquetado en Arch; se compila una vez y queda en el PATH:
+
+    git clone --depth 1 https://github.com/cc65/cc65.git /extras/ref/cc65
+    make -C /extras/ref/cc65 -j8 bin
+    ln -s /extras/ref/cc65/bin/ca65 /extras/ref/cc65/bin/ld65 /usr/local/bin/
+
+Ver "Dónde corre esto" en AGENTS.md."""
+
+
+class FaltaCc65(RuntimeError):
+    """No está `ca65` o `ld65`, con qué hacer para tenerlos."""
+
+
+def binarios():
+    """Las rutas de `ca65` y `ld65` del PATH."""
+    rutas = []
+    for nombre in ("ca65", "ld65"):
+        ruta = shutil.which(nombre)
+        if ruta is None:
+            raise FaltaCc65(FALTA % nombre)
+        rutas.append(ruta)
+    return rutas
+
+
+def checksum(rom):
+    """Escribe el checksum de la cabecera, en el lugar.
+
+    Es la suma de todos los bytes módulo 65536, con su complemento al lado. La
+    fuente deja `$FFFF` y `$0000` en esos cuatro bytes a propósito: como el
+    complemento es el checksum invertido, los cuatro suman siempre 510, así que
+    la suma no cambia al escribirlos y no hace falta iterar.
+    """
+    antes = sum(rom) & 0xFFFF
+    rom[CHECKSUM:CHECKSUM + 2] = antes.to_bytes(2, "little")
+    rom[COMPLEMENTO:COMPLEMENTO + 2] = (antes ^ 0xFFFF).to_bytes(2, "little")
+    despues = sum(rom) & 0xFFFF
+    if despues != antes:
+        raise ValueError("el checksum no se asentó: $%04X contra $%04X, y eso "
+                         "quiere decir que la cabecera no traía $FFFF y $0000"
+                         % (despues, antes))
+    return antes
+
+
+def _campos(linea):
+    """`sym\tid=0,name="x",val=0x1` → {"id": "0", "name": "x", "val": "0x1"}."""
+    campos = {}
+    for par in linea.rstrip("\n").split("\t", 1)[1].split(","):
+        clave, _, valor = par.partition("=")
+        campos[clave] = valor.strip('"')
+    return campos
+
+
+def simbolos(dbg):
+    """Los símbolos del archivo de depuración de `ld65`, como {nombre: valor}.
+
+    Las etiquetas de adentro de un `.proc` salen como `proc::etiqueta`, igual
+    que las daba `w65`. `ld65` escribe los valores en 32 bits sin signo, así que
+    una constante negativa —`IMAGEN_X`— se devuelve a su signo.
+    """
+    scopes, syms = {}, []
+    with open(dbg) as archivo:
+        for linea in archivo:
+            if linea.startswith("scope\t"):
+                c = _campos(linea)
+                scopes[c["id"]] = (c["name"], c.get("parent"))
+            elif linea.startswith("sym\t"):
+                c = _campos(linea)
+                if c.get("type") in ("lab", "equ") and "val" in c:
+                    syms.append(c)
+    tabla = {}
+    for c in syms:
+        partes, scope = [c["name"]], c.get("scope")
+        while scope is not None and scope in scopes:
+            nombre, scope = scopes[scope]
+            if nombre:
+                partes.insert(0, nombre)
+        valor = int(c["val"], 16)
+        if valor >= 1 << 31:
+            valor -= 1 << 32
+        tabla["::".join(partes)] = valor
+    return tabla
+
+
+def ensamblar(fuente, incluir, rom, tabla=None):
+    """Arma `rom` desde `fuente`, con los generados y el `.cfg` de `incluir`."""
+    directorio = os.path.dirname(os.path.abspath(fuente))
+    tapan = [n for n in GENERADOS if os.path.exists(os.path.join(directorio, n))]
+    if tapan:
+        raise RuntimeError(
+            "%s tiene %s al lado, y `ca65` lo leería antes que el de %s: la ROM "
+            "saldría con los datos de otro cartucho. Son generados; se pueden "
+            "borrar." % (fuente, " y ".join(tapan), incluir))
+    ca65, ld65 = binarios()
+    objeto, dbg = rom + ".o", rom + ".dbg"
+    subprocess.run([ca65, "-g", "--cpu", "65816", "-I", incluir, fuente,
+                    "-o", objeto], check=True)
+    subprocess.run([ld65, "-C", os.path.join(incluir, "memoria.cfg"), objeto,
+                    "-o", rom, "--dbgfile", dbg], check=True)
+    with open(rom, "r+b") as archivo:
+        datos = bytearray(archivo.read())
+        checksum(datos)
+        archivo.seek(0)
+        archivo.write(datos)
+    if tabla:
+        with open(tabla, "w") as archivo:
+            for nombre, valor in sorted(simbolos(dbg).items()):
+                archivo.write("%s %d\n" % (nombre, valor))
+    print("%s -> %s (%d bytes)" % (fuente, rom, len(datos)))
+    return rom
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("fuente")
+    parser.add_argument("-I", dest="incluir", required=True,
+                        help="donde están los .inc generados y memoria.cfg")
+    parser.add_argument("-o", dest="rom", required=True)
+    parser.add_argument("--simbolos")
+    args = parser.parse_args()
+    try:
+        ensamblar(args.fuente, args.incluir, args.rom, args.simbolos)
+    except (FaltaCc65, RuntimeError) as error:
+        sys.exit(str(error))
+    except subprocess.CalledProcessError as error:
+        sys.exit(error.returncode)
+
+
+if __name__ == "__main__":
+    main()
