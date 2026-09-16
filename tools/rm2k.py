@@ -180,16 +180,6 @@ ANIMADO_CUADROS = 6
 ANIMADO_PASOS = 4
 
 
-def paso_de_agua(tick, animation_type=0, animation_speed=0):
-    """Cuál de los tres dibujos del agua toca en ese tick."""
-    cuadros = (AGUA_CUADROS_RAPIDO if animation_speed
-               else AGUA_CUADROS_LENTO)
-    paso = (tick & TICK_MASCARA) // cuadros
-    if animation_type:
-        return paso % 3
-    return AGUA_CICLO[paso % len(AGUA_CICLO)]
-
-
 def paso_animado(tick):
     """Cuál de los cuatro dibujos de los tiles animados toca en ese tick."""
     return ((tick & TICK_MASCARA) // ANIMADO_CUADROS) % ANIMADO_PASOS
@@ -531,4 +521,3 @@ def collect_doors(game_map):
         puertas.append({"x": event.x, "y": event.y,
                         "mapa": destino, "destino_x": x, "destino_y": y})
     return puertas
-

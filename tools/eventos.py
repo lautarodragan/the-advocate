@@ -349,23 +349,6 @@ ANIM_PARADO = (12, 10, 8, 6, 5, 4)
 ANIM_CONTINUA = (16, 12, 10, 8, 7, 6)
 
 
-def columna_animada(tick, velocidad):
-    """La columna del ciclo de un evento **quieto** con animación continua.
-
-    Los que caminan llevan su propio contador adentro de la ranura de ruta y
-    esto no los toca; los quietos no tienen ranura ni dónde guardar un contador
-    —ver `animar_quietos` en main.s— así que la columna sale del reloj del
-    juego: cada `ANIM_CONTINUA` ticks avanza un paso del ciclo de cuatro.
-
-    **La fase no es la de RM2k**, que arranca el contador de cada personaje
-    cuando el mapa lo crea. Acá es global, así que un evento que aparece a mitad
-    de la partida entra con el ciclo empezado. Es una elección, está declarada
-    en `assets/LIMITACIONES.md`, y lo que la hace válida es que los dos lados la
-    calculan con la misma fórmula y el mismo reloj.
-    """
-    paso = (tick & rm2k.TICK_MASCARA) // ANIM_CONTINUA[velocidad - 1]
-    return rm2k.CICLO_TRES[paso % len(rm2k.CICLO_TRES)]
-
 # El sonido va adentro de la ruta y se acepta sin hacerlo —PlaySound sí suena
 # desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
 # orden y no cuesta ni un cuadro, que es lo que hace RM2k —no toca el contador
@@ -440,40 +423,6 @@ RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                    RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS,
                    RUTA_FREC_MAS, RUTA_FREC_MENOS, RUTA_CAMBIAR_GRAFICO})
 
-
-def recorrer_ruta(ruta):
-    """Las órdenes de una ruta **ya compilada**, con su operando si lo lleva.
-
-    El bytecode es un byte por orden salvo la 34, que arrastra detrás a qué
-    gráfico cambia. Recorrerlo plano sería la trampa de `decodificar_ruta` otra
-    vez: el operando se leería como una orden, y con un 30 o un 31 de operando
-    cambiaría la frecuencia de la ruta sin que nadie lo pidiera.
-    """
-    i = 0
-    while i < len(ruta):
-        orden = ruta[i]
-        i += 1
-        if orden == RUTA_CAMBIAR_GRAFICO:
-            if i >= len(ruta):
-                raise NoSePuede()
-            yield orden, ruta[i]
-            i += 1
-        else:
-            yield orden, None
-
-
-def direccion_hacia(desde, hasta):
-    """Hacia dónde mira quien está en `desde` para encarar a `hasta`, en celdas.
-
-    Es `Game_Character::GetDirectionToCharacter`, con sus dos vueltas: gana el
-    eje con **más** distancia y en empate el vertical, y sobre la misma celda
-    o con el otro más abajo se mira abajo.
-    """
-    sx = desde[0] - hasta[0]
-    sy = desde[1] - hasta[1]
-    if abs(sx) > abs(sy):
-        return 3 if sx > 0 else 1        # izquierda si el otro está a la izquierda
-    return 0 if sy > 0 else 2            # arriba si el otro está más arriba
 
 # Las órdenes que llevan algo detrás, y qué. Los números son los de
 # `rpg::MoveCommand::Code` en liblcf.
@@ -1172,43 +1121,6 @@ def rampa_de_fundido():
             for s in range(FUNDIDO_RAMPA)]
 
 
-def brillo_de_fundido(t):
-    """El brillo maestro en el cuadro `t` de un fundido, contado desde que el
-    teletransporte se pidió. Fuera del fundido es `BRILLO_MAX`."""
-    if t < 0 or t >= FUNDIDO_TOTAL:
-        return BRILLO_MAX
-    rampa = rampa_de_fundido()
-    if t < FUNDIDO_RAMPA:
-        return rampa[FUNDIDO_RAMPA - 1 - t]     # se va apagando
-    if t < FUNDIDO_CUADROS + FUNDIDO_NEGRO:
-        return 0                                # el negro donde carga el mapa
-    return rampa[t - FUNDIDO_CUADROS - FUNDIDO_NEGRO]
-
-
-def oscurecer(palabra, brillo):
-    """Los 15 bits de un color con el brillo maestro aplicado.
-
-    Es lo que hace el PPU con INIDISP, y la cuenta sale de la tabla que arma
-    `PPU::PPU()` en bsnes: `round(canal * brillo / 15)` sobre los cinco bits de
-    cada canal.
-
-    Es el único lugar donde los tres cores dejan de coincidir: snes9x y bsnes
-    redondean y **mesen-s trunca**, o sea que con brillo 6 un canal de 7 le da 2
-    donde los otros dan 3. Se sigue a bsnes —de donde sale la tabla, y el que
-    mide contra hardware— y a snes9x, que es el core de la tanda; una
-    comparación corrida con `CORE=mesen-s` adentro de un fundido va a dar rojo
-    sin que nada esté roto.
-    """
-    if brillo >= BRILLO_MAX:
-        return palabra
-    salida = 0
-    for i in range(3):
-        canal = (palabra >> (5 * i)) & 0x1F
-        salida |= ((2 * canal * brillo + BRILLO_MAX)
-                   // (2 * BRILLO_MAX)) << (5 * i)
-    return salida
-
-
 # Qué dispara una página. Los de `rpg::EventPage::Trigger` de liblcf.
 TRIGGER_ACCION = 0          # el jugador aprieta la tecla de acción enfrente
 TRIGGER_TOCA_HEROE = 1      # el héroe camina encima
@@ -1756,11 +1668,6 @@ LLUVIA_DX, LLUVIA_DY = -1, 4
 LLUVIA_COLORES = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # de 5 bits
 
 
-def lluvia_tono(t):
-    """Cuál de los tres grises: más claro recién nacida."""
-    return 0 if t >= 9 else 1 if t >= 5 else 2
-
-
 def lluvia_pixeles(x, y):
     """Los pixeles de una gota con la esquina en (x, y): una raya de 4x16 que
     baja hacia la izquierda, un pixel cada cuatro filas."""
@@ -2156,29 +2063,6 @@ def audio_de_batalla(temas):
                            else temas.sonido(*efecto))
     temas.mapa = anterior
     return indices
-
-
-def imagen_tono(desde, hasta, paso, pasos):
-    """El tono del cartel en el cuadro `paso` de `pasos`, componente por
-    componente.
-
-    `Game_Pictures::Picture::Update` interpola con `(finish - current) / dt`
-    sobre `double`, con `dt` los cuadros que quedan más uno, que es un
-    "acercarse a la parte que falta" cuyo resultado exacto es lineal:
-    `desde + (hasta - desde) * paso / pasos`. La consola no tiene `double`, así
-    que la cuenta va con enteros; el signo se saca antes de dividir porque el
-    divisor del hardware no lo tiene, y `//` de Python redondearía para el otro
-    lado con negativos. Ver `imagen_tick` en main.s.
-    """
-    if paso >= pasos:
-        return tuple(hasta)
-    salida = []
-    for a, b in zip(desde, hasta):
-        if b >= a:
-            salida.append(a + (b - a) * paso // pasos)
-        else:
-            salida.append(a - (a - b) * paso // pasos)
-    return tuple(salida)
 
 
 class Imagenes:
@@ -4151,20 +4035,6 @@ class Ruta:
         self.pagina = pagina
         self.espera = espera_tras_giro(self.frecuencia)
 
-    def sin_pagina(self):
-        """La página nueva no tiene ruta propia: se le saca."""
-        self.ordenes_pagina = ()
-        self.pagina = None
-        if self.de_pagina:
-            self.ordenes = []
-            self.espera = 0
-            self.de_pagina = False
-
-    def columna(self):
-        """La columna del CharSet que se dibuja: el frame del ciclo, con el 3
-        dibujando la misma que el 1."""
-        return 1 if self.anim_cuadro == 3 else self.anim_cuadro
-
     def _contar_movimiento(self, moviendo):
         """Los cuadros que el **héroe** lleva moviéndose, y su ciclo.
 
@@ -4186,10 +4056,6 @@ class Ruta:
         if self.anim_heroe_cuenta >= ANIM_PARADO[self.velocidad - 1]:
             self.anim_heroe_cuenta = 0
             self.anim_heroe_cuadro = (self.anim_heroe_cuadro + 1) % 4
-
-    def columna_del_heroe(self):
-        """La columna del CharSet del héroe caminando por esta ruta."""
-        return 1 if self.anim_heroe_cuadro == 3 else self.anim_heroe_cuadro
 
     def _animar(self, moviendo, saltando=False):
         """`Game_Character::UpdateAnimation`, sin el giro en el lugar.
@@ -4705,10 +4571,6 @@ class Estado:
             self.equipo[actor] = list(ACTOR_EQUIPO.get(actor, (0,) * 5))
         return self.equipo[actor]
 
-    def poner_heroe(self, x, y):
-        """La celda del héroe, que en la ROM son `tile_x` y `tile_y`."""
-        self.heroe = (x, y)
-
     def coordenada(self, blanco, cual):
         """La x o la y de un personaje, en celdas: la clase 6 de `ControlVars`.
 
@@ -4766,161 +4628,11 @@ class Estado:
     def cuadros_moviendose(self):
         return self.ruta_heroe.cuadros_moviendose
 
-    def cuadro_de_ruta(self, puede, saltar=None, existe=None):
-        """Un cuadro de la ruta forzada del héroe."""
-        return self.ruta_heroe.cuadro(puede, saltar, existe=existe)
-
-    def girar(self, indice, pagina, celda, heroe):
-        """El giro hacia el héroe de un evento que él disparó: ver GIRO.
-
-        Gira si su página gira y no tiene una ruta andando —ésa decide adónde
-        mira—. Una que ya terminó no cuenta: la ranura no se suelta hasta el
-        mapa que viene, y con "tiene ruta" el `GangMember1` de Lashe City, al
-        que una escena había movido, no giraba nunca más.
-        `celda` es la del evento y `heroe` la del héroe. Queda anotado el
-        gráfico de la página, para que un refresco sepa si el giro sigue. La
-        ROM es `giro_disparar`.
-        """
-        ruta = self.rutas_ev.get(indice)
-        if not pagina.get("gira") or (ruta is not None
-                                      and (ruta.de_pagina or ruta.pendiente)):
-            return
-        self.giro = {"evento": indice, "dir": direccion_hacia(celda, heroe),
-                     "grafico": tuple(pagina["grafico"])}
-
     def giro_por_ruta(self, indice):
         """Una ruta que agarra al evento termina su giro: desde ahí mira
         adonde diga ella. La ROM es `giro_por_ruta`."""
         if self.giro is not None and self.giro["evento"] == indice:
             self.giro = None
-
-    def revisar_giro(self):
-        """Al aplicar las páginas: el giro se termina si el evento se quedó
-        sin página, o con una que no gira o que dibuja otra cosa. Es el
-        `SetFacing(page->character_direction)` de `Game_Event::RefreshPage`,
-        que sólo corre si la página es otra; con la misma, el evento sigue
-        mirando al héroe. La ROM es `giro_revisar`.
-
-        Una diferencia declarada: si la página nueva trae otro CharSet con la
-        misma dirección y la misma columna, RM2k lo deja girado con el dibujo
-        nuevo y acá se termina el giro.
-        """
-        if self.giro is None:
-            return
-        pagina = self.paginas_activas.get(self.giro["evento"])
-        if (pagina is None or not pagina.get("gira")
-                or tuple(pagina["grafico"]) != self.giro["grafico"]):
-            self.giro = None
-
-    def pose_girada(self, indice, pose):
-        """La pose con que se dibuja el evento: la de siempre, o la que mira
-        al héroe si es el que gira —la misma columna, la fila del giro—."""
-        if self.giro is not None and self.giro["evento"] == indice:
-            return self.giro["dir"] * 3 + pose % 3
-        return pose
-
-    def rutas_de_pagina(self):
-        """`Game_Map::Refresh` entero: elegir las páginas y aplicarlas."""
-        self.elegir_paginas()
-        self.aplicar_paginas()
-
-    def elegir_paginas(self):
-        """La instantánea de qué página tiene cada evento.
-
-        Se rehace acá y en ningún otro lado: es `Game_Event::page`, que sólo
-        escribe `Refresh`. Va separada de `aplicar_paginas` porque el refresco
-        a mitad de comando corre sólo esta mitad; ver `ejecutar`.
-        """
-        self.paginas_activas = {
-            indice: pagina_activa_viva(self.paginas_rutas, indice, self)
-            for indice in self.pos_ev}
-
-    def aplicar_paginas(self):
-        """Cada evento con la ruta propia de su página activa.
-
-        Un evento cuya página activa cambió carga la ruta de la nueva desde el
-        principio, y uno cuya página nueva no tiene ruta se queda quieto. Un
-        evento con la misma página de antes no se toca, y su ruta sigue por
-        donde iba.
-        """
-        self.revisar_giro()
-        for indice in self.pos_ev:
-            pagina = self.paginas_activas[indice]
-            propia = pagina.get("ruta_propia") if pagina is not None else None
-            ruta = self.rutas_ev.get(indice)
-            if propia:
-                if ruta is not None and ruta.pagina is pagina:
-                    continue
-                if ruta is None:
-                    ruta = self.ruta_de_evento(indice)
-                self.giro_por_ruta(indice)
-                ruta.cargar_pagina(propia, pagina)
-            elif ruta is not None and ruta.ordenes_pagina:
-                ruta.sin_pagina()
-
-    def refrescar(self):
-        """El refresco pendiente, si un switch o el grupo cambió desde el
-        último. Se hace al empezar el cuadro, antes del intérprete, que es
-        cuando `Game_Map::Update` mira `GetNeedRefresh`.
-
-        La otra mitad —`aplicar`— puede venir de un refresco a mitad de
-        comando, que sólo eligió las páginas. Ver `refrescar_eligiendo`."""
-        if self.refresco:
-            self.refresco = False
-            self.refresco_de_paralelo = False
-            self.aplicar = False
-            self.rutas_de_pagina()
-        elif self.aplicar:
-            self.aplicar = False
-            self.aplicar_paginas()
-
-    def refrescar_eligiendo(self):
-        """El refresco de adentro del lazo de comandos, que sólo elige.
-
-        `Game_Interpreter::Update` refresca antes de cada comando, y de eso
-        depende que una página que apaga su propia condición deje de ser la
-        activa en el acto. Lo que el comando siguiente puede llegar a mirar es
-        **cuál es la página activa**; recargar las rutas y los gráficos de los
-        NPCs no cambia nada hasta que se dibuje el cuadro, así que eso queda
-        para el principio del cuadro que viene.
-
-        No es un atajo de la referencia: es lo que hace la ROM, y por la misma
-        razón. Su segunda pasada recorre los eventos del mapa recargando filas
-        de OAM y ranuras de ruta, y hacerla en medio de un cuadro le costaba el
-        cuadro entero en el mapa 2.
-        """
-        if self.refresco:
-            self.refresco = False
-            self.refresco_de_paralelo = False
-            self.aplicar = True
-            self.elegir_paginas()
-
-    def refresco_frena(self):
-        """Si hay un refresco pendiente **de los que hacen esperar**.
-
-        Uno pedido por un intérprete paralelo no cuenta, y es la misma
-        excepción que la de los autos de Lashe City: un paralelo que escribe
-        una variable lo pide en cada cuadro, así que un lazo que espere a que
-        no quede ninguno no termina nunca. Lo encontró el mapa 11 —el Lazer
-        Teeth HQ— cuyas once páginas paralelas compilan desde que existe la
-        clase 6 de `ControlVars`: el plan de `heroe 11` pasó de 9 ticks a
-        110008, o sea cuarenta minutos de emulador por dirección.
-
-        El refresco se hace igual, al principio del cuadro siguiente: lo único
-        que esto cambia es que quede pedido no frene a nadie.
-        """
-        return self.refresco and not self.refresco_de_paralelo
-
-    def evento_en(self, celda):
-        """Qué evento está parado en esa celda, o None.
-
-        Los eventos que no se pueden disparar están en la tabla igual: lo que
-        decide es la página activa, y eso lo mira quien llama.
-        """
-        for indice, donde in self.pos_ev.items():
-            if donde == celda:
-                return indice
-        return None
 
     def ruta_de_evento(self, indice):
         if indice not in self.rutas_ev:
@@ -4975,92 +4687,6 @@ class Estado:
         for ruta in self.rutas_ev.values():
             ruta.cancelar()
 
-    def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
-                           congelada=False, solo=None, existe=None):
-        """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
-        direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y,
-        indice)` si ese evento puede aterrizar en esa celda, y `heroe` es la
-        celda del héroe, que es a quien encara `face_hero`.
-
-        La celda se mueve al **empezar** el paso, igual que el héroe: es lo que
-        hace `begin_step` en la ROM, y modelarlo distinto acá dejaría a los dos
-        lados contando los cuadros de otra manera. Un salto la mueve igual, sólo
-        que de una y no de a una celda.
-        """
-        # `solo` es la vuelta de un evento suelto, la que corre pegada a su
-        # intérprete paralelo; los que se movieron así quedan anotados para que
-        # la pasada de todos no los mueva dos veces. Es `Game_Event::Update`,
-        # que corre el intérprete paralelo del evento y lo mueve en seguida.
-        for indice, ruta in list(self.rutas_ev.items()):
-            if solo is not None:
-                if indice not in solo:
-                    continue
-                self.rutas_ev_movidas.add(indice)
-            elif indice in self.rutas_ev_movidas:
-                continue
-            x, y = self.pos_ev.get(indice, (0, 0))
-            empezaba = ruta.paso_cuadros == 0
-            direccion = ruta.cuadro(
-                lambda d, desde=(0, 0), i=indice, px=x, py=y: puede_pasar(
-                    i, px + desde[0], py + desde[1], d),
-                saltar=(lambda dx, dy, px=x, py=y, i=indice:
-                        puede_caer is None or puede_caer(px + dx, py + dy, i)),
-                hacia_heroe=(None if heroe is None else
-                             lambda px=x, py=y: direccion_hacia((px, py),
-                                                                heroe)),
-                congelada=congelada,
-                existe=(None if existe is None else
-                        lambda d, px=x, py=y: existe(px, py, d)))
-            if ruta.arranco_salto is not None:
-                dx, dy = ruta.arranco_salto
-                self.pos_ev[indice] = (x + dx, y + dy)
-            elif direccion is not None and empezaba:
-                dx, dy = RUTA_PASOS[direccion]
-                self.pos_ev[indice] = (x + dx, y + dy)
-        if solo is None:
-            self.rutas_ev_movidas.clear()
-
-    def cuadro_de_destello(self):
-        """Un cuadro del destello de pantalla: `Flash::Update` sin el continuo,
-        que este juego no usa.
-
-        RM2k baja el nivel en `nivel / cuadros_que_quedan` por cuadro, con
-        `double`: de 31 en treinta cuadros, 29.97, 28.93... La consola no tiene
-        `double`, así que el nivel va a escala 256 y la resta es entera. Lo que
-        se dibuja es la parte entera del nivel, de 0 a 31; contra la cuenta con
-        `double` difiere en uno como mucho, que es lo mismo que el tinte.
-
-        En el último cuadro el nivel cae a cero de golpe, como allá: con un
-        cuadro restante la resta es el nivel entero.
-
-        Lo que se **ve** cambia cuadro por medio, y un cuadro después de la
-        cuenta. Es lo que hace la ROM: el destello es una transformación de
-        CGRAM, como el tinte, y rehacer las doscientas y pico entradas de las
-        tres paletas del mapa no entra en un cuadro junto con todo lo demás
-        —medido con `cuadros_perdidos`: perdía uno por cuadro—. Así que la ROM
-        lo reparte: en el cuadro en que a la resta le queda un número impar
-        arma las tablas del nivel de ese cuadro y pasa las paletas del fondo,
-        y en el siguiente pasa las de los sprites y sube todo junto. Un
-        destello de treinta cuadros se ve en quince escalones, y nadie lo
-        distingue de treinta. La excepción es un tinte que cambie en el cuadro
-        impar: ahí la ROM hace todo de una, para que el tinte nuevo no se vea
-        un cuadro sin destello, y lo que se ve es el nivel de ese cuadro.
-        """
-        if self.destello_nivel > 0:
-            if self.destello_resta > 0:
-                self.destello_nivel -= self.destello_nivel // self.destello_resta
-                self.destello_resta -= 1
-            if self.destello_resta <= 0:
-                self.destello_nivel = 0
-                self.destello_mostrado = 0
-            elif self.destello_resta & 1:
-                self.destello_pendiente = self.destello_nivel >> 8
-                if self.tinte_cambio:
-                    self.destello_mostrado = self.destello_pendiente
-            else:
-                self.destello_mostrado = self.destello_pendiente
-        self.tinte_cambio = False
-
     def poner_clima(self, tipo, fuerza):
         """`SetWeatherEffect`: si no cambia nada no toca nada; si cambia, las
         gotas arrancan apagadas y el azar vuelve a su semilla."""
@@ -5070,10 +4696,6 @@ class Estado:
         self.gotas = ([[0, 0, 0] for _ in range(LLUVIA_GOTAS[fuerza])]
                       if tipo == CLIMA_LLUVIA else [])
         self.lluvia_azar = LLUVIA_SEMILLA
-
-    def _lluvia_azar(self):
-        self.lluvia_azar = azar_siguiente(self.lluvia_azar)
-        return self.lluvia_azar
 
     def poner_imagen(self, tono):
         """`Game_Pictures::Show`: el cartel aparece ya con su tono."""
@@ -5093,145 +4715,11 @@ class Estado:
         else:
             self.imagen = (ahora, ahora, tuple(hasta), 0, cuadros)
 
-    def cuadro_de_imagen(self):
-        """Un cuadro del fundido del cartel: `Game_Pictures::Picture::Update`.
-
-        El paso avanza primero y el tono sale de `imagen_tono`, que es la misma
-        cuenta que hace `imagen_tick` en main.s.
-        """
-        if self.imagen is None:
-            return
-        _ahora, desde, hasta, paso, pasos = self.imagen
-        if paso >= pasos:
-            return
-        paso += 1
-        self.imagen = (imagen_tono(desde, hasta, paso, pasos),
-                       desde, hasta, paso, pasos)
-
-    def cuadro_de_lluvia(self):
-        """`Game_Screen::UpdateRain`, un cuadro. La ROM es `lluvia_tick`."""
-        for gota in self.gotas:
-            if gota[2] > 0:
-                gota[2] -= 1
-                gota[0] = (gota[0] + LLUVIA_DX) % LLUVIA_LADO
-                gota[1] = (gota[1] + LLUVIA_DY) % LLUVIA_LADO
-            elif self._lluvia_azar() & 0xFF < LLUVIA_NACE:
-                gota[2] = LLUVIA_VIDA
-                gota[0] = self._lluvia_azar() & 0xFF
-                gota[1] = self._lluvia_azar() & 0xFF
-
-    def cuadro_de_sacudida(self):
-        """Un cuadro de la sacudida: `Shake::Update` sin la continua, que
-        este juego no usa. En el último cuadro la pantalla vuelve a cero."""
-        if self.sacudida_resta > 0:
-            self.sacudida_resta -= 1
-            if self.sacudida_resta > 0:
-                self.sacudida_pos = sacudida_siguiente(
-                    self.sacudida_fuerza, self.sacudida_vel,
-                    self.sacudida_resta, self.sacudida_pos)
-            else:
-                self.sacudida_pos = 0
-
-    def cuadro_de_pan(self):
-        """Un cuadro de la cámara corrida: `Game_Player::UpdatePan`.
-
-        Se acerca al destino de a `pan_paso` por eje, sin pasarse. Las dos
-        cuentas son de dieciseisavos de pixel, que es donde RM2k lleva la
-        cámara; quien dibuja las baja a pixeles enteros con `pan_en_pixeles`.
-        """
-        if not self.pan_paso:
-            return
-        for eje in ("x", "y"):
-            actual = getattr(self, "pan_" + eje)
-            destino = getattr(self, "pan_dest_" + eje)
-            if actual == destino:
-                continue
-            paso = min(self.pan_paso, abs(destino - actual))
-            setattr(self, "pan_" + eje,
-                    actual + (paso if destino > actual else -paso))
-
     def pan_falta(self):
         """Lo que le falta al pan, que es de lo que sale la espera. Es el
         `max` de los dos ejes de `GetPanWait`."""
         return max(abs(self.pan_x - self.pan_dest_x),
                    abs(self.pan_y - self.pan_dest_y))
-
-    def cuadro_de_timer(self):
-        """Un cuadro del cronómetro.
-
-        Es `Game_Party::UpdateTimers`, y lo que importa de él es el final: al
-        llegar a cero segundos el cronómetro no se queda mostrando `00:00`,
-        sino que `StopTimer` lo apaga **y lo esconde**. O sea que el último
-        cuadro en que se ve dice `00:01`, y el siguiente ya no hay nada
-        dibujado. Modelarlo como "se para" nada más dejaría a la referencia
-        dibujando cinco glifos que RM2k no dibuja.
-        """
-        # Lo que se dibuja es la cuenta de **antes** de este cuadro. La
-        # consola muestra en cada cuadro la OAM que armó la vuelta anterior
-        # —es el mismo cuadro de retraso de la caminata, que `paso_de_ruta`
-        # compensa con la fase del paso—, y con los dígitos y los dos puntos
-        # no había con qué compensarlo: el parpadeo cambiaba un cuadro antes
-        # acá que en la ROM, con el mismo estado de los dos lados. Lo vio el
-        # arranque fijo, que alinea los cuadros exacto.
-        self.timer_dibujado = self.timer_cuadros
-        if self.timer_activo and self.timer_cuadros > 0:
-            self.timer_cuadros -= 1
-            if self.timer_cuadros // CUADROS_POR_SEGUNDO == 0:
-                self.timer_activo = self.timer_visible = False
-
-    def timer_texto(self):
-        """Los cinco caracteres que se dibujan: MM:SS, con los dos puntos que
-        parpadean.
-
-        Es `Sprite_Timer::Draw`: los minutos y los segundos salen de
-        `cuadros / 60`, y los dos puntos se saltean cuando `cuadros % 60 < 30`.
-        El espacio en el medio es "no dibujar nada".
-        """
-        segundos = self.timer_dibujado // CUADROS_POR_SEGUNDO
-        return "%02d%s%02d" % (
-            segundos // 60,
-            ":" if (self.timer_dibujado % CUADROS_POR_SEGUNDO
-                    >= CUADROS_POR_SEGUNDO // 2) else " ",
-            segundos % 60)
-
-    def cuadro_de_animacion(self):
-        """Un cuadro de la animación de batalla: las entradas de este tick
-        disparan su destello —el sonido no se ve— y el reloj avanza. Va antes
-        que los destellos, como en `Game_Screen::Update`. La ROM es
-        `animacion_tick`."""
-        anim = self.animacion
-        if anim is None:
-            return
-        while anim["entradas"] and anim["entradas"][0][0] == anim["t"]:
-            e = anim["entradas"].pop(0)
-            if e[1] == ANIM_DESTELLO:
-                self.destello = (e[2], e[3], e[4])
-                self.destello_nivel = e[5] << 8
-                self.destello_resta = e[6]
-            elif e[1] == ANIM_FLASH:
-                self.flashes[e[2]] = (e[3], e[4], e[5], e[6], e[7], 0)
-        anim["t"] += 1
-        if not anim["entradas"]:
-            self.animacion = None
-
-    def cuadro_de_dibujo(self):
-        """Qué cuadro de la animación se dibuja en este cuadro de consola.
-
-        Dos cuadros de consola por cada cuadro de RM2k, que es lo que dura
-        `BattleAnimation`: `num_frames = GetRealFrames() * 2`. El que se dibuja
-        sale del tick **antes** de avanzarlo, así que en el tick 0 se dibuja el
-        cuadro 0, que es el mismo en que dispara el `timing` del cuadro 1 de
-        RM2k. Es `animacion_dibujo_tick` en main.s.
-        """
-        self.anim_cuadro = None
-        if self.anim_dibujo is None:
-            return
-        _numero, _blanco, t, cuantos = self.anim_dibujo
-        if t // 2 >= cuantos:
-            self.anim_dibujo = None
-            return
-        self.anim_cuadro = t // 2
-        self.anim_dibujo[2] = t + 1
 
     def empezar_dibujo(self, numero, blanco):
         """Arranca el dibujo de la animación `numero` sobre `blanco`.
@@ -5244,32 +4732,6 @@ class Estado:
         cuantos = len(anim["cuadros"]) if anim else 0
         self.anim_dibujo = ([numero, blanco, 0, cuantos] if cuantos else None)
         self.anim_cuadro = None
-
-    def cuadro_de_flashes(self):
-        """Un cuadro de todos los destellos: los que se acabaron se apagan."""
-        for blanco in list(self.flashes):
-            r, g, b, potencia, cuadros, k = self.flashes[blanco]
-            if k >= cuadros:
-                del self.flashes[blanco]
-            else:
-                self.flashes[blanco] = (r, g, b, potencia, cuadros, k + 1)
-
-    def nivel_de_flash(self, blanco):
-        """Con cuánta fuerza destella este blanco ahora mismo, de 0 a 31.
-
-        La curva es la forma cerrada de la que easyrpg calcula a mano:
-        `level -= level / time_left` cuadro a cuadro da exactamente
-        `potencia * (cuadros - k) / cuadros`. Acá va con enteros porque los dos
-        lados tienen que dar el mismo número, y allá va con `double`.
-        """
-        if blanco not in self.flashes:
-            return 0
-        _r, _g, _b, potencia, cuadros, k = self.flashes[blanco]
-        return potencia * (cuadros - k) // cuadros
-
-    def color_de_flash(self, blanco):
-        """(r, g, b) del destello de este blanco, en cinco bits."""
-        return self.flashes[blanco][:3]
 
     def encendido(self, numero):
         return numero in self.switches
@@ -5318,15 +4780,6 @@ class Estado:
 SENO_SACUDIDA = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
 
 
-def sacudida_siguiente(fuerza, velocidad, resta, posicion):
-    amplitud = 1 + 2 * fuerza
-    seno = SENO_SACUDIDA[(resta * 4 * (velocidad + 2)) % 256]
-    cociente = (amplitud * abs(seno)) // 127
-    nuevo = -cociente if seno > 0 else cociente
-    corte = (velocidad * amplitud) // 8 + 1
-    return max(posicion - corte, min(posicion + corte, nuevo))
-
-
 def recorrer_codigo(codigo):
     """(desplazamiento, código) de cada opcode de una página ya compilada."""
     i = 0
@@ -5349,58 +4802,6 @@ def blancos_de_ruta(paginas):
             if c[i] == OP_ROUTE and c[i + 1]:
                 blancos.add(c[i + 1] - 1)
     return blancos
-
-
-def pixeles_del_paso(x, y, ruta):
-    """Dónde está en pixeles quien está a mitad de un paso, desde su celda.
-
-    La celda se mueve al **empezar** el paso y los pixeles van detrás: a la
-    celda de destino se le descuentan los que falten, a WALK_SPEED por cuadro,
-    que es como los come `advance_step` en la ROM. Sin esto, quien camina
-    aparece en la celda nueva un paso antes de tiempo; en el cuadro final da
-    igual, y por eso no se notó hasta comparar *durante* la caminata.
-
-    Lo usan el héroe y los eventos, que es la razón de que viva acá.
-    """
-    px, py = x * CELDA_PX, y * CELDA_PX
-    if ruta.paso_resta and ruta.paso_dir is not None:
-        dx, dy = RUTA_PASOS[ruta.paso_dir]
-        # De 256 por celda a pixeles: los dieciseisavos se tiran, que es lo que
-        # hace la ROM con `resta >> 4`. A velocidad 4 es lo mismo que los
-        # cuadros por dos.
-        faltan = ruta.paso_resta >> 4
-        px -= dx * faltan
-        py -= dy * faltan
-    elif ruta.salto_resta:
-        # En un salto la interpolación es la de RM2k y la división va **al
-        # final**: `GetSpriteX` hace `x * 256 - dx * restante` y recién ahí
-        # divide por 16. Dividir el descuento por separado da uno de más o de
-        # menos cada vez que no es múltiplo de 16, que con 24 por cuadro es la
-        # mitad de los cuadros del salto.
-        por_celda = SALTO_PASO // CELDA_PX
-        px = (x * SALTO_PASO - ruta.salto_dx * ruta.salto_resta) // por_celda
-        py = (y * SALTO_PASO - ruta.salto_dy * ruta.salto_resta) // por_celda
-    return px, py
-
-
-def altura_del_salto(ruta):
-    """Cuántos pixeles hay que subir el dibujo por el arco del salto.
-
-    Es `GetJumpHeight`: sube y baja con lo que queda del salto, y la curva no es
-    lineal sino la tabla de RM2k. Lo que se dibuja es la posición interpolada
-    menos esto; **lo que se ordena contra los demás no**, porque `GetScreenZ`
-    llama a `GetScreenY(false)`, o sea sin el salto. Un personaje saltando no
-    pasa por delante de los que están más abajo.
-    """
-    if not ruta.salto_resta:
-        return 0
-    resta = ruta.salto_resta
-    bruta = (SALTO_PASO - resta if resta > SALTO_PASO // 2 else resta) // 8
-    if bruta < 5:
-        return bruta * 2
-    if bruta < 13:
-        return bruta + 4
-    return 16
 
 
 def pagina_activa(paginas, evento, estado):
@@ -6405,36 +5806,6 @@ def tenir_canal(canal, valor):
     return min(31, 31 - (2 * TINTE_NEUTRO - valor) * (31 - canal) // TINTE_NEUTRO)
 
 
-def destellar_canal_pantalla(canal, hacia, nivel):
-    """Un canal de cinco bits, con el destello de pantalla encima.
-
-    RM2k dibuja el destello como un rectángulo del color pedido con alfa
-    `nivel * 8` sobre la pantalla ya compuesta —`Screen::Draw`—, o sea que
-    cada canal se acerca al del color en `nivel / 31` del camino. Acá va con
-    enteros y sobre cinco bits, y la resta se hace del lado positivo para que
-    la división truncada dé lo mismo en la consola, que no tiene signo en el
-    divisor.
-    """
-    if hacia >= canal:
-        return canal + (hacia - canal) * nivel // 31
-    return canal - (canal - hacia) * nivel // 31
-
-
-def destellar_pantalla(palabra, color, nivel):
-    """Un color de 15 bits con el destello de pantalla encima. `nivel` es la
-    parte entera del de `Estado`, de 0 a 31.
-
-    No es `destellar`, que es el destello de **un personaje** —`FlashSprite`—
-    y tiene otra cuenta: la primera versión de esto se llamaba igual y la
-    tapaba, y la comparación lo cobró con un color de diferencia.
-    """
-    salida = 0
-    for numero, hacia in enumerate(color):
-        canal = (palabra >> (numero * 5)) & 0x1F
-        salida |= destellar_canal_pantalla(canal, hacia, nivel) << (numero * 5)
-    return salida
-
-
 def tenir(palabra, tinte):
     """Un color de 15 bits pasado por el tinte de pantalla.
 
@@ -6456,32 +5827,6 @@ def tenir(palabra, tinte):
     salida = 0
     for numero, (canal, valor) in enumerate(zip(canales, tinte)):
         salida |= tenir_canal(canal, valor) << (numero * 5)
-    return salida
-
-
-def destellar(palabra, color, nivel):
-    """Un color de 15 bits mezclado hacia el del destello.
-
-    Es la cuenta de easyrpg puesta en cinco bits: allá el destello es un color
-    con alfa `nivel * 8` compuesto sobre el sprite —`Flash::MakeColor` y el
-    `PIXMAN_OP_OVER` de `BlendBlit`— o sea `destino * a + origen * (255 - a)`
-    sobre 255. La diferencia es el espacio: RM2k mezcla los ocho bits del PNG y
-    nosotros los cinco que entran en CGRAM, así que **el resultado no es el de
-    RM2k**, es el que da la misma cuenta con menos bits.
-
-    Está declarado porque es la clase de cosa que la comparación no ve: los dos
-    lados hacen lo mismo y dan cero. Lo mismo pasa con el tinte de pantalla, y
-    por la misma razón. Quien quiera medirlo necesita una captura de EasyRPG
-    tomada durante un destello.
-    """
-    if nivel <= 0:
-        return palabra
-    alfa = nivel * 8
-    salida = 0
-    for numero in range(3):
-        canal = (palabra >> (numero * 5)) & 0x1F
-        mezcla = (color[numero] * alfa + canal * (255 - alfa)) // 255
-        salida |= min(31, mezcla) << (numero * 5)
     return salida
 
 
@@ -6706,32 +6051,3 @@ def bloqueada(paginas, estado, celda, capa, ignorar=None, heroe=None):
             and not estado.ruta_heroe.atraviesa:
         return True
     return False
-
-
-def pasabilidad_de_evento(paginas, estado, celda):
-    """Los bits de paso que un evento le impone a la celda, o None.
-
-    Es la parte de `Game_Map::IsPassableTile` que mira los eventos: de los
-    que están parados en la celda, con página activa, sin atravesar y con
-    gráfico de tile en la capa de abajo, gana el de id más alto —el último
-    de la tabla—, y si su tile no es de los que van por encima, sus bits
-    reemplazan a los del terreno. Lo que no se modela es el "conflicto
-    consigo mismo" de un evento de tile que camina: ninguno camina.
-    """
-    valor = None
-    for indice, donde in estado.pos_ev.items():
-        if donde != celda:
-            continue
-        ruta = estado.rutas_ev.get(indice)
-        if ruta is not None and ruta.atraviesa:
-            continue
-        pagina = pagina_activa(paginas, indice, estado)
-        if pagina is not None and pagina.get("tile_pasa") is not None:
-            valor = pagina["tile_pasa"]
-    return valor
-
-
-def capa_activa(paginas, estado, indice):
-    """La capa de la página activa del evento, o None si no tiene ninguna."""
-    pagina = pagina_activa(paginas, indice, estado)
-    return None if pagina is None else pagina["capa"]

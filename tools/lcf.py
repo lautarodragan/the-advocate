@@ -169,11 +169,6 @@ CONDITION_CAMPOS = {"switch_a": "switch_a_id", "switch_b": "switch_b_id",
 CONDITION_OPERATOR_DEFAULT = 1
 
 
-def enum_name(names, value):
-    """El nombre del enum, o el número crudo si está fuera de rango."""
-    return names[value] if 0 <= value < len(names) and names[value] else value
-
-
 # --- Los tipos del juego ---------------------------------------------------
 
 class EventCommand:

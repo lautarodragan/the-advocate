@@ -1319,24 +1319,6 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
     return menos
 
 
-def animacion_cabe(paletas, de_lider, timer_colores=(), con_lluvia=False,
-                   con_cartel=False, tope=OBJ_PALETTES):
-    """Si la caja de la animación de batalla consigue paleta en este mapa.
-
-    Es la misma cuenta de `animacion_de_mapa`, sobre una copia y en el mismo
-    orden en que el conversor reparte: primero el cronómetro, después las
-    gotas, después el cartel, y la animación con la que quede. La usa la
-    referencia para saber si en este mapa se dibujan animaciones, que es lo
-    mismo que `lluvia_cabe` hace con las gotas.
-    """
-    copia = [list(p) for p in paletas]
-    if timer_colores:
-        _primer_lugar(copia, de_lider, list(timer_colores), tope)
-    if con_lluvia:
-        _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES), tope)
-    return len(copia) + (1 if con_cartel else 0) < OBJ_PALETTES
-
-
 def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
     """La primera paleta —menos las de líder— donde entran `colores` sin
     fusionar nada, o una nueva si queda ranura; la agrega o la agranda y
@@ -1358,19 +1340,6 @@ def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
         palettes.append(list(colores))
         return len(palettes) - 1
     return None
-
-
-def lluvia_cabe(paletas, de_lider, timer_colores=(), tope=OBJ_PALETTES):
-    """Si las gotas entran en las paletas de sprite de un mapa, después de los
-    dígitos del cronómetro: la misma cuenta de `digitos_del_timer` y
-    `gotas_de_lluvia`, sobre una copia. La usa la referencia para saber si en
-    ese mapa se dibuja la lluvia."""
-    copia = [list(p) for p in paletas]
-    if timer_colores and _primer_lugar(copia, de_lider, list(timer_colores),
-                                       tope) is None:
-        return False
-    return _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES),
-                         tope) is not None
 
 
 def mapas_por_personaje(renderer, map_ids, game_dir):

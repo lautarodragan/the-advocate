@@ -115,23 +115,6 @@ def for_program(program):
     return BANK[min(15, max(0, program) // 8)]
 
 
-def waveform(harmonics, length=CYCLE, peak=0x6000):
-    """Un ciclo de onda a partir de los pesos de sus armónicos.
-
-    Se normaliza al pico pedido en vez de a la suma de los pesos: así todas las
-    ondas del banco salen con la misma amplitud y el volumen queda decidido por
-    la velocidad de la nota, no por cuántos armónicos tenga el timbre.
-    """
-    raw = []
-    for i in range(length):
-        value = sum(weight * math.sin(2 * math.pi * (n + 1) * i / length)
-                    for n, weight in enumerate(harmonics) if weight)
-        raw.append(value)
-
-    top = max(abs(v) for v in raw) or 1.0
-    return [int(round(v / top * peak)) for v in raw]
-
-
 # --- notas ------------------------------------------------------------------
 
 def pitch(note, length=CYCLE):

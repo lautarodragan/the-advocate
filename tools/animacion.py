@@ -299,22 +299,6 @@ def ancla_rom(info):
     return ax, ay + ALTO_PERSONAJE // 2 - corrida
 
 
-def esquina(info, px, py):
-    """Dónde cae la esquina de la caja, para un objetivo parado en el pixel
-    (px, py) de su celda del mapa.
-
-    Con alcance "pantalla" el resultado es de pantalla y no del mapa: ahí no
-    hay cámara que restar, que es lo que hace `DrawAt(screen_width / 2, ...)`.
-    Con el otro, es `GetScreenX()` —el centro de la celda— y `GetScreenY(false)`
-    —sus pies— en pixeles del mapa, y la cámara se resta después. La ROM hace
-    esta misma cuenta en `animacion_dibujo_oam`.
-    """
-    ax, ay = ancla_rom(info)
-    if info["alcance"] == ALCANCE_PANTALLA:
-        return PANTALLA[0] // 2 - ax, PANTALLA[1] // 2 - ay
-    return px + 8 - ax, py + 16 - ay
-
-
 def celdas(cuadro):
     """Un cuadro cortado en tiles de 8x8, en el orden en que los numera OAM.
 
