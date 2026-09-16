@@ -4384,9 +4384,6 @@ class Estado:
         # El evento que mira al héroe porque él lo disparó: ver `giro_disparar`
         # en main.s.
         self.giro = None
-        # Qué página tiene activa cada evento, como la dejó el último refresco.
-        # Ver `pagina_activa`.
-        self.paginas_activas = {}
         # Dónde está cada evento del mapa, en celdas. La lleva el estado y no el
         # mapa porque una ruta la cambia y la siguiente arranca de ahí: hay una
         # página de este juego que manda a caminar nueve veces al mismo evento.
@@ -4420,6 +4417,15 @@ class Estado:
         self.timer_cuadros = 0
         # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
         # 1/16 de pixel, y cuánto corre por cuadro. Ver `pan_tick` en main.s.
+        #
+        # **Dónde está no lo escribe nadie**, igual que `heroe` y por lo mismo:
+        # el lazo de cuadros se fue con la referencia, y quien la movía era él.
+        # Así que se queda en cero y `pan_falta` mide siempre contra el origen.
+        # Para el primer pan de una página eso da lo mismo, porque la cámara
+        # arranca ahí; para el segundo **no**, porque `pan_dest_*` acumula y
+        # `pan_x` no lo sigue, así que la espera sale de más. No está arreglado
+        # a propósito: el arreglo es que vuelva a haber quien escriba esto, no
+        # que `pan_falta` finja que el destino es lo que falta.
         self.pan_x = self.pan_y = 0
         self.pan_dest_x = self.pan_dest_y = 0
         self.pan_paso = 0
@@ -4593,9 +4599,6 @@ class Estado:
         return max(abs(self.pan_x - self.pan_dest_x),
                    abs(self.pan_y - self.pan_dest_y))
 
-    def encendido(self, numero):
-        return numero in self.switches
-
     def cambiar_grupo(self, operacion, actor):
         """Agrega o saca un actor, con las reglas de RM2k.
 
@@ -4661,63 +4664,6 @@ def blancos_de_ruta(paginas):
             if c[i] == OP_ROUTE and c[i + 1]:
                 blancos.add(c[i + 1] - 1)
     return blancos
-
-
-def pagina_activa(paginas, evento, estado):
-    """La página activa del evento **como la dejó el último refresco**.
-
-    En RM2k la página activa no se recalcula cada vez que alguien pregunta: es
-    `Game_Event::page`, y sólo la reescribe `Game_Map::Refresh()`, que corre al
-    principio de `Game_Map::Update`. Todo lo que pasa después en ese cuadro —el
-    intérprete, el héroe, los eventos— ve la página **vieja**. La ROM hace lo
-    mismo, guardándola en la fila del NPC.
-
-    Acá se calculaba viva, y la diferencia no era teórica: un switch prendido
-    por una página le abría el paso al héroe en ese mismo cuadro, y en la ROM
-    no. Y como una orden de ruta bloqueada se saltea y no se reintenta, eso no
-    se veía como un cuadro de atraso sino como que el héroe **nunca** cruzaba
-    la puerta del Emitter Room.
-
-    Sin instantánea —antes del primer refresco— se calcula viva, que es lo que
-    hace `Refresh` la primera vez.
-    """
-    if evento in estado.paginas_activas:
-        return estado.paginas_activas[evento]
-    return pagina_activa_viva(paginas, evento, estado)
-
-
-def pagina_activa_viva(paginas, evento, estado):
-    """La página de número más alto del evento cuyas condiciones se cumplen.
-
-    Es la regla de RM2k, y es la misma pasada que hace la ROM. La usa el
-    refresco; todo lo demás pregunta por `pagina_activa`, que devuelve lo que
-    el refresco dejó.
-    """
-    elegida = None
-    for pagina in paginas:
-        if pagina["evento"] != evento:
-            continue
-        if pagina["switch_a"] and not estado.encendido(pagina["switch_a"]):
-            continue
-        if pagina["switch_b"] and not estado.encendido(pagina["switch_b"]):
-            continue
-        if pagina["actor"] and pagina["actor"] not in estado.grupo:
-            continue
-        # Y la de ítem, desde la misma noche: que haya al menos uno. Es
-        # `GetItemCount(id) + GetEquippedItemCount(id)`, sin equipo. Antes
-        # estas páginas se emitían como "nunca activas".
-        if pagina.get("item") and not estado.item(pagina["item"]):
-            continue
-        # Y la condición por variable, desde el 2026-09-10 a la noche: la
-        # ranura, la comparación y el valor, como `AreConditionsMet` con
-        # `CheckOperator`. Catorce páginas del juego la usan, todas con >=.
-        if pagina.get("variable") is not None:
-            ranura, comparacion, contra = pagina["variable"]
-            if not cumple_comparacion(estado.variable(ranura), comparacion,
-                                      contra):
-                continue
-        elegida = pagina
-    return elegida
 
 
 # El switch con el que la página de prueba se apaga a sí misma: el último del
@@ -5691,35 +5637,3 @@ def ruta_propia(page):
         "anim_continua": page.animation_type in (ANIM_CONTINUA_TIPO,
                                                 ANIM_FIJA_CONTINUA),
     }
-
-
-def bloqueada(paginas, estado, celda, capa, ignorar=None, heroe=None):
-    """Si quien se mueve en la capa `capa` no puede entrar a `celda` porque hay
-    alguien parado ahí.
-
-    Es `WouldCollide` de `game_map.cpp`, con lo que este repo modela: dos
-    personajes chocan si están en la misma capa, y no chocan si alguno de los
-    dos atraviesa paredes. Lo que no se modela es `overlap_forbidden` —17
-    páginas del juego— y el conflicto de un evento con gráfico de tile contra
-    su propio bloque.
-
-    La celda de cada evento es la de `pos_ev`, que se mueve al **empezar** el
-    paso: es `IsInPosition` sobre `GetX()`/`GetY()`, o sea la de destino
-    mientras camina. Un evento sin página activa no está —`IsActive()`— y no
-    choca con nadie. `ignorar` es el índice del que se mueve, que no choca
-    consigo mismo, y `heroe` es la celda del héroe cuando quien se mueve es un
-    evento: el héroe está en la capa del medio y frena a los de su capa.
-    """
-    for indice, donde in estado.pos_ev.items():
-        if donde != celda or indice == ignorar:
-            continue
-        ruta = estado.rutas_ev.get(indice)
-        if ruta is not None and ruta.atraviesa:
-            continue
-        pagina = pagina_activa(paginas, indice, estado)
-        if pagina is not None and pagina["capa"] == capa:
-            return True
-    if heroe is not None and heroe == celda and capa == LAYER_MISMA \
-            and not estado.ruta_heroe.atraviesa:
-        return True
-    return False
