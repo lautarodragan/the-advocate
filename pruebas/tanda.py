@@ -229,12 +229,6 @@ def correr_ticks(consola, simbolos, ticks, sosteniendo=()):
             raise RuntimeError("la ROM no llegó al tick %d" % ticks)
 
 
-def cuadros_de_hardware(p, cuantos, toques=(), toques_hardware=()):
-    """Lo mismo sobre una `Partida` que ya arrancó: ver `correr_hardware`."""
-    correr_hardware(p.consola, cuantos, toques, toques_hardware)
-    return p
-
-
 def golden(nombre, imagen):
     """La captura contra su congelada, y tienen que ser **idénticas**.
 

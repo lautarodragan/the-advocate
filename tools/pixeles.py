@@ -43,11 +43,6 @@ def tile_colors(tile):
     return frozenset(p for row in tile for p in row if p is not None)
 
 
-def color_sets(grid):
-    unique = {tile for row in grid for tile in row}
-    return unique, {tile_colors(t) for t in unique}
-
-
 def try_pack(sets, limit, por_paleta=USABLE_COLORS):
     """Reparte los colores en paletas de forma que cada tile use una sola.
 
