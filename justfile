@@ -140,8 +140,10 @@ grupo    := env_var_or_default("GRUPO", "11")
 # muchísimos más cuadros por segundo que bsnes, que con la tanda entera es la
 # diferencia entre minutos y media hora; bsnes entra por la receta `bsnes`, que
 # corre unos pocos casos. Para mirar cualquier otro caso con otro core:
-# `CORE=bsnes just heroe 7`. Los tres que hay instalados —snes9x, bsnes y
-# mesen-s— dibujan el mismo cuadro a 15 bits; ver `tools/retro.py`.
+# `CORE=bsnes just evento 4 1 otro`. Los tres que hay instalados —snes9x,
+# bsnes y
+# mesen-s— dibujan el mismo cuadro a 15 bits; ver `tools/retro.py`. Para un
+# caso que ya vive en pytest, el core sale de `NUCLEO`: ver `pruebas/consola.py`.
 core     := env_var_or_default("CORE", "snes9x")
 nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 # Una corrida aislada. `CORRIDA=algo just hitos` deja el mapdata, la ROM y las
@@ -181,60 +183,6 @@ compare nombre="mapa" x="0" y="0":
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png {{snes_pngs}}/python.png \
       --camara {{x}} {{y}} -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
-# Camina en una dirección hasta chocar contra el borde del mapa y compara lo que
-# la consola muestra contra lo que Python calcula que tendría que mostrar:
-# el mapa, la cámara siguiendo al héroe, y el héroe en su pose parada.
-#
-# El nombre de la captura lleva el mapa además de la dirección: con sólo la
-# dirección dos casos distintos se pisan el PNG, y cuando algo falla el que uno
-# querría mirar ya no está. Quien tenga dos casos con el mismo mapa y la misma
-# dirección —`varios` contra `heroe`— pasa el nombre a mano.
-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + direccion):
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk {{direccion}} \
-      --mapas {{mapas}} --inicial {{inicial}} \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      --plan {{snes_pngs}}/plan-{{nombre}}.txt \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
-      --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt --margen 0
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# Una puerta: el héroe camina, la pisa, y aparece en el otro mapa. Lo que se
-# compara es la pantalla entera después de cruzar, así que cubre de una vez el
-# cambio de mapa completo —tiles, paleta, capa de encima, sprites, NPCs— y que
-# el héroe haya caído en la celda que la puerta dice.
-#
-# La referencia recibe la misma lista de mapas que la ROM: una puerta a un mapa
-# que no entró en el cartucho no lleva a ningún lado, ni en la consola ni acá.
-#
-# El plan cuenta los cuadros del fundido de la puerta además de los del paso, y
-# la pantalla queda quieta exactamente donde termina: la carga del mapa pasa
-# adentro del negro y no corre el reloj. El `--margen 16` es aire nomás.
-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen + "-" + destino):
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
-      --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      --plan {{snes_pngs}}/plan-{{nombre}}.txt --margen 16 \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
-      --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt \
-      --margen 0
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
 # El tinte solo, contra la cuenta de Python y sin referencia de por medio: toma
 # la misma pantalla capturada de la consola sin teñir y teñida, y pregunta si la
 # transformación de una a la otra es exactamente canal * valor / 100 sobre los
@@ -242,8 +190,9 @@ puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen + "-
 # entero; si evento falla y esto da cero, el tinte no es el problema.
 #
 # La captura sin teñir sale de plantar al héroe en el destino del
-# teletransporte, que es la misma pantalla sin el evento:
-#     just parado 1 7 65 destino
+# teletransporte, que es la misma pantalla sin el evento. Quien la quiera hoy
+# la arma con `--inicio 7 65` desde `pruebas/tanda.py`: la receta `parado` que
+# la sacaba se fue con la mudanza a pytest.
 tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
   python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 
@@ -267,92 +216,6 @@ evento origen="4" destino="1" nombre="evento":
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
-# —eso ya lo cubre hitos— sino que se vea bien cuando su registro no está
-# al principio de la tabla: con el índice 0 el desplazamiento es cero y
-# cualquier cuenta mal hecha da el resultado correcto por casualidad.
-varios primero="18" otros="7 19" indice="2":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{primero}} --mapas {{otros}} \
-      --inicial {{indice}} -o {{snes_inc}}/mapdata.inc
-  just build
-  just walk {{primero}} none "{{otros}}" {{indice}} varios-{{primero}}-none
-  just walk {{primero}} down "{{otros}}" {{indice}} varios-{{primero}}-down
-
-# Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
-# puntual caminando depende de cuánto se mantenga la cruceta; acá la celda se
-# fija y la captura no se negocia.
-parado mapa="1" tx="75" ty="88" nombre="parado":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  just shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
-      --dir down --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# Lo mismo, pero con el héroe en prioridad 2 de objeto: la que llevan los
-# eventos marcados "above", y que en el orden del modo 3 queda por encima de
-# BG2. Es la única manera de ejercitarla. El juego tiene un solo evento "above"
-# —el Package del mapa 261— y la capa de encima de ese mapa no llega a tocarlo,
-# así que con datos de verdad las prioridades 1 y 2 dan la misma pantalla y la
-# comparación no las distingue.
-#
-# La celda por defecto se eligió midiendo: en (66,40) del mapa 1 la capa de
-# encima parte al sprite en dos, así que el héroe queda partido y la silueta
-# tiene que coincidir de los dos lados.
-encima mapa="1" tx="66" ty="40" nombre="encima":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
-      --heroe-encima -o {{snes_inc}}/mapdata.inc
-  just build
-  just shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
-      --dir down --heroe-encima --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# Corre los eventos automáticos de un mapa con un grupo dado y compara el cuadro
-# ya asentado. Es la receta para las páginas cuyo efecto se ve en el héroe.
-#
-# El grupo se pide explícito y no sale del default de las pruebas porque en
-# estos casos es parte del caso, no decoración:
-#
-#   121  `ChangePartyMembers` saca al actor 10 y agrega al 14 y al 28. En RM2k
-#        el gráfico del héroe es el del primero del grupo —`AddActor` y
-#        `RemoveActor` llaman los dos a `ResetGraphic`—, así que arrancando con
-#        [10] el héroe pasa de `DummyHero`, que es una celda vacía y no se
-#        dibuja, a Talan. Arrancando con [11] el 10 no está, sacarlo no hace
-#        nada, Kersh sigue al frente y la prueba no probaría nada.
-#
-#   74   Una ruta forzada de `MoveEvent` sobre el héroe: `face_up` y una espera.
-#        Su página pide al actor 21 en el grupo, así que sin arrancar con él no
-#        corre. Es la única página del juego que compila y ejercita una ruta.
-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{arranca}} --map-id {{mapa}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  python3 tools/snes_expect.py --grupo {{arranca}} --map-id {{mapa}} \
-      --walk none --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
-      --walk none --cuadros 240
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
@@ -2133,35 +1996,6 @@ hitos-paralelo trabajos="4":
     exit 1
   fi
   echo "$total casos, todos en verde"
-
-# El héroe: parado y caminando en las cuatro direcciones.
-#
-# Las cinco referencias salen de una sola corrida de snes_expect.py y no de
-# cinco. Convertir el mapa es lo más caro de toda la tanda y las cinco
-# direcciones comparten todo eso: tiles, reparto de paletas, reuso y espejados.
-# Lo único que cambia es dónde termina el héroe y dónde queda la cámara.
-heroe mapa="7":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  just convert {{mapa}}
-  just build
-  # La referencia va primero porque es la que dice cuántos cuadros dura cada
-  # caminata: sabe cuántas celdas se recorren, y el paso son ocho cuadros. Antes
-  # el orden daba igual, porque el emulador corría un número de segundos
-  # elegido a ojo.
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none right left up down \
-      --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
-      --plan {{snes_pngs}}/plan-{{mapa}}.txt \
-      -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{mapa}}-{}.png --walk none right left up down \
-      --plan {{snes_pngs}}/plan-{{mapa}}.txt --margen 0
-  for d in none right left up down; do
-    python3 tools/snes_compare.py {{snes_pngs}}/{{mapa}}-$d.png \
-        {{snes_pngs}}/esperado-{{mapa}}-$d.png \
-        --saltar {{snes_pngs}}/saltar-{{mapa}}-$d.txt \
-        -o {{snes_pngs}}/comparacion-{{mapa}}-$d.png
-  done
 
 _tecla direccion:
   @case {{direccion}} in up) echo Up;; down) echo Down;; left) echo Left;; right) echo Right;; *) echo "";; esac

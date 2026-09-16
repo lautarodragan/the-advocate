@@ -4,45 +4,15 @@
 # veces es la duplicación de siempre, y acá se notaría tarde y mal —una tanda
 # verde que dejó de correr un caso—.
 #
-# El porqué de cada caso está en el comentario de `hitos`, en el justfile.
-# Los `caminando` son los únicos que miran el movimiento en sí: todos los
-# demás comparan el cuadro final, donde el héroe ya chocó contra la pared y
-# está en la pose parada.
-# El orden es de mayor a menor: la repartida los toma de a uno, así que empezar
-# por el más largo evita que el último trabajador arranque el mapa 52 —dos mil
-# cuadros por dirección— cuando todos los demás ya terminaron. Los segundos que
-# esta lista llevaba al lado de cada mapa no están más: cuántos cuadros dura
-# cada caminata lo dice la referencia.
-heroe 52
-heroe 11
-heroe 20
-heroe 8
-heroe 17
-# Rat Tracks B1, que es el que destapó la página automática vacía: sus dos
-# —el idioma con el que RM2k desactiva un evento— dejaban el mapa congelado
-# para siempre. Antes del arreglo este caso tardaba catorce minutos, porque la
-# referencia se comía sus 100.000 ticks de `correr_automaticos`.
-heroe 21
-heroe 32
-heroe 6
-heroe 1
-heroe 73
-heroe 18
-heroe 119
-heroe 348
-varios
-puerta
-parado 1 75 88 borde
-parado 1 75 90 medias
-parado 1 66 40 tapado
-parado 261 59 2 paquete
-encima
-evento
-evento 4 "7 19 1" tabla
-caminando 73 right "40 60 80"
-caminando 6 down "40 60 80"
-caminando 5 left "40 46 48 50"
-caminando 3 down "54 56 58 60"
+# El porqué de cada caso está en el comentario de su receta, en el justfile.
+#
+# **Esta lista se está vaciando**: los casos se mudan a `pruebas/test_tanda*.py`
+# y ahí comparan contra las capturas congeladas de `pruebas/golden/tanda/`. Lo
+# que queda acá es lo que todavía no se mudó, más `bsnes`, que no se muda.
+#
+# El orden era de mayor a menor, para que la repartida en procesos no arrancara
+# el caso más largo cuando los demás trabajadores ya habían terminado. Se
+# respeta al sacar casos y no se reordena.
 ruta
 ruta 6 "1 1 24 1 1 25 2 2" "10 14 20 26 60" 115 salto
 ruta 6 "36 0 0 0 0 0 0" "20 40 60" 115 through "10 8"
@@ -71,8 +41,6 @@ tecla
 # no mueve ni gira a nadie, que es lo único que la referencia no modela de un
 # toque de dirección. Ver `tecla` en el justfile.
 tecla 6 "88 1 1 0 0" "22 8" "41 60" "12 0 0 50" "" none "88 9 0 0 0" "60 1" 115 tecla-dir "down:40"
-pagina 121 10 grupo-121
-pagina 74 21 ruta-74
 espera
 # La pantalla de ranuras desde el save point, y el mapa de vuelta al cerrarla.
 guardar

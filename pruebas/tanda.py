@@ -24,11 +24,14 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `snes_correr.py`; no hay una segunda convención que mantener.
 """
 
+import glob
+import hashlib
 import os
 import subprocess
 import sys
 
-from consola import RAIZ, Partida, Simbolos, huella, mapas_de
+from consola import (RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos, huella,
+                     mapas_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
@@ -55,14 +58,31 @@ def cartucho(nombre, *flags, grupo=None):
 
     Se saltea si ya está hecha y no cambió nada de lo que la arma: la clave es
     `huella()` —los fuentes de la ROM, el ensamblador y las herramientas— más
-    los flags. `nombre` es sólo para poder mirar el directorio; lo que decide
-    si sirve es el sello.
+    los flags.
 
     **Cada cartucho en su propio directorio**, y por eso `mapdata.inc` deja de
     ser estado global: dos casos con mapas distintos no se pisan, que es la
     trampa que `AGENTS.md` nombra.
+
+    **Quién es "su propio" lo decide el hash de (grupo, flags), no el nombre.**
+    Con un directorio por caso son unos 5 MB por cartucho y ~170 casos, o sea
+    casi un giga de ROMs casi iguales; con el hash, dos casos que arman
+    exactamente la misma ROM comparten el build sin que nadie los empareje a
+    mano. `nombre` queda de prefijo para poder mirar el directorio y saber de
+    quién es, y el que gana es el primero que lo pida: lo que identifica al
+    directorio es lo que viene después del guión.
+
+    Lo que **no** entra en el hash es `huella()`, a propósito: si entrara,
+    tocar un fuente de la ROM estrenaría un directorio por caso en vez de
+    reusar el suyo, y el disco crecería con cada cambio. Va en el sello, que es
+    lo que decide si lo que hay adentro sirve.
     """
-    destino = os.path.join(RAIZ, "rom", "build", "tanda", nombre)
+    tanda = os.path.join(RAIZ, "rom", "build", "tanda")
+    clave = hashlib.sha256(
+        repr(((grupo or GRUPO), flags)).encode()).hexdigest()[:12]
+    existentes = glob.glob(os.path.join(tanda, "*-" + clave))
+    destino = existentes[0] if existentes else os.path.join(
+        tanda, "%s-%s" % (nombre, clave))
     os.makedirs(destino, exist_ok=True)
     inc = os.path.join(destino, "mapdata.inc")
     sfc = os.path.join(destino, "prueba.sfc")
@@ -109,6 +129,18 @@ def plan(nombre):
                 direccion, _celdas, cuadros = linea.split()
                 ticks[direccion] = int(cuadros)
     return ticks
+
+
+def ticks_de_avance(pixeles):
+    """En qué tick el héroe lleva andados `pixeles`, que es el `--avance`.
+
+    El héroe se mueve `WALK_SPEED` = 2 pixeles por tick, y el cuadro que se ve
+    muestra el estado de la vuelta anterior —`RETRASO_DE_PANTALLA`—, así que
+    para verlo con N pixeles andados hay que correr N/2 + 1 ticks desde que se
+    aprieta. No es una holgura: errarle por un cuadro para cualquier lado da
+    unos 25.000 pixeles de diferencia, medido en el mapa 73.
+    """
+    return pixeles // 2 + RETRASO_DE_PANTALLA
 
 
 def partida(sfc, simbolos, mapas):
