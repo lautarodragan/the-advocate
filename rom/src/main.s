@@ -2080,10 +2080,10 @@ espera_apagado:
     sta fundido_que
     lda #1
     sta fundido
-    ; El reloj del fundido son **vueltas del lazo**, o sea ticks, que es lo que
-    ; cuenta la referencia: `estado.fundido` sube una vez por `cuadro()`. Así el
-    ; fundido dura FUNDIDO_TOTAL ticks de los dos lados, tarde lo que tarde la
-    ; carga del mapa adentro del negro.
+    ; El reloj del fundido son **vueltas del lazo**, o sea ticks, y no cuadros
+    ; de hardware: así el fundido dura FUNDIDO_TOTAL ticks tarde lo que tarde la
+    ; carga del mapa adentro del negro. La referencia lo contaba igual, con un
+    ; contador que subía una vez por cuadro de mundo; ya no está.
     ;
     ; Estuvo contando `boot_cuadros` —cuadros de hardware— desde que la carga
     ; empezó a tardar seis o siete cuadros adentro de una sola vuelta: contando

@@ -146,11 +146,10 @@ def walk(passable, width, height, start, dx, dy, blocked=()):
 # GetAnimationSpeed`— y también está en el default en todo el juego.
 #
 # El reloj es el contador de cuadros del sistema, que no se reinicia al cambiar
-# de mapa. Acá ese reloj es el tick: `estado.ticks` en la referencia y `vueltas`
-# en la ROM, que es el mismo número —ver `Reloj` en tools/snes_correr.py—. La
-# fase absoluta contra el juego original no significa nada, porque nuestro
-# arranque no dura lo mismo; lo que tiene que coincidir es la cadencia y que los
-# dos lados miren el mismo tick.
+# de mapa. Acá ese reloj es el tick, que en la ROM es `vueltas` —ver `Reloj` en
+# tools/snes_correr.py, que es quien lo lee—. La fase absoluta contra el juego
+# original no significa nada, porque nuestro arranque no dura lo mismo; lo que
+# tiene que coincidir es la cadencia y que los dos lados miren el mismo tick.
 # Las dos familias, con cuántos dibujos tiene cada una. El orden es el de las
 # corridas de tiles en la VRAM; ver `convert` en snes_convert.py.
 FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))

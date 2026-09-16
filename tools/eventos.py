@@ -4421,13 +4421,13 @@ class Estado:
         # ROM, y vive acá por la misma razón: el intérprete la necesita —la
         # clase 6 de `ControlVars` la lee— y el intérprete no recibe al héroe.
         #
-        # **Quién la escribe manda cuándo se lee.** En la ROM `move_hero`
-        # corre *después* de `eventos_tick`, así que la página de un cuadro ve
-        # la celda que el héroe tenía al terminar el cuadro anterior. Acá pasa
-        # lo mismo porque la escribe `cuadro_de_eventos`, que va después del
-        # intérprete y después del paso del héroe; el único lugar donde hace
-        # falta ponerla a mano es al entrar a un mapa, antes de que corra
-        # ningún cuadro.
+        # **Hoy no la escribe nadie**: el lazo de cuadros que la hacía avanzar
+        # se fue con la referencia, así que se queda en (0, 0) salvo que la
+        # ponga a mano quien arme el `Estado`. Cuándo se escribe importa, y por
+        # eso queda anotado: en la ROM `move_hero` corre *después* de
+        # `eventos_tick`, así que la página de un cuadro ve la celda que el
+        # héroe tenía al terminar el cuadro anterior. El día que acá vuelva a
+        # haber un lazo, tiene que escribirla en ese mismo lugar.
         self.heroe = (0, 0)
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
@@ -5350,9 +5350,9 @@ def ejecutar(codigo, estado, desde=0):
             estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
             i += 3
         elif op == OP_ITEM:
-            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el
-            # refresco, como `CommandChangeItems`. La ROM hace lo mismo en
-            # `op_item`.
+            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], como
+            # `CommandChangeItems`. La ROM hace lo mismo en `op_item`, y además
+            # pide el refresco de páginas, que es de lo que acá no hay nada.
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             delta = con_signo_byte(codigo[i + 3])
             estado.items[numero] = max(0, min(ITEM_MAX,

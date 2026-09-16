@@ -483,9 +483,11 @@ exacto en que el agua cambia.
 
 **Y el reloj de la ROM no es el tick de la partida.** Adentro del negro de un
 teletransporte el mundo está congelado y el tick no avanza, pero la consola
-sigue dando vueltas al lazo: son 70 por fundido. La cuenta que vale es
-`ticks + fundidos * FUNDIDO_TOTAL`, la misma que el plan de la caminata. Sin
-eso la escena de Core y Manta se va un dibujo desde el primer teletransporte.
+sigue dando vueltas al lazo: son 70 por fundido. La cuenta que valía era el
+tick más `FUNDIDO_TOTAL` por cada fundido, y sin eso la escena de Core y
+Manta se iba un dibujo desde el primer teletransporte. Los dos contadores que
+la llevaban eran de la referencia y se fueron con ella; del lado de la ROM
+quedan `FUNDIDO_TOTAL` y `fundido_tick`, que es donde los 70 pasan.
 
 Los dos casos nuevos de la tanda están medidos con la fase rota a propósito, que
 es lo único que prueba que miran algo: `caminando 5 left "40 46 48 50"`
@@ -3033,9 +3035,10 @@ al personaje.
 
 Cuál celda es ésa depende de dónde cae el intérprete en el lazo: corre en
 `eventos_tick` y el héroe se mueve después, en `move_hero`, así que la página de
-un cuadro ve la celda con la que terminó el cuadro anterior. En el modelo pasa
-lo mismo porque quien escribe `Estado.heroe` es `cuadro_de_eventos`, que va en
-el mismo lugar.
+un cuadro ve la celda con la que terminó el cuadro anterior. En el modelo
+`Estado.heroe` ya no la escribe nadie —el lazo de cuadros se fue con la
+referencia—: la pone quien arma el `Estado`, y el día que vuelva a haber un
+lazo tiene que escribirla en ese mismo lugar.
 
 **Escribir una variable casi nunca pide el refresco de páginas, y eso vale
 media Lashe City.** `ControlVars` termina en
