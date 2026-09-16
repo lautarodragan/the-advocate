@@ -590,7 +590,7 @@ VENTANA_VOFS = 111
 VIEW_COLS_TILEMAP = 32
 
 ; Los dos bytecodes que esta ROM lee, generados desde protocol/: el de los
-; eventos, que interpreta `ejecutar`, y el del stream de música, que lee
+; eventos, que interpreta `correr_codigo`, y el del stream de música, que lee
 ; `irq_musica`. Cada uno lo declara un archivo que no es ni del que emite los
 ; bytes ni del que los lee.
 ;

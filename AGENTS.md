@@ -120,7 +120,7 @@ o no se toca.
 ## El número de un opcode se elige en la declaración
 
 En `protocol/` y en ningún otro lado. Hay dos declaraciones:
-`protocol/events.toml`, el bytecode que interpreta `ejecutar`, y
+`protocol/events.toml`, el bytecode que interpreta `correr_codigo`, y
 `protocol/music.toml`, el stream que lee `irq_musica`. Los dos caen en el mismo
 espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
 pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
