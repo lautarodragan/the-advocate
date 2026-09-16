@@ -4371,7 +4371,6 @@ class Estado:
 
     def __init__(self, grupo=()):
         self.switches = set()
-        self.tinte = (TINTE_NEUTRO,) * 4      # r, g, b y saturación
         self.salto = None       # (mapa, x, y) si una página pidió mudarse
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
@@ -4382,36 +4381,12 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
-        # A qué gráfico le cambió un `ChangeSpriteAssociation` el sprite a cada
-        # actor: {número de actor: índice en la tabla de gráficos}. **No se
-        # limpia al cambiar de mapa** —a diferencia de `ruta_heroe.grafico`—
-        # porque en RM2k vive en el actor y no en el `Game_Player`, y porque es
-        # justamente lo que este juego necesita: las 102 páginas de la
-        # persecución en auto lo cambian y se teletransportan en el comando
-        # siguiente. Ver OP_ACTOR_SPRITE.
-        self.actor_graf = {}
-        # La animación de batalla en curso: ver OP_ANIMATION.
-        self.animacion = None
-        # Y su dibujo, que va por su cuenta y dura más: la línea de tiempo se
-        # termina con la última entrada y el dibujo, dos cuadros por cada
-        # cuadro de RM2k. Es (número de RM2k, blanco, tick, cuántos cuadros)
-        # o None. Ver `empezar_dibujo` y `animacion.py`.
-        self.anim_dibujo = None
-        # Y qué cuadro le toca dibujar a este cuadro de consola, que es el
-        # tick de antes de avanzarlo: ver `animacion_dibujo_tick` en main.s.
-        self.anim_cuadro = None
-        # El cartel puesto, o None: (tono de ahora, desde, hasta, paso, pasos).
-        # Ver OP_PICTURE y `imagen_tick` en main.s.
-        self.imagen = None
         # El evento que mira al héroe porque él lo disparó: ver `giro_disparar`
         # en main.s.
         self.giro = None
         # Qué página tiene activa cada evento, como la dejó el último refresco.
         # Ver `pagina_activa`.
         self.paginas_activas = {}
-        # Los destellos corriendo, por blanco: (r, g, b, potencia, cuadros, k).
-        # `k` es cuántos cuadros pasaron desde que empezó.
-        self.flashes = {}
         # Dónde está cada evento del mapa, en celdas. La lleva el estado y no el
         # mapa porque una ruta la cambia y la siguiente arranca de ahí: hay una
         # página de este juego que manda a caminar nueve veces al mismo evento.
@@ -4429,27 +4404,6 @@ class Estado:
         # héroe tenía al terminar el cuadro anterior. El día que acá vuelva a
         # haber un lazo, tiene que escribirla en ese mismo lugar.
         self.heroe = (0, 0)
-        # El desplazamiento del cuadro de texto que está en pantalla, o None
-        # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
-        # que hace `Game_Message`— pero todo lo demás sí: la ruta forzada del
-        # héroe sigue caminando y la cámara lo sigue.
-        #
-        # Es None y no False porque el desplazamiento 0 es un mensaje válido, y
-        # de hecho es el que más se usa: `--mensaje-de-prueba` va primero en el
-        # bloque justamente para no depender de en qué orden se compilen los
-        # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
-        # None`.
-        self.mensaje = None
-        # El bloque de textos de la ROM, que el intérprete necesita para leer
-        # la cabecera del cuadro que abre —cuántas pausas y si se cierra solo—.
-        # Lo pone quien lo tenga —hoy el conversor— antes de compilar nada.
-        # Sin él no hay cuadros que abrir.
-        self.mensajes = None
-        # Los cuadros que le quedan a la pausa del `\|`, y si el cuadro se
-        # cierra solo cuando se termine —el `\^`—. Ver `cola_de_escapes` y
-        # `eventos_tick` en la ROM, que es quien las descuenta.
-        self.msg_pausa = 0
-        self.msg_autocierre = False
         # El oro del grupo. No se muestra en ningún lado —el menú no existe—
         # pero la rama de oro de `ConditionalBranch` lo pregunta.
         self.oro = 0
@@ -4459,43 +4413,16 @@ class Estado:
         # Y lo que cada actor tiene puesto, por número de RM2k: es `FAR_EQUIPO`
         # del otro lado. Se llena solo al preguntar; ver `equipo_de`.
         self.equipo = {}
-        # Si se puede guardar desde el menú, si se puede abrir el menú y si se
-        # puede huir de una batalla, por bit de `FAR_ACCESO`. Ver OP_ACCESS: la
-        # clave es el bit y no el número del permiso, porque eso es lo que
-        # lleva el bytecode.
-        self.permitido = {bit: True for bit in ACCESO_BIT}
-        # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
-        # apunta al cuadro de la opción marcada y la página está bloqueada.
-        self.eleccion = None
-        # El cronómetro: cuántos cuadros le quedan, si corre y si se dibuja.
-        # Son tres cosas y no una porque RM2k las separa: un cronómetro puede
-        # estar corriendo sin verse —`StartTimer(visible=false)`—, que es como
-        # el juego mide cuánto tardó el jugador sin decírselo.
+        # Cuántos cuadros le quedan al cronómetro. Si corre y si se ve son dos
+        # cosas más que RM2k separa y que de este lado no mira nadie: quien las
+        # necesita es el que dibuja, o sea `timer_tick` en main.s. Acá sólo hace
+        # falta la cuenta, que es la que lee la clase "otro" de OP_VAR.
         self.timer_cuadros = 0
-        self.timer_activo = False
-        # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
-        self.sacudida_pos = 0
-        # El clima: el tipo y la fuerza que puso el último WeatherEffects, las
-        # gotas —[x, y, vida]— y su azar. Ver OP_WEATHER.
-        self.clima = (0, 0)
-        self.gotas = []
-        self.lluvia_azar = LLUVIA_SEMILLA
         # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
         # 1/16 de pixel, y cuánto corre por cuadro. Ver `pan_tick` en main.s.
         self.pan_x = self.pan_y = 0
         self.pan_dest_x = self.pan_dest_y = 0
         self.pan_paso = 0
-        self.sacudida_resta = 0
-        self.sacudida_fuerza = 0
-        self.sacudida_vel = 0
-        # El destello de pantalla: hacia qué color, cuánto nivel le queda —a
-        # escala 256, para que la resta de cada cuadro no se coma el resto— y
-        # cuántos cuadros. Ver `destello_tick` en main.s.
-        self.destello = (0, 0, 0)
-        self.destello_nivel = 0
-        self.destello_resta = 0
-        self.tinte_cambio = False
-        self.timer_visible = False
         # Las variables, por ranura, y el estado del azar. Las variables viajan
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
         self.variables = {}
@@ -4660,51 +4587,11 @@ class Estado:
         for ruta in self.rutas_ev.values():
             ruta.cancelar()
 
-    def poner_clima(self, tipo, fuerza):
-        """`SetWeatherEffect`: si no cambia nada no toca nada; si cambia, las
-        gotas arrancan apagadas y el azar vuelve a su semilla."""
-        if (tipo, fuerza) == self.clima:
-            return
-        self.clima = (tipo, fuerza)
-        self.gotas = ([[0, 0, 0] for _ in range(LLUVIA_GOTAS[fuerza])]
-                      if tipo == CLIMA_LLUVIA else [])
-        self.lluvia_azar = LLUVIA_SEMILLA
-
-    def poner_imagen(self, tono):
-        """`Game_Pictures::Show`: el cartel aparece ya con su tono."""
-        self.imagen = (tuple(tono), tuple(tono), tuple(tono), 0, 0)
-
-    def mover_imagen(self, hasta, cuadros):
-        """`Game_Pictures::Move`: el tono se va hacia `hasta` en `cuadros`.
-
-        Sin cartel puesto no hace nada, como allá: `Move` sobre una imagen que
-        no se mostró le escribe el destino a una que no se dibuja.
-        """
-        if self.imagen is None:
-            return
-        ahora = self.imagen[0]
-        if not cuadros:
-            self.imagen = (tuple(hasta), tuple(hasta), tuple(hasta), 0, 0)
-        else:
-            self.imagen = (ahora, ahora, tuple(hasta), 0, cuadros)
-
     def pan_falta(self):
         """Lo que le falta al pan, que es de lo que sale la espera. Es el
         `max` de los dos ejes de `GetPanWait`."""
         return max(abs(self.pan_x - self.pan_dest_x),
                    abs(self.pan_y - self.pan_dest_y))
-
-    def empezar_dibujo(self, numero, blanco):
-        """Arranca el dibujo de la animación `numero` sobre `blanco`.
-
-        La nueva reemplaza a la que hubiera, como la línea de tiempo. Una
-        animación sin cuadros o marcada `ANIM_SIN_DIBUJO` no dibuja nada, y la
-        ROM llega al mismo lugar por su tabla: el $FF de `anim_batalla_de`.
-        """
-        anim = ANIMACIONES.get(numero) if numero != ANIM_SIN_DIBUJO else None
-        cuantos = len(anim["cuadros"]) if anim else 0
-        self.anim_dibujo = ([numero, blanco, 0, cuantos] if cuantos else None)
-        self.anim_cuadro = None
 
     def encendido(self, numero):
         return numero in self.switches
@@ -5252,19 +5139,33 @@ def ejecutar(codigo, estado, desde=0):
     Devuelve None si la página terminó, o (cursor, cuadros_a_esperar, salto) si
     hay que devolver el control. Igual que `correr_codigo` en la ROM, que ahora
     también vuelve con el cursor guardado en vez de correr la página entera.
+
+    **El cursor lo avanza `opcode_size` y nadie más.** Cuánto ocupa cada
+    instrucción es del formato, y el formato lo declara `protocol/events.toml`:
+    escrito otra vez acá adentro, rama por rama, era la tercera copia de esa
+    tabla, y ya se pagó una —la copia que se quedó vieja cuando `OP_ROUTE` sumó
+    un byte dejó doce casos de la tanda en rojo—. Una copia vieja no da un
+    error: da una página que lee el stream corrido.
+
+    Por eso **lo que no se modela no necesita ninguna rama**: cae al avance del
+    final del lazo. Los que están acá son los que cambian el estado o el
+    cursor, y los demás —el audio, la pantalla, los carteles, la tienda,
+    guardar— pasan de largo sin que este archivo tenga que saber su largo.
     """
     i = desde
     while i < len(codigo):
         op = codigo[i]
+        # Y acá se cae el opcode que no existe: `opcode_size` no sabe medir lo
+        # que no está declarado, así que el `else` que revisaba eso sobra.
+        paso = opcode_size(codigo, i)
         if op == OP_DONE:
             return None
-        if op == OP_SWITCH:
+        elif op == OP_SWITCH:
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             if codigo[i + 3]:
                 estado.switches.add(numero)
             else:
                 estado.switches.discard(numero)
-            i += 4
         elif op == OP_IF:
             # `CommandConditionalBranch`: si no se cumple, el cursor se va al
             # `else` o al `end`. El destino es absoluto dentro de la página, así
@@ -5290,10 +5191,9 @@ def ejecutar(codigo, estado, desde=0):
                 vale = operando in estado.grupo
             else:
                 raise ValueError("condición %d que no conozco" % tipo)
-            if vale:
-                i += 7
-            else:
+            if not vale:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
+                continue
         elif op == OP_IF_ACTOR:
             # Las dos preguntas de actor que llevan dos operandos. Salta igual
             # que `OP_IF` —el destino es absoluto dentro de la página— y no
@@ -5312,13 +5212,9 @@ def ejecutar(codigo, estado, desde=0):
                 vale = dato in ACTOR_SABE.get(actor, ())
             else:
                 raise ValueError("pregunta de actor %d que no conozco" % sub)
-            if vale:
-                i += 7
-            else:
+            if not vale:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
-        elif op == OP_ACCESS:
-            estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
-            i += 3
+                continue
         elif op == OP_KEY:
             # Ver OP_KEY. La de arrancar pone la variable en cero y devuelve
             # el control sin mirar nada; la que espera se **rebobina a sí
@@ -5330,7 +5226,7 @@ def ejecutar(codigo, estado, desde=0):
             ranura &= VAR_RANURA_MAX
             if banderas & TECLA_ARRANCA:
                 estado.poner_variable(ranura, 0)
-                return (i + 3, 0, None)
+                return (i + paso, 0, None)
             # La que espera mira el **flanco** —`Input::IsTriggered`, lo mismo
             # que cierra un mensaje— y la que no espera, lo que está puesto
             # —`IsPressed`—. Es lo que hace `tecla_valor` en la ROM: la de
@@ -5341,14 +5237,6 @@ def ejecutar(codigo, estado, desde=0):
             if banderas & TECLA_ESPERA and not valor:
                 return (i, 0, None)
             estado.poner_variable(ranura, valor)
-            i += 3
-        elif op == OP_ACTOR_SPRITE:
-            # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
-            # el actor está liderando se ve en el mismo cuadro, y si no queda
-            # guardado. Quién lo mira es el que dibuja al héroe —en la ROM,
-            # `elegir_grafico_heroe`—, así que esto es sólo anotarlo.
-            estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
-            i += 3
         elif op == OP_ITEM:
             # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], como
             # `CommandChangeItems`. La ROM hace lo mismo en `op_item`, y además
@@ -5357,16 +5245,15 @@ def ejecutar(codigo, estado, desde=0):
             delta = con_signo_byte(codigo[i + 3])
             estado.items[numero] = max(0, min(ITEM_MAX,
                                               estado.item(numero) + delta))
-            i += 4
         elif op == OP_GOLD:
             # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
             monto = (codigo[i + 2] | (codigo[i + 3] << 8)
                      | (codigo[i + 4] << 16))
             estado.oro = max(0, min(ORO_MAX, estado.oro
                                     + (-monto if codigo[i + 1] else monto)))
-            i += 5
         elif op == OP_GOTO:
             i = codigo[i + 1] | (codigo[i + 2] << 8)
+            continue
         elif op == OP_TELEPORT:
             # El resto de la página sí corre. En
             # `Game_Interpreter_Map::CommandTeleport` el motor reserva el
@@ -5384,13 +5271,13 @@ def ejecutar(codigo, estado, desde=0):
             estado.salto = (codigo[i + 1] | (codigo[i + 2] << 8),
                             codigo[i + 3] | (codigo[i + 4] << 8),
                             codigo[i + 5] | (codigo[i + 6] << 8))
-            return (i + 7, 0, True)     # corta el cuadro, como `return false`
+            return (i + paso, 0, True)  # corta el cuadro, como `return false`
         elif op == OP_DELAY:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos
             # cuadros que dejar pasar", decía el comentario, y era cierto
             # mientras la página corriera entera con la pantalla apagada.
             cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
-            return (i + 3, cuadros, False)
+            return (i + paso, cuadros, False)
         elif op == OP_ROUTE:
             # La ruta se encola y la camina quien la recibió, no el intérprete:
             # en RM2k `ForceMoveRoute` es asincrónico y la página sigue. Quien
@@ -5406,20 +5293,6 @@ def ejecutar(codigo, estado, desde=0):
             if blanco:
                 estado.giro_por_ruta(blanco - 1)
             ruta.reemplazar(ordenes, frecuencia)
-            i += 4 + cuantos
-        elif op == OP_FLASH:
-            # Empieza un destello. No corta el cuadro: si la página espera, el
-            # conversor le pone un OP_DELAY detrás, que es lo que hace
-            # `CommandFlashSprite` con `SetupWait(tenths)`.
-            estado.flashes[codigo[i + 1]] = (codigo[i + 2], codigo[i + 3],
-                                             codigo[i + 4], codigo[i + 5],
-                                             codigo[i + 6], 0)
-            i += 7
-        elif op == OP_BGM:
-            # La referencia no modela el audio: la comparación es de pixeles. El
-            # opcode existe igual porque **ocupa dos bytes** en el bytecode, y
-            # los dos lados tienen que recorrer el mismo stream.
-            i += 2
         elif op == OP_PAN:
             # `CommandPanScreen`. Mueve el destino y devuelve el control en el
             # mismo cuadro; con `esperar`, la página se queda los cuadros que
@@ -5435,8 +5308,7 @@ def ejecutar(codigo, estado, desde=0):
             espera = (cuadros_de_pan(estado.pan_falta(), estado.pan_paso)
                       if codigo[i + 7] else 0)
             if espera:
-                return (i + 8, espera, False)
-            i += 8
+                return (i + paso, espera, False)
         elif op == OP_VAR:
             ranura, operacion, clase = codigo[i + 1], codigo[i + 2], codigo[i + 3]
             ranura &= VAR_RANURA_MAX
@@ -5458,139 +5330,43 @@ def ejecutar(codigo, estado, desde=0):
             estado.poner_variable(ranura, valor if operacion == VAR_PONER
                                   else actual + valor if operacion == VAR_SUMAR
                                   else actual - valor)
-            i += 8
         elif op == OP_IF_VAR:
             ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
             contra = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
             if clase == VAR_VARIABLE:
                 contra = estado.variable(contra)
-            if cumple_comparacion(estado.variable(ranura), comparacion,
-                                  contra):
-                i += 8
-            else:
+            if not cumple_comparacion(estado.variable(ranura), comparacion,
+                                      contra):
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
-        elif op == OP_PICTURE:
-            # El cartel se pone con su tono y en el mismo cuadro, como
-            # `Game_Pictures::Show`: `time_left` queda en cero.
-            estado.poner_imagen(tuple(codigo[i + 1:i + 5]))
-            i += 5
-        elif op == OP_PICTURE_MOVE:
-            # Y `Move`: el tono al que va y en cuántos cuadros. No cuesta
-            # ningún tick; si la página espera, atrás viene un OP_DELAY.
-            estado.mover_imagen(tuple(codigo[i + 1:i + 5]), codigo[i + 5])
-            i += 6
-        elif op == OP_PICTURE_ERASE:
-            estado.imagen = None
-            i += 1
-        elif op == OP_SOUND:
-            i += 3                  # no se ve y no cuesta ningún tick
-        elif op == OP_WEATHER:
-            # Como `CommandWeatherEffects`: no cuesta ningún tick.
-            estado.poner_clima(codigo[i + 1], codigo[i + 2])
-            i += 3
+                continue
         elif op == OP_BATTLE:
-            # La pelea, como la tienda y como guardar: bloquea adentro del
-            # intérprete, **no cuesta ningún tick** y de este lado no hay nada
-            # que dibujar. En la ROM `batalla_pantalla` corre su propio lazo de
+            # La pelea bloquea adentro del intérprete y **no cuesta ningún
+            # tick**: en la ROM `batalla_pantalla` corre su propio lazo de
             # cuadros sin que `vueltas` avance, así que los dos lados salen del
             # opcode en el mismo tick tarde lo que tarde el jugador.
             #
             # Lo que sí hay que elegir es **por dónde sigue la página**, y acá
-            # no hay nadie peleando: la referencia se va por la rama de
-            # victoria. Es la única de las tres que continúa la escena en el
-            # camino normal —perder y huir son salidas—, y es la que el arnés
-            # de una comparación llevaría a la ROM a sacar.
+            # no hay nadie peleando: se va por la rama de victoria, que es la
+            # única de las tres que continúa la escena en el camino normal
+            # —perder y huir son salidas—.
             #
-            # **Desde el 2026-09-13 hay dos pruebas de pixeles que sí cruzan
-            # una batalla**: `vuelta`, que la pelea a fuerza de A y
-            # compara el mapa al volver. Acá decía que no se podía porque el
-            # resultado depende del azar, y el azar está clavado —
-            # `BATALLA_SEMILLA`—, así que la misma tanda de toques da siempre
-            # la misma pelea. Y el estado de los dos lados coincide porque la
-            # rama es esta misma: gane, pierda o escape, la página de prueba
-            # manda las tres al `OP_DONE`.
-            #
-            # Mientras eso no existió, el mapa volvía de la pelea con media
-            # VRAM pisada y nadie se enteraba. Lo que la pantalla de la pelea
-            # muestra lo siguen cobrando los casos `batalla`, y lo que la pelea
-            # le hace a los HP, `pruebas/test_batalla.py`.
+            # Lo que la pantalla de la pelea muestra lo cobran los casos
+            # `batalla` de la tanda, y lo que la pelea le hace a los HP,
+            # `pruebas/test_batalla.py`.
             i = codigo[i + 3] | (codigo[i + 4] << 8)
-        elif op == OP_SHOP:
-            # La tienda, como guardar: no cuesta ningún tick y de este lado no
-            # hay nada que dibujar. Lo que muestra lo cobran `audio-tienda` y
-            # `pruebas/test_tienda.py`.
-            i += 4 + 2 * codigo[i + 3]
-        elif op == OP_SAVE:
-            # La pantalla de ranuras, y guardar en la que se elija. De este
-            # lado no hay nada que guardar —la referencia es un modelo, no una
-            # partida— ni nada que dibujar: lo que importa es que el opcode
-            # ocupe el mismo byte y **no cueste ningún tick**, que es lo que
-            # hace RM2k: `OpenSaveMenu` apila una escena y el reloj del mapa
-            # no corre hasta que se cierra. En la ROM la pantalla bloquea
-            # adentro del intérprete y `vueltas` no avanza mientras se ve, así
-            # que en ticks los dos lados siguen leyendo el mismo stream en el
-            # mismo cuadro, tarde lo que tarde el jugador en elegir. Lo que la
-            # pantalla muestra lo cobran los casos `guardar` contra
-            # `titulo.py --ranuras`, y lo que la ROM escribe,
-            # `pruebas/test_guardar.py`.
-            i += 1
-        elif op == OP_FADE_BGM:
-            # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa
-            # tres bytes y el stream tiene que ser el mismo de los dos lados.
-            # Y tampoco cuesta un cuadro: `CommandFadeOutBGM` devuelve true en
-            # el mismo, así que la página sigue de largo.
-            i += 3
+            continue
         elif op == OP_PLACE:
             # `MoveTo`: la celda cambia ya y el paso en curso se corta. La ruta
             # sigue desde la celda nueva, y hacia dónde mira no cambia.
             estado.mover_evento(codigo[i + 1] - 1,
                                 codigo[i + 2] | (codigo[i + 3] << 8),
                                 codigo[i + 4] | (codigo[i + 5] << 8))
-            i += 6
         elif op == OP_PLACE_VAR:
             # El mismo `MoveTo` que `OP_PLACE`, con la celda leída de dos
             # variables **al correr**. Ver OP_PLACE_VAR.
             estado.mover_evento(codigo[i + 1] - 1,
                                 estado.variable(codigo[i + 2]),
                                 estado.variable(codigo[i + 3]))
-            i += 4
-        elif op == OP_SHAKE:
-            # `ShakeOnce`, que no reinicia la posición —"so that multiple
-            # shakes which interrupt each other flow smoothly"—, o `ShakeEnd`
-            # con cero cuadros. No corta el cuadro: si la página espera, el
-            # conversor le pone un OP_DELAY detrás.
-            cuadros = codigo[i + 3] | (codigo[i + 4] << 8)
-            if cuadros:
-                estado.sacudida_fuerza = codigo[i + 1]
-                estado.sacudida_vel = codigo[i + 2]
-                estado.sacudida_resta = cuadros
-            else:
-                estado.sacudida_pos = estado.sacudida_resta = 0
-            i += 5
-        elif op == OP_ANIMATION:
-            # La animación nueva reemplaza a la que hubiera; sus entradas las
-            # dispara `animacion_tick` en main.s. No cuesta ningún tick.
-            n = codigo[i + 3]
-            estado.animacion = {
-                "entradas": [codigo[i + 4 + ANIM_ENTRADA * j:
-                                    i + 4 + ANIM_ENTRADA * (j + 1)]
-                             for j in range(n)],
-                "t": 0}
-            # Y su dibujo, que va por su cuenta: la línea de tiempo se termina
-            # con la última entrada y el dibujo dura los dos cuadros por cuadro
-            # de RM2k. Cuántos son no está en el bytecode —la ROM los saca de
-            # su tabla— así que acá salen de la misma tabla, `ANIMACIONES`.
-            estado.empezar_dibujo(codigo[i + 1], codigo[i + 2])
-            i += 4 + ANIM_ENTRADA * n
-        elif op == OP_FLASH_SCREEN:
-            # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
-            # cuadro. No corta el cuadro: si la página espera, el conversor le
-            # pone un OP_DELAY detrás. Con cero cuadros el primer
-            # `destello_tick` lo apaga sin que se vea.
-            estado.destello = (codigo[i + 1], codigo[i + 2], codigo[i + 3])
-            estado.destello_nivel = codigo[i + 4] << 8
-            estado.destello_resta = codigo[i + 5]
-            i += 6
         elif op == OP_SWAP:
             # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
             # leídas antes de mover a ninguno.
@@ -5598,11 +5374,14 @@ def ejecutar(codigo, estado, desde=0):
             donde_a, donde_b = estado.pos_ev[a], estado.pos_ev[b]
             estado.mover_evento(a, *donde_b)
             estado.mover_evento(b, *donde_a)
-            i += 3
         elif op == OP_TIMER:
-            # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
-            # son asignaciones, y quien hace correr el cronómetro es
-            # `timer_tick` en main.s, una vez por cuadro.
+            # `CommandTimerOperation`, del que acá importa una sola de las
+            # cuatro operaciones: **cuánto marca el cronómetro**, que es lo que
+            # lee la clase "otro" de OP_VAR. Si corre y si se ve son dos cosas
+            # más que RM2k separa, y de este lado no las mira nadie: quien las
+            # necesita es el que dibuja, o sea `timer_tick` en main.s.
+            #
+            # No corta el cuadro: las operaciones son asignaciones.
             operacion = codigo[i + 1]
             if operacion == TIMER_PONER:
                 estado.timer_cuadros = ((codigo[i + 2] | (codigo[i + 3] << 8))
@@ -5614,78 +5393,21 @@ def ejecutar(codigo, estado, desde=0):
                 segundos = max(0, estado.variable(codigo[i + 2]))
                 estado.timer_cuadros = (segundos * CUADROS_POR_SEGUNDO
                                         + TIMER_CUADROS_DE_MAS)
-            elif operacion == TIMER_ARRANCAR:
-                estado.timer_activo = True
-                estado.timer_visible = bool(codigo[i + 4])
-            else:
-                # `StopTimer` apaga las dos cosas, no sólo la cuenta.
-                estado.timer_activo = estado.timer_visible = False
-            i += 5
         elif op == OP_STOP_ROUTES:
             # `HaltAllMovement`. No cuesta un cuadro: `CommandHaltAllMovement`
             # devuelve true, así que la página sigue en el mismo tick.
             estado.parar_rutas()
-            i += 1
         elif op == OP_WAIT_ROUTES:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
             # ser, y quien decide es `eventos_tick` mirando si queda alguna
             # pendiente. Si no queda ninguna no cuesta ni un cuadro, que es lo
             # que hace el `while` de `Game_Interpreter::Update`.
-            if not estado.rutas_pendientes():
-                i += 1
-                continue
-            return (i + 1, ESPERAR_RUTAS, False)
-        elif op == OP_CHOICE:
-            # Abre la ventana con las opciones y corta el cuadro, igual que un
-            # mensaje. La diferencia es que la página no retoma donde quedó: el
-            # cursor se lo pone `eventos_tick` cuando el jugador elige, y
-            # sale del destino de la opción que haya quedado.
-            #
-            # El cursor arranca en cero, que es `Window_Selectable` con su
-            # índice en cero, y la tabla se guarda entera porque de ahí salen
-            # los dos: el cuadro que se dibuja y el destino al que se salta.
-            n = codigo[i + 1]
-            estado.eleccion = {
-                "n": n,
-                "cancelar": codigo[i + 2],
-                "sel": 0,
-                "cuadros": [codigo[i + 3 + 4 * k] | (codigo[i + 4 + 4 * k] << 8)
-                            for k in range(n)],
-                "destinos": [codigo[i + 5 + 4 * k] | (codigo[i + 6 + 4 * k] << 8)
-                             for k in range(n)],
-            }
-            estado.mensaje = estado.eleccion["cuadros"][0]
-            return (i, 0, False)
-        elif op == OP_MESSAGE:
-            # Abre la ventana y corta el cuadro. El cursor queda en el comando
-            # siguiente, pero `eventos_tick` no vuelve a llegar acá hasta
-            # que alguien apriete A: la página queda bloqueada, que es lo que
-            # hace `Game_Message` en RM2k.
-            estado.mensaje = codigo[i + 1] | (codigo[i + 2] << 8)
-            # Y su cola de escapes, leída de la cabecera del cuadro: los mismos
-            # bytes y las mismas máscaras que `msg_empezar` en la ROM. Sin
-            # bloque de textos no hay cola que leer, que es el caso de las
-            # pruebas de estado que arman un `Estado` pelado; un cuadro con
-            # cola no puede llegar por ahí, porque el desplazamiento sale del
-            # bloque.
-            estado.msg_pausa = 0
-            estado.msg_autocierre = False
-            if estado.mensajes is not None:
-                pausas, estado.msg_autocierre = \
-                    estado.mensajes.cola(estado.mensaje)
-                estado.msg_pausa = pausas * CUADROS_DE_PAUSA
-            return (i + 3, 0, False)
+            if estado.rutas_pendientes():
+                return (i + paso, ESPERAR_RUTAS, False)
         elif op == OP_PARTY:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
-            i += 3
-        elif op == OP_TINT:
-            estado.tinte = (codigo[i + 1], codigo[i + 2], codigo[i + 3],
-                            codigo[i + 4])
-            estado.tinte_cambio = True      # lo mira `destello_tick` en main.s
-            i += 5
-        else:
-            raise ValueError("opcode %d que no conozco" % op)
+        i += paso
     return None
 
 
