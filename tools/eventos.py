@@ -253,8 +253,8 @@ def frecuencia_minima(frecuencia, ordenes, repite=False):
 
     `ordenes` son códigos pelados, sin los operandos: los dos que llaman acá lo
     hacen con lo que devolvió `decodificar_ruta`, que ya los separó. No es lo
-    mismo que una ruta compilada, donde la 34 arrastra un byte —para ésa está
-    `recorrer_ruta`—.
+    mismo que una ruta compilada, donde la 34 arrastra un byte que hay que
+    saltear.
 
     Con `repite` se recorren las órdenes nueve veces y no una. No es por las
     dudas: la frecuencia se topa en 8 y en 1, así que una ruta que se repita y
@@ -930,11 +930,11 @@ def asociaciones_de(game_maps):
 #
 # OP_SHAKE: fuerza (byte), velocidad (byte), cuadros (word):
 #     `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
-#     pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
+#     pantalla vuelve a su lugar. La cuenta es `sacudida_tick` en main.s.
 #
 # OP_FLASH_SCREEN: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
 #     (byte): `FlashOnce`, el destello de la pantalla
-#     entera. Ver `Estado.cuadro_de_destello`.
+#     entera. La cuenta es `destello_tick` en main.s.
 #
 # OP_IF: tipo (byte), operando (word), polaridad (byte),
 #     destino (word):
@@ -1694,7 +1694,7 @@ def lluvia_pixeles(x, y):
 # vez —`Game_Screen::ShowBattleAnimation` reemplaza la anterior— y avanza una
 # vez por cuadro **antes** que los destellos, que es donde `Game_Screen::Update`
 # la pone. Con "esperar", la página espera lo que dura: dos cuadros por cuadro
-# de la animación. Ver `cuadro_de_animacion`, y `animacion_tick` en main.s.
+# de la animación. Ver `animacion_tick` en main.s.
 #
 # El destello no es el de RM2k exacto: allá la fuerza es
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` durante diez cuadros, a
@@ -3675,8 +3675,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if orden == RUTA_CAMBIAR_GRAFICO:
                 # La única orden con operando: detrás del 34 va el índice del
                 # gráfico en `Graficos`, que el conversor resuelve al banco de
-                # sprites del mapa. Ver `recorrer_ruta`, que es por dónde tiene
-                # que pasar todo el que recorra una ruta ya compilada.
+                # sprites del mapa. Quien recorra una ruta ya compilada tiene
+                # que saltear ese byte: leído como orden, un 30 o un 31 le
+                # cambian la frecuencia a la ruta sin que nadie lo pida.
                 #
                 # **Sobre el héroe también**, desde el 2026-09-12. Su gráfico
                 # sale de la tabla de actores, pero las doce poses del actor
@@ -4374,7 +4375,8 @@ class Estado:
         self.salto = None       # (mapa, x, y) si una página pidió mudarse
         # El fundido del teletransporte: en qué cuadro va, o None si no hay
         # ninguno corriendo. Mientras haya, el juego está congelado y lo único
-        # que cambia es el brillo de la pantalla. Ver `brillo_de_fundido`.
+        # que cambia es el brillo de la pantalla. La rampa es
+        # `rampa_de_fundido`, y quien la corre, `fundido_tick` en main.s.
         self.fundido = None
         self.fundidos = 0       # cuántos hubo, para el plan de la caminata
         # El encuentro al azar que cortó la caminata: (paso, tropa), o None si
@@ -4412,12 +4414,13 @@ class Estado:
         # o None. Ver `empezar_dibujo` y `animacion.py`.
         self.anim_dibujo = None
         # Y qué cuadro le toca dibujar a este cuadro de consola, que es el
-        # tick de antes de avanzarlo: ver `cuadro_de_animacion`.
+        # tick de antes de avanzarlo: ver `animacion_dibujo_tick` en main.s.
         self.anim_cuadro = None
         # El cartel puesto, o None: (tono de ahora, desde, hasta, paso, pasos).
-        # Ver OP_PICTURE y `cuadro_de_imagen`.
+        # Ver OP_PICTURE y `imagen_tick` en main.s.
         self.imagen = None
-        # El evento que mira al héroe porque él lo disparó: ver `girar`.
+        # El evento que mira al héroe porque él lo disparó: ver `giro_disparar`
+        # en main.s.
         self.giro = None
         # Qué página tiene activa cada evento, como la dejó el último refresco.
         # Ver `pagina_activa`.
@@ -4440,7 +4443,7 @@ class Estado:
         # lo mismo porque la escribe `cuadro_de_eventos`, que va después del
         # intérprete y después del paso del héroe; el único lugar donde hace
         # falta ponerla a mano es al entrar a un mapa, antes de que corra
-        # ningún cuadro. Ver `poner_heroe`.
+        # ningún cuadro.
         self.heroe = (0, 0)
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
@@ -4498,7 +4501,7 @@ class Estado:
         self.gotas = []
         self.lluvia_azar = LLUVIA_SEMILLA
         # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
-        # 1/16 de pixel, y cuánto corre por cuadro. Ver `cuadro_de_pan`.
+        # 1/16 de pixel, y cuánto corre por cuadro. Ver `pan_tick` en main.s.
         self.pan_x = self.pan_y = 0
         self.pan_dest_x = self.pan_dest_y = 0
         self.pan_paso = 0
@@ -4507,11 +4510,11 @@ class Estado:
         self.sacudida_vel = 0
         # El destello de pantalla: hacia qué color, cuánto nivel le queda —a
         # escala 256, para que la resta de cada cuadro no se coma el resto— y
-        # cuántos cuadros. Ver `cuadro_de_destello`.
+        # cuántos cuadros. Ver `destello_tick` en main.s.
         self.destello = (0, 0, 0)
         self.destello_nivel = 0
         self.destello_resta = 0
-        # Lo que se ve, que va un paso atrás del nivel: ver `cuadro_de_destello`.
+        # Lo que se ve, que va un paso atrás del nivel: ver `destello_tick`.
         self.destello_pendiente = 0
         self.destello_mostrado = 0
         self.tinte_cambio = False
@@ -4521,7 +4524,7 @@ class Estado:
         # que escribe una variable pide refresco todos los cuadros
         # —`SetNeedRefreshForVarChange`— así que esperar a que deje de pedirlo
         # es esperar para siempre. El refresco se hace igual; lo único que no
-        # cuenta es que quede pedido. Ver `refresco_frena`.
+        # cuenta es que quede pedido.
         self.refresco_de_paralelo = False
         # Las variables, por ranura, y el estado del azar. Las variables viajan
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
@@ -5437,8 +5440,8 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_ROUTE:
             # La ruta se encola y la camina quien la recibió, no el intérprete:
             # en RM2k `ForceMoveRoute` es asincrónico y la página sigue. Quien
-            # la hace avanzar es `cuadro_de_ruta` / `cuadro_de_rutas_ev`, una
-            # vez por cuadro. Y encolar pisa lo que hubiera: RM2k sobrescribe la
+            # la hace avanzar es `paso_de_ruta` / `animar_ruta_ev` en main.s,
+            # una vez por cuadro. Y encolar pisa lo que hubiera: RM2k sobrescribe la
             # ruta forzada anterior, no la encadena.
             blanco = codigo[i + 1]
             frecuencia = codigo[i + 2]
@@ -5620,7 +5623,7 @@ def ejecutar(codigo, estado, desde=0):
             i += 5
         elif op == OP_ANIMATION:
             # La animación nueva reemplaza a la que hubiera; sus entradas las
-            # dispara `cuadro_de_animacion`. No cuesta ningún tick.
+            # dispara `animacion_tick` en main.s. No cuesta ningún tick.
             n = codigo[i + 3]
             estado.animacion = {
                 "entradas": [codigo[i + 4 + ANIM_ENTRADA * j:
@@ -5637,7 +5640,7 @@ def ejecutar(codigo, estado, desde=0):
             # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
             # cuadro. No corta el cuadro: si la página espera, el conversor le
             # pone un OP_DELAY detrás. Con cero cuadros el primer
-            # `cuadro_de_destello` lo apaga sin que se vea.
+            # `destello_tick` lo apaga sin que se vea.
             estado.destello = (codigo[i + 1], codigo[i + 2], codigo[i + 3])
             estado.destello_nivel = codigo[i + 4] << 8
             estado.destello_resta = codigo[i + 5]
@@ -5653,7 +5656,7 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_TIMER:
             # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
             # son asignaciones, y quien hace correr el cronómetro es
-            # `cuadro_de_timer`, una vez por cuadro.
+            # `timer_tick` en main.s, una vez por cuadro.
             operacion = codigo[i + 1]
             if operacion == TIMER_PONER:
                 estado.timer_cuadros = ((codigo[i + 2] | (codigo[i + 3] << 8))
@@ -5733,7 +5736,7 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_TINT:
             estado.tinte = (codigo[i + 1], codigo[i + 2], codigo[i + 3],
                             codigo[i + 4])
-            estado.tinte_cambio = True      # lo mira `cuadro_de_destello`
+            estado.tinte_cambio = True      # lo mira `destello_tick` en main.s
             i += 5
         else:
             raise ValueError("opcode %d que no conozco" % op)
@@ -5941,7 +5944,8 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "codigo": codigo,
                 "ruta_propia": ruta_propia(page),
                 # Lo que dibuja la página y lo que su tile le impone a la
-                # celda: ver `rm2k.collect_npcs` y `pasabilidad_de_evento`.
+                # celda: ver `rm2k.collect_npcs`, y `pasa_con_evento` en
+                # main.s, que es quien los aplica.
                 "grafico": grafico,
                 "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
                                                         page.layer)

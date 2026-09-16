@@ -370,9 +370,9 @@ el ciclo empezado en cualquier punto.
 **Por qué.** Los que caminan llevan el contador adentro de su ranura de ruta, y
 los quietos no tienen ranura. Guardarles uno pedía un byte por evento y no hay:
 la fila del NPC son 16 bytes con el +11 ocupado por el alto del salto, y la BSS
-está en 7680 de 7680. Con el reloj global no cuesta nada, y los dos lados usan la
-misma fórmula —`columna_animada` en `tools/eventos.py` y `animar_quietos` en
-`main.s`— así que la comparación sigue midiendo algo.
+está en 7680 de 7680. Con el reloj global no cuesta nada, y la fórmula queda en
+un solo lado: `animar_quietos` en `main.s`, el tick del juego dividido por
+`ANIM_CONTINUA` de la velocidad, sobre el ciclo de cuatro pasos.
 
 **Qué se pierde.** Nada que se pueda ver en una pantalla: el ciclo es de cuatro
 pasos y lo único que cambia es en cuál empieza.

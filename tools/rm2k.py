@@ -92,18 +92,13 @@ def hero_start(passable, width, height, blocked=()):
     return best[1], best[2]
 
 
-def puede_pasar(passable, width, height, x, y, dx, dy, blocked=(),
-                pasa_evento=None):
+def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     """Si desde (x,y) se puede dar un paso en (dx,dy).
 
     Las dos caras se consultan, la que se deja y la que se entra, que es la
     regla de RM2k. Está separada de `walk` porque hay quien necesita caminar de
     a un paso —para mirar entre paso y paso si la celda tiene una puerta— y las
     reglas tienen que ser las mismas, no una copia parecida.
-
-    `pasa_evento(x, y)` es lo que un evento dibujado con un tile en la capa de
-    abajo le impone a la celda, o None: ver `eventos.pasabilidad_de_evento`.
-    Cuando hay uno, sus bits reemplazan a los del terreno en esa cara.
     """
     leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
                (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
@@ -112,12 +107,9 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=(),
     nx, ny = x + dx, y + dy
     if not (0 <= nx < width and 0 <= ny < height):
         return False
-    def bits(cx, cy):
-        de_evento = pasa_evento(cx, cy) if pasa_evento is not None else None
-        return passable[cy * width + cx] if de_evento is None else de_evento
-    if not bits(x, y) & leaving:
+    if not passable[y * width + x] & leaving:
         return False
-    if not bits(nx, ny) & entering:
+    if not passable[ny * width + nx] & entering:
         return False
     if (nx, ny) in blocked:
         return False                # hay un NPC parado ahí

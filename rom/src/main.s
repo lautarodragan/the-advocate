@@ -9945,8 +9945,9 @@ copiar:
 ; La mezcla es la de easyrpg puesta en cinco bits: `destino * a + canal *
 ; (255 - a)` sobre 255, con `a` el nivel por ocho —`Flash::MakeColor` y el
 ; `PIXMAN_OP_OVER` de `BlendBlit`—. Que el espacio sea de cinco y no de ocho es
-; lo que hace que el resultado no sea el de RM2k; está declarado en
-; `eventos.destellar`.
+; lo que hace que el resultado no sea el de RM2k sino el que da la misma cuenta
+; con cinco bits. Es una deuda declarada, y de las que no se pueden medir con
+; una comparación: hace falta una captura de EasyRPG tomada durante un destello.
 ;
 ; **Y va antes del tinte, no después.** easyrpg hace al revés —`ToneBlit` y
 ; después `BlendBlit`— pero allá el tono es del sprite y acá el tinte se aplica
@@ -15018,7 +15019,8 @@ apagar:
     rts
 .endproc
 
-; Un cuadro de la lluvia: `eventos.Estado.cuadro_de_lluvia`. `comp_col`
+; Un cuadro de la lluvia —`Game_Screen::UpdateRain`—: la gota viva baja y se
+; corre, y la que se quedó sin vida vuelve a nacer donde diga el azar. `comp_col`
 ; cuenta las gotas y `comp_mask` lleva el azar; son del compositor de
 ; mensajes, que las recalcula en cada carácter. X es la gota, de a tres bytes.
 .proc lluvia_tick
@@ -17235,8 +17237,7 @@ listo:
 ;
 ; **La fase no es la de RM2k**, que arranca el contador de cada personaje cuando
 ; el mapa lo crea; acá es global. Está declarado en assets/LIMITACIONES.md, y lo
-; que lo hace válido es que la referencia usa la misma fórmula y el mismo reloj:
-; `columna_animada` en tools/eventos.py.
+; único que cambia es en cuál de los cuatro pasos del ciclo entra cada evento.
 ;
 ; Va antes de `mover_eventos` a propósito: si una ruta forzada agarra a uno de
 ; éstos, la ranura le pisa la pose después y gana ella, que es la que lleva el
@@ -17457,8 +17458,9 @@ listo:
 
 ; Un cuadro de la rampa. `Game_Pictures::Picture::Update` interpola con
 ; `(finish - current) / dt` sobre `double`, y el resultado exacto de esa
-; sucesión es lineal: `desde + (hasta - desde) * paso / pasos`. Es la cuenta de
-; `eventos.imagen_tono`, y va con enteros de los dos lados.
+; sucesión es lineal: `desde + (hasta - desde) * paso / pasos`. Acá va con
+; enteros, y el signo se saca antes de dividir: el divisor del hardware no lo
+; tiene.
 ;
 ; La paleta se rehace **sólo cuando el tono cambió de verdad**. En la rampa de
 ; 210 cuadros del "1 year earlier" el rojo sube de 0 a 100, o sea que cambia
@@ -17703,8 +17705,8 @@ salir:
 ; `OP_ANIMATION` deja acá la línea de tiempo: dónde está la entrada que sigue
 ; —en el bytecode—, cuántas quedan y el reloj. `animacion_tick` corre una vez
 ; por cuadro antes que los destellos y dispara las del tick: un efecto, un
-; destello de pantalla o uno del evento objetivo. Es `cuadro_de_animacion` en
-; eventos.py. El dibujo de la animación no se hace.
+; destello de pantalla o uno del evento objetivo. El dibujo de la animación no
+; se hace.
 ANIM_PTR   = $7E30E2            ; tres bytes
 ANIM_N     = $7E30E5
 ANIM_T     = $7E30E6
@@ -18047,8 +18049,7 @@ copia:
 ; **el cuadro que se dibuja sale del tick de antes de avanzarlo**: en el tick 0
 ; se dibuja el cuadro 0, que es el mismo en que dispara el `timing` del cuadro
 ; 1 de RM2k. Dos cuadros de consola por cada cuadro de animación, que es el
-; `num_frames = GetRealFrames() * 2` de `BattleAnimation`. Es
-; `Estado.cuadro_de_dibujo` en eventos.py.
+; `num_frames = GetRealFrames() * 2` de `BattleAnimation`.
 .proc animacion_dibujo_tick
 .a8
 .i16
@@ -18292,8 +18293,8 @@ con_y:
 ; —con la tecla de acción o por contacto— se da vuelta hacia él, salvo que su
 ; animación fije la dirección. Mira para ahí mientras dura su página y al
 ; terminar vuelve a su pose, que es el `UpdateFacing` de
-; `OnFinishForegroundEvent`. Las reglas —cuándo gira, cuándo se deshace— son
-; las de `Estado.girar` en eventos.py, que es la referencia.
+; `OnFinishForegroundEvent`. Las reglas —cuándo gira, cuándo se deshace— están
+; en `giro_disparar` y `giro_revisar`, acá abajo.
 ;
 ; Hay un solo giro a la vez: sólo gira el evento que disparó el héroe, y el
 ; anterior terminó su página antes. Su estado vive en la RAM lejana:
@@ -18605,7 +18606,7 @@ nada:
 ; Al empezar un refresco que aplica páginas: si el evento que gira cambió a
 ; una página que no gira o con otro gráfico, el giro se termina. Es el
 ; `SetFacing(page->character_direction)` de `Game_Event::RefreshPage`, que
-; sólo pasa si la página nueva es otra. Ver `Estado.revisar_giro`.
+; sólo pasa si la página nueva es otra.
 .proc giro_revisar
 .a8
 .i16
@@ -18791,7 +18792,7 @@ listo:
 hay_fila:
 
     ; Dónde está, en pixeles: la celda por dieciséis, menos lo que le falte al
-    ; paso en curso a WALK_SPEED por cuadro. Es `eventos.pixeles_del_paso`.
+    ; paso en curso a WALK_SPEED por cuadro.
     rep #$20
 .a16
     lda celda_x
@@ -19550,7 +19551,7 @@ positivo:
 
 ; --- el destello de pantalla -------------------------------------------------
 ; Un cuadro del destello de pantalla: `Flash::Update` de easyrpg, con la cuenta
-; entera que describe `Estado.cuadro_de_destello` en eventos.py. El nivel va a
+; entera que sigue. El nivel va a
 ; escala 256 y baja en `nivel / cuadros_que_quedan` por cuadro, con el divisor
 ; del hardware; en el último cuadro cae a cero.
 ;
@@ -19568,8 +19569,7 @@ positivo:
 ; quedaba treinta cuadros atrás de la referencia. Así que va en dos cuadros:
 ; con la resta impar se arman las tablas y se pasan el fondo y la capa de
 ; encima; con la resta par se pasan los sprites y se sube todo. Lo que se ve
-; cambia cuadro por medio, y la referencia hace exactamente lo mismo
-; —`Estado.cuadro_de_destello`—. Un tinte que cambie en el cuadro impar pisa
+; cambia cuadro por medio. Un tinte que cambie en el cuadro impar pisa
 ; `pal_buf` con la paleta recién teñida, y además no puede subirse sin
 ; destello; en ese cuadro se hace todo de una, y en el par se rehace el fondo.
 ;
@@ -19991,7 +19991,7 @@ en_su_lugar:
 ; El scroll es por hardware, así que esto son dos restas y dos escrituras. No
 ; hay que redibujar nada: el mapa entero ya está en el tilemap.
 ; Un cuadro de la sacudida de pantalla: `Shake::Update` y `NextPosition` de
-; easyrpg, con la cuenta entera que describe `sacudida_siguiente` en eventos.py:
+; easyrpg, con la cuenta entera que sigue:
 ;
 ;     amplitud = 1 + 2 * fuerza
 ;     nuevo    = -amplitud * seno[(resta * 4 * (velocidad + 2)) % 256] / 127
@@ -21774,9 +21774,9 @@ ciclo_tres:
 ; de RM2k: RM2k cuenta 256 por celda y avanza `1 << (1 + velocidad)`, o sea 4,
 ; 8, 16, 32, 64 y 128 —`PASO_POR_VELOCIDAD` en eventos.py—, y acá `step_left`
 ; es un byte, así que se cuenta de a dos: 128 por celda y la mitad de cada
-; paso. Los pixeles que faltan son `step_left >> 3`, que es la misma división
-; entera que `pixeles_del_paso` hace con `paso_resta // 16`: a las velocidades
-; con medio pixel por cuadro los dos lados redondean igual.
+; paso. Los pixeles que faltan son `step_left >> 3`: la división entera tira
+; los dieciseisavos, y a las velocidades con medio pixel por cuadro eso es lo
+; mismo que contar los cuadros por dos.
 paso_medio_por_vel:
     .byte 2, 4, 8, 16, 32, 64
 ; Y cada cuántos cuadros cambia el frame de la caminata: `ANIM_PARADO`.
