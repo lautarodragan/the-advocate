@@ -6,7 +6,8 @@ la partida cambió de mapa, y está escrito quién es el sospechoso —la págin
 prueba misma, una automática con espera que el doble `cargar_mapa` del menú
 reinicia— y quién no —el guardado—. Pero esa segunda mitad descansaba en que
 taro guardó y cargó a mano el 2026-09-10: **ninguna prueba usaba el
-`OpenSaveMenu` del juego**, porque `just guardar` usa la página de prueba.
+`OpenSaveMenu` del juego**, porque los casos `guardar` de la tanda usan la
+página de prueba.
 
 Acá se usa. El save point es `SaveByTalansPad0`, el evento de índice **66** del
 mapa 8 —el `xfail` decía "el evento 67", que es como lo numera el editor de

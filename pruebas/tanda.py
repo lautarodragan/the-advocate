@@ -24,15 +24,20 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `snes_correr.py`; no hay una segunda convención que mantener.
 """
 
+import glob
+import hashlib
 import os
 import subprocess
 import sys
 
-from consola import RAIZ, Partida, Simbolos, huella, mapas_de
+from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
+                     huella, mapas_de, toques_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
+import retro                                             # noqa: E402
 import w65_bin                                           # noqa: E402
+from snes_correr import ARRANQUE                         # noqa: E402
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden",
@@ -55,14 +60,31 @@ def cartucho(nombre, *flags, grupo=None):
 
     Se saltea si ya está hecha y no cambió nada de lo que la arma: la clave es
     `huella()` —los fuentes de la ROM, el ensamblador y las herramientas— más
-    los flags. `nombre` es sólo para poder mirar el directorio; lo que decide
-    si sirve es el sello.
+    los flags.
 
     **Cada cartucho en su propio directorio**, y por eso `mapdata.inc` deja de
     ser estado global: dos casos con mapas distintos no se pisan, que es la
     trampa que `AGENTS.md` nombra.
+
+    **Quién es "su propio" lo decide el hash de (grupo, flags), no el nombre.**
+    Con un directorio por caso son unos 5 MB por cartucho y ~170 casos, o sea
+    casi un giga de ROMs casi iguales; con el hash, dos casos que arman
+    exactamente la misma ROM comparten el build sin que nadie los empareje a
+    mano. `nombre` queda de prefijo para poder mirar el directorio y saber de
+    quién es, y el que gana es el primero que lo pida: lo que identifica al
+    directorio es lo que viene después del guión.
+
+    Lo que **no** entra en el hash es `huella()`, a propósito: si entrara,
+    tocar un fuente de la ROM estrenaría un directorio por caso en vez de
+    reusar el suyo, y el disco crecería con cada cambio. Va en el sello, que es
+    lo que decide si lo que hay adentro sirve.
     """
-    destino = os.path.join(RAIZ, "rom", "build", "tanda", nombre)
+    tanda = os.path.join(RAIZ, "rom", "build", "tanda")
+    clave = hashlib.sha256(
+        repr(((grupo or GRUPO), flags)).encode()).hexdigest()[:12]
+    existentes = glob.glob(os.path.join(tanda, "*-" + clave))
+    destino = existentes[0] if existentes else os.path.join(
+        tanda, "%s-%s" % (nombre, clave))
     os.makedirs(destino, exist_ok=True)
     inc = os.path.join(destino, "mapdata.inc")
     sfc = os.path.join(destino, "prueba.sfc")
@@ -111,6 +133,18 @@ def plan(nombre):
     return ticks
 
 
+def ticks_de_avance(pixeles):
+    """En qué tick el héroe lleva andados `pixeles`, que es el `--avance`.
+
+    El héroe se mueve `WALK_SPEED` = 2 pixeles por tick, y el cuadro que se ve
+    muestra el estado de la vuelta anterior —`RETRASO_DE_PANTALLA`—, así que
+    para verlo con N pixeles andados hay que correr N/2 + 1 ticks desde que se
+    aprieta. No es una holgura: errarle por un cuadro para cualquier lado da
+    unos 25.000 pixeles de diferencia, medido en el mapa 73.
+    """
+    return pixeles // 2 + RETRASO_DE_PANTALLA
+
+
 def partida(sfc, simbolos, mapas):
     """La ROM con el arranque ya pasado, lista para correr ticks.
 
@@ -121,16 +155,78 @@ def partida(sfc, simbolos, mapas):
     return Partida(sfc, simbolos, mapas)
 
 
-def cuadros_de_hardware(p, cuantos):
-    """`cuantos` cuadros de hardware, sin mirar el reloj del juego.
+def consola_cruda(sfc, arranque=ARRANQUE):
+    """La ROM con el arranque pasado y **sin reloj de juego**.
 
-    Es el `--sin-contador` del corredor, y hace falta donde `vueltas` no
-    avanza: adentro de la pantalla de batalla y en la de título, que no son el
-    juego. Un `Partida.correr` ahí no termina nunca, porque espera un tick que
-    no va a llegar.
+    Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
+    —la pantalla de título, la de ranuras, el menú de pausa, la de batalla—,
+    que no son el juego. Ahí un `Partida.correr` no termina nunca, porque
+    espera un tick que no va a llegar.
+
+    No devuelve una `Partida` a propósito: `Partida` *es* el reloj de ticks, y
+    una que no pueda contarlos sería una que miente sobre lo que sabe. Lo que
+    se devuelve es la consola pelada, que es todo lo que estos casos usan.
     """
-    p.consola.apretar()
-    p.consola.correr(cuantos)
+    consola = retro.Consola(sfc, NUCLEO)
+    consola.correr(arranque)
+    return consola
+
+
+def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
+                    sosteniendo=()):
+    """`cuantos` cuadros de hardware, con los toques que se le digan.
+
+    Los dos diccionarios de toques **cuentan con un cuadro de diferencia**, y
+    está copiado a propósito de `snes_correr.py`: con `--sin-contador` el
+    corredor pone su reloj a contar cuadros, así que `--toques` cae en el
+    cuadro `n-1` —el lazo pregunta por `cuadro() + 1`— y `--toques-hardware` en
+    el `n`, porque ése lee `reloj.corridos` directo. Dos flags que parecen el
+    mismo y no lo son.
+
+    Medido: **ninguna golden distingue los dos**, o sea que hoy se podrían
+    unificar sin que nada se ponga rojo. Se deja igual porque lo que congela
+    una golden es la salida y no la convención, y un caso nuevo que caiga justo
+    en el borde sí las distinguiría.
+    """
+    por_tick = toques_de(toques, "toques")
+    por_hardware = toques_de(toques_hardware, "toques_hardware")
+    sosteniendo = tuple(sosteniendo)
+    for corridos in range(cuantos):
+        consola.apretar(*(sosteniendo + por_tick.get(corridos + 1, ())
+                          + por_hardware.get(corridos, ())))
+        consola.correr(1)
+    return consola
+
+
+def correr_ticks(consola, simbolos, ticks, sosteniendo=()):
+    """El lazo de ticks de `Reloj.avanzar`, sobre una consola sin `Partida`.
+
+    Hace falta para el único par de casos que arranca en el cuadro **cero**:
+    la ROM con pantalla de título contra la misma sin ella. Ahí no se puede
+    pasar un arranque fijo —la mitad del arranque es el título— así que el
+    reloj se lee desde el primer cuadro. `Reloj` corre uno antes de mirar,
+    porque con cero cuadros corridos la WRAM es todavía la basura con que el
+    emulador enciende y el contador leería 21845.
+    """
+    consola.correr(1)
+    sosteniendo = tuple(sosteniendo)
+    if sosteniendo:
+        consola.apretar(*sosteniendo)
+    direccion = simbolos["vueltas"]
+    tope = (ticks + 2) * 240
+    while True:
+        bajo, alto = consola.ram(direccion, 2)
+        if (bajo | (alto << 8)) - 1 >= ticks:
+            return consola
+        consola.correr(1)
+        tope -= 1
+        if tope <= 0:
+            raise RuntimeError("la ROM no llegó al tick %d" % ticks)
+
+
+def cuadros_de_hardware(p, cuantos, toques=(), toques_hardware=()):
+    """Lo mismo sobre una `Partida` que ya arrancó: ver `correr_hardware`."""
+    correr_hardware(p.consola, cuantos, toques, toques_hardware)
     return p
 
 
