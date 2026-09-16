@@ -10,10 +10,9 @@ algunos de otras familias que después se fueron a su lugar. Lo que decide qué
 vive acá es el arnés y no el tema: son los que se corren con `Partida.correr` y
 a lo sumo un pad sostenido.
 
-**Casi ninguna de estas recetas existe ya.** El nombre que abre cada docstring
-es el del caso, que es también el de su golden; las tres que siguen vivas
-—`cerrar`, `evento` y `caminando`— lo dicen con todas las letras, y es porque
-`bsnes` las llama.
+**Ninguna de estas recetas existe ya**, desde que se fue `bsnes`: era la última
+que llamaba a `cerrar`, `evento` y `caminando`. El nombre que abre cada
+docstring es el del caso, que es también el de su golden.
 
 Lo que cada docstring lleva es la trampa **del arnés** que vivía en el
 comentario de la receta, más el porqué del caso, que se mudó con él.
@@ -182,7 +181,9 @@ def test_evento(otros, nombre):
     de mapas, o sea con el teletransporte resolviendo un índice que no es 0
     ni 1.
 
-    **La receta se queda aunque el caso esté acá**: `bsnes` la llama.
+    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
+    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    dos cores y compara las dos pantallas entre sí.
     """
     sfc, simbolos, mapas = cartucho("evento-4-%s" % "-".join(otros),
                                     "--map-id", "4", "--mapas", *otros)
@@ -242,7 +243,9 @@ def test_caminando(mapa, direccion, avances):
     `ticks_de_avance`, y errarle por uno mueve media pantalla. Los avances de
     un mismo mapa salen de una sola conversión, que es lo caro.
 
-    **La receta se queda aunque el caso esté acá**: `bsnes` la llama.
+    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
+    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    dos cores y compara las dos pantallas entre sí.
     """
     sfc, simbolos, mapas = cartucho("caminando-%d" % mapa, "--map-id", mapa)
     for pixeles in avances:

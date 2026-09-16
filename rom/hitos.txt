@@ -13,4 +13,3 @@
 # El orden era de mayor a menor, para que la repartida en procesos no arrancara
 # el caso más largo cuando los demás trabajadores ya habían terminado. Se
 # respeta al sacar casos y no se reordena.
-bsnes

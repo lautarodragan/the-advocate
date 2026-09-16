@@ -108,7 +108,8 @@ class Partida:
     `tools/snes_correr.py`.
     """
 
-    def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None):
+    def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
+                 nucleo=None):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -119,7 +120,10 @@ class Partida:
         # dos veces —conversor y referencia— y una tercera copia sería una
         # tercera manera de equivocarse igual en los tres lados.
         self.mapas = mapas
-        self.consola = retro.Consola(sfc, NUCLEO)
+        # `nucleo` es para correr la **misma** partida en dos cores y
+        # comparar las dos pantallas entre sí: ver `pruebas/test_cores.py`.
+        # Sin él vale el de siempre, que es snes9x.
+        self.consola = retro.Consola(sfc, nucleo or NUCLEO)
         self.cuadro = 0
         self.hardware = 0
         # El arranque, que lo dice la ROM y no un número copiado: mientras

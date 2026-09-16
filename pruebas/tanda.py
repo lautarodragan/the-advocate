@@ -145,14 +145,17 @@ def ticks_de_avance(pixeles):
     return pixeles // 2 + RETRASO_DE_PANTALLA
 
 
-def partida(sfc, simbolos, mapas):
+def partida(sfc, simbolos, mapas, nucleo=None):
     """La ROM con el arranque ya pasado, lista para correr ticks.
 
     Una consola nueva por captura, igual que el corredor: arrancar de cero es
     parte de lo que se compara, y reusarla traería el estado de la corrida
     anterior.
+
+    `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
+    en snes9x y en bsnes.
     """
-    return Partida(sfc, simbolos, mapas)
+    return Partida(sfc, simbolos, mapas, nucleo=nucleo)
 
 
 def consola_cruda(sfc, arranque=ARRANQUE):
