@@ -23,6 +23,9 @@ Tres cosas del arnés, que son las que vivían en el comentario de la receta:
 
 Los cuadros de cada caso —por qué el 380 y no el 400— son del caso y no del
 arnés, y están en el docstring de cada uno.
+
+Las recetas `escena`, `hablar` y `cinematica` ya no existen: el nombre que abre
+cada docstring es el del caso, que es también el de su golden.
 """
 
 import pytest
@@ -122,14 +125,14 @@ ESCENAS = (
     ESCENAS, ids=[caso[0] for caso in ESCENAS])
 def test_escena(nombre, mapa, celda, ruta, cuadros, apretar, switch, mapas,
                 toques):
-    """`just escena`: una página del juego disparada desde una celda y una ruta.
+    """`escena`: una página del juego disparada desde una celda y una ruta.
 
     Los cuadros de un mismo caso salen de **una sola** conversión, que es lo
     caro; correr el emulador una vez por cuadro no lo es. Y cada uno corre
     desde cero: arrancar de nuevo es parte de lo que se compara.
     """
     sfc, simbolos, orden = cartucho(
-        "escena-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        nombre, "--map-id", mapa, "--inicio", *celda.split(),
         "--con-ventana", "--ruta-de-prueba", *ruta.split(),
         *(("--switch", switch) if switch else ()),
         *(("--mapas",) + tuple(mapas) if mapas else ()))
@@ -211,7 +214,7 @@ HABLADAS = (
     "nombre,mapa,celda,switch,apretar,cuadros,ruta,mapas", HABLADAS,
     ids=[caso[0] for caso in HABLADAS])
 def test_hablar(nombre, mapa, celda, switch, apretar, cuadros, ruta, mapas):
-    """`just hablar`: hablarle a algo, que es lo que convierte esto en un juego.
+    """`hablar`: hablarle a algo, que es lo que convierte esto en un juego.
 
     La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del
     héroe y después la de adelante, y gana la página de número más alto que
@@ -234,7 +237,7 @@ def test_hablar(nombre, mapa, celda, switch, apretar, cuadros, ruta, mapas):
       antes. Lo que se compara ahí es la escena corriendo sola.
     """
     sfc, simbolos, orden = cartucho(
-        "hablar-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        nombre, "--map-id", mapa, "--inicio", *celda.split(),
         "--con-ventana", "--switch", switch,
         *(("--ruta-de-evento",) + tuple(ruta.split()) if ruta else ()),
         *(("--mapas",) + tuple(mapas) if mapas else ()))
@@ -288,7 +291,7 @@ CINEMATICAS = (
     CINEMATICAS, ids=[caso[0] for caso in CINEMATICAS])
 def test_cinematica(nombre, origen, destino, cuadros, ventana, apretar,
                     switch):
-    """`just cinematica`: la cinemática de apertura, entera.
+    """`cinematica`: la cinemática de apertura, entera.
 
     El mapa 4 prende dos switches, tiñe y teletransporta al 1; ahí arranca la
     lluvia, se salta dos veces **adentro del mismo mapa**, se manda a caminar
@@ -315,7 +318,7 @@ def test_cinematica(nombre, origen, destino, cuadros, ventana, apretar,
       mismo cuadro.
     """
     sfc, simbolos, orden = cartucho(
-        "cinematica-%s" % nombre, "--map-id", origen, "--mapas", *destino,
+        nombre, "--map-id", origen, "--mapas", *destino,
         *(("--con-ventana",) if ventana else ()),
         *(("--switch", switch) if switch else ()), grupo="10")
     for cuadro in cuadros:

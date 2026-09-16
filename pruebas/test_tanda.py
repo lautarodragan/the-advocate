@@ -1,20 +1,22 @@
-"""Cinco casos de `rom/hitos.txt`, mudados a pytest. El piloto de los 47.
+"""Caminar y mirar el mapa: los casos de la tanda que sólo necesitan el pad.
 
-Cada uno es la misma ROM y los mismos cuadros que su receta de `just`, con dos
-diferencias: contra qué se compara —la captura congelada y no la referencia de
-Python— y cuántos procesos hace falta para averiguarlo. **Las recetas siguen
-existiendo y en verde**: que los dos caminos den la misma imagen es la prueba de
-que la mudanza es fiel, y por eso no se borra ninguna todavía.
+El héroe parado y caminando en las cuatro direcciones, en trece mapas; el mapa
+que no es el primero de la tabla; el héroe plantado en una celda; el mismo con
+prioridad 2 de objeto; el teletransporte del mapa 4; una página automática con
+el grupo que pide; una puerta; y el héroe a mitad de camino.
 
-Los cinco están elegidos para que ejerciten cosas distintas del arnés, no del
-juego: las cinco direcciones con plan, el plan de un cambio de mapa, una ventana
-de mensaje con un toque de A, una ruta forzada mirada en cuatro cuadros, y una
-pantalla que **congela el reloj del juego**, que es lo único de los cinco que
-`Partida` no sabía correr.
+Este archivo fue el piloto de la mudanza, con cinco casos, y por eso tiene
+algunos de otras familias que después se fueron a su lugar. Lo que decide qué
+vive acá es el arnés y no el tema: son los que se corren con `Partida.correr` y
+a lo sumo un pad sostenido.
 
-Lo que cada docstring de acá abajo lleva es la trampa **del arnés** que vivía en
-el comentario de la receta. Las del caso —por qué este mapa, por qué este
-cuadro— se quedan allá mientras la receta exista.
+**Casi ninguna de estas recetas existe ya.** El nombre que abre cada docstring
+es el del caso, que es también el de su golden; las tres que siguen vivas
+—`cerrar`, `evento` y `caminando`— lo dicen con todas las letras, y es porque
+`bsnes` las llama.
+
+Lo que cada docstring lleva es la trampa **del arnés** que vivía en el
+comentario de la receta, más el porqué del caso, que se mudó con él.
 """
 
 import pytest
@@ -35,7 +37,7 @@ MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
 @pytest.mark.parametrize("mapa", MAPAS_DE_HEROE)
 @pytest.mark.parametrize("direccion", DIRECCIONES)
 def test_heroe(mapa, direccion):
-    """`just heroe <mapa>`: parado y caminando en las cuatro direcciones.
+    """`heroe <mapa>`: parado y caminando en las cuatro direcciones.
 
     El 21 es Rat Tracks B1, el que destapó la página automática vacía: sus dos
     —el idioma con el que RM2k desactiva un evento— dejaban el mapa congelado
@@ -67,7 +69,7 @@ def test_heroe(mapa, direccion):
 
 
 def test_puerta_30_28():
-    """`just puerta`: el héroe camina, pisa la puerta y aparece en el otro mapa.
+    """`puerta`: el héroe camina, pisa la puerta y aparece en el otro mapa.
 
     Lo que se compara es la pantalla entera después de cruzar, así que cubre de
     una vez el cambio de mapa completo —tiles, paleta, capa de encima, sprites,
@@ -92,38 +94,9 @@ def test_puerta_30_28():
     golden("puerta-30-28", p.imagen())
 
 
-def test_batalla():
-    """`just batalla`: la pantalla de la pelea contra la tropa 86.
-
-    El raro de los cinco, y lo que lo hace raro es el reloj: **la pelea no
-    cuesta ningún tick.** `batalla_correr` corre su propio lazo y `vueltas` no
-    avanza mientras dura, así que esperar un tick adentro de la pelea no termina
-    nunca —es el `--sin-contador` del corredor, y acá `cuadros_de_hardware`—. El
-    2026-09-10 una captura sin ese cuidado se comió una hora de CPU y 42 GiB
-    antes de que alguien la viera en `ps`.
-
-    De ahí sale lo otro: los toques que pelean van en **cuadros de hardware** y
-    no en ticks. Este caso no aprieta nada —la pelea se abre sola y lo que se
-    mira es cómo entra— pero los ocho hermanos que sí lo hacen necesitan eso, y
-    es lo que `Partida` todavía no sabe.
-
-    El grupo son tres actores y no el de las demás recetas: la pantalla muestra
-    a los tres. La pelea es la misma todas las veces porque el azar está clavado
-    en `BATALLA_SEMILLA`.
-    """
-    sfc, simbolos, mapas = cartucho(
-        "batalla", "--map-id", "6", "--con-ventana",
-        "--pagina-de-prueba", "20", "0", "0", "0",
-        "--batalla-de-prueba", "86",
-        "--fondo-de-prueba", "ABLBackdropSJ03", grupo="11 12 13")
-    p = partida(sfc, simbolos, mapas)
-    cuadros_de_hardware(p, 200)
-    golden("batalla", p.imagen())
-
-
 @pytest.mark.parametrize("direccion", ("none", "down"))
 def test_varios(direccion):
-    """`just varios`: el mapa 18 en un cartucho donde **no** es el primero.
+    """`varios`: el mapa 18 en un cartucho donde **no** es el primero.
 
     Lo que prueba no es que el mapa se vea bien —eso ya lo cubre `heroe`— sino
     que se vea bien cuando su registro no está al principio de la tabla: con el
@@ -155,7 +128,7 @@ PARADOS = ((1, 75, 88, "borde"),
 
 @pytest.mark.parametrize("mapa,tx,ty,nombre", PARADOS)
 def test_parado(mapa, tx, ty, nombre):
-    """`just parado`: el héroe plantado en una celda elegida, sin caminar.
+    """`parado`: el héroe plantado en una celda elegida, sin caminar.
 
     Llegar a un lugar puntual caminando depende de cuánto se mantenga la
     cruceta; acá la celda se fija con `--inicio` y la captura no se negocia.
@@ -173,7 +146,7 @@ def test_parado(mapa, tx, ty, nombre):
 
 
 def test_encima():
-    """`just encima`: el héroe en prioridad 2 de objeto, partido por la capa.
+    """`encima`: el héroe en prioridad 2 de objeto, partido por la capa.
 
     Es la única manera de ejercitar esa prioridad —la de los eventos "above",
     que en el orden del modo 3 queda por encima de BG2—: el juego tiene un solo
@@ -221,7 +194,7 @@ def test_evento(otros, nombre):
 @pytest.mark.parametrize("mapa,arranca,nombre", ((121, "10", "grupo-121"),
                                                  (74, "21", "ruta-74")))
 def test_pagina(mapa, arranca, nombre):
-    """`just pagina`: una página automática del juego, con el grupo que pide.
+    """`pagina`: una página automática del juego, con el grupo que pide.
 
     El grupo es parte del caso y no decoración, y por eso va explícito:
 

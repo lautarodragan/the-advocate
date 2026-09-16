@@ -17,6 +17,10 @@ Del arnés hay tres cosas que valen para casi todos:
   que no termina se nota;
 * **los ticks de un caso salen de una sola conversión.** Convertir el mapa es lo
   caro; correr el emulador una vez por tick no lo es.
+
+De las quince recetas que esto reemplaza sólo sobrevive `cerrar`, porque la
+llama `bsnes`; el nombre que abre cada docstring es el del caso, que es también
+el de su golden.
 """
 
 import pytest
@@ -50,7 +54,7 @@ TECLAS = (
     ids=[caso[0] for caso in TECLAS])
 def test_tecla(nombre, tecla, celda, cuadros, tinte, apretar, variables, timer,
                tocar):
-    """`just tecla`: `KeyInputProc`, la tecla leída desde una página.
+    """`tecla`: `KeyInputProc`, la tecla leída desde una página.
 
     Del arnés: **los dos toques van por caminos distintos y los dos tienen que
     llegar.** El de A es `apretar_a`, y el de dirección es `tocar` —el
@@ -64,7 +68,7 @@ def test_tecla(nombre, tecla, celda, cuadros, tinte, apretar, variables, timer,
     nada.
     """
     sfc, simbolos, mapas = cartucho(
-        "tecla-%s" % nombre, "--map-id", "6", "--inicio", *celda.split(),
+        nombre, "--map-id", "6", "--inicio", *celda.split(),
         "--tecla-de-prueba", *tecla.split(),
         *(("--vars-de-prueba",) + tuple(variables.split()) if variables
           else ()),
@@ -102,7 +106,7 @@ TEXTOS = (
 @pytest.mark.parametrize("nombre,relleno", TEXTOS,
                          ids=[caso[0] for caso in TEXTOS])
 def test_texto(nombre, relleno):
-    """`just texto`: el texto **del juego**, no el que le dictamos a la ROM.
+    """`texto`: el texto **del juego**, no el que le dictamos a la ROM.
 
     Todo lo demás usa `--mensaje-de-prueba`, o sea líneas inventadas: eso
     prueba el dibujo, el bloqueo y el cierre, pero no que un `ShowMessage` de
@@ -184,7 +188,7 @@ VARIABLES = (
     ids=[caso[0] for caso in VARIABLES])
 def test_vars(nombre, mapa, timer, variables, celda, cuadros, tinte, items,
               ruta):
-    """`just vars`: las variables, leídas con los dígitos del cronómetro.
+    """`vars`: las variables, leídas con los dígitos del cronómetro.
 
     El cronómetro es el único número que este port dibuja en pantalla, así que
     es el único lugar donde el valor de una variable se puede comparar en
@@ -192,7 +196,7 @@ def test_vars(nombre, mapa, timer, variables, celda, cuadros, tinte, items,
     cronómetro **desde** ella.
     """
     sfc, simbolos, orden = cartucho(
-        "vars-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        nombre, "--map-id", mapa, "--inicio", *celda.split(),
         "--timer-de-prueba", *timer.split(),
         "--vars-de-prueba", *variables.split(),
         *(("--items-de-prueba",) + tuple(items.split()) if items else ()),
@@ -211,7 +215,7 @@ DESTELLOS = (("destello", "1 31 0 0 31 24", "2 10"),
 @pytest.mark.parametrize("nombre,flash,celda", DESTELLOS,
                          ids=[caso[0] for caso in DESTELLOS])
 def test_destello(nombre, flash, celda):
-    """`just destello`: `FlashSprite`, el destello de un personaje.
+    """`destello`: `FlashSprite`, el destello de un personaje.
 
     En la consola es un tinte de CGRAM —`pintar_flash` sube la paleta entera
     del personaje— y en RM2k es sobre la **imagen** del sprite. Son dos cosas
@@ -220,7 +224,7 @@ def test_destello(nombre, flash, celda):
     destella. Lo cuida `pruebas/test_destello_paleta.py`.
     """
     sfc, simbolos, mapas = cartucho(
-        "destello-%s" % nombre, "--map-id", "6", "--inicio", *celda.split(),
+        nombre, "--map-id", "6", "--inicio", *celda.split(),
         "--flash-de-prueba", *flash.split(),
         "--pagina-de-prueba", "12", "0", "0", "50")
     for cuadro in (2, 12, 15, 23, 25):
@@ -237,7 +241,7 @@ SATURADOS = (("saturar", "60 0 0 0 0"),
 @pytest.mark.parametrize("nombre,tinte", SATURADOS,
                          ids=[caso[0] for caso in SATURADOS])
 def test_saturar(nombre, tinte):
-    """`just saturar`: el tinte de pantalla en sus tres esquinas.
+    """`saturar`: el tinte de pantalla en sus tres esquinas.
 
     Los tres son el mismo mapa con otro tinte: el negro, el gris —saturación en
     cero, que es el camino que promedia los tres canales— y uno con los canales
@@ -245,7 +249,7 @@ def test_saturar(nombre, tinte):
     del tinte y uno después.
     """
     sfc, simbolos, mapas = cartucho(
-        "saturar-%s" % nombre, "--map-id", "73",
+        nombre, "--map-id", "73",
         "--pagina-de-prueba", *tinte.split())
     for cuadro in (30, 120):
         p = partida(sfc, simbolos, mapas)
@@ -265,9 +269,9 @@ TIMERS = (("timer", "600 1", (2, 31, 61, 90)),
 @pytest.mark.parametrize("nombre,timer,cuadros", TIMERS,
                          ids=[caso[0] for caso in TIMERS])
 def test_timer(nombre, timer, cuadros):
-    """`just timer`: el cronómetro corriendo, con sus dígitos en pantalla."""
+    """`timer`: el cronómetro corriendo, con sus dígitos en pantalla."""
     sfc, simbolos, mapas = cartucho(
-        "timer-%s" % nombre, "--map-id", "6", "--inicio", "2", "10",
+        nombre, "--map-id", "6", "--inicio", "2", "10",
         "--timer-de-prueba", *timer.split(),
         "--pagina-de-prueba", "12", "0", "0", "50")
     for cuadro in cuadros:
@@ -279,7 +283,7 @@ def test_timer(nombre, timer, cuadros):
 @pytest.mark.parametrize("nombre,items", (("rama-item", "90 1"),
                                           ("rama-item-no", "")))
 def test_rama_item(nombre, items):
-    """`just rama-item`: la rama de `ConditionalBranch` por objeto.
+    """`rama-item`: la rama de `ConditionalBranch` por objeto.
 
     Los dos casos son la misma página con y sin el `ChangeItems` que le da el
     Idol al grupo, así que **la diferencia entre ellos es la respuesta de la
@@ -288,7 +292,7 @@ def test_rama_item(nombre, items):
     que no lo tiene: el caso con el ítem da esos mismos 40012.
     """
     sfc, simbolos, mapas = cartucho(
-        "rama-item-%s" % nombre, "--map-id", "6", "--inicio", "22", "12",
+        nombre, "--map-id", "6", "--inicio", "22", "12",
         *(("--items-de-prueba",) + tuple(items.split()) if items else ()),
         "--rama-item-de-prueba", *"90 12 0 0 100".split())
     for cuadro in (2, 30):
@@ -306,7 +310,7 @@ RAMAS_DE_ACTOR = (("rama-equipo", "5 11 82 12 0 0 100"),
 @pytest.mark.parametrize("nombre,rama", RAMAS_DE_ACTOR,
                          ids=[caso[0] for caso in RAMAS_DE_ACTOR])
 def test_rama_actor(nombre, rama):
-    """`just rama-actor`: las dos ramas de actor con dos operandos,
+    """`rama-actor`: las dos ramas de actor con dos operandos,
     `OP_IF_ACTOR`.
 
     Cada par es la misma página preguntando por algo que se cumple y por algo
@@ -320,7 +324,7 @@ def test_rama_actor(nombre, rama):
     `rama-equipo` y `rama-hab`.
     """
     sfc, simbolos, mapas = cartucho(
-        "rama-actor-%s" % nombre, "--map-id", "6", "--inicio", "22", "12",
+        nombre, "--map-id", "6", "--inicio", "22", "12",
         "--rama-actor-de-prueba", *rama.split())
     for cuadro in (2, 30):
         p = partida(sfc, simbolos, mapas)
@@ -330,7 +334,7 @@ def test_rama_actor(nombre, rama):
 
 @pytest.mark.parametrize("cuadro", (2, 5, 9))
 def test_relampago(cuadro):
-    """`just relampago`: el destello de pantalla, que hasta el 2026-09-08 no lo
+    """`relampago`: el destello de pantalla, que hasta el 2026-09-08 no lo
     corría nadie.
 
     Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
@@ -363,9 +367,9 @@ PANEOS = (
 @pytest.mark.parametrize("nombre,pan,cuadros,celda,lluvia", PANEOS,
                          ids=[caso[0] for caso in PANEOS])
 def test_pan(nombre, pan, cuadros, celda, lluvia):
-    """`just pan`: `PanScreen`, la cámara corrida sin que el héroe se mueva."""
+    """`pan`: `PanScreen`, la cámara corrida sin que el héroe se mueva."""
     sfc, simbolos, mapas = cartucho(
-        "pan-%s" % nombre, "--map-id", "6",
+        nombre, "--map-id", "6",
         *(("--inicio",) + tuple(celda.split()) if celda else ()),
         "--pan-de-prueba", *pan.split(),
         "--pagina-de-prueba", "0", "0", "0", "50",
@@ -389,9 +393,9 @@ SACUDIDAS = (
 @pytest.mark.parametrize("nombre,mapa,sacudida,cuadros,celda,lluvia",
                          SACUDIDAS, ids=[caso[0] for caso in SACUDIDAS])
 def test_sacudir(nombre, mapa, sacudida, cuadros, celda, lluvia):
-    """`just sacudir`: `ShakeScreen`, la pantalla temblando."""
+    """`sacudir`: `ShakeScreen`, la pantalla temblando."""
     sfc, simbolos, orden = cartucho(
-        "sacudir-%s" % nombre, "--map-id", mapa,
+        nombre, "--map-id", mapa,
         *(("--inicio",) + tuple(celda.split()) if celda else ()),
         "--sacudida-de-prueba", *sacudida.split(),
         "--pagina-de-prueba", "0", "0", "0", "50",
@@ -425,13 +429,13 @@ ANIMACIONES = (
 @pytest.mark.parametrize("nombre,animacion,cuadros,celda", ANIMACIONES,
                          ids=[caso[0] for caso in ANIMACIONES])
 def test_animacion(nombre, animacion, cuadros, celda):
-    """`just animacion`: una animación de batalla sobre el mapa, `OP_ANIMATION`.
+    """`animacion`: una animación de batalla sobre el mapa, `OP_ANIMATION`.
 
     Va por la página de prueba porque la escena del Emitter Room, que es la que
     las usa, no se puede disparar desde una prueba.
     """
     sfc, simbolos, mapas = cartucho(
-        "animacion-%s" % nombre, "--map-id", "6",
+        nombre, "--map-id", "6",
         *(("--inicio",) + tuple(celda.split()) if celda else ()),
         "--animacion-de-prueba", *animacion.split(),
         "--pagina-de-prueba", "0", "0", "0", "50")
@@ -500,7 +504,7 @@ AUTOCIERRES = (("autocierre", 1, (62, 63)),
 @pytest.mark.parametrize("nombre,pausas,cuadros", AUTOCIERRES,
                          ids=[caso[0] for caso in AUTOCIERRES])
 def test_autocierre(nombre, pausas, cuadros):
-    """`just autocierre`: los dos escapes de texto, `\\|` y `\\^`.
+    """`autocierre`: los dos escapes de texto, `\\|` y `\\^`.
 
     `\\|` pausa y `\\^` cierra el cuadro sin que nadie apriete nada. **Los
     ticks están pegados al cierre a propósito**, para que 62 y 63 no den lo
@@ -534,7 +538,7 @@ VENTANAS = (("ventana", 7, ()),
 @pytest.mark.parametrize("nombre,mapa,mapas", VENTANAS,
                          ids=[caso[0] for caso in VENTANAS])
 def test_ventana(nombre, mapa, mapas):
-    """`just ventana`: la ventana de mensaje dibujada por la consola.
+    """`ventana`: la ventana de mensaje dibujada por la consola.
 
     La fuente, el marco, la paleta y dónde caen las celdas en el tilemap. La
     ventana se dibuja al cargar el mapa y se queda, y el texto es sintético,
@@ -551,7 +555,7 @@ def test_ventana(nombre, mapa, mapas):
     ROM y la referencia apretaron igual.
     """
     sfc, simbolos, orden = cartucho(
-        "ventana-%s" % nombre, "--map-id", mapa,
+        nombre, "--map-id", mapa,
         *(("--mapas",) + tuple(mapas) if mapas else ()),
         "--mensaje-de-prueba", *MENSAJE)
     p = partida(sfc, simbolos, orden)

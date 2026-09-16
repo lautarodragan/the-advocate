@@ -1156,7 +1156,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # Lo que lo destapó es el volante de la persecución en auto: su página
         # paralela le vuelve a poner la ruta al héroe **en todos los cuadros**,
         # así que el pad no lo mueve nunca. Medido con
-        # `TECLA_SIN_ESPERA=1 just heroe 52`, que es lo que acepta esa
+        # `TECLA_SIN_ESPERA=1`, que es lo que acepta esa
         # página: sin esto, apretando la izquierda da **55,42%** de pixeles
         # distintos; con esto, **0,59%**.
         #

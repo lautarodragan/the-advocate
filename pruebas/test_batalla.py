@@ -20,7 +20,8 @@ Las dos peleas de la intro, medidas el 2026-09-12:
 
 La segunda no es culpa de la batalla: su página la corta un `MoveEvent` con la
 orden de ruta 9 —"hacia el héroe"—, que la ROM no camina. Por eso la tropa de
-cuatro enemigos la ejercita `just batalla`, con la página de prueba.
+cuatro enemigos la ejercitan los casos `batalla` de
+`test_tanda_pantallas.py`, con la página de prueba.
 """
 
 import os

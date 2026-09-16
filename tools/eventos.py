@@ -3404,7 +3404,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # y en la referencia la caminata del arnés no la mira: camina por
             # celdas enteras y sólo se frena con un mensaje abierto.
             #
-            # Medido: con esta forma aceptada, `just heroe 52` da **55,42%
+            # Medido: con esta forma aceptada, el caso `heroe` del mapa 52 da **55,42%
             # de pixeles distintos** caminando a la izquierda, desde el cuadro
             # 60; las otras cuatro direcciones dan cero, y es exactamente la
             # única que pelea contra el empujón hacia la derecha que la página
@@ -3434,7 +3434,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # es de la carrera y está en `rom/hitos.txt`.
             #
             # Para reproducir las dos mediciones sin tocar código:
-            # `TECLA_SIN_ESPERA=1 just heroe 52`.
+            # `TECLA_SIN_ESPERA=1` sobre el caso `heroe` del mapa 52.
             if not PERMITIR_TECLA_SIN_ESPERA:
                 raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
                                 "héroe no manda sobre el pad en la referencia")
@@ -6766,7 +6766,7 @@ def ejecutar(codigo, estado, desde=0):
             #
             # Mientras eso no existió, el mapa volvía de la pelea con media
             # VRAM pisada y nadie se enteraba. Lo que la pantalla de la pelea
-            # muestra lo sigue cobrando `just batalla`, y lo que la pelea
+            # muestra lo siguen cobrando los casos `batalla`, y lo que la pelea
             # le hace a los HP, `pruebas/test_batalla.py`.
             i = codigo[i + 3] | (codigo[i + 4] << 8)
         elif op == OP_SHOP:
@@ -6784,7 +6784,7 @@ def ejecutar(codigo, estado, desde=0):
             # adentro del intérprete y `vueltas` no avanza mientras se ve, así
             # que en ticks los dos lados siguen leyendo el mismo stream en el
             # mismo cuadro, tarde lo que tarde el jugador en elegir. Lo que la
-            # pantalla muestra lo cobra `just guardar` contra
+            # pantalla muestra lo cobran los casos `guardar` contra
             # `titulo.py --ranuras`, y lo que la ROM escribe,
             # `pruebas/test_guardar.py`.
             i += 1

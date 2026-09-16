@@ -17,6 +17,9 @@ mapa 6, del tick 47 en adelante, una ruta que baja cuatro celdas desde (22,12)
 diverge en **diez pixeles** de dos tiles animados del chipset, con la orden 34
 puesta y sin ella. Está anotado en ESTADO.md y es anterior a estos casos; por
 eso varios miran hasta el 40 y no más lejos.
+
+Ninguna de las recetas de este archivo existe ya: el nombre que abre cada
+docstring es el del caso, que es también el de su golden.
 """
 
 import pytest
@@ -41,7 +44,7 @@ RUTAS = (
 @pytest.mark.parametrize("nombre,ruta,cuadros,inicio,frecuencia", RUTAS,
                          ids=[caso[0] for caso in RUTAS])
 def test_ruta(nombre, ruta, cuadros, inicio, frecuencia):
-    """`just ruta`: una ruta forzada sobre el héroe, en varios ticks.
+    """`ruta`: una ruta forzada sobre el héroe, en varios ticks.
 
     Lo que cada caso ejercita, que es lo que decidió su ruta:
 
@@ -68,7 +71,7 @@ def test_ruta(nombre, ruta, cuadros, inicio, frecuencia):
     Y los ticks de un caso salen de una sola conversión, que es lo caro.
     """
     sfc, simbolos, mapas = cartucho(
-        "ruta-%s" % nombre, "--map-id", "6",
+        nombre, "--map-id", "6",
         *(("--inicio",) + tuple(inicio.split()) if inicio else ()),
         "--ruta-de-prueba", *ruta.split(), "--frecuencia", frecuencia)
     for cuadro in cuadros:
@@ -79,7 +82,7 @@ def test_ruta(nombre, ruta, cuadros, inicio, frecuencia):
 
 @pytest.mark.parametrize("cuadro", (89, 91))
 def test_ruta_evento(cuadro):
-    """`just ruta-evento`: un evento **sin gráfico** caminando su ruta.
+    """`ruta-evento`: un evento **sin gráfico** caminando su ruta.
 
     Es lo que `MoveEvent` agrega sobre otro evento: hasta ese día la única ruta
     forzada que la ROM sabía caminar era la del héroe. Como el evento no se ve,
@@ -122,7 +125,7 @@ NPCS = (
 @pytest.mark.parametrize("nombre,mapa,ruta,celda,cuadros,frecuencia", NPCS,
                          ids=[caso[0] for caso in NPCS])
 def test_npc(nombre, mapa, ruta, celda, cuadros, frecuencia):
-    """`just npc`: un evento **con gráfico** caminando en pantalla.
+    """`npc`: un evento **con gráfico** caminando en pantalla.
 
     Es la otra mitad de `MoveEvent`: en `ruta-evento` el evento es invisible y
     de él sólo se ve cuánto tarda; acá se comparan además la posición a mitad
@@ -140,7 +143,7 @@ def test_npc(nombre, mapa, ruta, celda, cuadros, frecuencia):
     puede—.
     """
     sfc, simbolos, orden = cartucho(
-        "npc-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        nombre, "--map-id", mapa, "--inicio", *celda.split(),
         "--ruta-de-evento", *ruta.split(), "--frecuencia", frecuencia)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
@@ -160,7 +163,7 @@ GRAFICOS = (
 @pytest.mark.parametrize("nombre,ruta,grafico,cuadros", GRAFICOS,
                          ids=[caso[0] for caso in GRAFICOS])
 def test_grafico(nombre, ruta, grafico, cuadros):
-    """`just grafico`: un personaje que cambia de gráfico a mitad de una ruta.
+    """`grafico`: un personaje que cambia de gráfico a mitad de una ruta.
 
     Es la orden 34, la última de `MoveCommand` de las que este juego usa y la
     única con **operando**. Dos cosas que no son la misma: que cambie —sigue
@@ -177,7 +180,7 @@ def test_grafico(nombre, ruta, grafico, cuadros):
     los tiles animados en la cabecera de este archivo.
     """
     sfc, simbolos, mapas = cartucho(
-        "grafico-%s" % nombre, "--map-id", "6", "--inicio", "22", "12",
+        nombre, "--map-id", "6", "--inicio", "22", "12",
         "--ruta-de-evento", *ruta.split(),
         "--grafico-de-prueba", *grafico.split())
     for cuadro in cuadros:
@@ -193,7 +196,7 @@ LUGARES = (("lugar", "4 21 13 12", "4 2 2 2 2", (14, 15, 20, 60)),
 @pytest.mark.parametrize("nombre,lugar,ruta,cuadros", LUGARES,
                          ids=[caso[0] for caso in LUGARES])
 def test_lugar(nombre, lugar, ruta, cuadros):
-    """`just lugar`: plantar a un evento en una celda, `ChangeEventLocation`.
+    """`lugar`: plantar a un evento en una celda, `ChangeEventLocation`.
 
     Es `MoveTo`, y la vuelta que tiene está en lo que **no** hace: no toca la
     ruta ni hacia dónde mira, y corta el paso en curso —`SetRemainingStep(0)`—.
@@ -208,7 +211,7 @@ def test_lugar(nombre, lugar, ruta, cuadros):
     caían antes del corte.
     """
     sfc, simbolos, mapas = cartucho(
-        "lugar-%s" % nombre, "--map-id", "6", "--inicio", "22", "12",
+        nombre, "--map-id", "6", "--inicio", "22", "12",
         *(("--ruta-de-evento",) + tuple(ruta.split()) if ruta else ()),
         "--lugar-de-prueba", *lugar.split())
     for cuadro in cuadros:
@@ -219,7 +222,7 @@ def test_lugar(nombre, lugar, ruta, cuadros):
 
 @pytest.mark.parametrize("cuadro", (20, 26, 34, 40))
 def test_parar_rutas(cuadro):
-    """`just parar`: `HaltAllMovement`, todas las rutas abandonadas de golpe.
+    """`parar`: `HaltAllMovement`, todas las rutas abandonadas de golpe.
 
     El evento 3 y el héroe caminando cuatro celdas cada uno; a los 24 ticks la
     página corta las dos, y recién ahí el `ProceedWithMovement` que va detrás la
@@ -251,7 +254,7 @@ def test_parar_rutas(cuadro):
 
 @pytest.mark.parametrize("cuadro", (10, 30))
 def test_sprite_actor(cuadro):
-    """`just sprite-actor`: el CharSet de un **actor**, cambiado en caliente.
+    """`sprite-actor`: el CharSet de un **actor**, cambiado en caliente.
 
     Es `ChangeSpriteAssociation`, y es lo que traba la persecución en auto,
     donde el héroe *es* el auto: los mapas de la carrera sacan a todo el grupo
@@ -284,7 +287,7 @@ MENSAJE = ("SEWELL",
 
 @pytest.mark.parametrize("cuadro", (21, 23, 50, 130))
 def test_anclada(cuadro):
-    """`just anclada`: la ventana de mensaje quieta con el mapa scrolleando.
+    """`anclada`: la ventana de mensaje quieta con el mapa scrolleando.
 
     La ventana es un tilemap propio con HDMA y no celdas estampadas en el
     tilemap del mapa, y esto es lo que lo cobra: durante un mensaje lo único
@@ -314,7 +317,7 @@ PISADAS = (("ruta-pisa", "0 0 0 0", "0", (16, 24, 200)),
 @pytest.mark.parametrize("nombre,ruta,pagina,cuadros", PISADAS,
                          ids=[caso[0] for caso in PISADAS])
 def test_ruta_pisa(nombre, ruta, pagina, cuadros):
-    """`just ruta-pisa`: una ruta forzada que termina sobre un evento de
+    """`ruta-pisa`: una ruta forzada que termina sobre un evento de
     contacto, y otra que le pasa por encima.
 
     Es el disparo que le faltaba a la cinemática de apertura. La regla es la de
@@ -330,7 +333,7 @@ def test_ruta_pisa(nombre, ruta, pagina, cuadros):
     y lo corre cuando la página termina—.
     """
     sfc, simbolos, mapas = cartucho(
-        "ruta-pisa-%s" % nombre, "--map-id", "70", "--inicio", "12", "8",
+        nombre, "--map-id", "70", "--inicio", "12", "8",
         "--con-ventana", "--ruta-de-prueba", *ruta.split(),
         "--pagina-de-prueba", *pagina.split())
     for cuadro in cuadros:
@@ -347,7 +350,7 @@ PISAR = (("pisar", 70, "12 8", "up", ""),
 @pytest.mark.parametrize("nombre,mapa,celda,direccion,ruta", PISAR,
                          ids=[caso[0] for caso in PISAR])
 def test_pisar(nombre, mapa, celda, direccion, ruta):
-    """`just pisar`: el héroe camina con el pad y pisa un evento de contacto.
+    """`pisar`: el héroe camina con el pad y pisa un evento de contacto.
 
     La caminata **frena** al pisar: mientras el intérprete tiene una página en
     el frente el pad no mueve, que es el
@@ -378,7 +381,7 @@ def test_pisar(nombre, mapa, celda, direccion, ruta):
     cuánto tardó—.
     """
     sfc, simbolos, orden = cartucho(
-        "pisar-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        nombre, "--map-id", mapa, "--inicio", *celda.split(),
         "--con-ventana",
         *(("--ruta-de-prueba",) + tuple(ruta.split()) if ruta else ()))
     p = partida(sfc, simbolos, orden)

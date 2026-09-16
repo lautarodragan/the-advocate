@@ -133,20 +133,20 @@ w65-pruebas:
 #
 # Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
 # maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
-# está acá y no escondida en un default: `GRUPO=10 just hitos` corre con el
-# grupo de verdad.
+# está acá y no escondida en un default. Las pruebas de pytest tienen el suyo,
+# `GRUPO_TANDA`, en `pruebas/tanda.py`: son las que hoy corren la tanda.
 grupo    := env_var_or_default("GRUPO", "11")
 # Con qué core de libretro se corre. snes9x es el de la tanda porque emula
 # muchísimos más cuadros por segundo que bsnes, que con la tanda entera es la
 # diferencia entre minutos y media hora; bsnes entra por la receta `bsnes`, que
 # corre unos pocos casos. Para mirar cualquier otro caso con otro core:
-# `CORE=bsnes just evento 4 1 otro`. Los tres que hay instalados —snes9x,
-# bsnes y
-# mesen-s— dibujan el mismo cuadro a 15 bits; ver `tools/retro.py`. Para un
-# caso que ya vive en pytest, el core sale de `NUCLEO`: ver `pruebas/consola.py`.
+# `CORE=bsnes just evento 4 1 otro`. Los tres que hay instalados —snes9x, bsnes
+# y mesen-s— dibujan el mismo cuadro a 15 bits; ver `tools/retro.py`. Los casos
+# que ya viven en pytest, que son casi todos, toman el core de `NUCLEO`: ver
+# `pruebas/consola.py`.
 core     := env_var_or_default("CORE", "snes9x")
 nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
-# Una corrida aislada. `CORRIDA=algo just hitos` deja el mapdata, la ROM y las
+# Una corrida aislada. `CORRIDA=algo just <receta>` deja el mapdata, la ROM y las
 # capturas adentro de `rom/build/algo/` y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda donde estaba, para que `mednafen rom/build/abl.sfc` y las
 # rutas escritas en el README sigan valiendo. Existe porque
@@ -266,150 +266,6 @@ cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="115":
     python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
-
-# La pantalla de batalla, contra `pantallas.py --batalla`. Es el hermano de
-# `guardar` y de `menu`: la pelea bloquea adentro del intérprete y **no cuesta
-# ningún tick**, así que no se puede comparar contra `snes_expect.py` —de ese lado
-# no hay nada dibujado, a propósito: ver `OP_BATTLE` en tools/eventos.py—. Lo que
-# se compara es la pantalla, contra la misma función que la modela.
-#
-# La pelea se abre desde la página de prueba y no desde un evento del juego: la
-# única que el jugador alcanza hoy es la del droide del mapa 2, así que sin esta
-# receta una tropa de más de un enemigo no la ejercitaría nada. Los dos casos son
-# el menú de órdenes y el cursor de blanco sobre un enemigo, que ejercita el modo
-# que el otro no toca.
-#
-# `relleno` son textos muertos delante del bloque de textos de las pantallas, que
-# es lo que corre los índices de la batalla más allá del 255, donde la tabla
-# `ba_orden_txt` los truncaba y el menú dibujaba textos encimados. **Va de un solo
-# lado**, al revés que `--relleno-de-mensajes`: la referencia escribe caracteres y
-# no modela ningún índice de texto.
-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2" relleno="":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  toques="{{toques}}"
-  mapas="{{mapas}}"
-  items="{{items}}"
-  relleno="{{relleno}}"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
-      ${mapas:+--mapas $mapas} ${items:+--items-de-prueba $items} \
-      ${relleno:+--relleno-de-textos $relleno} \
-      --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
-      --fondo-de-prueba "{{fondo}}" \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
-      --fondo "{{fondo}}" \
-      --grupo $(echo "{{grupo}}" | tr ' ' ',') \
-      ${items:+--items $(echo "$items" | awk '{for(i=1;i<NF;i+=2) printf "%s%s:%s", (i>1?",":""), $i, $(i+1)}')} \
-      ${toques:+{{ref}}}
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --cuadros {{cuadros}} --sin-contador --walk none \
-      ${toques:+--toques-hardware {{toques}}}
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
-      -o $pre.comparacion.png
-
-# La pelea **peleada hasta el final**, y el mapa comparado al volver. Es lo que
-# `batalla` no puede mirar: aquélla abre la pantalla y nunca sale de ahí. La
-# escena de la batalla sube 32 KB de VRAM, así que volver al mapa es reponer todo
-# lo que se llevó puesto; ver `volver_de_batalla` en main.s.
-#
-# Cómo se compara, que es lo que lo hace barato: **la pelea no cuesta ningún
-# tick**. `batalla_correr` corre su propio lazo, `vueltas` no avanza mientras
-# dura, y la referencia sale del `OP_BATTLE` por la rama de victoria en el mismo
-# tick en que entró. O sea que el cuadro N es el mapa quieto, igual que si no
-# hubiera habido pelea, y que la ROM dibuje eso mismo **es** la prueba.
-#
-# Los toques son los A que pelean, en cuadros de hardware porque adentro de la
-# pelea no hay ticks. Con el azar clavado en `BATALLA_SEMILLA` la pelea es la
-# misma todas las veces; si la ROM no saliera, `snes_correr.py` corta con "la ROM
-# no llegó al tick".
-#
-# Los dos casos miran los **dos repartos de VRAM**, que es donde la pelea rompe
-# cosas distintas: sin ventana —LAYOUT_ANCHO— la escena se lleva los sprites
-# enteros, y con ventana —LAYOUT_VENTANA— los tiles de la ventana y los dos
-# tilemaps.
-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 100" ventana="" arranque="115" nombre="vuelta":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  ventana="{{ventana}}"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      ${ventana:+--con-ventana} \
-      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
-      --fondo-de-prueba "{{fondo}}" -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-      ${ventana:+--con-ventana} \
-      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
-      --cuadros {{cuadros}} \
-      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
-  toques=$(seq 140 9 3000 | sed 's/^/a:/')
-  for n in {{cuadros}}; do
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
-        --walk none --cuadros $n --arranque {{arranque}} \
-        --toques-hardware $toques
-    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
-        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
-  done
-
-# Un encuentro al azar, de punta a punta: se camina hasta que sale y lo que se
-# compara es **la pelea**.
-#
-# El caso es filoso por construcción, que es lo que le faltaba a la primera idea
-# —comparar el mapa unos cuadros antes—: si la ROM no dispara el encuentro en el
-# paso que dice la referencia, lo que hay en pantalla es el mapa y no la pantalla
-# de batalla. Y si lo dispara con **otra tropa**, el nombre y los HP del enemigo
-# son otros.
-#
-# Por qué el mapa 21 y por qué caminando para arriba: desde donde el héroe
-# arranca es la única dirección con lugar para caminar, y su área lo tapa entero
-# con cinco tropas.
-#
-# **`--encuentros-de-prueba 8` no es hacer trampa, es acortar el caso**: con los
-# pasos que el árbol le da a este mapa el encuentro sale mucho más tarde y el
-# caso duraría mil cuadros de emulador. Lo que se ejercita es exactamente lo
-# mismo: la tabla de `pmod`, el acumulado, el azar y la elección de tropa. Los dos
-# lados toman el mismo número por el mismo flag.
-encuentro mapa="21" pasos="8" walk="up" grupo="11 12 13" cuadros="200" nombre="encuentro":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --con-ventana --encuentros-de-prueba {{pasos}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  # La referencia dice en qué paso sale, contra qué tropa y con qué grupo se
-  # pelea —que no es el del arranque: las páginas del mapa lo cambian mientras
-  # se camina—. El PNG que saca es el mapa sin la pelea encima y no se compara
-  # contra nada: lo que se compara es la pantalla de batalla.
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
-      --con-ventana --encuentros-de-prueba {{pasos}} --walk {{walk}} \
-      --encuentro $pre.tropa.txt -o $pre.mapa.png
-  read -r tropa paso grupo_final < $pre.tropa.txt
-  echo "  la referencia dice: tropa $tropa en el paso $paso, grupo $grupo_final"
-  python3 tools/pantallas.py -o $pre.esperado.png --batalla $tropa \
-      --grupo $grupo_final
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --cuadros {{cuadros}} --sin-contador --walk {{walk}}
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
-      -o $pre.comparacion.png
-  # Y una captura **antes** del último paso, que es lo que fija en qué paso
-  # sale: con la pelea puesta ahí se vería la pantalla de batalla en vez del
-  # mapa. Sin esto, un encuentro que saliera en el paso 3 daría la misma
-  # comparación de arriba, porque la pantalla de batalla es la misma.
-  avance=$(( (paso - 1) * 16 ))
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
-      --con-ventana --encuentros-de-prueba {{pasos}} --walk {{walk}} \
-      --avance $avance --saltar $pre.saltar.txt -o $pre.antes.esperado.png
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o $pre.antes.png --walk {{walk}} --avance $avance
-  python3 tools/snes_compare.py $pre.antes.png $pre.antes.esperado.png \
-      --saltar $pre.saltar.txt -o $pre.antes.comparacion.png
 
 # Cuánto destraba cada comando de evento que todavía no hacemos: cuántas páginas
 # pasan a compilar **enteras** si se hiciera.
@@ -531,240 +387,6 @@ bsnes:
   CORE=bsnes just caminando 73 right 60 bsnes-73-right
   CORE=bsnes just cerrar 7 200 bsnes-cerrar
 
-# Que una espera espere de verdad, con una página inventada.
-#
-# El intérprete corre cuadro a cuadro desde que dejó de colapsar el tiempo, pero
-# **ninguna página del juego que compile tiene una espera**, así que ese camino
-# —el corazón del cambio— no lo ejercitaba nada. Es el mismo caso que `encima`:
-# lo sintético es la entrada, no la comparación. Los dos lados corren el mismo
-# bytecode y se comparan como siempre, la ROM contra la referencia.
-#
-# Se mira antes y después, no el cuadro exacto en que cambia. El arranque de la
-# ROM incluye la subida al SPC700 y la referencia no modela eso, así que el borde
-# cae en cuadros distintos de cada lado. Con margen a los dos lados eso no
-# importa y la prueba sigue siendo filosa: si la espera no esperara, el cuadro de
-# antes ya estaría teñido.
-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --pagina-de-prueba {{espera}} 0 0 50 -o {{snes_inc}}/mapdata.inc
-  just build
-  for n in {{antes}} {{despues}}; do
-    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-        --pagina-de-prueba {{espera}} 0 0 50 --cuadros $n \
-        --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
-        -o {{snes_pngs}}/esperado-{{nombre}}-$n.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}-$n.png \
-        --walk none --cuadros $n
-    python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-$n.png \
-        {{snes_pngs}}/esperado-{{nombre}}-$n.png \
-        --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
-        -o {{snes_pngs}}/comparacion-{{nombre}}-$n.png
-  done
-
-# La pantalla de ranuras abierta por el save point —`OpenSaveMenu`— y el mapa de
-# vuelta al cerrarla. La página de prueba es la de `espera` con
-# `--guardar-de-prueba`: espera, abre la pantalla, y después tiñe.
-#
-#   guardar          la pantalla como se abre, contra `titulo.py --modo 1`.
-#   guardar-2        el cursor dos ranuras más abajo: ejercita los DMA de las dos
-#                    filas desde adentro del intérprete.
-#   guardar-vuelve   B cancela, y el mapa del mismo tick contra la referencia. Es
-#                    el que cobra la reposición de la VRAM y CGRAM
-#                    —`volver_al_mapa`— y el tinte que la página aplica después.
-#   guardar-elige    lo mismo eligiendo una ranura con A. Lo que quedó en la SRAM
-#                    lo mira `pruebas/test_guardar.py`.
-#
-# Los dos primeros van con `--sin-contador`, como `titulo`: ahí no hay tick que
-# esperar. Los otros dos aprietan con `--toques-hardware`, porque un toque por
-# tick no puede caer adentro de una pantalla que no cuenta ticks.
-#
-# El mapa vuelve **dos cuadros negros después** de cerrar: reponer el banco de
-# tiles no entra en un vblank, así que ese tick dura dos cuadros —`cuadros_perdidos`
-# lo cuenta— y la pantalla se enciende en el que sigue. Por eso `vuelve` no es el
-# cuadro del cierre: ése sale negro.
-guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --pagina-de-prueba {{espera}} 0 0 50 --guardar-de-prueba \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  abre=$(( {{espera}} + 10 ))
-  python3 tools/titulo.py -o $pre.esperado.png --ranuras 4 --modo 1
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --teclas --cuadros $abre --sin-contador
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
-      -o $pre.comparacion.png
-  python3 tools/titulo.py -o $pre-2.esperado.png --ranuras 4 --modo 1 \
-      --elegida 2
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
-      --toques down:$abre down:$(( abre + 4 )) --cuadros $(( abre + 10 )) \
-      --sin-contador
-  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
-      -o $pre-2.comparacion.png
-  for n in {{vuelve}}; do
-    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-        --pagina-de-prueba {{espera}} 0 0 50 --guardar-de-prueba --cuadros $n \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-        -o $pre-vuelve-$n.png --cuadros $n \
-        --toques-hardware down:$abre down:$(( abre + 4 )) b:$(( abre + 8 ))
-    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-        -o $pre-elige-$n.png --cuadros $n \
-        --toques-hardware down:$abre a:$(( abre + 4 ))
-    python3 tools/snes_compare.py $pre-elige-$n.png $pre-vuelve-$n.esperado.png \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-elige-$n.comparacion.png
-  done
-
-# El menú de pausa, que se abre con B desde el mapa. Tres cosas:
-#
-#   menu            como se abre, contra `titulo.py --menu` con el grupo con el
-#                   que arranca la ROM y cero de oro: las cinco órdenes —cuatro
-#                   en gris, porque sólo guardar hace algo todavía—, el cursor
-#                   en la primera, el oro y el grupo con su cara.
-#   menu-2          el cursor dos órdenes más abajo: los dos pares de palabras
-#                   que `menu_cursor_escribir` escribe en el vblank.
-#   menu-vuelve-N   B lo cierra, y el mapa del tick N contra la referencia sin
-#                   menú: el reloj no corre mientras se ve, así que para la
-#                   referencia el menú no cuesta ningún tick. Cobra que
-#                   `volver_al_mapa` reponga todo y que el B que cerró no lo
-#                   vuelva a abrir.
-#
-# Las dos primeras con `--sin-contador`, como `guardar`: ahí no hay tick
-# que esperar. Los toques van en cuadros de hardware. Lo que la tanda no puede
-# —un grupo y oro puestos, guardar desde el menú, los permisos, B a mitad de
-# un paso— lo mira `pruebas/test_menu.py`.
-menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  grupo=$(echo {{grupo}} | tr ' ' ',')
-  python3 tools/titulo.py -o $pre.esperado.png --menu $grupo
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --toques-hardware b:{{abre}} --cuadros $(( {{abre}} + 12 )) --sin-contador
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
-  python3 tools/titulo.py -o $pre-2.esperado.png --menu $grupo --elegida 2
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
-      --toques-hardware b:{{abre}} down:$(( {{abre}} + 12 )) down:$(( {{abre}} + 16 )) \
-      --cuadros $(( {{abre}} + 22 )) --sin-contador
-  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
-      -o $pre-2.comparacion.png
-  for n in {{vuelve}}; do
-    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-        --cuadros $n --saltar $pre-vuelve-$n.saltar.txt \
-        -o $pre-vuelve-$n.esperado.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-        -o $pre-vuelve-$n.png --cuadros $n \
-        --toques-hardware b:{{abre}} b:$(( {{abre}} + 12 ))
-    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
-  done
-
-# La pantalla de ítems, desde el menú de pausa, con un inventario que da la
-# página de prueba con `ChangeItems` de verdad: trece pociones, un arma y la
-# Portable Console, que es el único ítem usable de la demo. Tres cosas:
-#
-#   items           como se entra —B y A sobre "Use Item"—, contra
-#                   `titulo.py --items`: la descripción del primero arriba, la
-#                   lista con las cantidades, y en gris lo que A no usa.
-#   items-2         el cursor dos más abajo, sobre la consola: el cursor y la
-#                   descripción que cambian adentro del vblank.
-#   items-vuelve-N  A usa la consola, que prende el switch 710 y vuelve derecho
-#                   al mapa, y el mapa del tick N contra la referencia. Que el
-#                   switch quede prendido lo mira `pruebas/test_items_pantalla.py`.
-items mapa="73" abre="40" vuelve="60 120" nombre="items":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  dar="81 1 1 13 17 1"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/titulo.py -o $pre.esperado.png --items 1:13,17:1,81:1
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
-      --cuadros $(( {{abre}} + 24 )) --sin-contador
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
-  python3 tools/titulo.py -o $pre-2.esperado.png --items 1:13,17:1,81:1 --elegida 2
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
-      --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
-      down:$(( {{abre}} + 24 )) down:$(( {{abre}} + 28 )) \
-      --cuadros $(( {{abre}} + 34 )) --sin-contador
-  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
-      -o $pre-2.comparacion.png
-  for n in {{vuelve}}; do
-    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-        --items-de-prueba $dar --cuadros $n \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-        -o $pre-vuelve-$n.png --cuadros $n \
-        --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
-        down:$(( {{abre}} + 24 )) down:$(( {{abre}} + 28 )) a:$(( {{abre}} + 34 ))
-    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
-  done
-
-# La pantalla de equipo, desde el menú: Equipment, A sobre Kersh —el único del
-# grupo con el que arranca la ROM—, y la lista del arma con dos que puede
-# ponerse y que da la página de prueba. Tres cosas:
-#
-#   equipo          las ranuras de Kersh con su equipo inicial del LDB —el
-#                   bláster y el sobretodo— y sus parámetros, contra
-#                   `pantallas.py --equipo`.
-#   equipo-lista    A sobre el arma: la lista con el cursor en el segundo, y
-#                   los parámetros que quedarían con ése.
-#   equipo-vuelve-N B tres veces —de la lista a las ranuras, de ahí al menú y
-#                   del menú al mapa—, y el mapa del tick N contra la
-#                   referencia. Lo que equipar cambia en la RAM lo mira
-#                   `pruebas/test_equipo.py`.
-equipo mapa="73" abre="40" vuelve="60 120" nombre="equipo":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  dar="17 1 20 1"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  a=$(( {{abre}} + 12 ))
-  python3 tools/pantallas.py -o $pre.esperado.png --equipo 11 --items 17:1,20:1
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
-      --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
-      a:$(( a + 20 )) --cuadros $(( a + 32 )) --sin-contador
-  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
-  python3 tools/pantallas.py -o $pre-lista.esperado.png --equipo 11 \
-      --items 17:1,20:1 --eligiendo --elegido 1
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-lista.png \
-      --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
-      a:$(( a + 20 )) a:$(( a + 40 )) down:$(( a + 60 )) \
-      --cuadros $(( a + 72 )) --sin-contador
-  python3 tools/snes_compare.py $pre-lista.png $pre-lista.esperado.png \
-      -o $pre-lista.comparacion.png
-  for n in {{vuelve}}; do
-    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-        --items-de-prueba $dar --cuadros $n \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-        -o $pre-vuelve-$n.png --cuadros $n \
-        --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
-        a:$(( a + 20 )) a:$(( a + 40 )) b:$(( a + 60 )) b:$(( a + 80 )) \
-        b:$(( a + 100 ))
-    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
-        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
-  done
-
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose de
 # caminata que le toca, y se compara contra la referencia calculada para ese mismo
 # avance.
@@ -812,17 +434,14 @@ relevar desde="0":
 recorrido desde="66":
   python3 tools/snes_recorrido.py --desde {{desde}}
 
-# La tanda de regresión: un caso por cada cosa que puede romperse, comparando la
-# pantalla de la consola contra la referencia de Python.
+# La tanda de regresión, lo que queda de ella: **casi toda vive en pytest**
+# desde el 2026-09-16, en `pruebas/test_tanda*.py`, comparando contra las
+# capturas congeladas de `pruebas/golden/tanda/`. Lo que queda acá es lo que no
+# se muda —hoy, sólo `bsnes`— y lo dice `rom/hitos.txt`.
 #
-# La lista vive en `rom/hitos.txt` y no acá, para que ésta y `hitos-paralelo`
+# La lista vive en ese archivo y no acá, para que ésta y `hitos-paralelo`
 # corran la misma: escrita dos veces, la que se olvide un caso sigue dando verde
 # y nadie se entera. Cuántos casos son y cuántos pasan lo dice correrla.
-#
-# Los casos están elegidos para que no puedan pasar por casualidad, y el porqué
-# de cada uno está en el comentario de su receta. Cuántos cuadros dura cada
-# caminata tampoco se elige: lo dice la referencia, que camina celda por celda y
-# sabe cuántas son. Ver `caminando`.
 hitos:
   #!/usr/bin/env bash
   set -uo pipefail
@@ -836,6 +455,7 @@ hitos:
     eval "just $caso" || fallo=1
   done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
   exit $fallo
+
 # Cuánto ocuparía en el cartucho el arte del juego, por rubro. Sin argumento
 # los lista.
 #
@@ -846,19 +466,24 @@ hitos:
 assets-medir que="todo":
   python3 assets/medir.py {{que}}
 
-# Las pruebas de estado: se le pregunta a la ROM en qué mapa está, qué switch
-# tiene prendido, qué evento corre. No miran la pantalla.
+# **Todas las pruebas**, que desde el 2026-09-16 son las dos redes a la vez.
 #
-# Son la otra mitad de la red y no un reemplazo de `hitos`: ésta compara
-# pixeles contra la referencia de Python y cobra los errores de PPU —una paleta
-# mal repartida, una prioridad de OAM—; aquélla cobra los de lógica sin
-# depender de que la referencia esté bien, que es donde la comparación de
+# Las de estado le preguntan a la ROM en qué mapa está, qué switch tiene
+# prendido, qué evento corre, y no miran la pantalla. Las de la tanda
+# —`pruebas/test_tanda*.py`— miran sólo la pantalla, contra las capturas
+# congeladas de `pruebas/golden/tanda/`. Son dos redes distintas y se
+# complementan: una cobra los errores de PPU —una paleta mal repartida, una
+# prioridad de OAM—, la otra los de lógica, que es donde la comparación de
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
 # verde en la tanda entera, porque los dos lados se equivocaban igual.
 #
-# Se apoyan en la tabla de símbolos que deja `w65 --symbols`, así que
-# ninguna dirección de RAM está escrita a mano: renombrar una variable en
+# Las de estado se apoyan en la tabla de símbolos que deja `w65 --symbols`, así
+# que ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `main.s` hace fallar la prueba diciendo qué símbolo falta.
+#
+# Las ROMs no se arman acá: `pruebas/tanda.py` las cachea en
+# `rom/build/tanda/<caso>-<hash de sus flags>/` y las rearma sólo si cambió
+# algo de lo que las arma.
 pruebas *args:
   python3 -m pytest pruebas {{args}}
 
@@ -975,99 +600,6 @@ _cam-x:
   @grep -oP 'CAM_MAX_X\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
 _cam-y:
   @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
-
-# La pantalla de título: la imagen del LDB con su tema, y de ahí a la partida.
-#
-# Corre con `--sin-contador` y no como el resto: en la pantalla de título
-# `vueltas` no avanza —es el reloj del juego, y el título no es el juego— así
-# que el arnés no tiene a qué cuadro esperar y cuenta cuadros de hardware.
-#
-# El `--arranque` no es un número medido sino un piso: el título se dibuja en la
-# vuelta siguiente al arranque, así que cualquier cosa desde ahí muestra lo
-# mismo. La pantalla está quieta hasta que alguien apriete algo.
-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}} {{snes_dir}}/sintitulo
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --mapas {{mapas}} --con-ventana --con-titulo \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  # Dos cuadros: el menú como se entra, y el cursor una opción más abajo.
-  # El segundo no es un adorno: es lo único que ejercita el DMA que sube el
-  # otro tilemap, que es como está hecho el cursor. Y de paso cobra que
-  # sostener abajo no baje un renglón por cuadro —se corre con el botón
-  # apretado veinte cuadros y el cursor tiene que haberse movido una sola vez—.
-  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}.png --informe
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{nombre}}.png --cuadros 20 --arranque 150 \
-      --sin-contador
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-2.png --elegida 1
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{nombre}}-2.png --teclas down --cuadros 20 \
-      --arranque 150 --sin-contador
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-2.png \
-      {{snes_pngs}}/esperado-{{nombre}}-2.png \
-      -o {{snes_pngs}}/comparacion-{{nombre}}-2.png
-  # La pantalla de ranuras, a la que se llega bajando el cursor a "Resume the
-  # Story" y apretando A. Dos cuadros: como se entra, y con el cursor dos
-  # ranuras más abajo. Van con --toques y no con --teclas porque el menú mira
-  # **flancos**: sostener abajo mueve el cursor una sola vez.
-  #
-  # Las cuatro salen vacías porque la SRAM del emulador arranca virgen. La
-  # variante "llena" no la cubre esta tanda —haría falta precargar un .srm— y
-  # la cubren las pruebas de estado, que sí pueden guardar antes de mirar.
-  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-ranuras.png \
-      --ranuras 4
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{nombre}}-ranuras.png --toques down:2 a:6 \
-      --cuadros 20 --arranque 150 --sin-contador
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-ranuras.png \
-      {{snes_pngs}}/esperado-{{nombre}}-ranuras.png \
-      -o {{snes_pngs}}/comparacion-{{nombre}}-ranuras.png
-  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-ranuras2.png \
-      --ranuras 4 --elegida 2
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{nombre}}-ranuras2.png \
-      --toques down:2 a:6 down:10 down:14 --cuadros 20 --arranque 150 \
-      --sin-contador
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-ranuras2.png \
-      {{snes_pngs}}/esperado-{{nombre}}-ranuras2.png \
-      -o {{snes_pngs}}/comparacion-{{nombre}}-ranuras2.png
-
-  # Y un tercero: salir del título tiene que dejar el juego **idéntico** a la
-  # misma ROM sin pantalla de título. Se pasa con START, que el juego no mira
-  # para nada, así que sostenerlo no interfiere; y de ahí en más las dos ROMs
-  # cuentan `vueltas` igual, que es lo que deja compararlas en el mismo cuadro.
-  #
-  # Esto compara ROM contra ROM y no contra la referencia, a diferencia del
-  # resto de la tanda. Vale porque la ROM sin título ya está comparada contra
-  # la referencia por todos los demás casos, y porque la pregunta es justamente
-  # "¿son la misma?".
-  #
-  # **Lo que este caso no cubre**, y hay que decirlo: el PPU quedando con los
-  # registros del título —lo que taro encontró en Mesen— **no lo ve**.
-  # Verificado sacando el `jsr ppu_init` que lo arregla: snes9x sigue dando
-  # cero. Lo que sí cobra es el reparto de la VRAM.
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --mapas {{mapas}} --con-ventana \
-      -o {{snes_dir}}/sintitulo/mapdata.inc
-  {{w65}} rom/src/main.s -I {{snes_dir}}/sintitulo \
-      -o {{snes_dir}}/sintitulo/sintitulo.sfc \
-      --symbols {{snes_dir}}/sintitulo/sintitulo.sfc.sym
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
-      -o {{snes_pngs}}/{{nombre}}-juego.png --teclas start --cuadros 300 \
-      --arranque 0
-  python3 tools/snes_correr.py --core {{nucleo}} \
-      {{snes_dir}}/sintitulo/sintitulo.sfc \
-      -o {{snes_pngs}}/{{nombre}}-juego-sin.png --teclas start --cuadros 300 \
-      --arranque 0
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-juego.png \
-      {{snes_pngs}}/{{nombre}}-juego-sin.png \
-      -o {{snes_pngs}}/comparacion-{{nombre}}-juego.png
 
 # Las dos ROMs que taro juega: `demo-ciudad`, la cadena entera de la apertura
 # hasta Lashe City, y `demo-titulo`, la misma con pantalla de título. Van a

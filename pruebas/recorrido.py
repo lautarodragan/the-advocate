@@ -743,8 +743,8 @@ class Recorrido:
         """Parado sobre un save point, tocarle A y elegir `ranura`.
 
         Es el camino de guardado **del juego** —`OpenSaveMenu`, el evento 66
-        del mapa 8— y no el de la página de prueba que usan `just guardar`
-        y `test_titulo.py`. Hasta el 2026-09-13 ninguna prueba lo recorría, y
+        del mapa 8— y no el de la página de prueba que usan los casos `guardar`
+        de la tanda y `test_titulo.py`. Hasta el 2026-09-13 ninguna prueba lo recorría, y
         por eso el `xfail` de guardar con pantalla de título no podía decir de
         quién era el defecto.
 
