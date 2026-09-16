@@ -4373,22 +4373,6 @@ class Estado:
         self.switches = set()
         self.tinte = (TINTE_NEUTRO,) * 4      # r, g, b y saturación
         self.salto = None       # (mapa, x, y) si una página pidió mudarse
-        # El fundido del teletransporte: en qué cuadro va, o None si no hay
-        # ninguno corriendo. Mientras haya, el juego está congelado y lo único
-        # que cambia es el brillo de la pantalla. La rampa es
-        # `rampa_de_fundido`, y quien la corre, `fundido_tick` en main.s.
-        self.fundido = None
-        self.fundidos = 0       # cuántos hubo, para el plan de la caminata
-        # El encuentro al azar que cortó la caminata: (paso, tropa), o None si
-        # no salió ninguno. Lo ponía la referencia y lo leía la receta, que
-        # con la tropa dibujaba la pelea que la ROM estaba peleando.
-        self.encuentro = None
-        # Cuántos ticks vivió la referencia. Lo cuenta `cuadro_de_eventos`, que
-        # es por donde pasa un cuadro entero del mundo, y es lo que el plan le
-        # dice al emulador: no "cuánto dura la caminata" sino **cuántos ticks
-        # correr**, que es lo único que hace que los dos lados miren el mismo
-        # momento cuando el mapa tiene algo que se mueve solo.
-        self.ticks = 0
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
         self.grupo = list(grupo)
@@ -4437,13 +4421,13 @@ class Estado:
         # ROM, y vive acá por la misma razón: el intérprete la necesita —la
         # clase 6 de `ControlVars` la lee— y el intérprete no recibe al héroe.
         #
-        # **Quién la escribe manda cuándo se lee.** En la ROM `move_hero`
-        # corre *después* de `eventos_tick`, así que la página de un cuadro ve
-        # la celda que el héroe tenía al terminar el cuadro anterior. Acá pasa
-        # lo mismo porque la escribe `cuadro_de_eventos`, que va después del
-        # intérprete y después del paso del héroe; el único lugar donde hace
-        # falta ponerla a mano es al entrar a un mapa, antes de que corra
-        # ningún cuadro.
+        # **Hoy no la escribe nadie**: el lazo de cuadros que la hacía avanzar
+        # se fue con la referencia, así que se queda en (0, 0) salvo que la
+        # ponga a mano quien arme el `Estado`. Cuándo se escribe importa, y por
+        # eso queda anotado: en la ROM `move_hero` corre *después* de
+        # `eventos_tick`, así que la página de un cuadro ve la celda que el
+        # héroe tenía al terminar el cuadro anterior. El día que acá vuelva a
+        # haber un lazo, tiene que escribirla en ese mismo lugar.
         self.heroe = (0, 0)
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
@@ -4487,12 +4471,8 @@ class Estado:
         # Son tres cosas y no una porque RM2k las separa: un cronómetro puede
         # estar corriendo sin verse —`StartTimer(visible=false)`—, que es como
         # el juego mide cuánto tardó el jugador sin decírselo.
-        # Qué eventos ya dieron su paso en este cuadro, movidos pegados a su
-        # intérprete paralelo. Lo vacía la pasada de todos, al final.
-        self.rutas_ev_movidas = set()
         self.timer_cuadros = 0
         self.timer_activo = False
-        self.timer_dibujado = 0
         # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
         self.sacudida_pos = 0
         # El clima: el tipo y la fuerza que puso el último WeatherEffects, las
@@ -4514,18 +4494,8 @@ class Estado:
         self.destello = (0, 0, 0)
         self.destello_nivel = 0
         self.destello_resta = 0
-        # Lo que se ve, que va un paso atrás del nivel: ver `destello_tick`.
-        self.destello_pendiente = 0
-        self.destello_mostrado = 0
         self.tinte_cambio = False
         self.timer_visible = False
-        # Si el refresco pendiente lo pidió un **intérprete paralelo**. Existe
-        # por lo mismo que la excepción de los autos de Lashe City: un paralelo
-        # que escribe una variable pide refresco todos los cuadros
-        # —`SetNeedRefreshForVarChange`— así que esperar a que deje de pedirlo
-        # es esperar para siempre. El refresco se hace igual; lo único que no
-        # cuenta es que quede pedido.
-        self.refresco_de_paralelo = False
         # Las variables, por ranura, y el estado del azar. Las variables viajan
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
         self.variables = {}
@@ -4753,7 +4723,6 @@ class Estado:
                 self.grupo.remove(actor)
         elif actor not in self.grupo and len(self.grupo) < GRUPO_MAX:
             self.grupo.append(actor)
-        self.refresco = True     # las páginas que piden un actor pueden cambiar
 
     def lider(self):
         return self.grupo[0] if self.grupo else None
@@ -5293,10 +5262,8 @@ def ejecutar(codigo, estado, desde=0):
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             if codigo[i + 3]:
                 estado.switches.add(numero)
-                estado.refresco = True
             else:
                 estado.switches.discard(numero)
-                estado.refresco = True
             i += 4
         elif op == OP_IF:
             # `CommandConditionalBranch`: si no se cumple, el cursor se va al
@@ -5360,12 +5327,9 @@ def ejecutar(codigo, estado, desde=0):
             # queda en este opcode y no hay cuadros que esperar, que es lo
             # mismo que hace `op_key` en la ROM con `sty ev_cur`.
             ranura, banderas = codigo[i + 1], codigo[i + 2]
-            pide_refresco = bool(ranura & VAR_REFRESCO)
             ranura &= VAR_RANURA_MAX
             if banderas & TECLA_ARRANCA:
                 estado.poner_variable(ranura, 0)
-                if pide_refresco:
-                    estado.refresco = True
                 return (i + 3, 0, None)
             # La que espera mira el **flanco** —`Input::IsTriggered`, lo mismo
             # que cierra un mensaje— y la que no espera, lo que está puesto
@@ -5377,10 +5341,6 @@ def ejecutar(codigo, estado, desde=0):
             if banderas & TECLA_ESPERA and not valor:
                 return (i, 0, None)
             estado.poner_variable(ranura, valor)
-            # Como cualquier escritura de variable: `SetNeedRefreshForVarChange`,
-            # que sólo marca si alguna condición de página mira esta variable.
-            if pide_refresco:
-                estado.refresco = True
             i += 3
         elif op == OP_ACTOR_SPRITE:
             # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
@@ -5390,14 +5350,13 @@ def ejecutar(codigo, estado, desde=0):
             estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
             i += 3
         elif op == OP_ITEM:
-            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el
-            # refresco, como `CommandChangeItems`. La ROM hace lo mismo en
-            # `op_item`.
+            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], como
+            # `CommandChangeItems`. La ROM hace lo mismo en `op_item`, y además
+            # pide el refresco de páginas, que es de lo que acá no hay nada.
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             delta = con_signo_byte(codigo[i + 3])
             estado.items[numero] = max(0, min(ITEM_MAX,
                                               estado.item(numero) + delta))
-            estado.refresco = True
             i += 4
         elif op == OP_GOLD:
             # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
@@ -5425,11 +5384,6 @@ def ejecutar(codigo, estado, desde=0):
             estado.salto = (codigo[i + 1] | (codigo[i + 2] << 8),
                             codigo[i + 3] | (codigo[i + 4] << 8),
                             codigo[i + 5] | (codigo[i + 6] << 8))
-            # Cuántos fundidos lleva la corrida. No lo usa el intérprete: lo
-            # usa el plan de la caminata, que le dice al emulador cuántos
-            # cuadros correr y tiene que contar los 70 de cada teletransporte.
-            # Se cuenta acá, que es el único lugar por donde pasan todos.
-            estado.fundidos += 1
             return (i + 7, 0, True)     # corta el cuadro, como `return false`
         elif op == OP_DELAY:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos
@@ -5485,7 +5439,6 @@ def ejecutar(codigo, estado, desde=0):
             i += 8
         elif op == OP_VAR:
             ranura, operacion, clase = codigo[i + 1], codigo[i + 2], codigo[i + 3]
-            pide_refresco = bool(ranura & VAR_REFRESCO)
             ranura &= VAR_RANURA_MAX
             a = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
             b = con_signo(codigo[i + 6] | (codigo[i + 7] << 8))
@@ -5505,13 +5458,6 @@ def ejecutar(codigo, estado, desde=0):
             estado.poner_variable(ranura, valor if operacion == VAR_PONER
                                   else actual + valor if operacion == VAR_SUMAR
                                   else actual - valor)
-            # Las páginas con condición por variable pueden cambiar:
-            # `SetNeedRefreshForVarChange`, que RM2k hace tras cada
-            # ControlVars **y que sólo marca si alguna condición de página del
-            # mapa mira esta variable**. Quién la mira lo resolvió el conversor
-            # en `VAR_REFRESCO`; la ROM lo mira en `var_escribir`.
-            if pide_refresco:
-                estado.refresco = True
             i += 8
         elif op == OP_IF_VAR:
             ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
