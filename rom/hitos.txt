@@ -61,26 +61,6 @@ destello 6 "4 31 0 0 31 24" "22 10" "2 12 15 23 25" "12 0 0 50" 115 destello-com
 saturar
 saturar 73 "60 100 100 100 0" 30 120 saturar-gris
 saturar 73 "60 0 120 120 200" 30 120 saturar-brillo
-hablar
-cinematica
-cinematica 4 1 "370 770 830 1210 1980 2910" 115 apertura 1 "841 901 961 1021 1474 1595 1776 1897 2018 2078 2259 2380 2489 2683 2743"
-cinematica 5 "3 6" "300 600 1200 1600 2500 2800 3300 3900" 115 manta 1 "212 243 394 515 727 758 789 820 971 1517 1548 1699 1790 1911 1942 2033 2125 2156 2247 2338 2399 2460 2570 2674 2987 3018 3079 3110 3141 3214 3510 3541 3723 3826" 16
-# El cartel de "One year previously", que es lo único que este port dibuja de
-# `ShowPicture`. Arranca con el switch 21 —el que prende el final del recuerdo
-# de CORE y MANTA— así que la página 3 del evento 1 del mapa 4 corre sola, y
-# los cinco cuadros agarran el fundido entero: recién puesto y casi negro
-# (470), a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
-# bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único que
-# cobra la interpolación cuadro a cuadro, que es donde la ROM y la referencia
-# pueden separarse en un valor y no verse.
-cinematica 4 7 "470 550 660 800 880" 115 cartel 1 "" 21
-# Delcentric Factory con ventana de mensaje, que es el único mapa que toma el
-# tercer reparto de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de
-# fondo—. Va con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin
-# las 19 gotas el 17 entra en el reparto de siempre y el caso no miraría el
-# camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el
-# tilemap de la ventana encima de los tiles de fondo.
-cinematica 17 1 "120 150" 115 factoria 1
 # La pantalla de batalla, contra `pantallas.py --batalla`. La pelea bloquea y
 # no cuesta ningún tick, así que no hay referencia de pixeles del otro lado:
 # lo que se compara es la pantalla. Ver el comentario de `batalla`.
@@ -146,7 +126,6 @@ batalla 86 "11 12 13" 20 200 "" batalla-textos-lejos ABLBackdropSJ03 "" "" "--mo
 # rompe cosas distintas en cada uno; el porqué está en `vuelta`.
 vuelta
 vuelta 6 82 SJBackdropABL04 20 "30 100" si 115 vuelta-ventana
-hablar 7 "3 7" 24 "25 45 65 85 105 125 145 165 185 205 225 245 265 285 305 325 345" "40 200 360" 115 hablar-repetido
 pan
 pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
 # Un "volver" con espera y la cámara ya en su lugar: cero cuadros, y la página
@@ -208,22 +187,6 @@ vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre-llave "151 
 # la ruta termine antes de leer.
 vars 6 "60 1" "17 0 6 10001 1 17 9 0 0 0" "22 12" "2 30" "12 0 0 50" 115 var-heroe-x
 vars 6 "60 1" "17 0 6 4 2 17 9 0 0 0" "22 12" "2 80" "12 0 0 50" 115 var-evento-y "" "4 2 2 2 2"
-hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
-# El viaje en el Hover-Tram, que es la única página que traba el mapa 13 y
-# ahora compila entera: la sacudida del tranvía y la ruta forzada que le da
-# vuelta la cabeza a Talan mientras arranca. Pide el 16 adentro —Sector 30, a
-# donde el viaje termina teletransportando— porque sin él el Teleport del final
-# no compila y la página se cae con él. La A cae en el cuadro 900, o sea
-# después de las tres capturas: lo que se compara es el arranque de la escena,
-# antes del primer mensaje.
-#
-# Verificado en rojo **de un solo lado**, que es lo que hay que hacer con una
-# pieza que vive entera en el conversor —los dos lados corren el mismo
-# bytecode—: con `eventos.CHANGE_PBG = -1` puesto sólo en `snes_expect.py` la
-# referencia no compila la página, la ROM sí, y el cuadro 10 da 1,22%. Es poco
-# en pixeles y mucho en significado: son la pose de Talan y el corrimiento de
-# la cámara, o sea la escena entera contra ninguna.
-hablar 13 "2 7" 24 900 "10 30 60" 115 tram-viaje "" "16"
 # La rama por objeto. Los dos casos son la misma página con y sin el
 # `ChangeItems` que le da el Idol al grupo, así que la diferencia entre ellos
 # —40012 pixeles, el 69,78%— es la respuesta de la rama. Verificado en rojo con
@@ -248,34 +211,6 @@ rama-actor 6 "4 11 152 12 0 0 100" "22 12" "2 30" 115 rama-hab-no
 # El destello de pantalla, que hasta el 2026-09-08 no lo corría nadie.
 # Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
 relampago
-# Los dos de Lashe City que taro no podía usar el 2026-09-08: caminan y
-# además aparecen con la página, y hasta ese día eso era un solo bit.
-# El `Mechanic` habla porque su página ya no se frena por el giro.
-hablar 8 "18 21" 24 25 "20 60" 115 mecanico
-hablar 8 "38 54" 24 25 "20 60" 115 bum
-# El giro hacia el héroe: el que camina gira en su ranura, y el quieto se muda
-# a la de giro del mapa y deja a su gemelo —el 14, el mismo Future2:6— como
-# estaba. Los cuadros del medio lo miran girado y el último de vuelta en su
-# pose, después de cerrar el último mensaje. `bum-vuelve` encontró que la fila
-# guardada del que gira pasaba a ser de otro cuando las filas se reordenan.
-hablar 8 "38 54" 24 "24 70 110 150 190" "60 170 200" 115 bum-vuelve
-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo
-# El mismo con una ruta terminada: la orden 13 lo deja mirando a la derecha,
-# y la ranura de ruta queda. Tiene que girar igual y volver a la derecha. Es
-# el `GangMember1` que taro encontró sin girar.
-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo-ruta "14 13"
-# Los fuegos translúcidos de los barriles del mapa 9, con la mezcla horneada
-# en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra que el
-# conversor y la referencia horneen contra el mismo fondo; un rojo acá quiere
-# decir que no. La A cae después de la última captura.
-hablar 9 "57 36" 24 900 "20 40" 115 fuego
-hablar 9 "24 6" 24 "25 65 105 145 185 225 265 305 345 385 425 465 505 545 585 625 665 705 745 785 825 865 905 945 985 1025 1065 1105 1145 1185 1225 1265 1305 1345 1385 1425 1465 1505 1545 1585 1625 1665 1705 1745 1785" "200 420 620 900 1200" 115 tram "" "13"
-# Parallel Process: los dos autos y los dos que los reubican del mapa 9,
-# mirados a lo largo de cuatro segundos. Verificado que da rojo sin
-# `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
-# se puede mirar todavía: pierde dos cuadros al entrar —uno ya los perdía
-# antes de esto— y la comparación arranca corrida.
-hablar 9 "8 14" 24 900 "2 20 60 120 240" 115 autos9
 cerrar
 cerrar 7 200 cerrar-right right
 # Los dos escapes de texto: `\|` pausa y `\^` cierra el cuadro sin que nadie

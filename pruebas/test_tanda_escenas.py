@@ -137,3 +137,188 @@ def test_escena(nombre, mapa, celda, ruta, cuadros, apretar, switch, mapas,
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro, apretar_a=apretar, toques_hardware=toques)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
+
+
+# Hablarle a algo: nombre, mapa, celda del héroe, el switch que arranca
+# prendido, los ticks de los toques de A, los ticks que se capturan, la ruta
+# terminada del evento —vacía es ninguna— y los mapas de más del cartucho.
+HABLADAS = (
+    ("hablar", 7, "3 7", "24", (25,), (20, 60), "", ()),
+    # Diecisiete toques de A sobre el mismo evento, o sea nueve aperturas de
+    # mensaje. Es el primer caso que pasa de la octava interacción, que era
+    # justo donde se rompía la cola de ocho punteros que los eventos tenían
+    # antes de los dos bits. Verificado que **da rojo con la ROM de antes del
+    # anillo**, en el cuadro 360 y sólo ahí.
+    ("hablar-repetido", 7, "3 7", "24", tuple(range(25, 346, 20)),
+     (40, 200, 360), "", ()),
+    # El mismo con el switch **25** en vez del 24: la página no queda activa y
+    # apretar A no tiene que hacer nada. Es lo único que ejercita que se miren
+    # las condiciones.
+    ("hablar-sin-switch", 7, "3 7", "25", (25,), (20, 60), "", ()),
+    # El viaje en el Hover-Tram, la única página que traba el mapa 13: la
+    # sacudida del tranvía y la ruta forzada que le da vuelta la cabeza a Talan
+    # mientras arranca. Pide el 16 adentro —Sector 30, a donde el viaje termina
+    # teletransportando— porque sin él el Teleport del final no compila y la
+    # página se cae con él. La A cae en el tick 900, o sea después de las tres
+    # capturas: lo que se compara es el arranque de la escena.
+    #
+    # Verificado en rojo **de un solo lado**, que es lo que hay que hacer con
+    # una pieza que vive entera en el conversor: con `eventos.CHANGE_PBG = -1`
+    # puesto sólo en `snes_expect.py` la referencia no compilaba la página, la
+    # ROM sí, y el cuadro 10 daba 1,22%. Poco en pixeles y mucho en
+    # significado: la pose de Talan y el corrimiento de la cámara, o sea la
+    # escena entera contra ninguna.
+    ("tram-viaje", 13, "2 7", "24", (900,), (10, 30, 60), "", ("16",)),
+    # Los dos de Lashe City que taro no podía usar el 2026-09-08: caminan y
+    # además aparecen con la página, y hasta ese día eso era un solo bit. El
+    # `Mechanic` habla porque su página ya no se frena por el giro.
+    ("mecanico", 8, "18 21", "24", (25,), (20, 60), "", ()),
+    ("bum", 8, "38 54", "24", (25,), (20, 60), "", ()),
+    # El giro hacia el héroe: el que camina gira en su ranura, y el quieto se
+    # muda a la de giro del mapa y deja a su gemelo —el 14, el mismo Future2:6—
+    # como estaba. Los ticks del medio lo miran girado y el último de vuelta en
+    # su pose, después de cerrar el último mensaje. `bum-vuelve` encontró que
+    # la fila guardada del que gira pasaba a ser de otro cuando las filas se
+    # reordenan.
+    ("bum-vuelve", 8, "38 54", "24", (24, 70, 110, 150, 190),
+     (60, 170, 200), "", ()),
+    ("gemelo", 10, "11 4", "24", (25, 70, 110, 150), (20, 60, 140, 160), "",
+     ()),
+    # El mismo con una ruta terminada: la orden 13 lo deja mirando a la
+    # derecha, y la ranura de ruta queda. Tiene que girar igual y volver a la
+    # derecha. Es el `GangMember1` que taro encontró sin girar.
+    ("gemelo-ruta", 10, "11 4", "24", (25, 70, 110, 150),
+     (20, 60, 140, 160), "14 13", ()),
+    # Los fuegos translúcidos de los barriles del mapa 9, con la mezcla
+    # horneada en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra
+    # que el conversor y la referencia horneen contra el mismo fondo.
+    ("fuego", 9, "57 36", "24", (900,), (20, 40), "", ()),
+    # El Tram Officer del mapa 9 con el 13 adentro: **es el caso de
+    # `CallEvent`**, y sin ese mapa el `Teleport` del Hover-Tram no compila,
+    # con él no compila el Hover-Tram entero, y entonces la llamada se saltea.
+    ("tram", 9, "24 6", "24", tuple(range(25, 1786, 40)),
+     (200, 420, 620, 900, 1200), "", ("13",)),
+    # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
+    # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
+    # `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
+    # se puede mirar todavía: pierde dos cuadros al entrar y la comparación
+    # arranca corrida.
+    ("autos9", 9, "8 14", "24", (900,), (2, 20, 60, 120, 240), "", ()),
+)
+
+
+@pytest.mark.parametrize(
+    "nombre,mapa,celda,switch,apretar,cuadros,ruta,mapas", HABLADAS,
+    ids=[caso[0] for caso in HABLADAS])
+def test_hablar(nombre, mapa, celda, switch, apretar, cuadros, ruta, mapas):
+    """`just hablar`: hablarle a algo, que es lo que convierte esto en un juego.
+
+    La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del
+    héroe y después la de adelante, y gana la página de número más alto que
+    cumpla sus condiciones.
+
+    El `--switch 24` del primer caso no es una licencia: **todas** las páginas
+    del pad de Talan lo piden, y lo prende la cinemática de apertura. Ponerlo a
+    mano es dejar el mundo en el estado al que el juego llega solo.
+
+    Del arnés, dos cosas:
+
+    * **un toque de A que cae adentro de los primeros ticks de un mensaje no
+      hace nada.** La ROM ignora el botón mientras `msg_abierto` esté en cero,
+      y componer la ventana le lleva de nueve a diecinueve ticks según el
+      texto. Al armar una lista de toques hay que dejar treinta ticks desde que
+      el mensaje abre, no veinte: con veinte, un toque llegó **uno** antes de
+      tiempo;
+    * **un `apretar` más allá del último tick capturado es a propósito**:
+      `fuego`, `autos9` y `tram-viaje` aprietan en el 900 y capturan mucho
+      antes. Lo que se compara ahí es la escena corriendo sola.
+    """
+    sfc, simbolos, orden = cartucho(
+        "hablar-%s" % nombre, "--map-id", mapa, "--inicio", *celda.split(),
+        "--con-ventana", "--switch", switch,
+        *(("--ruta-de-evento",) + tuple(ruta.split()) if ruta else ()),
+        *(("--mapas",) + tuple(mapas) if mapas else ()))
+    for cuadro in cuadros:
+        p = partida(sfc, simbolos, orden)
+        p.correr(cuadro, apretar_a=apretar)
+        golden("%s-%d" % (nombre, cuadro), p.imagen())
+
+
+# Las cinemáticas: nombre, mapa de arranque, los mapas de destino, los ticks,
+# si el cartucho lleva ventana de mensaje, los toques de A y el switch que
+# arranca prendido.
+CINEMATICAS = (
+    ("cinematica", 4, ("1",), (50, 68, 170, 370, 750, 1110), False, (), ""),
+    # Con ventana la cinemática no termina en el teletransporte: el último paso
+    # pisa el evento 2, que es la escena de apertura entera, con cuatro
+    # personajes caminando en el mismo mapa, o sea las poses en caliente en su
+    # caso real.
+    ("apertura", 4, ("1",), (370, 770, 830, 1210, 1980, 2910), True,
+     (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078, 2259, 2380,
+      2489, 2683, 2743), ""),
+    # El recuerdo de CORE y MANTA, que lo destraba el switch 16: lo prende una
+    # página de un mapa que no está en el cartucho del caso. Son 3900 ticks y
+    # 34 toques de A, del mapa 5 al 6. Lo que sigue —el 6 salta al 3 y el 3 al
+    # 4— no lo mira nadie todavía.
+    ("manta", 5, ("3", "6"), (300, 600, 1200, 1600, 2500, 2800, 3300, 3900),
+     True,
+     (212, 243, 394, 515, 727, 758, 789, 820, 971, 1517, 1548, 1699, 1790,
+      1911, 1942, 2033, 2125, 2156, 2247, 2338, 2399, 2460, 2570, 2674, 2987,
+      3018, 3079, 3110, 3141, 3214, 3510, 3541, 3723, 3826), "16"),
+    # El cartel de "One year previously", que es lo único que este port dibuja
+    # de `ShowPicture`. Arranca con el switch 21 —el que prende el final del
+    # recuerdo— así que la página 3 del evento 1 del mapa 4 corre sola, y los
+    # cinco ticks agarran el fundido entero: recién puesto y casi negro (470),
+    # a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
+    # bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único
+    # que cobra la interpolación cuadro a cuadro.
+    ("cartel", 4, ("7",), (470, 550, 660, 800, 880), True, (), "21"),
+    # Delcentric Factory con ventana, el único mapa que toma el tercer reparto
+    # de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de fondo—. Va
+    # con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin las
+    # 19 gotas el 17 entra en el reparto de siempre y el caso no miraría el
+    # camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el
+    # tilemap de la ventana encima de los tiles de fondo.
+    ("factoria", 17, ("1",), (120, 150), True, (), ""),
+)
+
+
+@pytest.mark.parametrize(
+    "nombre,origen,destino,cuadros,ventana,apretar,switch",
+    CINEMATICAS, ids=[caso[0] for caso in CINEMATICAS])
+def test_cinematica(nombre, origen, destino, cuadros, ventana, apretar,
+                    switch):
+    """`just cinematica`: la cinemática de apertura, entera.
+
+    El mapa 4 prende dos switches, tiñe y teletransporta al 1; ahí arranca la
+    lluvia, se salta dos veces **adentro del mismo mapa**, se manda a caminar
+    al evento 8, cambia el grupo —sale DummyHero y entra Kersh— y el héroe sube
+    tres celdas por una ruta forzada. Es la puerta a los primeros diez minutos
+    del juego.
+
+    Los dos primeros ticks de `cinematica` caen adentro de la rampa de vuelta
+    del primer fundido y son lo único de la tanda que compara la rampa misma.
+    Aguantan que la ROM pierda cuadros porque el fundido se cuenta en cuadros
+    de hardware y no en vueltas del lazo; lo que sí los rompería es que
+    perdiera un cuadro **antes** del salto. Cada teletransporte corre los ticks
+    lo que dura su fundido, y la cinemática lleva uno por salto, porque RM2k
+    funde también los que no cambian de mapa.
+
+    Del arnés, dos que sólo tiene esta receta:
+
+    * **el grupo es el 10 y no el 11**, que es el único lugar de la tanda donde
+      eso pasa: la cinemática *es* la que cambia el grupo, así que tiene que
+      arrancar con el que el juego trae —DummyHero— y no con Kersh ya adentro;
+    * **lo que no se compara**: nada en movimiento en un tick en que la ROM
+      venga atrasada. El atraso lo producen los picos del lazo, y el toque de A
+      lo resincroniza, porque de ahí en adelante los dos lados cuentan desde el
+      mismo cuadro.
+    """
+    sfc, simbolos, orden = cartucho(
+        "cinematica-%s" % nombre, "--map-id", origen, "--mapas", *destino,
+        *(("--con-ventana",) if ventana else ()),
+        *(("--switch", switch) if switch else ()), grupo="10")
+    for cuadro in cuadros:
+        p = partida(sfc, simbolos, orden)
+        p.correr(cuadro, apretar_a=apretar)
+        golden("%s-%d" % (nombre, cuadro), p.imagen())
