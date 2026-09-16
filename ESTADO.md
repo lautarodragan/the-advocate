@@ -318,13 +318,23 @@ se pueden empezar hoy.
    la referencia": se congelaron con la tanda en verde, nadie las miró una por
    una, y sólo taro puede hacerlo. Para que no sea una tarde de mirar imágenes
    conviene mostrarlas agrupadas por mapa, una vez cada una.
-5. **El acomodo de bancos sale del ensamblador.** Hoy lo hace `.bloque`, una
-   directiva nuestra con **974 usos**: el conversor le dice al ensamblador "lo
-   que sigue mide N bytes, rellená hasta el próximo banco si no entra", y
-   existe porque un DMA que cruza de banco lee la WRAM en vez de la ROM.
-   `ld65` no sabe acomodar bloques de tamaño variable, así que la decisión
-   tiene que tomarla el conversor —el único que conoce los tamaños— y emitir un
-   segmento por banco. **Criterio: la ROM byte por byte igual.**
+5. **El acomodo de bancos sale del ensamblador.** ✅ el 2026-09-16, salvo dos
+   casos que quedaron medidos. Lo hacía `.bloque`, una directiva nuestra: el
+   conversor le decía al ensamblador "lo que sigue mide N bytes, rellená hasta
+   el próximo banco si no entra", y existe porque un DMA que cruza de banco lee
+   la WRAM en vez de la ROM. `ld65` no sabe acomodar bloques de tamaño
+   variable, así que la decisión la toma ahora el conversor —el único que
+   conoce los tamaños— en `tools/bancos.py`, y al ensamblador le llega relleno
+   explícito. La ROM salió byte por byte igual, que era el criterio. Cuántas
+   declaraciones hay y cuántas rellenan lo imprime cualquier `just demo`.
+
+   **Lo que no se pudo, y es lo que el paso 6 hereda:** los dos `.bloque`
+   escritos a mano en `main.s` están en RODATA *después* de todo lo generado,
+   así que su offset depende del cartucho y el conversor no conoce el tamaño
+   del código a mano que tienen delante. Salidas: un segmento propio para cada
+   uno, alineado por el mapa de memoria —que es lo que `ld65` sabe hacer—, o
+   que lo generado termine pegado a un banco. **Las dos mueven bytes**, así que
+   el criterio "byte por byte igual" no sobrevive al paso 6 de todas formas.
 
 6. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Con el
    acomodo ya decidido arriba, lo que queda es traducción: `.alinear` →
