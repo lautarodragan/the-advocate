@@ -3,7 +3,7 @@
 Es la prueba que pidió taro: **emular una jugada entera** —desde el arranque, y
 desde la casa de Talan hasta el auditorio— verificando el estado con lecturas de
 RAM y sacando una captura en cada hito, para que él las mire una vez y las
-bendiga. No compara contra `snes_expect`: acá no hay referencia, hay un juego que
+bendiga. No compara contra ninguna referencia: acá hay un juego que
 tiene que seguir siendo jugable de punta a punta.
 
 Lo que la hace barata es que **la emulación no es el problema**: snes9x corre

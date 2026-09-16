@@ -7,7 +7,7 @@ ticks. Es la receta más usada de la tanda.
 Tres cosas del arnés, que son las que vivían en el comentario de la receta:
 
 * **La dirección no llega a la ROM.** `escena` tomaba un `dir` y se lo pasaba
-  sólo a `snes_expect.py`: era hacia dónde mira el héroe **al arrancar**, que
+  sólo a la referencia: era hacia dónde mira el héroe **al arrancar**, que
   la referencia necesita que le digan y la ROM ya sabe. Si la página lo gira
   con un `face_*`, gana la página, en los dos lados. Contra una captura de la
   ROM ese argumento no tiene a quién decírselo, así que acá no está.
@@ -167,7 +167,7 @@ HABLADAS = (
     #
     # Verificado en rojo **de un solo lado**, que es lo que hay que hacer con
     # una pieza que vive entera en el conversor: con `eventos.CHANGE_PBG = -1`
-    # puesto sólo en `snes_expect.py` la referencia no compilaba la página, la
+    # puesto sólo del lado de la referencia, ésta no compilaba la página, la
     # ROM sí, y el cuadro 10 daba 1,22%. Poco en pixeles y mucho en
     # significado: la pose de Talan y el corrimiento de la cámara, o sea la
     # escena entera contra ninguna.

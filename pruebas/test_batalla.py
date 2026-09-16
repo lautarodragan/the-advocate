@@ -4,7 +4,7 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. `batalla`
 compara **la pantalla** contra `pantallas.pantalla_batalla` y no puede hacer
 más: la pelea bloquea adentro del intérprete y no cuesta ningún tick, así que
-del lado de `snes_expect.py` no hay nada dibujado —ver `OP_BATTLE` en
+del lado de la referencia no había nada dibujado —ver `OP_BATTLE` en
 tools/eventos.py—. Lo que pasa adentro se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el

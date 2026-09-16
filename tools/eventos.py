@@ -2847,9 +2847,9 @@ def zonas_de_encuentro(tree, map_id, ancho, alto):
 class Encuentros:
     """El estado de los encuentros de una partida, igual de los dos lados.
 
-    Lo usan la referencia —`snes_expect`— y las pruebas; la ROM hace lo mismo
-    con las tablas que emite el conversor. Quien lo cambie tiene que cambiar
-    `main.s` en el mismo commit: si no, la comparación mide dos programas.
+    Lo usan las pruebas; la ROM hace lo mismo con las tablas que emite el
+    conversor. Quien lo cambie tiene que cambiar `main.s` en el mismo
+    commit: si no, el modelo y la consola dejan de ser el mismo programa.
     """
 
     def __init__(self, pasos, zonas, semilla=ENC_SEMILLA):
@@ -3422,7 +3422,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # un saque —cuatro cuadros— y la página paralela le puede volver a
             # poner la ruta en el medio, cosa que la ROM sí ve. O sea que hace
             # falta la otra mitad: que la caminata avance **cuadro a cuadro**.
-            # Es el pedazo más delicado de `snes_expect.py`.
+            # Era el pedazo más delicado de la referencia.
             #
             # Y hay un segundo problema, que apareció con la medición y no es
             # de precisión: con la carrera corriendo, `heroe 52` **no
@@ -3623,7 +3623,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             #
             # Lo que se hizo en vez de aflojar el corte: la referencia modela
             # lo que la consola hace y destella **la fila de paleta** —ver el
-            # reparto de `snes_expect.py`—, así que los dos lados vuelven a ser
+            # reparto de la referencia—, así que los dos lados volvían a ser
             # el mismo programa. Lo que queda es una divergencia declarada con
             # RM2k, que destella la imagen de un sprite solo, y está en
             # `assets/LIMITACIONES.md`.
@@ -4173,7 +4173,7 @@ class Ruta:
         moviéndose la cuenta sube y el frame cambia al llegar al tope de la
         velocidad **de ese cuadro**, `ANIM_PARADO`, que una orden 28 o 29 de
         la misma ruta puede haber cambiado a mitad del frame. Antes esto era
-        `cuadros_moviendose // ANIM_FRAMES` en snes_expect.py, que sólo sirve
+        `cuadros_moviendose // ANIM_FRAMES` en la referencia, que sólo sirve
         con la velocidad quieta.
         """
         if not moviendo:
@@ -4253,7 +4253,7 @@ class Ruta:
                 # El paso terminó: con órdenes por delante, la frecuencia dice
                 # cuántos cuadros quieto antes de leer la siguiente. Sin
                 # órdenes no se espera nada: la ruta se cancela en el último
-                # paso —ver `paso_de_ruta` en snes_expect.py— y
+                # paso —lo hacía `paso_de_ruta` en la referencia— y
                 # `ProceedWithMovement` no la tiene que esperar.
                 if self.ordenes or (self.de_pagina and self.repite):
                     self.espera = espera_tras_paso(self.frecuencia)
@@ -4512,8 +4512,8 @@ class Estado:
         self.fundido = None
         self.fundidos = 0       # cuántos hubo, para el plan de la caminata
         # El encuentro al azar que cortó la caminata: (paso, tropa), o None si
-        # no salió ninguno. Lo pone `snes_expect.hero_position` y lo lee la
-        # receta, que con la tropa dibuja la pelea que la ROM está peleando.
+        # no salió ninguno. Lo ponía la referencia y lo leía la receta, que
+        # con la tropa dibujaba la pelea que la ROM estaba peleando.
         self.encuentro = None
         # Cuántos ticks vivió la referencia. Lo cuenta `cuadro_de_eventos`, que
         # es por donde pasa un cuadro entero del mundo, y es lo que el plan le
@@ -4592,8 +4592,8 @@ class Estado:
         self.mensaje = None
         # El bloque de textos de la ROM, que el intérprete necesita para leer
         # la cabecera del cuadro que abre —cuántas pausas y si se cierra solo—.
-        # Lo pone quien lo tenga: el conversor y `snes_expect`, que lo arman
-        # antes de compilar nada. Sin él no hay cuadros que abrir.
+        # Lo pone quien lo tenga —hoy el conversor— antes de compilar nada.
+        # Sin él no hay cuadros que abrir.
         self.mensajes = None
         # Los cuadros que le quedan a la pausa del `\|`, y si el cuadro se
         # cierra solo cuando se termine —el `\^`—. Ver `cola_de_escapes` y
@@ -6584,9 +6584,8 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_ACTOR_SPRITE:
             # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
             # el actor está liderando se ve en el mismo cuadro, y si no queda
-            # guardado. Quién lo mira es el que dibuja al héroe —acá
-            # `snes_expect`, allá `elegir_grafico_heroe`—, así que esto es sólo
-            # anotarlo.
+            # guardado. Quién lo mira es el que dibuja al héroe —en la ROM,
+            # `elegir_grafico_heroe`—, así que esto es sólo anotarlo.
             estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
             i += 3
         elif op == OP_ITEM:
