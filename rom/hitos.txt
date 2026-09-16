@@ -107,26 +107,6 @@ cinematica 4 7 "470 550 660 800 880" 115 cartel 1 "" 21
 # camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el
 # tilemap de la ventana encima de los tiles de fondo.
 cinematica 17 1 "120 150" 115 factoria 1
-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""
-escena 10 "42 6" 12 up "20 60 120 200" 115 tienda "25 90 150" "" "" "b:110"
-# El save point de verdad: parado encima del evento 67, A, la pantalla de
-# ranuras, y B por cuadros de hardware.
-escena 8 "9 56" 14 down "60 200" 115 savepoint-guarda "10" "" "" "b:40"
-# Las puertas entre Lashe City y sus dos vecinos, Interiors (10) y 33,36 (9),
-# pisadas con un paso de ruta, y la vuelta. El cruce 8→9 es el que encontró el
-# `PanScreen` de espera cero: la puerta EV0009 vuelve la cámara antes del
-# Teleport, y el auto rojo del 9 delataba el tick.
-escena 8 "48 21" 0 up "40 120 220" 115 puerta-8-10 "" "" "10"
-escena 10 "42 16" 0 up "40 120 220" 115 puerta-10-8 "" "" "8"
-escena 8 "73 56" 1 right "40 120 220" 115 puerta-8-9 "" "" "9"
-escena 9 "73 47" 1 right "40 120 220" 115 puerta-9-8 "" "" "8"
-# EV0041 del mapa 8, que hasta el 2026-09-10 se caía entero por la condición
-# de ítem de su tercera página: con el switch 24 corre la primera —"Well, it's
-# worth a try"— y el héroe salta la reja y se va para arriba. Verificado que
-# sin hablarle la referencia difiere en miles de pixeles en el cuadro 200.
-escena 8 "52 24" 12 up "60 120 200" 115 ev41 "10 40" "24" "10"
 # La pantalla de batalla, contra `pantallas.py --batalla`. La pelea bloquea y
 # no cuesta ningún tick, así que no hay referencia de pixeles del otro lado:
 # lo que se compara es la pantalla. Ver el comentario de `batalla`.
@@ -210,20 +190,7 @@ pisar
 #                     toda capa frene— da 29959 pixeles, 52,24%.
 pisar 20 "80 19" left 200 115 atravesar-cofre "36"
 pisar 20 "90 27" left 200 115 atravesar-savept "36"
-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
-escena 2 "7 74" 14 down "10 20 30 45 100" 115 droide-roto "" 22
-escena 2 "7 71" 14 down "20 60 120 300" 115 droide-frenado ""
-escena 2 "32 58" 14 down "50 120 300 600" 115 droide-cuadrado ""
-escena 7 "6 5" 12 up "55 90 140 210" 115 elegir "25 60 95 150" 24
 hablar 7 "3 7" 24 "25 45 65 85 105 125 145 165 185 205 225 245 265 285 305 325 345" "40 200 360" 115 hablar-repetido
-escena 2 "7 73" "23 0 23 23 23 2" up "25 50 80 95 130" 115 droide-tapado ""
-escena 2 "87 76" 0 up "380 407 410 425 470 600" 115 core-puerta "242 311 362 457 568 588" 7
-escena 2 "85 71" "3 3 3" left "20 40 60 90" 115 escombros "" 10
-escena 2 "85 71" "3 3 3" left "20 60" 115 escombros-cerrados ""
-escena 2 "71 72" 12 up "10 30" 115 ascensor "" 11
-escena 3 "38 69" 12 up "10 40" 115 puerta-emisor "20"
-escena 3 "38 69" "23 0" up "40 90 120 200 400 700 1200" 115 talan "" 13 "1 2 4 5"
 ruta-pisa
 ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 115 ruta-pasa
 ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 115 ruta-pisa-cola
@@ -288,13 +255,6 @@ vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre-llave "151 
 # la ruta termine antes de leer.
 vars 6 "60 1" "17 0 6 10001 1 17 9 0 0 0" "22 12" "2 30" "12 0 0 50" 115 var-heroe-x
 vars 6 "60 1" "17 0 6 4 2 17 9 0 0 0" "22 12" "2 80" "12 0 0 50" 115 var-evento-y "" "4 2 2 2 2"
-# El Tram Officer del mapa 9 entero: cuatro mensajes, la elección "1 minute",
-# la caminata de espera, el cronómetro leído a una variable y restado, la rama
-# que dice "it's official, I'm late", y el azar que decide "It's here!". Los
-# cuadros van después de que cada ventana esté compuesta de los dos lados; la
-# ROM tarda unos doce ticks en componerla y la referencia no. El CallEvent al
-# Hover-Tram se acepta sin hacer.
-escena 9 "24 8" 12 up "26 50 70 88 108 150 190 220 243 256 320" 115 tram "10 30 54 74 91 115 224 246 260" "24" "8"
 hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
 # El viaje en el Hover-Tram, que es la única página que traba el mapa 13 y
 # ahora compila entera: la sacudida del tranvía y la ruta forzada que le da

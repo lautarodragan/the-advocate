@@ -1000,54 +1000,6 @@ hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="1
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
-# Una escena del juego disparada por el héroe, con los toques de A que la
-# cierran. Es la forma general de lo que `hablar` y `pisar` hacen de a una cosa:
-# el héroe arranca en una celda con una ruta forzada de la página de prueba, con
-# eso dispara la página de enfrente con A o la que pisa, y de ahí en adelante la
-# escena se compara entera con `--apretar-a`. Los cuadros de los toques salen de
-# correr la referencia sola y anotar dónde abre cada mensaje; hay que rehacerlos
-# si cambia lo que la página tarda.
-#
-# Dos trampas que ya cobraron. Un cuadro pocos cuadros después de que abre un
-# mensaje da miles de pixeles sin que nada esté mal: la ROM tarda unos veinte en
-# componer el texto y la referencia no modela eso. Y `--dir` es sólo hacia dónde
-# mira el héroe **al arrancar**: si la página lo gira con un `face_*`, gana la
-# página, como en la ROM.
-#
-# El caso del save point arranca **parado encima** del evento y no enfrente: a un
-# evento de la capa de abajo se le habla desde su celda —`CheckEventTriggerHere`—
-# y no desde la de al lado, y de frente la página no corre y el caso pasa en
-# vacío. Su pantalla se abre adentro del intérprete y congela el reloj, así que
-# `toques` la cierra por **cuadros de hardware** —`--toques-hardware`, que es lo
-# único que puede caer ahí—.
-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="" toques="":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  apretar="{{apretar}}"
-  switch="{{switch}}"
-  mapas="{{mapas}}"
-  toques="{{toques}}"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
-      ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-      --hero-tile {{celda}} --dir {{dir}} --con-ventana --ruta-de-prueba {{ruta}} \
-      ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
-      --cuadros {{cuadros}} ${apretar:+--apretar-a $apretar} \
-      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
-  for n in {{cuadros}}; do
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
-        --walk none --cuadros $n --arranque {{arranque}} \
-        ${apretar:+--apretar-a $apretar} \
-        ${toques:+--toques-hardware $toques}
-    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
-        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
-  done
-
 # La cinemática de apertura, entera: el mapa 4 prende dos switches, tiñe y
 # teletransporta al 1; ahí arranca la lluvia, se salta dos veces **adentro del
 # mismo mapa**, se manda a caminar al evento 8, cambia el grupo —sale DummyHero y

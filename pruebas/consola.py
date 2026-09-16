@@ -74,6 +74,24 @@ class Simbolos:
 TITULO_AIRE = 30
 
 
+def toques_de(pares, flag):
+    """Los `BOTON:CUADRO` del corredor, a {cuadro: (botones,)}.
+
+    Es el mismo formato que `--toques`, `--tocar` y `--toques-hardware` leen en
+    `snes_correr.py`, y a propósito: mientras las recetas y las pruebas
+    convivan, un caso mudado tiene que poder copiar su lista tal cual. El
+    número está en el reloj que diga cada flag; acá sólo se parte el par.
+    """
+    cuando = {}
+    for toque in pares or ():
+        boton, _, cuadro = str(toque).partition(":")
+        if not cuadro.isdigit():
+            raise ValueError("%s quiere BOTON:CUADRO, y vino %r" % (flag,
+                                                                    toque))
+        cuando.setdefault(int(cuadro), []).append(boton)
+    return {n: tuple(botones) for n, botones in cuando.items()}
+
+
 class Partida:
     """La ROM corriendo, con el arranque ya pasado.
 
@@ -103,6 +121,7 @@ class Partida:
         self.mapas = mapas
         self.consola = retro.Consola(sfc, NUCLEO)
         self.cuadro = 0
+        self.hardware = 0
         # El arranque, que lo dice la ROM y no un número copiado: mientras
         # sube el banco de muestras a la ARAM el mapa está congelado.
         #
@@ -124,6 +143,13 @@ class Partida:
         if switches:
             self.prender(*switches)
         self.consola.correr(3)
+        # Los cuadros de hardware corridos desde que terminó el arranque, que
+        # es donde `snes_correr.py` pone su `reloj.corridos` en cero. Es el
+        # reloj de los toques de `--toques-hardware`, y es otro que el de los
+        # ticks: adentro de una pantalla que congela el juego —la de ranuras
+        # del save point— `vueltas` no avanza y éste sí, así que es el único
+        # que puede decir cuándo apretar ahí.
+        self.hardware = 0
 
     def _bajar_y_elegir(self, cuantas):
         """`cuantas` toques de abajo y después A.
@@ -258,7 +284,8 @@ class Partida:
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
         return self.consola.sram(direccion, largo)
 
-    def correr(self, cuadros, apretar_a=(), sosteniendo=()):
+    def correr(self, cuadros, apretar_a=(), sosteniendo=(), toques=(),
+               toques_hardware=(), tocar=()):
         """Avanza `cuadros` **ticks**. `apretar_a` son toques de A, por número.
 
         El botón se sostiene mientras dure el tick: la ROM lee el pad una vez
@@ -268,16 +295,42 @@ class Partida:
         es lo que hace `--teclas` en `snes_correr.py`. Hace falta porque esto
         suelta el pad en cada vuelta: un `consola.apretar(...)` de afuera se
         perdía en el primer cuadro, y `KeyInputProc` sin espera leía cero.
+
+        Los otros tres son los `BOTON:CUADRO` del corredor, y cada uno cuenta
+        su número en otro reloj. Ninguno es un capricho:
+
+            toques            en ticks, sin corrimiento. Es `--toques`, el que
+                              camina un menú: los menús miran **flancos**, así
+                              que sostener abajo mueve el cursor una sola vez.
+            tocar             en ticks, un tick antes por `RETRASO_DE_PANTALLA`,
+                              igual que `apretar_a`. Es `--tocar`, y existe
+                              porque la forma de `KeyInputProc` que espera la
+                              cruceta necesita un flanco de dirección a mitad
+                              de una escena.
+            toques_hardware   en **cuadros de hardware** desde el arranque. Es
+                              `--toques-hardware`, y es el único que puede
+                              apretar adentro de una pantalla que congela el
+                              reloj del juego —la de ranuras del save point—:
+                              ahí no hay ticks en los que caer.
+
+        Que un flag se ignore calladito es cómo se dejó un caso en verde que no
+        apretaba nada, así que los cuatro caminos valen a la vez.
         """
         presiones = {n - RETRASO_DE_PANTALLA for n in apretar_a}
+        por_tick = toques_de(toques, "toques")
+        por_hardware = toques_de(toques_hardware, "toques_hardware")
+        con_retraso = {n - RETRASO_DE_PANTALLA: botones
+                       for n, botones in toques_de(tocar, "tocar").items()}
         sosteniendo = tuple(sosteniendo)
         objetivo = self.cuadro + cuadros
         tope = (cuadros + 1) * 60
         while self.cuadro < objetivo:
-            if self.cuadro + 1 in presiones:
-                self.consola.apretar("a", *sosteniendo)
-            else:
-                self.consola.apretar(*sosteniendo)
+            n = self.cuadro + 1
+            botones = (sosteniendo + por_tick.get(n, ())
+                       + con_retraso.get(n, ())
+                       + por_hardware.get(self.hardware, ())
+                       + (("a",) if n in presiones else ()))
+            self.consola.apretar(*botones)
             self._un_cuadro()
             tope -= 1
             if tope <= 0:
@@ -287,6 +340,7 @@ class Partida:
     def _un_cuadro(self):
         """Un cuadro de hardware, y el reloj del juego al día."""
         self.consola.correr(1)
+        self.hardware += 1
         # El cuadro 0 es el tick 1: ver `TICK_DEL_CUADRO_CERO` en snes_correr.
         self.cuadro = self.palabra("vueltas") - 1
 
