@@ -346,10 +346,22 @@ refactors: **no hay features hasta que cierre**.
    rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
    y nadie lo notó **porque necesitaba podman y nunca se corría**.
 
-6. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. Va
-   **después** de migrar a `ca65`: allá hay módulos de verdad —compilación
-   separada con `ld65`— además de `.include`, así que el corte puede querer ser
-   otro; y mientras tanto `main.s` se sigue moviendo con el asignador.
+6. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
+   de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
+   en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
+   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
+   global variable, y la tanda deja de convertir y ensamblar 170 veces listas
+   casi iguales. Va **después** de los goldens, porque cambiar qué cartucho
+   arma cada caso mueve los PNG.
+
+7. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo.
+
+   **Va último de todos**, decidido con taro el 2026-09-16: es el único paso
+   que no destraba ninguno de los otros, y `main.s` se sigue moviendo con el
+   asignador y con los cartuchos, así que cuanto más tarde, menos churn. Y
+   conviene que sea después de `ca65`, porque allá hay módulos de verdad
+   —compilación separada con `ld65`— además de `.include`, y el corte puede
+   querer ser otro.
 
    Ya está probado que se puede y que es barato: se sacó la sección de la
    pantalla de título a un archivo aparte con `.include` y **las dos ROMs
@@ -365,14 +377,6 @@ refactors: **no hay features hasta que cierre**.
    includes sí cambia la ROM**, porque el acomodo sigue el orden de aparición
    —partir sin reordenar es seguro, reordenar es otra decisión y ahí el md5
    deja de servir de red—.
-
-7. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
-   de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
-   en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
-   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
-   global variable, y la tanda deja de convertir y ensamblar 170 veces listas
-   casi iguales. Va **después** de los goldens, porque cambiar qué cartucho
-   arma cada caso mueve los PNG.
 
 **Lo que se decidió no hacer:** dejar de armar `demo-ciudad`. Es la misma
 receta que `demo-titulo` con `--con-titulo` de más, o sea un subconjunto, pero
