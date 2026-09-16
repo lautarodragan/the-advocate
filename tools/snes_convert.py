@@ -38,6 +38,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import bancos
 import event_codes
 import eventos
 import lcf
@@ -2794,7 +2795,7 @@ def escenas_de(escenas, tropas):
     return [cual.get(numero, 0xFF) for numero in tropas]
 
 
-def bloque(label, data, per_line=16, alinear=None):
+def bloque(label, data, per_line=16, alinear=None, acomodar=True):
     """Un bloque de datos con su declaración de acomodo.
 
     Cada bloque se declara antes de emitirlo: casi todos se suben por DMA, y un
@@ -2802,9 +2803,14 @@ def bloque(label, data, per_line=16, alinear=None):
     celdas no se sube por DMA sino que se recorre con un puntero, así que no le
     hace falta el banco entero: sólo que sus palabras no queden partidas entre
     el final de un banco y el principio del siguiente.
+
+    `acomodar=False` es para lo que va a TABLAS: esa área vive entera adentro
+    del banco 0 —termina en $7FC0—, así que nada de lo que caiga ahí puede
+    cruzar, y declararlo emitía una cuenta que siempre daba cero.
     """
-    out = [".alinear %d" % alinear if alinear else ".bloque %d" % len(data),
-           "%s:" % label]
+    out = ([".alinear %d" % alinear if alinear else ".bloque %d" % len(data)]
+           if acomodar else [])
+    out.append("%s:" % label)
     for i in range(0, len(data), per_line):
         out.append("    .byte " + ",".join("$%02X" % b
                                            for b in data[i:i + per_line]))
@@ -4626,7 +4632,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
         # de datos. Con ella en RODATA leía basura, y el texto salía en negro.
-        handle.write(bloque("fuente_color", bytes(ventana["color"])) + "\n")
+        handle.write(bloque("fuente_color", bytes(ventana["color"]),
+                            acomodar=False) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
         handle.write(tabla_de_senos() + "\n")
@@ -6093,6 +6100,13 @@ def main():
     print("música -> %s: %s"
           % (musica, ", ".join(t["nombre"] for t in hechos)
              or "ninguna, sale muda"))
+
+    # **Y recién acá se decide el acomodo de bancos**, con los dos archivos ya
+    # escritos: depende de todo lo que haya antes en RODATA, y el orden es el
+    # de los `.include` de main.s —la música primero—. Ver `tools/bancos.py`.
+    resueltos, rellenaron = bancos.resolver([musica, args.output])
+    print("acomodo de bancos: %d bloque(s), %d con relleno"
+          % (resueltos, rellenaron))
     for i, tema in enumerate(hechos):
         # El porcentaje de notas que llegan al stream va acá y no escondido:
         # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo

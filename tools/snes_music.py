@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import bancos
 import lcf
 import musica
 import midi
@@ -1066,6 +1067,10 @@ def main():
          [{"nombre": name, "stream": stream, "segundos": seconds,
            "resumen": summary}],
          driver, samples, arranque=0, paquetes=[([0], [])])
+    # El acomodo de bancos, igual que cuando lo emite el conversor: acá la
+    # música es lo único que hay en RODATA, así que se resuelve sola. Ver
+    # `tools/bancos.py`.
+    bancos.resolver([args.output])
     print("  driver %d B, muestras %d B, stream %d B -> %s"
           % (len(driver), sum(len(v.data) for v in samples), len(stream),
              args.output))
