@@ -66,10 +66,9 @@ enum Kind {
     ///
     /// **On its way out.** A linker cannot place variable-size blocks, so the
     /// padding is now worked out upstream, by whoever generates the data: what
-    /// reaches this assembler is a plain `.res`. What is left are the blocks
-    /// written by hand *after* the generated ones in the same segment, whose
-    /// offset the generator cannot know. Those need either a segment of their
-    /// own, aligned by the memory map, or a layout that puts them first.
+    /// reaches this assembler is a plain `.res`. Hand-written code outside
+    /// bank 0 goes in `FAR`, which always starts on a bank boundary, so
+    /// nothing uses this directive any more.
     BankFit { needed: i64 },
     /// Space reserved in RAM: it takes up room but is not written to the ROM.
     Reserve,

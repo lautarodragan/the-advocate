@@ -357,6 +357,21 @@ se pueden empezar hoy.
    generado termine pegado a un banco, porque el segundo `.bloque` a mano
    seguía sin resolverse y el código a mano seguía moviéndose por cartucho.
 
+   **6a está hecho** (2026-09-16): el código a mano va en el segmento `FAR`,
+   que `w65` ubica antes de RODATA y arranca siempre en `$01:8000`; termina
+   con `.alinear $8000`, y lo generado arranca en `$02:8000`. Ya no queda
+   ningún `.bloque` en el árbol. Que `FAR` entre en un banco lo cuida
+   `test_el_codigo_a_mano_entra_en_el_banco_1`.
+
+   **Lo que falta para 6b**, en orden: que `tools/bancos.py` emita
+   `.segment "BANCOnn"` donde hoy emite `.res`, y que un bloque de más de un
+   banco —la grilla de celdas, 40 KB, que se recorre con un puntero y no por
+   DMA— siga contiguo partiéndose en dos segmentos seguidos; que el conversor
+   escriba el `.cfg` (un área de `$8000` con `fill = yes` por banco, `FAR` en
+   la del 1); traducir `.alinear` → `.align` y `.controlar` → `.assert`, y
+   los dos `lda #-1`; y que las recetas llamen a `ca65` + `ld65`. Recién
+   entonces se borra `w65/`.
+
    Va en dos commits. **6a**, el layout nuevo todavía con `w65`: como mueve
    bytes, el criterio es que **ninguna golden se mueva**, que la tabla de
    símbolos sea igual salvo el corrimiento de banco, y `test_cores.py` en

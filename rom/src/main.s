@@ -1579,8 +1579,8 @@ anim_continua:
 
     ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
     ; ocho bytes más adelante, que es donde cada bloque guarda su capa de
-    ; encima; sumar ocho no puede desbordar el banco porque `.bloque` garantiza
-    ; que la tabla entera entra en uno.
+    ; encima; sumar ocho no puede desbordar el banco porque el acomodo de
+    ; `tools/bancos.py` garantiza que la tabla entera entra en uno.
     lda f:mapa_tabla + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:mapa_tabla + M_PTR_MAP_BLOQUES, x
@@ -8608,8 +8608,8 @@ reusada:
     sta ruta_ev + 18, x
     ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
     ; La suma no se lleva nada al byte de banco porque el bloque de código del
-    ; mapa entra entero en uno —lo garantiza el `.bloque` con que lo emite el
-    ; conversor—, que es el mismo argumento que el del bloque de mensajes.
+    ; mapa entra entero en uno —lo garantiza el acomodo de bancos del
+    ; conversor, `tools/bancos.py`—, que es el mismo argumento que el del bloque de mensajes.
     rep #$20
 .a16
     tya
@@ -21909,7 +21909,8 @@ saltar:
     bra saltar
 puesto:
     ; El bloque vive en el cartucho y su puntero está en el registro del mapa.
-    ; `.bloque` garantiza que entra entero en un banco, así que la suma de
+    ; El acomodo de `tools/bancos.py` garantiza que entra entero en un banco,
+    ; así que la suma de
     ; dieciséis bits no se sale.
     phx
     ldx mapa_ofs
@@ -25319,8 +25320,8 @@ salto_por_vel:
     clc
     adc temp
     ; La suma puede pasarse de los 16 bits del desplazamiento, así que el banco
-    ; se toma del acarreo: `.bloque` garantiza que el bloque no cruce de banco,
-    ; no en qué banco arranca.
+    ; se toma del acarreo: el acomodo de `tools/bancos.py` garantiza que el
+    ; bloque no cruce de banco, no en qué banco arranca.
     sta A1T0L
     sep #$20
 .a8
