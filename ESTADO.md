@@ -346,8 +346,42 @@ se pueden empezar hoy.
    paletas en otro orden, 6 distintas y **ninguna peor**. **Criterio: decir qué
    cambió y qué goldens se mueven; taro las mira y decide.**
 
-9. **Agrupar los cartuchos, y separar armar de correr.** Casi cada caso arma el
-   suyo: son 176 directorios y 874 MB en `rom/build/tanda/`, con la clave ya
+9. **Un solo cartucho para todas las pruebas.** Regla de taro, el 2026-09-16:
+   *"nunca dos builds distintos para incluir distintos datos"*. No hace falta
+   que lleve todos los mapas del juego, pero **cada mapa que se suma al
+   proyecto se suma para todos los builds**.
+
+   Hoy casi cada caso arma el suyo: **176 directorios y 874 MB**, con la clave
+   ya siendo el hash de los argumentos —o sea que agrupar por hash no agrupa—.
+   Con un cartucho único, el banco 0 pasa a tener **un** número en vez de uno
+   por caso, `mapdata.inc` deja de ser estado global, y las pruebas dejan de
+   compilar: se les pasa la ruta del cartucho, que es la idea de taro de que el
+   test no sepa armar nada.
+
+   **Y puede pedir compresión primero.** La unión de mapas que las pruebas
+   necesitan hoy son **32**, y `demo-ciudad` con 29 ya usa el **74,4%** del
+   cartucho —con el mapa 52, que es de los grandes, entre los que faltan—. No
+   está medido si entra: el intento de armarlo quedó a medias. Si no entra, la
+   compresión sube de prioridad y va **al final de esta etapa, antes de
+   cualquier feature**, que es lo que taro decidió.
+
+   Lo que se puede esperar de comprimir, medido: la parte usada de
+   `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
+   cartucho son gráficos, que es lo compresible, y descomprimir al cargar un
+   mapa es la técnica de la consola. Ojo con medirlo mal: el `.sfc` entero da
+   97% porque el millón de ceros de relleno comprime a nada, y el `mapdata.inc`
+   da 89% porque es **texto** —números decimales con comas—, no los bytes que
+   viajan en la ROM.
+
+   Lo que el mapa ya ahorra sin comprimir, para no rehacerlo: no se guarda el
+   tilemap sino la **celda de 16×16 de RM2k**, con sus cuatro celdas de fondo,
+   sus cuatro de la capa de encima y su pasabilidad juntas —512 bloques
+   distintos en todo el juego—. En el mapa 52 eso es 40.000 B contra 160.000, y
+   **borró la tabla de colisión entera**. Medido aparte: **el 85,3% de la capa
+   de encima es el tile vacío**, así que si hiciera falta más, el primer lugar
+   donde mirar es un RLE sobre la grilla de bloques, no los ceros de la capa.
+
+   Lo de abajo queda absorbido por lo de arriba: son 176 directorios y 874 MB en `rom/build/tanda/`, con la clave ya
    siendo el hash de (grupo, flags) —o sea que el hash solo no agrupa—.
    Agruparlos a mano en unos pocos da tres cosas: el banco 0 pasa a tener un
    número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
