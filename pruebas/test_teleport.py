@@ -37,16 +37,6 @@ def compilar_un_teleport(destino):
     return eventos._compilar(cmd, lambda m: destino)
 
 
-def test_el_destino_viaja_en_dos_bytes():
-    codigo = compilar_un_teleport(LEJOS)
-    assert len(codigo) == eventos.OPCODE_SIZE[eventos.OP_TELEPORT]
-    estado = eventos.Estado()
-    eventos.ejecutar(codigo + bytes([eventos.OP_DONE]), estado)
-    # El mapa, y de paso la celda, que es lo que se correría si el largo
-    # estuviera mal.
-    assert estado.salto == (LEJOS, 12, 34)
-
-
 def test_un_destino_que_no_entra_en_un_byte_no_se_trunca():
     """El caso que el formato viejo no podía: 300 & 0xFF es 44."""
     assert compilar_un_teleport(LEJOS) != compilar_un_teleport(LEJOS & 0xFF)

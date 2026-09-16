@@ -92,11 +92,6 @@ def bytes_de_pan(operacion, direccion, distancia, velocidad, esperar):
                   paso_de_pan(velocidad), 1 if esperar else 0])
 
 
-def con_signo(palabra):
-    """Los dieciséis bits de un word leídos como entero con signo."""
-    return palabra - 0x10000 if palabra & 0x8000 else palabra
-
-
 def paso_de_pan(velocidad):
     """Cuánto corre la cámara por cuadro, en 1/16 de pixel.
 
@@ -107,15 +102,6 @@ def paso_de_pan(velocidad):
     return 2 << min(PAN_VEL_MAX, max(PAN_VEL_MIN, velocidad))
 
 
-def cuadros_de_pan(falta, paso):
-    """Cuántos cuadros espera la página que pidió el pan con `esperar`.
-
-    Es `Game_Player::GetPanWait`: la distancia que falta dividida por el paso,
-    redondeando para arriba. Se mide **al pedirlo** y sobre lo que falta, no
-    sobre lo que este comando pidió: con un pan todavía corriendo RM2k espera
-    por los dos, y de ahí el comentario de `CommandPanScreen` sobre el máximo.
-    """
-    return -(-falta // paso)
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 LUGAR_POR_VARIABLE = 1      # y no hay una tercera: `CommandChangeEventLocation`
                             # tiene dos ramas y nada más
@@ -2367,18 +2353,6 @@ def indexar_variables(game_dir, extra=()):
     return dict(VARIABLE_SLOT)
 
 
-def con_signo_byte(valor):
-    return valor - 256 if valor & 0x80 else valor
-
-
-def cumple_comparacion(valor, comparacion, contra):
-    """`CheckOperator` de RM2k: ==, >=, <=, >, <, != en ese orden. Lo usan la
-    rama por variable y la condición de página; en la ROM es `comparar_var`
-    para las dos."""
-    return (valor == contra, valor >= contra, valor <= contra, valor > contra,
-            valor < contra, valor != contra)[comparacion]
-
-
 def ranura_de_variable(numero):
     if numero not in VARIABLE_SLOT:
         raise NoSePuede("la variable %d no tiene ranura en esta ROM" % numero)
@@ -3992,17 +3966,6 @@ class Ruta:
         if self.ordenes_pagina:
             self.cargar_pagina(self._propia(), self.pagina)
 
-    def cortar_paso(self):
-        """Deja al personaje sobre su celda: sin paso ni salto en curso.
-
-        Es lo que hace `MoveTo` con `SetRemainingStep(0)`. Las órdenes, la
-        espera y hacia dónde mira quedan como estaban.
-        """
-        self.paso_dir = None
-        self.paso_cuadros = 0
-        self.paso_resta = 0
-        self.salto_resta = 0
-        self.arranco_salto = None
 
     @property
     def pendiente(self):
@@ -4494,9 +4457,6 @@ class Estado:
                                                               (0, 0))
         return x if cual == PERSONAJE_X else y
 
-    def poner_variable(self, ranura, valor):
-        """Dieciséis bits con signo, dando la vuelta como la ROM."""
-        self.variables[ranura] = con_signo(valor & 0xFFFF)
 
     def azar(self, a, b):
         """Un número entre a y b, del xorshift compartido con la ROM."""
@@ -4557,41 +4517,6 @@ class Estado:
             self.rutas_ev[indice].mirando_pagina = self.miradas.get(indice, 2)
         return self.rutas_ev[indice]
 
-    def mover_evento(self, indice, x, y):
-        """Planta al evento en la celda, como `Game_Character::MoveTo`.
-
-        La celda es la nueva desde este cuadro y el paso o el salto en curso
-        se cortan —`SetRemainingStep(0)`—: el evento se dibuja exactamente
-        sobre la celda. Lo que **no** se toca es la ruta, que sigue con la
-        orden siguiente desde acá, ni hacia dónde mira. Un evento que nunca
-        recibió una ruta tampoco la recibe por esto: en la ROM no se lleva
-        una ranura, y se dibuja con la pose de su página, sólo que en otra
-        celda.
-        """
-        self.pos_ev[indice] = (x, y)
-        if indice in self.rutas_ev:
-            self.rutas_ev[indice].cortar_paso()
-
-    def rutas_pendientes(self):
-        """Si queda alguna ruta forzada sin terminar, la del héroe incluida.
-
-        Es `Game_Map::IsAnyMovePending`, y es global a propósito:
-        `ProceedWithMovement` no espera al evento que se acaba de mandar a
-        caminar sino a que no quede ninguno.
-        """
-        return (self.ruta_heroe.pendiente
-                or any(r.pendiente for r in self.rutas_ev.values()))
-
-    def parar_rutas(self):
-        """`Game_Map::RemoveAllPendingMoves`, o sea `HaltAllMovement`.
-
-        Cancela la ruta forzada del héroe y la de cada evento del mapa, sin
-        excepciones: es global igual que `rutas_pendientes`. Los vehículos de
-        RM2k no existen en este port.
-        """
-        self.ruta_heroe.cancelar()
-        for ruta in self.rutas_ev.values():
-            ruta.cancelar()
 
     def pan_falta(self):
         """Lo que le falta al pan, que es de lo que sale la espera. Es el
@@ -5070,291 +4995,6 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_TINT]) + bytes(tinte[:3])
         codigo += bytes([tinte[3] if len(tinte) > 3 else TINTE_NEUTRO])
     return codigo + bytes([OP_DONE])
-
-
-
-# Lo que `ejecutar` devuelve como "cuántos cuadros esperar" cuando la espera no
-# es una cuenta sino una condición: que no quede ninguna ruta forzada corriendo.
-# Es un valor aparte y no un número grande para que nadie lo sume por error.
-ESPERAR_RUTAS = "rutas"
-
-
-def ejecutar(codigo, estado, desde=0):
-    """Corre la página desde `desde` hasta toparse con una espera o el final.
-
-    Devuelve None si la página terminó, o (cursor, cuadros_a_esperar, salto) si
-    hay que devolver el control. Igual que `correr_codigo` en la ROM, que ahora
-    también vuelve con el cursor guardado en vez de correr la página entera.
-
-    **El cursor lo avanza `opcode_size` y nadie más.** Cuánto ocupa cada
-    instrucción es del formato, y el formato lo declara `protocol/events.toml`:
-    escrito otra vez acá adentro, rama por rama, era la tercera copia de esa
-    tabla, y ya se pagó una —la copia que se quedó vieja cuando `OP_ROUTE` sumó
-    un byte dejó doce casos de la tanda en rojo—. Una copia vieja no da un
-    error: da una página que lee el stream corrido.
-
-    Por eso **lo que no se modela no necesita ninguna rama**: cae al avance del
-    final del lazo. Los que están acá son los que cambian el estado o el
-    cursor, y los demás —el audio, la pantalla, los carteles, la tienda,
-    guardar— pasan de largo sin que este archivo tenga que saber su largo.
-    """
-    i = desde
-    while i < len(codigo):
-        op = codigo[i]
-        # Y acá se cae el opcode que no existe: `opcode_size` no sabe medir lo
-        # que no está declarado, así que el `else` que revisaba eso sobra.
-        paso = opcode_size(codigo, i)
-        if op == OP_DONE:
-            return None
-        elif op == OP_SWITCH:
-            numero = codigo[i + 1] | (codigo[i + 2] << 8)
-            if codigo[i + 3]:
-                estado.switches.add(numero)
-            else:
-                estado.switches.discard(numero)
-        elif op == OP_IF:
-            # `CommandConditionalBranch`: si no se cumple, el cursor se va al
-            # `else` o al `end`. El destino es absoluto dentro de la página, así
-            # que el salto es la asignación.
-            #
-            # El tipo es el de RM2k tal cual, y la polaridad quiere decir cosas
-            # distintas según cuál sea: en un switch 0 es "prendido" y en el oro
-            # 0 es ">=".
-            tipo = codigo[i + 1]
-            operando = codigo[i + 2] | (codigo[i + 3] << 8)
-            polaridad = codigo[i + 4]
-            if tipo == COND_SWITCH:
-                vale = (operando in estado.switches) == (not polaridad)
-            elif tipo == COND_ORO:
-                vale = (estado.oro >= operando if not polaridad
-                        else estado.oro <= operando)
-            elif tipo == COND_ITEM:
-                # `GetItemCount(id) > 0`, sin `GetEquippedItemCount`: no hay
-                # equipo. La polaridad es la del switch —0 es "tiene que
-                # tenerlo"— y la ROM la resuelve con el mismo `eor`.
-                vale = (estado.item(operando) > 0) == (not polaridad)
-            elif tipo == COND_ACTOR:
-                vale = operando in estado.grupo
-            else:
-                raise ValueError("condición %d que no conozco" % tipo)
-            if not vale:
-                i = codigo[i + 5] | (codigo[i + 6] << 8)
-                continue
-        elif op == OP_IF_ACTOR:
-            # Las dos preguntas de actor que llevan dos operandos. Salta igual
-            # que `OP_IF` —el destino es absoluto dentro de la página— y no
-            # tiene polaridad: ver OP_IF_ACTOR.
-            if not _ACTORES_INDEXADOS:
-                raise ValueError("una rama de actor sin `indexar_actores`: "
-                                 "contestaría que no sin decirlo")
-            sub = codigo[i + 1]
-            actor = codigo[i + 2]
-            dato = codigo[i + 3] | (codigo[i + 4] << 8)
-            if sub == COND_ACTOR_EQUIPO:
-                # Los cinco `Get*Id()` comparados contra el ítem, que es el
-                # `||` de easyrpg: alcanza con que esté en una ranura.
-                vale = dato in estado.equipo_de(actor)
-            elif sub == COND_ACTOR_HABILIDAD:
-                vale = dato in ACTOR_SABE.get(actor, ())
-            else:
-                raise ValueError("pregunta de actor %d que no conozco" % sub)
-            if not vale:
-                i = codigo[i + 5] | (codigo[i + 6] << 8)
-                continue
-        elif op == OP_KEY:
-            # Ver OP_KEY. La de arrancar pone la variable en cero y devuelve
-            # el control sin mirar nada; la que espera se **rebobina a sí
-            # misma** hasta que haya tecla, así que se la vuelve a ejecutar
-            # cuadro a cuadro. `(i, 0, None)` es exactamente eso: el cursor
-            # queda en este opcode y no hay cuadros que esperar, que es lo
-            # mismo que hace `op_key` en la ROM con `sty ev_cur`.
-            ranura, banderas = codigo[i + 1], codigo[i + 2]
-            ranura &= VAR_RANURA_MAX
-            if banderas & TECLA_ARRANCA:
-                estado.poner_variable(ranura, 0)
-                return (i + paso, 0, None)
-            # La que espera mira el **flanco** —`Input::IsTriggered`, lo mismo
-            # que cierra un mensaje— y la que no espera, lo que está puesto
-            # —`IsPressed`—. Es lo que hace `tecla_valor` en la ROM: la de
-            # espera contra `pad_ant`, la otra contra `pad` a secas.
-            valor = tecla_de(banderas,
-                             estado.pad - estado.pad_ant
-                             if banderas & TECLA_ESPERA else estado.pad)
-            if banderas & TECLA_ESPERA and not valor:
-                return (i, 0, None)
-            estado.poner_variable(ranura, valor)
-        elif op == OP_ITEM:
-            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], como
-            # `CommandChangeItems`. La ROM hace lo mismo en `op_item`, y además
-            # pide el refresco de páginas, que es de lo que acá no hay nada.
-            numero = codigo[i + 1] | (codigo[i + 2] << 8)
-            delta = con_signo_byte(codigo[i + 3])
-            estado.items[numero] = max(0, min(ITEM_MAX,
-                                              estado.item(numero) + delta))
-        elif op == OP_GOLD:
-            # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
-            monto = (codigo[i + 2] | (codigo[i + 3] << 8)
-                     | (codigo[i + 4] << 16))
-            estado.oro = max(0, min(ORO_MAX, estado.oro
-                                    + (-monto if codigo[i + 1] else monto)))
-        elif op == OP_GOTO:
-            i = codigo[i + 1] | (codigo[i + 2] << 8)
-            continue
-        elif op == OP_TELEPORT:
-            # El resto de la página sí corre. En
-            # `Game_Interpreter_Map::CommandTeleport` el motor reserva el
-            # teletransporte, hace `index++` y devuelve false: corta el cuadro,
-            # pero retoma en el comando siguiente una vez cambiado el mapa. Acá
-            # la página corre entera de una, así que seguir es lo mismo que
-            # retomar, y con dos teletransportes gana el último —que es también
-            # dónde RM2k deja al héroe—.
-            #
-            # Lo que este modelo no hace es correr los eventos automáticos del
-            # mapa intermedio, que RM2k sí correría entre un teletransporte y el
-            # siguiente. En la cinemática de apertura los dos van al mismo mapa,
-            # así que no cambia nada; si alguna vez aparece una página que salte
-            # entre mapas distintos, esto hay que mirarlo de nuevo.
-            estado.salto = (codigo[i + 1] | (codigo[i + 2] << 8),
-                            codigo[i + 3] | (codigo[i + 4] << 8),
-                            codigo[i + 5] | (codigo[i + 6] << 8))
-            return (i + paso, 0, True)  # corta el cuadro, como `return false`
-        elif op == OP_DELAY:
-            # Y acá se devuelve el control. Antes se salteaba: "no tenemos
-            # cuadros que dejar pasar", decía el comentario, y era cierto
-            # mientras la página corriera entera con la pantalla apagada.
-            cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
-            return (i + paso, cuadros, False)
-        elif op == OP_ROUTE:
-            # La ruta se encola y la camina quien la recibió, no el intérprete:
-            # en RM2k `ForceMoveRoute` es asincrónico y la página sigue. Quien
-            # la hace avanzar es `paso_de_ruta` / `animar_ruta_ev` en main.s,
-            # una vez por cuadro. Y encolar pisa lo que hubiera: RM2k sobrescribe la
-            # ruta forzada anterior, no la encadena.
-            blanco = codigo[i + 1]
-            frecuencia = codigo[i + 2]
-            cuantos = codigo[i + 3]
-            ordenes = list(codigo[i + 4:i + 4 + cuantos])
-            ruta = (estado.ruta_heroe if blanco == 0
-                    else estado.ruta_de_evento(blanco - 1))
-            if blanco:
-                estado.giro_por_ruta(blanco - 1)
-            ruta.reemplazar(ordenes, frecuencia)
-        elif op == OP_PAN:
-            # `CommandPanScreen`. Mueve el destino y devuelve el control en el
-            # mismo cuadro; con `esperar`, la página se queda los cuadros que
-            # dice `GetPanWait` sobre lo que falta **después** de moverlo.
-            if codigo[i + 1] == PAN_VOLVER:
-                estado.pan_dest_x = estado.pan_dest_y = 0
-            else:
-                estado.pan_dest_x += con_signo(codigo[i + 2]
-                                               | (codigo[i + 3] << 8))
-                estado.pan_dest_y += con_signo(codigo[i + 4]
-                                               | (codigo[i + 5] << 8))
-            estado.pan_paso = codigo[i + 6]
-            espera = (cuadros_de_pan(estado.pan_falta(), estado.pan_paso)
-                      if codigo[i + 7] else 0)
-            if espera:
-                return (i + paso, espera, False)
-        elif op == OP_VAR:
-            ranura, operacion, clase = codigo[i + 1], codigo[i + 2], codigo[i + 3]
-            ranura &= VAR_RANURA_MAX
-            a = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
-            b = con_signo(codigo[i + 6] | (codigo[i + 7] << 8))
-            if clase == VAR_CONSTANTE:
-                valor = a
-            elif clase == VAR_VARIABLE:
-                valor = estado.variable(a)
-            elif clase == VAR_AZAR:
-                valor = estado.azar(a, b)
-            elif clase == VAR_PERSONAJE:
-                valor = estado.coordenada(a, b)
-            elif a == OTRO_ORO:
-                valor = min(estado.oro, 0x7FFF)
-            else:
-                valor = estado.timer_cuadros // CUADROS_POR_SEGUNDO
-            actual = estado.variable(ranura)
-            estado.poner_variable(ranura, valor if operacion == VAR_PONER
-                                  else actual + valor if operacion == VAR_SUMAR
-                                  else actual - valor)
-        elif op == OP_IF_VAR:
-            ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
-            contra = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
-            if clase == VAR_VARIABLE:
-                contra = estado.variable(contra)
-            if not cumple_comparacion(estado.variable(ranura), comparacion,
-                                      contra):
-                i = codigo[i + 6] | (codigo[i + 7] << 8)
-                continue
-        elif op == OP_BATTLE:
-            # La pelea bloquea adentro del intérprete y **no cuesta ningún
-            # tick**: en la ROM `batalla_pantalla` corre su propio lazo de
-            # cuadros sin que `vueltas` avance, así que los dos lados salen del
-            # opcode en el mismo tick tarde lo que tarde el jugador.
-            #
-            # Lo que sí hay que elegir es **por dónde sigue la página**, y acá
-            # no hay nadie peleando: se va por la rama de victoria, que es la
-            # única de las tres que continúa la escena en el camino normal
-            # —perder y huir son salidas—.
-            #
-            # Lo que la pantalla de la pelea muestra lo cobran los casos
-            # `batalla` de la tanda, y lo que la pelea le hace a los HP,
-            # `pruebas/test_batalla.py`.
-            i = codigo[i + 3] | (codigo[i + 4] << 8)
-            continue
-        elif op == OP_PLACE:
-            # `MoveTo`: la celda cambia ya y el paso en curso se corta. La ruta
-            # sigue desde la celda nueva, y hacia dónde mira no cambia.
-            estado.mover_evento(codigo[i + 1] - 1,
-                                codigo[i + 2] | (codigo[i + 3] << 8),
-                                codigo[i + 4] | (codigo[i + 5] << 8))
-        elif op == OP_PLACE_VAR:
-            # El mismo `MoveTo` que `OP_PLACE`, con la celda leída de dos
-            # variables **al correr**. Ver OP_PLACE_VAR.
-            estado.mover_evento(codigo[i + 1] - 1,
-                                estado.variable(codigo[i + 2]),
-                                estado.variable(codigo[i + 3]))
-        elif op == OP_SWAP:
-            # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
-            # leídas antes de mover a ninguno.
-            a, b = codigo[i + 1] - 1, codigo[i + 2] - 1
-            donde_a, donde_b = estado.pos_ev[a], estado.pos_ev[b]
-            estado.mover_evento(a, *donde_b)
-            estado.mover_evento(b, *donde_a)
-        elif op == OP_TIMER:
-            # `CommandTimerOperation`, del que acá importa una sola de las
-            # cuatro operaciones: **cuánto marca el cronómetro**, que es lo que
-            # lee la clase "otro" de OP_VAR. Si corre y si se ve son dos cosas
-            # más que RM2k separa, y de este lado no las mira nadie: quien las
-            # necesita es el que dibuja, o sea `timer_tick` en main.s.
-            #
-            # No corta el cuadro: las operaciones son asignaciones.
-            operacion = codigo[i + 1]
-            if operacion == TIMER_PONER:
-                estado.timer_cuadros = ((codigo[i + 2] | (codigo[i + 3] << 8))
-                                        * CUADROS_POR_SEGUNDO
-                                        + TIMER_CUADROS_DE_MAS)
-            elif operacion == TIMER_PONER_VAR:
-                # Una variable negativa pone cero: `Game_Party::SetTimer` topa
-                # abajo en cero.
-                segundos = max(0, estado.variable(codigo[i + 2]))
-                estado.timer_cuadros = (segundos * CUADROS_POR_SEGUNDO
-                                        + TIMER_CUADROS_DE_MAS)
-        elif op == OP_STOP_ROUTES:
-            # `HaltAllMovement`. No cuesta un cuadro: `CommandHaltAllMovement`
-            # devuelve true, así que la página sigue en el mismo tick.
-            estado.parar_rutas()
-        elif op == OP_WAIT_ROUTES:
-            # "Esperá a que terminen las rutas". Se devuelve el control con una
-            # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
-            # ser, y quien decide es `eventos_tick` mirando si queda alguna
-            # pendiente. Si no queda ninguna no cuesta ni un cuadro, que es lo
-            # que hace el `while` de `Game_Interpreter::Update`.
-            if estado.rutas_pendientes():
-                return (i + paso, ESPERAR_RUTAS, False)
-        elif op == OP_PARTY:
-            estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
-        i += paso
-    return None
 
 
 # Los pesos de luminancia de RM2k, que son los de Y' del Y'CbCr: la cuenta de
