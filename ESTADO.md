@@ -15,7 +15,7 @@ El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treint
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
 que el párrafo de arriba dice que no va acá. Están enteras en el `git log`.
 
-Última vez que se tocó: 2026-09-15.
+Última vez que se tocó: 2026-09-16.
 
 **Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
 y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
@@ -63,41 +63,54 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
    esto es un compilador unidireccional, con pérdida y atado a un target. Lo
    que sí sale de acá es `tools/lcf.py` + `tools/ditto_schema.py` (2.793
    líneas), que en Rust pasan a ser `use ditto`. Y `tools/rm2k.py` —534 líneas
-   de semántica de RM2k— se **duplica** a Rust a propósito, con la copia de
-   Python quedando sólo para la referencia, hasta que se vayan las dos juntas;
+   de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
+   de dejar la copia de Python era la referencia, que ya no está; lo que la
+   sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
+   donde hay que decidir qué pasa con el modelo de `tools/eventos.py`: quedaron
+   seis funciones sin llamador —`altura_del_salto`, `destellar_pantalla`,
+   `lluvia_tono`, `oscurecer`, `destellar_canal_pantalla` y
+   `brillo_de_fundido`—, y no se borraron porque son la definición escrita de la
+   aritmética del PPU y de RM2k, citada por comentarios vivos del conversor y
+   por el README. **Que decida taro**;
 5. **el arnés del emulador**, y no antes: un arnés en Rust llamando a una
    referencia en Python es peor que cualquiera de los dos extremos. `retro.py`
    habla con el core por ctypes, así que ahí no hay nada nativo de Python;
-6. **se elimina `tools/snes_expect.py`**, la referencia, y con ella la regla de
-   que un cambio en la ROM y su cambio en la referencia van juntos.
+6. ~~se elimina `tools/snes_expect.py`, la referencia~~ **hecho el 2026-09-16**.
+   Con ella se fue la regla de que un cambio en la ROM y su cambio en la
+   referencia van juntos: la reescrita está en `AGENTS.md`, en "La regla que
+   sostiene todo".
 
 **Las pruebas se quedan en Python**, y no es deuda: es diseño. Decisión de taro
 —un lenguaje interpretado y menos estricto tiene ventajas ahí, y compilar para
-correr la tanda suma tiempo sin aportar casi nada—, y tiene un efecto
-estructural que conviene nombrar: mientras el conversor sea Rust y la
-referencia Python, **la frontera del lenguaje hace imposible que compartan
-código**, que es lo que hoy pasa y no debería (`snes_expect.py` le importa 25
-funciones a `snes_convert.py`).
+correr las pruebas suma tiempo sin aportar casi nada—. El efecto estructural que
+esto tenía —que mientras el conversor fuera Rust y la referencia Python la
+frontera del lenguaje les hiciera imposible compartir código— **se terminó al
+irse la referencia**: lo que queda del lado de Python son las pruebas y el
+modelo de RM2k de `tools/eventos.py`, que es del mismo lado que el conversor.
 
-### Cómo se reemplaza la referencia, que es el paso 6
+### Qué reemplazó a la referencia, que era el paso 6
 
-Golden files, confirmados **jugando** por taro, uno por uno. Lo que se pierde
-hay que decirlo: un golden caza regresiones, no errores de nacimiento — una
-feature que sale mal desde el día uno hornea el bug adentro del golden. Se
-acepta porque la evidencia dice que la referencia tampoco los cazaba: los bugs
-de esta semana —Delcentric, la colisión pegada del Hover-Tram, el HP de los
-enemigos, la música, el menú de batalla— los encontró él jugando, no la tanda.
-Donde la referencia sí se ganaba el sueldo era el pixel, que es justo donde un
-golden funciona mejor.
+Tres cosas, y conviene tener las tres juntas porque ninguna sola alcanza:
 
-Dos condiciones acordadas:
+* **las goldens**, capturas congeladas de la ROM en `pruebas/golden/tanda/`.
+  Cazan regresiones, no errores de nacimiento: una feature que sale mal desde el
+  día uno hornea el bug adentro de su golden. **Actualizar una es un acto
+  deliberado** —va a git, se mira, y el commit dice por qué el render cambió; la
+  tanda nunca regenera—, y ése es el único modo de falla real del esquema. El
+  porqué largo está en `pruebas/golden/tanda/LEEME.md` y en `AGENTS.md`;
+* **`pruebas/test_cores.py`**, que corre el mismo cartucho en snes9x y en bsnes
+  y compara las dos capturas entre sí. Es lo único que puede ver un error que
+  snes9x no ve, y por eso el parche de WRAM de bsnes pasó a importar más;
+* **que taro juegue.** Es lo que sostiene la corrección, y no es una frase: los
+  bugs de la semana en que esto se decidió —Delcentric, la colisión pegada del
+  Hover-Tram, el HP de los enemigos, la música, el menú de batalla— los encontró
+  él jugando y no la tanda.
 
-* **actualizar un golden tiene que ser un acto deliberado**, con la receta
-  imprimiendo qué cambió y exigiendo un flag; la tanda **nunca** regenera. Es
-  el único modo de falla real del esquema;
-* **no se borra la referencia hasta que los goldens existan y estén
-  bendecidos**. Capturar los 170 casos es barato; la bendición sólo la puede
-  dar él.
+**Lo que falta de esto**: las goldens se congelaron con la tanda en verde, o sea
+que lo que hornean es lo que la ROM dibujaba ese día, y **nadie las bendijo una
+por una**. La bendición sólo la puede dar él, y el precedente está: al arreglar
+el tinte que sobrevivía al cambio de mapa aparecieron tres goldens con el tinte
+horneado adentro y **dos de ellas pasaban**.
 
 Y lo que reemplaza a la referencia para las features **nuevas**: mirar las
 capturas. taro quiere presupuesto para eso —"la IA es excelente para leer
@@ -108,10 +121,12 @@ imágenes"— pero **fuera de la tanda**, que con visión sería demasiado cara.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando
 vuelta a vuelta.
 
-Al 2026-09-15: `just hitos-foto` son **170 casos, todos en verde**, y
-`just pruebas` **177 en verde y 1 `xfail`**. El `xfail` no es adorno, y desde
-el 2026-09-13 se sabe de quién es: es un defecto de la **página de prueba** de
-guardado y no del juego. Está abajo, en "Lo que la tanda no cubre".
+Cuántas pruebas hay y cuántas pasan lo imprime **`just pruebas`**, que desde el
+2026-09-16 las corre todas: la tanda de regresión dejó de ser una tanda aparte y
+sus casos son pruebas de pytest en `pruebas/test_tanda*.py`, contra las goldens.
+Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —es
+un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
+en "Lo que la tanda no cubre".
 
 Los cinco proyectos en Rust tienen sus propias tandas: `just w65-pruebas`,
 `brr-pruebas`, `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
@@ -157,13 +172,16 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
     ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     protocol/   declara los dos bytecodes              enchufado: los cuatro generados
     w65/        el ensamblador de 65816                enchufado: las ROMs salen de acá
-    brr/        códec BRR y lector de SoundFont        **no**: la ROM usa el de Python
-    tiles/      imagen -> tiles, paletas y tilemap     **no**: ídem
+    brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
+    tiles/      imagen -> tiles, paletas y tilemap     **no**: la ROM usa `pixeles.py`
 
-Los tres enchufados tienen su prueba de que no cambiaron nada: las ROMs salen
-byte por byte iguales a las de antes de cada corte. Los dos que no, tienen la
-suya de que **podrían** enchufarse: 608 muestras y 455 PNG idénticos a los del
-Python.
+**Los cuatro se consumen desde el PATH** —`just herramientas` los instala y
+ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
+
+Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
+byte por byte iguales a las de antes de cada corte. `tiles/` tiene la suya de
+que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
+frena es el desempate de `try_pack`, acá abajo.
 
 ### Lo que hay que decidir
 
@@ -181,10 +199,6 @@ Python.
   se acepta que el tilemap de algunos mapas cambie —y hay que rebendecir esos
   PNG—, o hay que reproducir el orden de hash de CPython adentro de un crate
   que no debería saber que CPython existe.
-* **Si se borra `tools/w65.py`.** Hoy es la segunda implementación que valida a
-  la de Rust, y de eso vive `just w65-comparar`. Borrarlo gana simplicidad y
-  pierde la única comparación que tenemos.
-
 ### Defectos de los originales, anotados y no arreglados
 
 Ninguno se tocó al portar, porque arreglarlos cambiaría la salida y eso es
@@ -206,14 +220,6 @@ decisión aparte:
   una libre lo mete igual y devuelve un grupo de más de 15 colores, y entonces
   `convert_above` muere con `ValueError: negative count`. Ninguna imagen del
   juego tiene una celda así.
-
-### El próximo cuello
-
-`pruebas/consola.py:695` arma sus ROMs llamando a `tools/w65.py` **desde
-Python**, no desde una receta, así que la migración del ensamblador no lo
-alcanzó. Buena parte de `just pruebas` es eso. Migrarlo pide decidir quién
-corre el `cargo build` cuando el que arranca es pytest y no `just`.
-
 
 ### La carrera, cuando llegue: 41 paralelos que comparan posiciones
 
@@ -239,84 +245,66 @@ que están cerca, en vez de los 41 todos los cuadros.
 Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
 refactors: **no hay features hasta que cierre**.
 
+**Al 2026-09-16 están hechos el 1, el 3 y el 4, y el 2 a medias.** O sea que lo
+que queda, en orden, es: enchufar `tiles/` —bloqueado por una decisión, no por
+trabajo—, que taro bendiga las goldens, `ca65` con el asignador, agrupar los
+cartuchos, y partir `main.s` al final. Los dos primeros no dependen de nadie y
+se pueden empezar hoy.
+
 1. ~~El tinte que sobrevive al cambio de mapa~~ **hecho el 2026-09-15**:
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. **Enchufar `brr/` y `tiles/`, y borrar los tres de Python** —`sf2.py`,
-   `pixeles.py`, `brr.py`— **más `w65.py`**. El argumento de dejarlos como
-   segunda implementación no se sostiene: si el port se equivoca, **la ROM
-   cambia y la tanda se pone roja**, así que la comparación ya la hace el
-   criterio de aceptación. Tener dos implementaciones sólo obliga a tocar las
-   dos. Cómo se comparaban queda en el `git log`.
-3. **Las 47 recetas de la tanda pasan a pytest.** Ya no contra la referencia:
-   **contra las capturas congeladas** de `pruebas/golden/tanda/`, que están
-   desde el 2026-09-15. Lo que hay que escribir es lo que hoy viaja como
-   archivos entre tres CLIs: el `--plan` —cuántos ticks correr, que sigue
-   haciendo falta y está congelado— y el `--arranque`. El `--saltar` ya no: con
-   goldens de captura no hay máscara.
+2. ~~Enchufar `brr/` y `tiles/`, y borrar los de Python~~ **a medias, el
+   2026-09-16**: se fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con
+   ellos `just snes-validar`. **Falta `tiles/`**, que sigue conviviendo con
+   `tools/pixeles.py` porque lo frena el desempate de `try_pack` —ver "Lo que
+   hay que decidir"—.
 
-   Es el trabajo que más destraba: se lleva puesto el grueso del justfile —47
-   recetas, 1.037 líneas—, los casos corren en paralelo con pytest, y las ROMs
-   se comparten solas porque `armar()` ya cachea por huella. Eso último es el
-   objetivo de que **las pruebas no compilen nada**, y sale por el mismo
-   trabajo.
+   El argumento que cerró la discusión, y que vale para lo que falta: dejar una
+   segunda implementación no se sostiene, porque si el port se equivoca **la ROM
+   cambia y las goldens se ponen rojas**, así que la comparación ya la hace el
+   criterio de aceptación. Tener dos sólo obliga a tocar las dos. Cómo se
+   comparaban queda en el `git log`.
+3. ~~Las recetas de la tanda pasan a pytest~~ **hecho el 2026-09-16**. La tanda
+   dejó de existir como tanda: sus casos son pruebas de `pruebas/test_tanda*.py`
+   y comparan contra las goldens. Se fueron `rom/hitos.txt`, las recetas
+   `hitos`, `hitos-paralelo` y `hitos-foto`, el prefijo `snes-` de las recetas
+   que quedaron, `tools/snes_crop.py` y la receta `mednafen` con
+   `rom/mednafen.sh`. Lo que era el caso `bsnes` es ahora
+   `pruebas/test_cores.py`, comparando snes9x contra bsnes.
 
-   **Antes de borrar una receta hay que leerle el comentario.** Varias llevan
-   trampas que no son del caso sino del **arnés**, y el que herede el caso las
-   va a necesitar: la celda (22,8) de `tecla` —un toque de dirección lo lee
-   también el héroe—, el cuadro que se saltea en `ruta-evento` porque la ROM
-   sube CGRAM en el vblank siguiente, el `--toques-hardware` que ignoraba
-   `--apretar-a`. Si se borran de corrido eso se pierde y no está en ningún
-   otro lado.
+   Lo que quedó decidido y hay que respetar de acá en adelante:
 
-   Y **`mednafen` y `bsnes` no son casos como los demás**, y el piloto aclaró
-   en qué se diferencian entre sí. **`bsnes` es un core de libretro**, igual
-   que snes9x, así que tiene salida limpia: correr el mismo cartucho en los dos
-   cores y **comparar las dos capturas entre sí**, que contesta exactamente lo
-   que ese caso existe para contestar, sin referencia y sin golden.
-   **`mednafen` es el binario de verdad**, con Xvfb y captura **por reloj de
-   pared**: no hay tick con el que alinear, así que no puede volverse una
-   prueba de pytest tal como está, y **es lo único que obliga a que
-   `snes_expect.py` siga existiendo**. Esa decisión hay que tomarla al borrar
-   la referencia.
+   * **corre secuencial, sin `pytest-xdist`** —primero simplificar, el
+     paralelismo después—;
+   * **la clave del directorio de cada cartucho es el hash de (grupo, flags)**,
+     porque un directorio por caso son ~900 MB. De ahí sale que `mapdata.inc`
+     haya dejado de ser estado global para las pruebas;
+   * el caso `elegir` **compara sólo píxeles**;
+   * las trampas que vivían en el comentario de cada receta se mudaron al
+     docstring de su caso —la celda (22,8) de `tecla`, el cuadro que se saltea
+     en `ruta-evento`, el `--toques-hardware` que ignoraba `--apretar-a`—. Son
+     del **arnés** y no del caso, y no están en ningún otro lado.
 
-   Son la única cosa que compara contra otro emulador. Ahora que las goldens son capturas de
-   snes9x, la tanda entera compara snes9x contra snes9x, así que ésos dos son
-   lo único que puede decir "anda acá y no en la consola". Si en la mudanza se
-   les congela una golden de snes9x, se vuelven decoración.
+   Y una idea de taro que sigue pendiente: **separar armar la ROM de correr las
+   pruebas**, pasándole la ruta del cartucho a la suite como argumento. Con eso
+   el test deja de saber compilar y pasa a ser sólo "corré esto y compará", que
+   es lo que hace evidente qué se está probando. Encaja con agrupar los
+   cartuchos, que es el punto 5.
 
-   Y `rom/hitos.txt` queda como **único lugar** donde vive el porqué de cada
-   caso, así que su cabecera —que todavía habla de `just snes-hitos`— hay que
-   rehacerla en esa vuelta.
+4. ~~Los golden files, y con ellos la referencia afuera~~ **hecho el
+   2026-09-16**. Las goldens son **capturas de la ROM** y no lo que la
+   referencia calculaba, y por eso se comparan en cero pixeles exactos y sin
+   máscara: lo que ninguna referencia podía modelar —cuál sprite descarta el PPU
+   cuando un scanline se pasa de 34 tiles de objeto— el emulador sí lo sabe, y
+   con eso se fueron 25 máscaras y 1.496 líneas que la tanda miraba y
+   descartaba.
 
-   **Decidido con taro el 2026-09-16**, después del piloto: se va **secuencial,
-   sin `pytest-xdist`** —primero simplificar, el paralelismo después—; el caso
-   `elegir` **compara sólo píxeles**, y se acepta perder el texto de la ventana
-   que la referencia imprimía; y la clave del directorio de cartucho es el
-   **hash de (grupo, flags)**, porque un directorio por caso son ~900 MB.
-
-   Y una idea suya para la vuelta siguiente: **separar armar la ROM de correr
-   las pruebas**, y pasarle la ruta del cartucho a la suite como argumento. Con
-   eso el test deja de saber compilar y pasa a ser sólo "corré esto y
-   compará", que es lo que hace evidente qué se está probando. Encaja con el
-   paso de agrupar cartuchos.
-
-   **El piloto dejó medido lo que más importa**: `Partida.correr` ya *es* el
-   lazo de `snes_correr.py` —mismo cuadro de arranque que `--arranque 115`, las
-   dos cuentan ticks de `vueltas`, las dos descuentan `RETRASO_DE_PANTALLA`—,
-   así que la brecha es **ancha y no profunda**: 25 flags del conversor, la
-   aridad de `--pagina-de-prueba` (cuatro números en 18 recetas) y cinco cosas
-   del corredor, de las cuales `--toques-hardware` es la única que bloquea.
-   Un caso cuesta **2,4 veces menos en frío y 19 veces menos en caliente**.
-
-4. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
-   la decisión sino los goldens: los 170 casos comparan contra
-   `snes_expect.py`, no contra PNG. Capturarlos es barato; **bendecirlos sólo
-   puede taro**. Para que no sea una tarde de mirar imágenes, la receta tiene
-   que mostrarlos agrupados por mapa, una vez cada uno, y marcar los que
-   difieren de lo que la referencia dice hoy: ésos son los únicos que necesitan
-   su ojo.
+   **Lo que queda pendiente es la bendición**, y está arriba en "Qué reemplazó a
+   la referencia": se congelaron con la tanda en verde, nadie las miró una por
+   una, y sólo taro puede hacerlo. Para que no sea una tarde de mirar imágenes
+   conviene mostrarlas agrupadas por mapa, una vez cada una.
 5. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Decidido
    por taro el 2026-09-15: prefiere un proyecto mantenido, popular y con once
    años de historia antes que sostener el nuestro, y de paso gana compatibilidad
@@ -339,20 +327,33 @@ refactors: **no hay features hasta que cierre**.
    junto con él y no antes, porque hacerla antes es escribir el empaquetado de
    bancos dos veces.
 
-   Con eso se van `audio-validar`, `tools/w65_check.py` y
-   `tools/w65_coverage.py`: sin dos cadenas no hay nada que comparar. taro no
-   compra el valor del oráculo —con goldens, md5 y sus pruebas a mano, una
-   regresión drástica se ve igual— y hay evidencia a favor: esa receta estaba
-   rota desde hacía meses, con las rutas apuntando a un directorio renombrado,
-   y nadie lo notó **porque necesitaba podman y nunca se corría**.
+   **Lo que se comparaba contra `ca65` ya no existe**: `audio-validar`,
+   `tools/w65_check.py` y `tools/w65_coverage.py` se fueron el 2026-09-16, junto
+   con `tools/w65.py`, y con ellos las dos cadenas que se comparaban entre sí.
+   taro no compra el valor del oráculo —con goldens, md5 y sus pruebas a mano,
+   una regresión drástica se ve igual— y hay evidencia a favor: esa receta
+   estaba rota desde hacía meses, con las rutas apuntando a un directorio
+   renombrado, y nadie lo notó **porque necesitaba podman y nunca se corría**.
 
-6. **Agrupar los cartuchos de la tanda.** Hoy hay **183 combinaciones distintas
-   de mapas para 170 casos**, o sea que casi cada caso arma el suyo. Agruparlos
-   en unos pocos fijos da tres cosas a la vez: el banco 0 pasa a tener un
-   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
-   global variable, y la tanda deja de convertir y ensamblar 170 veces listas
-   casi iguales. Va **después** de los goldens, porque cambiar qué cartucho
-   arma cada caso mueve los PNG.
+   Y lo que hay a favor de la migración y no estaba antes: `ca65` y `ld65` ya
+   están compilados en `/extras/ref/cc65` y enlazados en `/usr/local/bin`. Qué
+   se comprobó del clon antes de usarlo está en `AGENTS.md`.
+
+   **El control de ancho del acumulador en una etiqueta a la que se llega
+   saltando no lo hace `ca65`**, y es el que más caro salió: hay que llevárselo,
+   o el error vuelve. Ver el README, en "Cómo se verifica el ensamblador".
+
+6. **Agrupar los cartuchos de la tanda.** Casi cada caso arma el suyo: cuántas
+   combinaciones distintas de mapas hay para cuántos casos lo dicen los
+   `cartucho()` de `pruebas/test_tanda*.py`. Agruparlos en unos pocos fijos deja
+   el banco 0 con un número por cartucho en vez de uno por caso y ahorra
+   convertir y ensamblar listas casi iguales. **De sus tres razones originales
+   una ya se cumplió sola**: `mapdata.inc` dejó de ser estado global al mudarse
+   los casos a pytest, porque cada cartucho se arma en su propio directorio.
+
+   Sigue yendo **después** de los goldens, y ahora eso es un costo concreto:
+   cambiar qué cartucho arma cada caso mueve los PNG, y cada PNG movido es una
+   golden que hay que volver a mirar.
 
 7. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo.
 
@@ -417,9 +418,9 @@ de cada una está en `README.md`.
 * **La página activa de un evento se congela hasta el refresco.** No se
   recalcula cada vez que alguien pregunta: es `Game_Event::page`, y sólo la
   reescribe `Game_Map::Refresh()`, al principio de `Game_Map::Update`. La ROM
-  ya lo hacía —la guarda en la fila del NPC— y la referencia no; desde el
-  2026-09-06 las dos guardan la instantánea. De ahí sale una regla que hay que
-  respetar: **el lazo de la referencia no puede cortar con un refresco
+  ya lo hacía —la guarda en la fila del NPC— y la referencia no, hasta que el
+  2026-09-06 las dos pasaron a guardar la instantánea. De ahí queda una regla
+  para cualquier lazo que corte a mano: **no se corta con un refresco
   pendiente**, porque el cuadro que viene sí hace algo.
 
 * **Los eventos disparan con dos bits cada uno, no con una cola.** Es el
@@ -487,8 +488,8 @@ de cada una está en `README.md`.
 
 * **Las órdenes de ruta 26 y 27 sobre el héroe se aceptan y se tiran.** Fijar y
   soltar la mirada. Decidido con taro el 2026-09-06: son un extra y el juego se
-  puede jugar sin ellas. Se tiran **al compilar**, así que la referencia tampoco
-  las camina y los dos lados quedan iguales por construcción. Las 28 y 29 —la
+  puede jugar sin ellas. Se tiran **al compilar**, así que no llegan al
+  cartucho y no hay nada a medias. Las 28 y 29 —la
   velocidad— sí se hacen, y con ellas el paso del héroe dejó de ser fijo: cuenta
   medias unidades de RM2k y **queda a la velocidad que la ruta le dejó**, como
   en RM2k, que repone la frecuencia al terminar pero no la velocidad.
@@ -514,10 +515,10 @@ de cada una está en `README.md`.
   da lo mismo. **Ninguna llamada de este juego es recursiva**, medido, y el
   anidamiento se topa en `LLAMADA_MAX`.
 
-  Es la única de las cuatro piezas que **no toca la ROM ni la referencia**: los
-  dos corren el mismo bytecode, así que no hay dos lados que se puedan separar.
-  Por eso su caso se verifica en rojo de un solo lado, bajándole `LLAMADA_MAX`
-  a la referencia.
+  Es la única de las cuatro piezas que **no toca al intérprete**: lo que cambia
+  es el bytecode que se emite, no quién lo corre. Cuando existía la referencia
+  su caso se verificaba en rojo bajándole `LLAMADA_MAX` a un solo lado; hoy, sin
+  segundo lado, lo que queda es la golden.
 
   Lo medido: **cero páginas ganadas y cero perdidas** —2882 antes y después—,
   porque si el llamado no compila la llamada se saltea, que es lo que el port
@@ -545,7 +546,7 @@ de cada una está en `README.md`.
     porque `aplicar_tinte` los sube **en la fila que dice `hero_pal`**.
   * **No sobrevive al cambio de mapa.** Las poses viven en el banco de sprites
     del mapa, así que el gráfico de allá no existe acá; la ROM lo repone en
-    `elegir_grafico_heroe` y la referencia en `entrar_a_un_mapa`. En RM2k
+    `elegir_grafico_heroe`. En RM2k
     `Game_Player` se lo lleva. No se nota: la única página del juego que cambia
     el gráfico del héroe y después salta lo vuelve a poner en el comando
     siguiente al teletransporte.
@@ -558,32 +559,25 @@ de cada una está en `README.md`.
   antes**: el control sin la 34 da el mismo aviso, así que ese mapa llenaba las
   ocho paletas por su cuenta.
 
-  Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama —el gráfico que
-  se ve y el `nobodyhere`, que esconde al héroe como esconde a un evento—.
-* **Los temas comparten un solo banco de muestras.** Un banco por tema pediría
-  subirlo en cada `PlayBGM` —medio segundo— y eso habría que modelarlo en la
-  referencia para que la comparación cuadro a cuadro siga significando algo.
-  Modelar cuánto tarda una transferencia es justo lo que no se puede medir
-  honestamente.
-* **El arranque está dimensionado para el techo de ARAM**, no para el banco de
-  hoy: `BOOT_CUADROS = 112` y `--arranque 115`. Cuesta 1,9 s de mapa congelado
-  al encender y a cambio llenar la ARAM no cuesta nada. Lo que lo compraría de
+  Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama —el gráfico que se
+  ve y el `nobodyhere`, que esconde al héroe como esconde a un evento—. * **Los
+  temas comparten un solo banco de muestras.** Un banco por tema pediría subirlo
+  en cada `PlayBGM` —medio segundo, o sea treinta cuadros de juego frenado—. La
+  razón que lo cerró en su momento era además que había que modelarlo en la
+  referencia, y modelar cuánto tarda una transferencia es justo lo que no se
+  puede medir honestamente; **esa mitad se cayó con la referencia** y lo que
+  queda en pie es el medio segundo. Si alguna vez se reabre, es por ahí. * **El
+  arranque está dimensionado para el techo de ARAM**, no para el banco de hoy:
+  `BOOT_CUADROS = 112` y `--arranque 115`. Cuesta 1,9 s de mapa congelado al
+  encender y a cambio llenar la ARAM no cuesta nada. Lo que lo compraría de
   vuelta es un driver del SPC700 que reciba por los cuatro puertos en vez del
-  uno del IPL.
-* **Un gráfico que no entra en las ocho paletas de sprite no se dibuja**, de
-  los dos lados y con la misma función. Vale para los eventos dibujados con un
-  tile del chipset y, desde la orden 34, para los gráficos a los que una ruta
-  cambia: ahí la orden esconde al evento en vez de cambiarlo. Forzarlos rompía
-  tres mapas —el 108, el 114 y el 207—.
-* **La tanda se corre sobre una foto del árbol.** `just hitos-foto` la
-  saca con `git stash create` y la corre en un worktree de `/extras`, así que
-  editar mientras corre dejó de ser un problema. El riesgo que queda no es de
-  git sino de cabeza —si la tanda sale en rojo con otro cambio ya encima, hay
-  que separar cuál fue—, y lo desambigua el hash de la foto que la receta
-  imprime: `git diff <foto>` dice qué se agregó después.
-
-* **La tecla de acción mira las dos celdas, y cada una pide la capa
-  contraria.** `CheckEventTriggerHere` quiere `GetLayer() != Layers_same` y
+  uno del IPL. * **Un gráfico que no entra en las ocho paletas de sprite no se
+  dibuja.** Lo decide el conversor, con una sola función. Vale para los eventos
+  dibujados con un tile del chipset y, desde la orden 34, para los gráficos a
+  los que una ruta cambia: ahí la orden esconde al evento en vez de cambiarlo.
+  Forzarlos rompía tres mapas —el 108, el 114 y el 207—. * **La tecla de acción
+  mira las dos celdas, y cada una pide la capa contraria.**
+  `CheckEventTriggerHere` quiere `GetLayer() != Layers_same` y
   `CheckEventTriggerThere` quiere `== Layers_same`. No es simetría de adorno: un
   evento de la capa del héroe le cierra el paso, así que nunca se podría parar
   encima; uno de otra capa no lo frena y se le camina por arriba. El filtro vive
@@ -593,9 +587,8 @@ de cada una está en `README.md`.
 * **Se dibujan todos los eventos, aunque sea con una paleta ajena.** Es de taro:
   *"si no podemos incluir todos los eventos, el proyecto entero se cae"*. El que
   no consigue paleta propia se cuelga de la que menos colores le falte, y cada
-  color ausente va al más cercano por luma. **La referencia hace la misma
-  aproximación**, o la comparación mediría dos programas distintos. Los números
-  están en `assets/LIMITACIONES.md`.
+  color ausente va al más cercano por luma. Los números están en
+  `assets/LIMITACIONES.md`.
 
 * **Los líderes posibles comparten una ranura de CGRAM.** Lidera uno a la vez,
   así que darle paleta propia a cada uno es tenerla ocupada por alguien que no
@@ -620,8 +613,8 @@ de cada una está en `README.md`.
   clavado en la última columna.
 
 * **Agotar el presupuesto de teletransportes es un error, no un caso.** Al
-  agotarse, la ROM llama a `entrar_en_panico` y la referencia levanta
-  `DemasiadosSaltos`. Un salto descartado en silencio es la forma de falla que
+  agotarse, la ROM llama a `entrar_en_panico` en vez de seguir. Un salto
+  descartado en silencio es la forma de falla que
   AGENTS.md nombra, y ésta sobrevivió semanas porque la partida seguía
   andando, sólo que en el mapa equivocado.
 
@@ -710,7 +703,15 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
 
 ## Lo que la tanda no cubre
 
-### Dos rojos abiertos, medidos y sin arreglar
+### Tres divergencias medidas contra la referencia, y sin arreglar
+
+**Ojo con cómo se leen desde el 2026-09-16.** Eran diferencias entre la ROM y la
+referencia en Python, y la referencia ya no está: hoy **ninguna de las tres da
+rojo**, porque la golden es la captura de la propia ROM y hornea adentro el
+comportamiento que la referencia discutía. O sea que no son rojos abiertos sino
+**lugares donde sabemos que la ROM no hace lo que RM2k hace, y nada lo cobra**.
+Quedan escritas por eso, y porque si alguna vez se arreglan hay goldens que se
+van a mover.
 
 * **Cuadro 500 de la escena del mapa 16: 43,86%** (25.153 de 57.344), en los
   dos cartuchos. Leyendo la WRAM, en el tick 490 la ROM tiene al héroe en 368 y
@@ -726,9 +727,9 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
 
 * **La escena del Tram Officer divergía con la llamada salteada.** Medido el
   2026-09-12 al verificar `tram` en rojo: con `CallEvent` sin hacer **de los
-  dos lados** —que es como estuvo hasta ese día— el cuadro 620 de esa escena da
-  34,64% de pixeles distintos entre la ROM y la referencia. Con la llamada
-  hecha da cero, así que la página que lo destapaba ya no pasa por ahí, pero
+  dos lados** —que es como estuvo hasta ese día— el cuadro 620 de esa escena
+  daba 34,64% de pixeles distintos entre la ROM y la referencia. Con la llamada
+  hecha daba cero, así que la página que lo destapaba ya no pasa por ahí, pero
   **el camino sigue existiendo** para las 216 llamadas que se siguen salteando.
   El sospechoso es el cronómetro, que esa rama arranca. No se investigó.
 
@@ -739,7 +740,7 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
   del chipset, como si uno de los dos lados cambiara de paso un cuadro antes.
   **No es de esa vuelta**: el control sin la orden 34 —la ruta `2 2 2 2` pelada—
   da exactamente lo mismo. El sospechoso es la fase de los tiles animados, que
-  la referencia cuenta con `estado.ticks + fundidos` y la ROM con `vueltas`. No
+  la referencia contaba con `estado.ticks + fundidos` y la ROM con `vueltas`. No
   se investigó; los casos nuevos miran hasta el cuadro 40 para no pisarlo.
 
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
@@ -763,9 +764,9 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
 
 * **El destello de un evento sobre la paleta de otro.** En la consola
   `FlashSprite` es un tinte de CGRAM: `pintar_flash` sube la paleta entera del
-  personaje, así que tiñe todo lo que la comparta. La referencia lo aplica sobre
-  la **imagen** del sprite, que es lo que hace RM2k. Son dos cosas distintas y
-  ninguno de los 123 casos lo ve, porque ninguno tiene un segundo sprite visible
+  personaje, así que tiñe todo lo que la comparta. RM2k lo aplica sobre la
+  **imagen** del sprite. Son dos cosas distintas y
+  ningún caso de la tanda lo ve, porque ninguno tiene un segundo sprite visible
   compartiendo la paleta del que destella. Lo cuida `test_destello_paleta.py`,
   que exige que nadie comparta la paleta de un líder posible. **Protege al líder
   y no al que destella**: el blanco se decide corriendo y el héroe es el único
@@ -773,14 +774,16 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
   filtraría igual.
 
 * **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
-  y B no los toca nadie de ese lado; por eso la referencia tampoco los modela.
-  Los cubre `pruebas/test_elegir.py`. Lo que la tanda sí compara es la ventana
-  dibujada, en el caso `elegir`: el cuadro 140 tiene que decir `('> Yes', '  No')`
-  y el 210 la respuesta de la rama que corrió. Que diga qué texto es no es
-  adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
-  resultado si la página no compilara de los dos lados.
+  y B no los toca ningún caso de ella. Los cubre `pruebas/test_elegir.py`.
+  Lo que la tanda sí compara es la ventana dibujada, en el caso `elegir`: cuatro
+  cuadros contra sus goldens, el de la elección abierta y el de la respuesta de
+  la rama que corrió. **Compara sólo píxeles**, decidido con taro el 2026-09-16;
+  antes además imprimía qué texto decía la ventana, y eso se aceptó perder al
+  irse la referencia. El riesgo que cubría sigue siendo real —cuatro cuadros en
+  cero también sería el resultado si la página no compilara—, y contra eso vale
+  lo de arriba: antes de creerle a un cero hay que ver la página compilar.
 
-El más largo de los 123 casos es `talan`: mil doscientos cuadros de la escena
+El caso más largo de la tanda es `talan`: mil doscientos cuadros de la escena
 entera del Emitter Room. Lo que la tanda no mira:
 
 * **Que un mapa acepte muchas interacciones seguidas** — ya no, desde el
@@ -801,17 +804,18 @@ entera del Emitter Room. Lo que la tanda no mira:
   salta al 3 y el 3 al 4. Eso no lo mira nadie todavía.
 
 * **Los primeros veinte cuadros de un mensaje.** La ROM compone la ventana
-  cuadro a cuadro y la referencia la pone de golpe. **Cuánto tarda depende del
-  texto**: medido, 9 cuadros con el mensaje de prueba y 17 a 19 con los del
-  recuerdo de CORE y MANTA. Antes acá decía "nueve" a secas, y eso era el
-  número de un solo caso.
+  cuadro a cuadro, y mientras la compone ignora el botón. **Cuánto tarda depende
+  del texto**: medido, 9 cuadros con el mensaje de prueba y 17 a 19 con los del
+  recuerdo de CORE y MANTA. Antes acá decía "nueve" a secas, y eso era el número
+  de un solo caso.
 
   De ahí salen dos cuidados, y los dos costaron un rojo: ningún cuadro que se
   compare puede caer adentro de esa ventanita, y **ningún toque de A tampoco**.
-  La ROM ignora el botón mientras `msg_abierto` esté en cero, la referencia
-  no, y a partir de ahí las dos corren escenas distintas. Al armar una lista de
-  toques hay que dejar treinta cuadros desde que el mensaje se abre, no veinte:
-  con veinte, el toque del cuadro 1976 llegó **uno** antes de tiempo.
+  La ROM ignora el botón mientras `msg_abierto` esté en cero, así que un toque
+  que caiga ahí simplemente no pasa y la escena sigue por otro lado. Al armar
+  una lista de toques hay que dejar treinta cuadros desde que el mensaje se
+  abre, no veinte: con veinte, el toque del cuadro 1976 llegó **uno** antes de
+  tiempo.
 
 * **El audio.** `just bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
@@ -825,9 +829,9 @@ entera del Emitter Room. Lo que la tanda no mira:
 
 * **La convención de la tabla de mapas.** Cómo se arma —el de `--map-id`
   primero, después los de `--mapas` sin repetir— está escrito igual en el
-  conversor y en la referencia, a propósito. Justamente por eso, equivocarla
-  los equivoca a los dos juntos y la comparación sigue dando cero. Se revisa
-  leyendo los dos lados, no corriéndolos. Lo que sí se corre es que la ROM
+  conversor y en la ROM, a propósito. Justamente por eso, equivocarla equivoca
+  el cartucho y la golden que salió de él, y la comparación sigue dando cero. Se
+  revisa leyendo, no corriendo. Lo que sí se corre es que la ROM
   resuelva un índice que no sea 0 ni 1.
 
 * **El tope de ocho saltos encadenados.** Medido el 2026-09-03: con los 328
@@ -837,12 +841,13 @@ entera del Emitter Room. Lo que la tanda no mira:
   cadenas pueden crecer. Conviene volver a medirlo de vez en cuando.
 
 * **La RAM sin inicializar, del todo.** `snes9x` —con el que corre casi toda la
-  tanda— deja siempre la misma basura, así que una variable que nadie
-  inicializa da verde. Lo mitigan `mednafen` y `bsnes`, que corren
-  con la WRAM llena de basura al encender, pero la detección es
-  **probabilística**: con un error de esta clase puesto a mano, el cuadro sale
-  mal 11 corridas de 20. Si molesta, la salida es correr el caso de bsnes
-  varias veces, que a veinte segundos por vez es barato.
+  tanda y con el que se capturaron las goldens— deja siempre la misma basura,
+  así que una variable que nadie inicializa da verde. Lo mitiga
+  `pruebas/test_cores.py`, que corre los mismos cartuchos en `bsnes` con la WRAM
+  llena de basura al encender y compara las dos capturas entre sí, pero la
+  detección es **probabilística**: con un error de esta clase puesto a mano, el
+  cuadro sale mal 11 corridas de 20. Si molesta, la salida es correr ese archivo
+  varias veces, que es barato.
 
   Dos errores de esta clase los encontró taro jugando, con la tanda en verde.
 
@@ -850,18 +855,23 @@ entera del Emitter Room. Lo que la tanda no mira:
   —un modo de direccionamiento—, el PPU que se quedaba con los registros del
   título, y dos más; **tres los encontró taro jugando, con la tanda en verde**.
   El caso extremo quedó medido: sacando el `jsr ppu_init` que arregla el
-  segundo, snes9x sigue dando **cero pixeles de diferencia**. Lo mitigan
-  `mednafen` y `bsnes`, y el reset de snes9x **no borra la WRAM**, así
-  que una prueba que dependa de que algo no sobreviva a un reinicio tiene que
+  segundo, snes9x sigue dando **cero pixeles de diferencia**. Lo mitiga
+  `pruebas/test_cores.py`, y el reset de snes9x **no borra la WRAM**, así que
+  una prueba que dependa de que algo no sobreviva a un reinicio tiene que
   ensuciarla a mano.
+
+  **Y esto pesa más desde que las goldens son capturas de snes9x**: la tanda
+  entera compara snes9x contra snes9x, así que `test_cores.py` es lo único que
+  queda capaz de decir "anda acá y no en la consola".
 
 * **El brillo del fundido, según el core.** Medido el 2026-09-06 sobre los
   dieciséis niveles: en 0 y 15 los tres coinciden; entre 1 y 14 snes9x y bsnes
   coinciden exactamente y **mesen-s difiere en 30% a 48% de los pixeles**, un
   paso para abajo. O sea que difiere exactamente mientras dura un fundido y en
-  ningún otro momento. La trampa práctica: el justfile toma el core de `CORE`,
-  así que correr la tanda con `CORE=mesen-s` pondría en rojo todo cuadro que
-  caiga en un fundido **sin que haya ningún bug**. taro miró un fundido en la
+  ningún otro momento. La trampa práctica: las recetas que capturan toman el
+  core de `CORE`, así que sacar una captura con `CORE=mesen-s` y compararla
+  contra una golden pondría en rojo todo cuadro que caiga en un fundido **sin
+  que haya ningún bug**. taro miró un fundido en la
   SNES y le pareció bien, así que se da por bueno el redondeo de snes9x y bsnes;
   lo que se cerró es la decisión, no el número —nunca se comparó contra una
   captura del hardware—.
@@ -884,8 +894,8 @@ está en el README. Lo que hay que tener a mano para tocarlo:
 * **Un cartel por ROM**, y quién se queda con la ranura lo decide
   `Imagenes.elegir` mirando todos los mapas en el orden de la tabla, antes de
   compilar nada. Con "el primero que pase" los dos lados podían elegir
-  distinto, porque la referencia compila los mapas en un orden que depende de
-  si la ROM lleva ventana.
+  distinto, porque los mapas se compilan en un orden que depende de si la ROM
+  lleva ventana.
 * **El fundido es de tono y no de transparencia.** Los dos `MovePicture` dejan
   `top_trans` en cero y mueven (r, g, b). Y **la duración viene en décimas**:
   los 35 del primero son 210 cuadros. Eso subió la página del "1 year earlier"
@@ -967,18 +977,16 @@ destraba cada uno, `just destraba`.
   ruta". Las tres últimas van sobre eventos y no sobre el héroe. Sigue siendo
   lo que más corta, aunque bastante menos.
 
-  Y una que apareció midiendo eso: **sobre el héroe, la
-  ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
-  velocidad— y **la referencia no**. `paso_de_ruta` las saltea con un "acá no
-  llegan" que dejó de ser cierto: `Ruta` es la misma clase para el héroe y para
-  los eventos, así que la referencia le cambia la velocidad y la ROM lo deja
-  caminando igual. En el juego hay 163 rutas sobre el héroe con la orden 28 y
-  148 con la 29; **de las páginas que hoy compilan, siete tienen una**, y una
-  de ésas es el evento 1 del **mapa 7, Talan's Pad**, que es adonde va el juego
-  después del Emitter Room. No lo cobra ninguna prueba porque ningún caso mira
-  una de esas páginas, y no es lo mismo que lo de arriba: no es un comando que
-  falte sino dos lados que ya no hacen lo mismo. **Las 28 y 29 sobre el héroe
-  se hacen**: su paso dejó de ser fijo —`step_left` cuenta
+  Y una que apareció midiendo eso: **las órdenes 26 y 27 sobre el héroe** —fijar
+  y soltar la mirada— se tiran al compilar, y eso está decidido. Lo que fue un
+  problema de verdad, y quedó arreglado, eran las 28 y 29 —subir y bajar la
+  velocidad—: la ROM las ignoraba sobre el héroe y la referencia no, porque
+  `Ruta` es la misma clase para el héroe y para los eventos. En el juego hay 163
+  rutas sobre el héroe con la orden 28 y 148 con la 29; de las páginas que hoy
+  compilan, siete tienen una, y una de ésas es el evento 1 del **mapa 7, Talan's
+  Pad**, que es adonde va el juego después del Emitter Room. **Ninguna prueba
+  mira una de esas páginas**, así que el arreglo no lo cobra nadie. **Las 28 y
+  29 sobre el héroe se hacen**: su paso dejó de ser fijo —`step_left` cuenta
   medias unidades de RM2k, 128 por celda, y baja `paso_medio_por_vel` por
   cuadro— y la velocidad vive en `FAR_HERO_VEL`, viaja en la partida y queda
   como la dejó la última ruta, que es lo que hace RM2k: sólo la frecuencia se
@@ -1034,13 +1042,19 @@ destraba cada uno, `just destraba`.
   teletransporte —el fundido se come la carga, ver "El fundido de los
   teletransportes"— pero siguen: la primera vuelta de una ROM con muchas
   páginas se pasa del cuadro, y también la vuelta en que un fundido termina y
-  la página retoma. La referencia no los modela, así que a partir de ahí la
-  ROM va N cuadros atrás y sólo se la puede comparar donde la pantalla esté
-  quieta. Eso es lo único que le falta a la escena del ascensor del mapa 2
-  para tener caso propio en la tanda. La salida no es un desfase a mano en
-  las recetas —eso es un número que se ajusta hasta que dé verde— sino
-  aflojar los picos, o que la receta lea `cuadros_perdidos`, que ya viaja en
-  la salida de cada captura.
+  la página retoma.
+
+  **Lo que esto bloqueaba se destrabó solo el 2026-09-16**: la referencia no
+  modelaba los cuadros perdidos, así que a partir de ahí la ROM iba N cuadros
+  atrás y sólo se la podía comparar con la pantalla quieta, y eso era lo único
+  que le faltaba a la escena del ascensor del mapa 2 para tener caso propio.
+  Contra una golden no hay N: la captura los tiene adentro. Vale la pena
+  probarlo antes que cualquier otra cosa de esta lista, porque es gratis.
+
+  Lo que **sigue** siendo cierto es que los picos existen y que la salida no es
+  un desfase a mano —eso es un número que se ajusta hasta que dé verde— sino
+  aflojarlos, o leer `cuadros_perdidos`, que ya viaja en la salida de cada
+  captura.
 * **Las otras transiciones de RM2k.** El fundido está, que es la que este
   juego usa —`transition_out` y `transition_in` valen 0 en su base—, pero
   `Transition::Type` tiene 38 y un evento puede pedir cualquiera con
@@ -1061,8 +1075,9 @@ destraba cada uno, `just destraba`.
   Lo que subiría ese techo es un **driver que sepa recibir datos**: hoy las
   muestras se suben una sola vez al arrancar con el protocolo del IPL, que manda
   un byte por acuse y desaparece al saltar al driver. Con un banco por tema el
-  costo sería medio segundo de transferencia en cada `PlayBGM` —y habría que
-  modelarlo en la referencia, que es lo que lo descartó—; con los cuatro
+  costo sería medio segundo de transferencia en cada `PlayBGM` —lo que lo
+  descartó fue eso más tener que modelarlo en la referencia, y esa mitad ya no
+  está—; con los cuatro
   puertos en vez de uno, en cambio, se acorta el arranque, que hoy es
   `BOOT_CUADROS`, dimensionado para una ARAM llena.
 
@@ -1118,20 +1133,19 @@ destraba cada uno, `just destraba`.
   tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
   tercera o el modo 1, que la conversión no usa. No es prioridad.
 
-  De ahí sale que **`ChangePBG` se acepte y se tire**: si
-  no hay panorama, no hay nada que cambiarle. Se tira al compilar, como las
-  órdenes de ruta 26 y 27, así que la referencia tampoco lo modela y los dos
-  lados quedan iguales por construcción. Aparece **una sola vez en todo el
+  De ahí sale que **`ChangePBG` se acepte y se tire**: si no hay panorama, no
+  hay nada que cambiarle. Se tira al compilar, como las órdenes de ruta 26 y 27,
+  así que no hay nada que quede a medias. Aparece **una sola vez en todo el
   juego** —siete comandos en la página del viaje en el Hover-Tram, donde el
   paisaje de la tarde corre por detrás y cambia de velocidad al arrancar y al
   frenar— y sin él esa página no compila: o sea que lo que esto compra es el
-  viaje entero, y lo que cuesta es que las ventanillas se vean quietas.
-* **El ataque y el decaimiento** siguen saliendo de las ocho familias de
-  `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
-  suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
-* **Una muestra por instrumento.** Un piano real está multi-muestreado cada
-  pocas notas; nosotros tomamos la del do central y transponemos. En los
-  extremos del teclado eso se nota.
+  viaje entero, y lo que cuesta es que las ventanillas se vean quietas. * **El
+  ataque y el decaimiento** siguen saliendo de las ocho familias de `sdsp.py`,
+  elegidas a ojo cuando el banco era sintético. El SoundFont trae los suyos por
+  instrumento y todavía no se leen. (El release ya no: ver arriba.) * **Una
+  muestra por instrumento.** Un piano real está multi-muestreado cada pocas
+  notas; nosotros tomamos la del do central y transponemos. En los extremos del
+  teclado eso se nota.
 
 ## Lo que se dejó afuera a propósito
 

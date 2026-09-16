@@ -183,10 +183,10 @@ algo.
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/lcf.py` sale de acá, así que el
-conversor, la referencia en Python y las pruebas están mirando estos archivos y
-no los binarios. Quién lo escribe es **Ditto** (`ditto/`), que además sabe
-volver: `ditto pack` rearma los 330 archivos byte por byte. El porqué de la
-decisión está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
+conversor y las pruebas están mirando estos archivos y no los binarios. Quién lo
+escribe es **Ditto** (`ditto/`), que además sabe volver: `ditto pack` rearma los
+330 archivos byte por byte. El porqué de la decisión está en `DITTO.md` y lo que
+hay adentro, en `data/README.md`.
 
     data/ditto.json           la versión del volcado y el header de cada archivo
     data/maps.json            el árbol de mapas y la posición inicial
@@ -257,9 +257,10 @@ No era evitable de otra forma: Map0007 tiene tiles de 16, 17 y 19 colores, y
 ésos no entran en una paleta de 15 por más paletas que haya. Cuesta el doble de
 VRAM por tile, 64 bytes en vez de 32; con 92 tiles son 5,8 KB de los 64.
 
-El resultado se verifica pixel por pixel contra el render de Python, a 15 bits,
-que es la profundidad real de la consola. Cuántos pixeles difieren, de los
-57344 de la pantalla, lo dice `just heroe 7`.
+El resultado se verifica pixel por pixel a 15 bits, que es la profundidad real
+de la consola, y contra el render de Python del mapa: `just convert` lo emite
+con `--reference` y `just compare` lo mide contra la captura de la consola,
+sobre los 57344 pixeles de la pantalla.
 
 En la Mega Drive esto no se podía hacer: los 9 bits obligaban a fusionar
 colores, así que sólo se podía comparar por forma. Acá la comparación es exacta.
@@ -279,9 +280,10 @@ ancho del mapa menos el de la pantalla, que el conversor emite como `CAM_MAX_X`
 y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
 comparación falla.
 
-Las cuatro direcciones salen de una sola corrida, `just heroe 7`. Que la
-cámara llegue justo a 64 y a 16, que es el tamaño del mapa 7 menos el de la
-pantalla, prueba a la vez el movimiento y el tope.
+Las cinco capturas de un mapa —la parada y las cuatro direcciones— las corre
+`test_heroe` de `pruebas/test_tanda.py`, sobre los mapas de `MAPAS_DE_HEROE`.
+Que la cámara llegue justo al ancho del mapa menos el de la pantalla, y ni un
+pixel más, prueba a la vez el movimiento y el tope.
 
 ### Los mapas que no entran
 
@@ -459,8 +461,8 @@ la dirección de VRAM ya resuelta.
 
 Lo que se paga es que `vueltas` es de dieciséis bits: cada dieciocho minutos la
 cuenta da la vuelta y el ciclo se saltea un dibujo. Está declarado en
-`assets/LIMITACIONES.md` y la referencia da la misma vuelta, así que los dos
-lados siguen dibujando lo mismo.
+`assets/LIMITACIONES.md`, y no lo alcanza ninguna prueba: dieciocho minutos son
+mucho más de lo que corre el caso más largo.
 
 **La decisión no entra en el vblank, y eso no es gusto.** El vblank del mapa 8
 —el más cargado de sprites del port— no tiene un ciclo de sobra: **veinte `nop`
@@ -479,12 +481,11 @@ nada más—, que en el mapa 5 son 18349 pixeles. El caso que lo cobra es
 N pixeles es el tick N/2 + 1, así que se le puede pedir a la tanda el cuadro
 exacto en que el agua cambia.
 
-**Y el reloj de la ROM no es `estado.ticks`.** Adentro del negro de un
-teletransporte el mundo está congelado y la referencia no cuenta el cuadro, pero
-la consola sigue dando vueltas al lazo: son 70 por fundido. La cuenta que vale
-es `estado.ticks + fundidos * FUNDIDO_TOTAL`, la misma que el plan de la
-caminata. Sin eso la escena de Core y Manta se va un dibujo desde el primer
-teletransporte.
+**Y el reloj de la ROM no es el tick de la partida.** Adentro del negro de un
+teletransporte el mundo está congelado y el tick no avanza, pero la consola
+sigue dando vueltas al lazo: son 70 por fundido. La cuenta que vale es
+`ticks + fundidos * FUNDIDO_TOTAL`, la misma que el plan de la caminata. Sin
+eso la escena de Core y Manta se va un dibujo desde el primer teletransporte.
 
 Los dos casos nuevos de la tanda están medidos con la fase rota a propósito, que
 es lo único que prueba que miran algo: `caminando 5 left "40 46 48 50"`
@@ -536,9 +537,9 @@ Tres cosas de cómo está hecho:
   su propio lazo de cuadros desde `op_save`, igual que desde el título, y
   `vueltas` no avanza mientras se ve. Es lo que hace RM2k: la escena apilada
   para el reloj del mapa, y la página sigue por el comando siguiente cuando se
-  cierra. Por eso la referencia no modela nada —`OP_SAVE` ocupa su byte y no
-  cuesta un cuadro— y después de cerrar los dos lados van por el mismo tick,
-  tarde lo que tarde el jugador.
+  cierra. Por eso `OP_SAVE` ocupa su byte y no cuesta un cuadro, y
+  después de cerrar el mapa sigue por el tick que le tocaba, tarde lo que tarde
+  el jugador.
 * **Al cerrar se repone sólo lo que la pantalla pisó**, y no el mapa entero:
   `volver_al_mapa` vuelve a subir el banco de tiles de BG1 con `load_map`, tiñe
   de nuevo, y repone los registros con `ppu_init`. Llamar a `cargar_mapa`
@@ -594,10 +595,11 @@ con ese grupo, con el cursor en la primera fila y después sobre la de Talan,
 que es lo que la repinta en el vblank. Contra una referencia sin grupo o con
 Kersh son unos 400 pixeles, así que el cero no es vacío.
 
-Lo cobra `just guardar` en seis cuadros, todos en cero: la pantalla al
-abrirse y con el cursor dos ranuras abajo, contra `titulo.py --modo 1`; y el
-mapa de vuelta después de cancelar y después de elegir, en dos ticks, contra la
-referencia. Los toques de adentro de la pantalla van con `--toques-hardware`,
+Lo cobran `test_guardar_pantalla` y `test_guardar_vuelve`, de
+`pruebas/test_tanda_pantallas.py`, en seis cuadros y todos en cero: la pantalla
+al abrirse y con el cursor dos ranuras abajo, y el mapa de vuelta después de
+cancelar y después de elegir, en dos ticks. Los toques de adentro de la
+pantalla van con `--toques-hardware`,
 que cuenta cuadros de hardware desde el arranque: un toque por tick no puede
 caer donde no hay ticks. Y lo que queda en la SRAM lo mira
 `pruebas/test_guardar.py`, que ahora **atraviesa la pantalla** —baja el cursor
@@ -698,11 +700,12 @@ Save en gris; el menú prohibido hace que B no lo pida. El save point no mira
 el permiso, como `OpenSaveMenu`.
 
 Mientras el menú se ve **el reloj del juego no corre**, igual que con la
-pantalla de ranuras, así que para la referencia el menú no cuesta ningún tick
-y después de cerrarlo los dos lados van por el mismo cuadro. Lo cobra
-`just menu`: el menú como se abre y con el cursor movido contra
-`titulo.py --menu`, y el mapa después de cerrar contra `snes_expect.py`. Lo que
-la tanda no alcanza lo mira `pruebas/test_menu.py`: el menú con un grupo y oro
+pantalla de ranuras, así que el menú no cuesta ningún tick y el mapa sigue por
+el cuadro que le tocaba. Lo cobran `test_menu` y `test_menu_vuelve` de
+`pruebas/test_tanda_pantallas.py`: el menú como se abre, con el cursor movido, y
+el mapa después de cerrar. Quien lo compara contra una referencia en Python
+—`titulo.render_menu`, que sigue viva— es `pruebas/test_menu.py`, y es además lo
+que mira lo que la tanda no alcanza: el menú con un grupo y oro
 puestos, guardar desde el menú, los dos permisos puestos por el bytecode, B a
 mitad de un paso, y que los permisos vuelvan de la SRAM.
 
@@ -750,9 +753,11 @@ y el segundo renglón salía cortado. Cuando el cursor se sale de las once
 filas, la lista se repinta entera con la pantalla apagada, que es un cuadro
 en negro.
 
-Lo cobran `just items` —la pantalla como se entra y con el cursor sobre
-la consola contra `titulo.py --items`, y el mapa después de usarla contra
-`snes_expect.py`— y `pruebas/test_items_pantalla.py`: la consola prende el 710
+Lo cobran `test_items` y `test_items_vuelve` de
+`pruebas/test_tanda_pantallas.py` —la pantalla como se entra, con el cursor
+sobre la consola, y el mapa después de usarla— y
+`pruebas/test_items_pantalla.py`, que la compara contra `titulo.render_items`:
+la consola prende el 710
 y no se gasta, un ítem en gris no hace nada, catorce ítems en once filas se
 corren y vuelven, y la lista vacía.
 
@@ -784,8 +789,10 @@ control: al revés, sus diez líneas hacían que `read_pad` llegara con la
 lectura automática terminada, cada vuelta duraba dos cuadros y la mitad de los
 toques se perdía. Lo cobró `equipo`.
 
-Lo cobran `just equipo` —las ranuras de Kersh con su equipo inicial, la
-lista del arma con los parámetros que quedarían, y el mapa después de volver—
+Lo cobran `test_equipo` y `test_equipo_vuelve` de
+`pruebas/test_tanda_pantallas.py` —las ranuras de Kersh con su equipo inicial,
+la lista del arma con los parámetros que quedarían, y el mapa después de
+volver—
 y `pruebas/test_equipo.py`: el equipo inicial en la RAM, equipar desde el
 menú, la lanza a dos manos que saca el escudo, la línea vacía, y el equipo en
 la partida.
@@ -877,8 +884,8 @@ pantalla de título si el cartucho la lleva, con la partida guardada esperando e
 la SRAM. Es lo que `Scene_Gameover` hace al final, menos la imagen y menos el
 tema; los dos están declarados en `assets/LIMITACIONES.md`.
 
-Ese camino **la tanda de pixeles no lo puede ver**: del lado de la referencia
-`OP_BATTLE` se va siempre por la victoria, así que no hay cuadro que comparar.
+Ese camino **la tanda de pixeles no lo puede ver**: una derrota reinicia la
+consola, así que no hay cuadro que comparar contra una golden.
 Lo cobra `pruebas/test_game_over.py`, que pone el grupo entero en cero HP —con
 nadie en pie `batalla_correr` contesta derrota sin abrir la pantalla— y exige
 que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
@@ -932,8 +939,8 @@ pega y uno que falla se ven igual.
 droide del mapa 2.** La de los Lazer Teeth del mapa 9 —la tropa 86, cuatro
 enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
-cuatro la ejercita `just batalla` con la página de prueba, que es el
-mismo recurso que usa `guardar` con la pantalla de ranuras.
+cuatro la ejercita `test_batalla` con la página de prueba, que es el mismo
+recurso que usan los casos de la pantalla de ranuras.
 
 #### El menú: las cinco órdenes del ABL
 
@@ -1195,9 +1202,9 @@ juego.
 
 **El azar es el de siempre pero con semilla propia** —`ENC_SEMILLA`—, como la
 pelea con `BATALLA_SEMILLA`: caminar no le corre el azar al mapa, así que un
-`ControlVars` al azar da lo mismo con encuentros y sin ellos, y la referencia
-de pixeles sigue pudiendo predecir los dos. Se consume un número por paso y uno
-más para elegir la tropa, y ése es el contrato con `eventos.Encuentros`.
+`ControlVars` al azar da lo mismo con encuentros y sin ellos, y
+`eventos.Encuentros` sigue pudiendo predecir los dos. Se consume un número por
+paso y uno más para elegir la tropa, y ése es el contrato con esa clase.
 
 **Dónde vive cada cosa.** El estado son nueve bytes en la RAM lejana,
 `FAR_ENCUENTRO` en `$7E3900`: en el banco 0 no entraban —la BSS está llena, y
@@ -1314,17 +1321,16 @@ Cuatro cosas son nuestras y están declaradas:
   tres grises opacos según le quede de vida, que es donde RM2k la desvanece
   con transparencia.
 
-En la consola cada gota son dos objetos de 8x8 con prioridad 2, al final de
-la OAM: pasan por delante de la capa de encima, cualquier personaje las tapa
-—en la consola gana el objeto de índice más bajo—, y la ventana de mensaje las
-tapa con la misma máscara que a los eventos "above". El tono de pantalla las
-tiñe, como a todo, porque sus colores van en una paleta de personaje. Sus
-seis tiles y sus tres colores se reservan como los dígitos del cronómetro, y
-**un mapa sin lugar en las paletas de sprite no dibuja lluvia**: la ROM lleva
-`M_LLUVIA_BASE` en cero y la referencia lo sabe con la misma cuenta,
-`lluvia_cabe`. En la demo pasa en los mapas 2, 8 y 10, que no la usan. La
-nieve, la niebla y la arena no se dibujan y apagan la lluvia; el clima no
-viaja en la partida.
+En la consola cada gota son dos objetos de 8x8 con prioridad 2, al final de la
+OAM: pasan por delante de la capa de encima, cualquier personaje las tapa —en la
+consola gana el objeto de índice más bajo—, y la ventana de mensaje las tapa con
+la misma máscara que a los eventos "above". El tono de pantalla las tiñe, como a
+todo, porque sus colores van en una paleta de personaje. Sus seis tiles y sus
+tres colores se reservan como los dígitos del cronómetro, y **un mapa sin lugar
+en las paletas de sprite no dibuja lluvia**: la ROM lleva `M_LLUVIA_BASE` en
+cero, y quién lo decide es el conversor con `lluvia_cabe`. En la demo pasa en
+los mapas 2, 8 y 10, que no la usan. La nieve, la niebla y la arena no se
+dibujan y apagan la lluvia; el clima no viaja en la partida.
 
 En OAM las gotas no pasan por `emit_object`: la X queda siempre entre 0 y
 255, así que `lluvia_oam` las escribe directo, y de la Y descarta lo que cae
@@ -1332,13 +1338,12 @@ entre 224 y 247 —de 248 en adelante el PPU lo dibuja asomando por arriba—.
 Con eso y el direccionamiento largo en vez de la ventana de WMADD, la lluvia
 fuerte bajó de 58 a 24 líneas en `lluvia_tick` y `build_oam` de 130 a 84.
 
-Lo cobran `pan-lluvia` y `sacudir-lluvia` en la tanda, que corren la cámara
-con lluvia fuerte por la página de prueba (`--lluvia-de-prueba`): en la
-apertura la cámara no se mueve, así que ella sola no mira el scroll de las
-gotas. Y `apertura` compara con lluvia, que es lo que exige que la referencia
-sostenga el lazo mientras llueva: la lluvia no se aquieta nunca, así que un lazo
-con presupuesto que corte con la escena quieta dibuja las gotas de veintipico de
-ticks antes.
+Lo cobran `pan-lluvia` y `sacudir-lluvia` en la tanda, que corren la cámara con
+lluvia fuerte por la página de prueba (`--lluvia-de-prueba`): en la apertura la
+cámara no se mueve, así que ella sola no mira el scroll de las gotas. Y
+`apertura` compara con lluvia, que es lo que exige que el caso cuente los ticks
+hasta el final: la lluvia no se aquieta nunca, así que cortar cuando la escena
+se ve quieta deja las gotas de veintipico de ticks antes.
 
 ### Los efectos de sonido
 
@@ -1361,8 +1366,8 @@ Tres decisiones, las tres por la ARAM:
   (`dsp_musica`), y al terminar el efecto la devuelve tal cual; mientras suena,
   la música no la toca.
 
-La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta tiempo en
-la referencia. Lo que se corrió fue una grabación de la apertura de
+La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta un tick. Lo
+que se corrió fue una grabación de la apertura de
 `demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
 los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
 hueco entre el fin del tercero y el siguiente (cuadros 890 a 920) las dos
@@ -1564,14 +1569,14 @@ página espera lo que dura. Tres cosas son nuestras:
   fuerza que RM2k le da al primer cuadro y baja lineal en diez; allá baja a
   escalones. Diez, y par a propósito: el destello de pantalla trabaja en dos
   fases según la paridad de lo que le queda, y con once arrancaba por la que
-  ninguna página del juego toma, donde la ROM y la referencia no coinciden.
+  ninguna página del juego toma, que es la que quedó sin probar.
 * **Al héroe no se lo destella.** Con quién comparte paleta depende del grupo,
   que el compilador no ve; para los `FlashSprite` el conversor lo mira y corta
   la ROM entera, y una animación no vale eso. Tampoco a un evento que comparta
-  gráfico con otro, y eso **quedó conservador** desde que la referencia destella
-  por fila de paleta (ver abajo): hoy el destello del objetivo se podría emitir
-  igual. No se hizo en la misma vuelta porque cambia qué se dibuja en los mapas
-  donde dos eventos comparten gráfico, y eso pide medir la tanda de nuevo.
+  gráfico con otro, y eso **quedó conservador** desde que el destello pasó a ser
+  por fila de paleta (ver abajo): hoy el del objetivo se podría emitir igual. No
+  se hizo en la misma vuelta porque cambia qué se dibuja en los mapas donde dos
+  eventos comparten gráfico, y eso pide medir la tanda de nuevo.
 * **El dibujo no está.** Son celdas de 96x96 con zoom de hasta el doble y su
   propia paleta; es el sistema de al lado, y está abajo.
 
@@ -1661,8 +1666,9 @@ se compone encima—. Se pagan dos cosas:
   ve, y está declarado.
 * **Veinticuatro de los treinta y cuatro tiles por línea** en las veintinueve
   líneas que ocupa: son seis objetos de 32x32 en fila. Ahí entran dos
-  personajes más y no más, y la referencia declara las líneas donde no alcanza,
-  como con cualquier otro sprite.
+  personajes más y no más. Cuál sprite descarta el PPU en esas líneas es
+  justamente lo que ninguna referencia en Python podía modelar y una captura del
+  emulador sí: es la razón por la que las goldens son capturas y no un render.
 
 **La paleta es suya y no la comparte con nadie.** No es por falta de lugar: el
 fundido es un tinte de esas quince entradas cuadro a cuadro, así que un
@@ -1708,19 +1714,19 @@ habría qué dibujar, y `erase_on_map_change` viene prendido de fábrica en
 **Cuál cartel se queda con la ranura lo decide `Imagenes.elegir`**, mirando
 todos los mapas del cartucho en el orden de la tabla y **antes de compilar una
 sola página**. Con "el primero que pase" bastaba que dos carteles compitieran
-para que los dos lados eligieran distinto —la referencia compila los mapas en
-un orden que depende de si la ROM lleva ventana— y eso no se vería como un
-cartel equivocado sino como dos streams de bytecode distintos.
+para que la elección dependiera del orden en que se compilan los mapas, que a su
+vez depende de si la ROM lleva ventana, y eso no se ve como un cartel equivocado
+sino como dos streams de bytecode distintos.
 
 **Y el estado vive en la RAM lejana**, quince bytes en `$7E30E8`, al lado del
 de la animación de batalla. No es elegante: es que en el banco 0 no entraba
 —la BSS estaba en 7680 de 7680— y esto se lee y se escribe unas pocas veces por
 cuadro, así que el direccionamiento largo no se nota.
 
-Lo cobra `cinematica 4 7 ... cartel` en `rom/hitos.txt`: cinco cuadros
-contra la referencia, **los cinco en cero**. El de la mitad de cada rampa no es
+Lo cobra el caso `cartel` de `pruebas/test_tanda_escenas.py`: cinco cuadros
+contra su golden, **los cinco en cero**. El de la mitad de cada rampa no es
 adorno: es el único que ejercita la interpolación cuadro a cuadro, que es donde
-la ROM y la referencia pueden separarse en un valor sin que se vea.
+un valor de más o de menos no se vería a ojo.
 
 #### Lo que costaría el sistema de imágenes entero
 
@@ -1789,9 +1795,10 @@ Y en el mapa donde el juego arranca la posición del héroe sale del LCF y no de
 la heurística del "tile abierto más cercano al centro": `Map0004`, que es donde
 el juego empieza, es una habitación vacía sin una sola celda abierta por los
 cuatro lados. A los demás se llega por teletransporte, y ahí sigue mandando la
-heurística. La regla vive en `inicio_del_mapa()` y la usan el conversor **y** la
-referencia: si cada uno eligiera por su cuenta, la comparación estaría midiendo
-dos cosas distintas.
+heurística. La regla vive en `inicio_del_mapa()`, en el conversor, y es el
+único lugar donde está escrita: mientras existió la referencia en Python los dos
+la llamaban, porque si cada uno eligiera por su cuenta la comparación habría
+estado midiendo dos cosas distintas.
 
 #### Las tres piezas del intérprete de eventos
 
@@ -1802,10 +1809,13 @@ Cada página de evento que se puede compilar viaja en el cartucho como
     tools/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
     rom/src/main.s         lo ejecuta: `correr_codigo` y un `op_*` por opcode
 
-`tools/eventos.py` es además **la referencia**: el mismo bytecode lo ejecuta
-ella cuadro a cuadro —`Interprete.cuadro` y los `Estado.cuadro_de_*`— y la tanda
-compara las dos pantallas. O sea que el intérprete está escrito dos veces y el
-programa que corre es uno solo.
+`tools/eventos.py` lleva además un **modelo** del intérprete
+—`Interprete.cuadro` y los `Estado.cuadro_de_*`—, que hasta el 2026-09-16 corría
+el mismo bytecode cuadro a cuadro como referencia y contra el cual la tanda
+comparaba cada pantalla. Ya no lo corre nadie: el bytecode lo ejecuta sólo la
+ROM. El modelo se deja porque es la definición escrita de la aritmética de RM2k
+que el conversor necesita al compilar, y separarlo del arnés es parte del paso 4
+de la etapa —ver `ESTADO.md`—.
 
 De `protocol/events.toml` salen generados `tools/event_opcodes.py` y
 `rom/src/event_opcodes.inc`; ver `protocol/README.md`, que está en inglés porque
@@ -1817,9 +1827,9 @@ git viera nada.
 **Una página se emite sólo si todos sus comandos se pueden ejecutar.**
 `compilar_pagina` corta con `NoSePuede` y el evento se queda sin código:
 ejecutar la mitad de un script dejaría al juego en un estado que no existe, y la
-comparación no lo vería, porque la referencia haría lo mismo mal. Por lo mismo,
-un evento con una condición que no sabemos evaluar queda entero afuera: sin
-saber qué página está activa, correr la equivocada es peor que no correr
+comparación no lo vería: la golden es una captura de la propia ROM. Por lo
+mismo, un evento con una condición que no sabemos evaluar queda entero afuera:
+sin saber qué página está activa, correr la equivocada es peor que no correr
 ninguna.
 
 De ahí sale la única clase de error que se arregla **desde afuera** y no tocando
@@ -1833,7 +1843,9 @@ ser una puerta —o sea, sin intérprete— sale de `tools/event_codes.py`, que 
 genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
 y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
 como puertas eventos que cambian la música y el sprite del héroe. **La
-comparación no puede ver ese error**, porque la referencia usa la misma lista.
+comparación no puede ver ese error**, porque una lista equivocada compila una
+ROM equivocada y la golden es la captura de esa ROM. Esa clase de error se
+revisa leyendo contra liblcf, no corriendo.
 
 #### Un opcode por comando
 
@@ -1885,10 +1897,20 @@ sacudida, los destellos, la imagen, la animación— el conversor les pone un
 
 Lo que el intérprete necesita alrededor: quién dispara una página, cuál está
 activa, quién le cierra el paso a quién, y qué pasa mientras la pantalla está en
-negro. Otra vez, el porqué está en el comentario de cada rutina, y las dos
-columnas son el mismo programa escrito dos veces.
+negro. Otra vez, el porqué está en el comentario de cada rutina.
 
-| Mecánica | en `rom/src/main.s` | del lado de Python |
+**Las dos columnas fueron el mismo programa escrito dos veces**, y esa es la
+razón por la que la de Python existe y está tan cerca de la otra. Hoy la que
+corre es sólo la de la ROM: lo que queda del lado de Python vive en
+`tools/eventos.py`, lo usa el conversor al compilar y lo leen las pruebas, y
+sirve además como la definición escrita de lo que la ROM hace. Algunas de esas
+funciones ya no las llama nadie —`rampa_de_fundido`, `brillo_de_fundido` y
+`oscurecer` son el ejemplo, y están acá abajo—: se dejan por eso mismo, y quién
+sobrevive se decide en el paso 4 de la etapa. La tabla se lee entonces como
+"esto es lo que hace la consola, y acá está escrito en un lenguaje que se puede
+leer", no como dos programas que hay que mover juntos.
+
+| Mecánica | en `rom/src/main.s` | el modelo en Python |
 | --- | --- | --- |
 | Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rm2k.py` |
 | Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | `Interprete.probar_contacto` |
@@ -1904,17 +1926,18 @@ columnas son el mismo programa escrito dos veces.
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `pasabilidad_de_evento`, `npcs_dibujables` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, `brillo_de_fundido`, `oscurecer` |
-| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | `saltos = SALTOS_MAX` en `tools/snes_expect.py` |
+| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/snes_convert.py` |
-| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py` |
+| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py`, y `ARRANQUE` en `pruebas/tanda.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `snes_correr.py` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
 
 Lo que hace que el lazo entre en un cuadro —FastROM, los glifos precompuestos,
 la tabla de productos del destello, la lluvia más barata— no cambia qué se
-dibuja ni cuándo: la referencia no se tocó, y la tanda y las pruebas dan igual.
+dibuja ni cuándo, y por eso se comprueba sin tocar nada más: las goldens y las
+pruebas dan igual.
 
 ##### Atravesar paredes vale mientras dura la ruta
 
@@ -1930,17 +1953,17 @@ de esas cuatro —el Hover-Tram del mapa 13, `EV0028`, y el mapa 14— están en
 camino principal, así que el defecto lo tiene cualquiera que llegue caminando al
 Sector 30.
 
-Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. Del lado de
-la referencia eso ya era así sin que estuviera escrito —`caminar` no mira
+Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. En el
+modelo de Python eso ya era así sin que estuviera escrito —`caminar` no mira
 `ruta_heroe.atraviesa` y `paso_de_ruta` sí—; del lado de la ROM el porqué, con
 el síntoma que lo delató, está en `celda_bloqueada`, que es donde se lee
 `atravesando` y no la pegajosa `ruta_atraviesa`.
 
-Para la pregunta al revés —un evento que camina contra el héroe— los dos lados
-siguen mirando la pegajosa (`ruta_atraviesa` acá, `estado.ruta_heroe.atraviesa`
-allá). Es una asimetría, y se deja porque los dos la tienen igual y ninguna ruta
-del juego la ejercita: haría falta un evento caminando encima del héroe justo
-después de una página que dejó la 36 prendida.
+Para la pregunta al revés —un evento que camina contra el héroe— se sigue
+mirando la pegajosa (`ruta_atraviesa` en la ROM, `estado.ruta_heroe.atraviesa`
+en el modelo). Es una asimetría, y se deja porque ninguna ruta del juego la
+ejercita: haría falta un evento caminando encima del héroe justo después de una
+página que dejó la 36 prendida.
 
 #### Varios temas en el cartucho
 
@@ -1959,9 +1982,10 @@ Las dos salidas eran un driver que sepa recibir datos —o sea rebootear el
 SPC700 y volver a subir— o **un solo banco compartido**. Gana el compartido, y
 lo que lo decide no es el trabajo: subir 32 KB byte a byte con acuse es del
 orden de medio segundo, o sea que cada `PlayBGM` frenaría el juego treinta
-cuadros, y eso habría que modelarlo en la referencia para que la comparación
-cuadro a cuadro siga valiendo. Modelar cuánto tarda una transferencia es
-exactamente lo que no se puede medir honestamente.
+cuadros. Mientras hubo referencia en Python eso además había que modelarlo para
+que la comparación cuadro a cuadro siguiera valiendo, y modelar cuánto tarda una
+transferencia es exactamente lo que no se puede medir honestamente. La
+referencia ya no está, así que hoy lo que decide es sólo el medio segundo.
 
 Compartir sale casi gratis porque **el banco es por programa de General MIDI**:
 dos temas que tocan piano usan la misma muestra. Lo que crece es la cantidad de
@@ -2052,8 +2076,8 @@ mismo stream prendido antes. Lo que la prueba mira es justamente lo del banco
 compartido: que las notas de cada tema salgan de los índices de muestra del
 banco de todos.
 
-**`bgm` no está en `hitos`**, y conviene tenerlo presente: la tanda
-es visual y esto pide grabar cuarenta segundos de audio por tema. O sea que
+**`bgm` no está en `just pruebas`**, y conviene tenerlo presente: las pruebas
+son visuales y esto pide grabar cuarenta segundos de audio por tema. O sea que
 este camino no lo corre nadie salvo que se lo pida a mano.
 
 **`evilrhys` es el ruidoso y conviene saberlo antes de asustarse**: tres
@@ -2075,28 +2099,33 @@ exacto**, la cruceta se contesta cuadro por cuadro y el framebuffer sale del
 callback ya en 256x224. No hay servidor X, ni capturas de pantalla, ni recortes,
 ni un solo `sleep`.
 
-Eso no es sólo velocidad —la tanda entera cuesta medio minuto—, es lo que hace
-que la prueba signifique algo: **N cuadros son N cuadros**. Manejando un emulador
-por segundos de reloj, cuántos cuadros entran en esos segundos depende de la
-carga de la máquina, y una máquina ocupada deja al héroe corto de la pared y
+Eso no es sólo velocidad —cuánto tarda la tanda entera lo imprime
+`just pruebas`—, es lo que hace que la prueba signifique algo: **N cuadros son N
+cuadros**. Manejando un emulador por segundos de reloj, cuántos cuadros entran
+en esos segundos depende de la carga de la máquina, y una máquina ocupada deja al héroe corto de la pared y
 dispara la comparación sin que nada esté roto.
 
-Y los cuadros tampoco se eligen. La referencia camina celda por celda hasta
-chocar, así que sabe cuántas son; el paso del héroe son 256 unidades de RM2k
-por celda a `PASO_POR_VELOCIDAD` por cuadro —ocho cuadros por celda a la
-velocidad 4, la de arranque; una ruta con 28 o 29 la cambia y queda cambiada,
-como en RM2k, y `cuadros_por_celda(estado)` la sigue—. `snes_expect.py` escribe
-ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el margen:
-ocho cuadros, una celda, porque la ROM llega uno o dos después —el pad se lee
-una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva dieciséis,
-porque obliga a cargar el mapa entero y eso la referencia no lo modela: medido,
-siete cuadros.
+Y los cuadros tampoco se eligen: los dice el **plan** de cada mapa y dirección,
+cuántas celdas se caminan y cuántos ticks dura. El paso del héroe son 256
+unidades de RM2k por celda a `PASO_POR_VELOCIDAD` por cuadro —ocho cuadros por
+celda a la velocidad 4, la de arranque; una ruta con 28 o 29 la cambia y queda
+cambiada, como en RM2k—, así que caminar hasta chocar contra la pared es una
+cuenta y no una estimación.
+
+**Esos planes están congelados en `pruebas/golden/tanda/plan-*.txt`, y son lo
+último que queda de la referencia**: los escribió ella cuando existía, caminando
+el mapa celda por celda con las reglas de RM2k. Hoy no los escribe nadie —se
+leen— y por eso un caso de caminata dejó de necesitarla. Si alguna vez hay que
+rehacer uno, es un acto deliberado como el de rehacer una golden.
 
 **Andan los tres cores instalados —snes9x, bsnes y mesen-s— y los tres dibujan
-el mismo cuadro a 15 bits**, que es la precisión a la que se compara: se
-comprueba corriendo el mismo caso con `CORE=bsnes` y con `CORE=mesen-s`. Que
-tres emuladores
-independientes coincidan es lo que vuelve creíble a cualquiera de ellos. Los
+el mismo cuadro a 15 bits**, que es la precisión a la que se compara. Que tres
+emuladores independientes coincidan es lo que vuelve creíble a cualquiera de
+ellos, y desde que las goldens son capturas de snes9x es además la única defensa
+que queda contra un error que snes9x no ve: de eso vive `pruebas/test_cores.py`,
+que corre el mismo cartucho en snes9x y en bsnes y compara **las dos capturas
+entre sí**. bsnes llena la WRAM de basura al encender y snes9x no, así que una
+diferencia significa que la ROM depende de memoria que nadie escribió. Los
 tres tardaron en andar por errores del frontend y no de ellos —bsnes ignora los
 datos de la ROM y abre el archivo él mismo, mesen-s quiere los callbacks después
 de `retro_init` y un directorio de sistema—; el detalle de qué pedía cada uno
@@ -2106,14 +2135,18 @@ está en el docstring de `tools/retro.py`.
 pasa: snes9x y bsnes redondean `canal * brillo / 15` y **mesen-s trunca**, o sea
 que con brillo 6 un canal de 7 le da 2 donde los otros dan 3. `oscurecer` sigue
 a bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
-snes9x, que es el core de la tanda; ninguna receta usa mesen-s. Lo desempata la
-SNES de taro.
+snes9x, que es el core con el que se capturaron las goldens; ninguna prueba usa
+mesen-s, y por qué queda afuera está en el docstring de `pruebas/test_cores.py`.
+Lo desempata la SNES de taro.
 
-Se elige con `CORE`: `CORE=bsnes just heroe 7`. La tanda corre en snes9x
-porque emula un orden de magnitud más rápido que bsnes, y bsnes entra por
-`bsnes`, dos casos que cuestan veinte segundos.
+Casi todo corre en snes9x porque emula un orden de magnitud más rápido que
+bsnes; bsnes entra sólo por `test_cores.py`, con un puñado de casos elegidos por
+lo que tocan —el intérprete y la CGRAM, la RAM del control mientras se camina, y
+la ventana de mensaje, que es lo que más VRAM escribe con la pantalla apagada—.
 
-`just hitos` corre seis mapas, uno por cada cosa que puede romperse:
+`test_heroe` camina las cuatro direcciones y se queda parado en un mapa, y la
+lista de cuáles vive en `MAPAS_DE_HEROE`, en `pruebas/test_tanda.py`. Por qué
+está cada uno, para los que se eligieron por una razón concreta:
 
     73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero
     6             recorre 100 celdas por los dos ejes: la ventana da tres vueltas
@@ -2121,6 +2154,7 @@ porque emula un orden de magnitud más rápido que bsnes, y bsnes entra por
     52            1000x80, con 40 KB de grilla que cruzan el corte de banco
     1             el primero del juego: la capa de encima se lleva 4 paletas
     348           el caso opuesto: el fondo usa 95 y encima fusiona 27
+    21            Rat Tracks B1, el que destapó la página automática vacía
 
 Más dos paradas quietas en el borde de abajo del mapa 1, que van de a pares
 porque se equivocan para lados opuestos, y dos casos de varios mapas: uno que se
@@ -2136,9 +2170,8 @@ tabla `[4,7,19,1]` el mismo salto compila a 3. Bajarlo a mano a 2 —o sea,
 mandar la ROM al mapa 19— mueve 55336 de los 57344 pixeles.
 
 Lo que eso **no** prueba es la convención con la que se arma la tabla: el mapa
-de `--map-id` primero y después los de `--mapas` sin repetir. Está escrita igual
-en el conversor y en la referencia a propósito, porque si no compararían dos
-mundos distintos, y por eso mismo equivocarla los equivoca a los dos juntos y la
+de `--map-id` primero y después los de `--mapas` sin repetir. Equivocarla
+equivoca a la vez el cartucho y la golden que se sacó de él, así que la
 comparación sigue dando cero. Ese lado se revisa leyendo, no corriendo.
 
 Y tres más para las prioridades de objeto contra la capa de encima, que es por
@@ -2148,16 +2181,16 @@ que directamente no se dibujara daría la misma pantalla. Las dos paradas en la
 celda (66,40) del mapa 1 son la misma escena con un solo bit distinto —ahí la
 capa tapa 512 de 768 y la silueta tiene que partirse en el lugar exacto—:
 primero con el héroe en prioridad 1, debajo, y después con `encima`, que lo
-sube a prioridad 2 y lo pone adelante. Entre las dos referencias hay 284 pixeles
+sube a prioridad 2 y lo pone adelante. Entre las dos pantallas hay 284 pixeles
 de diferencia, así que el par no puede dar cero por casualidad.
 
 Y una ruta forzada, `ruta`, que es la única prueba que compara al héroe
 **mientras** camina un guión y no donde termina. La diferencia importa: los dos
-errores que destapó —los dos de la referencia, no de la ROM— eran del contador
-de cuadros del ciclo de animación, y ninguno de los dos se ve en el cuadro
-final, donde el héroe ya está parado. Compara cuatro cuadros de una ruta de doce
-celdas con esperas en el medio, elegidos de modo que cada error conocido dé rojo;
-el comentario de la receta dice cuáles y por qué. Corre en el mapa 6 porque es
+errores que destapó cuando se escribió eran del contador de cuadros del ciclo de
+animación, y ninguno de los dos se ve en el cuadro final, donde el héroe ya está
+parado. Compara cuatro cuadros de una ruta de doce
+celdas con esperas en el medio, elegidos de modo que cada error conocido dé
+rojo; el docstring del caso dice cuáles y por qué. Corre en el mapa 6 porque es
 mudo, que cuando se eligió importaba: el arranque duraba distinto con música y
 sin ella. Ahora dura siempre lo mismo y eso dejó de pesar.
 
@@ -2182,8 +2215,9 @@ cada dirección.
 
 Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
-el medio. `just parado MAPA TX TY` planta al héroe en una celda elegida y
-compara sin caminar, que además no depende de cuántos segundos se mantenga la
+el medio. Para eso `cartucho()` acepta `--inicio TX TY`, que planta al héroe en
+una celda elegida y compara sin caminar —lo usa `test_parado` en
+`pruebas/test_tanda.py`—, y además no depende de cuántos ticks se sostenga la
 cruceta. Así se reprodujo el error de la banda de OAM.
 
 ### El personaje
@@ -2251,12 +2285,17 @@ La animación también queda predecible porque la ROM sólo anima cuando la
 posición realmente cambia: contra el borde el personaje mira hacia allá pero no
 camina en el lugar, que además es lo que hace RM2k.
 
-`snes_expect.py` arma en Python lo que la consola debería mostrar —el mapa, la
-cámara siguiendo al héroe, y el héroe en su pose parada con los colores ya
-fusionados— y se compara pixel por pixel. Son los cinco casos de
-`just heroe <mapa>`: la parada y las cuatro direcciones.
+Son los cinco casos de `test_heroe`: la parada y las cuatro direcciones, hoy
+contra la captura congelada de cada uno.
 
-Encontró dos cosas que a ojo no se veían:
+**Hasta el 2026-09-16 se comparaban contra una referencia en Python**,
+`tools/snes_expect.py`, que armaba lo que la consola debería mostrar —el mapa,
+la cámara siguiendo al héroe, y el héroe en su pose parada con los colores ya
+fusionados— siguiendo las mismas reglas que la ROM. Se fue cuando quedó claro
+que en el pixel la captura del emulador es mejor referencia, y que los errores
+que la referencia no cazaba —los de nacimiento— los encontraba taro jugando.
+Vale saber qué encontró mientras existió, porque es de ahí que salen dos de las
+constantes de este lado, y ninguna de las dos se veía a ojo:
 
 **Una entrada de CGRAM de menos.** El sprite emite 16 colores —el transparente
 más los 15— pero la constante decía 15, así que el último nunca se subía y
@@ -2299,7 +2338,7 @@ Para el port un CharSet horneado es **otro CharSet**, con
 translúcidas —`lcf` lo hace sólo si alguien prende `DECORAR_TRANSLUCIDO`, que
 es el conversor, para que el volcado a JSON siga viendo el nombre de verdad— y
 `render_map.Charsets` fabrica la imagen. Todo lo demás —paletas, ranuras de
-VRAM, poses, la referencia— lo trata como a cualquier gráfico. Quien mire
+VRAM, poses— lo trata como a cualquier gráfico. Quien mire
 **qué** dibuja un nombre y no dónde está parado tiene que pasar por
 `rm2k.sin_horneado`: la pasabilidad de un evento dibujado con un tile lo hace.
 El camino viejo sigue estando, con `MODO_TRANSLUCIDO=trama`, para poder
@@ -2360,15 +2399,15 @@ Y dejó dos cosas que valen aunque la rama no entre:
   ventana. Verificado con el control corrido: sin ese canal, `bum-vuelve` da
   17.586 pixeles de diferencia.
 * **snes9x redondea distinto que el hardware en la suma de color math**: con la
-  misma ROM, bsnes y mesen-s coinciden entre ellos y con la referencia
-  —truncan—, y snes9x redondea para arriba cuando la suma de un canal es impar.
-  Son trece pixeles y no se ven, pero es **la primera vez que el emulador de la
-  tanda se aparta de la consola**: si algún día se compara color math, el caso
-  va a `bsnes`.
+  misma ROM, bsnes y mesen-s coinciden entre ellos —truncan, que es lo que hace
+  el chip—, y snes9x redondea para arriba cuando la suma de un canal es impar.
+  Son trece pixeles y no se ven, pero es **la primera vez que el emulador con el
+  que se capturan las goldens se aparta de la consola**: si algún día se compara
+  color math, el caso va a `pruebas/test_cores.py`.
 
 **Menos el save point**, que va **opaco**: está en
 `rm2k.SIN_TRAMA` y `lcf` no le pega el sufijo. Es una divergencia deliberada de
-RM2k y la referencia hace lo mismo, así que la comparación sigue midiendo. Se
+RM2k, declarada acá y no descubierta mirando una pantalla. Se
 probaron los otros dos caminos y los dos se cayeron: con la trama, en una
 pantalla moderna se ve el damero y la llama queda agujereada; con el color math
 —que es transparencia de verdad— el objeto deja de animar y el héroe se ve **a
@@ -2499,7 +2538,7 @@ exactos, el primer `jsr` escribe arriba de `pal_buf`, que es lo último que hay.
 Eso no se ve al armar ni al arrancar sino cuatrocientos cuadros adentro de una
 escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
 
-* **`w65.py` reserva la pila.** `PILA_RESERVADA` son 256 bytes que la BSS no
+* **`w65` reserva la pila.** `PILA_RESERVADA` son 256 bytes que la BSS no
   puede tocar, y pasarse es un error al armar. El número está medido: la pila
   más honda de la tanda —`core-puerta`, con el intérprete adentro de una NMI—
   baja 24 bytes, y la cinemática de apertura entera, 28. Es el mismo agujero
@@ -2692,57 +2731,61 @@ tema de prueba contra el 95% de la Mega Drive.
 
 ### Toolchain
 
-**Tres cosas: `python`, `cargo` y un core de libretro.** Las tres están en pacman
-y en apt, y no hace falta ningún contenedor para compilar ni para verificar.
-`cargo` lo pide el ensamblador de 65816, que es el binario de `w65/`: toda receta
-que ensambla `main.s` depende de `w65-binario`.
+**Dos cosas: `python` y un core de libretro**, más las herramientas de Rust del
+repo —`w65` para ensamblar, `brr` para las muestras, `ditto` y `protocol`—, que
+**se consumen desde el PATH**: se instalan una vez con `just herramientas` y
+ningún script ni prueba de este juego llama a `cargo`. El porqué de eso está en
+`AGENTS.md`. Nada de esto pide un contenedor.
 
 Llegar ahí costó escribir dos ensambladores propios, y por la misma razón las
 dos veces: **nada clonado de internet ni compilado de fuentes sin revisar.**
 
     tools/spc700.py     el SPC700 no tiene ensamblador empaquetado en ningún lado
-    w65/, tools/w65.py  el 65816 sí (cc65), pero no en los repos de Arch
+    w65/                el 65816 sí (cc65), pero no en los repos de Arch
 
-El segundo es el interesante, porque había alternativa: clonar cc65 y
-compilarlo. Se descartó porque eso mete código sin auditar en la misma caja
-donde viven el repo y las credenciales, que es justo lo que se quería evitar.
-Reemplaza a `ca65` **y** a `ld65` —el layout de la ROM es fijo, así que emite el
-binario directo, sin enlazador— y está escrito dos veces: `w65/` en Rust, que es
-la que arma las ROMs, y `tools/w65.py`, que es la segunda opinión que la valida.
-Ver `AGENTS.md`.
+`w65` reemplaza a `ca65` **y** a `ld65` —el layout de la ROM es fijo, así que
+emite el binario directo, sin enlazador—.
 
-Que se pueda confiar en él no es una promesa. Ver más abajo.
+**Esa razón dejó de valer**, y conviene saberlo antes de tocar nada acá: taro
+dio por caduca la regla de no compilar fuentes en esta caja, `cc65` se clonó y
+se compiló en `/extras/ref/cc65`, y la decisión tomada es que el ensamblador
+pase a ser `ca65` + `ld65` y `w65/` se borre. Lo que falta para eso, y qué es lo
+único que no traduce derecho, está en `ESTADO.md`. `tools/w65.py`, la segunda
+implementación en Python que lo validaba, ya no está.
 
 ### Cómo se verifica el ensamblador
 
-`just audio-validar` ensambla el mismo fuente con las dos cadenas y compara el
-binario entero: `ca65` es el patrón contra el que se mide, y es el **único
-oráculo externo** del repo — todo lo demás compara la ROM contra algo nuestro.
+**Hoy lo verifican sus propias pruebas —`just w65-pruebas`— y el criterio de
+aceptación de la ROM**: si el ensamblador se equivoca, la ROM cambia y las
+goldens se ponen rojas. Las dos comparaciones que había se fueron con sus dos
+patas, y las dos vale la pena conocer porque es lo que se dejó de tener:
 
-Compara dos fuentes, y el segundo hace falta porque el primero no alcanza. La
-ROM del proyecto es casi toda datos y relleno: un empate ahí prueba poco, y
-sobre todo no toca las entradas de la tabla de opcodes que `main.s` nunca usa.
-Una entrada sin probar es una trampa para el día que alguien la use. Así que
-`tools/w65_coverage.py` genera un fuente sintético con **cada mnemónico en cada
-modo de direccionamiento que la tabla declara** y se compara eso también.
+* **contra `ca65`**, ensamblando el mismo fuente con las dos cadenas y
+  comparando el binario entero. Era el **único oráculo externo** del repo — todo
+  lo demás compara la ROM contra algo nuestro. Comparaba dos fuentes, y el
+  segundo hacía falta porque el primero no alcanza: la ROM del proyecto es casi
+  toda datos y relleno, así que un empate ahí prueba poco y sobre todo no toca
+  las entradas de la tabla de opcodes que `main.s` nunca usa. Un generador
+  emitía un fuente sintético con **cada mnemónico en cada modo de
+  direccionamiento que la tabla declara**. Esa receta estuvo rota meses con las
+  rutas apuntando a un directorio renombrado y nadie lo notó, porque pedía
+  podman y no se corría nunca;
+* **contra `tools/w65.py`**, la segunda implementación en Python, exigiendo que
+  la ROM **y** la tabla de símbolos salieran byte por byte iguales. Se fue con
+  ella: dos implementaciones obligan a tocar las dos, y lo que la comparación
+  cubría ya lo cubre que la ROM cambie.
 
-Correrlo cada vez que se toquen las tablas. Mientras dé idéntico, el ensamblador
-es correcto para todo lo que el proyecto puede expresar.
+**Y el ensamblador hace cuatro controles que ca65 no hace**, los cuatro
+agregados después de que el error correspondiente costara una tarde: etiqueta
+repetida, constante redefinida con otro valor, el área de RAM que no entra, y el
+operando que no entra en su ancho —que es cómo se descubrió que `lda [dp], y`
+con la variable fuera de la página directa emitía el byte bajo y leía de otro
+lado—.
 
-Y esa cadena tiene un eslabón más: `just w65-comparar` ensambla con las dos
-implementaciones —`w65/` en Rust y `tools/w65.py`— y exige que la ROM **y** la
-tabla de símbolos salgan byte por byte iguales. Un cambio en una sin la otra
-rompe esa igualdad, así que se tocan las dos o no se toca ninguna.
-
-**Y además hacen cuatro controles que ca65 no hace**, los cuatro agregados
-después de que el error correspondiente costara una tarde: etiqueta repetida,
-constante redefinida con otro valor, el área de RAM que no entra, y el operando
-que no entra en su ancho —que es cómo se descubrió que `lda [dp], y` con la
-variable fuera de la página directa emitía el byte bajo y leía de otro lado—.
-
-El quinto es el más difícil de encontrar a mano: **el ancho del acumulador en
-una etiqueta a la que se llega saltando**. El ensamblador lleva el ancho en
-orden de lectura, así que en
+El quinto es el más difícil de encontrar a mano, y es el que hay que llevarse a
+`ca65` cuando se haga la migración: **el ancho del acumulador en una etiqueta a
+la que se llega saltando**. El ensamblador lleva el ancho en orden de lectura,
+así que en
 
     bne baja
     rep #$20
@@ -2756,8 +2799,8 @@ el `cmp` se emite con un inmediato de **dos** bytes, la CPU en ocho lee uno
 solo, y el segundo —el $00 del byte alto— se ejecuta como `BRK`: la ROM se va
 por la ventana y dibuja cualquier cosa. No lo ve el diff, no lo ve la
 comparación pixel a pixel, y bisecar con `rts` tampoco sirve, porque desbalancea
-la pila y uno termina midiendo eso. Ahora `w65.py` compara el ancho declarado en
-cada salto relativo con el de su etiqueta y falla con nombre y línea.
+la pila y uno termina midiendo eso. `w65` compara el ancho declarado en cada
+salto relativo con el de su etiqueta y falla con nombre y línea.
 
 Puesto a andar la primera vez encontró 24 casos en `main.s`, todos
 declaraciones que mentían. Once eran viejos y no rompían nada —etiquetas que
@@ -2809,7 +2852,11 @@ pican juntas y en fase y eso no pasa nunca.
 ### El parche de bsnes
 
 `tools/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
-repo. Existe porque el reloj de la tanda le pregunta a la ROM en qué vuelta del
+repo, y **desde que las goldens son capturas de snes9x importa más que antes**:
+sin bsnes no hay con qué contestar "anda en el emulador y no en la consola", que
+es lo único que `pruebas/test_cores.py` existe para contestar.
+
+Existe porque el reloj de las pruebas le pregunta a la ROM en qué vuelta del
 lazo va —lo lleva en `vueltas`, en la WRAM— y bsnes no expone la WRAM:
 `retro_get_memory_data` devuelve nulo para **todos** los ids. Sin el parche, los
 casos que corren bajo bsnes caen al camino viejo de contar cuadros de hardware,
@@ -2832,8 +2879,8 @@ tiene `LIBS =` vacío.
     cp bsnes_libretro.so /usr/lib/libretro/
 
 Probado leyendo `vueltas` con el core parcheado: bsnes declara 131072 bytes y
-da los mismos números que snes9x, cuadro por cuadro. `just bsnes` pasa sus
-cuatro comparaciones.
+da los mismos números que snes9x, cuadro por cuadro. Cuántas comparaciones pasan
+lo dice `just pruebas`.
 
 ### Trampas del hardware
 
@@ -2908,18 +2955,18 @@ que viaja en la partida. La ROM lee las cinco ranuras por el puerto de la WRAM
 y se da por cumplida con que el ítem esté en cualquiera, que es el `||` de los
 cinco `Get*Id()` de easyrpg.
 
-La **habilidad** no lo es, y conviene saberlo antes de apoyarse en ella: sale
-de una tabla del cartucho —`sabe_hab`, 81 entradas para los 60 actores del
-LDB— que arma `batalla.aprendidas_de`, la misma función con la que contesta la
-referencia. Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o
-igual al `initial_level`. **Va aparte de `actor_hab`**, que es la lista del
-menú de la pelea: ésa lleva sólo las que este port sabe ejecutar y sólo de los
+La **habilidad** no lo es, y conviene saberlo antes de apoyarse en ella: sale de
+una tabla del cartucho —`sabe_hab`, 81 entradas para los 60 actores del LDB— que
+arma `batalla.aprendidas_de`, que es la misma función con la que el modelo de la
+pelea contesta. Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o
+igual al `initial_level`. **Va aparte de `actor_hab`**, que es la lista del menú
+de la pelea: ésa lleva sólo las que este port sabe ejecutar y sólo de los
 actores que pueden entrar al grupo, y `IsSkillLearned` no filtra ninguna de las
-dos cosas. Lo que falta para que sea estado es `ChangeSkills` —20 comandos en
-el juego, y uno de ellos le enseña la 152 a Arden, que es justo la que
-preguntan los mapas 47 y 48—; mientras no compile, la respuesta es la del LDB y
-nada la mueve. Las páginas que enseñan no compilan, así que no hay media
-implementación corriendo: hay una deuda con su número.
+dos cosas. Lo que falta para que sea estado es `ChangeSkills` —20 comandos en el
+juego, y uno de ellos le enseña la 152 a Arden, que es justo la que preguntan
+los mapas 47 y 48—; mientras no compile, la respuesta es la del LDB y nada la
+mueve. Las páginas que enseñan no compilan, así que no hay media implementación
+corriendo: hay una deuda con su número.
 
 Lo cubren cuatro casos de la tanda —`rama-equipo`, `rama-equipo-no`,
 `rama-hab` y `rama-hab-no`—, que son la página de prueba tiñendo la pantalla
@@ -2949,8 +2996,8 @@ juego.
 El juego declara cinco mil y usa 81. La ROM lleva **esas 81**, con una ranura
 cada una: el conversor las cuenta en los 328 mapas antes de compilar nada
 —`indexar_variables`, un tercio de segundo— y el bytecode habla de ranuras, así
-que cuestan 162 bytes de RAM y no diez kilobytes. La referencia arma el mismo
-índice, que es lo que hace que los dos lados lean el mismo stream. Antes el
+que cuestan 162 bytes de RAM y no diez kilobytes. El índice es del juego entero
+y no del cartucho, y eso importa: antes el
 índice era de los mapas de cada ROM y una partida guardada con una ROM no valía
 para otra con más mapas: las ranuras se corrían. Viven en la RAM lejana
 —`FAR_VARIABLES`, por la ventana de `WMDATA`, como el estado de los paralelos—
@@ -2978,14 +3025,15 @@ otras cuatro las coordenadas **en pantalla**, que no se hacen —la nuestra mide
 y valen una página—. El id del mapa, la mirada y el id del evento no los pide
 nadie. El personaje puede ser el héroe, el dueño de la página o cualquier
 evento del mapa, y la celda que se lee es la **viva**: `tile_x`/`tile_y` y
-`ev_pos_buf` en la ROM, `Estado.heroe` y `Estado.pos_ev` en la referencia, o sea
-adonde una ruta forzada o un `ChangeEventLocation` dejaron al personaje.
+`ev_pos_buf` en la ROM, `Estado.heroe` y `Estado.pos_ev` en el modelo de
+`eventos.py`, o sea adonde una ruta forzada o un `ChangeEventLocation` dejaron
+al personaje.
 
-Con qué se compara: en la ROM el intérprete corre en `eventos_tick` y el héroe
-se mueve después, en `move_hero`, así que la página de un cuadro ve la celda con
-la que terminó el cuadro anterior. La referencia hace lo mismo porque quien
-escribe `Estado.heroe` es `cuadro_de_eventos`, que va en el mismo lugar del
-lazo.
+Cuál celda es ésa depende de dónde cae el intérprete en el lazo: corre en
+`eventos_tick` y el héroe se mueve después, en `move_hero`, así que la página de
+un cuadro ve la celda con la que terminó el cuadro anterior. En el modelo pasa
+lo mismo porque quien escribe `Estado.heroe` es `cuadro_de_eventos`, que va en
+el mismo lugar.
 
 **Escribir una variable casi nunca pide el refresco de páginas, y eso vale
 media Lashe City.** `ControlVars` termina en
@@ -3066,7 +3114,7 @@ No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.
 `CallEvent` —la página de otro evento, en el lugar— **se compila en línea**: el
 cuerpo del llamado se emite donde está la llamada, y no hace falta ninguna pila
 de intérpretes porque el llamado corre entero antes de que siga el que llamó.
-No toca ni la ROM ni la referencia: las dos corren el mismo bytecode. Si el
+No toca al intérprete de la ROM: el bytecode que le llega es el mismo. Si el
 llamado **no** compila, la llamada se saltea, que es lo que el port venía
 haciendo con el comando entero; exigir que compilara costaría 183 de las 221
 páginas que compilan y llaman. Con eso el Tram Officer del mapa 9 sube al
