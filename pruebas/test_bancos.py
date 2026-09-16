@@ -8,6 +8,7 @@ es la chica, y sirve para que un error se vea acá y no en un md5.
 """
 
 import os
+import re
 import sys
 
 import pytest
@@ -166,3 +167,17 @@ def test_el_codigo_a_mano_entra_en_el_banco_1():
     rom = [int(v) for v in simbolos.tabla.values()
            if 0x028000 <= int(v) < 0x7E0000]
     assert min(rom) == 0x028000, "lo primero pasando el banco 1 está en $%06X" % min(rom)
+
+
+def test_el_mapa_de_memoria_pone_cada_banco_en_su_lugar():
+    """Lo que ata el `.cfg` al reparto: `BANKnn` arranca en `$nn:8000`."""
+    texto = bancos.cfg()
+    assert "BANK01: start = $018000, size = $8000, fill = yes;" in texto
+    assert "BANK7D: start = $7D8000, size = $8000, fill = yes;" in texto
+    assert "BANK7E" not in texto, "los bancos $7E y $7F son la WRAM"
+    assert "FAR:      load = BANK01" in texto
+    assert "%s: load = %s" % ((bancos.segmento_de(bancos.PRIMER_BANCO),) * 2) in texto
+    # El archivo tiene que medir 4 MB: 126 bancos de datos, más el 0 partido
+    # en tres áreas, más los dos reservados.
+    tamanos = [int(t, 16) for t in re.findall(r"size = \$([0-9A-F]+), fill", texto)]
+    assert sum(tamanos) == 4 * 1024 * 1024

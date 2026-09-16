@@ -168,3 +168,67 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
         with open(ruta, "w") as handle:
             handle.write("\n".join(salida) + "\n")
     return resueltos, empezaron
+
+
+# --- el mapa de memoria, para `ld65` -----------------------------------------
+#
+# LoROM de 4 MB: 128 bancos de 32 KB, cada uno visto en `$8000-$FFFF` de su
+# número. Los dos últimos del archivo no se usan: en la consola, los bancos
+# `$7E` y `$7F` **son** la WRAM, y un dato ahí se leería como RAM.
+BANCOS = 128
+BANCOS_RESERVADOS = 2
+
+# La pila arranca en `$1FFF` y crece hacia abajo, hacia el BSS: los dos
+# comparten los 8 KB bajos. Esto es lo que se le deja a la pila, que medida
+# baja 24 bytes en la cadena de llamadas más honda.
+PILA = 256
+
+
+def cfg():
+    """El `.cfg` de `ld65`: un área por banco, y cada segmento en la suya.
+
+    Un área con `fill = yes` se rellena hasta el final, así que cada banco
+    ocupa sus 32 KB en el archivo aunque su segmento no los llene, y un
+    segmento que se pase hace fallar el link en vez de invadir el siguiente.
+    Los `BANKnn` son opcionales porque cuántos se usan depende del cartucho.
+
+    El `align = $8000` no mueve nada —cada segmento arranca al principio de su
+    área, que ya está alineado a eso—, pero `ld65` exige que un segmento
+    declare al menos la alineación de los `.align` que lleva adentro.
+    """
+    memoria = [
+        # La RAM no va al archivo: se reparte por dirección, no por offset.
+        'ZP:   start = $0000, size = $0100, type = rw, file = "";',
+        'RAM:  start = $0100, size = $%04X, type = rw, file = "";'
+        % (0x1F00 - PILA),
+        # El banco 0: el código y las tablas, y la cabecera y los vectores
+        # al final, donde los busca la consola.
+        "ROM:  start = $008000, size = $7FC0, fill = yes;",
+        "HEAD: start = $00FFC0, size = $0020, fill = yes;",
+        "VECT: start = $00FFE0, size = $0020, fill = yes;",
+    ]
+    segmentos = [
+        "ZEROPAGE: load = ZP,   type = zp;",
+        "BSS:      load = RAM,  type = bss;",
+        "CODE:     load = ROM,  type = ro;",
+        "TABLAS:   load = ROM,  type = ro;",
+        "HEADER:   load = HEAD, type = ro;",
+        "VECTORS:  load = VECT, type = ro;",
+        # El código a mano que vive afuera del banco 0.
+        "FAR:      load = %s, type = ro, align = $8000;" % segmento_de(1),
+    ]
+    for banco in range(1, BANCOS - BANCOS_RESERVADOS):
+        memoria.append("%s: start = $%02X8000, size = $8000, fill = yes;"
+                       % (segmento_de(banco), banco))
+        if banco >= PRIMER_BANCO:
+            segmentos.append("%s: load = %s, type = ro, align = $8000, "
+                             "optional = yes;"
+                             % (segmento_de(banco), segmento_de(banco)))
+    # Los dos reservados van igual al archivo, en cero: el cartucho mide 4 MB,
+    # que es lo que dice la cabecera y lo que esperan los flash carts.
+    memoria.append("RESERVADO: start = $%02X8000, size = $%X, fill = yes;"
+                   % (BANCOS - BANCOS_RESERVADOS, 0x8000 * BANCOS_RESERVADOS))
+    return ("# Generado por tools/bancos.py: el mapa de memoria de la ROM.\n"
+            "MEMORY {\n%s\n}\nSEGMENTS {\n%s\n}\n"
+            % ("\n".join("    " + m for m in memoria),
+               "\n".join("    " + s for s in segmentos)))

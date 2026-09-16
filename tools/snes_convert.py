@@ -6112,6 +6112,12 @@ def main():
     resueltos, rellenaron = bancos.resolver([musica, args.output])
     print("acomodo de bancos: %d bloque(s), %d empiezan banco"
           % (resueltos, rellenaron))
+    # Y el mapa de memoria para `ld65`, al lado: sale de acá y no de un
+    # archivo a mano para que en qué banco arrancan los datos esté escrito
+    # una sola vez, en `bancos.PRIMER_BANCO`.
+    with open(os.path.join(os.path.dirname(os.path.abspath(args.output)),
+                           "memoria.cfg"), "w") as handle:
+        handle.write(bancos.cfg())
     for i, tema in enumerate(hechos):
         # El porcentaje de notas que llegan al stream va acá y no escondido:
         # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
