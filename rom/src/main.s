@@ -252,7 +252,7 @@ ACTOR_GRAF_NINGUNO = $FF
 ; lo mismo que pasa al entrar a un mapa.
 ;
 ; En el banco 0 no entraba: la BSS está en 7680 de 7680, medido el 2026-09-13
-; metiéndole un `.res 64` y mirando el corte de w65.
+; metiéndole un `.res 64` y mirando el corte del ensamblador.
 FAR_ENCUENTRO = $3900
 ENC_N     = FAR_ENCUENTRO + 0   ; pasos dados desde el último encuentro
 ENC_IDX   = FAR_ENCUENTRO + 1   ; la fila de la tabla, que no baja nunca
@@ -5561,7 +5561,7 @@ var_de_personaje:
     ; ChangeEventLocation o un TradeEventLocations la dejaron. En RM2k es
     ; `character->GetX()`, o sea lo mismo.
     ; No se guarda ninguno de los dos operandos en RAM: la BSS está llena
-    ; —dos bytes más y `w65` avisa que no entra— y no hace falta. El blanco
+    ; —dos bytes más y `ld65` avisa que no entra— y no hace falta. El blanco
     ; **por** EV_STRIDE se lleva en X, que acá no la usa nadie, y con el
     ; corrimiento puesto en la dirección: así el héroe queda con X en cero y
     ; distinguirlo es un `cpx`, que no toca el acumulador.
@@ -10239,8 +10239,8 @@ listo:
 ; SRAM va del lado del bus A y la WRAM del otro. Guardar es un DMA de B a A —el
 ; bit 7 de DMAP— y cargar el mismo al revés.
 ;
-; La partida arranca en $0100 y no en $0000 por el ensamblador: `w65.py` elige
-; página directa cuando la dirección entra en un byte, igual que ca65, así que
+; La partida arranca en $0100 y no en $0000 por el ensamblador: `ca65` elige
+; página directa cuando la dirección entra en un byte, así que
 ; con la partida en $0000 un `lda SRAM_MAGIA, x` leería la página directa en vez
 ; de la SRAM. Los 256 bytes que quedan abajo no los usa nadie.
 SRAM_BANCO = $70            ; en LoROM la SRAM se ve desde $70:0000

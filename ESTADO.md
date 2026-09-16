@@ -53,7 +53,8 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
    → BRR, con el lector de SoundFont) y `tiles/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
-2. **`w65/`**, el ensamblador de 65816. El contrato más limpio del repo;
+2. **el ensamblador**: fue `w65/` y desde el 2026-09-16 es `ca65` + `ld65`,
+   con el mapa de memoria que escribe el conversor;
 3. **el asignador** —paletas, ARAM, VRAM— que es lo que queda de
    `snes_convert.py` cuando le sacás los conversores, más el secuenciador de
    MIDI al SPC700, que **no** es un conversor tonto: conoce el driver y usa
@@ -141,8 +142,8 @@ Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —
 un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
 en "Lo que la tanda no cubre".
 
-Los cinco proyectos en Rust tienen sus propias tandas: `just w65-pruebas`,
-`brr-pruebas`, `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
+Los cuatro proyectos en Rust tienen sus propias tandas: `just brr-pruebas`,
+`tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -179,16 +180,15 @@ cada una con su `LEEME.txt` diciendo qué mirar y con qué limitaciones se choc�
 
 ## El estado de los cortes
 
-Cinco proyectos independientes, todos en inglés y sin una mención a este juego.
+Cuatro proyectos independientes, todos en inglés y sin una mención a este juego.
 Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
     ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     protocol/   declara los dos bytecodes              enchufado: los cuatro generados
-    w65/        el ensamblador de 65816                enchufado: las ROMs salen de acá
     brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
     tiles/      imagen -> tiles, paletas y tilemap     **no**: la ROM usa `pixeles.py`
 
-**Los cuatro se consumen desde el PATH** —`just herramientas` los instala y
+**Se consumen desde el PATH** —`just herramientas` los instala y
 ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
 
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
@@ -328,60 +328,35 @@ se pueden empezar hoy.
    explícito. La ROM salió byte por byte igual, que era el criterio. Cuántas
    declaraciones hay y cuántas rellenan lo imprime cualquier `just demo`.
 
-   **Lo que no se pudo, y es lo que el paso 6 hereda:** los dos `.bloque`
-   escritos a mano en `main.s` están en RODATA *después* de todo lo generado,
-   así que su offset depende del cartucho y el conversor no conoce el tamaño
-   del código a mano que tienen delante. Salidas: un segmento propio para cada
-   uno, alineado por el mapa de memoria —que es lo que `ld65` sabe hacer—, o
-   que lo generado termine pegado a un banco. **Las dos mueven bytes**, así que
-   el criterio "byte por byte igual" no sobrevive al paso 6 de todas formas.
-   La decisión está en el paso 6.
+   Quedaron dos `.bloque` escritos a mano en `main.s`, que dependían del
+   cartucho; los resolvió el paso 6.
 
-6. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Con el
-   acomodo ya decidido arriba, lo que queda es traducción: `.alinear` →
-   `.align`, `.controlar` → `.assert`, dos `lda #-1` → `$FFFF`, y escribir el
-   `.cfg`. **Está medido: de las 30.300 líneas de `main.s`, `ca65` acepta todo
-   lo demás**, porque `w65` se escribió imitándolo. Se van también
-   `tools/w65_check.py`, `tools/w65_coverage.py` y lo que quede de
-   `snes-validar`. **Criterio: la ROM byte por byte igual.**
+6. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** ✅ el
+   2026-09-16. Decidido por taro el 2026-09-15: prefiere un proyecto
+   mantenido, popular y con once años de historia antes que sostener el
+   nuestro. La razón original de escribir uno propio —no compilar fuentes de
+   internet en esta caja— era una interpretación mía llevada al extremo sin
+   preguntarle.
 
    **El layout, decidido por taro el 2026-09-16: un área de memoria por
-   banco**, que es la forma estándar de `ld65` —cada área de `$8000` con
-   `fill = yes`, y el link falla si un banco se pasa—. El código a mano que
-   hoy va en RODATA detrás de lo generado (unos 8 KB, con los dos `.bloque`
-   que dejó el paso 5) pasa a un **banco fijo**, igual en todos los cartuchos;
-   lo generado arranca en el siguiente, y `tools/bancos.py` pasa de emitir
-   `.res` a emitir `.segment` cuando un bloque no entra. **El `.cfg` lo
-   escribe el conversor**, como un `.inc` más, para que el banco donde
-   arranca lo generado no quede escrito en dos lados. Descartada: que lo
-   generado termine pegado a un banco, porque el segundo `.bloque` a mano
-   seguía sin resolverse y el código a mano seguía moviéndose por cartucho.
+   banco**, que es la forma estándar de `ld65`. El código a mano de fuera del
+   banco 0 va en `FAR`, fijo en el banco 1; lo generado, en un `BANKnn` por
+   banco desde el 2, repartido por `tools/bancos.py`; y el `.cfg` lo escribe
+   el conversor para que el banco donde arranca lo generado esté escrito una
+   sola vez. Descartada: que lo generado termine pegado a un banco, porque uno
+   de los `.bloque` a mano seguía sin resolverse y el código a mano seguía
+   moviéndose por cartucho.
 
-   **6a está hecho** (2026-09-16): el código a mano va en el segmento `FAR`,
-   que `w65` ubica antes de RODATA y arranca siempre en `$01:8000`; termina
-   con `.alinear $8000`, y lo generado arranca en `$02:8000`. Ya no queda
-   ningún `.bloque` en el árbol. Que `FAR` entre en un banco lo cuida
-   `test_el_codigo_a_mano_entra_en_el_banco_1`.
+   Se hizo en cinco commits, cada uno verificable solo: el layout con `w65`
+   (6a, que movió bytes y se verificó con las goldens y la tabla de símbolos),
+   y después cuatro que no movieron ninguno —las fuentes en la forma de
+   `ca65`, el reparto en segmentos, el `.cfg`, y el cambio de ensamblador—.
+   **La ROM de `ca65` + `ld65` salió byte por byte igual a la de `w65`.**
 
-   **Lo que falta para 6b**, en orden: que `tools/bancos.py` emita
-   `.segment "BANCOnn"` donde hoy emite `.res`, y que un bloque de más de un
-   banco —la grilla de celdas, 40 KB, que se recorre con un puntero y no por
-   DMA— siga contiguo partiéndose en dos segmentos seguidos; que el conversor
-   escriba el `.cfg` (un área de `$8000` con `fill = yes` por banco, `FAR` en
-   la del 1); traducir `.alinear` → `.align` y `.controlar` → `.assert`, y
-   los dos `lda #-1`; y que las recetas llamen a `ca65` + `ld65`. Recién
-   entonces se borra `w65/`.
-
-   Va en dos commits. **6a**, el layout nuevo todavía con `w65`: como mueve
-   bytes, el criterio es que **ninguna golden se mueva**, que la tabla de
-   símbolos sea igual salvo el corrimiento de banco, y `test_cores.py` en
-   verde. **6b**, el cambio de ensamblador sobre ese layout: ahí sí, **la ROM
-   byte por byte igual a la de 6a**.
-
-   Decidido por taro el 2026-09-15: prefiere un proyecto mantenido, popular y
-   con once años de historia antes que sostener el nuestro. La razón original
-   de escribir uno propio —no compilar fuentes de internet en esta caja— era
-   una interpretación mía llevada al extremo sin preguntarle.
+   **Lo que quedó sin red**, y conviene tener presente: `w65` comprobaba que
+   cada salto llegara a su etiqueta con los registros al ancho que ella
+   declara, y `ca65` no. Está explicado en "Lo que se perdió con el
+   ensamblador propio", en el README.
 
 7. **El reparto de paletas sale de las primitivas.** Es el que hace que
    `tiles/` no entre, y son **tres decisiones globales metidas entre las

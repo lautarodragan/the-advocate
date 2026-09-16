@@ -59,7 +59,7 @@ _extraidas = {}
 
 
 def binario():
-    """La ruta del `brr` del PATH, igual que `w65_bin.binario()`.
+    """La ruta del `brr` del PATH, igual que `ensamblar.binarios()`.
 
     Levanta `SystemExit` si no está: que falte una herramienta del sistema no
     es un error de programa, y un traceback de veinte líneas tapa la única

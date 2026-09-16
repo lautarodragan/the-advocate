@@ -12,7 +12,6 @@ pruebas-manuales/
 # un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
 .claude/worktrees/
 rom/shots/
-rom/src/musicdata.inc
 
 # El sandbox de Claude Code tapa los archivos de configuración que podrían
 # ejecutar algo, montándoles /dev/null encima. Como acá no existían, quedan como
@@ -31,7 +30,6 @@ rom/src/musicdata.inc
 .mcp.json
 .ripgreprc
 .vscode
-rom/src/mapdata.inc
 
 # El target de Ditto: binarios y dependencias compiladas.
 ditto/target/

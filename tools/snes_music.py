@@ -16,7 +16,7 @@ de muestras más las muestras en BRR) y el stream de escrituras al DSP, que el
 65816 va escupiendo cuadro a cuadro.
 
 Uso:
-    python3 tools/snes_music.py --map-id 67 -o rom/src/musicdata.inc
+    python3 tools/snes_music.py --map-id 67 -o rom/build/inc/musicdata.inc
 """
 
 import argparse

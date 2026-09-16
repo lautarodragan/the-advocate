@@ -969,7 +969,7 @@ va una celda antes del texto.
 nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
 tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
 `demo-ciudad` los textos de la batalla arrancan en el 273, que en un byte no
-entra. El caso que lo cuida es `batalla-textos-lejos`, y `w65` **rechaza** un
+entra. El caso que lo cuida es `batalla-textos-lejos`, y `ca65` **rechaza** un
 `.byte` que no entre en un byte en vez de truncarlo.
 
 `Use Item` anda. Abre la lista de lo que se puede usar **donde va la de los
@@ -1210,8 +1210,8 @@ paso y uno más para elegir la tropa, y ése es el contrato con esa clase.
 
 **Dónde vive cada cosa.** El estado son nueve bytes en la RAM lejana,
 `FAR_ENCUENTRO` en `$7E3900`: en el banco 0 no entraban —la BSS está llena, y
-medir cuánto falta es meterle un `.res N` y buscar por bisección dónde corta
-`w65`—. Las tablas y las tres rutinas viven **fuera del banco 0**, en RODATA, y
+medir cuánto falta es meterle un `.res N` y leer por cuánto se pasa, que `ld65`
+lo dice—. Las tablas y las tres rutinas viven **fuera del banco 0**, en `FAR`, y
 del lado de allá quedan nada más que cuatro `jsl` y el puente a la pelea, 43
 bytes. Ni ésos entraban, así que bajó `item_switch` a RODATA —124 bytes, la
 tabla más grande de las que se leen con X y no están en un lazo por cuadro—. Y
@@ -2539,8 +2539,9 @@ exactos, el primer `jsr` escribe arriba de `pal_buf`, que es lo último que hay.
 Eso no se ve al armar ni al arrancar sino cuatrocientos cuadros adentro de una
 escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
 
-* **`w65` reserva la pila.** `PILA_RESERVADA` son 256 bytes que la BSS no
-  puede tocar, y pasarse es un error al armar. El número está medido: la pila
+* **El mapa de memoria reserva la pila.** `PILA`, en `tools/bancos.py`, son
+  256 bytes que la BSS no puede tocar: el área `RAM` del `.cfg` termina antes,
+  y pasarse es un error de `ld65` al armar. El número está medido: la pila
   más honda de la tanda —`core-puerta`, con el intérprete adentro de una NMI—
   baja 24 bytes, y la cinemática de apertura entera, 28. Es el mismo agujero
   que ya había tenido el ZEROPAGE, y la misma cura: un área que no se controla
@@ -2553,9 +2554,9 @@ escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
   un mapa se pasa.
 
 Cuánto queda hoy entre el final de la BSS y la pila lo dice la tabla de
-símbolos que `w65` deja al lado de la ROM, y el margen es de un par de cientos
+símbolos que se deja al lado de la ROM, y el margen es de un par de cientos
 de bytes contando la reserva. Lo que siga pidiendo RAM tiene que aflojar algo,
-y `w65` lo va a decir al armar en vez de dejarlo pasar.
+y `ld65` lo va a decir al armar en vez de dejarlo pasar.
 
 ### Las tablas van en el banco 0
 
@@ -2732,61 +2733,31 @@ tema de prueba contra el 95% de la Mega Drive.
 
 ### Toolchain
 
-**Dos cosas: `python` y un core de libretro**, más las herramientas de Rust del
-repo —`w65` para ensamblar, `brr` para las muestras, `ditto` y `protocol`—, que
-**se consumen desde el PATH**: se instalan una vez con `just herramientas` y
-ningún script ni prueba de este juego llama a `cargo`. El porqué de eso está en
-`AGENTS.md`. Nada de esto pide un contenedor.
+**Tres cosas: `python`, un core de libretro y `ca65` + `ld65`**, más las
+herramientas de Rust del repo —`brr` para las muestras, `ditto` y
+`protocol`—, que **se consumen desde el PATH**: se instalan una vez con `just
+herramientas` y ningún script ni prueba de este juego llama a `cargo`. El
+porqué de eso está en `AGENTS.md`, y cómo se compila `cc65`, que no viene
+empaquetado en Arch, también. Nada de esto pide un contenedor.
 
-Llegar ahí costó escribir dos ensambladores propios, y por la misma razón las
-dos veces: **nada clonado de internet ni compilado de fuentes sin revisar.**
+La ROM la arma `tools/ensamblar.py`: `ca65`, después `ld65` con el mapa de
+memoria que escribe el conversor —un área por banco, ver `tools/bancos.py`—, y
+encima el checksum de la cabecera y la tabla de símbolos que leen las pruebas.
 
-    tools/spc700.py     el SPC700 no tiene ensamblador empaquetado en ningún lado
-    w65/                el 65816 sí (cc65), pero no en los repos de Arch
+Hasta el 2026-09-16 hubo un ensamblador propio, `w65/`, escrito por una regla
+—no compilar fuentes de internet en esta caja— que taro dio por caduca. Se
+borró cuando las dos ROMs de referencia salieron byte por byte iguales con las
+dos cadenas. El del SPC700, `tools/spc700.py`, sigue: ése no tiene ensamblador
+empaquetado en ningún lado.
 
-`w65` reemplaza a `ca65` **y** a `ld65` —el layout de la ROM es fijo, así que
-emite el binario directo, sin enlazador—.
+### Lo que se perdió con el ensamblador propio
 
-**Esa razón dejó de valer**, y conviene saberlo antes de tocar nada acá: taro
-dio por caduca la regla de no compilar fuentes en esta caja, `cc65` se clonó y
-se compiló en `/extras/ref/cc65`, y la decisión tomada es que el ensamblador
-pase a ser `ca65` + `ld65` y `w65/` se borre. Lo que falta para eso, y qué es lo
-único que no traduce derecho, está en `ESTADO.md`. `tools/w65.py`, la segunda
-implementación en Python que lo validaba, ya no está.
-
-### Cómo se verifica el ensamblador
-
-**Hoy lo verifican sus propias pruebas —`just w65-pruebas`— y el criterio de
-aceptación de la ROM**: si el ensamblador se equivoca, la ROM cambia y las
-goldens se ponen rojas. Las dos comparaciones que había se fueron con sus dos
-patas, y las dos vale la pena conocer porque es lo que se dejó de tener:
-
-* **contra `ca65`**, ensamblando el mismo fuente con las dos cadenas y
-  comparando el binario entero. Era el **único oráculo externo** del repo — todo
-  lo demás compara la ROM contra algo nuestro. Comparaba dos fuentes, y el
-  segundo hacía falta porque el primero no alcanza: la ROM del proyecto es casi
-  toda datos y relleno, así que un empate ahí prueba poco y sobre todo no toca
-  las entradas de la tabla de opcodes que `main.s` nunca usa. Un generador
-  emitía un fuente sintético con **cada mnemónico en cada modo de
-  direccionamiento que la tabla declara**. Esa receta estuvo rota meses con las
-  rutas apuntando a un directorio renombrado y nadie lo notó, porque pedía
-  podman y no se corría nunca;
-* **contra `tools/w65.py`**, la segunda implementación en Python, exigiendo que
-  la ROM **y** la tabla de símbolos salieran byte por byte iguales. Se fue con
-  ella: dos implementaciones obligan a tocar las dos, y lo que la comparación
-  cubría ya lo cubre que la ROM cambie.
-
-**Y el ensamblador hace cuatro controles que ca65 no hace**, los cuatro
-agregados después de que el error correspondiente costara una tarde: etiqueta
-repetida, constante redefinida con otro valor, el área de RAM que no entra, y el
-operando que no entra en su ancho —que es cómo se descubrió que `lda [dp], y`
-con la variable fuera de la página directa emitía el byte bajo y leía de otro
-lado—.
-
-El quinto es el más difícil de encontrar a mano, y es el que hay que llevarse a
-`ca65` cuando se haga la migración: **el ancho del acumulador en una etiqueta a
-la que se llega saltando**. El ensamblador lleva el ancho en orden de lectura,
-así que en
+Los controles que `w65` fue ganando a medida que un error costaba una tarde
+—etiqueta repetida, constante redefinida con otro valor, el área de RAM que no
+entra, el operando que no entra en su ancho— los hace también `ca65` + `ld65`.
+**Uno no, y es el más difícil de encontrar a mano: el ancho del acumulador en
+una etiqueta a la que se llega saltando.** El ensamblador lleva el ancho en
+orden de lectura, así que en
 
     bne baja
     rep #$20
@@ -2800,13 +2771,14 @@ el `cmp` se emite con un inmediato de **dos** bytes, la CPU en ocho lee uno
 solo, y el segundo —el $00 del byte alto— se ejecuta como `BRK`: la ROM se va
 por la ventana y dibuja cualquier cosa. No lo ve el diff, no lo ve la
 comparación pixel a pixel, y bisecar con `rts` tampoco sirve, porque desbalancea
-la pila y uno termina midiendo eso. `w65` compara el ancho declarado en cada
-salto relativo con el de su etiqueta y falla con nombre y línea.
+la pila y uno termina midiendo eso.
 
-Puesto a andar la primera vez encontró 24 casos en `main.s`, todos
-declaraciones que mentían. Once eran viejos y no rompían nada —etiquetas que
-arrancan con un `sep`, que llega antes que cualquier inmediato— pero la
-declaración era falsa igual; ahora dice la verdad.
+`w65` comparaba el ancho declarado en cada salto relativo con el de su etiqueta
+y fallaba con nombre y línea. La primera vez encontró 24 casos en `main.s`, y
+hoy todas las etiquetas a las que se llega saltando con otro ancho lo declaran
+con `.a8`/`.a16`/`.i8`/`.i16`. **Lo que ya no hay es quien lo compruebe**: una
+etiqueta nueva que lo necesite y no lo diga es un `BRK` que aparece lejos. Si
+una ROM se va por la ventana sin razón aparente, mirar primero ahí.
 
 ### Cómo se verifica la ROM
 

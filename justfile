@@ -107,7 +107,7 @@ herramientas:
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las
-# herramientas de Rust del PATH —`w65` arma la ROM y `brr` sus muestras—. La
+# herramientas del PATH —`ca65` + `ld65` arman la ROM y `brr` sus muestras—. La
 # ROM se corre desde Python cuadro a cuadro (tools/retro.py), sin emulador con
 # ventana ni servidor X.
 #
@@ -143,7 +143,7 @@ nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 # capturas adentro de `rom/build/algo/` y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda donde estaba, para que `mednafen rom/build/abl.sfc` y las
 # rutas escritas en el README sigan valiendo. Existe porque
-# `rom/src/mapdata.inc` es estado global —lo pisa cualquier `convert`— y sin
+# `rom/build/inc/mapdata.inc` es de todos —lo pisa cualquier `convert`— y sin
 # esto no se puede compilar mientras algo corre.
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
@@ -307,7 +307,7 @@ assets-medir que="todo":
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
 # verde en la tanda entera, porque los dos lados se equivocaban igual.
 #
-# Las de estado se apoyan en la tabla de símbolos que deja `w65 --symbols`, así
+# Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `main.s` hace fallar la prueba diciendo qué símbolo falta.
 #

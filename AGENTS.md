@@ -61,13 +61,15 @@ tiene que decir; lo que el código ya dice, no.
 Todo este repo va en castellano —comentarios, documentación y mensajes de
 commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
 de punta a punta: código, comentarios, nombres de pruebas y README. Al
-2026-09-15 son cinco:
+2026-09-16 son cuatro:
 
     ditto/      lee y escribe los formatos de RPG Maker 2000
     protocol/   declara un bytecode y genera las constantes de sus dos lados
     brr/        códec BRR y lector de SoundFont
-    w65/        el ensamblador de 65816
     tiles/      de una imagen a tiles, paletas y tilemap
+
+Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
+`ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
 
 **Se consumen desde el PATH, no desde `target/release`.** Se instalan con
 `just herramientas` —`cargo install --locked --path …`— y a partir de ahí son
@@ -98,7 +100,7 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS` y `tiles/` por `TILES_CORPUS` —un directorio de llamadas
 grabadas—, y sin esas variables las que las necesitan se saltean con un
-mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
+mensaje; `protocol/` y `brr/` no necesitan nada.
 
 ### Los que conviven con su equivalente en Python
 
@@ -106,16 +108,10 @@ mensaje; `protocol/`, `brr/` y `w65/` no necesitan nada.
 `tools/sf2.py` y `tools/pixeles.py` siguen siendo los que arman la ROM, y
 ninguna receta de compilación llama a los de Rust.
 
-**`w65/` sí: desde el 2026-09-15 es el que arma las ROMs.** Toda receta que
-ensambla `main.s` depende de `w65-binario`. `tools/w65.py` **no se borra**: es la segunda
-implementación que valida a la primera, y de eso vive `just w65-comparar`.
-Borrarlo es una decisión de taro y todavía no la tomó.
-
-Lo que ata cada par es que la salida sea **byte por byte igual** —las muestras
-en un caso, la ROM y la tabla de símbolos en el otro—, y eso es lo único por lo
-que se puede confiar en el port. Un cambio en un lado sin el otro rompe esa
-igualdad: si hay que tocar el codificador o el ensamblador, se toca en los dos
-o no se toca.
+Lo que ata cada par es que la salida sea **byte por byte igual**, y eso es lo
+único por lo que se puede confiar en el port. Un cambio en un lado sin el otro
+rompe esa igualdad: si hay que tocar el codificador, se toca en los dos o no se
+toca.
 
 ## El número de un opcode se elige en la declaración
 
@@ -248,8 +244,12 @@ ni de ejecución** —no importa `socket`, `connect`, `exec*`, `fork`, `system`,
 firmados, el clon es `--depth 1` y no tiene historia, y nadie leyó los 989
 archivos. Y el build corrió con red y como root: auditar después no deshace eso.
 
-Contra el riesgo que más importa hay una defensa que no depende de la auditoría:
-**la salida de `ca65` se compara byte por byte** contra nuestro ensamblador.
+**La defensa que no dependía de la auditoría se fue con `w65`.** Mientras
+existió, la salida de `ca65` se comparaba byte por byte contra la nuestra; el
+2026-09-16 las dos ROMs de referencia salieron idénticas y `w65` se borró.
+Desde ahí `ca65` y `ld65` son los que arman, y lo que cobraría un binario
+alterado es lo mismo que cobra cualquier regresión: las goldens y
+`test_cores.py`. Recompilarlos sin mirar deja de ser inocuo.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
@@ -282,11 +282,14 @@ y se tira.
 
 ## Trampas del entorno
 
-**`rom/src/mapdata.inc` es estado global.** Lo pisa cualquier `convert`,
-y no está en git. Una ROM ensamblada a mano se lleva los datos del último mapa
-que se haya convertido, aunque el código sea el correcto: así se terminó
-mirando el mapa 6 creyendo que era la demo del hito 12. **Las ROMs salen de una
-receta, no de un `w65.py` suelto.**
+**Un `.inc` generado nunca va al lado de `main.s`.** `ca65` busca los
+`.include` primero en el directorio del archivo que incluye y recién después en
+los `-I`, así que un `mapdata.inc` en `rom/src/` taparía al del cartucho sin
+avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 `convert`
+escribía justo ahí —era "estado global", y así se terminó mirando el mapa 6
+creyendo que era la demo del hito 12—; hoy escribe en `rom/build/inc/`, y
+`tools/ensamblar.py` se niega a armar si encuentra uno en `rom/src/`. **Las
+ROMs salen de una receta, no de un `ca65` suelto.**
 
 **Cuánto le sobra al banco 0 depende de qué cartucho se arme.** Las tablas que
 emite el conversor viven ahí, así que el número cambia con la lista de mapas:
@@ -296,8 +299,9 @@ Medido con `demo-ciudad`, que es el cartucho grande, son 85; con
 `demo-carrera`, más de 600. Así que al decir "quedan N bytes" hay que decir con
 cuál, y el que manda es `demo-ciudad`.
 
-Medirlo es meter un `.res N` en `TABLAS` y buscar por bisección el N más grande
-que todavía arma: `w65` corta con "el área no entra: 32705 bytes en 32704".
+Medirlo es meter un `.res N` en `TABLAS` más grande que lo que sobra y leer
+por cuánto se pasa: `ld65` avisa "Segment ‘TABLAS’ overflows memory area ‘ROM’
+by 136 bytes", y con `N = 200` eso quiere decir que sobraban 64.
 
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
@@ -306,13 +310,14 @@ se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/cache_disco.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
-`rom/src/main.s`, los `tools/*.py` y el binario de `w65`: tocar cualquiera de
-ésos a mitad de una corrida mezcla dos versiones y el resultado no dice nada.
+`rom/src/main.s`, los `tools/*.py` y los binarios de `ca65` y `ld65`: tocar
+cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
+dice nada.
 
 Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
 2026-09-16 existía `just hitos-foto`, que sacaba una foto del árbol con
 `git stash create` porque la tanda corría recetas que pisaban
-`rom/src/mapdata.inc`, que es estado global. Las pruebas de hoy arman cada
+`rom/src/mapdata.inc`, que entonces era estado global. Las pruebas de hoy arman cada
 cartucho en su propio directorio de `rom/build/tanda/` y **no tocan
 `mapdata.inc`**, así que dos corridas a la vez no se pisan. Lo único que se
 pelean es la CPU.

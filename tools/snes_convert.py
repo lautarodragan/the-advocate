@@ -28,7 +28,7 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 255: quedarse abajo evita pisarlos.
 
 Uso:
-    python3 tools/snes_convert.py --map-id 7 -o rom/src/mapdata.inc
+    python3 tools/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
 """
 
 import argparse
@@ -3127,7 +3127,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=(),
          encuentros=None):
-    """El .inc que arma w65 junto con main.s.
+    """El .inc que se ensambla junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
     `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point

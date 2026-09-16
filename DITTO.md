@@ -216,7 +216,7 @@ Ese `.inc` mezcla tres cosas y sólo una puede volverse binario opaco:
 2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `main.s` usa
    como símbolos y tienen que seguir siendo texto.
 3. **Referencias a símbolos del ensamblador** (`.loword(fuente_pre0)`), que
-   dependen de dónde caiga el código y sólo las resuelve `w65`.
+   dependen de dónde caiga el código y sólo las resuelve `ld65`.
 
 **Y la decisión, de taro, que hay que respetar desde el primer día del emisor:
 sale con un sourcemap.** Cuando el dato pasa a binario deja de poder leerse, y
@@ -226,8 +226,9 @@ no sólo como compensación.
 
 Es un sourcemap en el sentido literal: del offset del `.bin` a "el campo
 `trigger` de la página 2 del evento 12 del mapa 8". Con dos saltos y no uno
-—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `w65`, que ya escribe
-un `.sym` con los símbolos del código: esto es su extensión a los datos.
+—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/ensamblar.py`,
+que ya escribe un `.sym` con los símbolos del código: esto es su extensión a
+los datos.
 
 Para qué sirve, más allá de leer un dato:
 

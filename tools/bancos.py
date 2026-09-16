@@ -159,8 +159,8 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
         colados = [l for l in salida if l.split(";")[0].strip()
                    .startswith(".bloque")]
         if colados:
-            # Un `.bloque` que llegue al ensamblador no lo entiende nadie más
-            # que `w65`, así que pasaría callado hasta el día que se vaya.
+            # Un `.bloque` que llegue al ensamblador es un error de `ca65`
+            # lejos de acá, que no dice qué bloque ni por qué.
             raise ValueError(
                 "%s dejó %d `.bloque` sin resolver, el primero %r: está fuera "
                 "de %s, y ahí el acomodo no se puede calcular"
