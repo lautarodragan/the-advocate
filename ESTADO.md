@@ -726,9 +726,12 @@ van a mover.
   del 47 en adelante hay **diez pixeles** de diferencia en dos tiles animados
   del chipset, como si uno de los dos lados cambiara de paso un cuadro antes.
   **No es de esa vuelta**: el control sin la orden 34 —la ruta `2 2 2 2` pelada—
-  da exactamente lo mismo. El sospechoso es la fase de los tiles animados, que
-  la referencia contaba con `estado.ticks + fundidos` y la ROM con `vueltas`. No
-  se investigó; los casos nuevos miran hasta el cuadro 40 para no pisarlo.
+  da exactamente lo mismo. El sospechoso era la fase de los tiles animados, que
+  los dos lados contaban con relojes distintos. **Eso dejó de poder
+  investigarse así**: la referencia se borró el 2026-09-16 y con ella sus dos
+  contadores, y hoy la golden hornea lo que hace la ROM, así que la divergencia
+  no existe como rojo. Si el paso de los tiles animados llegara a estar mal, lo
+  dice el ojo y no la tanda. Los casos siguen mirando hasta el cuadro 40.
 
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
   arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la
