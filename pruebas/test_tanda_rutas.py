@@ -1,4 +1,4 @@
-"""Las rutas forzadas de `rom/hitos.txt`: `MoveEvent` sobre el héroe y sobre un
+"""Las rutas forzadas de la tanda: `MoveEvent` sobre el héroe y sobre un
 evento, y lo que cuelga de ellas.
 
 Todo lo de acá corre en el **mapa 6** salvo donde se diga, y eso es una decisión

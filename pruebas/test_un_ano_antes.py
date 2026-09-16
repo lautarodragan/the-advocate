@@ -11,7 +11,7 @@ paleta de sprite para ellos solos, y los dos `MovePicture` como lo que son —un
 rampa de **tono**, no de transparencia: los dos dejan `top_trans` en cero y
 mueven (r, g, b) entre 0 y 100—, así que la imagen entra desde el negro, se
 queda y se va. Lo que se ve pixel por pixel lo cobra `cinematica ... cartel`
-en `rom/hitos.txt`, cinco cuadros contra la referencia.
+en `pruebas/test_tanda*.py`, cinco cuadros contra su golden.
 
 De los comandos de la página el único que se sigue aceptando sin hacerse es
 `ChangeItems`, y no lo lee nadie: no hay menú, y `ConditionalBranch` sólo mira

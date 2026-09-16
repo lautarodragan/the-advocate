@@ -257,7 +257,7 @@ def test_el_paso_ocho_del_caso_de_la_tanda(juego):
     """El caso `encuentro`, del lado de la referencia.
 
     Si esto cambia —otra semilla, otra cuenta— el caso de la tanda pasa a
-    comparar contra otra tropa y hay que rehacer su línea de `hitos.txt`. Vale
+    comparar contra otra tropa y hay que rehacer su caso de la tanda. Vale
     la pena que lo diga una prueba y no un rojo de la tanda a los diez minutos.
     """
     _db, tree = juego

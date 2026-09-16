@@ -1,6 +1,6 @@
 """Una partida de la ROM corriendo, para hacerle preguntas sobre su estado.
 
-Esto **no compara pixeles**. La tanda de `rom/hitos.txt` compara la pantalla
+Esto **no compara pixeles**. La tanda de `pruebas/test_tanda*.py` compara la pantalla
 contra la referencia de Python, cuadro por cuadro; acá se le pregunta a la ROM
 en qué mapa está, qué switch tiene prendido o qué evento está corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es

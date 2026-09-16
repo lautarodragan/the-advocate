@@ -31,7 +31,7 @@ def test_la_pagina_con_item_lleva_el_item():
     ítem**, el 90. Durante un día el port no tenía inventario y esa página se
     emitía como "nunca activa"; desde el 2026-09-10 a la noche lleva el ítem y
     la ROM mira su cuenta en `FAR_ITEMS`. Que la elección se vea la cobra
-    `cofre-llave` en rom/hitos.txt.
+    `cofre-llave` en `pruebas/test_tanda*.py`.
     """
     paginas = paginas_de(8, 41)
     assert len(paginas) == 3, "EV0041 tiene tres páginas y la tabla trae %d" \
@@ -50,7 +50,7 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     la segunda un switch y la tercera un ítem. La tabla lleva la ranura, la
     comparación y el valor de la primera, nada en la segunda, y el ítem en la
     tercera. Que la ROM elija con eso lo cobra `vars 133 ... cofre` en
-    rom/hitos.txt."""
+    `pruebas/test_tanda*.py`."""
     eventos.indexar_variables(GAME_DIR)
     paginas = paginas_de(133, 2)
     assert len(paginas) == 3

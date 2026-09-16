@@ -1,18 +1,20 @@
-"""El arnés de `rom/hitos.txt` adentro de pytest, contra las capturas congeladas.
+"""El arnés de la tanda de regresión, contra las capturas congeladas.
 
-Lo que hoy hace una receta de `just` en cinco procesos —convertir, ensamblar,
-correr la referencia, correr el emulador, comparar— acá son dos llamadas:
-`cartucho()` arma la ROM y `Partida` la corre. Lo que se compara no es la
-referencia de Python sino el PNG congelado de `pruebas/golden/tanda/`, que **es
-una captura del emulador** y por eso se compara en cero pixeles exactos, sin
-máscara; el porqué está en el `LEEME.md` de ese directorio.
+Lo que hasta el 2026-09-16 era una receta de `just` por caso, en cinco procesos
+—convertir, ensamblar, correr la referencia, correr el emulador, comparar— acá
+son dos llamadas: `cartucho()` arma la ROM y `Partida` la corre. Y lo que se
+compara ya no es una referencia de Python sino el PNG congelado de
+`pruebas/golden/tanda/`, que **es una captura del emulador** y por eso se compara
+en cero pixeles exactos, sin máscara; el porqué está en el `LEEME.md` de ese
+directorio.
 
 Tres cosas que este archivo hace y conviene tener a la vista:
 
 * **El plan sale del congelado, no de la referencia.** Los 16 `plan-*.txt`
-  dicen, por dirección, cuántas celdas camina el héroe y cuántos ticks vive la
-  referencia; lo segundo es lo que dice cuánto correr el emulador. Con eso, un
-  caso de caminata deja de necesitar que `snes_expect.py` corra antes.
+  dicen, por dirección, cuántas celdas camina el héroe y cuántos ticks duraba la
+  caminata; lo segundo es lo que dice cuánto correr el emulador. Los escribió la
+  referencia cuando existía, y por eso están congelados: son lo último que queda
+  de ella, y lo que hizo que un caso de caminata dejara de necesitarla.
 * **El grupo es el 11 y no el 10.** Es el default de `grupo` en el justfile y no
   el de `consola.GRUPO`, que es el del juego de verdad. Con el 10 el líder es
   otro, el sprite es otro, y las goldens no dan.

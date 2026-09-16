@@ -25,11 +25,11 @@ from tanda import (cartucho, cuadros_de_hardware, golden, partida, plan,
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
-# Los trece mapas de `heroe` en `rom/hitos.txt`, en el mismo orden: de mayor a
-# menor, que es lo que hacía que la tanda repartida no arrancara el 52 —dos mil
-# ticks por dirección— cuando los demás trabajadores ya habían terminado. Con
-# pytest en serie el orden no cambia nada, y se deja igual para poder leer una
-# lista contra la otra mientras las dos existan.
+# Los trece mapas de `heroe`, de mayor a menor. El orden viene de cuando la
+# tanda se repartía en procesos: era lo que evitaba que el último trabajador
+# arrancara el 52 —dos mil ticks por dirección— cuando los demás ya habían
+# terminado. Con pytest en serie no cambia nada, y se deja igual porque
+# reordenarlo no compra nada.
 MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
 
 
@@ -118,7 +118,7 @@ def test_varios(direccion):
     golden(nombre, p.imagen())
 
 
-# Mapa, celda y nombre de la captura, de `parado` en `rom/hitos.txt`.
+# Mapa, celda y nombre de la captura, de la familia `parado`.
 PARADOS = ((1, 75, 88, "borde"),
            (1, 75, 90, "medias"),
            (1, 66, 40, "tapado"),
@@ -218,7 +218,7 @@ def test_pagina(mapa, arranca, nombre):
     golden(nombre, p.imagen())
 
 
-# Mapa, dirección y los avances en pixeles, de `caminando` en `rom/hitos.txt`.
+# Mapa, dirección y los avances en pixeles, de la familia `caminando`.
 CAMINANDO = ((73, "right", (40, 60, 80)),
              (6, "down", (40, 60, 80)),
              (5, "left", (40, 46, 48, 50)),

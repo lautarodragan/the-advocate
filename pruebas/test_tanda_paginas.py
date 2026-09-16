@@ -1,4 +1,4 @@
-"""Los comandos sueltos de `rom/hitos.txt`, disparados desde la página de prueba.
+"""Los comandos sueltos de la tanda, disparados desde la página de prueba.
 
 Todo lo de este archivo es lo mismo con un flag distinto: un mapa, una página
 inventada que emite **un** comando, y unos ticks donde mirar lo que hizo. La

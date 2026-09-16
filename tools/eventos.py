@@ -3431,7 +3431,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # tener final y el lazo corta en su tope de 10000 vueltas —27566
             # cuadros de emulador para una sola dirección—. Antes de aceptar
             # este comando hay que decidir qué mira ese caso, porque el mapa 52
-            # es de la carrera y está en `rom/hitos.txt`.
+            # es de la carrera y está en `pruebas/test_tanda*.py`.
             #
             # Para reproducir las dos mediciones sin tocar código:
             # `TECLA_SIN_ESPERA=1` sobre el caso `heroe` del mapa 52.

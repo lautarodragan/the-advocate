@@ -227,7 +227,7 @@ destraba:
 # del juego es rmg2000 y no ttyp0, que era lo que decía el camino del código que
 # leí. Las dos veces la ventana se veía perfectamente bien.
 #
-# No entra en `hitos` y es a propósito: levanta un Xvfb, corre el juego
+# No entra en `just pruebas` y es a propósito: levanta un Xvfb, corre el juego
 # durante medio minuto y depende de EasyRPG bajado a /extras. Se corre a mano
 # cuando se toca la ventana o la fuente. El detalle está en `rom/easyrpg.sh`.
 #
@@ -296,28 +296,6 @@ relevar desde="0":
 recorrido desde="66":
   python3 tools/snes_recorrido.py --desde {{desde}}
 
-# La tanda de regresión, lo que queda de ella: **casi toda vive en pytest**
-# desde el 2026-09-16, en `pruebas/test_tanda*.py`, comparando contra las
-# capturas congeladas de `pruebas/golden/tanda/`. Lo que queda acá es lo que no
-# se muda —hoy, sólo `bsnes`— y lo dice `rom/hitos.txt`.
-#
-# La lista vive en ese archivo y no acá, para que ésta y `hitos-paralelo`
-# corran la misma: escrita dos veces, la que se olvide un caso sigue dando verde
-# y nadie se entera. Cuántos casos son y cuántos pasan lo dice correrla.
-hitos:
-  #!/usr/bin/env bash
-  set -uo pipefail
-  # Sin tilde a propósito: bash no admite acentos en los nombres de variable,
-  # así que `falló=1` no es una asignación sino un comando que no existe, y
-  # `$falló` se lee como `$fall` seguido de una ó. Con `set -u` eso hacía que la
-  # receta saliera con código 1 siempre, hubiera fallado algo o no.
-  fallo=0
-  while read -r caso; do
-    echo "=== $caso ==="
-    eval "just $caso" || fallo=1
-  done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
-  exit $fallo
-
 # Cuánto ocuparía en el cartucho el arte del juego, por rubro. Sin argumento
 # los lista.
 #
@@ -348,94 +326,6 @@ assets-medir que="todo":
 # algo de lo que las arma.
 pruebas *args:
   python3 -m pytest pruebas {{args}}
-
-# La tanda sobre una **foto** del árbol, para poder seguir editando mientras
-# corre.
-#
-# El problema que resuelve: cada receta recompila desde `rom/src/main.s`, así que
-# tocar un fuente a mitad de una tanda mezcla dos versiones y el resultado no
-# dice nada. La regla escrita —"mientras corre una tanda no se toca ningún
-# fuente"— funciona hasta que alguien se olvida.
-#
-# `git stash create` deja un commit colgado con el árbol sucio **sin tocar el
-# índice ni el stash**, y el worktree sale de ahí: la foto incluye lo que no está
-# commiteado, que es justo lo que uno quiere probar. Al terminar imprime el hash
-# de la foto, que es lo que permite después ver qué se probó y qué se agregó
-# encima —`git diff <foto>`—.
-#
-# Dos cosas para tener presentes:
-#
-# * **Los archivos sin trackear no entran en la foto.** `git stash create` sólo
-#   toma lo modificado. Un archivo nuevo que todavía no se hizo `git add` no
-#   viaja, así que la receta avisa si ve alguno.
-# * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
-#   no para que la tanda termine antes.
-hitos-foto trabajos="4" donde="":
-  #!/usr/bin/env bash
-  set -uo pipefail
-  # **Cada corrida en su propio directorio.** El default era uno fijo, y la
-  # receta hace `git worktree remove --force` al empezar: dos tandas a la vez
-  # —dos agentes, o un agente y yo— se arrancaban el árbol entre sí y el
-  # resumen salía **verde sin haber medido nada**, que es la peor forma de
-  # fallar que tiene esto; y a veces se ve al revés, como una corrida que
-  # empieza bien y de golpe dice `getcwd: cannot access parent directories`
-  # con casos en rojo que no lo están. El PID alcanza para que no se pisen, y
-  # `pruebas/hitos/` está gitignorado.
-  donde="{{donde}}"
-  donde=${donde:-pruebas/hitos/$$}
-  mkdir -p "$(dirname "$donde")"
-  nuevos=$(git status --porcelain | grep "^??" | grep -E "tools/|rom/src/|justfile|rom/hitos.txt" || true)
-  if [ -n "$nuevos" ]; then
-    echo "ojo: estos archivos no están trackeados y NO entran en la foto:" >&2
-    echo "$nuevos" >&2
-  fi
-  foto=$(git stash create)
-  foto=${foto:-$(git rev-parse HEAD)}
-  git worktree remove --force "$donde" 2>/dev/null || true
-  git worktree add --detach "$donde" "$foto" >/dev/null
-  echo "foto $foto -> $donde"
-  ( cd "$donde" && just hitos-paralelo {{trabajos}} )
-  estado=$?
-  git worktree remove --force "$donde" 2>/dev/null || true
-  rmdir "$(dirname "$donde")" 2>/dev/null || true
-  echo "la foto era $foto; para ver qué se agregó encima: git diff $foto"
-  exit $estado
-
-hitos-paralelo trabajos="4":
-  #!/usr/bin/env bash
-  set -uo pipefail
-  mkdir -p rom/build
-  # Por xargs viajan números de línea y no los casos. xargs procesa comillas y
-  # se come las de `evento 4 "7 19 1" tabla`, que entonces le llega a just
-  # como seis argumentos sueltos; el caso se cae y la tanda sigue con uno menos.
-  # Pasando el número y releyendo la línea adentro, el texto no cruza nunca el
-  # quoting de xargs.
-  casos=$(grep -v '^#' rom/hitos.txt | grep -v '^$')
-  total=$(printf '%s\n' "$casos" | wc -l)
-  # Los rojos se anotan en archivos y no en el código de salida del bash
-  # interno. Si éste saliera con 1, xargs deja de largar trabajo nuevo y una
-  # tanda con un caso roto no llega a correr los demás, que para una prueba de
-  # regresión es justo al revés de lo que uno quiere: se corre todo y se
-  # informa al final.
-  rm -f rom/build/hito-*.rojo
-  seq 1 "$total" | xargs -P {{trabajos}} -I{} bash -c '
-      caso=$(grep -v "^#" rom/hitos.txt | grep -v "^$" | sed -n "{}p")
-      salida=rom/build/hito-{}.log
-      if CORRIDA=hito-{} eval "just $caso" >"$salida" 2>&1; then
-        echo "ok    $caso"
-      else
-        echo "ROJO  $caso  -> $salida"
-        : > rom/build/hito-{}.rojo
-      fi'
-  rojos=$(ls rom/build/hito-*.rojo 2>/dev/null | wc -l)
-  if [ "$rojos" -gt 0 ]; then
-    echo "$rojos caso(s) en rojo de $total"
-    exit 1
-  fi
-  echo "$total casos, todos en verde"
-
-_tecla direccion:
-  @case {{direccion}} in up) echo Up;; down) echo Down;; left) echo Left;; right) echo Right;; *) echo "";; esac
 
 # Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
 # cuatro esquinas a las que puede llegar.

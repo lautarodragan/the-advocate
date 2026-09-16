@@ -11,8 +11,6 @@ pruebas-manuales/
 # Los worktrees de los sub-agentes. Son repositorios de git adentro del repo, y
 # un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
 .claude/worktrees/
-# Y los worktrees de cada tanda: uno por corrida, ver `snes-hitos-foto`.
-pruebas/hitos/
 rom/shots/
 rom/src/musicdata.inc
 

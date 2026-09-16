@@ -1,4 +1,4 @@
-"""Las escenas del juego: `escena`, de `rom/hitos.txt`, mudada a pytest.
+"""Las escenas del juego: la familia `escena` de la tanda.
 
 Una escena es el héroe plantado en una celda, una ruta forzada que lo lleva a
 pisar o a encarar algo, y la página del juego que eso dispara, mirada en varios
@@ -35,8 +35,8 @@ from tanda import cartucho, golden, partida
 # Cada caso es: nombre, mapa, celda de arranque, ruta forzada, los ticks que se
 # capturan, los toques de A por tick, el switch que arranca prendido, los mapas
 # de más que entran al cartucho, y los toques por cuadro de hardware. Es la
-# línea de `rom/hitos.txt` sin el `dir` y sin el `115` del arranque, que es el
-# de siempre.
+# línea que el caso tenía en la lista de la tanda, sin el `dir` y sin el
+# `115` del arranque, que es el de siempre.
 ESCENAS = (
     # Las dos del Sector 32: la puerta de la izquierda y la pantalla que se
     # lee. La segunda es la más larga de las dos y la que más mensajes encadena.

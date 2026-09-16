@@ -436,7 +436,8 @@ class Recorrido:
         agrega un hito nuevo sin romper la prueba, y se bendice después.
 
         **La tolerancia es grande a propósito.** No es una comparación pixel
-        por pixel como la de `hitos`: acá los cuadros no están elegidos
+        por pixel como la de `test_tanda*.py`: acá los cuadros no están
+        elegidos
         para ser deterministas —el agua se mueve, los NPCs caminan, el reloj
         corre— y apretar el umbral traería rojos que no son defectos. Lo que
         tiene que cazar es la corrupción, y taro lo dijo mejor: "incluso si no
