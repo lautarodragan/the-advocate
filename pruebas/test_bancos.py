@@ -94,7 +94,7 @@ def test_cuánto_ocupa_cada_línea(linea, bytes_):
 
 
 def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
-    """`.alinear` es lo que `ca65` llama `.align`, así que sobrevive al paso.
+    """`.align` es de `ca65`, así que sobrevive al paso.
 
     Lo que no puede pasar es que deje de contarse: si su relleno no entra en el
     offset, todos los bloques de abajo se acomodan contra un número corrido.
@@ -102,9 +102,9 @@ def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
     (salida,), _ = resolver(
         '.segment "RODATA"\n'
         "    .byte $00\n"
-        ".alinear 2\n"
+        ".align 2\n"
         + ".bloque %d\n" % (bancos.BANCO - 1), tmp_path)
-    assert ".alinear 2" in salida
+    assert ".align 2" in salida
     # Con la alineación contada van dos bytes, y lo que sigue ya no entra.
     assert ".res %d" % (bancos.BANCO - 2) in salida
 

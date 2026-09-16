@@ -2481,8 +2481,11 @@ def tabla_de_mapas(mapas, etiquetas):
                        % (campos[nombre], usado, nombre, comentario))
             usado += 1
         relleno = MAPA_PTR_BASE - usado
-        out.append("    .byte %s ; +%d  relleno hasta los punteros"
-                   % (",".join(["$00"] * relleno), usado))
+        # Sin relleno no va la línea: un `.byte` sin operandos es un error
+        # para `ca65`.
+        if relleno:
+            out.append("    .byte %s ; +%d  relleno hasta los punteros"
+                       % (",".join(["$00"] * relleno), usado))
         usado += relleno
         for nombre in MAPA_PUNTEROS:
             etiqueta = etiquetas[numero][nombre]
@@ -2490,7 +2493,8 @@ def tabla_de_mapas(mapas, etiquetas):
                        % (etiqueta, etiqueta, etiqueta, usado, nombre))
             usado += MAPA_PTR_PASO
         assert usado <= MAPA_STRIDE, usado
-        out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
+        if usado < MAPA_STRIDE:
+            out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
     return "\n".join(out)
 
 
@@ -2808,7 +2812,7 @@ def bloque(label, data, per_line=16, alinear=None, acomodar=True):
     del banco 0 —termina en $7FC0—, así que nada de lo que caiga ahí puede
     cruzar, y declararlo emitía una cuenta que siempre daba cero.
     """
-    out = ([".alinear %d" % alinear if alinear else ".bloque %d" % len(data)]
+    out = ([".align %d" % alinear if alinear else ".bloque %d" % len(data)]
            if acomodar else [])
     out.append("%s:" % label)
     for i in range(0, len(data), per_line):
@@ -2989,7 +2993,7 @@ class Materiales:
         """(etiqueta, el asm a emitir). El asm es vacío si el bloque ya estaba.
 
         La clave incluye la clase y el acomodo, no sólo el contenido: dos
-        bloques con los mismos bytes pero distinto `.bloque` o `.alinear` no
+        bloques con los mismos bytes pero distinto `.bloque` o `.align` no
         son el mismo bloque para el enlazador.
         """
         datos = bytes(datos)
@@ -3477,8 +3481,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; del texto y una por cara, de dieciséis cada una.\n"
         "RANURA_CGRAM_N    = %d\n"
         "; Cuántas entradas de CGRAM usa el menú del título: una paleta de\n"
-        "; dieciséis, la 0.\n"
-        "TITULO_MENU_CGRAM = %d\n\n"
+        "; dieciséis, la 0. Ya está definida más arriba, con la pantalla de\n"
+        "; título; esto confirma que las dos cuentas den lo mismo.\n"
+        ".assert TITULO_MENU_CGRAM = %d, error, \"dos cuentas del CGRAM del menú\"\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,

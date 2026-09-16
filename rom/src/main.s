@@ -1574,7 +1574,7 @@ anim_continua:
     asl a
     asl a
     asl a                       ; por dieciséis: NPC_STRIDE
-.controlar NPC_STRIDE = 16, "la cuenta de arriba multiplica por dieciséis a mano"
+.assert NPC_STRIDE = 16, error, "la cuenta de arriba multiplica por dieciséis a mano"
     sta npc_total
 
     ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
@@ -8381,7 +8381,7 @@ listo:
     asl a
     asl a
     asl a                       ; por dieciséis: NPC_STRIDE
-.controlar NPC_STRIDE = 16, "la cuenta de arriba multiplica por dieciséis a mano"
+.assert NPC_STRIDE = 16, error, "la cuenta de arriba multiplica por dieciséis a mano"
     sta temp
     sep #$20
 .a8
@@ -17656,7 +17656,7 @@ cada:
     asl a
     asl a                       ; treinta y dos por objeto
     clc
-    adc #IMAGEN_X
+    adc #IMAGEN_X & $FFFF       ; es negativo, y ca65 no acepta un inmediato negativo
     sta obj_x
     lda #IMAGEN_Y
     sta obj_y
@@ -21794,14 +21794,14 @@ anim_por_vel:
     lsr a
     lsr a
     lsr a
-.controlar MAPA_STRIDE = 128, "las tres divisiones de arriba son MAPA_STRIDE/ANIM_STRIDE"
-.controlar ANIM_STRIDE = 16, "ídem"
+.assert MAPA_STRIDE = 128, error, "las tres divisiones de arriba son MAPA_STRIDE/ANIM_STRIDE"
+.assert ANIM_STRIDE = 16, error, "ídem"
     sta temp
     tya
     asl a
     asl a
     asl a
-.controlar ANIM_FAM_STRIDE = 8, "las tres multiplicaciones son ANIM_FAM_STRIDE"
+.assert ANIM_FAM_STRIDE = 8, error, "las tres multiplicaciones son ANIM_FAM_STRIDE"
     clc
     adc temp
     tax
@@ -21850,8 +21850,8 @@ divisor:
 no_cambia:
     lda RDDIVL
     and #(AGUA_CICLO_N - 1)
-.controlar AGUA_CICLO_N = 4, "el ciclo se recorta con un and de dos bits"
-.controlar ANIMADO_PASOS = 4, "y los dos ciclos miden lo mismo"
+.assert AGUA_CICLO_N = 4, error, "el ciclo se recorta con un and de dos bits"
+.assert ANIMADO_PASOS = 4, error, "y los dos ciclos miden lo mismo"
     cpy #$0000
     bne listo                   ; los tiles animados dan la vuelta y ya está
     phx
@@ -22013,7 +22013,7 @@ otra:
     asl a
     asl a
     asl a                       ; tres bits por familia
-.controlar ANIM_FAMILIAS = 2, "los dos nibbles de anim_pend entran en un byte"
+.assert ANIM_FAMILIAS = 2, error, "los dos nibbles de anim_pend entran en un byte"
 baja:
     ora anim_pend
     sta anim_pend
@@ -22072,7 +22072,7 @@ baja:
     lsr a
     lsr a
     lsr a
-.controlar BYTES_POR_TILE = 64, "ocho tiles de fondo entran en una pose de 512"
+.assert BYTES_POR_TILE = 64, error, "ocho tiles de fondo entran en una pose de 512"
     inc a
     sta temp + 2
     lda vq_tope
@@ -22270,7 +22270,7 @@ no_derecha:
     dec tile_y
     lda #0
     sta step_dx
-    lda #-1
+    lda #$FFFF              ; -1: ca65 no acepta un inmediato negativo
     sta step_dy
     sep #$20
 .a8
@@ -22360,7 +22360,7 @@ no8:
     rep #$20
 .a16
     dec tile_x
-    lda #-1
+    lda #$FFFF              ; -1: ca65 no acepta un inmediato negativo
     sta step_dx
     lda #0
     sta step_dy
@@ -22520,7 +22520,7 @@ otra:
     and #$00FF
     asl a
     asl a                       ; por EV_STRIDE
-.controlar EV_STRIDE = 4, "la cuenta de arriba multiplica por cuatro a mano"
+.assert EV_STRIDE = 4, error, "la cuenta de arriba multiplica por cuatro a mano"
     tax
     lda ev_pos_buf, x
     cmp pasa_x
@@ -30294,7 +30294,7 @@ afuera:
 
 ; Hasta el próximo banco: los datos generados arrancan pegados a uno, que es lo
 ; único que `tools/bancos.py` supone del mapa de memoria.
-.alinear $8000
+.align $8000
 
 ; --- cabecera y vectores ---------------------------------------------------
 .segment "HEADER"

@@ -96,9 +96,9 @@ def resolver(rutas, segmento="RODATA"):
                                   % (relleno, _porque(linea, pide)))
                     offset += relleno
                 continue
-            if directiva.startswith(".alinear "):
-                # Ésta se queda: alinear no es acomodar bancos, y es lo que
-                # `ca65` llama `.align`. Acá sólo hay que contarla.
+            if directiva.startswith(".align "):
+                # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
+                # sabe hacer. Acá sólo hay que contarla.
                 unidad = int(directiva.split()[1])
                 offset += (unidad - offset % unidad) % unidad
                 salida.append(linea)

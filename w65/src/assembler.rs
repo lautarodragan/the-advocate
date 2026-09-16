@@ -297,10 +297,28 @@ impl Assembler {
             // a hand-written sum to the constant it depends on: a routine
             // multiplying by twelve with two shifts and an add agreed with the
             // constant until the constant grew and nobody noticed.
-            ".controlar" => {
+            // `.assert` is ca65's spelling, `condition, error, "note"`, and
+            // `.controlar` the old one, `condition, "note"`. Both are checked
+            // while assembling, which ca65 only does when it can: an
+            // `.assert` on addresses is left to the linker there, and here it
+            // is an error, because this assembler has no linker to leave it to.
+            ".controlar" | ".assert" => {
                 let (condition, note) = match rest.split_once(',') {
                     Some((c, n)) => (c, Some(n.trim().trim_matches('"'))),
                     None => (rest, None),
+                };
+                let note = match (name.as_str(), note) {
+                    (".assert", Some(n)) => {
+                        let (action, text) = n.split_once(',').unwrap_or((n, ""));
+                        if !action.trim().eq_ignore_ascii_case("error") {
+                            return Err(bad(format!(
+                                ".assert only knows the `error` action, not {}",
+                                action.trim()
+                            )));
+                        }
+                        Some(text.trim().trim_matches('"'))
+                    }
+                    (_, note) => note,
                 };
                 let (left, right) = condition
                     .split_once('=')
@@ -355,7 +373,7 @@ impl Assembler {
                 self.add(Kind::BankFit { needed }, 0);
                 Ok(())
             }
-            ".alinear" => {
+            ".alinear" | ".align" => {
                 let unit = Expression::new(rest)?.value(&self.symbols)?;
                 if unit <= 0 {
                     return Err(bad(format!(".alinear wants a positive unit, not {unit}")));
@@ -1237,6 +1255,30 @@ mod tests {
             assemble("STRIDE = 12\n.controlar STRIDE = 16, \"the stride grew\"\n").unwrap_err();
         assert!(error.0.contains("is 12"), "{error}");
         assert!(error.0.contains("the stride grew"), "{error}");
+    }
+
+    #[test]
+    fn assert_is_the_ca65_spelling_of_the_same_check() {
+        assemble("STRIDE = 12\n.assert STRIDE = 4 + 8, error, \"fine\"\nnop\n").unwrap();
+        let error = assemble("STRIDE = 12\n.assert STRIDE = 16, error, \"the stride grew\"\n")
+            .unwrap_err();
+        assert!(error.0.contains("is 12"), "{error}");
+        assert!(error.0.contains("the stride grew"), "{error}");
+        let message = error.0.split("\n  at").next().unwrap();
+        assert!(!message.contains("error"), "the action is not part of the note: {error}");
+    }
+
+    #[test]
+    fn assert_refuses_an_action_it_would_not_honour() {
+        let error = assemble("STRIDE = 12\n.assert STRIDE = 12, warning, \"x\"\n").unwrap_err();
+        assert!(error.0.contains("warning"), "{error}");
+    }
+
+    #[test]
+    fn align_is_the_ca65_spelling_of_alinear() {
+        let a = assemble(".segment \"RODATA\"\n.byte 1\n.alinear 4\nmark: .byte 2\n").unwrap();
+        let b = assemble(".segment \"RODATA\"\n.byte 1\n.align 4\nmark: .byte 2\n").unwrap();
+        assert_eq!(a, b);
     }
 
     #[test]
