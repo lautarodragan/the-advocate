@@ -270,8 +270,18 @@ refactors: **no hay features hasta que cierre**.
    `--apretar-a`. Si se borran de corrido eso se pierde y no está en ningún
    otro lado.
 
-   Y **`mednafen` y `bsnes` no son casos como los demás**: son la única cosa
-   que compara contra otro emulador. Ahora que las goldens son capturas de
+   Y **`mednafen` y `bsnes` no son casos como los demás**, y el piloto aclaró
+   en qué se diferencian entre sí. **`bsnes` es un core de libretro**, igual
+   que snes9x, así que tiene salida limpia: correr el mismo cartucho en los dos
+   cores y **comparar las dos capturas entre sí**, que contesta exactamente lo
+   que ese caso existe para contestar, sin referencia y sin golden.
+   **`mednafen` es el binario de verdad**, con Xvfb y captura **por reloj de
+   pared**: no hay tick con el que alinear, así que no puede volverse una
+   prueba de pytest tal como está, y **es lo único que obliga a que
+   `snes_expect.py` siga existiendo**. Esa decisión hay que tomarla al borrar
+   la referencia.
+
+   Son la única cosa que compara contra otro emulador. Ahora que las goldens son capturas de
    snes9x, la tanda entera compara snes9x contra snes9x, así que ésos dos son
    lo único que puede decir "anda acá y no en la consola". Si en la mudanza se
    les congela una golden de snes9x, se vuelven decoración.
@@ -279,6 +289,26 @@ refactors: **no hay features hasta que cierre**.
    Y `rom/hitos.txt` queda como **único lugar** donde vive el porqué de cada
    caso, así que su cabecera —que todavía habla de `just snes-hitos`— hay que
    rehacerla en esa vuelta.
+
+   **Decidido con taro el 2026-09-16**, después del piloto: se va **secuencial,
+   sin `pytest-xdist`** —primero simplificar, el paralelismo después—; el caso
+   `elegir` **compara sólo píxeles**, y se acepta perder el texto de la ventana
+   que la referencia imprimía; y la clave del directorio de cartucho es el
+   **hash de (grupo, flags)**, porque un directorio por caso son ~900 MB.
+
+   Y una idea suya para la vuelta siguiente: **separar armar la ROM de correr
+   las pruebas**, y pasarle la ruta del cartucho a la suite como argumento. Con
+   eso el test deja de saber compilar y pasa a ser sólo "corré esto y
+   compará", que es lo que hace evidente qué se está probando. Encaja con el
+   paso de agrupar cartuchos.
+
+   **El piloto dejó medido lo que más importa**: `Partida.correr` ya *es* el
+   lazo de `snes_correr.py` —mismo cuadro de arranque que `--arranque 115`, las
+   dos cuentan ticks de `vueltas`, las dos descuentan `RETRASO_DE_PANTALLA`—,
+   así que la brecha es **ancha y no profunda**: 25 flags del conversor, la
+   aridad de `--pagina-de-prueba` (cuatro números en 18 recetas) y cinco cosas
+   del corredor, de las cuales `--toques-hardware` es la única que bloquea.
+   Un caso cuesta **2,4 veces menos en frío y 19 veces menos en caliente**.
 
 4. **Los golden files, y con ellos la referencia afuera.** Lo que falta no es
    la decisión sino los goldens: los 170 casos comparan contra
