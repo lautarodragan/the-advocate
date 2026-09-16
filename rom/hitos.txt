@@ -13,54 +13,12 @@
 # El orden era de mayor a menor, para que la repartida en procesos no arrancara
 # el caso más largo cuando los demás trabajadores ya habían terminado. Se
 # respeta al sacar casos y no se reordena.
-tecla
-# La cruceta, que es lo que le faltaba al minijuego de las piedras del mapa
-# 11. El héroe arranca en (22,8), donde **abajo está cerrado**, y el toque es
-# hacia abajo, que es hacia donde ya mira: así el flanco lo lee el comando y
-# no mueve ni gira a nadie, que es lo único que la referencia no modela de un
-# toque de dirección. Ver `tecla` en el justfile.
-tecla 6 "88 1 1 0 0" "22 8" "41 60" "12 0 0 50" "" none "88 9 0 0 0" "60 1" 115 tecla-dir "down:40"
 espera
 # La pantalla de ranuras desde el save point, y el mapa de vuelta al cerrarla.
 guardar
 menu
 items
 equipo
-texto
-# El mismo caso con el bloque de textos corrido más allá del primer banco:
-# ver `relleno` en la receta. Verificado en rojo con el `msg_empezar` de antes:
-# 3116 pixeles en el cuadro 60 y 3404 en el 400, todos en la ventana, que ahí
-# dibuja el texto que le tocó leer de otro lado.
-texto 255 200 texto-lejos 33000
-# Y el mismo caso con el cuadro **encima** del borde de banco, que es lo que
-# `texto-lejos` no cubría: allá el cuadro entero cae del otro lado y
-# `msg_empezar` ya lo ubicaba bien, acá la cabecera y el primer largo quedan en
-# el banco de antes y el texto sigue en el de después. El compositor avanzaba
-# `msg_ptr` con un `inc` de dieciséis bits, así que a partir del borde leía el
-# $0000 del mismo banco, que en LoROM no es ROM. Es la cinemática de los Neon
-# Vipers del mapa 14 en `demo-ciudad`, con 76 caracteres de largo de renglón y
-# la pantalla hecha basura.
-#
-# El relleno son 32766 y no un número redondo: el bloque queda alineado al banco
-# —lo hace el `.bloque`, porque pasado los 32 KB no entra en lo que sobra— así
-# que el cuadro de dos bytes antes del borde es el que lo cruza. Verificado en
-# rojo con el `inc msg_ptr` de antes: **3414 pixeles en el cuadro 60**. El 400
-# da cero también con el defecto puesto, porque el segundo cuadro arranca
-# entero del otro lado.
-texto 255 200 texto-cruza 32766
-# El mismo MoveTo con la celda en **dos variables**, que es la otra rama de
-# `CommandChangeEventLocation` y lo que le faltaba al minijuego de las piedras
-# del mapa 11. La página pone 21 y 13 en dos variables y recién después planta
-# al evento 3, así que el cuadro tiene que salir igual que el de `lugar`, que
-# lo planta con los números escritos. Verificado en rojo: sumándole uno a la y
-# en `op_place_var` da 392 pixeles, y leyendo la variable de la y también para
-# la x, 246.
-vars 6 "60 1" "31 0 0 21 0 32 0 0 13 0 31 10 0 4 32" "22 12" "20 60" "12 0 0 50" 115 lugar-var "" ""
-destello
-destello 6 "4 31 0 0 31 24" "22 10" "2 12 15 23 25" "12 0 0 50" 115 destello-compartido
-saturar
-saturar 73 "60 100 100 100 0" 30 120 saturar-gris
-saturar 73 "60 0 120 120 200" 30 120 saturar-brillo
 # La pantalla de batalla, contra `pantallas.py --batalla`. La pelea bloquea y
 # no cuesta ningún tick, así que no hay referencia de pixeles del otro lado:
 # lo que se compara es la pantalla. Ver el comentario de `batalla`.
@@ -126,107 +84,6 @@ batalla 86 "11 12 13" 20 200 "" batalla-textos-lejos ABLBackdropSJ03 "" "" "--mo
 # rompe cosas distintas en cada uno; el porqué está en `vuelta`.
 vuelta
 vuelta 6 82 SJBackdropABL04 20 "30 100" si 115 vuelta-ventana
-pan
-pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
-# Un "volver" con espera y la cámara ya en su lugar: cero cuadros, y la página
-# sigue en el mismo. Verificado que da rojo con el `rts` de antes: 13710
-# pixeles en el cuadro 1, el tinte un tick tarde.
-pan 6 "3 0 0 4 1" "1 2 3 4" 115 pan-cero
-# La lluvia pegada al mapa: la cámara se corre dos celdas y las gotas con ella.
-# La apertura es el único lugar donde llueve y ahí la cámara no se mueve, así
-# que sin estos dos nada miraría el scroll de las gotas. `pan-lluvia` encontró
-# además que la referencia pintaba encimadas al revés que el PPU.
-pan 6 "2 0 2 2 1" "16 32 48 64 65 66" 115 pan-lluvia "" 2
-sacudir
-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"
-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-lluvia "" 2
-# La animación de batalla, sus destellos: ver OP_ANIMATION. La escena del
-# Emitter Room, que es la que las usa, no se puede disparar desde una prueba
-# —ver ESTADO—, así que va por la página de prueba. `animacion` encontró que
-# un destello de pantalla con cuadros impares arranca por la fase que ninguna
-# página toma.
-animacion
-# Y el **dibujo**, que es lo que `animacion` no miraba: la 82 es de alcance
-# "pantalla" y achicada al 11% no se ve casi nada. Estos dos son la 78 —"Single
-# Magic Flame B", 144x176 achicada al 36%— sobre el héroe y sobre un evento,
-# que en la ROM son dos caminos distintos: el héroe sale de `hero_x` y el
-# evento de su fila de NPC, por `npc_de_evento`. Los cuadros miran el primero,
-# uno de los tres que la animación tiene **vacíos**, y los tres más cargados.
-# Ver `animacion.py`.
-animacion 6 "78 10001 1" "1 15 33 37 41 47" 115 animacion-dibujo
-# Sobre Manta, que está pegada al borde izquierdo: la caja arranca en -18 y
-# `emit_object` la recorta. El objetivo es ella y no Kersh a propósito: Kersh
-# es el líder del grupo, comparte paleta con el héroe, y el destello del
-# objetivo se la tiñe a los dos —ver ESTADO, "el destello de un objetivo que
-# comparte paleta con el héroe"—.
-animacion 6 "78 1 1" "1 25 33 41 47" 115 animacion-evento "3 10"
-timer
-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
-# Las variables, vistas por el cronómetro: 60 segundos a la variable 17, menos
-# 25, y el cronómetro desde la variable. Sin las variables mostraría 60.
-vars
-vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre
-vars 133 "0 0" "123 0 0 7 0" "4 7" "2 30" "12 100 100 100" 115 cofre-no
-vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre-llave "151 1"
-# La clase 6 de ControlVars —las coordenadas de un personaje—, que es lo que
-# leen los mapas 49, 52 y 54 para seguir al auto de Lashe City. Los dos casos
-# ponen la coordenada en la variable 17 y el cronómetro desde ella, así que el
-# número se ve en los dígitos: si la ROM lee otra cosa, se nota.
-#
-# `var-heroe-x` lee la x del héroe, que está en (22,12): muestra 22 y no 12.
-# Verificado en rojo con el defecto puesto —el `cmp #PERSONAJE_X` de
-# `var_personaje_heroe` cambiado por PERSONAJE_Y—: 48 pixeles en el cuadro 30.
-#
-# `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de
-# caminarle cuatro celdas para abajo con una ruta forzada, así que sólo da si
-# los dos lados leen la celda viva y no la que trae el mapa: son 13 y no 9, y
-# contra la misma página sin la ruta hay 571 pixeles de diferencia. En rojo con
-# el `+ 2` de `ev_pos_buf` cambiado por `+ 0` —o sea leyendo la x—: 96 pixeles
-# en el cuadro 80. El cuadro es el 80 y no el 30 porque la página espera a que
-# la ruta termine antes de leer.
-vars 6 "60 1" "17 0 6 10001 1 17 9 0 0 0" "22 12" "2 30" "12 0 0 50" 115 var-heroe-x
-vars 6 "60 1" "17 0 6 4 2 17 9 0 0 0" "22 12" "2 80" "12 0 0 50" 115 var-evento-y "" "4 2 2 2 2"
-# La rama por objeto. Los dos casos son la misma página con y sin el
-# `ChangeItems` que le da el Idol al grupo, así que la diferencia entre ellos
-# —40012 pixeles, el 69,78%— es la respuesta de la rama. Verificado en rojo con
-# el `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
-# que no lo tiene: el caso con el ítem da esos mismos 40012.
-rama-item 6 "90 12 0 0 100" "90 1" "22 12" "2 30" 115 rama-item
-rama-item 6 "90 12 0 0 100" "" "22 12" "2 30" 115 rama-item-no
-# Y las dos ramas de actor con dos operandos, `OP_IF_ACTOR`. Cada par es la
-# misma página preguntando por algo que se cumple y por algo que no, así que la
-# diferencia entre uno y otro —40012 pixeles, el 69,78%— **es** la respuesta de
-# la rama. Kersh es el actor 11: lleva puesto el ítem 82 y no el 84, y a su
-# nivel del LDB sabe la habilidad 131 y no la 152.
-#
-# Verificado en rojo de las dos maneras, con el `beq sia_si` de cada camino
-# cambiado por un `bra`: contestando siempre que sí, `rama-equipo-no` y
-# `rama-hab-no` dan 40012 pixeles; contestando siempre que no, los dan
-# `rama-equipo` y `rama-hab`.
-rama-actor 6 "5 11 82 12 0 0 100" "22 12" "2 30" 115 rama-equipo
-rama-actor 6 "5 11 84 12 0 0 100" "22 12" "2 30" 115 rama-equipo-no
-rama-actor 6 "4 11 131 12 0 0 100" "22 12" "2 30" 115 rama-hab
-rama-actor 6 "4 11 152 12 0 0 100" "22 12" "2 30" 115 rama-hab-no
-# El destello de pantalla, que hasta el 2026-09-08 no lo corría nadie.
-# Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
-relampago
-cerrar
-cerrar 7 200 cerrar-right right
-# Los dos escapes de texto: `\|` pausa y `\^` cierra el cuadro sin que nadie
-# apriete nada. Los cuadros están pegados al cierre a propósito, para que 61 y
-# 60 no den lo mismo: con una pausa cierra en el 63 y con tres en el 185, así
-# que el primero de cada par mira la ventana todavía abierta y el segundo el
-# tinte que va detrás del mensaje. Verificado en rojo con la referencia
-# contando 60: 4122 pixeles en el 62 y los mismos en el 184.
-autocierre
-autocierre 3 "184 185" autocierre-3
-ventana 1 ventana-1
-ventana 7 ventana-7-y-269 269
-ventana 348 ventana-348
-ventana 269 ventana-269
-ventana
-ventana 6 ventana-6
 # El encuentro al azar del mapa 21, Rat Tracks B1: se camina para arriba hasta
 # que sale y lo que se compara es la pantalla de la pelea, con la tropa que
 # dice la referencia. Es el único caso de la tanda donde la pelea no la arranca

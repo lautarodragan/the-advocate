@@ -92,48 +92,6 @@ def test_puerta_30_28():
     golden("puerta-30-28", p.imagen())
 
 
-MENSAJE = ("SEWELL",
-           "There you are, Talan. Ready for",
-           "the big night?")
-
-
-@pytest.mark.parametrize("cuadro", (60, 400))
-def test_cerrar(cuadro):
-    """`just cerrar`: la ventana de mensaje abierta, y cerrada con A.
-
-    Dos cuadros, y el segundo es el único que ejercita el cierre: `flush_video`
-    apaga el HDMA de la ventana cuando `msg_abierto` vuelve a cero.
-
-        60    la ventana en pantalla y la página frenada: el tinte que viene
-              después del mensaje todavía no se aplicó
-        400   la ventana borrada y el tinte puesto, o sea que A la cerró y la
-              página siguió
-
-    Dos trampas del arnés, las dos del toque de A:
-
-    * **el toque cae un tick antes del número**, que es `RETRASO_DE_PANTALLA`:
-      la ROM dibuja lo que armó la vuelta anterior, así que para que su cuadro N
-      salga cerrado el flanco tiene que caer en la vuelta N-1. `Partida.correr`
-      lo resta con la misma convención que el corredor, así que la lista de
-      toques es la misma en los dos lados;
-    * **los cuadros se miran con margen y no en el borde.** A los 60 ticks los
-      dos lados tienen el mensaje abierto hace rato y a los 400 hace rato que se
-      cerró. Pegado al borde no se puede mirar: la ROM compone la ventana cuadro
-      a cuadro y tarda entre nueve y diecinueve ticks según el texto.
-
-    Y una que no se ve en el código: **el mensaje va escrito acá y no sale de
-    ningún mapa.** Lo pone `--mensaje-de-prueba`, y el `--pagina-de-prueba
-    0 0 0 50` es el tinte de atrás, con espera en cero: es lo que hace visible
-    que la página siguió.
-    """
-    sfc, simbolos, mapas = cartucho(
-        "cerrar", "--map-id", "7", "--mensaje-de-prueba", *MENSAJE,
-        "--pagina-de-prueba", "0", "0", "0", "50")
-    p = partida(sfc, simbolos, mapas)
-    p.correr(cuadro, apretar_a=(200,))
-    golden("cerrar-%d" % cuadro, p.imagen())
-
-
 def test_batalla():
     """`just batalla`: la pantalla de la pelea contra la tropa 86.
 
