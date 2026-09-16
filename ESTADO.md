@@ -1147,6 +1147,52 @@ destraba cada uno, `just destraba`.
   notas; nosotros tomamos la del do central y transponemos. En los extremos del
   teclado eso se nota.
 
+## Enchufar `tiles/` **es** el paso del asignador (medido el 2026-09-16)
+
+Estaba anotado como un paso previo y no lo es. Medido contando por sitio de
+llamada sobre una conversión entera de `demo-ciudad` con `SIN_CACHE=1`: más de
+un millón de llamadas a las primitivas, y **sólo `convert_above` es una tubería
+contigua por imagen —el 1,1%—**. Enchufar sólo eso agregaría un cruce de
+proceso por mapa para cambiar el 1% del trabajo y dejaría `tools/pixeles.py` en
+pie igual: **diez de sus doce sitios de llamada son del asignador.**
+
+Los tres lugares donde el asignador está metido entre las primitivas, que son
+los que hay que sacar afuera para que `tiles convert` sirva:
+
+* **Las dos capas se reparten la CGRAM entre sí, y en los dos sentidos.**
+  Cuántas paletas puede usar la capa de encima sale de contar los colores del
+  fondo y de todas sus grillas de animación; y el presupuesto del fondo sale de
+  dónde terminó arrancando la capa de encima, que es una **salida** del
+  empaquetado. `tiles convert` recibe `--first-palette` como argumento, así que
+  ni esa parte entra de una sola invocación.
+* **El fondo no es "una imagen adentro".** Recibe la grilla más las variantes
+  de animación del ChipSet: la paleta se arma sobre todos los dibujos juntos,
+  el espejado se prueba sobre los dibujos juntos —el PPU espeja el tile, no
+  cada cuadro— y los tiles que animan van en corridas contiguas al final del
+  banco para que un paso sea un solo DMA. Es exactamente lo que el README de
+  `tiles/` dice que deliberadamente no hace.
+* **Los sprites son un reparto global**: `npcs_dibujables` decide qué personaje
+  baja su tope de colores llamando a `merge_least_visible` sobre cada candidato
+  para medir cuánto se le mueve la imagen, y quedarse con el más barato.
+
+Y `tools/titulo.py` tampoco encaja: lo que necesita es "reducí este histograma
+de colores a N", una primitiva, y `tiles` expone `convert`, `inspect` y
+`render`.
+
+**Dos cosas que podrían cambiar el veredicto**, si alguna vez se quiere forzar:
+que `tiles/` aprenda a recibir varias imágenes que comparten pool y paleta —una
+tira de animación—, y que `convert` diga cuántas paletas usó **antes** de
+escribir el tilemap, o acepte `--first-palette auto`.
+
+**Una mejora de velocidad gratis que apareció midiendo**, y que no tiene nada
+que ver con `tiles/`: la capa de encima llama a `tile_colors` **894.000 veces**
+porque los colores de cada tile se recalculan en el segundo recorrido en vez de
+guardarse del primero. Es un diccionario de una línea.
+
+Y un dato que corrige algo que estaba mal escrito: **`pack_tile` no vive en
+`pixeles.py`**, vive en `snes_convert.py`. Las ~50.000 llamadas que se le
+atribuían son del asignador de sprites.
+
 ## Lo que se dejó afuera a propósito
 
 * **El panorama del mapa 2** —los puntitos sobre azul cuando se enciende la
