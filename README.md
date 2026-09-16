@@ -1920,13 +1920,13 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
-| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | `pagina_activa` |
+| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
 | Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `Ruta.cargar_pagina` |
 | La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro` |
 | La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `frecuencia_minima` |
 | Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | `puede_en_diagonal`, `encarar_en_diagonal` |
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos` |
-| La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | `bloqueada` |
+| La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
@@ -1957,17 +1957,14 @@ de esas cuatro —el Hover-Tram del mapa 13, `EV0028`, y el mapa 14— están en
 camino principal, así que el defecto lo tiene cualquiera que llegue caminando al
 Sector 30.
 
-Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. En el
-modelo de Python eso ya era así sin que estuviera escrito —`caminar` no mira
-`ruta_heroe.atraviesa` y `paso_de_ruta` sí—; del lado de la ROM el porqué, con
-el síntoma que lo delató, está en `celda_bloqueada`, que es donde se lee
+Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. El porqué,
+con el síntoma que lo delató, está en `celda_bloqueada`, que es donde se lee
 `atravesando` y no la pegajosa `ruta_atraviesa`.
 
 Para la pregunta al revés —un evento que camina contra el héroe— se sigue
-mirando la pegajosa (`ruta_atraviesa` en la ROM, `estado.ruta_heroe.atraviesa`
-en el modelo). Es una asimetría, y se deja porque ninguna ruta del juego la
-ejercita: haría falta un evento caminando encima del héroe justo después de una
-página que dejó la 36 prendida.
+mirando la pegajosa, `ruta_atraviesa`. Es una asimetría, y se deja porque
+ninguna ruta del juego la ejercita: haría falta un evento caminando encima del
+héroe justo después de una página que dejó la 36 prendida.
 
 #### Varios temas en el cartucho
 
