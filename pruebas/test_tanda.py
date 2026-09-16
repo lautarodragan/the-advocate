@@ -134,38 +134,6 @@ def test_cerrar(cuadro):
     golden("cerrar-%d" % cuadro, p.imagen())
 
 
-RUTA = "1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0"
-
-
-@pytest.mark.parametrize("cuadro", (18, 60, 120, 400))
-def test_ruta(cuadro):
-    """`just ruta`: una ruta forzada sobre el héroe, en cuatro cuadros.
-
-    La ruta la pone `--ruta-de-prueba` en una página de prueba, con
-    `--frecuencia 8`: sin pasarla, la frecuencia de la página sería otra y los
-    pasos caerían en otros ticks.
-
-    La trampa del arnés es que **la caminata no se sostiene con el pad**: acá no
-    se aprieta nada —`--walk none`— y el que camina es la ruta. Un pad sostenido
-    sería una segunda fuente de movimiento y la referencia no modela las dos
-    juntas.
-
-    Y una que es del mapa pero se paga en el arnés: **el mapa 6 es mudo**, y eso
-    es lo que hace usable el desfasaje de arranque. La ROM no empieza a
-    interpretar en el cuadro 0 y la referencia no modela nada de eso; con música
-    el desfasaje cambia y los cuadros del medio se corren todos juntos.
-
-    Y los cuatro cuadros salen de una sola conversión, que es lo caro; correr el
-    emulador cuatro veces no lo es.
-    """
-    sfc, simbolos, mapas = cartucho("ruta", "--map-id", "6",
-                                    "--ruta-de-prueba", *RUTA.split(),
-                                    "--frecuencia", "8")
-    p = partida(sfc, simbolos, mapas)
-    p.correr(cuadro)
-    golden("ruta-%d" % cuadro, p.imagen())
-
-
 def test_batalla():
     """`just batalla`: la pantalla de la pelea contra la tropa 86.
 

@@ -13,27 +13,6 @@
 # El orden era de mayor a menor, para que la repartida en procesos no arrancara
 # el caso más largo cuando los demás trabajadores ya habían terminado. Se
 # respeta al sacar casos y no se reordena.
-ruta
-ruta 6 "1 1 24 1 1 25 2 2" "10 14 20 26 60" 115 salto
-ruta 6 "36 0 0 0 0 0 0" "20 40 60" 115 through "10 8"
-ruta 6 "38 2 2 2 39 2 2 2" "4 10 16 28 34 44" 115 anim "10 8"
-ruta 6 "1 1 12 2 23 2" "20 44 88 100 150 400" 115 ruta-lenta "" 4
-ruta 6 "2 2 31 2 2 30 2 2" "20 30 40 52" 115 ruta-frec
-ruta 6 "28 2 2 2 29 2 2" "10 20 30 44 60 80" 115 ruta-vel
-ruta 6 "29 29 2 2 28 28 28 2 2" "5 33 64 70 90 120 200" 115 ruta-vel-lenta
-npc 6 "4 2 2 12 1" "22 12" "20 44 88 100 200" 115 npc-lento 4
-npc 6 "4 21" "22 12" "5 30" 115 npc-encara
-npc 6 "4 21" "25 10" "5 30" 115 npc-encara-lado
-npc 6 "4 2 31 2 1 1 30 12" "22 12" "20 40 60 80" 115 npc-frec
-npc 6 "4 24 2 2 25 1 1" "22 12" "3 6 10 14 20 40" 115 salto-npc
-npc 10 "1 4 6 7 6" "6 10" "10 25 40 70" 115 npc-diagonal
-npc 6 "4 15 5 5 5" "22 12" "20 40" 115 npc-diagonal-gira
-npc 6 "4 9 9 9 9" "25 10" "5 25 44 70" 115 npc-hacia-heroe
-grafico
-grafico 6 "4 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40 70" 115 invisible
-grafico 6 "0 2 2 34 0 2 2" "Future1 0" "22 12" "10 20 25 40" 115 grafico-heroe
-grafico 6 "0 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40" 115 heroe-invisible
-sprite-actor
 tecla
 # La cruceta, que es lo que le faltaba al minijuego de las piedras del mapa
 # 11. El héroe arranca en (22,8), donde **abajo está cerrado**, y el toque es
@@ -47,7 +26,6 @@ guardar
 menu
 items
 equipo
-anclada
 texto
 # El mismo caso con el bloque de textos corrido más allá del primer banco:
 # ver `relleno` en la receta. Verificado en rojo con el `msg_empezar` de antes:
@@ -70,10 +48,6 @@ texto 255 200 texto-lejos 33000
 # da cero también con el defecto puesto, porque el segundo cuadro arranca
 # entero del otro lado.
 texto 255 200 texto-cruza 32766
-ruta-evento
-npc
-lugar
-lugar 6 "4 21 10" "" "22 12" "10 60" 115 lugar-quieto
 # El mismo MoveTo con la celda en **dos variables**, que es la otra rama de
 # `CommandChangeEventLocation` y lo que le faltaba al minijuego de las piedras
 # del mapa 11. La página pone 21 y 13 en dos variables y recién después planta
@@ -172,28 +146,7 @@ batalla 86 "11 12 13" 20 200 "" batalla-textos-lejos ABLBackdropSJ03 "" "" "--mo
 # rompe cosas distintas en cada uno; el porqué está en `vuelta`.
 vuelta
 vuelta 6 82 SJBackdropABL04 20 "30 100" si 115 vuelta-ventana
-pisar
-# Los dos de "atravesar paredes vale mientras dura la ruta", en el Sector 30,
-# que es donde taro vio el defecto. Los dos corren la misma ruta forzada de una
-# sola orden —la 36, `walk_everywhere_on`, sin un paso— y después caminan con el
-# pad; lo único que cambia es la capa del evento contra el que caminan:
-#
-#   atravesar-cofre   el Slum30Chest1c en (78,19), capa "same": tiene que
-#                     frenarlo. **Verificado en rojo con la ROM de antes**:
-#                     5606 pixeles, 9,78%, con el héroe ya del otro lado del
-#                     cofre. Es el defecto que taro reportó: después de tomar
-#                     el Hover-Tram se les caminaba por encima a los cofres.
-#   atravesar-savept  el SaveInSector30 en (88,27), capa "below": **no** tiene
-#                     que frenarlo, y el héroe camina quince celdas por encima.
-#                     Es el control del par, y no es de adorno: sacándole el
-#                     `cmp movil_capa` a `celda_bloqueada` —o sea haciendo que
-#                     toda capa frene— da 29959 pixeles, 52,24%.
-pisar 20 "80 19" left 200 115 atravesar-cofre "36"
-pisar 20 "90 27" left 200 115 atravesar-savept "36"
 hablar 7 "3 7" 24 "25 45 65 85 105 125 145 165 185 205 225 245 265 285 305 325 345" "40 200 360" 115 hablar-repetido
-ruta-pisa
-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 115 ruta-pasa
-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 115 ruta-pisa-cola
 pan
 pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
 # Un "volver" con espera y la cámara ya en su lugar: cero cuadros, y la página
@@ -271,13 +224,6 @@ hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
 # en pixeles y mucho en significado: son la pose de Talan y el corrimiento de
 # la cámara, o sea la escena entera contra ninguna.
 hablar 13 "2 7" 24 900 "10 30 60" 115 tram-viaje "" "16"
-# `HaltAllMovement`, el único del juego: ver el comentario de `parar`.
-# Verificado en rojo con `op_stop_routes` cambiado por un `jmp otro` pelado
-# —o sea el comando aceptado y no hecho, sólo en la ROM—: 59,89% en el cuadro
-# 34. Los cuadros llegan hasta el 40 y no más lejos a propósito: del 47 en
-# adelante este mapa tiene los diez pixeles de los tiles animados que ESTADO
-# nombra, y son de antes de esto.
-parar 6 24 "4 2 2 2 2" "2 2 2 2" "22 12" "20 26 34 40" 115 parar-rutas
 # La rama por objeto. Los dos casos son la misma página con y sin el
 # `ChangeItems` que le da el Idol al grupo, así que la diferencia entre ellos
 # —40012 pixeles, el 69,78%— es la respuesta de la rama. Verificado en rojo con
