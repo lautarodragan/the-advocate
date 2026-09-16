@@ -335,6 +335,7 @@ se pueden empezar hoy.
    uno, alineado por el mapa de memoria —que es lo que `ld65` sabe hacer—, o
    que lo generado termine pegado a un banco. **Las dos mueven bytes**, así que
    el criterio "byte por byte igual" no sobrevive al paso 6 de todas formas.
+   La decisión está en el paso 6.
 
 6. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Con el
    acomodo ya decidido arriba, lo que queda es traducción: `.alinear` →
@@ -343,6 +344,24 @@ se pueden empezar hoy.
    lo demás**, porque `w65` se escribió imitándolo. Se van también
    `tools/w65_check.py`, `tools/w65_coverage.py` y lo que quede de
    `snes-validar`. **Criterio: la ROM byte por byte igual.**
+
+   **El layout, decidido por taro el 2026-09-16: un área de memoria por
+   banco**, que es la forma estándar de `ld65` —cada área de `$8000` con
+   `fill = yes`, y el link falla si un banco se pasa—. El código a mano que
+   hoy va en RODATA detrás de lo generado (unos 8 KB, con los dos `.bloque`
+   que dejó el paso 5) pasa a un **banco fijo**, igual en todos los cartuchos;
+   lo generado arranca en el siguiente, y `tools/bancos.py` pasa de emitir
+   `.res` a emitir `.segment` cuando un bloque no entra. **El `.cfg` lo
+   escribe el conversor**, como un `.inc` más, para que el banco donde
+   arranca lo generado no quede escrito en dos lados. Descartada: que lo
+   generado termine pegado a un banco, porque el segundo `.bloque` a mano
+   seguía sin resolverse y el código a mano seguía moviéndose por cartucho.
+
+   Va en dos commits. **6a**, el layout nuevo todavía con `w65`: como mueve
+   bytes, el criterio es que **ninguna golden se mueva**, que la tabla de
+   símbolos sea igual salvo el corrimiento de banco, y `test_cores.py` en
+   verde. **6b**, el cambio de ensamblador sobre ese layout: ahí sí, **la ROM
+   byte por byte igual a la de 6a**.
 
    Decidido por taro el 2026-09-15: prefiere un proyecto mantenido, popular y
    con once años de historia antes que sostener el nuestro. La razón original
