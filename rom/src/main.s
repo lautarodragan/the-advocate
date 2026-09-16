@@ -25232,16 +25232,13 @@ done:
 ;   ba_divb   es temp + 2    ; el divisor
 ;   ba_divr   es comp_and    ; el resto
 ;   ba_mulp   es comp_or23   ; el parcial bajo del producto
-.segment "RODATA"
-; **Tiene que ser al menos lo que mide todo lo que sigue hasta `batalla_correr`
-; inclusive**, que hoy son 7025 bytes: adentro se llaman entre sí con `jsr`, y
-; un `jsr` no cruza de banco. Con 4096 —lo que decía acá— la pelea ya se pasaba
-; antes de las habilidades, y lo que se veía era
-; `el operando no entra en 2 byte(s)` sobre `jsr ba_blanco_arriba` **en algunos
-; cartuchos y no en otros**: depende de dónde caiga el bloque, y los casos de
-; la tanda con un solo mapa lo dejaban entrar justo. Lo cobra `snes-escena` con
-; dos mapas —los hitos 77 y 78—.
-.bloque 8192
+; **Todo lo que sigue, hasta la cabecera, vive en el banco 1 y entero en él.**
+; Adentro se llaman entre sí con `jsr`, que no cruza de banco, y antes de tener
+; segmento propio esto iba detrás de los datos generados: caía en un banco
+; distinto con cada cartucho, y un relleno calculado a ojo tenía que evitar que
+; la pelea quedara partida. Lo que garantiza que entre lo cobra
+; `pruebas/test_bancos.py`, sobre la tabla de símbolos.
+.segment "FAR"
 
 ; --- lo que no hace falta que viva en el banco 0 ---------------------------
 ;
@@ -29854,7 +29851,6 @@ nada:
 ; estado de $3900 se lee con direccionamiento absoluto y la RAM baja —`temp`,
 ; `tile_x`, `mapa_actual`— se sigue leyendo igual, porque en el banco $7E las
 ; direcciones de $0000 a $1FFF **son** las del banco 0.
-.bloque 1024
 
 ; La semilla del azar de los encuentros, en el reset. Es otra que la del mapa y
 ; otra que la de la pelea: ver `enc_azar`.
@@ -30294,6 +30290,10 @@ afuera:
     sta ENC_SEM
     rts
 .endproc
+
+; Hasta el próximo banco: los datos generados arrancan pegados a uno, que es lo
+; único que `tools/bancos.py` supone del mapa de memoria.
+.alinear $8000
 
 ; --- cabecera y vectores ---------------------------------------------------
 .segment "HEADER"

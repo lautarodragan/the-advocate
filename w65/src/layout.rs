@@ -55,11 +55,16 @@ pub const AREAS: &[Area] = &[
     Area { name: "ROM", start: 0x00000, size: 0x07FC0, segments: &["CODE", "TABLAS"] },
     Area { name: "HEAD", start: 0x07FC0, size: 0x00020, segments: &["HEADER"] },
     Area { name: "VECT", start: 0x07FE0, size: 0x00020, segments: &["VECTORS"] },
+    // `FAR` goes first, and that is the whole point of it: hand-written code
+    // and data that live outside bank 0 would otherwise follow the generated
+    // `RODATA`, and their bank would change with every build. First, they
+    // always start at `$01:8000`. The source is expected to pad `FAR` up to
+    // the next bank, so that `RODATA` also starts on a bank boundary.
     Area {
         name: "DATA",
         start: 0x08000,
         size: BANK_SIZE * (ROM_BANKS - RESERVED_BANKS) - 0x08000,
-        segments: &["RODATA"],
+        segments: &["FAR", "RODATA"],
     },
 ];
 
@@ -87,7 +92,7 @@ pub const RAM_AREAS: &[Area] = &[
 /// Every segment name, in the order the areas lay them out. The index into
 /// this list is how a segment is identified inside the assembler.
 pub const SEGMENTS: &[&str] = &[
-    "CODE", "TABLAS", "HEADER", "VECTORS", "RODATA", "ZEROPAGE", "BSS",
+    "CODE", "TABLAS", "HEADER", "VECTORS", "FAR", "RODATA", "ZEROPAGE", "BSS",
 ];
 
 pub const ZP_SEGMENT: &str = "ZEROPAGE";
