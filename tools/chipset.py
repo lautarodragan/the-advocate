@@ -298,8 +298,8 @@ class ChipsetAtlas:
         cadencias distintas y sobre familias de tiles distintas: `paso_agua`
         —0, 1 o 2— elige el dibujo de los autotiles de agua y `paso_animado`
         —0 a 3— el de los "tiles animados". Cuál toca en cada tick lo dicen
-        `paso_de_agua` y `paso_animado` de rm2k.py; acá sólo se elige la celda
-        del atlas.
+        `paso_animado` de rm2k.py y, para el agua, `AGUA_CICLO` con
+        `AGUA_CUADROS_LENTO`; acá sólo se elige la celda del atlas.
         """
         if tile >= UPPER:
             index = tile - UPPER + 0x04FB

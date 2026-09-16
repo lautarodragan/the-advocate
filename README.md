@@ -1328,7 +1328,8 @@ la misma máscara que a los eventos "above". El tono de pantalla las tiñe, como
 todo, porque sus colores van en una paleta de personaje. Sus seis tiles y sus
 tres colores se reservan como los dígitos del cronómetro, y **un mapa sin lugar
 en las paletas de sprite no dibuja lluvia**: la ROM lleva `M_LLUVIA_BASE` en
-cero, y quién lo decide es el conversor con `lluvia_cabe`. En la demo pasa en
+cero, y quién lo decide es el conversor al repartir las paletas de sprite, en
+`gotas_de_lluvia`. En la demo pasa en
 los mapas 2, 8 y 10, que no la usan. La nieve, la niebla y la arena no se
 dibujan y apagan la lluvia; el clima no viaja en la partida.
 
@@ -1562,7 +1563,7 @@ Compila a `OP_ANIMATION` con la línea de tiempo adentro: por cada `timing` de
 la animación, en el cuadro par `2 * (frame - 1)`, su efecto y su destello, de
 la pantalla o del evento objetivo. Hay una sola a la vez, como en
 `Game_Screen::ShowBattleAnimation`, y avanza una vez por cuadro antes que los
-destellos (`animacion_tick`, `Estado.cuadro_de_animacion`). Con "esperar", la
+destellos (`animacion_tick`). Con "esperar", la
 página espera lo que dura. Tres cosas son nuestras:
 
 * **El destello es un `FlashScreen` o un `FlashSprite`** que arranca en la
@@ -1809,13 +1810,12 @@ Cada página de evento que se puede compilar viaja en el cartucho como
     tools/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
     rom/src/main.s         lo ejecuta: `correr_codigo` y un `op_*` por opcode
 
-`tools/eventos.py` lleva además un **modelo** del intérprete
-—`Interprete.cuadro` y los `Estado.cuadro_de_*`—, que hasta el 2026-09-16 corría
-el mismo bytecode cuadro a cuadro como referencia y contra el cual la tanda
-comparaba cada pantalla. Ya no lo corre nadie: el bytecode lo ejecuta sólo la
-ROM. El modelo se deja porque es la definición escrita de la aritmética de RM2k
-que el conversor necesita al compilar, y separarlo del arnés es parte del paso 4
-de la etapa —ver `ESTADO.md`—.
+Hasta el 2026-09-16 `tools/eventos.py` llevaba además un **modelo** del
+intérprete, que corría el mismo bytecode cuadro a cuadro y contra el cual la
+tanda comparaba cada pantalla. Ya no está: el bytecode lo ejecuta sólo la ROM, y
+lo que quedaba del modelo era código que nadie llamaba —documentación con forma
+de código, que envejece sin que ninguna prueba lo note—. De `eventos.py` queda
+lo que el conversor usa al compilar.
 
 De `protocol/events.toml` salen generados `tools/event_opcodes.py` y
 `rom/src/event_opcodes.inc`; ver `protocol/README.md`, que está en inglés porque
@@ -1899,33 +1899,35 @@ Lo que el intérprete necesita alrededor: quién dispara una página, cuál est�
 activa, quién le cierra el paso a quién, y qué pasa mientras la pantalla está en
 negro. Otra vez, el porqué está en el comentario de cada rutina.
 
-**Las dos columnas fueron el mismo programa escrito dos veces**, y esa es la
-razón por la que la de Python existe y está tan cerca de la otra. Hoy la que
-corre es sólo la de la ROM: lo que queda del lado de Python vive en
-`tools/eventos.py`, lo usa el conversor al compilar y lo leen las pruebas, y
-sirve además como la definición escrita de lo que la ROM hace. Algunas de esas
-funciones ya no las llama nadie —`rampa_de_fundido`, `brillo_de_fundido` y
-`oscurecer` son el ejemplo, y están acá abajo—: se dejan por eso mismo, y quién
-sobrevive se decide en el paso 4 de la etapa. La tabla se lee entonces como
-"esto es lo que hace la consola, y acá está escrito en un lenguaje que se puede
-leer", no como dos programas que hay que mover juntos.
+**La mecánica la hace la ROM, y la tabla dice dónde.** Hubo un tiempo en que
+cada una de estas líneas estaba escrita dos veces, en ensamblador y en Python,
+y la segunda columna era el otro programa; ese programa ya no existe. Lo que
+queda del lado de Python es el conversor, que compila lo que la rutina después
+lee: las páginas, las rutas, las paletas, los glifos. Cuando hay algo así, la
+tercera columna lo nombra; cuando la mecánica es entera de la consola, no hay
+nada que nombrar y va un guión.
 
-| Mecánica | en `rom/src/main.s` | el modelo en Python |
+Y lo que **no** va más acá: una función de Python que no llame nadie, dejada
+como "la definición escrita" de lo que hace la ROM. Es documentación con forma
+de código, no se ejecuta, ninguna prueba la toca, y envejece sin que nadie se
+entere. El porqué de cada mecánica va en el comentario de su rutina.
+
+| Mecánica | en `rom/src/main.s` | quién la compila, o quién la mide |
 | --- | --- | --- |
 | Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rm2k.py` |
-| Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | `Interprete.probar_contacto` |
-| Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | `Interprete.probar_accion` |
-| Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | `Estado.asentado` |
-| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | `pagina_activa`, `Estado.refrescar` |
-| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `Ruta.cargar_pagina`, `Estado.cuadro_de_rutas_ev` |
-| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro`, `direccion_hacia` |
+| Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | — |
+| Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
+| Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
+| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | `pagina_activa` |
+| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `Ruta.cargar_pagina` |
+| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro` |
 | La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `frecuencia_minima` |
 | Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | `puede_en_diagonal`, `encarar_en_diagonal` |
-| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos`, `recorrer_ruta` |
+| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos` |
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | `bloqueada` |
-| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `pasabilidad_de_evento`, `npcs_dibujables` |
+| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
-| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, `brillo_de_fundido`, `oscurecer` |
+| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
@@ -2133,8 +2135,8 @@ está en el docstring de `tools/retro.py`.
 
 **Con el brillo maestro a medias dejan de coincidir**, y es el único lugar donde
 pasa: snes9x y bsnes redondean `canal * brillo / 15` y **mesen-s trunca**, o sea
-que con brillo 6 un canal de 7 le da 2 donde los otros dan 3. `oscurecer` sigue
-a bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
+que con brillo 6 un canal de 7 le da 2 donde los otros dan 3. Acá se sigue a
+bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
 snes9x, que es el core con el que se capturaron las goldens; ninguna prueba usa
 mesen-s, y por qué queda afuera está en el docstring de `pruebas/test_cores.py`.
 Lo desempata la SNES de taro.

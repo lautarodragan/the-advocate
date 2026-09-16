@@ -232,26 +232,6 @@ terna:
 
 # --- muestras ---------------------------------------------------------------
 
-def build_samples(voices):
-    """El directorio y las muestras en BRR, tal como van en el SPC700.
-
-    El directorio va primero: cuatro bytes por muestra, la dirección donde
-    empieza y la dirección a la que vuelve. Con grabaciones las dos difieren —
-    el ataque se toca una sola vez y el loop es la parte sostenida—, y por eso
-    el punto de loop tenía que caer justo en un bloque: la dirección se cuenta
-    de a nueve bytes y no hay forma de apuntar a media muestra.
-    """
-    directory = bytearray()
-    address = SAMPLES_ADDR + 4 * len(voices)
-    for voice in voices:
-        loop = address + voice.loop_block * muestras_brr.BLOQUE_BYTES
-        directory += address.to_bytes(2, "little")
-        directory += loop.to_bytes(2, "little")
-        address += len(voice.data)
-
-    return bytes(directory) + b"".join(v.data for v in voices)
-
-
 # --- los efectos de sonido -------------------------------------------------
 #
 # Los WAV de `PlaySound` —del juego o del RTP—, en la misma ARAM que el banco

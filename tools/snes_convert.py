@@ -1170,10 +1170,9 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     quiere = [c for c in eventos.LLUVIA_COLORES]
     cual = _primer_lugar(palettes, de_lider, quiere, tope)
     if cual is None:
-        # No hay lugar: este mapa no dibuja lluvia, y la referencia lo sabe con
-        # la misma regla, `lluvia_cabe`. No se le baja un color a nadie para
-        # hacerle lugar, como al cronómetro: eso cambiaría el reparto, que es
-        # lo que las dos puntas comparten.
+        # No hay lugar: este mapa no dibuja lluvia. No se le baja un color a
+        # nadie para hacerle lugar, como al cronómetro: eso cambiaría el
+        # reparto, y el reparto es lo que decide qué colores tiene cada mapa.
         return bytes(tiles), 0, 0
     paleta = palettes[cual]
     tiles = bytearray(tiles)
@@ -1319,24 +1318,6 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
     return menos
 
 
-def animacion_cabe(paletas, de_lider, timer_colores=(), con_lluvia=False,
-                   con_cartel=False, tope=OBJ_PALETTES):
-    """Si la caja de la animación de batalla consigue paleta en este mapa.
-
-    Es la misma cuenta de `animacion_de_mapa`, sobre una copia y en el mismo
-    orden en que el conversor reparte: primero el cronómetro, después las
-    gotas, después el cartel, y la animación con la que quede. La usa la
-    referencia para saber si en este mapa se dibujan animaciones, que es lo
-    mismo que `lluvia_cabe` hace con las gotas.
-    """
-    copia = [list(p) for p in paletas]
-    if timer_colores:
-        _primer_lugar(copia, de_lider, list(timer_colores), tope)
-    if con_lluvia:
-        _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES), tope)
-    return len(copia) + (1 if con_cartel else 0) < OBJ_PALETTES
-
-
 def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
     """La primera paleta —menos las de líder— donde entran `colores` sin
     fusionar nada, o una nueva si queda ranura; la agrega o la agranda y
@@ -1358,19 +1339,6 @@ def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
         palettes.append(list(colores))
         return len(palettes) - 1
     return None
-
-
-def lluvia_cabe(paletas, de_lider, timer_colores=(), tope=OBJ_PALETTES):
-    """Si las gotas entran en las paletas de sprite de un mapa, después de los
-    dígitos del cronómetro: la misma cuenta de `digitos_del_timer` y
-    `gotas_de_lluvia`, sobre una copia. La usa la referencia para saber si en
-    ese mapa se dibuja la lluvia."""
-    copia = [list(p) for p in paletas]
-    if timer_colores and _primer_lugar(copia, de_lider, list(timer_colores),
-                                       tope) is None:
-        return False
-    return _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES),
-                         tope) is not None
 
 
 def mapas_por_personaje(renderer, map_ids, game_dir):
@@ -2609,7 +2577,8 @@ def anim_dibujo(tile_data, animacion, pasos):
     emitiera corrida un tile, las dos se equivocarían distinto y se vería.
 
     `pasos` es (paso del agua, paso de los tiles animados); ver
-    `rm2k.paso_de_agua` y `rm2k.paso_animado`.
+    `rm2k.paso_animado` y, para el agua, `rm2k.AGUA_CICLO` con
+    `rm2k.AGUA_CUADROS_LENTO`.
     """
     datos = bytearray(tile_data)
     for (familia, _), paso in zip(FAMILIAS, pasos):
@@ -3347,9 +3316,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TINTE_NEUTRO = %d\n"
         "; El fundido de los teletransportes: 35 cuadros de ida y 35 de\n"
         "; vuelta, como RM2k, y de cada 35 la rampa son 24. El mapa se carga\n"
-        "; en el primer cuadro negro, que es el %d. Ver `brillo_de_fundido`\n"
-        "; en tools/eventos.py, que es de donde salen estos números y la\n"
-        "; tabla de más abajo.\n"
+        "; en el primer cuadro negro, que es el %d. Estos números y la tabla\n"
+        "; de más abajo salen de las constantes del fundido de\n"
+        "; tools/eventos.py.\n"
         "FUNDIDO_CUADROS = %d\n"
         "FUNDIDO_TOTAL   = %d\n"
         "FUNDIDO_RAMPA   = %d\n"
@@ -5016,9 +4985,9 @@ def sacudida_de_prueba(argumento):
 
 
 def tabla_de_senos():
-    """La tabla de `sacudida_siguiente`, tal cual la usa la referencia."""
+    """El seno que la sacudida de pantalla lee por índice, para el banco."""
     out = ["; El seno a escala 127, para la sacudida de pantalla: es la misma",
-           "; lista que usa la referencia, SENO_SACUDIDA en eventos.py.",
+           "; lista que arma `SENO_SACUDIDA` en eventos.py.",
            ";",
            "; Va fuera del banco 0 —`lda f:seno_sacudida, x`, una lectura por",
            "; cuadro de sacudida— por lo mismo que `item_k`: son 256 bytes y",
@@ -6677,8 +6646,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         probando, probando_base, probando_pal = animacion_de_mapa(
             tiles, palettes, 1 if imagen_base else 0)
         if not probando_base:
-            # Sin paleta este mapa no dibuja animaciones, y **la referencia lo
-            # sabe con la misma cuenta**, `animacion_cabe`. Es lo mismo que se
+            # Sin paleta este mapa no dibuja animaciones. Es lo mismo que se
             # hace con las gotas de lluvia: se declara y se sigue.
             print("  mapa %d: AVISO, las animaciones de batalla no se dibujan "
                   "acá: el mapa ya usa las %d paletas de sprite y la caja "
