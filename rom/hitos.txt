@@ -426,5 +426,4 @@ encuentro
 # La pantalla de título, contra la imagen del LDB convertida. Es el único caso
 # que corre con `--sin-contador`: ahí el reloj del juego no avanza.
 titulo
-mednafen
 bsnes

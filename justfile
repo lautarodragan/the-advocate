@@ -358,54 +358,6 @@ pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
-# La segunda opinión: los mismos casos, pero en mednafen y con ventana.
-#
-# La tanda corre en snes9x por libretro, y snes9x es permisivo en cosas donde la
-# consola real no lo es. En un mismo día se colaron dos errores que sólo mednafen
-# ve, los dos con la tanda en verde: `ruta_n`/`ruta_i` sin inicializar —snes9x
-# deja siempre la misma basura y las dos quedaban iguales, así que no se notaba,
-# y el héroe no respondía al control— y el tinte escribiendo CGRAM fuera del
-# vblank, que snes9x acepta y mednafen no.
-#
-# Dos casos alcanzan porque cubren las dos clases: uno que tiñe desde un evento
-# —CGRAM y el intérprete— y uno que camina —la RAM del control—.
-#
-# Se compara contra las mismas referencias de Python que usa la tanda: lo que se
-# cruza son dos emuladores contra un mismo tercero, no uno contra el otro.
-mednafen:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-
-  # 1) la apertura: dos switches, un tinte y un teletransporte.
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 4 --mapas 1 \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id 4 --mapas 1 \
-      --saltar {{snes_pngs}}/saltar-med-evento.txt \
-      -o {{snes_pngs}}/esperado-med-evento.png
-  # Esta captura es por reloj de pared —mednafen de verdad, no un core— así que
-  # no se puede alinear por tick: los segundos tienen que cubrir el fundido del
-  # teletransporte y llegar antes del relámpago del mapa 1.
-  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 7 ""
-  python3 tools/snes_compare.py {{snes_pngs}}/med-evento.png \
-      {{snes_pngs}}/esperado-med-evento.png \
-      --saltar {{snes_pngs}}/saltar-med-evento.txt \
-      -o {{snes_pngs}}/comparacion-med-evento.png
-
-  # 2) caminar: si el control no responde, acá se ve.
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 73 \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id 73 --walk right \
-      --saltar {{snes_pngs}}/saltar-med-walk.txt \
-      -o {{snes_pngs}}/esperado-med-walk.png
-  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-walk.png 8 "Right"
-  python3 tools/snes_compare.py {{snes_pngs}}/med-walk.png \
-      {{snes_pngs}}/esperado-med-walk.png \
-      --saltar {{snes_pngs}}/saltar-med-walk.txt \
-      -o {{snes_pngs}}/comparacion-med-walk.png
-
 # La ventana de mensaje dibujada por la consola, contra la referencia: la
 # fuente, el marco, la paleta y dónde caen las celdas en el tilemap. La ventana
 # se dibuja al cargar el mapa y se queda, y el texto es sintético, así que lo
@@ -1740,10 +1692,13 @@ ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" a
 # esa clase de error sola, sin que nadie tenga que jugar. No lo agarra siempre
 # —la basura tiene que caer en un valor que rompa— pero no cuesta nada.
 #
-# Son los mismos dos casos que `mednafen` y por lo mismo: uno que tiñe desde un
-# evento —CGRAM y el intérprete— y uno que camina —la RAM del control—. No la
-# reemplaza: mednafen no es un core de libretro, así que también prueba que
-# `tools/retro.py` no se esté equivocando parejo con los tres cores.
+# Los dos primeros casos son los que tenía `mednafen`, que se borró el
+# 2026-09-16: uno que tiñe desde un evento —CGRAM y el intérprete— y uno que
+# camina —la RAM del control—. Lo que se perdió con aquella receta está dicho
+# en su commit: mednafen no era un core de libretro, así que además probaba que
+# `tools/retro.py` no se equivocara parejo con los tres cores, y era el único
+# que cobraba las escrituras a CGRAM fuera del vblank. Que bsnes las cobre o no
+# no está medido.
 #
 # El tercer caso es el mensaje, y no está de adorno. Es el código que más CGRAM y
 # VRAM toca con la pantalla apagada —`load_ventana` sube tiles y una paleta
