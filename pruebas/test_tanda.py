@@ -20,8 +20,7 @@ comentario de la receta, más el porqué del caso, que se mudó con él.
 
 import pytest
 
-from tanda import (cartucho, cuadros_de_hardware, golden, partida, plan,
-                   ticks_de_avance)
+from tanda import cartucho, golden, partida, plan, ticks_de_avance
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
@@ -41,7 +40,7 @@ def test_heroe(mapa, direccion):
     El 21 es Rat Tracks B1, el que destapó la página automática vacía: sus dos
     —el idioma con el que RM2k desactiva un evento— dejaban el mapa congelado
     para siempre. Antes de ese arreglo el caso tardaba catorce minutos, porque
-    la referencia se comía sus 100.000 ticks de `correr_automaticos`; acá no
+    la referencia se comía sus 100.000 ticks de páginas automáticas; acá no
     hay referencia que correr y lo que queda es lo que la ROM tarde.
 
     Cuánto dura cada caminata lo dice el plan y no un número elegido a ojo: son

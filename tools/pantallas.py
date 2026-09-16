@@ -227,12 +227,6 @@ def puede_comprar(db, numero, oro, inventario):
     return precio <= oro and inventario.get(numero, 0) < ITEM_MAX
 
 
-def maximo_compra(db, numero, oro, inventario):
-    precio = db.items[numero].price
-    tope = ITEM_MAX - inventario.get(numero, 0)
-    return min(tope, oro // precio) if precio else tope
-
-
 def llevados(equipos, numero):
     """Cuántos lleva puestos el grupo: `GetEquippedItemCount`."""
     return sum(1 for eq in equipos for i in eq if i == numero)

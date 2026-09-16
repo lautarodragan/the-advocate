@@ -77,9 +77,9 @@ class Reloj:
 
     Un tick es una vuelta del lazo principal de la ROM, o sea un paso de lógica
     de RM2k: el `while (Game_Clock::NextGameTimeStep())` de easyrpg, donde la
-    lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante. La
-    referencia cuenta ticks —una llamada a `Interprete.cuadro()` cada uno— así
-    que la comparación tiene que mirar el mismo reloj.
+    lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante. Quien pide
+    un estado lo pide en ticks —un paso de lógica cada uno— así que la
+    comparación tiene que mirar el mismo reloj.
 
     Antes esto contaba cuadros de hardware y daba lo mismo, porque una vuelta
     entraba siempre en un cuadro. Dejó de dar lo mismo cuando aparecieron los

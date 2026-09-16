@@ -51,10 +51,6 @@ DIR = 0x5D
 FLG_BASE = 0x20         # eco apagado; los cinco bits bajos son el ruido
 
 
-def voice_register(voice, register):
-    return voice * 0x10 + register
-
-
 # --- el banco ---------------------------------------------------------------
 
 def instrument(name, harmonics, attack, decay, sustain, release, fade):

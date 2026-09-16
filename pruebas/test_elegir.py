@@ -16,8 +16,7 @@ página cerrada igual.
 
 **Esto vive acá y no en la tanda de pixeles a propósito.** Mover el cursor pide
 apretar arriba y abajo, y la tanda sólo sabe apretar A; por eso la referencia
-tampoco modela el movimiento —ver el comentario de `Interprete.cuadro`— y por
-eso esta prueba existe. Lo que la tanda sí cubre es cómo se ve la ventana.
+tampoco modelaba el movimiento del cursor, y por eso esta prueba existe. Lo que la tanda sí cubre es cómo se ve la ventana.
 """
 
 import pytest
