@@ -306,79 +306,65 @@ se pueden empezar hoy.
    la referencia": se congelaron con la tanda en verde, nadie las miró una por
    una, y sólo taro puede hacerlo. Para que no sea una tarde de mirar imágenes
    conviene mostrarlas agrupadas por mapa, una vez cada una.
-5. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Decidido
-   por taro el 2026-09-15: prefiere un proyecto mantenido, popular y con once
-   años de historia antes que sostener el nuestro, y de paso gana compatibilidad
-   con el ecosistema y baja la curva de aprendizaje. La razón original de
-   escribir uno propio —no compilar fuentes de internet en esta caja— era una
-   interpretación mía llevada al extremo sin preguntarle.
+5. **El acomodo de bancos sale del ensamblador.** Hoy lo hace `.bloque`, una
+   directiva nuestra con **974 usos**: el conversor le dice al ensamblador "lo
+   que sigue mide N bytes, rellená hasta el próximo banco si no entra", y
+   existe porque un DMA que cruza de banco lee la WRAM en vez de la ROM.
+   `ld65` no sabe acomodar bloques de tamaño variable, así que la decisión
+   tiene que tomarla el conversor —el único que conoce los tamaños— y emitir un
+   segmento por banco. **Criterio: la ROM byte por byte igual.**
 
-   **La distancia está medida**: de 30.300 líneas de `main.s`, `ca65` acepta
-   todo salvo `.bloque` (974 usos), `.alinear` (28), `.controlar` (10) y dos
-   `lda #-1`. Los tres últimos son traducción directa —`.align`, `.assert`,
-   `$FFFF`—. El fuente ya está en el dialecto de ca65 porque `w65` se escribió
-   imitándolo.
+6. **El ensamblador pasa a ser `ca65` + `ld65`, y `w65/` se borra.** Con el
+   acomodo ya decidido arriba, lo que queda es traducción: `.alinear` →
+   `.align`, `.controlar` → `.assert`, dos `lda #-1` → `$FFFF`, y escribir el
+   `.cfg`. **Está medido: de las 30.300 líneas de `main.s`, `ca65` acepta todo
+   lo demás**, porque `w65` se escribió imitándolo. Se van también
+   `tools/w65_check.py`, `tools/w65_coverage.py` y lo que quede de
+   `snes-validar`. **Criterio: la ROM byte por byte igual.**
 
-   **El único trabajo de fondo es `.bloque`**, que lo emite el conversor y dice
-   "lo que sigue mide N bytes, rellená hasta el próximo banco si no entra"
-   —existe porque un DMA que cruza de banco lee la WRAM—. `ld65` no acomoda
-   bloques de tamaño variable: alguien tiene que decidir en qué banco va cada
-   uno, y ése sólo puede ser el conversor. **Eso es exactamente el asignador del
-   punto anterior**, así que la migración no agrega trabajo, lo redirige: va
-   junto con él y no antes, porque hacerla antes es escribir el empaquetado de
-   bancos dos veces.
+   Decidido por taro el 2026-09-15: prefiere un proyecto mantenido, popular y
+   con once años de historia antes que sostener el nuestro. La razón original
+   de escribir uno propio —no compilar fuentes de internet en esta caja— era
+   una interpretación mía llevada al extremo sin preguntarle.
 
-   **Lo que se comparaba contra `ca65` ya no existe**: `audio-validar`,
-   `tools/w65_check.py` y `tools/w65_coverage.py` se fueron el 2026-09-16, junto
-   con `tools/w65.py`, y con ellos las dos cadenas que se comparaban entre sí.
-   taro no compra el valor del oráculo —con goldens, md5 y sus pruebas a mano,
-   una regresión drástica se ve igual— y hay evidencia a favor: esa receta
-   estaba rota desde hacía meses, con las rutas apuntando a un directorio
-   renombrado, y nadie lo notó **porque necesitaba podman y nunca se corría**.
+7. **El reparto de paletas sale de las primitivas.** Es el que hace que
+   `tiles/` no entre, y son **tres decisiones globales metidas entre las
+   llamadas**: las dos capas se reparten la CGRAM **en los dos sentidos** —el
+   presupuesto del fondo sale de dónde terminó arrancando la capa de encima,
+   que es una salida del empaquetado—; la animación del ChipSet es un pool de
+   tiles compartido, con el espejado probado sobre todos los dibujos juntos; y
+   los sprites son un reparto del mapa entero, que decide a quién bajarle
+   colores midiendo cuánto se le mueve la imagen. Las tres tienen que quedar
+   **afuera** y llegar como argumentos. **Criterio: la ROM byte por byte
+   igual.**
 
-   Y lo que hay a favor de la migración y no estaba antes: `ca65` y `ld65` ya
-   están compilados en `/extras/ref/cc65` y enlazados en `/usr/local/bin`. Qué
-   se comprobó del clon antes de usarlo está en `AGENTS.md`.
+8. **Enchufar `tiles/` y borrar `tools/pixeles.py`.** Recién acá entra, y
+   **es el único paso que puede cambiar la ROM a propósito**: el desempate de
+   `try_pack` depende hoy del orden de una tabla de hash de CPython —156 de 200
+   barajadas del mismo conjunto dan otro reparto— y `tiles/` desempata por los
+   colores mismos. De 32 llamadas medidas: 25 idénticas, 1 con las mismas
+   paletas en otro orden, 6 distintas y **ninguna peor**. **Criterio: decir qué
+   cambió y qué goldens se mueven; taro las mira y decide.**
 
-   **El control de ancho del acumulador en una etiqueta a la que se llega
-   saltando no lo hace `ca65`**, y es el que más caro salió: hay que llevárselo,
-   o el error vuelve. Ver el README, en "Cómo se verifica el ensamblador".
+9. **Agrupar los cartuchos, y separar armar de correr.** Casi cada caso arma el
+   suyo: son 176 directorios y 874 MB en `rom/build/tanda/`, con la clave ya
+   siendo el hash de (grupo, flags) —o sea que el hash solo no agrupa—.
+   Agruparlos a mano en unos pocos da tres cosas: el banco 0 pasa a tener un
+   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
+   global, y la tanda deja de rearmar lo mismo. Y encaja la idea de taro de
+   **pasarle la ruta del cartucho a la suite**, para que el test deje de saber
+   compilar. Mueve goldens.
 
-6. **Agrupar los cartuchos de la tanda.** Casi cada caso arma el suyo: cuántas
-   combinaciones distintas de mapas hay para cuántos casos lo dicen los
-   `cartucho()` de `pruebas/test_tanda*.py`. Agruparlos en unos pocos fijos deja
-   el banco 0 con un número por cartucho en vez de uno por caso y ahorra
-   convertir y ensamblar listas casi iguales. **De sus tres razones originales
-   una ya se cumplió sola**: `mapdata.inc` dejó de ser estado global al mudarse
-   los casos a pytest, porque cada cartucho se arma en su propio directorio.
+10. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. **Va
+    último**: es el único paso que no destraba ninguno de los otros, y `main.s`
+    se sigue moviendo con los pasos 5 a 9. Probado en chico —una sección afuera
+    con `.include`, mismo md5—; las fronteras ya existen, 82 marcas de sección
+    y 450 `.proc`. Tres trampas: el `.segment` cruza el `.include`, las
+    etiquetas anónimas se resuelven textualmente, y **reordenar sí cambia la
+    ROM** aunque partir no.
 
-   Sigue yendo **después** de los goldens, y ahora eso es un costo concreto:
-   cambiar qué cartucho arma cada caso mueve los PNG, y cada PNG movido es una
-   golden que hay que volver a mirar.
-
-7. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo.
-
-   **Va último de todos**, decidido con taro el 2026-09-16: es el único paso
-   que no destraba ninguno de los otros, y `main.s` se sigue moviendo con el
-   asignador y con los cartuchos, así que cuanto más tarde, menos churn. Y
-   conviene que sea después de `ca65`, porque allá hay módulos de verdad
-   —compilación separada con `ld65`— además de `.include`, y el corte puede
-   querer ser otro.
-
-   Ya está probado que se puede y que es barato: se sacó la sección de la
-   pantalla de título a un archivo aparte con `.include` y **las dos ROMs
-   salieron con el mismo md5**. Tiene que ser así, porque `.include` es
-   inclusión textual: mientras la concatenación sea idéntica, la salida lo es
-   por construcción, y el md5 alcanza de red.
-
-   Las fronteras ya están dibujadas: **82 marcas de sección** con nombre de
-   subsistema y 450 `.proc`. Tres trampas a mirar en cada corte: el `.segment`
-   es estado y cruza el `.include` (hay 8 en todo el archivo, casi todos al
-   principio); las etiquetas anónimas `:+`/`:-` se resuelven textualmente, así
-   que hay que cortar en fronteras de `.proc` o de sección; y **reordenar los
-   includes sí cambia la ROM**, porque el acomodo sigue el orden de aparición
-   —partir sin reordenar es seguro, reordenar es otra decisión y ahí el md5
-   deja de servir de red—.
+**Las dos cadenas son independientes**: 5 → 6 es el acomodo de bancos, 7 → 8 es
+el reparto de paletas. Se pueden hacer en paralelo.
 
 **Lo que se decidió no hacer:** dejar de armar `demo-ciudad`. Es la misma
 receta que `demo-titulo` con `--con-titulo` de más, o sea un subconjunto, pero
