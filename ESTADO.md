@@ -66,7 +66,8 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
    de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
-   donde hay que decidir qué pasa con el modelo de `tools/eventos.py`: quedaron
+   donde hay que decidir qué pasa con lo que queda del modelo de
+   `tools/eventos.py`, que es de lo que habla el párrafo siguiente.
 
 **Y con la referencia se fue su modelo.** Quedaban 51 definiciones que no
 llamaba nadie —las cuentas que replicaban lo que hace la ROM: el brillo de un
@@ -78,8 +79,19 @@ miente, no, porque no se ejecuta y ninguna prueba la toca. Lo que decían quedó
 absorbido por los comentarios de `main.s` que las citaban, o dicho como regla
 sin nombrar a nadie.
 
-`tools/eventos.py` pasó de 7.340 líneas a **6.057**, que es lo que hay que
-portar en la vuelta del compilador de eventos.
+**Y el 2026-09-16 se fue también `ejecutar`**, que era la mitad intérprete de
+ese modelo: se había quedado con un solo llamador, un test que compilaba un
+`OP_TELEPORT` para leer `estado.salto`. Lo que lo precipitó fue pasar el avance
+del cursor a `opcode_size`: dos de las ramas que se iban —`OP_MESSAGE` y
+`OP_CHOICE`— no sólo avanzaban, cortaban el cuadro, y sin su rama el intérprete
+seguía de largo sin que ninguna prueba lo cobrara. Entre devolver el corte y
+borrar lo que ya no tenía usuario, taro eligió lo segundo. `Estado` se queda:
+`snes_convert.py` la usa para saber quién puede liderar el grupo en cada mapa.
+
+Lo que quedó de `tools/eventos.py` es lo que hay que portar en la vuelta del
+compilador de eventos, y cuánto es lo dice `wc -l tools/eventos.py`: acá había
+un número escrito y ya se había quedado viejo dos veces seguidas mientras el
+barrido seguía.
 
 **Las pruebas se quedan en Python**, y no es deuda: es diseño. Decisión de taro
 —un lenguaje interpretado y menos estricto tiene ventajas ahí, y compilar para
