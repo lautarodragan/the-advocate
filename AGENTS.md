@@ -25,7 +25,7 @@ código no lo lee nadie cuando hace falta.
 32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
 ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
 va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
-compilan es `just destraba`, cuántos casos pasan es `just hitos`,
+compilan es `just destraba`, cuántos casos pasan es `just pruebas`,
 cuánto pesa el cartucho lo dice el build.
 
 El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
@@ -151,24 +151,48 @@ no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
 
 ## La regla que sostiene todo
 
-Nada se da por bueno porque se vea bien: se compara pixel por pixel, a 15 bits,
-contra una referencia en Python que sigue las mismas reglas. De ahí salen dos
-obligaciones:
+Nada se da por bueno porque se vea bien: **se compara pixel por pixel, a 15
+bits**, que es la profundidad real de la consola. Lo que cambió el 2026-09-16
+es contra qué.
 
-**Un cambio en la ROM y su cambio en la referencia van juntos.** Si sólo se
-toca un lado, la comparación mide dos programas distintos.
+Hasta ese día se comparaba contra una **referencia en Python** que hacía lo
+mismo que la ROM. Hoy se compara contra **capturas congeladas** —las goldens de
+`pruebas/golden/tanda/`, que son lo que la ROM dibujaba el día que la tanda
+estaba en verde—. De ahí salen tres obligaciones, y una de ellas es nueva.
 
-Y ojo con el modo en que esto falla en silencio: **si los dos lados se
-equivocan igual, la comparación da cero.** Ya pasó dos veces —los códigos de
-comando de las puertas puestos de memoria, y la prioridad de OAM escrita mal
-tanto en la ROM como en el conversor—. Su primo cercano es un camino que
-ninguna prueba ejecuta, que es como sobrevivieron los tres errores del
-intérprete de eventos: ahí no había con qué comparar.
+**Cambiar una golden es un acto deliberado.** Va a git, se mira, y el commit
+explica por qué el render cambió. Si regenerarlas fuera automático, o si la
+tanda lo hiciera sola, dejarían de cumplir ninguna función. Es lo mismo que
+cualquier snapshot testing.
+
+**Una golden caza regresiones, no errores de nacimiento.** Una feature que sale
+mal desde el día uno hornea el bug adentro de su golden y la prueba lo defiende
+a partir de ahí. No es teórico: el 2026-09-15 aparecieron **tres goldens del
+recorrido con un tinte pegado**, y dos de ellas **pasaban** —una con 10,3% de
+diferencia bajo un tope del 15%—. Lo que contrapesa esto es que taro juega.
+
+**Y hay una clase de error que ninguna golden puede ver, porque el emulador que
+la sacó tampoco la ve.** Para eso está `pruebas/test_cores.py`: corre el mismo
+cartucho en **snes9x y en bsnes** y compara las dos capturas entre sí. bsnes
+arranca la WRAM con basura y snes9x en cero, así que una diferencia significa
+que la ROM depende de memoria sin inicializar. Da rojo **cuatro de cada cinco
+corridas** con el error puesto —medido—, porque la basura tiene que caer en un
+valor que rompa.
+
+Lo que **se fue** con la referencia: la obligación de mover los dos lados
+juntos, y el modo de falla de "si los dos lados se equivocan igual, la
+comparación da cero" —que mordió dos veces, con los códigos de comando de las
+puertas y con la prioridad de OAM—. Ya no hay dos lados.
+
+Lo que **sigue entero** es su primo, y es el que más veces mordió: **un camino
+que ninguna prueba ejecuta**. Así sobrevivieron los tres errores del intérprete
+de eventos, así estuvo rota meses la receta que comparaba contra `ca65`, y así
+una prueba de tropas leyó el chunk equivocado sin fallar nunca.
 
 **Decir "verificado" obliga a nombrar qué se corrió.** El commit `c64e4d9`
 decía "Verificado: mapas 7 y 4 en cero" sobre un camino que ninguna prueba
 ejecutaba, y detrás había tres errores encadenados. Si un camino nuevo no lo
-cubre `hitos`, el mensaje tiene que decirlo con todas las letras.
+cubre `just pruebas`, el mensaje tiene que decirlo con todas las letras.
 
 ## Dónde corre esto
 
@@ -281,26 +305,23 @@ borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/cache_disco.py`.
 
-**Mientras corre una tanda de regresión no se toca ningún fuente.** Cada receta
-recompila desde `main.s`, así que editarlo a mitad de camino mezcla dos
-versiones y el resultado no dice nada.
+**Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
+`rom/src/main.s`, los `tools/*.py` y el binario de `w65`: tocar cualquiera de
+ésos a mitad de una corrida mezcla dos versiones y el resultado no dice nada.
 
-Para no tener que acordarse, está **`just hitos-foto`**: saca una foto del
-árbol con `git stash create` —incluye lo que no está commiteado—, la pone en un
-worktree en `/extras` y corre la tanda ahí, así que se puede seguir editando.
-Cuesta 0,034 s y 19 MB, y al terminar imprime el hash de la foto, que es lo que
-después dice qué se probó y qué se agregó encima. Tres avisos: los archivos sin
-trackear **no** entran en la foto —la receta avisa si ve alguno—, dos tandas a
-la vez se pelean por CPU, y **se pelean por el directorio**: la receta arranca
-borrando el worktree, así que una segunda tanda le borra el árbol a la primera
-mientras corre y la deja con casos en rojo que no lo están. Con más de un
-agente, cada uno con el suyo: `just hitos-foto 4 /extras/hitos-foto-<quien>`.
+Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
+2026-09-16 existía `just hitos-foto`, que sacaba una foto del árbol con
+`git stash create` porque la tanda corría recetas que pisaban
+`rom/src/mapdata.inc`, que es estado global. Las pruebas de hoy arman cada
+cartucho en su propio directorio de `rom/build/tanda/` y **no tocan
+`mapdata.inc`**, así que dos corridas a la vez no se pisan. Lo único que se
+pelean es la CPU.
 
 **Las tareas en segundo plano que lanzamos nosotros las podemos matar
 nosotros.**
 
 Lo que más se acumula son las **esperas armadas por los agentes** —`until !
-pgrep -f "hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
+pgrep -f "pytest"; do sleep 30; done`— y tienen dos vicios:
 
 * **Nunca terminan solas**, porque su propia línea de comando contiene el texto
   que el `pgrep` busca, así que se encuentran a sí mismas.
@@ -339,8 +360,8 @@ Lo que hay que hacer siempre:
 * **Avisarle que hay otros corriendo**: dos tandas a la vez se pelean por CPU y
   tardan, y matarlas por impaciencia arruina la corrida.
 * **Repartirles los números de antemano.** Todo lo que se elige tomando "el
-  siguiente libre" —un opcode, un índice en la tupla de prueba de
-  `snes_expect.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  siguiente libre" —un opcode, un índice en una tupla de
+  `pruebas/test_tanda*.py`, una dirección de la RAM lejana— lo va a elegir cada agente
   mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
@@ -374,7 +395,7 @@ callado treinta líneas más arriba. Las dos veces ensamblaba y corría:
 * una rama dejó el índice en `Y` —`tay`— y la otra en `comp_and`; git se quedó
   con el `sta comp_and` de una, dejó en conflicto el `tyx` de la otra, y el
   código leía un registro que ya nadie cargaba;
-* dos ramas agregaron un campo a la tupla posicional de `snes_expect.py`, así
+* dos ramas agregaron un campo a una tupla posicional de prueba, así
   que los índices se corrieron; git marcó los usos de una zona y auto-mergeó
   los de otra, que quedaron leyendo el campo del vecino.
 
@@ -394,8 +415,7 @@ Así que al mergear una rama de sub-agente:
   y con cuántos bits.
 * **Y la prosa también colisiona, no sólo el código.** Al mergear documentación de
   dos ramas hay que **leerla**, no sólo resolver los conflictos que git marcó.
-* **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una
-  tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
+* **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
   siguiente libre" mirando su copia, así que dos ramas eligen el mismo y git no
   ve nada. Pasó las tres cosas el mismo día. Lo de los opcodes lo cuida ahora
   `test_ningun_opcode_comparte_numero_con_otro`; lo demás hay que mirarlo.
@@ -423,7 +443,7 @@ Y en cualquier caso, al retomar conviene mirar, en este orden:
    `~/.claude/projects/<proyecto>/<sesión>/subagents/agent-<id>.jsonl`. Son
    megas: se lee **del final hacia atrás, una entrada por vez**, mirando qué
    herramienta usó última. Nunca entero.
-4. **Lo que dejó corriendo**: `pgrep -af "snes_correr|hitos"` y
+4. **Lo que dejó corriendo**: `pgrep -af "pytest|snes_correr"` y
    `git worktree list`.
 
 Y para el agente nuevo que lo reemplace: pasarle lo que el anterior dejó escrito
