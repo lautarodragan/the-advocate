@@ -1,4 +1,4 @@
-"""Las escenas del juego: `escena`, de `rom/hitos.txt`, mudada a pytest.
+"""Las escenas del juego: la familia `escena` de la tanda.
 
 Una escena es el héroe plantado en una celda, una ruta forzada que lo lleva a
 pisar o a encarar algo, y la página del juego que eso dispara, mirada en varios
@@ -7,7 +7,7 @@ ticks. Es la receta más usada de la tanda.
 Tres cosas del arnés, que son las que vivían en el comentario de la receta:
 
 * **La dirección no llega a la ROM.** `escena` tomaba un `dir` y se lo pasaba
-  sólo a `snes_expect.py`: era hacia dónde mira el héroe **al arrancar**, que
+  sólo a la referencia: era hacia dónde mira el héroe **al arrancar**, que
   la referencia necesita que le digan y la ROM ya sabe. Si la página lo gira
   con un `face_*`, gana la página, en los dos lados. Contra una captura de la
   ROM ese argumento no tiene a quién decírselo, así que acá no está.
@@ -35,8 +35,8 @@ from tanda import cartucho, golden, partida
 # Cada caso es: nombre, mapa, celda de arranque, ruta forzada, los ticks que se
 # capturan, los toques de A por tick, el switch que arranca prendido, los mapas
 # de más que entran al cartucho, y los toques por cuadro de hardware. Es la
-# línea de `rom/hitos.txt` sin el `dir` y sin el `115` del arranque, que es el
-# de siempre.
+# línea que el caso tenía en la lista de la tanda, sin el `dir` y sin el
+# `115` del arranque, que es el de siempre.
 ESCENAS = (
     # Las dos del Sector 32: la puerta de la izquierda y la pantalla que se
     # lee. La segunda es la más larga de las dos y la que más mensajes encadena.
@@ -167,7 +167,7 @@ HABLADAS = (
     #
     # Verificado en rojo **de un solo lado**, que es lo que hay que hacer con
     # una pieza que vive entera en el conversor: con `eventos.CHANGE_PBG = -1`
-    # puesto sólo en `snes_expect.py` la referencia no compilaba la página, la
+    # puesto sólo del lado de la referencia, ésta no compilaba la página, la
     # ROM sí, y el cuadro 10 daba 1,22%. Poco en pixeles y mucho en
     # significado: la pose de Talan y el corrimiento de la cámara, o sea la
     # escena entera contra ninguna.

@@ -1,7 +1,7 @@
 """El menú de pausa: que se abra con B como en RM2k, que se vea como
 `titulo.render_menu` pixel por pixel, y que guardar ande desde ahí.
 
-La tanda cobra el mapa después de cerrarlo —`menu` en rom/hitos.txt—;
+La tanda cobra el mapa después de cerrarlo —`menu` en `pruebas/test_tanda*.py`—;
 acá se mira lo que una captura suelta no puede: el menú con un grupo y oro
 puestos, los permisos de `ChangeSaveAccess` y `ChangeMainMenuAccess` puestos
 por la página de prueba, guardar desde el menú, y el pedido de menú hecho a

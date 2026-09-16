@@ -1305,8 +1305,9 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
 
     Vive suelta y no adentro de `convertir` porque **la referencia tiene que
     tomar la misma decisión**: si los dos lados repartieran las paletas
-    distinto, no estarían dibujando el mismo mapa. Ver `Mundo.tope_de_paletas`
-    en snes_expect.py.
+    distinto, no estarían dibujando el mismo mapa. La referencia se fue el
+    2026-09-16 y esto quedó donde estaba: sigue siendo una decisión de
+    reparto y no un detalle de `convertir`.
     """
     if not muestra_animacion:
         return OBJ_PALETTES
@@ -5405,8 +5406,7 @@ def main():
                         help="la página de prueba guarda la partida en la "
                              "SRAM. El save point del juego está en el mapa 8 "
                              "y hay que caminar hasta él; esto deja probar "
-                             "`OP_SAVE` desde cualquier mapa. El otro lado "
-                             "del mismo flag de snes_expect.py")
+                             "`OP_SAVE` desde cualquier mapa")
     parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
                         metavar=("SEGUNDOS", "VISIBLE"),
                         help="arranca el cronómetro desde la página de prueba. "
@@ -5629,8 +5629,7 @@ def main():
                         metavar="N",
                         help="ESPERA R G B [SAT]: agrega una página automática "
                              "inventada, en el mapa inicial, que espera N cuadros y "
-                             "después tiñe. El otro lado del mismo flag de "
-                             "snes_expect.py")
+                             "después tiñe")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "

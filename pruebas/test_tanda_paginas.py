@@ -1,4 +1,4 @@
-"""Los comandos sueltos de `rom/hitos.txt`, disparados desde la página de prueba.
+"""Los comandos sueltos de la tanda, disparados desde la página de prueba.
 
 Todo lo de este archivo es lo mismo con un flag distinto: un mapa, una página
 inventada que emite **un** comando, y unos ticks donde mirar lo que hizo. La
@@ -485,7 +485,9 @@ def test_cerrar(direccion, cuadro):
     0 0 0 50` es el tinte de atrás, con espera en cero: es lo que hace visible
     que la página siguió.
 
-    **La receta se queda aunque el caso esté acá**: `bsnes` la llama.
+    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
+    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    dos cores y compara las dos pantallas entre sí.
     """
     sfc, simbolos, mapas = cartucho(
         "cerrar", "--map-id", "7", "--mensaje-de-prueba", *MENSAJE,

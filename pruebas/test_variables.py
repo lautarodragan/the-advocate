@@ -83,7 +83,7 @@ def test_la_rama_por_variable_que_no_se_cumple_no_corre(partida):
     `comparar_var` dejaba la respuesta en las banderas y el `ply` que restaura
     el cursor las pisaba con el cursor, que nunca es cero. Todo lo que había
     acá miraba la rama que sí se cumple, así que pasaba en verde, y la tanda
-    tampoco lo veía: ningún caso de `rom/hitos.txt` toma una rama por variable
+    tampoco lo veía: ningún caso de la tanda toma una rama por variable
     que no se cumpla. Es el mismo defecto que dejó muda la pantalla de título,
     en otro lado.
 

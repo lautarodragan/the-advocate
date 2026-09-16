@@ -1,7 +1,7 @@
 """La velocidad del héroe: que el pad camine a la que dejó la última ruta.
 
 Lo que se ve de una ruta con 28 o 29 lo cobra la tanda —`ruta-vel` y
-`ruta-vel-lenta` en rom/hitos.txt, cuadro por cuadro—. Lo que la tanda no
+`ruta-vel-lenta` en `pruebas/test_tanda*.py`, cuadro por cuadro—. Lo que la tanda no
 puede es apretar una dirección después de una ruta, así que acá se le escribe
 al héroe la velocidad que una ruta le habría dejado y se lo hace caminar con el
 pad. La cuenta de dónde tiene que estar es la de RM2k: 256 unidades por celda a

@@ -227,11 +227,12 @@ def main():
                         help="capturar a mitad de camino, cuando el héroe lleva "
                              "andados estos pixeles. Los cuadros salen de la "
                              "cuenta, no de un número suelto")
-    parser.add_argument("--plan", help="el archivo que escribe snes_expect.py "
-                        "con --plan: por dirección, cuántas celdas camina el "
-                        "héroe y cuántos cuadros le lleva. Con esto los "
-                        "cuadros salen de la referencia y no de un número "
-                        "elegido a ojo, y --cuadros pasa a ser sólo el tope")
+    parser.add_argument("--plan", help="un archivo con, por dirección, cuántas "
+                        "celdas camina el héroe y cuántos cuadros le lleva. Con "
+                        "esto los cuadros salen del plan y no de un número "
+                        "elegido a ojo, y --cuadros pasa a ser sólo el tope. Los "
+                        "escribía la referencia, que ya no existe; los que quedan "
+                        "están congelados en pruebas/golden/tanda/")
     parser.add_argument("--margen", type=int, default=MARGEN,
                         help="cuadros de más sobre lo que dice el plan")
     parser.add_argument("--quieto", type=int, default=QUIETO,
@@ -242,9 +243,8 @@ def main():
                         help="apretar A en estos cuadros, un cuadro cada vez, "
                              "que es lo que cierra una ventana de mensaje. Los "
                              "números se cuentan desde que termina el "
-                             "arranque, igual que los de la referencia, y son "
-                             "los mismos que se le pasan a snes_expect.py con "
-                             "--apretar-a")
+                             "arranque, que es la misma convención que usa "
+                             "Partida.correr en pruebas/consola.py")
     parser.add_argument("--tocar", nargs="+", default=None,
                         metavar="BOTON:CUADRO",
                         help="toques anotados en el camino de las escenas, el "

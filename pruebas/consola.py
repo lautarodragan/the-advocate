@@ -1,6 +1,6 @@
 """Una partida de la ROM corriendo, para hacerle preguntas sobre su estado.
 
-Esto **no compara pixeles**. La tanda de `rom/hitos.txt` compara la pantalla
+Esto **no compara pixeles**. La tanda de `pruebas/test_tanda*.py` compara la pantalla
 contra la referencia de Python, cuadro por cuadro; acá se le pregunta a la ROM
 en qué mapa está, qué switch tiene prendido o qué evento está corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
@@ -108,7 +108,8 @@ class Partida:
     `tools/snes_correr.py`.
     """
 
-    def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None):
+    def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
+                 nucleo=None):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -119,7 +120,10 @@ class Partida:
         # dos veces —conversor y referencia— y una tercera copia sería una
         # tercera manera de equivocarse igual en los tres lados.
         self.mapas = mapas
-        self.consola = retro.Consola(sfc, NUCLEO)
+        # `nucleo` es para correr la **misma** partida en dos cores y
+        # comparar las dos pantallas entre sí: ver `pruebas/test_cores.py`.
+        # Sin él vale el de siempre, que es snes9x.
+        self.consola = retro.Consola(sfc, nucleo or NUCLEO)
         self.cuadro = 0
         self.hardware = 0
         # El arranque, que lo dice la ROM y no un número copiado: mientras

@@ -10,10 +10,9 @@ algunos de otras familias que después se fueron a su lugar. Lo que decide qué
 vive acá es el arnés y no el tema: son los que se corren con `Partida.correr` y
 a lo sumo un pad sostenido.
 
-**Casi ninguna de estas recetas existe ya.** El nombre que abre cada docstring
-es el del caso, que es también el de su golden; las tres que siguen vivas
-—`cerrar`, `evento` y `caminando`— lo dicen con todas las letras, y es porque
-`bsnes` las llama.
+**Ninguna de estas recetas existe ya**, desde que se fue `bsnes`: era la última
+que llamaba a `cerrar`, `evento` y `caminando`. El nombre que abre cada
+docstring es el del caso, que es también el de su golden.
 
 Lo que cada docstring lleva es la trampa **del arnés** que vivía en el
 comentario de la receta, más el porqué del caso, que se mudó con él.
@@ -26,11 +25,11 @@ from tanda import (cartucho, cuadros_de_hardware, golden, partida, plan,
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
-# Los trece mapas de `heroe` en `rom/hitos.txt`, en el mismo orden: de mayor a
-# menor, que es lo que hacía que la tanda repartida no arrancara el 52 —dos mil
-# ticks por dirección— cuando los demás trabajadores ya habían terminado. Con
-# pytest en serie el orden no cambia nada, y se deja igual para poder leer una
-# lista contra la otra mientras las dos existan.
+# Los trece mapas de `heroe`, de mayor a menor. El orden viene de cuando la
+# tanda se repartía en procesos: era lo que evitaba que el último trabajador
+# arrancara el 52 —dos mil ticks por dirección— cuando los demás ya habían
+# terminado. Con pytest en serie no cambia nada, y se deja igual porque
+# reordenarlo no compra nada.
 MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
 
 
@@ -119,7 +118,7 @@ def test_varios(direccion):
     golden(nombre, p.imagen())
 
 
-# Mapa, celda y nombre de la captura, de `parado` en `rom/hitos.txt`.
+# Mapa, celda y nombre de la captura, de la familia `parado`.
 PARADOS = ((1, 75, 88, "borde"),
            (1, 75, 90, "medias"),
            (1, 66, 40, "tapado"),
@@ -182,7 +181,9 @@ def test_evento(otros, nombre):
     de mapas, o sea con el teletransporte resolviendo un índice que no es 0
     ni 1.
 
-    **La receta se queda aunque el caso esté acá**: `bsnes` la llama.
+    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
+    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    dos cores y compara las dos pantallas entre sí.
     """
     sfc, simbolos, mapas = cartucho("evento-4-%s" % "-".join(otros),
                                     "--map-id", "4", "--mapas", *otros)
@@ -217,7 +218,7 @@ def test_pagina(mapa, arranca, nombre):
     golden(nombre, p.imagen())
 
 
-# Mapa, dirección y los avances en pixeles, de `caminando` en `rom/hitos.txt`.
+# Mapa, dirección y los avances en pixeles, de la familia `caminando`.
 CAMINANDO = ((73, "right", (40, 60, 80)),
              (6, "down", (40, 60, 80)),
              (5, "left", (40, 46, 48, 50)),
@@ -242,7 +243,9 @@ def test_caminando(mapa, direccion, avances):
     `ticks_de_avance`, y errarle por uno mueve media pantalla. Los avances de
     un mismo mapa salen de una sola conversión, que es lo caro.
 
-    **La receta se queda aunque el caso esté acá**: `bsnes` la llama.
+    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
+    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    dos cores y compara las dos pantallas entre sí.
     """
     sfc, simbolos, mapas = cartucho("caminando-%d" % mapa, "--map-id", mapa)
     for pixeles in avances:

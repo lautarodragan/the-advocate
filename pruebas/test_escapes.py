@@ -4,7 +4,7 @@ No corre ninguna ROM, y por eso está acá y no en la tanda: lo que mira es el
 **formato**, o sea el byte de cabecera del cuadro que el intérprete de la ROM y
 el de la referencia leen con las mismas máscaras. Que el mensaje se pause y se
 cierre solo en el mismo cuadro de los dos lados lo cobran `autocierre` y
-`autocierre 3` en `rom/hitos.txt`, que comparan pixeles.
+`autocierre-3` en `pruebas/test_tanda*.py`, que comparan pixeles.
 
 Lo que sí cubre y ningún cuadro comparado podría cubrir es la deduplicación:
 dos cuadros con el mismo texto y distinta cola compartiendo desplazamiento

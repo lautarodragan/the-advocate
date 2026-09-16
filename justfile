@@ -136,14 +136,17 @@ w65-pruebas:
 # está acá y no escondida en un default. Las pruebas de pytest tienen el suyo,
 # `GRUPO_TANDA`, en `pruebas/tanda.py`: son las que hoy corren la tanda.
 grupo    := env_var_or_default("GRUPO", "11")
-# Con qué core de libretro se corre. snes9x es el de la tanda porque emula
-# muchísimos más cuadros por segundo que bsnes, que con la tanda entera es la
-# diferencia entre minutos y media hora; bsnes entra por la receta `bsnes`, que
-# corre unos pocos casos. Para mirar cualquier otro caso con otro core:
-# `CORE=bsnes just evento 4 1 otro`. Los tres que hay instalados —snes9x, bsnes
-# y mesen-s— dibujan el mismo cuadro a 15 bits; ver `tools/retro.py`. Los casos
-# que ya viven en pytest, que son casi todos, toman el core de `NUCLEO`: ver
-# `pruebas/consola.py`.
+# Con qué core de libretro corre `shot`, que es la única receta que corre la
+# ROM: todo lo demás vive en pytest y toma el core de `NUCLEO`, ver
+# `pruebas/consola.py`. snes9x es el de siempre porque emula muchísimos más
+# cuadros por segundo que bsnes —2747 contra 121—, y para mirar una captura con
+# otro core alcanza con `CORE=bsnes just shot ...`.
+#
+# Los tres que hay instalados —snes9x, bsnes y mesen-s— dibujan el mismo cuadro
+# a 15 bits, y eso ya no es una afirmación de un comentario: lo comprueba
+# `pruebas/test_cores.py`, que corre la misma ROM en snes9x y en bsnes y compara
+# las dos pantallas entre sí. Ver `tools/retro.py` para lo que hay que forzarle
+# a cada uno, y ese archivo para por qué mesen-s queda afuera.
 core     := env_var_or_default("CORE", "snes9x")
 nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 # Una corrida aislada. `CORRIDA=algo just <receta>` deja el mapdata, la ROM y las
@@ -196,77 +199,6 @@ compare nombre="mapa" x="0" y="0":
 tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
   python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 
-# El intérprete de eventos, para mirarlo con los ojos. El juego arranca en el
-# mapa 4, una habitación vacía y negra cuyo único trabajo es prender dos
-# switches, teñir la pantalla y teletransportar: es la página que abre A Blurred
-# Line. Lo que se ve al arrancar es el mapa destino ya teñido, sin haber tocado
-# una tecla.
-#
-# Los dos mapas tienen que estar en la ROM: un teletransporte a un mapa que no
-# entró no se puede compilar, y entonces la página no se emite y el evento no
-# hace nada. Con el mapa 4 solo, la pantalla se queda en negro y eso es correcto.
-#
-# Después de esto, `just play` lo muestra con sonido.
-evento origen="4" destino="1" nombre="evento":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
-      -o {{snes_inc}}/mapdata.inc
-  just build
-  just shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
-      {{snes_pngs}}/esperado-{{nombre}}.png \
-      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# Un mensaje de verdad: se abre desde el intérprete, bloquea la página, y se
-# cierra cuando el jugador aprieta A. Es lo que `ventana` no prueba, que allá la
-# ventana se abre y se queda, así que lo único que se compara es el dibujo.
-#
-# Los dos cuadros son la ventana en pantalla con la página frenada, y la ventana
-# borrada con el tinte de atrás ya puesto, o sea que apretar A la cerró y la
-# página siguió. Ese segundo es el único que ejercita `flush_video` apagando el
-# HDMA de la ventana cuando `msg_abierto` vuelve a cero.
-#
-# A se deja apretado: la ROM cierra con el flanco —`pad_a` contra `pad_a_ant`,
-# que es el `IsTriggered` de RM2k— y la referencia modela ese mismo único flanco.
-#
-# Con una dirección en vez de `none` se prueba además que **el pad no mueva al
-# héroe mientras hay un mensaje**, que es el guard de
-# `Game_Player::UpdateNextMovementAction`; la ruta forzada es otra cosa y sí
-# camina, porque allá `UpdateMoveRoute` corre antes del guard. Con dirección el
-# arranque no puede ser cero: la cruceta se mantiene apretada desde que termina,
-# y antes de que la página abra el mensaje el héroe daría pasos que la referencia
-# no modela. El 115 es el de todas las recetas desde que el arranque de la ROM es
-# fijo —ver "El arranque dura siempre lo mismo" en el README—: el cuadro N de la
-# captura es el tick N de la referencia, en cualquier mapa.
-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="115":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  linea1="SEWELL"
-  linea2="There you are, Talan. Ready for"
-  linea3="the big night?"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
-      --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
-  just build
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
-      --walk {{direccion}} \
-      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
-      --pagina-de-prueba 0 0 0 50 --cuadros 60 400 --apretar-a {{apretar}} \
-      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
-  for n in 60 400; do
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
-        --walk {{direccion}} --cuadros $n --arranque {{arranque}} \
-        --apretar-a {{apretar}}
-    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
-        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
-  done
-
 # Cuánto destraba cada comando de evento que todavía no hacemos: cuántas páginas
 # pasan a compilar **enteras** si se hiciera.
 #
@@ -295,7 +227,7 @@ destraba:
 # del juego es rmg2000 y no ttyp0, que era lo que decía el camino del código que
 # leí. Las dos veces la ventana se veía perfectamente bien.
 #
-# No entra en `hitos` y es a propósito: levanta un Xvfb, corre el juego
+# No entra en `just pruebas` y es a propósito: levanta un Xvfb, corre el juego
 # durante medio minuto y depende de EasyRPG bajado a /extras. Se corre a mano
 # cuando se toca la ventana o la fuente. El detalle está en `rom/easyrpg.sh`.
 #
@@ -351,76 +283,6 @@ mensaje mapa="1" indice="0" escala="1":
   python3 tools/snes_mensaje.py --map-id {{mapa}} --indice {{indice}} \
       --escala {{escala}} -o {{snes_pngs}}/mensaje-{{mapa}}-{{indice}}.png
 
-# La otra segunda opinión, la que sí sale gratis: los mismos casos en bsnes.
-#
-# bsnes es el emulador preciso, y sobre todo es el que **llena la WRAM de basura
-# al encender** —`bsnes_entropy`, que acá va en "High"—, que es lo que hace la
-# consola de verdad y lo que snes9x no hace: lo que snes9x deja es siempre lo
-# mismo, y por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin
-# inicializar, que sin inicializar quedan iguales entre sí. Con esto la tanda ve
-# esa clase de error sola, sin que nadie tenga que jugar. No lo agarra siempre
-# —la basura tiene que caer en un valor que rompa— pero no cuesta nada.
-#
-# Los dos primeros casos son los que tenía `mednafen`, que se borró el
-# 2026-09-16: uno que tiñe desde un evento —CGRAM y el intérprete— y uno que
-# camina —la RAM del control—. Lo que se perdió con aquella receta está dicho
-# en su commit: mednafen no era un core de libretro, así que además probaba que
-# `tools/retro.py` no se equivocara parejo con los tres cores, y era el único
-# que cobraba las escrituras a CGRAM fuera del vblank. Que bsnes las cobre o no
-# no está medido.
-#
-# El tercer caso es el mensaje, y no está de adorno. Es el código que más CGRAM y
-# VRAM toca con la pantalla apagada —`load_ventana` sube tiles y una paleta
-# entera, y `estampar_ventana` escribe su tilemap—, que es justo la clase de
-# escritura que snes9x perdona; ahí ya nos mordió dos veces. Va `cerrar` y no
-# `ventana` porque cubre lo mismo y algo más: su primer cuadro es la ventana
-# dibujada, igual que allá, y el segundo es el cierre. De paso trae
-# `msg_abierto`, que es una variable de RAM que si nadie pone en cero deja la
-# página bloqueada para siempre.
-#
-# Va por CORE y no por `just --set` porque las recetas se llaman entre ellas: la
-# variable de entorno cruza a los `just` de adentro y el `--set` no.
-bsnes:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  CORE=bsnes just evento 4 1 bsnes-evento
-  CORE=bsnes just caminando 73 right 60 bsnes-73-right
-  CORE=bsnes just cerrar 7 200 bsnes-cerrar
-
-# El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose de
-# caminata que le toca, y se compara contra la referencia calculada para ese mismo
-# avance.
-#
-# Es la única prueba que mira el movimiento en sí. Todas las demás comparan el
-# cuadro final, y ahí el héroe choca contra una pared: `moving` vale cero, la pose
-# es siempre la parada y las tres columnas del ciclo no las verificaba nada. Acá
-# además se ejercitan la velocidad y la cámara a mitad del scroll, y errarle por
-# un solo cuadro mueve media pantalla.
-#
-# Y por lo mismo es donde entra **la animación del ChipSet**: un avance de N px es
-# el tick N/2 + 1, así que se puede pedir el cuadro exacto en que el agua o los
-# tiles animados cambian de dibujo. Hacen falta los dos casos: el mapa del agua no
-# tiene tiles animados, y el de los tiles animados no aporta agua.
-caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-" + direccion):
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc
-  just build
-  # Las referencias de todos los avances salen de una sola corrida, por lo
-  # mismo que las de las cinco direcciones: convertir el mapa es lo caro y no
-  # depende del avance.
-  pre={{snes_pngs}}/{{nombre}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk {{direccion}} \
-      --avance {{avances}} --saltar $pre-{}.saltar.txt \
-      -o $pre-{}.esperado.png
-  for px in {{avances}}; do
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$px.png \
-        --walk {{direccion}} --avance $px
-    python3 tools/snes_compare.py $pre-$px.png $pre-$px.esperado.png \
-        --saltar $pre-$px.saltar.txt -o $pre-$px.comparacion.png
-  done
-
 # Pasa todos los mapas del juego por los límites del hardware sin armar ninguna
 # ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
@@ -433,28 +295,6 @@ relevar desde="0":
 # de paredes frena en la tercera celda y no prueba nada.
 recorrido desde="66":
   python3 tools/snes_recorrido.py --desde {{desde}}
-
-# La tanda de regresión, lo que queda de ella: **casi toda vive en pytest**
-# desde el 2026-09-16, en `pruebas/test_tanda*.py`, comparando contra las
-# capturas congeladas de `pruebas/golden/tanda/`. Lo que queda acá es lo que no
-# se muda —hoy, sólo `bsnes`— y lo dice `rom/hitos.txt`.
-#
-# La lista vive en ese archivo y no acá, para que ésta y `hitos-paralelo`
-# corran la misma: escrita dos veces, la que se olvide un caso sigue dando verde
-# y nadie se entera. Cuántos casos son y cuántos pasan lo dice correrla.
-hitos:
-  #!/usr/bin/env bash
-  set -uo pipefail
-  # Sin tilde a propósito: bash no admite acentos en los nombres de variable,
-  # así que `falló=1` no es una asignación sino un comando que no existe, y
-  # `$falló` se lee como `$fall` seguido de una ó. Con `set -u` eso hacía que la
-  # receta saliera con código 1 siempre, hubiera fallado algo o no.
-  fallo=0
-  while read -r caso; do
-    echo "=== $caso ==="
-    eval "just $caso" || fallo=1
-  done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
-  exit $fallo
 
 # Cuánto ocuparía en el cartucho el arte del juego, por rubro. Sin argumento
 # los lista.
@@ -486,94 +326,6 @@ assets-medir que="todo":
 # algo de lo que las arma.
 pruebas *args:
   python3 -m pytest pruebas {{args}}
-
-# La tanda sobre una **foto** del árbol, para poder seguir editando mientras
-# corre.
-#
-# El problema que resuelve: cada receta recompila desde `rom/src/main.s`, así que
-# tocar un fuente a mitad de una tanda mezcla dos versiones y el resultado no
-# dice nada. La regla escrita —"mientras corre una tanda no se toca ningún
-# fuente"— funciona hasta que alguien se olvida.
-#
-# `git stash create` deja un commit colgado con el árbol sucio **sin tocar el
-# índice ni el stash**, y el worktree sale de ahí: la foto incluye lo que no está
-# commiteado, que es justo lo que uno quiere probar. Al terminar imprime el hash
-# de la foto, que es lo que permite después ver qué se probó y qué se agregó
-# encima —`git diff <foto>`—.
-#
-# Dos cosas para tener presentes:
-#
-# * **Los archivos sin trackear no entran en la foto.** `git stash create` sólo
-#   toma lo modificado. Un archivo nuevo que todavía no se hizo `git add` no
-#   viaja, así que la receta avisa si ve alguno.
-# * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
-#   no para que la tanda termine antes.
-hitos-foto trabajos="4" donde="":
-  #!/usr/bin/env bash
-  set -uo pipefail
-  # **Cada corrida en su propio directorio.** El default era uno fijo, y la
-  # receta hace `git worktree remove --force` al empezar: dos tandas a la vez
-  # —dos agentes, o un agente y yo— se arrancaban el árbol entre sí y el
-  # resumen salía **verde sin haber medido nada**, que es la peor forma de
-  # fallar que tiene esto; y a veces se ve al revés, como una corrida que
-  # empieza bien y de golpe dice `getcwd: cannot access parent directories`
-  # con casos en rojo que no lo están. El PID alcanza para que no se pisen, y
-  # `pruebas/hitos/` está gitignorado.
-  donde="{{donde}}"
-  donde=${donde:-pruebas/hitos/$$}
-  mkdir -p "$(dirname "$donde")"
-  nuevos=$(git status --porcelain | grep "^??" | grep -E "tools/|rom/src/|justfile|rom/hitos.txt" || true)
-  if [ -n "$nuevos" ]; then
-    echo "ojo: estos archivos no están trackeados y NO entran en la foto:" >&2
-    echo "$nuevos" >&2
-  fi
-  foto=$(git stash create)
-  foto=${foto:-$(git rev-parse HEAD)}
-  git worktree remove --force "$donde" 2>/dev/null || true
-  git worktree add --detach "$donde" "$foto" >/dev/null
-  echo "foto $foto -> $donde"
-  ( cd "$donde" && just hitos-paralelo {{trabajos}} )
-  estado=$?
-  git worktree remove --force "$donde" 2>/dev/null || true
-  rmdir "$(dirname "$donde")" 2>/dev/null || true
-  echo "la foto era $foto; para ver qué se agregó encima: git diff $foto"
-  exit $estado
-
-hitos-paralelo trabajos="4":
-  #!/usr/bin/env bash
-  set -uo pipefail
-  mkdir -p rom/build
-  # Por xargs viajan números de línea y no los casos. xargs procesa comillas y
-  # se come las de `evento 4 "7 19 1" tabla`, que entonces le llega a just
-  # como seis argumentos sueltos; el caso se cae y la tanda sigue con uno menos.
-  # Pasando el número y releyendo la línea adentro, el texto no cruza nunca el
-  # quoting de xargs.
-  casos=$(grep -v '^#' rom/hitos.txt | grep -v '^$')
-  total=$(printf '%s\n' "$casos" | wc -l)
-  # Los rojos se anotan en archivos y no en el código de salida del bash
-  # interno. Si éste saliera con 1, xargs deja de largar trabajo nuevo y una
-  # tanda con un caso roto no llega a correr los demás, que para una prueba de
-  # regresión es justo al revés de lo que uno quiere: se corre todo y se
-  # informa al final.
-  rm -f rom/build/hito-*.rojo
-  seq 1 "$total" | xargs -P {{trabajos}} -I{} bash -c '
-      caso=$(grep -v "^#" rom/hitos.txt | grep -v "^$" | sed -n "{}p")
-      salida=rom/build/hito-{}.log
-      if CORRIDA=hito-{} eval "just $caso" >"$salida" 2>&1; then
-        echo "ok    $caso"
-      else
-        echo "ROJO  $caso  -> $salida"
-        : > rom/build/hito-{}.rojo
-      fi'
-  rojos=$(ls rom/build/hito-*.rojo 2>/dev/null | wc -l)
-  if [ "$rojos" -gt 0 ]; then
-    echo "$rojos caso(s) en rojo de $total"
-    exit 1
-  fi
-  echo "$total casos, todos en verde"
-
-_tecla direccion:
-  @case {{direccion}} in up) echo Up;; down) echo Down;; left) echo Left;; right) echo Right;; *) echo "";; esac
 
 # Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
 # cuatro esquinas a las que puede llegar.

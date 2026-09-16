@@ -4,7 +4,7 @@ se sale, y que usar un ítem de switch lo prenda y vuelva al mapa.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad, así que
 la ROM lo tiene por el mismo camino que el juego. La tanda mira el mapa
-después de usar la consola —`items` en rom/hitos.txt—.
+después de usar la consola —`items` en `pruebas/test_tanda*.py`—.
 """
 
 import os
