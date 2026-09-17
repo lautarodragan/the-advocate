@@ -483,16 +483,17 @@ se pueden empezar hoy.
    * **El grupo pasa a la RAM**, como los switches: se escribe al arrancar. El
      conversor reserva paletas para todos los líderes posibles del cartucho, y
      el conflicto del 261 lo resuelve el asignador.
-   * **Hay un cartucho de pruebas**, que es el de juego más una tabla con las
-     páginas de prueba; la prueba elige cuál escribiendo un número en la RAM.
-     Los mapas y los datos son los mismos que en el de juego.
+   * **Hay un cartucho de pruebas**, que es el de juego más las páginas de
+     prueba. Primero se decidió que fueran una tabla elegida por la RAM; con
+     la idea del juego golden pasan a ser eventos de RM2k —ver "Hacia dónde
+     va"—.
 
    | | qué | criterio |
    |---|---|---|
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | ninguna golden se mueve salvo las de esas pruebas |
    | 9c | el grupo en la RAM, y el 261 entra | ídem |
-   | 9d | las páginas de prueba en una tabla, elegidas por la RAM | ídem |
+   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"— | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
 
@@ -1301,6 +1302,45 @@ destraba cada uno, `just destraba`.
   muestra por instrumento.** Un piano real está multi-muestreado cada pocas
   notas; nosotros tomamos la del do central y transponemos. En los extremos del
   teclado eso se nota.
+
+## Hacia dónde va: un juego de prueba, y ABL en su propio repo
+
+Idea de taro, el 2026-09-17. **No se hace ahora**, pero las decisiones de hoy no
+tienen que alejarnos de ella.
+
+**Dos capas de pruebas en vez de una:**
+
+* **Conformidad del motor**, contra un juego de RM2k hecho a propósito —el
+  "juego golden"—: un mapa por funcionalidad, chico y determinista, y el juego
+  entero es el golden. Es la regla del cartucho único resuelta de raíz, y es
+  la especificación de qué soporta el port. Portar otro juego lo reusa entero.
+* **Aceptación de ABL**: que sus primeros minutos se jueguen y se vean así.
+  Sigue haciendo falta, porque los errores más caros salieron de contenido
+  real que nadie escribiría a propósito. **El juego golden crece con esos**:
+  cada error que aparezca en un juego real se abstrae y se suma como un caso.
+
+**Y dos repos**: lo que no depende de ABL —el motor, las herramientas, el juego
+golden— se puede publicar, porque el juego golden usa material de dominio
+público o con licencia que lo permita. ABL queda en el suyo, y si alguna vez
+hay que bajarlo, se baja sin arrastrar lo valioso.
+
+**Lo que esto pide hoy:**
+
+* **El paso 9d cambia de forma**: las páginas de prueba no van a una tabla
+  especial de la ROM sino que pasan a ser **eventos de RM2k**, datos que el
+  conversor lee como cualquier otro. Son el embrión del juego golden, y así
+  se mudan moviendo archivos; el conversor pierde los veinte flags que existen
+  sólo para las pruebas. Generarlos con Ditto, desde JSON, evita depender de
+  RM2k en una máquina virtual.
+* **El conversor no sabe nada de ABL**: lo propio del juego —el grupo inicial,
+  qué mapas van— vive en recetas o en un manifiesto, no en `tools/`.
+* **Las pruebas nombran por símbolo o por comportamiento**, no por número de
+  mapa de ABL, donde se pueda.
+* **Lo que el juego golden no puede heredar sin revisar**: el RTP de Don Miguel
+  es de Enterbrain; las muestras salen de los SoundFonts de
+  `/extras/soundfonts`, cuya licencia hay que mirar una por una; y la fuente
+  del sistema de RM2k tiene dueño. Los MIDIs de ABL son música de otros
+  juegos: quedan del lado de ABL.
 
 ## Una mejora de velocidad gratis que apareció midiendo
 
