@@ -358,16 +358,15 @@ se pueden empezar hoy.
    declara, y `ca65` no. Está explicado en "Lo que se perdió con el
    ensamblador propio", en el README.
 
-7. **El reparto de paletas sale de las primitivas.** Es el que hace que
-   `tiles/` no entre, y son **tres decisiones globales metidas entre las
-   llamadas**: las dos capas se reparten la CGRAM **en los dos sentidos** —el
-   presupuesto del fondo sale de dónde terminó arrancando la capa de encima,
-   que es una salida del empaquetado—; la animación del ChipSet es un pool de
-   tiles compartido, con el espejado probado sobre todos los dibujos juntos; y
-   los sprites son un reparto del mapa entero, que decide a quién bajarle
-   colores midiendo cuánto se le mueve la imagen. Las tres tienen que quedar
-   **afuera** y llegar como argumentos. **Criterio: la ROM byte por byte
-   igual.**
+7. **El reparto de paletas sale de las primitivas.** ✅ el 2026-09-17, en
+   tres commits con la ROM byte por byte igual. Resultó más chico de lo que
+   decía acá: los sprites ya recibían su reparto de `npcs_dibujables`, y lo
+   que sobraba era un segundo asignador muerto adentro de `build_characters`.
+   Lo que sí estaba metido era el nudo entre las dos capas: dónde arrancaba la
+   de encima era una salida de su empaquetado, y de eso salía el presupuesto
+   del fondo. Hoy `_convert_layers` decide las tres cosas —las paletas de la
+   capa de encima con `repartir_encima`, dónde arranca, y la paleta del fondo
+   con `build_palette`— y `convert_above` y `convert` sólo emiten.
 
 8. **Enchufar `tiles/` y borrar `tools/pixeles.py`.** Recién acá entra, y
    **es el único paso que puede cambiar la ROM a propósito**: el desempate de
@@ -376,6 +375,22 @@ se pueden empezar hoy.
    colores mismos. De 32 llamadas medidas: 25 idénticas, 1 con las mismas
    paletas en otro orden, 6 distintas y **ninguna peor**. **Criterio: decir qué
    cambió y qué goldens se mueven; taro las mira y decide.**
+
+   **Lo que el paso 7 dejó en claro que falta**, medido contra las dos
+   funciones que emiten:
+
+   * `convert_above` es "una imagen con paletas y primera paleta dadas", pero
+     `tiles convert` elige las paletas él mismo y recibe la primera como
+     argumento: no hay forma de saber cuántas va a usar antes de darle dónde
+     arrancar. Hace falta que `tiles` diga cuántas usaría —un `inspect`, o
+     `--first-palette auto`— o llamarlo dos veces.
+   * `convert` recibe **varias imágenes a la vez** —el dibujo que se ve y los
+     de la animación del ChipSet—, con paleta, espejado y pool compartidos y
+     corridas contiguas para lo que anima. `tiles` no sabe hacer eso.
+   * Y `tools/pixeles.py` no se borra sólo con esto: `merge_least_visible`,
+     `luma_distance`, `try_pack` y `reduce_colors` las usan los asignadores
+     —el de sprites y los dos de arriba—, que siguen en Python. O `tiles`
+     las expone, o se quedan.
 
 9. **Un solo cartucho para todas las pruebas.** Regla de taro, el 2026-09-16:
    *"nunca dos builds distintos para incluir distintos datos"*. No hace falta
