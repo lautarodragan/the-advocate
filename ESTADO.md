@@ -368,29 +368,51 @@ se pueden empezar hoy.
    capa de encima con `repartir_encima`, dónde arranca, y la paleta del fondo
    con `build_palette`— y `convert_above` y `convert` sólo emiten.
 
-8. **Enchufar `tiles/` y borrar `tools/pixeles.py`.** Recién acá entra, y
-   **es el único paso que puede cambiar la ROM a propósito**: el desempate de
-   `try_pack` depende hoy del orden de una tabla de hash de CPython —156 de 200
-   barajadas del mismo conjunto dan otro reparto— y `tiles/` desempata por los
-   colores mismos. De 32 llamadas medidas: 25 idénticas, 1 con las mismas
-   paletas en otro orden, 6 distintas y **ninguna peor**. **Criterio: decir qué
-   cambió y qué goldens se mueven; taro las mira y decide.**
+8. **El asignador corre primero, y `tiles/` convierte lo que ya entra.**
+   Rediseñado por taro el 2026-09-17; lo que sigue reemplaza al "enchufar
+   `tiles/`" que había acá.
 
-   **Lo que el paso 7 dejó en claro que falta**, medido contra las dos
-   funciones que emiten:
+   **La frontera**: `tiles` no toma decisiones artísticas —dada una imagen que
+   el formato puede representar, la representa sin tocar un pixel, y si no
+   puede, falla—; el asignador sí —decide qué se pierde: fusionar colores,
+   empaquetar paletas, repartir CGRAM entre capas, sprites y mapas—. La
+   prueba para cualquier función es **"¿cambia algún pixel de lo que se
+   ve?"**. Con hardware infinito el asignador seguiría existiendo, pero chico:
+   los presupuestos desaparecen, los límites del formato —15 colores por tile
+   de 4bpp— no.
 
-   * `convert_above` es "una imagen con paletas y primera paleta dadas", pero
-     `tiles convert` elige las paletas él mismo y recibe la primera como
-     argumento: no hay forma de saber cuántas va a usar antes de darle dónde
-     arrancar. Hace falta que `tiles` diga cuántas usaría —un `inspect`, o
-     `--first-palette auto`— o llamarlo dos veces.
-   * `convert` recibe **varias imágenes a la vez** —el dibujo que se ve y los
-     de la animación del ChipSet—, con paleta, espejado y pool compartidos y
-     corridas contiguas para lo que anima. `tiles` no sabe hacer eso.
-   * Y `tools/pixeles.py` no se borra sólo con esto: `merge_least_visible`,
-     `luma_distance`, `try_pack` y `reduce_colors` las usan los asignadores
-     —el de sprites y los dos de arriba—, que siguen en Python. O `tiles`
-     las expone, o se quedan.
+   **El pipeline**: render → **asignador** (el cartucho entero de una vez) →
+   **PNG indexados de 8 bits con índices absolutos de CGRAM** más un
+   manifiesto → **`tiles`** → conversor → `ca65` + `ld65`. En una capa de
+   4bpp, `índice >> 4` es la paleta y `índice & 15` el color; así no hace
+   falta metadata —un PNG no puede decir "mis índices arrancan en N", y un
+   chunk propio lo borra el primer editor que lo guarde—. Cada PNG lleva la
+   CGRAM entera, **duplicada a propósito**: `tiles` junta las entradas que
+   usa cada imagen y **corta si dos le dan distinto color a la misma**. Las
+   imágenes del asignador quedan en `rom/build/<cartucho>/asignador/`, para
+   mirarlas y retocarlas sin armar la ROM.
+
+   **`--merge` se va de `tiles`**, y con él el empaquetado de paletas y
+   `--first-palette`: son del asignador, que por ahora sigue en Python y más
+   adelante va a ser un proyecto en Rust aparte, con `tiles` como biblioteca.
+   Mantener un "asignador tonto" en `tiles` se descartó: habría dos
+   respuestas a "qué color se pierde".
+
+   **Lo que esto gana**: como el asignador sigue siendo el de Python, con el
+   mismo desempate, las paletas no cambian, y `tiles` sólo corta, deduplica y
+   espeja. **Enchufarlo no mueve ninguna golden**: los bytes pueden cambiar —el
+   orden de los tiles— y los pixeles no. El desempate nuevo, que era lo único
+   que iba a mover la ROM a propósito, se va con el asignador a Rust.
+
+   | | qué | criterio |
+   |---|---|---|
+   | 8a | `tiles` recibe PNG indexado en espacio CGRAM; se van `--merge`, el empaquetado y `--first-palette` | pruebas de `tiles` |
+   | 8b | `tiles` recibe varios dibujos que comparten pool, con los que animan en corridas al final | pruebas de `tiles` |
+   | 8c | el asignador emite la capa de encima como PNG indexado y `tiles` la convierte | ninguna golden se mueve |
+   | 8d | lo mismo con el fondo y sus dibujos | ninguna golden se mueve |
+   | 8e | se borra lo que `tiles` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
+
+   Los sprites no pasan hoy por `tiles` en ningún lado: quedan para después.
 
 9. **Un solo cartucho para todas las pruebas.** Regla de taro, el 2026-09-16:
    *"nunca dos builds distintos para incluir distintos datos"*. No hace falta
