@@ -6,9 +6,7 @@
 //! the first half of an 8-bit one, and why the same code does both with
 //! nothing but a different plane count.
 
-use crate::color::Rgb15;
-use crate::fail::{Bad, Result};
-use crate::grid::{Tile, CELL};
+use crate::grid::CELL;
 
 /// A cell as palette indices.
 pub type Indices = [[u8; CELL]; CELL];
@@ -16,35 +14,6 @@ pub type Indices = [[u8; CELL]; CELL];
 /// Bytes one tile takes at a given depth.
 pub fn tile_bytes(planes: usize) -> usize {
     planes * CELL
-}
-
-/// A cell as indices into its palette.
-///
-/// Index 0 is the transparent one, so a palette of `n` colours occupies
-/// indices `base..base + n`. `base` is where the palette starts in colour
-/// memory: 1 for a 4-bit tile, whose indices are counted inside its own
-/// sixteen, and whatever is reserved below it for an 8-bit tile, which
-/// addresses colour memory directly.
-pub fn to_indices(tile: &Tile, palette: &[Rgb15], base: u8) -> Result<Indices> {
-    let mut out: Indices = [[0; CELL]; CELL];
-    for (y, row) in tile.iter().enumerate() {
-        for (x, pixel) in row.iter().enumerate() {
-            out[y][x] = match pixel {
-                None => 0,
-                Some(color) => match palette.iter().position(|c| c == color) {
-                    Some(i) => base + i as u8,
-                    None => {
-                        return Err(Bad::answer(format!(
-                            "the colour {},{},{} at pixel {x},{y} is not in the \
-                             palette this cell was assigned",
-                            color.0, color.1, color.2
-                        )))
-                    }
-                },
-            };
-        }
-    }
-    Ok(out)
 }
 
 /// The four orientations, for reusing a mirrored tile.
@@ -182,14 +151,5 @@ mod tests {
         assert_eq!(entry(0, 0, 1, 0, 0), 0x8000);
         assert_eq!(entry(0, 0, 0, 1, 0), 0x2000);
         assert_eq!(entry(0, 0, 0, 0, 7), 0x1C00);
-    }
-
-    #[test]
-    fn a_colour_outside_its_palette_says_which_pixel_and_which_colour() {
-        let mut tile: Tile = [[None; 8]; 8];
-        tile[2][3] = Some((9, 8, 7));
-        let e = to_indices(&tile, &[(1, 1, 1)], 1).unwrap_err();
-        assert!(e.message().contains("9,8,7"), "{e}");
-        assert!(e.message().contains("pixel 3,2"), "{e}");
     }
 }

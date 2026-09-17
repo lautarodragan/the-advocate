@@ -2,16 +2,10 @@
 //!
 //! A 15-bit PPU keeps five bits per channel, so two 24-bit colours that differ
 //! in the low three bits of a channel are **the same colour** once they are on
-//! screen. Everything downstream — counting colours, deciding what fits in a
-//! palette, merging what does not — has to work on the quantised value, or it
-//! counts colours the hardware cannot tell apart.
+//! screen. Colour-memory words are built from the quantised value.
 
 /// A colour as the PPU stores it: five bits per channel, 0..=31.
 pub type Rgb15 = (u8, u8, u8);
-
-/// A pixel: `None` is transparent and goes to index 0, which the PPU does not
-/// draw.
-pub type Pixel = Option<Rgb15>;
 
 /// 8-bit channel to 5-bit, by dropping the low three bits.
 ///
@@ -22,18 +16,14 @@ pub fn quantize_channel(value: u8) -> u8 {
     value >> 3
 }
 
-/// One RGBA pixel to a `Pixel`. Alpha is all-or-nothing: the PPU has no
-/// per-pixel blending, a pixel is either drawn or it is index 0.
-pub fn quantize_pixel(red: u8, green: u8, blue: u8, alpha: u8) -> Pixel {
-    if alpha == 0 {
-        None
-    } else {
-        Some((
-            quantize_channel(red),
-            quantize_channel(green),
-            quantize_channel(blue),
-        ))
-    }
+/// An 8-bit colour to a 15-bit one.
+pub fn quantize(red: u8, green: u8, blue: u8) -> Rgb15 {
+    (quantize_channel(red), quantize_channel(green), quantize_channel(blue))
+}
+
+/// A 15-bit colour back to 8 bits a channel, with the five bits on top.
+pub fn expand(color: Rgb15) -> (u8, u8, u8) {
+    (color.0 << 3, color.1 << 3, color.2 << 3)
 }
 
 /// The 15-bit colour as the word a CGRAM entry holds: `0BBB BBGG GGGR RRRR`.
@@ -51,23 +41,6 @@ pub fn from_cgram_word(word: u16) -> Rgb15 {
     )
 }
 
-/// How far apart two colours look, weighted the way an eye weighs them.
-///
-/// The weights are the usual luma coefficients —0.30 / 0.59 / 0.11— times a
-/// hundred so the whole thing is **integer**. The ordering it produces is the
-/// same as with the fractional coefficients, and in exchange two equal
-/// distances compare equal: this gets multiplied by a pixel count and sorted,
-/// and a tie broken by the last bit of a float is exactly the kind of
-/// difference that makes one run disagree with the next for no reason anyone
-/// can see.
-pub fn luma_distance(a: Rgb15, b: Rgb15) -> u64 {
-    let d = |x: u8, y: u8| {
-        let diff = x as i64 - y as i64;
-        (diff * diff) as u64
-    };
-    30 * d(a.0, b.0) + 59 * d(a.1, b.1) + 11 * d(a.2, b.2)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,9 +53,11 @@ mod tests {
     }
 
     #[test]
-    fn a_fully_transparent_pixel_has_no_colour_at_all() {
-        assert_eq!(quantize_pixel(255, 0, 0, 0), None);
-        assert_eq!(quantize_pixel(255, 0, 0, 1), Some((31, 0, 0)));
+    fn expanding_and_quantising_round_trips() {
+        for color in [(0, 0, 0), (31, 31, 31), (1, 2, 3), (31, 0, 17)] {
+            let (r, g, b) = expand(color);
+            assert_eq!(quantize(r, g, b), color);
+        }
     }
 
     #[test]
@@ -93,15 +68,5 @@ mod tests {
         assert_eq!(cgram_word((31, 0, 0)), 0x001F);
         assert_eq!(cgram_word((0, 31, 0)), 0x03E0);
         assert_eq!(cgram_word((0, 0, 31)), 0x7C00);
-    }
-
-    #[test]
-    fn distance_is_symmetric_zero_only_on_itself_and_integer() {
-        assert_eq!(luma_distance((5, 6, 7), (5, 6, 7)), 0);
-        assert_eq!(luma_distance((5, 6, 7), (7, 6, 5)), 30 * 4 + 11 * 4);
-        assert_eq!(
-            luma_distance((1, 2, 3), (9, 8, 7)),
-            luma_distance((9, 8, 7), (1, 2, 3))
-        );
     }
 }

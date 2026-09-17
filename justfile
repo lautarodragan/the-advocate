@@ -78,12 +78,8 @@ ditto-volcado DIR="/extras/volcado-ditto":
 # nadie**: `tools/pixeles.py` y el empaquetado de `tools/snes_convert.py` siguen
 # siendo los que arman la ROM, y ninguna receta de compilación llama a esto.
 #
-# Sus pruebas son imágenes generadas adentro de la prueba —una celda sólida, una
-# espejada, una que hay que fusionar, una que no entra— más los mensajes de
-# error, así que no necesitan el juego. Lo que sí lo necesita es la comparación
-# contra el Python, que va por `TILES_CORPUS`: un directorio de llamadas
-# grabadas, y sin la variable esas pruebas se saltean con un mensaje, igual que
-# `DITTO_CORPUS`.
+# Sus pruebas son imágenes generadas adentro de la prueba, más los mensajes de
+# error, así que no necesitan el juego.
 tiles-pruebas:
   cd tiles && cargo test
 

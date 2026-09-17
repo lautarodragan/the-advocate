@@ -98,9 +98,8 @@ del árbol donde cae"— y duró un día: al generalizar el generador para el
 segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
-`DITTO_CORPUS` y `tiles/` por `TILES_CORPUS` —un directorio de llamadas
-grabadas—, y sin esas variables las que las necesitan se saltean con un
-mensaje; `protocol/` y `brr/` no necesitan nada.
+`DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
+mensaje; `protocol/`, `brr/` y `tiles/` no necesitan nada.
 
 ### Los que conviven con su equivalente en Python
 

@@ -1,73 +1,64 @@
-//! Reading a PNG in, and writing one back out.
+//! Reading an indexed PNG in, and writing one back out.
 //!
-//! Only PNG, and deliberately: this reads one format well rather than six
-//! badly, and a caller with something else has a converter already.
+//! Only PNG, and only indexed at eight bits: the index **is** the
+//! colour-memory entry, so a picture that is not indexed has not had its
+//! palettes chosen yet, and choosing them is not this tool's job. Eight bits
+//! and not fewer because an index has to reach all 256 entries, and a 4-bit
+//! file could only name the first sixteen.
 
-use crate::color::{quantize_pixel, Pixel, Rgb15};
+use crate::color::{expand, quantize, Rgb15};
 use crate::fail::{Bad, Result};
-use crate::grid::Picture;
+use crate::grid::{Picture, ENTRIES};
 use std::path::Path;
 
-/// Read a PNG and quantise it to what the hardware can show.
-///
-/// Whatever the file's colour type, it arrives here as RGBA and leaves as
-/// 15-bit colour with a hard transparent/opaque split, because that is what
-/// every later decision has to be made on: two colours the display cannot tell
-/// apart must not be counted as two.
+/// Read an 8-bit indexed PNG: its indices, and its palette at 15 bits.
 pub fn read(path: &Path) -> Result<Picture> {
     let file = std::fs::File::open(path)
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
-    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
+    decoder.set_transformations(png::Transformations::IDENTITY);
     let mut reader = decoder
         .read_info()
         .map_err(|e| Bad::usage(format!("{}: not a PNG this can read: {e}", path.display())))?;
 
+    let info = reader.info();
+    if info.color_type != png::ColorType::Indexed || info.bit_depth != png::BitDepth::Eight {
+        return Err(Bad::usage(format!(
+            "{}: {:?} at {:?} bits, and this reads indexed PNGs at 8 bits: their indices \
+             are colour-memory entries, which is how the palettes arrive already chosen",
+            path.display(),
+            info.color_type,
+            info.bit_depth as u8
+        )));
+    }
+    let mut colors = vec![None; ENTRIES];
+    if let Some(palette) = &info.palette {
+        for (entry, rgb) in palette.chunks_exact(3).enumerate().take(ENTRIES) {
+            colors[entry] = Some(quantize(rgb[0], rgb[1], rgb[2]));
+        }
+    }
+
     let mut buffer = vec![0; reader.output_buffer_size()];
-    let info = reader
+    let frame = reader
         .next_frame(&mut buffer)
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-
-    let width = info.width as usize;
-    let height = info.height as usize;
-    let channels = match info.color_type {
-        png::ColorType::Grayscale => 1,
-        png::ColorType::GrayscaleAlpha => 2,
-        png::ColorType::Rgb => 3,
-        png::ColorType::Rgba => 4,
-        png::ColorType::Indexed => {
-            return Err(Bad::usage(format!(
-                "{}: the palette could not be expanded",
-                path.display()
-            )))
-        }
-    };
-
-    let mut rows = Vec::with_capacity(height);
+    let width = frame.width as usize;
+    let height = frame.height as usize;
+    let mut pixels = Vec::with_capacity(width * height);
     for y in 0..height {
-        let start = y * info.line_size;
-        let mut row = Vec::with_capacity(width);
-        for x in 0..width {
-            let p = &buffer[start + x * channels..start + (x + 1) * channels];
-            let (r, g, b, a) = match channels {
-                1 => (p[0], p[0], p[0], 255),
-                2 => (p[0], p[0], p[0], p[1]),
-                3 => (p[0], p[1], p[2], 255),
-                _ => (p[0], p[1], p[2], p[3]),
-            };
-            row.push(quantize_pixel(r, g, b, a));
-        }
-        rows.push(row);
+        let start = y * frame.line_size;
+        pixels.extend_from_slice(&buffer[start..start + width]);
     }
     Ok(Picture {
         width,
         height,
-        rows,
+        pixels,
+        colors,
     })
 }
 
-/// Write a picture back out as an RGBA PNG, with the 5-bit channels put back
-/// in the top five bits of each byte.
+/// Write an indexed PNG, with the 5-bit channels put back in the top five
+/// bits of each byte, and entries the picture has no colour for as black.
 pub fn write(path: &Path, picture: &Picture) -> Result<()> {
     let file = std::fs::File::create(path)
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
@@ -76,43 +67,27 @@ pub fn write(path: &Path, picture: &Picture) -> Result<()> {
         picture.width as u32,
         picture.height as u32,
     );
-    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_color(png::ColorType::Indexed);
     encoder.set_depth(png::BitDepth::Eight);
+    let mut palette = Vec::with_capacity(3 * ENTRIES);
+    for color in &picture.colors {
+        let (r, g, b) = expand(color.unwrap_or((0, 0, 0)));
+        palette.extend_from_slice(&[r, g, b]);
+    }
+    encoder.set_palette(palette);
     let mut writer = encoder
         .write_header()
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-
-    let mut data = Vec::with_capacity(picture.width * picture.height * 4);
-    for row in &picture.rows {
-        for pixel in row {
-            data.extend_from_slice(&rgba(*pixel));
-        }
-    }
     writer
-        .write_image_data(&data)
+        .write_image_data(&picture.pixels)
         .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
-/// A 15-bit colour back to eight bits a channel. The five bits go to the top,
-/// so 31 comes back as 248 and not as 31: the alternative would make every
-/// picture that goes through here noticeably darker.
-pub fn rgba(pixel: Pixel) -> [u8; 4] {
-    match pixel {
-        None => [0, 0, 0, 0],
-        Some((r, g, b)) => [r << 3, g << 3, b << 3, 255],
+/// The colour of an entry, for callers that build a picture in memory.
+pub fn palette_of(colors: &[(usize, Rgb15)]) -> Vec<Option<Rgb15>> {
+    let mut out = vec![None; ENTRIES];
+    for &(entry, color) in colors {
+        out[entry] = Some(color);
     }
-}
-
-/// A picture made of nothing but the given rows, for callers building one.
-pub fn picture_of(width: usize, rows: Vec<Vec<Pixel>>) -> Picture {
-    Picture {
-        height: rows.len(),
-        width,
-        rows,
-    }
-}
-
-/// The colour a 15-bit value shows as, for a caller writing its own output.
-pub fn shown(color: Rgb15) -> (u8, u8, u8) {
-    (color.0 << 3, color.1 << 3, color.2 << 3)
+    out
 }

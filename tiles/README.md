@@ -1,21 +1,48 @@
-# tiles, a picture into what a planar PPU reads
+# tiles
 
     tiles convert town.png --bpp 4 -o town.4bpp --palette town.cgram --tilemap town.map
-    tiles convert sky.png  --bpp 8 --merge --max-colors 200 -o sky.8bpp --palette sky.cgram
-    tiles inspect town.png --bpp 4 --palettes 4
+    tiles convert sky.png  --bpp 8 -o sky.8bpp --palette sky.cgram --tilemap sky.map
     tiles render town.4bpp --palette town.cgram --tilemap town.map --columns 40 -o back.png
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints the
 rules below.
 
-One picture in; tiles, palettes and a tilemap out. Those three are **one
-decision**, which is why they are one command: which palette a cell is given
-decides what its indices are, which decides whether it is the same tile as some
-other cell. Splitting them into three tools would mean each one guessing what
-the other two did.
+An indexed picture in; tiles, a tilemap and colour memory out.
+
+**This tool makes no decision anyone could see.** The picture arrives with its
+palettes already chosen — which colours survive, how they are grouped, where
+each group sits in colour memory — because those are choices about what the
+picture looks like, and they belong to whoever made it. What is left is
+bookkeeping that changes bytes and never pixels: cutting the cells, numbering
+the distinct ones, reusing a mirrored one. That is a property, not a hope:
+`render` gives back exactly the indices `convert` was given.
+
+A picture the format cannot hold is refused, never repaired. Repairing it would
+be choosing what to lose.
 
 Where the files go is the caller's business. Nothing here has a default path, a
 directory it knows about, or any idea what the tiles are of.
+
+## The picture
+
+An **8-bit indexed PNG whose indices are colour-memory entries**. Index 37 is
+entry 37, in every picture. So the palette a pixel belongs to is in the pixel
+itself, and nothing outside the file has to say where a palette starts:
+
+* at **4bpp**, `index >> 4` is the palette and `index & 15` the colour inside
+  it. Every cell has to draw with one palette, and the palette has to be one of
+  the first eight, because a tilemap entry has three bits for it;
+* at **8bpp**, the index is the entry, and a cell can draw with any of them.
+
+A PNG cannot say "my sixteen colours start at entry N" — there is no such field,
+and a private chunk saying so does not survive the first editor that saves the
+file. Eight bits of index with the whole of colour memory as the palette does:
+any editor with an indexed mode keeps it.
+
+So every picture carries a full copy of colour memory. That is deliberate. The
+colour an entry has is what anyone sees when they open the file, and a caller
+that hands over several pictures meant to be shown together is the one that
+checks their copies agree.
 
 ## What the format is
 
@@ -26,94 +53,41 @@ the high bit. Planes go in pairs, sixteen bytes at a time — 0 and 1, then 2 an
 one, and why one piece of code writes both.
 
 Colour is **15 bits**, five per channel, stored as `0BBB BBGG GGGR RRRR`, little
-endian. A picture is quantised to that before anything else happens, because
-every later decision has to be made on what the hardware can actually show: two
-24-bit colours that differ in the low three bits of a channel are one colour on
-screen, and counting them as two makes every "does this fit" answer wrong.
+endian. The palette's 8-bit channels are truncated to five; that is a
+convention of the format, not a choice.
 
 A tilemap entry is `vhop ppcc cccc cccc`: ten bits of tile number, three of
 palette, one of priority, then the x and y flips.
 
-## 4 bits and 8 bits are different problems
-
-At **4bpp** an index is counted inside its own palette of sixteen, so every cell
-has to have all of its colours in one palette. Spreading the colours over as few
-palettes as possible is the hard part, and `--palettes` is the budget.
-
-At **8bpp** an index reaches all of colour memory on its own, so there is one
-palette, there are no groups to work out, and the only limit is how many entries
-there are: `--max-colors`.
-
-Index 0 is transparent in both, which is why a palette of *n* colours occupies
-entries `base .. base + n`. `--base` says where it starts; it is 1 unless
-something else is parked below it.
+The first entry of every palette draws nothing at 4bpp, because the hardware
+counts a 4-bit index inside its own sixteen; at 8bpp only entry 0 does. A pixel
+on the transparent entry of another palette is still transparent, and does not
+count as a second palette.
 
 ## Saying no is most of the job
 
-A picture that does not fit is refused, and the message names the cell:
-
     $ tiles convert busy.png --bpp 4
-    error: the cell at column 12, row 3 has 19 colours and a 4bpp palette holds
-    15 besides the transparent one; pass --merge to give up the cheapest of them
+    error: the cell at column 12, row 3 draws with palettes 1 and 2, and a
+    tilemap entry names one palette per cell
 
-That is on purpose, and the two reasons a picture does not fit are reported
-separately, because they call for different fixes. **One cell with too many
-colours** fits nowhere, and no number of palettes helps. **Too many colours
-overall** is about the budget, and one more palette may be all it takes.
-
-`--merge` turns the refusal into an answer: colours are given up until it fits,
-cheapest first — see below — and the report says how many went. Without it
-nothing is ever quietly made worse.
-
-## Which colour is given up
-
-The cost of sending colour `a` to colour `b` is `pixels(a) * distance(a, b)`:
-how many pixels move, times how far they move, which is the error the change
-adds to the picture. The cheapest pair goes, the victim's pixels are added to
-the survivor, and it repeats.
-
-The obvious alternative — kill the least used colour — is worse, and visibly so.
-A colour can cover four pixels and still *define* the drawing: a highlight, an
-eye, the rim of a helmet. Meanwhile two near-identical greys covering half the
-picture both survive, because neither is the least used. Weighting by distance
-flips that around.
-
-Distance is the usual luma weighting, 0.30 / 0.59 / 0.11, times a hundred so the
-arithmetic is **integer**. The ordering is the same as with the fractional
-coefficients, and in exchange two equal distances compare equal: this number
-gets multiplied by a pixel count and sorted, and a tie broken by the last bit of
-a float is the kind of difference that makes two runs disagree for no reason
-anyone can see.
-
-No colour is invented. The survivor is always one that was already in the
-picture, so there is nothing to re-quantise afterwards and the result does not
-depend on the arithmetic of whatever drew the picture.
+The message names the cell, because the thing a caller does next is fix that
+cell. The other refusals: a palette a tilemap cannot name, an entry the
+picture's palette has no colour for, and more distinct tiles than a tilemap
+entry can number.
 
 ## Mirrored cells are free
 
 A tilemap entry carries an x and a y flip, so a cell that is another cell
 mirrored is not a new tile. All four orientations are tried against the tiles
-already placed before a new one is added. At 4bpp the match also has to be in
-the same palette, because an index only means a colour inside one.
+already placed before a new one is added, and tiles are numbered in the order
+their first cell is met, row-major. At 4bpp the match also has to be in the
+same palette, because an index only means a colour inside one.
 
 Tile 0 is kept for the empty cell unless `--no-blank-tile` says otherwise:
 whatever a tilemap points at before anybody writes it is tile 0, so it is
-usually worth one tile to have that be the empty one.
-
-## Determinism, and where it has to be bought
-
-None of these decisions has a single right answer — how the colours are grouped,
-which pair is merged, which cell becomes which tile — so the property worth
-having is not "good" but **"the same every time"**: same input, same bytes, on
-every machine and in every order the caller hands things over.
-
-That is not free. Grouping walks the colour sets largest first, and ties on size
-are the common case, not the exception — every two-colour cell ties with every
-other. So the order ends in the colours themselves, which is a total order.
-Merging ends every comparison the same way. Anything that resolved these ties by
-the iteration order of a hash table would give a different answer depending on
-how its caller happened to build the input, which is not part of the input and
-cannot be reproduced from it.
+usually worth one tile to have that be the empty one. An empty cell is written
+as a plain 0 — its priority and palette would say nothing — and `--priority`
+goes on the cells that draw.
 
 ## Exit codes
 
@@ -121,42 +95,27 @@ cannot be reproduced from it.
     1   the answer is no
     2   the call was wrong
 
-**1** is this tool working correctly and saying no: the picture does not fit, it
-needs more than 1024 distinct tiles, a palette runs past the end of colour
-memory. **2** is a broken call: a file that is not a PNG, a tilemap that does not
-divide into rows. A script should not have to read the message to tell those
-apart.
+**1** is this tool working correctly and saying no: the picture breaks the
+format, or needs more than 1024 distinct tiles. **2** is a broken call: a file
+that is not an indexed PNG, a tilemap that does not divide into rows. A script
+should not have to read the message to tell those apart.
 
 ## Testing
 
-`cargo test` needs nothing: the pictures are built inside the tests — a solid
-cell, a mirrored one, one that has to merge, one that cannot fit — and a good
-half of the cases are the error messages, because a tool whose refusals are
-vague is one people work around instead of reading.
-
-There is also a replay against calls recorded from another implementation of the
-same rules, for anyone porting one. Point `TILES_CORPUS` at a directory of
-`<function>.jsonl` files, one recorded call per line as `{"in": ..., "out":
-...}`; without the variable those tests say so and pass, because a corpus is
-evidence and not a dependency.
-
-    TILES_CORPUS=/some/recorded/calls cargo test --release -- --nocapture
-
-Two of them compare for validity rather than equality, and `tests/corpus.rs`
-says why: a recording made by an implementation that resolved its tie-breaks
-with a hash table is not reproducible from its own inputs, so what is asserted
-is that the result is valid and never worse than the recording, with the exact
-matches counted and printed.
+`cargo test` needs nothing: the pictures are built inside the tests, and half
+the cases are the refusals, because a tool whose refusals are vague is one
+people work around instead of reading. The one the design rests on converts a
+picture and renders it back, at both depths, and asks for the same indices.
 
 ## What is deliberately not here
 
+* **Choosing colours.** Merging, grouping colours into palettes, deciding which
+  palette a layer starts at: that is deciding what the picture looks like, and
+  it happens before this tool runs. This tool used to do it, with a `--merge`
+  flag; it was taken out so that there is exactly one answer to "which colour
+  was given up", and it is not here.
 * **Anything that knows what the picture is of.** Sprite sheets, animation
   strips, autotiles, fonts: those are all somebody's file format, and this is
   only the part every one of them ends with.
-* **Dithering, and inventing colours.** Merging picks a survivor from the
-  picture. A tool that invents a colour has to re-quantise, and then its output
-  depends on how it rounds.
-* **Deciding where things go in memory.** Which tiles are uploaded where, which
-  palette number a layer gets, what is reserved at the bottom of colour memory:
-  all of that is the caller's, and `--base` and `--first-palette` are how the
-  caller tells this tool what it decided.
+* **Deciding where things go in memory.** Which tiles are uploaded where, and
+  what is reserved at the bottom of colour memory, is the caller's.
