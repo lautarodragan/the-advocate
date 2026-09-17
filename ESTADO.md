@@ -408,7 +408,7 @@ se pueden empezar hoy.
    |---|---|---|
    | 8a ✅ | `tiles` recibe PNG indexado en espacio CGRAM; se van `--merge`, el empaquetado, `--first-palette` e `inspect` | pruebas de `tiles` |
    | 8b ✅ | `tiles` recibe varios dibujos que comparten pool, con los que animan en corridas al final | pruebas de `tiles` |
-   | 8c | el asignador emite la capa de encima como PNG indexado y `tiles` la convierte | ninguna golden se mueve |
+   | 8c ✅ | el asignador emite la capa de encima como PNG indexado y `tiles` la convierte | ninguna golden se mueve: la ROM salió igual |
    | 8d | lo mismo con el fondo y sus dibujos | ninguna golden se mueve |
    | 8e | se borra lo que `tiles` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
 

@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                            # noqa: E402
 import ensamblar                                        # noqa: E402
+import tiles_bin                                        # noqa: E402
 from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
@@ -649,13 +650,15 @@ def huella():
     Se mira el contenido y no la fecha: `git checkout` de ida y vuelta deja
     fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
 
-    **El ensamblador y el linker entran por sus binarios**, `ca65` y `ld65` del
-    PATH: si no entraran, recompilarlos no invalidaría nada y las pruebas
-    correrían contra ROMs armadas con los viejos, en silencio. El envoltorio
-    que los llama ya entra con el `tools/*.py`.
+    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan, y
+    `tiles`, que convierte las capas—: si no entraran, reinstalarlos no
+    invalidaría nada y las pruebas correrían contra ROMs armadas con los
+    viejos, en silencio. Los envoltorios que los llaman ya entran con el
+    `tools/*.py`.
     """
     h = hashlib.sha256()
-    partes = [os.path.join(RAIZ, "rom", "src", "main.s")] + ensamblar.binarios()
+    partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
+              + ensamblar.binarios() + [tiles_bin.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:

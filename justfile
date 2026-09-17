@@ -93,13 +93,14 @@ ensamblar := "python3 tools/ensamblar.py"
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # --- Las herramientas de Rust ----------------------------------------------
-# `protocol/`, `brr/` y `ditto/` son proyectos aparte, y el port los
+# `protocol/`, `brr/`, `ditto/` y `tiles/` son proyectos aparte, y el port los
 # consume **desde el PATH**, como consume python3 o un core de libretro: ningún
 # script ni prueba de este juego llama a `cargo`. Se instalan una vez y quedan.
 herramientas:
   cargo install --locked --path protocol --root {{cargo_root}}
   cargo install --locked --path brr --root {{cargo_root}}
   cargo install --locked --path ditto --root {{cargo_root}}
+  cargo install --locked --path tiles --root {{cargo_root}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las

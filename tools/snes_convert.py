@@ -39,6 +39,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import bancos
+import tiles_bin
 import event_codes
 import eventos
 import lcf
@@ -234,6 +235,43 @@ def repartir_encima(grid, limite):
     return grid, [sorted(g) for g in groups], merged
 
 
+def imagen_encima(grid, palettes, above_first):
+    """La capa de encima como la deja el asignador: un PNG indexado.
+
+    Sus índices son **entradas de CGRAM**: el color `k` de la paleta `i` de esta
+    capa es la entrada `(above_first + i) * 16 + k + 1`, y lo transparente es la
+    0. Así lo que se decidió —qué paleta lleva cada celda y dónde arranca cada
+    una— queda escrito en la imagen, y se puede mirar sin armar la ROM.
+    """
+    columnas, filas = len(grid[0]), len(grid)
+    ancho = columnas * CELL
+    pixeles = [0] * (ancho * filas * CELL)
+    posicion = [{color: k + 1 for k, color in enumerate(p)} for p in palettes]
+    for cy, row in enumerate(grid):
+        for cx, tile in enumerate(row):
+            colors = tile_colors(tile)
+            if not colors:
+                continue
+            # La primera paleta que tenga todos sus colores, que es la misma
+            # cuenta que hizo `repartir_encima` al armarlas.
+            i = next(i for i, pal in enumerate(palettes) if colors <= set(pal))
+            base = (above_first + i) * COLORS_PER_PALETTE
+            for y, line in enumerate(tile):
+                fila = (cy * CELL + y) * ancho + cx * CELL
+                for x, color in enumerate(line):
+                    if color is not None:
+                        pixeles[fila + x] = base + posicion[i][color]
+    colores = [None] * 256
+    for i, palette in enumerate(palettes):
+        base = (above_first + i) * COLORS_PER_PALETTE
+        colores[base] = BACKDROP
+        for k in range(COLORS_PER_PALETTE - 1):
+            colores[base + k + 1] = palette[k] if k < len(palette) else (0, 0, 0)
+    return tiles_bin.png_indexado(
+        ancho, filas * CELL, pixeles, colores,
+        [e % COLORS_PER_PALETTE == 0 for e in range(256)])
+
+
 def convert_above(grid, palettes, above_first, merged=0):
     """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
 
@@ -242,56 +280,25 @@ def convert_above(grid, palettes, above_first, merged=0):
     vacías apuntan al tile 0, que se deja transparente a propósito.
 
     **No decide nada**: las paletas las eligió `repartir_encima`, y en cuál de
-    CGRAM arranca, `above_first`, lo eligió `_convert_layers`. Acá se emite.
+    CGRAM arranca, `above_first`, lo eligió `_convert_layers`. Con eso se
+    escribe la imagen indexada y la convierte `tiles`.
 
-    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados).
+    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados,
+    la imagen del asignador).
     """
-    blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
-    pool = {(0, blank): 0}
-    tiles = bytearray(32)
-    tilemap = []
-    for row in grid:
-        line = []
-        colors_of = tile_colors
-        for tile in row:
-            colors = colors_of(tile)
-            if not colors:
-                line.append(entry(0, 0, 0))
-                continue
-            index = next(i for i, pal in enumerate(palettes)
-                         if colors <= set(pal))
-            indices = to_indices(tile, palettes[index])
-
-            placed = None
-            for oriented, horizontal, vertical in flips(indices):
-                if (index, oriented) in pool:
-                    placed = entry(pool[(index, oriented)], horizontal, vertical,
-                                   PRIORITY_ABOVE)
-                    placed |= (above_first + index) << 10
-                    break
-            if placed is None:
-                number = len(pool)
-                pool[(index, indices)] = number
-                tiles += bytes(32)
-                tiles[number * 32:(number + 1) * 32] = pack_tile(indices, planes=4)
-                placed = entry(number, 0, 0, PRIORITY_ABOVE)
-                placed |= (above_first + index) << 10
-            line.append(placed)
-        tilemap.append(line)
-
-    cram = bytearray()
-    for palette in palettes:
-        cram += cgram_word(BACKDROP).to_bytes(2, "little")
-        for color in palette:
-            cram += cgram_word(color).to_bytes(2, "little")
-        cram += bytes(2 * (COLORS_PER_PALETTE - 1 - len(palette)))
-
+    png = imagen_encima(grid, palettes, above_first)
+    tiles, cgram, tilemap, _ = tiles_bin.convertir(
+        png, 4, len(grid[0]), prioridad=PRIORITY_ABOVE)
+    # Las paletas de esta capa, y nada más: el resto de la CGRAM de la imagen
+    # es de otras capas.
+    cram = cgram[2 * above_first * COLORS_PER_PALETTE:
+                 2 * (above_first + len(palettes)) * COLORS_PER_PALETTE]
     # Nunca cero: en la consola un DMA de tamaño cero transfiere 65536 bytes, no
     # ninguno. Un mapa sin capa de encima mandaba una paleta vacía y arrasaba
     # CGRAM entera, paletas de sprites incluidas. Se emite una paleta vacía.
     if not cram:
-        cram = bytearray(2 * COLORS_PER_PALETTE)
-    return bytes(tiles), bytes(cram), tilemap, above_first, merged
+        cram = bytes(2 * COLORS_PER_PALETTE)
+    return tiles, cram, tilemap, above_first, merged, png
 
 
 def entry(tile, horizontal, vertical, priority=0):
@@ -1460,7 +1467,10 @@ def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
     global _VERSION_CAPAS
     import cache_disco
     if _VERSION_CAPAS is None:
-        _VERSION_CAPAS = cache_disco.version_de("snes_convert.py", "rm2k.py")
+        # Y el binario de `tiles`, que es el que emite: recompilarlo sin tocar
+        # nada de acá tiene que invalidar lo guardado.
+        _VERSION_CAPAS = (cache_disco.version_de("snes_convert.py", "rm2k.py")
+                          + tiles_bin.version())
     partes = [_VERSION_CAPAS, _huella_de_imagen(base),
               _huella_de_imagen(above_img), str(bool(con_ventana)),
               repr(ventana_paleta)]
@@ -6018,6 +6028,17 @@ def main():
                    escenas, encuentros)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
+    # Lo que decidió el asignador, como imágenes: para mirar qué colores se
+    # perdieron y en qué paleta quedó cada celda sin armar ni correr la ROM.
+    # Son indexadas y sus índices son entradas de CGRAM, así que un editor en
+    # modo indexado las abre tal como las va a ver `tiles`.
+    asignador = os.path.join(os.path.dirname(os.path.abspath(args.output)),
+                             "asignador")
+    os.makedirs(asignador, exist_ok=True)
+    for mapa in mapas:
+        with open(os.path.join(asignador, "%04d-encima.png" % mapa["id"]),
+                  "wb") as handle:
+            handle.write(mapa["above"][5])
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:
