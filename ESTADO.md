@@ -480,9 +480,15 @@ se pueden empezar hoy.
      descartada, por si algo sirve: la ROM preguntaba por `M_VRAM_VENTANA` del
      registro, que ya vale 0 en los repartos sin ventana, y el conversor
      reintentaba la conversión anotando el mapa.)
-   * **El grupo pasa a la RAM**, como los switches: se escribe al arrancar. El
-     conversor reserva paletas para todos los líderes posibles del cartucho, y
-     el conflicto del 261 lo resuelve el asignador.
+   * **El grupo de cada prueba lo arma la página de prueba**, con
+     `ChangePartyMembers`, como lo haría el juego: taro prefirió eso a un
+     gancho en la ROM que existiera sólo para las pruebas. `--grupo-de-prueba`
+     en el conversor; sus líderes y sus caras entran en todos los mapas. Para
+     que la página corra **antes** que las del juego —el 21 agrega a Talan al
+     entrar, y con la página al final el líder salía otro— su evento va
+     primero: un evento vacío en el índice 0, y los blancos que pasan las
+     pruebas se corren con `eventos.blanco_de_prueba`. El conflicto del 261
+     sigue siendo del asignador, y sigue pendiente.
    * **Hay un cartucho de pruebas**, que es el de juego más las páginas de
      prueba. Primero se decidió que fueran una tabla elegida por la RAM; con
      la idea del juego golden pasan a ser eventos de RM2k —ver "Hacia dónde
@@ -492,7 +498,7 @@ se pueden empezar hoy.
    |---|---|---|
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
-   | 9c | el grupo en la RAM, y el 261 entra | ídem |
+   | 9c | el grupo lo arma la página de prueba —hecho— y el 261 entra —falta— | ídem |
    | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"— | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |

@@ -5335,6 +5335,12 @@ def main():
                              "RM2k. Por defecto, el de la base: este juego "
                              "arranca con el actor 10, DummyHero, cuyo sprite es "
                              "una celda vacía a propósito")
+    parser.add_argument("--grupo-de-prueba", nargs="+", type=int,
+                        default=None, metavar="ACTOR",
+                        help="el grupo con el que arranca la prueba: la página "
+                             "de prueba lo arma con ChangePartyMembers, así que "
+                             "el cartucho sigue arrancando con el suyo. Sus "
+                             "líderes y sus caras entran en todos los mapas")
     parser.add_argument("--charset", default=None,
                         help="forzar el CharSet del héroe; por defecto sale "
                              "del primero del grupo, que es como lo decide RM2k")
@@ -5407,6 +5413,12 @@ def main():
     # su comentario.
     eventos.indexar_actores(args.game_dir)
     args.lideres = lideres_posibles(renderer, todos, grupo)
+    # Y los del grupo de prueba, detrás: la prueba puede arrancar con él en
+    # cualquier mapa del cartucho.
+    if args.grupo_de_prueba:
+        for actor in lideres_posibles(renderer, todos, args.grupo_de_prueba):
+            if actor not in args.lideres:
+                args.lideres.append(actor)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
     args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
@@ -5534,41 +5546,23 @@ def main():
             sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
-        if (args.pagina_de_prueba or args.ruta_de_prueba
-                or args.rama_de_prueba or args.guardar_de_prueba
-                or args.batalla_de_prueba
-                or args.sprite_de_prueba
-                or args.tecla_de_prueba
-                or args.vars_de_prueba or args.rama_var_de_prueba
-                or args.items_de_prueba or args.acceso_de_prueba
-                or args.ruta_de_evento or args.flash_de_prueba or args.switch
-                or args.destello_de_prueba
-                or args.timer_de_prueba or args.lugar_de_prueba
-                or args.parar_de_prueba or args.rama_item_de_prueba
-                or args.rama_actor_de_prueba
-                or args.sacudida_de_prueba or args.fundir_bgm
-                or args.pan_de_prueba or args.lluvia_de_prueba is not None
-                or args.animacion_de_prueba
-                or args.mensaje_de_prueba is not None) \
+        if pide_pagina_de_prueba(args) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
             # de ningún dato del juego: existe porque ninguna página que compile
             # tiene una espera, así que el intérprete cuadro a cuadro no lo
             # ejercitaba nada.
             #
-            # Va en el **primer índice libre del mapa**, y tiene que ser ése y
-            # no uno fijo: la ROM lleva un byte de estado por evento indexado
-            # por este número, así que uno alto se cae de la tabla —con 9999 la
-            # ROM lo descartaba en silencio y la página no arrancaba nunca— y
-            # uno apenas alto obliga a los barridos de cero a `ev_total` a
-            # recorrer eventos que no existen: con el 119 fijo, un mapa de
-            # cuatro eventos barría ciento veinte y eso perdía el cuadro.
-            mapa["EV_COUNT_PRUEBA"] = len(mapa["ev_pos"]) // EV_STRIDE
+            # Va en el **índice 0**, el del evento vacío que `convertir` puso
+            # al principio del mapa: la ROM recorre los eventos de menor a
+            # mayor, y esta página tiene que correr antes que las del juego.
+            # Hasta el 2026-09-17 iba en el primer índice libre, al final.
+            mapa["EV_COUNT_PRUEBA"] = 0
             espera, tinte = 0, ()
             if args.pagina_de_prueba:
                 espera, *tinte = args.pagina_de_prueba
             paginas = paginas + [{
-                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0,
+                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0, "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
                 "item": 0, "capa": 0,
@@ -5600,12 +5594,14 @@ def main():
                     sprite=sprite_de_prueba(args.sprite_de_prueba),
                     graficos=graficos,
                     tecla=tuple(args.tecla_de_prueba or ()),
-                    rama_actor=tuple(args.rama_actor_de_prueba or ()))}, {
+                    rama_actor=tuple(args.rama_actor_de_prueba or ()),
+                    grupo=((tuple(grupo), tuple(args.grupo_de_prueba))
+                           if args.grupo_de_prueba else None))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
                 # correr y la primera no se repite.
-                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1,
+                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1, "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
@@ -5711,7 +5707,7 @@ def main():
         afuera_de, cuantas = set(), 0
         for pagina in paginas:
             if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \
-                    or pagina["evento"] >= len(mapa["game_map"].events):
+                    or pagina.get("prueba"):
                 continue        # la página de prueba no sale del juego
             evento = mapa["game_map"].events[pagina["evento"]]
             faltan = {cmd.parameters[0]
@@ -5775,7 +5771,8 @@ def main():
     # agrega algún `ChangePartyMembers` de estos mapas, compilen sus páginas o
     # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
     # una de menos deja un hueco en el menú.
-    miembros = miembros_posibles(todos, grupo)
+    miembros = miembros_posibles(
+        todos, list(grupo) + list(args.grupo_de_prueba or ()))
     # Y los ítems que pueden estar en el inventario, para llevar su nombre y
     # su descripción: ver "la pantalla de ítems" en titulo.py.
     items_rom = items_posibles(todos, args.items_de_prueba, miembros,
@@ -6248,10 +6245,43 @@ def miembros_posibles(map_ids, grupo):
     return sorted(actores)
 
 
+def pide_pagina_de_prueba(args):
+    """Si algún flag de prueba necesita la página inventada."""
+    return bool(args.pagina_de_prueba or args.ruta_de_prueba
+                or args.rama_de_prueba or args.guardar_de_prueba
+                or args.batalla_de_prueba
+                or args.sprite_de_prueba
+                or args.tecla_de_prueba
+                or args.vars_de_prueba or args.rama_var_de_prueba
+                or args.items_de_prueba or args.acceso_de_prueba
+                or args.ruta_de_evento or args.flash_de_prueba or args.switch
+                or args.destello_de_prueba
+                or args.timer_de_prueba or args.lugar_de_prueba
+                or args.parar_de_prueba or args.rama_item_de_prueba
+                or args.rama_actor_de_prueba
+                or args.sacudida_de_prueba or args.fundir_bgm
+                or args.pan_de_prueba or args.lluvia_de_prueba is not None
+                or args.animacion_de_prueba
+                or args.mensaje_de_prueba is not None
+                or args.grupo_de_prueba)
+
+
 def convertir(renderer, map_id, args, inicio=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = renderer.cargar_mapa(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
+    if pide_pagina_de_prueba(args) and map_id == orden_de_mapas(args)[args.inicial]:
+        # El evento de la página de prueba va **primero**: la ROM recorre los
+        # eventos de menor a mayor, y la página de prueba tiene que correr
+        # antes que las del juego. Arma el grupo con el que arranca la prueba,
+        # y un mapa cuya página toca el grupo al entrar —el 21 agrega a Talan—
+        # lo encontraba ya cambiado. Es un evento sin páginas: no se dibuja ni
+        # compila nada, sólo ocupa el índice 0 para que todo lo que numera
+        # eventos después de leer el mapa numere igual.
+        vacio = lcf.Event.__new__(lcf.Event)
+        vacio.id, vacio.name, vacio.x, vacio.y, vacio.pages = (
+            0, "prueba", 0, 0, [])
+        game_map.events.insert(0, vacio)
     name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above, variantes = renderer.capas_animadas(game_map)
@@ -6294,7 +6324,9 @@ def convertir(renderer, map_id, args, inicio=None):
     # quién camina es parte de elegir los colores y no sólo de repartir la VRAM.
     prueba_ev = ruta_de_evento(args.ruta_de_evento)
     if prueba_ev and map_id == orden[args.inicial]:
-        movibles = movibles | {prueba_ev[0] - 1}
+        # El blanco viene contado sin el evento de prueba: ver
+        # `eventos.blanco_de_prueba`.
+        movibles = movibles | {eventos.blanco_de_prueba(prueba_ev[0]) - 1}
     # Y con eso, qué poses puede mostrar cada gráfico: es lo que decide sobre
     # qué píxeles se eligen sus quince colores. Ver `poses_del_mapa`.
     poses_por_grafico = poses_del_mapa(renderer, game_map, args.lideres,

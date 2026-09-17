@@ -43,6 +43,22 @@ NUCLEO = os.environ.get(
 # El grupo por omisión, igual que `grupo` en el justfile.
 GRUPO = os.environ.get("GRUPO", "10")
 
+# El grupo con el que arranca el cartucho, que es el de la base del juego.
+DEL_JUEGO = ["10"]
+
+
+def flags_de_grupo(grupo):
+    """Cómo se le pide al conversor que una prueba arranque con `grupo`.
+
+    El cartucho arranca siempre con el suyo; otro grupo lo arma la página de
+    prueba con `ChangePartyMembers`, como lo haría el juego. Con el del juego
+    no hace falta ninguna página.
+    """
+    grupo = [str(a) for a in grupo]
+    if grupo == DEL_JUEGO:
+        return []
+    return ["--grupo-de-prueba"] + grupo
+
 
 class SimboloDesconocido(KeyError):
     """Se pidió un símbolo que la ROM no tiene."""
@@ -704,9 +720,9 @@ def armar(map_id, mapas=(), destino=None, rama=(),
         except OSError:
             pass
 
-    convertir = [sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py"),
-                 "--grupo"] + [str(a) for a in (grupo or GRUPO.split())] + [
-                 "--map-id", str(map_id)]
+    convertir = ([sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py")]
+                 + flags_de_grupo(grupo or GRUPO.split())
+                 + ["--map-id", str(map_id)])
     if mapas:
         convertir += ["--mapas"] + [str(m) for m in mapas]
     if rama:

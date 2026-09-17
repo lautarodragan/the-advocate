@@ -507,6 +507,8 @@ FLASH_SPRITE = 11320
 # `Game_Interpreter::CommandChangePartyMember` en easyrpg-player.
 GRUPO_AGREGAR, GRUPO_SACAR = 0, 1
 GRUPO_ID_FIJO = 0
+# La operación de un `ChangePartyMembers`, su parámetro [0].
+GRUPO_METER, GRUPO_SACAR = 0, 1
 GRUPO_MAX = 4           # `Game_Party::AddActor` no agrega si ya hay cuatro
 
 # Comandos que se aceptan sin hacer nada, porque no hacer nada no se ve. Es el
@@ -4606,6 +4608,18 @@ SWITCH_DE_PRUEBA = 1023
 # 1003 y el 1023 es el de la página de prueba.
 SWITCH_IMPOSIBLE = 1021
 
+# Cuántos eventos pone el conversor antes de los del juego: el de la página de
+# prueba, que va primero para correr antes que ellos. Los blancos que las
+# pruebas pasan —el índice del evento en el mapa más uno, 0 el héroe— se
+# cuentan sin él, así que acá se corren.
+EVENTOS_DE_PRUEBA = 1
+
+
+def blanco_de_prueba(blanco):
+    """Un blanco como lo pasa la prueba, al índice que tiene en la ROM."""
+    return blanco + EVENTOS_DE_PRUEBA if blanco else 0
+
+
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
@@ -4614,7 +4628,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
                     batalla=0, batalla_game_over=False, temas=None,
                     parar=None, rama_item=(),
-                    sprite=(), graficos=None, tecla=(), rama_actor=()):
+                    sprite=(), graficos=None, tecla=(), rama_actor=(),
+                    grupo=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4673,6 +4688,16 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     # cambio: su código está en la ROM y el cursor es suyo, igual que en RM2k.
     codigo = bytes([OP_SWITCH, SWITCH_DE_PRUEBA & 0xFF,
                     SWITCH_DE_PRUEBA >> 8, 1])
+    if grupo is not None:
+        # El grupo con el que arranca la prueba, armado como lo haría el juego:
+        # un `ChangePartyMembers` por actor, sacando a los del cartucho y
+        # metiendo a los pedidos. Va antes que todo lo demás de la página para
+        # que el resto ya corra con él. `grupo` es (el de la ROM, el pedido).
+        del_cartucho, pedido = grupo
+        for actor in del_cartucho:
+            codigo += bytes([OP_PARTY, GRUPO_SACAR, actor])
+        for actor in pedido:
+            codigo += bytes([OP_PARTY, GRUPO_METER, actor])
     if lluvia is not None:
         # La fuerza de un WeatherEffects de lluvia, de 0 a 2. La única que
         # llueve en el juego es la apertura, y ahí la cámara no se mueve: sin
@@ -4741,7 +4766,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # (blanco, r, g, b, potencia, cuadros). Existe por lo mismo que todo lo
         # demás de esta página: ninguna del juego que compile destella sin
         # depender de un switch.
-        codigo += bytes([OP_FLASH]) + bytes(flash)
+        codigo += (bytes([OP_FLASH, blanco_de_prueba(flash[0])])
+                   + bytes(flash[1:]))
     if destello:
         # (r, g, b, potencia, cuadros): `FlashScreen`, que es **otra cosa** que
         # el de arriba. Aquél tiñe la paleta de un personaje; éste pasa las tres
@@ -4767,10 +4793,12 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             eventos_mapa=eventos_mapa)
     if ruta_ev:
         blanco, ordenes = ruta_ev
+        blanco = blanco_de_prueba(blanco)
         codigo += (bytes([OP_ROUTE, blanco, frecuencia, len(ordenes)])
                    + bytes(ordenes))
     if lugar:
         blanco, x, y, cuadros = lugar
+        blanco = blanco_de_prueba(blanco)
         if cuadros:
             codigo += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
         codigo += bytes([OP_PLACE, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
@@ -4847,7 +4875,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                 # prueba ya viene traducido, y `_compilar` lo traduciría de
                 # nuevo desde un id de RM2k que acá no existe. Es lo mismo que
                 # hace `lugar` un poco más arriba con `OP_PLACE`.
-                codigo += bytes([OP_PLACE_VAR, a, ranura_de_variable(v),
+                codigo += bytes([OP_PLACE_VAR, blanco_de_prueba(a),
+                                 ranura_de_variable(v),
                                  ranura_de_variable(b)])
                 continue
             codigo += _compilar(lcf.EventCommand(

@@ -33,7 +33,7 @@ import subprocess
 import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     huella, mapas_de, toques_de)
+                     flags_de_grupo, huella, mapas_de, toques_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
@@ -103,8 +103,8 @@ def cartucho(nombre, *flags, grupo=None):
             pass
 
     convertir = ([sys.executable, os.path.join(RAIZ, "tools",
-                                               "snes_convert.py"),
-                  "--grupo"] + grupo + [str(f) for f in flags]
+                                               "snes_convert.py")]
+                 + flags_de_grupo(grupo) + [str(f) for f in flags]
                  + ["-o", inc])
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
     # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
