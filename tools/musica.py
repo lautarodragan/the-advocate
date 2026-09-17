@@ -8,7 +8,8 @@ operadores y el S-DSP pide una forma de onda, pero antes de eso el problema es
 el mismo.
 
 Salió de `md_music.py`, que era del port a Mega Drive y sin embargo el port a
-SNES le importaba seis cosas. Mismo caso que `pixeles.py` y `rm2k.py`.
+SNES le importaba seis cosas. Mismo caso que `asignador.py` —que se llamó
+`pixeles.py`— y `rm2k.py`.
 """
 
 import collections

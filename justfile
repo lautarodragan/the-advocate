@@ -74,9 +74,9 @@ datos DIR="data":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}}
 
-# De un PNG a tiles, paletas y tilemap, en Rust. **Todavía no reemplaza a
-# nadie**: `tools/pixeles.py` y el empaquetado de `tools/snes_convert.py` siguen
-# siendo los que arman la ROM, y ninguna receta de compilación llama a esto.
+# De un PNG indexado a tiles, tilemap y CGRAM, en Rust: es el que convierte las
+# capas de los mapas, desde las imágenes que deja el asignador. No decide
+# colores; ver AGENTS.md.
 #
 # Sus pruebas son imágenes generadas adentro de la prueba, más los mensajes de
 # error, así que no necesitan el juego.

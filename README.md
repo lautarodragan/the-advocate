@@ -8,8 +8,8 @@ Hubo antes un port a Mega Drive. Se sacó de este repo cuando quedó claro que e
 camino era la SNES —el audio del S-DSP convence y el del YM2612 no—, y vive
 aparte en `abl-sega`. Lo que era compartido de verdad se quedó, con nombres que
 no mienten: `tools/rm2k.py` para las reglas de RPG Maker 2000,
-`tools/pixeles.py` para pasar de una imagen a tiles y paletas, y
-`tools/musica.py` para pasar de un MIDI a notas y voces.
+`tools/asignador.py` —que se llamó `pixeles.py`— para decidir qué colores quedan
+y cómo se agrupan, y `tools/musica.py` para pasar de un MIDI a notas y voces.
 
 Lo que **no** está acá: dónde quedamos —eso es `ESTADO.md`— y el relato de cómo
 se llegó, que está en `git log`.
@@ -2423,7 +2423,7 @@ CharSets de este juego tienen entre 20 y 48. Así que se fusiona, y **lo que
 importa no es cuántos entran sino cuáles 15**: mal elegidos, las caras del menú y
 los personajes del mapa salen grises. Son tres reglas distintas.
 
-**El criterio de fusión.** `pixeles.merge_least_used` mataba al color con
+**El criterio de fusión.** `merge_least_used`, en el `pixeles.py` de entonces, mataba al color con
 menos píxeles y lo mandaba a su vecino más cercano. Eso es exactamente al
 revés de lo que uno quiere: un color puede cubrir pocos píxeles y aun así
 definir el dibujo —un brillo, un ojo, el borde de un casco— y mandarlo a diez

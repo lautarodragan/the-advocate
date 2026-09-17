@@ -186,7 +186,7 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
     ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     protocol/   declara los dos bytecodes              enchufado: los cuatro generados
     brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
-    tiles/      imagen -> tiles, paletas y tilemap     **no**: la ROM usa `pixeles.py`
+    tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
 ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
@@ -206,12 +206,16 @@ frena es el desempate de `try_pack`, acá abajo.
   hashes de enteros no varían entre corridas, así que no es una ROM que cambie
   sola: es un desempate del que dependemos sin haberlo elegido, y tiene costo
   —en una llamada medida obliga a fusionar dos colores que con un desempate
-  determinista no haría falta fusionar—. `tiles/` desempata por los colores
-  mismos: de 32 llamadas, 25 idénticas, 1 con las mismas paletas en otro orden,
-  6 distintas y **ninguna peor**. O el asignador se queda con el determinista y
-  se acepta que el tilemap de algunos mapas cambie —y hay que rebendecir esos
-  PNG—, o hay que reproducir el orden de hash de CPython adentro de un crate
-  que no debería saber que CPython existe.
+  determinista no haría falta fusionar—. El `tiles/` de antes del paso 8
+  desempataba por los colores mismos: de 32 llamadas, 25 idénticas, 1 con las
+  mismas paletas en otro orden, 6 distintas y **ninguna peor**.
+
+  **Desde el paso 8 es una decisión del asignador**, `tools/asignador.py`, y ya
+  no de `tiles/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
+  el orden de hash de CPython no existe— o antes, cambiando el desempate en
+  Python. Cualquiera de las dos mueve el tilemap de algunos mapas y hay que
+  rebendecir esas goldens; el código del desempate determinista está en la
+  historia de `tiles/`, antes de `4953089`.
 ### Defectos de los originales, anotados y no arreglados
 
 Ninguno se tocó al portar, porque arreglarlos cambiaría la salida y eso es
@@ -268,11 +272,9 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `brr/` y `tiles/`, y borrar los de Python~~ **a medias, el
-   2026-09-16**: se fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con
-   ellos `just snes-validar`. **Falta `tiles/`**, que sigue conviviendo con
-   `tools/pixeles.py` porque lo frena el desempate de `try_pack` —ver "Lo que
-   hay que decidir"—.
+2. ~~Enchufar `brr/` y `tiles/`, y borrar los de Python~~ el 2026-09-16 se
+   fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
+   snes-validar`; `tiles/` se enchufó en el paso 8, con otro diseño.
 
    El argumento que cerró la discusión, y que vale para lo que falta: dejar una
    segunda implementación no se sostiene, porque si el port se equivoca **la ROM
@@ -368,7 +370,8 @@ se pueden empezar hoy.
    capa de encima con `repartir_encima`, dónde arranca, y la paleta del fondo
    con `build_palette`— y `convert_above` y `convert` sólo emiten.
 
-8. **El asignador corre primero, y `tiles/` convierte lo que ya entra.**
+8. **El asignador corre primero, y `tiles/` convierte lo que ya entra.** ✅ el
+   2026-09-17, con la ROM byte por byte igual en cada sub-paso.
    Rediseñado por taro el 2026-09-17; lo que sigue reemplaza al "enchufar
    `tiles/`" que había acá.
 
@@ -410,7 +413,7 @@ se pueden empezar hoy.
    | 8b ✅ | `tiles` recibe varios dibujos que comparten pool, con los que animan en corridas al final | pruebas de `tiles` |
    | 8c ✅ | el asignador emite la capa de encima como PNG indexado y `tiles` la convierte | ninguna golden se mueve: la ROM salió igual |
    | 8d ✅ | lo mismo con el fondo y sus dibujos | ninguna golden se mueve: la ROM salió igual |
-   | 8e | se borra lo que `tiles` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
+   | 8e ✅ | se borra lo que `tiles` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
 
    Los sprites no pasan hoy por `tiles` en ningún lado: quedan para después.
 
