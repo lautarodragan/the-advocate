@@ -50,13 +50,13 @@ import rm2k
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
 import animacion as animacion_mod
 import imagen
-import pixeles
+import asignador
 import titulo as titulo_mod
 import pantallas as pantallas_mod
 import batalla as batalla_mod
 import escena as escena_mod
 import snes_music
-from pixeles import CELL, cut_tiles, flips, reduce_colors, tile_colors, to_indices
+from asignador import CELL, cut_tiles, tile_colors
 from rm2k import collect_npcs, hero_start, passability_map
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
@@ -220,7 +220,7 @@ def repartir_encima(grid, limite):
     """
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = pixeles.try_pack(sets, limite) if sets else []
+    groups = asignador.try_pack(sets, limite) if sets else []
     merged = []
     if sets and groups is None:
         # Repartiendo no entra. Hay dos motivos y se confundían en uno solo:
@@ -231,7 +231,7 @@ def repartir_encima(grid, limite):
         # Los dos los arregla lo mismo: fusionar el color menos usado con su
         # vecino más cercano y reintentar. Es lo que la Mega Drive ya hacía con
         # el fondo, y el código vive allá.
-        grid, groups, merged, _ = pixeles.reduce_colors(grid, limite)
+        grid, groups, merged, _ = asignador.reduce_colors(grid, limite)
     return grid, [sorted(g) for g in groups], merged
 
 
@@ -428,13 +428,13 @@ def paleta_del_personaje(image, index, tope=None, poses=None):
     if len(counts) <= tope:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = pixeles.merge_least_visible(counts, tope)
+        mapping, _ = asignador.merge_least_visible(counts, tope)
     palette = sorted(set(mapping.values()))
     if poses is not None and palette:
         for color in sprite_colors(image, index):
             if color not in mapping:
                 mapping[color] = min(
-                    palette, key=lambda p, c=color: (pixeles.luma_distance(p, c), p))
+                    palette, key=lambda p, c=color: (asignador.luma_distance(p, c), p))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
     return palette, lookup, mapping
 
@@ -906,7 +906,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                 continue
             faltan = len([c for c in timer_colores if c not in paletas[n]])
             nuevo_tope = OBJ_COLORS - faltan
-            m, _ = pixeles.merge_least_visible(cuenta, nuevo_tope)
+            m, _ = asignador.merge_least_visible(cuenta, nuevo_tope)
             movidos = sum(v for c, v in cuenta.items() if m[c] != c)
             costo = (ajeno, movidos / float(sum(cuenta.values())), clave)
             if mejor is None or costo < mejor[0]:
@@ -990,7 +990,7 @@ def build_characters(images, personajes, ranuras, reparto):
                 lookup[color] = union.index(color) + 1
             else:
                 cerca = min(union,
-                            key=lambda p, c=color: pixeles.luma_distance(p, c))
+                            key=lambda p, c=color: asignador.luma_distance(p, c))
                 lookup[color] = union.index(cerca) + 1
         colores[(charset, index)] = (lookup, mapping)
 
@@ -1431,7 +1431,7 @@ def build_palette(grid, bg_colors, otras=()):
     if len(counts) <= bg_colors:
         return sorted(counts), grid, list(otras), []
 
-    mapping, merged = pixeles.merge_least_visible(counts, bg_colors)
+    mapping, merged = asignador.merge_least_visible(counts, bg_colors)
 
     def fusionar(g):
         return [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
@@ -1469,7 +1469,10 @@ def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
     if _VERSION_CAPAS is None:
         # Y el binario de `tiles`, que es el que emite: recompilarlo sin tocar
         # nada de acá tiene que invalidar lo guardado.
-        _VERSION_CAPAS = (cache_disco.version_de("snes_convert.py", "rm2k.py")
+        # Y el asignador, que decide qué colores quedan: hasta el 2026-09-17
+        # no estaba, así que cambiar cómo se fusiona no invalidaba nada.
+        _VERSION_CAPAS = (cache_disco.version_de("snes_convert.py", "rm2k.py",
+                                                 "asignador.py")
                           + tiles_bin.version())
     partes = [_VERSION_CAPAS, _huella_de_imagen(base),
               _huella_de_imagen(above_img), str(bool(con_ventana)),

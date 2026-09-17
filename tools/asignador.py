@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""De una imagen a tiles y paletas: lo que las dos consolas hacen igual.
+"""Las primitivas del asignador: qué colores se pierden y cómo se agrupan.
 
-Cortar en celdas de 8x8, contar colores, repartirlos en paletas, fusionar los
-que sobran y reconocer un tile espejado son la misma operación en la Mega Drive
-y en la Super Nintendo. Lo que cambia es la profundidad —nueve bits contra
-quince—, cuántas paletas hay y cómo se empaquetan los pixeles, y eso vive en el
-conversor de cada consola.
+Todo lo que está acá **cambia lo que se ve**: fusionar un color con otro,
+decidir qué colores van juntos en una paleta, medir cuánto se mueve una imagen
+si se le saca un color. Es la mitad artística del pipeline de gráficos, y por
+eso no está en `tiles/`, que sólo convierte lo que ya entra y nunca toca un
+pixel. Ver "El asignador corre primero" en ESTADO.md.
 
-Esto estaba adentro de `md_convert.py`, que es de donde salió el port a Mega
-Drive. El port a SNES lo venía importando de ahí, así que "el conversor de Mega
-Drive" era en realidad media lógica compartida con un nombre que mentía.
+Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,
+`build_palette`, `npcs_dibujables`— y en `titulo.py`. El día que el asignador
+pase a Rust, esto es lo que se lleva primero.
+
+Hasta el 2026-09-17 se llamaba `pixeles.py` y hacía también la parte que no
+decide nada —indexar un tile en su paleta, probar sus espejados—, que pasó a
+`tiles`. Antes todavía estaba adentro de `md_convert.py`, que es de donde salió
+el port a Mega Drive.
 """
 
 import collections
@@ -182,29 +187,3 @@ def reduce_colors(grid, budget):
     mapping, merged, (remap, groups) = merge_least_visible(counts, 0, accept)
     return ([[remap[tile] for tile in row] for row in grid],
             groups, merged, counts)
-
-
-def to_indices(tile, palette, base=1):
-    """El tile como índices dentro de su paleta.
-
-    El 0 es el transparente: en la capa de abajo no se usa nunca —de ahí que
-    sirva de canario— y en la de arriba es todo lo que no es el tile.
-
-    `base` es en qué entrada de CGRAM arranca la paleta. Para la capa de encima
-    es 1, que es el índice 1 de su paleta de 16. Para el fondo, que va a 8 bits
-    y direcciona CGRAM en directo, es donde termina lo que está reservado abajo:
-    ver `CGRAM_RESERVADAS` en snes_convert.py.
-    """
-    lookup = {color: i + base for i, color in enumerate(palette)}
-    lookup[None] = 0
-    return tuple(tuple(lookup[p] for p in row) for row in tile)
-
-
-def flips(indices):
-    """Las cuatro orientaciones, para reusar tiles espejados."""
-    horizontal = tuple(tuple(reversed(row)) for row in indices)
-    vertical = tuple(reversed(indices))
-    both = tuple(reversed(horizontal))
-    return ((indices, 0, 0), (horizontal, 1, 0), (vertical, 0, 1), (both, 1, 1))
-
-

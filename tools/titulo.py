@@ -22,7 +22,7 @@ De ahí sale el único paso que no es mecánico: de 369 colores a 256.
 
 import collections
 
-import pixeles as pixeles_mod
+import asignador
 
 CELL = 8
 ANCHO = 256
@@ -612,7 +612,7 @@ def _paleta_de_cara(cara):
     4bpp entran 15. El índice 0 es el transparente, y el negro va ahí: sobre el
     fondo negro de la pantalla da lo mismo y no gasta una entrada.
 
-    La reducción es `pixeles.merge_least_visible` y **no** `reducir`, que es lo
+    La reducción es `asignador.merge_least_visible` y **no** `reducir`, que es lo
     que usa la imagen del título. `reducir` se queda con los quince colores más
     usados y manda el resto al más cercano, y en 48x48 píxeles eso arrasa: en
     una cara hay un puñado de tonos de piel que cubren casi todo y una docena de
@@ -628,7 +628,7 @@ def _paleta_de_cara(cara):
                        for r, g, b, a in cara.get_flattened_data()]
     usados = collections.Counter(p for p in pixeles_de_cara if p != NEGRO)
     if len(usados) > 15:
-        mapa = pixeles_mod.merge_least_visible(usados, 15)[0]
+        mapa = asignador.merge_least_visible(usados, 15)[0]
         paleta = sorted(set(mapa.values()))
         destino = mapa
     else:
@@ -665,7 +665,7 @@ def _cara_prestada(colores, indice_cara, paletas):
         else:
             donde[color] = destino.index(
                 min(destino, key=lambda p, c=color: (
-                    pixeles_mod.luma_distance(p, c), p)))
+                    asignador.luma_distance(p, c), p)))
     return cual, {c: donde[colores[k]] for c, k in indice_cara.items()}
 
 
