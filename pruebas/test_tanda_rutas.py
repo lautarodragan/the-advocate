@@ -334,7 +334,7 @@ def test_ruta_pisa(nombre, ruta, pagina, cuadros):
     """
     sfc, simbolos, mapas = cartucho(
         nombre, "--map-id", "70", "--inicio", "12", "8",
-        "--con-ventana", "--ruta-de-prueba", *ruta.split(),
+        "--ruta-de-prueba", *ruta.split(),
         "--pagina-de-prueba", *pagina.split())
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
@@ -382,7 +382,6 @@ def test_pisar(nombre, mapa, celda, direccion, ruta):
     """
     sfc, simbolos, orden = cartucho(
         nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        "--con-ventana",
         *(("--ruta-de-prueba",) + tuple(ruta.split()) if ruta else ()))
     p = partida(sfc, simbolos, orden)
     p.correr(200, sosteniendo=(direccion,))

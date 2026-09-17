@@ -666,7 +666,7 @@ def huella():
     return h.hexdigest()[:16]
 
 
-def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
+def armar(map_id, mapas=(), destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
           rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False,
           batalla=0, game_over=False, encuentros=0, grupo=None):
@@ -692,7 +692,7 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     # un destino por combinación, pero llamar a `armar()` a mano sí: el
     # 2026-09-13 me hizo medir cuatro mapas y estar midiendo siempre el mismo.
     actual = huella() + "\n" + repr((
-        map_id, tuple(mapas), con_ventana, tuple(rama), descartar, guardar,
+        map_id, tuple(mapas), tuple(rama), descartar, guardar,
         titulo, tema, tuple(variables), tuple(rama_var), tuple(items),
         tuple(acceso), tuple(tecla), espera, timer, batalla, game_over,
         encuentros, tuple(grupo or ())))
@@ -748,8 +748,6 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         # —irse a otro mapa, por ejemplo— para que lo guardado no sea el estado
         # del arranque; ver `pagina_de_prueba`.
         convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
-    if con_ventana:
-        convertir.append("--con-ventana")
     if timer:
         # El cronómetro, que es lo que las demos llevan: se lo pide `--con-timer`
         # y cuesta la paleta de los dígitos. Lo necesita la prueba de recorrido,

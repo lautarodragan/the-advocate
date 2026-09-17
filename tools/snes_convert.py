@@ -5155,12 +5155,6 @@ def main():
                              "reproduce el defecto de `msg_empezar` sin armar un\n"
                              "cartucho de diez mapas hablados. El otro lado del\n"
                              "mismo flag de la otra herramienta")
-    parser.add_argument("--con-ventana", action="store_true",
-                        help="la ROM lleva la ventana de mensaje: 8 KB de "
-                             "VRAM, una paleta y la fuente. Es lo que hace "
-                             "que los ShowMessage del juego compilen, y lo "
-                             "que se lo cobra a los tiles del mapa —tres "
-                             "mapas del juego no pueden llevarla—")
     parser.add_argument("--batalla-de-prueba", type=int, default=0,
                         metavar="TROPA",
                         help="una pelea contra esta tropa al final de la "
@@ -5440,12 +5434,10 @@ def main():
                              "centro. Sirve para llevar la cámara a un lugar "
                              "puntual sin tener que caminar hasta él")
     args = parser.parse_args()
-    # Llevar ventana no es lo mismo que traer un mensaje de prueba, pero uno
-    # implica al otro. De acá para abajo se pregunta `args.con_ventana` y
-    # nada más: era `getattr(args, "mensaje_de_prueba", None)` repetido en
-    # cuatro lugares, y con eso el reparto de CGRAM y el de VRAM podían
-    # contestar cosas distintas.
-    args.con_ventana = args.con_ventana or args.mensaje_de_prueba is not None
+    # La ventana de mensaje va en todo cartucho: un mapa sin ventana de texto
+    # no existe en la práctica, así que no es una opción. Decisión de taro del
+    # 2026-09-17; lo que queda de los caminos sin ventana se va aparte.
+    args.con_ventana = True
     args.con_timer = args.con_timer or args.timer_de_prueba is not None
 
     renderer = Renderer(args.game_dir)

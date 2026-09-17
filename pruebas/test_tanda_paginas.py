@@ -128,8 +128,7 @@ def test_texto(nombre, relleno):
     """
     sfc, simbolos, mapas = cartucho(
         "texto-%s" % (relleno or "sin-relleno"), "--map-id", "255",
-        *(("--relleno-de-mensajes", relleno) if relleno else ()),
-        "--con-ventana")
+        *(("--relleno-de-mensajes", relleno) if relleno else ()))
     for cuadro in (60, 400):
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro, apretar_a=(200,))

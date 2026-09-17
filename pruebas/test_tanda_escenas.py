@@ -133,7 +133,7 @@ def test_escena(nombre, mapa, celda, ruta, cuadros, apretar, switch, mapas,
     """
     sfc, simbolos, orden = cartucho(
         nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        "--con-ventana", "--ruta-de-prueba", *ruta.split(),
+        "--ruta-de-prueba", *ruta.split(),
         *(("--switch", switch) if switch else ()),
         *(("--mapas",) + tuple(mapas) if mapas else ()))
     for cuadro in cuadros:
@@ -238,7 +238,7 @@ def test_hablar(nombre, mapa, celda, switch, apretar, cuadros, ruta, mapas):
     """
     sfc, simbolos, orden = cartucho(
         nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        "--con-ventana", "--switch", switch,
+        "--switch", switch,
         *(("--ruta-de-evento",) + tuple(ruta.split()) if ruta else ()),
         *(("--mapas",) + tuple(mapas) if mapas else ()))
     for cuadro in cuadros:
@@ -247,24 +247,30 @@ def test_hablar(nombre, mapa, celda, switch, apretar, cuadros, ruta, mapas):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
+# Los toques de A de la cinemática de apertura: sus mensajes.
+TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
+                   2259, 2380, 2489, 2683, 2743)
+
 # Las cinemáticas: nombre, mapa de arranque, los mapas de destino, los ticks,
-# si el cartucho lleva ventana de mensaje, los toques de A y el switch que
-# arranca prendido.
+# los toques de A y el switch que arranca prendido.
 CINEMATICAS = (
-    ("cinematica", 4, ("1",), (50, 68, 170, 370, 750, 1110), False, (), ""),
-    # Con ventana la cinemática no termina en el teletransporte: el último paso
-    # pisa el evento 2, que es la escena de apertura entera, con cuatro
-    # personajes caminando en el mismo mapa, o sea las poses en caliente en su
-    # caso real.
-    ("apertura", 4, ("1",), (370, 770, 830, 1210, 1980, 2910), True,
-     (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078, 2259, 2380,
-      2489, 2683, 2743), ""),
+    # La misma que `apertura`, mirada en otros ticks: los dos primeros caen
+    # adentro de la rampa del primer fundido. Hasta el 2026-09-17 iba sin
+    # ventana, y sin ella la página que saca el tinte —que también tiene
+    # mensajes— no compilaba: la golden del 750 había congelado la escena
+    # teñida y sin personajes para siempre.
+    ("cinematica", 4, ("1",), (50, 68, 170, 370, 750, 1110), TOQUES_APERTURA,
+     ""),
+    # La cinemática no termina en el teletransporte: el último paso pisa el
+    # evento 2, que es la escena de apertura entera, con cuatro personajes
+    # caminando en el mismo mapa, o sea las poses en caliente en su caso real.
+    ("apertura", 4, ("1",), (370, 770, 830, 1210, 1980, 2910),
+     TOQUES_APERTURA, ""),
     # El recuerdo de CORE y MANTA, que lo destraba el switch 16: lo prende una
     # página de un mapa que no está en el cartucho del caso. Son 3900 ticks y
     # 34 toques de A, del mapa 5 al 6. Lo que sigue —el 6 salta al 3 y el 3 al
     # 4— no lo mira nadie todavía.
     ("manta", 5, ("3", "6"), (300, 600, 1200, 1600, 2500, 2800, 3300, 3900),
-     True,
      (212, 243, 394, 515, 727, 758, 789, 820, 971, 1517, 1548, 1699, 1790,
       1911, 1942, 2033, 2125, 2156, 2247, 2338, 2399, 2460, 2570, 2674, 2987,
       3018, 3079, 3110, 3141, 3214, 3510, 3541, 3723, 3826), "16"),
@@ -275,22 +281,21 @@ CINEMATICAS = (
     # a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
     # bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único
     # que cobra la interpolación cuadro a cuadro.
-    ("cartel", 4, ("7",), (470, 550, 660, 800, 880), True, (), "21"),
+    ("cartel", 4, ("7",), (470, 550, 660, 800, 880), (), "21"),
     # Delcentric Factory con ventana, el único mapa que toma el tercer reparto
     # de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de fondo—. Va
     # con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin las
     # 19 gotas el 17 entra en el reparto de siempre y el caso no miraría el
     # camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el
     # tilemap de la ventana encima de los tiles de fondo.
-    ("factoria", 17, ("1",), (120, 150), True, (), ""),
+    ("factoria", 17, ("1",), (120, 150), (), ""),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,origen,destino,cuadros,ventana,apretar,switch",
+    "nombre,origen,destino,cuadros,apretar,switch",
     CINEMATICAS, ids=[caso[0] for caso in CINEMATICAS])
-def test_cinematica(nombre, origen, destino, cuadros, ventana, apretar,
-                    switch):
+def test_cinematica(nombre, origen, destino, cuadros, apretar, switch):
     """`cinematica`: la cinemática de apertura, entera.
 
     El mapa 4 prende dos switches, tiñe y teletransporta al 1; ahí arranca la
@@ -319,7 +324,6 @@ def test_cinematica(nombre, origen, destino, cuadros, ventana, apretar,
     """
     sfc, simbolos, orden = cartucho(
         nombre, "--map-id", origen, "--mapas", *destino,
-        *(("--con-ventana",) if ventana else ()),
         *(("--switch", switch) if switch else ()), grupo="10")
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)

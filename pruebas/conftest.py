@@ -35,11 +35,11 @@ import pytest
 
 from consola import Partida, armar
 
-# Los mapas que llevan las dos ROMs. Agregar uno acá es más barato que armar un
-# cartucho nuevo, mientras entre: son 512 KB y los mapas grandes pesan más de
-# cien.
-CON_VENTANA = (5, [3, 6, 7, 4])
-SIN_VENTANA = (66, [])
+# Los mapas que lleva la ROM de siempre. Agregar uno acá es más barato que armar
+# un cartucho nuevo, mientras entre: son 512 KB y los mapas grandes pesan más de
+# cien. Hasta el 2026-09-17 había otra, sin ventana, en el mapa 66: la ventana
+# pasó a ser obligatoria y el 66 no la puede llevar.
+MAPAS = (5, [3, 6, 7, 4])
 # Y una tercera, con el mapa 2 solo: el Linkage Block entero. Sus dos cuartos
 # parecen dos mapas jugando pero son el mismo, y se cruzan con teletransportes
 # internos, así que para probarlos no hace falta ningún otro mapa. Ver
@@ -61,13 +61,13 @@ def partida(builds):
     `switch` se escribe en la RAM antes del primer cuadro de juego; para
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
-    def hacer(switch=(), con_ventana=True, rama=(), mapas=None,
+    def hacer(switch=(), rama=(), mapas=None,
               descartar=False, guardar=0, titulo=None, tema=None,
               variables=(), rama_var=(), items=(), acceso=(), tecla=(),
               espera=0, timer=False, batalla=0, game_over=False,
               encuentros=0, grupo=None):
-        arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
-        clave = (arranca, tuple(resto), con_ventana, tuple(rama), descartar,
+        arranca, resto = mapas or MAPAS
+        clave = (arranca, tuple(resto), tuple(rama), descartar,
                  guardar, titulo is not None, tema, tuple(variables),
                  tuple(rama_var), tuple(items), tuple(acceso),
                  tuple(tecla), espera, timer, batalla, game_over,
@@ -77,7 +77,7 @@ def partida(builds):
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "rom", "build", "pruebas",
                 "m%s-%s%s%s" % (arranca, "_".join(str(m) for m in resto) or "0",
-                                "-v" if con_ventana else "",
+                                "-v",
                                 ("-r" + "_".join(str(n) for n in rama)
                                  if rama else "")
                                 + ("-g%d" % guardar if guardar else "")
@@ -101,7 +101,7 @@ def partida(builds):
                                 + ("-e%d" % encuentros if encuentros else "")
                                 + ("-G" + "_".join(str(a) for a in grupo)
                                    if grupo else "")))
-            builds[clave] = armar(arranca, resto, con_ventana, destino, rama,
+            builds[clave] = armar(arranca, resto, destino, rama,
                                   descartar, guardar, titulo is not None, tema,
                                   variables, rama_var, items, acceso, tecla,
                                   espera, timer, batalla, game_over,

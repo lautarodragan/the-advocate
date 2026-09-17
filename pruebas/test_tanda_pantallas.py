@@ -287,7 +287,7 @@ def test_batalla(nombre, tropa, espera, cuantos, toques, fondo, mapas, items,
     clavado en `BATALLA_SEMILLA`.
     """
     sfc, _simbolos, _mapas = cartucho(
-        nombre, "--map-id", "6", "--con-ventana",
+        nombre, "--map-id", "6",
         *(("--mapas",) + tuple(mapas) if mapas else ()),
         *(("--items-de-prueba",) + tuple(items) if items else ()),
         *(("--relleno-de-textos", relleno) if relleno else ()),
@@ -306,9 +306,7 @@ PELEAR = tuple("a:%d" % n for n in range(140, 3001, 9))
 
 
 @pytest.mark.parametrize("cuadro", (30, 100))
-@pytest.mark.parametrize("nombre,ventana", (("vuelta", False),
-                                            ("vuelta-ventana", True)))
-def test_vuelta(nombre, ventana, cuadro):
+def test_vuelta(cuadro):
     """`vuelta`: la pelea **peleada hasta el final**, y el mapa al volver.
 
     Es lo que `batalla` no puede mirar: aquélla abre la pantalla y nunca sale
@@ -320,14 +318,13 @@ def test_vuelta(nombre, ventana, cuadro):
     en que entraba, o sea que el tick N es el mapa quieto, igual que si no
     hubiera habido pelea, y que la ROM dibuje eso mismo **es** la prueba.
 
-    Los dos casos miran los **dos repartos de VRAM**, que es donde la pelea
-    rompe cosas distintas: sin ventana —LAYOUT_ANCHO— la escena se lleva los
-    sprites enteros, y con ventana —LAYOUT_VENTANA— los tiles de la ventana y
-    los dos tilemaps.
+    Es con ventana, que es donde la pelea más se lleva puesto: los tiles de la
+    ventana y los dos tilemaps. Hasta el 2026-09-17 había un segundo caso sin
+    ventana, con otro reparto de VRAM; la ventana pasó a ser obligatoria.
     """
+    nombre = "vuelta-ventana"
     sfc, simbolos, mapas = cartucho(
         nombre, "--map-id", "6",
-        *(("--con-ventana",) if ventana else ()),
         "--pagina-de-prueba", "20", "--batalla-de-prueba", "82",
         "--fondo-de-prueba", "SJBackdropABL04")
     p = partida(sfc, simbolos, mapas)
@@ -342,7 +339,7 @@ PASO_DEL_ENCUENTRO = 8
 
 
 def cartucho_de_encuentro():
-    return cartucho("encuentro", "--map-id", "21", "--con-ventana",
+    return cartucho("encuentro", "--map-id", "21",
                     "--encuentros-de-prueba", "8", grupo=TRES)
 
 
@@ -393,7 +390,7 @@ MAPAS_DEL_TITULO = ("1", "2", "3", "5", "6", "7", "8")
 def cartucho_de_titulo(con_titulo=True):
     return cartucho("titulo" if con_titulo else "titulo-sin",
                     "--map-id", "4", "--mapas", *MAPAS_DEL_TITULO,
-                    "--con-ventana", *(("--con-titulo",) if con_titulo else ()))
+                    *(("--con-titulo",) if con_titulo else ()))
 
 
 @pytest.mark.parametrize("nombre,sosteniendo,toques", (

@@ -379,7 +379,7 @@ demo nombre="demo-ciudad" titulo="":
   python3 tools/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
-      --con-ventana --con-timer ${titulo:+--con-titulo} \
+      --con-timer ${titulo:+--con-titulo} \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -432,7 +432,7 @@ demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
-      --con-ventana --con-timer --switch 171 --inicio 1 26 \
+      --con-timer --switch 171 --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -455,7 +455,7 @@ demo-carrera nombre="demo-carrera":
 demo-vipers nombre="demo-vipers":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 14 \
-      --con-ventana --con-timer \
+      --con-timer \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -482,7 +482,7 @@ demo-vipers nombre="demo-vipers":
 demo-piedras nombre="demo-piedras":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
-      --con-ventana --con-timer --inicio 26 52 \
+      --con-timer --inicio 26 52 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -504,7 +504,7 @@ demo-piedras nombre="demo-piedras":
 demo-cofres nombre="demo-cofres":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
-      --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
+      --con-timer --inicio 80 19 --ruta-de-prueba 36 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -552,7 +552,7 @@ musica mapa tema banco="":
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
       --inicial $inicial --tema-de-arranque {{tema}} \
-      --con-ventana --con-timer --banco-sin-prioridad \
+      --con-timer --banco-sin-prioridad \
       {{ if banco == "" { "" } else { "--banco-entero" } }} \
       -o rom/build/$nombre/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/$nombre \
@@ -572,7 +572,7 @@ musica mapa tema banco="":
 demo-trampa nombre="demo-trampa":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
-      --con-ventana --con-timer --inicio 22 36 \
+      --con-timer --inicio 22 36 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -630,7 +630,7 @@ bgm tema="escape_newyork" mapa="4" mapas="1 2 3" segundos="40":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --con-ventana \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mapas {{mapas}} --tema-de-arranque {{tema}} -o {{snes_inc}}/mapdata.inc
   just build
   rom/record.sh {{snes_rom}} {{snes_pngs}}/bgm-{{tema}}.wav {{segundos}}

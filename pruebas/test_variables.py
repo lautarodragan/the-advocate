@@ -20,7 +20,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
 import eventos                                          # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
-from conftest import CON_VENTANA
 
 ESPERA = 200
 # var 17 = 5; var 17 += 7 (12); var 21 = azar entre 0 y 100; var 39 = var 17;

@@ -28,7 +28,7 @@ ESPERA = 200
 EMPEZAR, SEGUIR = 0, 1
 
 # El mapa donde arranca la ROM de las pruebas, que es el primero de su tabla.
-# Es el 5 y no el 4 del juego: lo dice `CON_VENTANA` en conftest.py.
+# Es el 5 y no el 4 del juego: lo dice `MAPAS` en conftest.py.
 MAPA_DE_ARRANQUE = 5
 
 

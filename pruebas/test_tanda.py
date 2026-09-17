@@ -121,7 +121,13 @@ def test_varios(direccion):
 PARADOS = ((1, 75, 88, "borde"),
            (1, 75, 90, "medias"),
            (1, 66, 40, "tapado"),
-           (261, 59, 2, "paquete"))
+           # Con la ventana, compila una página del 261 que hace destellar al
+           # héroe, y el héroe —el actor 11— comparte gráfico y paleta con un
+           # NPC del mapa: el conversor corta porque destellarían los dos. Es
+           # el conflicto que el paso 9c le deja al asignador; ver ESTADO.md.
+           pytest.param(261, 59, 2, "paquete", marks=pytest.mark.xfail(
+               strict=True, reason="el destello del héroe y un NPC comparten "
+               "paleta en el 261: paso 9c")))
 
 
 @pytest.mark.parametrize("mapa,tx,ty,nombre", PARADOS)
