@@ -435,7 +435,7 @@ se pueden empezar hoy.
    no entra es el **banco 0**, por 361 bytes, y la tabla más grande que el
    conversor pone ahí es `anim_tabla`, 16 bytes por mapa. Se reproduce con:
 
-       python3 tools/snes_convert.py --grupo 10 --map-id 4 --con-ventana \
+       python3 tools/snes_convert.py --grupo 10 --map-id 4 \
            --con-timer --con-titulo -o rom/build/unico/mapdata.inc \
            --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 \
                    29 30 32 33 34 36 52 70 73 74 119 121 133 255 269 348
@@ -491,7 +491,7 @@ se pueden empezar hoy.
    | | qué | criterio |
    |---|---|---|
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
-   | 9b | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | ninguna golden se mueve salvo las de esas pruebas |
+   | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
    | 9c | el grupo en la RAM, y el 261 entra | ídem |
    | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"— | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |

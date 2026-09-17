@@ -701,13 +701,11 @@ CHANGE_HERO_TITLE = 10620
 #   **ninguno está cerca de los primeros diez minutos**, que es el objetivo.
 # * Y se midió lo que cuesta: aceptándolo, la automática
 #   `DaliaGoingToTasgarde` del mapa 66 pasa a compilar, y esa página desarma el
-#   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 es el
-#   **único mapa sin ventana** de las pruebas de estado —`SIN_VENTANA` en
-#   `pruebas/conftest.py`, elegido porque no le entra la ventana de mensaje— así
-#   que con la cinemática despierta se cayeron dos casos de
-#   `test_condicional.py`: la página de prueba dejó de ser la única que corre
-#   ahí. Arreglarlo es mudar esa ROM de prueba a otro mapa que tampoco acepte la
-#   ventana, y eso vale más que estas catorce páginas.
+#   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 era el
+#   de una ROM de prueba, y con la cinemática despierta se caían dos casos de
+#   `test_condicional.py`. **Ese freno se fue el 2026-09-17**: la ventana pasó
+#   a ser obligatoria, el 66 no la puede llevar, y las pruebas se mudaron a
+#   otros mapas. Lo que queda es el primer punto.
 #
 # O sea: `ChangeEncounterSteps` entra en `ACEPTADOS_SIN_HACER` el día que los
 # encuentros al azar existan, **junto con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las

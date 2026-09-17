@@ -1116,11 +1116,10 @@ están en `tools/escena.py`; el titular:
   —elegidos para caer adentro del banco de tiles de BG1 en los cuatro repartos,
   y el conversor lo comprueba—. Los 32 KB de la escena se salen de esa caja: se
   llevan además el tilemap del mapa ($5800), el de la capa de encima ($7800),
-  los tiles de la ventana de mensaje ($6800) y el banco de sprites —entero en
-  `LAYOUT_ANCHO`, que lo pone en $4000—. Volver de una pelea es
-  `volver_de_batalla`, que repone eso con `load_sprite`, `load_ventana` y
-  `fill_window` antes de llamar al otro. Lo cobran `vuelta` y `vuelta-ventana`,
-  uno por reparto de VRAM; sin el arreglo son 74% y 77% de los pixeles.
+  los tiles de la ventana de mensaje ($6800) y el banco de sprites. Volver de
+  una pelea es `volver_de_batalla`, que repone eso con `load_sprite`,
+  `load_ventana` y `fill_window` antes de llamar al otro. Lo cobra
+  `vuelta-ventana`; sin el arreglo, el 77% de los pixeles.
 
 Dos cosas del PPU que no son obvias —el bit de prioridad del texto y el tile
 512 con que se tapa lo que queda abajo— están anotadas arriba de `escena_subir`
@@ -1234,10 +1233,9 @@ que no tiene cursor que guardar ni manejadores a los que saltar.
 * **`ChangeEncounterSteps` sigue sin compilar.** Son 19 apariciones en nueve
   mapas —trece de ellas apagando los encuentros— y ninguno de esos mapas está
   cerca de los primeros diez minutos. Lo que lo frena no es la cuenta, que
-  ahora está: es que aceptarlo destraba la automática `DaliaGoingToTasgarde`
-  del mapa 66, que es el único mapa sin ventana de las pruebas de estado, y con
-  ella despierta se caen dos casos de `test_condicional.py`. Ver el comentario
-  de `ChangeEncounterSteps`, arriba de `ACEPTADOS_SIN_HACER` en eventos.py.
+  ahora está. Lo que lo frenaba era el cartucho de prueba del mapa 66, que se
+  fue el 2026-09-17; ver el comentario de `ChangeEncounterSteps`, arriba de
+  `ACEPTADOS_SIN_HACER` en eventos.py.
 
 **Lo cobra `encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1—
 caminando para arriba, con

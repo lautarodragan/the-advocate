@@ -17157,17 +17157,15 @@ repintar:
 ; escriben nada más que `RANURA_VRAM` y `RANURA_MAP`, elegidos para caer adentro
 ; del banco de tiles de BG1 en los cuatro repartos. La escena de la batalla no:
 ; `escena_subir` sube **32 KB**, o sea las palabras $4000 a $8000, más su
-; tilemap en $3800 y 64 bytes en la palabra 0. En los seis repartos de
+; tilemap en $3800 y 64 bytes en la palabra 0. En los tres repartos de
 ; `vram_layout` eso se lleva puesto, además del banco de BG1:
 ;
 ;   $5800  el tilemap del mapa          lo llena `fill_window`
 ;   $7800  el de la capa de encima      el mismo
 ;   $6800  los tiles de la ventana      `load_ventana`, con su tilemap y su HDMA
-;   los sprites                         `load_sprite`: en LAYOUT_ANCHO viven en
-;                                       $4000 y quedan enteros adentro de la
-;                                       escena; en los repartos con ventana
-;                                       arrancan en 0 y la palabra 0 se lleva
-;                                       los dos primeros tiles del héroe
+;   los sprites                         `load_sprite`: arrancan en 0, y la
+;                                       palabra 0 se lleva los dos primeros
+;                                       tiles del héroe
 ;
 ; Nada de eso lo repone `load_map`, así que hasta el 2026-09-13 el mapa volvía
 ; de la pelea con el fondo hecho basura. Lo que **no** va acá es `load_npcs` ni
@@ -20968,9 +20966,8 @@ en_el_banco:
     rep #$20
 .a16
     plx
-    ; La cola de escapes arranca limpia, y **antes** del `rts` de abajo: una ROM
-    ; sin ventana no lee ninguna cabecera, y una pausa de basura ahí dejaría la
-    ; página frenada para siempre.
+    ; La cola de escapes arranca limpia antes de leer la cabecera: una pausa de
+    ; basura ahí dejaría la página frenada para siempre.
     lda #0
     sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
     sep #$20

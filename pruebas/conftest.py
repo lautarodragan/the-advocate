@@ -6,10 +6,8 @@ cartucho distinto para cada caso. Así dos pruebas que necesitan los mismos mapa
 comparten el mismo build, y el build sobrevive entre corridas: sólo se rehace
 cuando cambia algo de lo que participa en armarlo, que es lo que mira `huella`.
 
-Hoy alcanzan **dos** ROMs para todas las pruebas:
-
-    con ventana    los mapas 5, 3, 6, 7 y 4, que es la cadena del juego
-    sin ventana    el mapa 66, que gasta demasiados tiles para llevarla
+Hoy alcanza **una** ROM para todas las pruebas de estado: los mapas 5, 3, 6, 7
+y 4, que es la cadena del juego.
 
 Arranca en el 5 porque la prueba del recuerdo tiene una lista de toques de A
 afinada al cuadro y conviene no moverle el arranque. Las demás llegan a su mapa

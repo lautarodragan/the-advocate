@@ -1504,11 +1504,9 @@ def _convert_layers(base, above_img, variantes=None):
     encima se sirva primero le sacaría colores al fondo en todos para que unos
     pocos no fusionen.
 
-    Con `con_ventana` se reserva además la paleta que queda justo debajo de la
-    capa de encima, que es donde va la de la ventana de mensaje, y **la paga el
-    fondo**: se lo aprieta en las que quedan y fusiona lo que no entre.
-
-    La elección de a quién cobrarle es medida y no de gusto. El fondo va en 8
+    Hasta el 2026-09-07 la ventana de mensaje se llevaba además la paleta que
+    queda justo debajo de la capa de encima, y **la pagaba el fondo**. La
+    elección de a quién cobrarle era medida y no de gusto. El fondo va en 8
     bits, así que sus paletas son un pozo común: una menos le saca 16 entradas
     de CGRAM y lo obliga a fusionar sólo el excedente. La capa de encima va en
     4 y empaqueta por tile, así que una paleta menos le puede costar muchísimo
@@ -1516,12 +1514,8 @@ def _convert_layers(base, above_img, variantes=None):
     de encima 64 justos en 4 paletas: quitándole una al fondo se fusionan 2
     colores, y quitándosela a la capa de encima habría que fusionar 16.
 
-    `ventana_paleta` es esa paleta ya decidida **por la ROM entera** y no por
-    este mapa: ver `paleta_de_la_ventana`. Puede quedar más abajo de donde
-    este mapa la pondría solo, y entonces el fondo se aprieta debajo de ella
-    igual que antes —las paletas que quedan entre el fondo y la capa de encima
-    no las usa nadie—. La capa de encima no se mueve: sus celdas llevan la
-    paleta adentro y dónde arranca se guarda mapa por mapa.
+    Hoy la ventana vive en la paleta 0, abajo de todo —ver
+    `paleta_de_la_ventana`—, así que no le cobra a ninguna de las dos capas.
 
     Devuelve (lo de convert(), lo de convert_above()).
     """
@@ -1552,10 +1546,9 @@ def _convert_layers(base, above_img, variantes=None):
     primera = above_split(max(1, len(paletas_encima)))
     above = convert_above(above_grid, paletas_encima, primera, len(fusionados))
     # El fondo llega **hasta donde arranca la capa de encima**, sin dejar
-    # paletas en el medio: va a 8 bits y no necesita alineación. La ventana ya
-    # no le cobra una paleta porque vive abajo de todo, adentro de
-    # `CGRAM_RESERVADAS`; `con_ventana` y `ventana_paleta` quedan por
-    # compatibilidad de la firma y no cambian el reparto.
+    # paletas en el medio: va a 8 bits y no necesita alineación. La ventana no
+    # le cobra una paleta porque vive abajo de todo, adentro de
+    # `CGRAM_RESERVADAS`.
     tope = primera
     if tope < 1:
         # Inalcanzable con los datos del juego —haría falta una capa de encima
@@ -1728,25 +1721,13 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 
 # --- el reparto de la VRAM --------------------------------------------------
 # Las 64 KB no se reparten como uno quiera: la base de los tiles de los sprites
-# va de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB. Con
-# los dos tilemaps clavados al final —4 KB cada uno, que es lo que mide una
-# ventana de 64x32— quedan 56 KB para los tres bancos de tiles, y las
-# granularidades dejan exactamente dos cortes posibles:
+# va de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB.
+# Cuál reparto toca lo decide el conversor y viaja en el .inc: la ROM no elige
+# nada.
 #
-#   ancho    fondo 512 tiles (32 KB) | sprites 512 (16 KB) | encima 256 (8 KB)
-#   fondo    fondo 640 tiles (40 KB) | encima 256 (8 KB)   | sprites 256 (8 KB)
-#
-# Se usa el primero salvo que el mapa pida más de 512 tiles de fondo —tres en
-# todo el juego— o más de 384 de sprite, que en
-# todo el juego son tres. El segundo les da 128 tiles más al fondo a costa de la
-# mitad de los sprites, y esos tres mapas tienen pocos personajes.
-#
-# Cuál toca lo decide el conversor y viaja en el .inc: la ROM no elige nada.
-# Sin ventana sobran 10 KB, así que acá la holgura no es problema; lo que cambió
-# es dónde caen los tilemaps, que ahora son $5800 y $7800 para los cuatro
-# repartos. Los sprites bajan de 512 a 384 para dejarle lugar al de $5800: sobre
-# los 318 mapas que convierten, el que más gasta usa **380**.
-# Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
+# Todo mapa lleva la ventana de mensaje —desde el 2026-09-17 no es opcional; un
+# mapa sin ventana de texto no existe en la práctica— y hay tres repartos que
+# le hacen lugar. Hasta ese día había otros tres sin ella. La ventana necesita 8 KB
 # de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
 # glifo de 6 px no se alinea a celdas de 8 y hay que componerlo pixel por
 # pixel— más **2 KB de tilemap propio**, y los 64 KB ya estaban repartidos al
@@ -1784,7 +1765,7 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 #   tilemaps    $7000   8 KB
 #
 # Medido sobre los 318 mapas que convierten: 309 entran en el primero, 6 en el
-# segundo y 3 se quedaban sin ventana —el 8, el 66 y el 250—. **El 8 ya no**:
+# segundo y 3 no entraban en ninguno —el 8, el 66 y el 250—. **El 8 ya no**:
 # el 2026-09-07, con la ventana mudada a la paleta 0, sus tiles de fondo bajaron
 # a 400 y entra en el segundo reparto. El número de arriba es de antes de eso y
 # no se volvió a medir sobre los 318.
@@ -1845,7 +1826,7 @@ LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
 #
 # **Va último a propósito.** `vram_layout` devuelve el primero que entre, así
 # que ningún mapa que ya tenía reparto cambia de reparto por esto: sólo lo toman
-# los que hoy se quedaban sin ventana.
+# los que en los otros dos no entraban.
 LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
                          "ventana_map": (0x5000, 1),
                          "encima": (0x6000, 128), "ventana": (0x6800, 256)}
@@ -1861,14 +1842,11 @@ RANURAS = 4
 # hacían: el save point abre esta pantalla con un mapa cargado y al cerrarla
 # hay que reponer lo que pisó, y eso es barato sólo si lo que pisó es el banco
 # de tiles de BG1, que `load_map` vuelve a subir entero. Las direcciones del
-# menú —$4400 y $5000— caen en los sprites de LAYOUT_ANCHO, que arrancan en
-# $4000: los NPCs volvían del menú con las poses rotas y el héroe también si
+# menú —$4400 y $5000— caían en los sprites de un reparto sin ventana que ya no
+# existe: los NPCs volvían del menú con las poses rotas y el héroe también si
 # no era el del bloque 0. Las de acá están en la intersección del banco de BG1
-# de los seis repartos, que es $2000..$4000:
+# de los tres repartos, que es $2000..$4000:
 #
-#   LAYOUT_ANCHO          $0000..$4000
-#   LAYOUT_FONDO          $0000..$5000
-#   LAYOUT_ANCHO_SPRITE   $2000..$5800
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
 #   LAYOUT_VENTANA_SPRITE $2000..$5000
@@ -3284,8 +3262,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; La ventana de mensaje: sus tiles viven en la segunda mitad del\n"
         "; banco de BG2, o sea a partir del índice 256, y sus celdas ya\n"
         "; vienen armadas con ese corrimiento y con la prioridad de la capa\n"
-        "; de encima. VENTANA_TILES en 0 quiere decir que esta ROM no lleva\n"
-        "; ventana y que el banco no existe.\n"
+        "; de encima.\n"
 "; Y dónde arranca el fondo en CGRAM: abajo de él viven el color de\n"
         "; fondo de la pantalla y la paleta de la ventana de mensaje, que\n"
         "; son de toda la ROM. El fondo va a 8 bits y direcciona CGRAM en\n"
@@ -4749,7 +4726,7 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     del gráfico nuevo, y eso se decide antes de armar el banco. **El orden
     tiene que ser el mismo que el de la compilación de verdad**, porque el
     bytecode lleva el índice: lo garantiza que las dos pasadas compilen las
-    mismas páginas, que es lo que `con_ventana` cuida. Sin `Graficos` acá una
+    mismas páginas, con el mismo bloque de textos. Sin `Graficos` acá una
     ruta con la 34 no compilaría en esta pasada y sí en la otra, y las dos
     listas se irían.
 
@@ -5085,7 +5062,7 @@ def main():
                              "lo sintético de siempre —como "
                              "--pagina-de-prueba—: sirve para comparar la "
                              "apertura y el cierre sin depender de qué diga "
-                             "el juego. Implica --con-ventana")
+                             "el juego")
     parser.add_argument("--relleno-de-textos", type=int, default=0,
                         help="textos muertos delante del bloque de textos de\n"
                              "las pantallas, para que los índices de la\n"
@@ -5551,7 +5528,7 @@ def main():
                            args.imagenes.mapa))
         if graficos.pares != mapa["graficos_de_ruta"]:
             # Las dos pasadas compilaron cosas distintas. No puede pasar —las
-            # dos usan `paginas_del_mapa` con el mismo `con_ventana`— y si
+            # dos usan `paginas_del_mapa` con el mismo bloque de textos— y si
             # pasara, el bytecode quedaría apuntando a la tabla equivocada sin
             # que nada lo diga.
             sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
@@ -6131,11 +6108,10 @@ def lideres_posibles(renderer, map_ids, grupo):
     `ChangePartyMembers` de alguna página que compile. Sacar a alguien también
     cambia el líder, pero al siguiente de la lista, que ya está contado.
 
-    `con_ventana` tiene que ser el de la ROM que se está armando, porque decide
-    **qué páginas compilan**: una que agregue a alguien al grupo después de un
-    cuadro de texto compila con ventana y no compila sin ella. Filtrar distinto
-    acá que allá dejaría a ese actor sin sus tiles en la VRAM y la ROM lo
-    dibujaría con los del anterior. El bloque de textos que se arma es de
+    Se compila con un bloque de textos, igual que la compilación de verdad:
+    una página que agregue a alguien al grupo después de un cuadro de texto
+    compila sólo con él. Filtrar distinto acá que allá dejaría a ese actor sin
+    sus tiles en la VRAM y la ROM lo dibujaría con los del anterior. El bloque de textos que se arma es de
     descarte: acá sólo importa el sí o el no.
 
     Hace falta porque los tiles del héroe viven en VRAM y no se cargan en
