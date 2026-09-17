@@ -229,6 +229,13 @@ TILE_PREFIX = "@tile:"
 # ranuras, poses, la referencia— lo trata como a cualquier otro.
 TRAMA_SUFIJO = "~trama"
 
+# Un CharSet con este sufijo es **el mismo dibujo, contado como otro gráfico**:
+# el asignador le da su propia paleta. Existe por el destello del héroe, que en
+# la consola se hace sobre la paleta del personaje: un NPC que dibuja con el
+# gráfico de un líder posible compartía paleta con él y destellaba también. Ver
+# `convertir` en snes_convert.py.
+COPIA_SUFIJO = "~aparte"
+
 # Con qué trama. Las opciones están en `render_map.TRAMAS`; se elige mirando
 # un televisor de tubo, que es donde esto se ve.
 TRAMA_PATRON = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")

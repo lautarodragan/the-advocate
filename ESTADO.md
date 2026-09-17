@@ -488,7 +488,9 @@ se pueden empezar hoy.
      entrar, y con la página al final el líder salía otro— su evento va
      primero: un evento vacío en el índice 0, y los blancos que pasan las
      pruebas se corren con `eventos.blanco_de_prueba`. El conflicto del 261
-     sigue siendo del asignador, y sigue pendiente.
+     se resolvió contando como otro gráfico —`rm2k.COPIA_SUFIJO`— a los NPCs
+     que dibujan con el de un líder, en los mapas donde algo destella al
+     héroe. Con eso el cartucho único arma con 40 mapas; el 66 sigue afuera.
    * **Hay un cartucho de pruebas**, que es el de juego más las páginas de
      prueba. Primero se decidió que fueran una tabla elegida por la RAM; con
      la idea del juego golden pasan a ser eventos de RM2k —ver "Hacia dónde
@@ -498,7 +500,7 @@ se pueden empezar hoy.
    |---|---|---|
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
-   | 9c | el grupo lo arma la página de prueba —hecho— y el 261 entra —falta— | ídem |
+   | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
    | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"— | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |

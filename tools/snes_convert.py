@@ -6245,6 +6245,33 @@ def miembros_posibles(map_ids, grupo):
     return sorted(actores)
 
 
+def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False):
+    """Si algo destella al héroe, los NPCs con su gráfico van con otra paleta.
+
+    En la consola el destello se hace sobre la paleta del personaje, y un líder
+    que además está como NPC en el mapa comparte paleta con ese NPC —para que el
+    NPC no se dibuje con los colores de otro líder—, así que destellaban los
+    dos. Se resuelve contando el gráfico de esos NPCs como otro, con el sufijo
+    `rm2k.COPIA_SUFIJO`: el mismo dibujo, con su propia paleta. Cuesta una
+    paleta por gráfico, y sólo en los mapas donde algo destella al héroe.
+    """
+    destella = destella_por_prueba or any(
+        cmd.code == eventos.FLASH_SPRITE and cmd.parameters
+        and cmd.parameters[0] == eventos.RUTA_HEROE
+        for ev in game_map.events for page in ev.pages
+        for cmd in page.commands)
+    if not destella:
+        return
+    de_lider = set()
+    for actor in args.lideres:
+        a = renderer.database.actors[actor]
+        de_lider.add((a.charset, a.charset_index))
+    for ev in game_map.events:
+        for page in ev.pages:
+            if (page.character_name, page.character_index) in de_lider:
+                page.character_name += rm2k.COPIA_SUFIJO
+
+
 def pide_pagina_de_prueba(args):
     """Si algún flag de prueba necesita la página inventada."""
     return bool(args.pagina_de_prueba or args.ruta_de_prueba
@@ -6282,6 +6309,9 @@ def convertir(renderer, map_id, args, inicio=None):
         vacio.id, vacio.name, vacio.x, vacio.y, vacio.pages = (
             0, "prueba", 0, 0, [])
         game_map.events.insert(0, vacio)
+    separar_del_heroe(renderer, game_map, args,
+                      args.flash_de_prueba and args.flash_de_prueba[0] == 0
+                      and map_id == orden_de_mapas(args)[args.inicial])
     name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above, variantes = renderer.capas_animadas(game_map)

@@ -141,7 +141,9 @@ class Charsets:
     def get(self, name):
         if name not in self.images:
             base, donde = rm2k.parte_horneada(name)
-            if donde is not None:
+            if name.endswith(rm2k.COPIA_SUFIJO):
+                self.images[name] = self.get(name[:-len(rm2k.COPIA_SUFIJO)])
+            elif donde is not None:
                 self.images[name] = self._horneado(base, *donde)
             elif name.endswith(rm2k.TRAMA_SUFIJO):
                 self.images[name] = self._tramado(
