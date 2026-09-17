@@ -462,6 +462,27 @@ se pueden empezar hoy.
    El censo de lo que se arma hoy: 166 cartuchos de la tanda con 37 flags
    distintos, en `rom/build/tanda/*/huella.txt`.
 
+   **Decidido por taro el 2026-09-17**, para cada una:
+
+   * **La ventana pasa a ser por mapa.** El conversor decide si un mapa la
+     lleva, y la ROM sabe que uno puede no tenerla. Es lo que el juego entero
+     va a necesitar igual: hay más mapas grandes como el 66.
+   * **El grupo pasa a la RAM**, como los switches: se escribe al arrancar. El
+     conversor reserva paletas para todos los líderes posibles del cartucho, y
+     el conflicto del 261 lo resuelve el asignador.
+   * **Hay un cartucho de pruebas**, que es el de juego más una tabla con las
+     páginas de prueba; la prueba elige cuál escribiendo un número en la RAM.
+     Los mapas y los datos son los mismos que en el de juego.
+
+   | | qué | criterio |
+   |---|---|---|
+   | 9a | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
+   | 9b | la ventana por mapa, y el 66 entra | ídem, más el caso sin ventana en el 66 |
+   | 9c | el grupo en la RAM, y el 261 entra | ídem |
+   | 9d | las páginas de prueba en una tabla, elegidas por la RAM | ídem |
+   | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
+   | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
+
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
    cartucho son gráficos, que es lo compresible, y descomprimir al cargar un
