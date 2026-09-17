@@ -1561,14 +1561,10 @@ anim_continua:
     lda f:mapa_tabla + M_CAM_MAX_Y, x
     sta cam_max_y
     lda f:mapa_tabla + M_EV_COUNT, x
+    ; Todo lo que barre eventos va hasta acá y no hasta `EV_MAX`: con los
+    ; ciento veinte, un mapa de cuatro eventos barría ciento dieciséis de más y
+    ; eso alcanzaba para perder el cuadro.
     sta ev_total
-    ; Uno más: la página de prueba se cuela en la tabla de páginas con el
-    ; primer índice libre del mapa, que es justo `ev_total`. Todo lo que barre
-    ; eventos va hasta acá y no hasta `EV_MAX`; con los ciento veinte, un mapa
-    ; de cuatro eventos barría ciento dieciséis de más y eso alcanzaba para
-    ; perder el cuadro.
-    inc a
-    sta ev_tope
     lda f:mapa_tabla + M_NPC_COUNT, x
     asl a
     asl a
@@ -2404,7 +2400,7 @@ vaciar_todo:
     rep #$20
 .a16
     ldx #$0000
-    lda ev_tope
+    lda ev_total
     asl a
     sta rp_ev_ant               ; el tope en bytes, prestado un momento
 vaciar:
@@ -3788,7 +3784,7 @@ mirar:
     jsr marcar_esperando
 siguiente:
     inx
-    cpx ev_tope
+    cpx ev_total
     bne mirar
     rts
 .endproc
@@ -3866,7 +3862,7 @@ buscar:
     and #FLAG_ESPERA
     bne encontrado
     inx
-    cpx ev_tope
+    cpx ev_total
     bne buscar
     lda #0
     rts
@@ -3917,7 +3913,7 @@ con_pagina:
     rts
 buscar_mas:
     inx
-    cpx ev_tope
+    cpx ev_total
     bne buscar
     lda #0
     rts
@@ -24270,7 +24266,6 @@ done:
 ev_flags:     .res EV_MAX
 esperando_n:  .res 1     ; cuántos esperan, para no barrer 128 bytes por gusto
 ev_corriendo: .res 2     ; de qué evento es la página que corre, o $FFFF
-ev_tope:      .res 2     ; `ev_total` + 1: hasta dónde barren los lazos
 solo_auto:    .res 1     ; la pasada corta de `elegir_automaticas`
 auto_n:       .res 1     ; cuántos eventos tienen una automática activa
 refresco_cuadro: .res 1  ; un refresco a mitad de comando dejó la pasada larga

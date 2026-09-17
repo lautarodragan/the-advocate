@@ -5557,12 +5557,11 @@ def main():
             # al principio del mapa: la ROM recorre los eventos de menor a
             # mayor, y esta página tiene que correr antes que las del juego.
             # Hasta el 2026-09-17 iba en el primer índice libre, al final.
-            mapa["EV_COUNT_PRUEBA"] = 0
             espera, tinte = 0, ()
             if args.pagina_de_prueba:
                 espera, *tinte = args.pagina_de_prueba
             paginas = paginas + [{
-                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0, "prueba": True,
+                "evento": 0, "pagina": 0, "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
                 "item": 0, "capa": 0,
@@ -5601,7 +5600,7 @@ def main():
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
                 # correr y la primera no se repite.
-                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1, "prueba": True,
+                "evento": 0, "pagina": 1, "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
@@ -5664,6 +5663,11 @@ def main():
         # caso de dos eventos; acá se cubre el que allá no se puede ver, que es
         # el del héroe: qué gráfico tiene depende del grupo, y eso lo sabe el
         # conversor y no el compilador.
+        #
+        # `separar_del_heroe` ya evita esto en los mapas cuyas páginas destellan
+        # al héroe. Esto queda para lo que aquél no ve: un `FlashSprite` que
+        # llega adentro de un evento común, que se compila en el lugar desde
+        # cualquier `CallEvent` y no está en las páginas del mapa.
         graficos = collections.Counter(
             (npc["charset"], npc["index"])
             for npc in rm2k.collect_npcs(mapa["game_map"]))
