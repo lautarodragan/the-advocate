@@ -914,7 +914,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                                  topes, prestadas, poses)
 
 
-def build_characters(images, personajes, ranuras, reparto=None):
+def build_characters(images, personajes, ranuras, reparto):
     """El banco de sprites que va a VRAM: una pose por ranura.
 
     `personajes` es la lista de (charset, índice) que necesitan paleta, en el
@@ -925,79 +925,60 @@ def build_characters(images, personajes, ranuras, reparto=None):
     Antes iban todas acá, y la escena de apertura pedía 768 tiles de los 512
     que direcciona la PPU.
 
+    **Las paletas no se deciden acá**: llegan en `reparto`, que es lo que
+    decidió `npcs_dibujables` para el mapa entero. Acá sólo se arma el índice
+    de cada color adentro de la suya. Hasta el 2026-09-17 había además un
+    reparto propio, primero-que-entre, para cuando no llegaba ninguno; no lo
+    usaba nadie, y un segundo reparto en otro orden ya había dado otra cuenta
+    —el mapa 8 entraba allá en ocho paletas y acá pedía nueve—.
+
     Devuelve (tiles, paletas, ubicación, paleta_de): ubicación mapea la clave
     de la ranura a (bloque, paleta), y paleta_de cada (charset, índice) a su
     paleta.
     """
     tiles = bytearray()
-    palettes = []
-    paleta_de = {}
     colores = {}
-    if reparto is not None:
-        # El reparto que ya hizo `npcs_dibujables`, con los mismos personajes:
-        # las paletas y a cuál va cada uno. Acá sólo se arma el índice de cada
-        # color adentro de la suya.
-        palettes = [list(p) for p in reparto[0]]
-        paleta_de = dict(reparto[1])
-        # Los que comparten la ranura del líder: su `lookup` sale de **su**
-        # paleta y no de la de la ranura, porque la ROM va a subir sus colores
-        # ahí cuando le toque liderar. Ver `npcs_dibujables`.
-        propios = set(reparto[2]) if len(reparto) > 2 else set()
-        # Y a quién se le bajó el número de colores para que entrara el
-        # cronómetro. Tiene que ser el mismo número que usó `npcs_dibujables`:
-        # si acá se cuantizara con quince, las poses del cartucho no
-        # coincidirían con la paleta que la ROM sube a CGRAM.
-        topes = dict(reparto[4]) if len(reparto) > 4 else {}
-        # Y qué poses puede mostrar cada uno, que es sobre lo que se eligieron
-        # sus quince colores allá. Tiene que ser el mismo conjunto: con otro,
-        # la paleta que la ROM sube a CGRAM y los tiles que se empaquetan acá
-        # saldrían de dos cuentas distintas.
-        poses_de = dict(reparto[6]) if len(reparto) > 6 else {}
+    palettes = [list(p) for p in reparto[0]]
+    paleta_de = dict(reparto[1])
+    # Los que comparten la ranura del líder: su `lookup` sale de **su** paleta y
+    # no de la de la ranura, porque la ROM va a subir sus colores ahí cuando le
+    # toque liderar. Ver `npcs_dibujables`.
+    propios = set(reparto[2])
+    # Y a quién se le bajó el número de colores para que entrara el cronómetro.
+    # Tiene que ser el mismo número que usó `npcs_dibujables`: si acá se
+    # cuantizara con quince, las poses del cartucho no coincidirían con la
+    # paleta que la ROM sube a CGRAM.
+    topes = dict(reparto[4])
+    # Y qué poses puede mostrar cada uno, que es sobre lo que se eligieron sus
+    # quince colores allá. Tiene que ser el mismo conjunto: con otro, la paleta
+    # que la ROM sube a CGRAM y los tiles que se empaquetan acá saldrían de dos
+    # cuentas distintas.
+    poses_de = dict(reparto[6])
     for charset, index in personajes:
         if (charset, index) in colores:
             continue
         palette, lookup, mapping = paleta_del_personaje(
-            images[charset], index,
-            topes.get((charset, index)) if reparto is not None else None,
-            poses=poses_de.get((charset, index)) if reparto is not None else None)
-        if reparto is not None:
-            if (charset, index) not in paleta_de:
-                sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
-            if (charset, index) in propios:
-                colores[(charset, index)] = (lookup, mapping)
-                continue
-            union = palettes[paleta_de[(charset, index)]]
-            # Los colores que no estén en la paleta que le tocó van al más
-            # cercano de los que hay. Pasa cuando el mapa se quedó sin paletas y
-            # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve. La
-            # cuenta de "más cercano" es la misma de allá, así que los dos
-            # lados eligen igual.
-            lookup = {}
-            for color in palette:
-                if color in union:
-                    lookup[color] = union.index(color) + 1
-                else:
-                    cerca = min(union,
-                                key=lambda p, c=color: pixeles.luma_distance(p, c))
-                    lookup[color] = union.index(cerca) + 1
+            images[charset], index, topes.get((charset, index)),
+            poses=poses_de.get((charset, index)))
+        if (charset, index) not in paleta_de:
+            sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
+        if (charset, index) in propios:
             colores[(charset, index)] = (lookup, mapping)
             continue
-        # Si sus colores caben en una paleta ya armada, va ahí: se le suman
-        # los que falten y se le da el índice de cada uno. Ningún color se
-        # fusiona por esto, así que la referencia no se entera. Existe por
-        # los eventos dibujados con un tile del chipset —las puertas del
-        # mapa 2—, que son cada uno un personaje y comparten casi todos los
-        # colores: sin esto el mapa 2 pedía nueve paletas de las ocho.
-        for numero, existente in enumerate(palettes):
-            union = list(existente) + [c for c in palette if c not in existente]
-            if len(union) <= OBJ_COLORS:
-                palettes[numero] = union
-                lookup = {color: union.index(color) + 1 for color in palette}
-                paleta_de[(charset, index)] = numero
-                break
-        else:
-            paleta_de[(charset, index)] = len(palettes)
-            palettes.append(list(palette))
+        union = palettes[paleta_de[(charset, index)]]
+        # Los colores que no estén en la paleta que le tocó van al más cercano
+        # de los que hay. Pasa cuando el mapa se quedó sin paletas y
+        # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve. La
+        # cuenta de "más cercano" es la misma de allá, así que los dos lados
+        # eligen igual.
+        lookup = {}
+        for color in palette:
+            if color in union:
+                lookup[color] = union.index(color) + 1
+            else:
+                cerca = min(union,
+                            key=lambda p, c=color: pixeles.luma_distance(p, c))
+                lookup[color] = union.index(cerca) + 1
         colores[(charset, index)] = (lookup, mapping)
 
     where = {}
@@ -6463,7 +6444,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                                                  timer_colores,
                                                  solos,
                                                  poses_por_grafico)
-    prestadas = reparto[5] if len(reparto) > 5 else set()
+    prestadas = reparto[5]
     if prestadas:
         print("  mapa %d: %d gráfico(s) sin paleta propia, dibujados con una "
               "ajena: %s" % (map_id, len(prestadas),
@@ -6629,12 +6610,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
-            sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else (),
+            sys_img, tiles, palettes, reparto[3],
             tope_de_paletas)
     lluvia_base, lluvia_pal = 0, 0
     if args.con_lluvia:
         tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
-            tiles, palettes, reparto[3] if len(reparto) > 3 else (),
+            tiles, palettes, reparto[3],
             timer_base, tope_de_paletas)
         if not lluvia_base:
             print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
