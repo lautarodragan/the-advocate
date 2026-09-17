@@ -442,6 +442,12 @@ se pueden empezar hoy.
        python3 tools/ensamblar.py rom/src/main.s -I rom/build/unico \
            -o rom/build/unico/unico.sfc
 
+   **Dos límites que el cartucho único destapa**, y que el juego entero va a
+   pedir resolver igual: la ventana no entra en la VRAM de un mapa grande como
+   el 66, y **la pantalla de ranuras junta las caras de todos los actores que
+   pueden estar en el grupo** —con el 66 se pasa por 28 tiles de 448—. Las dos
+   se arreglan subiendo cosas cuando hacen falta, no teniéndolas siempre.
+
    Lo que sí frena, y es de diseño, son las opciones que hoy son **del
    cartucho entero** y las pruebas usan distintas:
 
@@ -464,9 +470,16 @@ se pueden empezar hoy.
 
    **Decidido por taro el 2026-09-17**, para cada una:
 
-   * **La ventana pasa a ser por mapa.** El conversor decide si un mapa la
-     lleva, y la ROM sabe que uno puede no tenerla. Es lo que el juego entero
-     va a necesitar igual: hay más mapas grandes como el 66.
+   * **La ventana es obligatoria en todo mapa.** Primero se decidió que fuera
+     por mapa, y se implementó; taro lo revirtió antes del commit: un mapa sin
+     ventana de texto no existe en la práctica, así que soportarlo es darle
+     forma a un estado que no debería darse. Lo que el 66 muestra es un
+     **límite de VRAM** —la ventana no le entra— que cualquier mapa grande del
+     juego va a tener, y se arregla haciéndola entrar, no sacándola. Hasta
+     entonces **el 66 queda afuera del cartucho único**. (La implementación
+     descartada, por si algo sirve: la ROM preguntaba por `M_VRAM_VENTANA` del
+     registro, que ya vale 0 en los repartos sin ventana, y el conversor
+     reintentaba la conversión anotando el mapa.)
    * **El grupo pasa a la RAM**, como los switches: se escribe al arrancar. El
      conversor reserva paletas para todos los líderes posibles del cartucho, y
      el conflicto del 261 lo resuelve el asignador.
@@ -477,7 +490,7 @@ se pueden empezar hoy.
    | | qué | criterio |
    |---|---|---|
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
-   | 9b | la ventana por mapa, y el 66 entra | ídem, más el caso sin ventana en el 66 |
+   | 9b | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | ninguna golden se mueve salvo las de esas pruebas |
    | 9c | el grupo en la RAM, y el 261 entra | ídem |
    | 9d | las páginas de prueba en una tabla, elegidas por la RAM | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
