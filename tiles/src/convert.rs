@@ -12,10 +12,10 @@
 //! would be choosing what to lose, and that choice belongs to whoever made the
 //! picture.
 
-use crate::color::cgram_word;
+use crate::color::{cgram_word, Rgb15};
 use crate::fail::{Bad, Result};
 use crate::grid::{cut_cells, Cell, Grid, Picture, CELL};
-use crate::pack::{entry, flips, pack_tile, tile_bytes, Indices};
+use crate::pack::{entry, flips, pack_tile, Indices};
 use std::collections::{BTreeSet, HashMap};
 
 /// The widest a tilemap entry's tile number goes: ten bits.
@@ -66,15 +66,30 @@ pub struct Report {
     pub colors: usize,
 }
 
+/// Where an animation's tiles landed, and what they hold in every frame.
+#[derive(Debug)]
+pub struct Animation {
+    /// The first tile of its run. Zero tiles when no cell animates with it.
+    pub first: usize,
+    pub count: usize,
+    /// One entry per frame, the base picture first: the run's tiles as they
+    /// are in that frame, back to back. Stepping the animation is uploading
+    /// one of these over the run.
+    pub frames: Vec<Vec<u8>>,
+}
+
 #[derive(Debug)]
 pub struct Converted {
-    /// The tile data, back to back, `tile_bytes(bpp)` each.
+    /// The tile data, back to back, `tile_bytes(bpp)` each, as the base
+    /// picture draws them.
     pub tiles: Vec<u8>,
     /// All of colour memory as little-endian words, from the picture's
     /// palette: entries it has no colour for are zero.
     pub cgram: Vec<u8>,
     /// One entry per cell, row-major.
     pub tilemap: Vec<Vec<u16>>,
+    /// One per animation, in the order they were given.
+    pub animations: Vec<Animation>,
     pub report: Report,
 }
 
@@ -83,13 +98,25 @@ pub struct Converted {
 /// at 8bpp it is entry 0 alone.
 pub fn transparent(index: u8, bpp: usize) -> bool {
     if bpp == 4 {
-        index as usize % COLORS_PER_PALETTE == 0
+        (index as usize).is_multiple_of(COLORS_PER_PALETTE)
     } else {
         index == 0
     }
 }
 
-pub fn convert(picture: &Picture, options: &Options) -> Result<Converted> {
+/// A picture, and its animations: each one is the frames **other than** the
+/// base picture, which is every animation's first frame.
+///
+/// A cell animates with an animation if some frame of it differs from the base
+/// there, and then its tile is its own: animating is overwriting the tile data
+/// without touching the tilemap, so a tile shared with a still cell would make
+/// that cell move too. Those tiles go last, one contiguous run per animation,
+/// so that a step of the animation is one upload.
+pub fn convert(
+    picture: &Picture,
+    animations: &[Vec<Picture>],
+    options: &Options,
+) -> Result<Converted> {
     if options.bpp != 4 && options.bpp != 8 {
         return Err(Bad::usage(format!(
             "{} bits per pixel: only 4 and 8 are planar formats this writes",
@@ -102,24 +129,45 @@ pub fn convert(picture: &Picture, options: &Options) -> Result<Converted> {
             picture.width, picture.height
         )));
     }
-    let grid = cut_cells(picture);
-    let drawn = drawn_entries(&grid, options.bpp);
-    if let Some(&missing) = drawn.iter().find(|&&e| picture.colors[e as usize].is_none()) {
-        return Err(Bad::answer(format!(
-            "some pixel draws with colour-memory entry {missing}, and the picture's \
-             palette has no colour for it"
-        )));
+    for (a, frames) in animations.iter().enumerate() {
+        for (f, frame) in frames.iter().enumerate() {
+            if (frame.width, frame.height) != (picture.width, picture.height) {
+                return Err(Bad::usage(format!(
+                    "frame {} of animation {a} is {}x{} and the picture is {}x{}",
+                    f + 1,
+                    frame.width,
+                    frame.height,
+                    picture.width,
+                    picture.height
+                )));
+            }
+        }
     }
-    let laid_out = lay_out(&grid, options)?;
+    let base = cut_cells(picture);
+    let groups: Vec<Vec<Grid>> = animations
+        .iter()
+        .map(|frames| frames.iter().map(cut_cells).collect())
+        .collect();
 
-    let mut cgram = Vec::with_capacity(2 * picture.colors.len());
-    for color in &picture.colors {
+    let everything: Vec<&Picture> = std::iter::once(picture)
+        .chain(animations.iter().flatten())
+        .collect();
+    let colors = shared_colors(&everything, options.bpp)?;
+    let mut drawn = drawn_entries(&base, options.bpp);
+    for grid in groups.iter().flatten() {
+        drawn.extend(drawn_entries(grid, options.bpp));
+    }
+
+    let laid_out = lay_out(&base, &groups, options)?;
+
+    let mut cgram = Vec::with_capacity(2 * colors.len());
+    for color in &colors {
         cgram.extend_from_slice(&cgram_word(color.unwrap_or((0, 0, 0))).to_le_bytes());
     }
     let report = Report {
-        columns: grid.columns,
-        rows: grid.height(),
-        cells: grid.columns * grid.height(),
+        columns: base.columns,
+        rows: base.height(),
+        cells: base.columns * base.height(),
         tiles: laid_out.count,
         palettes: laid_out.palettes.len(),
         colors: drawn.len(),
@@ -128,8 +176,58 @@ pub fn convert(picture: &Picture, options: &Options) -> Result<Converted> {
         tiles: laid_out.tiles,
         cgram,
         tilemap: laid_out.tilemap,
+        animations: laid_out.animations,
         report,
     })
+}
+
+/// Colour memory, from pictures that each carry a copy of it.
+///
+/// The copies are allowed to differ only where nobody draws: an entry some
+/// picture draws with has to hold the same colour in every picture that draws
+/// with it, or the pictures cannot be shown together. Where nobody draws, the
+/// first picture's copy is kept.
+fn shared_colors(pictures: &[&Picture], bpp: usize) -> Result<Vec<Option<Rgb15>>> {
+    let mut colors = pictures[0].colors.clone();
+    let mut owner: Vec<Option<usize>> = vec![None; colors.len()];
+    for (p, picture) in pictures.iter().enumerate() {
+        for entry in drawn_entries(&cut_cells(picture), bpp) {
+            let e = entry as usize;
+            let Some(color) = picture.colors[e] else {
+                return Err(Bad::answer(format!(
+                    "{} draws with colour-memory entry {e}, and its palette has no colour \
+                     for it",
+                    which(p)
+                )));
+            };
+            match owner[e] {
+                None => {
+                    owner[e] = Some(p);
+                    colors[e] = Some(color);
+                }
+                Some(first) if colors[e] != Some(color) => {
+                    return Err(Bad::answer(format!(
+                        "colour-memory entry {e} is {:?} in {} and {:?} in {}, and both draw \
+                         with it: pictures shown together have to agree",
+                        colors[e].unwrap(),
+                        which(first),
+                        color,
+                        which(p)
+                    )));
+                }
+                Some(_) => {}
+            }
+        }
+    }
+    Ok(colors)
+}
+
+/// How a message names a picture: by its place in the order it was given.
+fn which(index: usize) -> String {
+    match index {
+        0 => "the picture".to_string(),
+        n => format!("frame picture {n}"),
+    }
 }
 
 /// The entries some pixel draws with.
@@ -147,51 +245,152 @@ struct LaidOut {
     tilemap: Vec<Vec<u16>>,
     count: usize,
     palettes: BTreeSet<usize>,
+    animations: Vec<Animation>,
+}
+
+/// Which animation a cell moves with, or `None` if it is still.
+///
+/// A cell that moved with two would need every combination of their frames,
+/// not two runs, so it is refused rather than written half right.
+fn class_of(base: &Grid, groups: &[Vec<Grid>], x: usize, y: usize) -> Result<Option<usize>> {
+    let moving: Vec<usize> = groups
+        .iter()
+        .enumerate()
+        .filter(|(_, frames)| frames.iter().any(|g| g.rows[y][x] != base.rows[y][x]))
+        .map(|(a, _)| a)
+        .collect();
+    match moving.as_slice() {
+        [] => Ok(None),
+        [one] => Ok(Some(*one)),
+        [a, b, ..] => Err(Bad::answer(format!(
+            "the cell at column {x}, row {y} moves with animations {a} and {b}, and a \
+             tile can only be overwritten by one"
+        ))),
+    }
 }
 
 /// Number the distinct tiles and write the tilemap.
 ///
 /// A cell that is another cell mirrored is not a new tile: the hardware can
 /// flip one when it draws it, so the four orientations are tried against what
-/// is already there before anything is added. Tiles are numbered in the order
-/// their first cell is met, row-major.
-fn lay_out(grid: &Grid, options: &Options) -> Result<LaidOut> {
+/// is already there before anything is added. For a cell that animates, a
+/// match has to hold in every frame at once — the hardware flips the tile, not
+/// each frame on its own — so the key is all of its frames.
+///
+/// Still cells are numbered first, then each animation's cells, each class in
+/// the order its first cell is met, row-major.
+fn lay_out(base: &Grid, groups: &[Vec<Grid>], options: &Options) -> Result<LaidOut> {
     let planes = options.bpp;
     let blank: Indices = [[0; CELL]; CELL];
 
-    let mut pool: HashMap<(usize, Indices), u16> = HashMap::new();
-    let mut tiles: Vec<u8> = Vec::new();
+    let mut classes = Vec::with_capacity(base.height());
+    for y in 0..base.height() {
+        let mut line = Vec::with_capacity(base.columns);
+        for x in 0..base.columns {
+            line.push(class_of(base, groups, x, y)?);
+        }
+        classes.push(line);
+    }
+
+    let mut tilemap = vec![vec![0u16; base.columns]; base.height()];
+    // Every tile's indices in every frame of its class, by tile number.
+    let mut numbered: Vec<Vec<Indices>> = Vec::new();
     if options.blank_tile {
-        pool.insert((0, blank), 0);
-        tiles.extend(std::iter::repeat_n(0, tile_bytes(planes)));
+        numbered.push(vec![blank]);
     }
     let mut palettes = BTreeSet::new();
+    let mut animations = Vec::new();
 
-    let mut tilemap = Vec::with_capacity(grid.height());
-    for (y, row) in grid.rows.iter().enumerate() {
-        let mut line = Vec::with_capacity(row.len());
-        for (x, cell) in row.iter().enumerate() {
-            line.push(place(cell, x, y, options, &mut pool, &mut tiles, &mut palettes)?);
+    let order = std::iter::once(None).chain((0..groups.len()).map(Some));
+    for class in order {
+        let mut pool: HashMap<(usize, Vec<Indices>), u16> = HashMap::new();
+        if class.is_none() && options.blank_tile {
+            pool.insert((0, vec![blank]), 0);
         }
-        tilemap.push(line);
+        let first = numbered.len();
+        for y in 0..base.height() {
+            for x in 0..base.columns {
+                if classes[y][x] != class {
+                    continue;
+                }
+                let mut cells = vec![&base.rows[y][x]];
+                if let Some(a) = class {
+                    cells.extend(groups[a].iter().map(|g| &g.rows[y][x]));
+                }
+                let draws = cells
+                    .iter()
+                    .any(|c| c.iter().flatten().any(|&i| !transparent(i, planes)));
+                if class.is_none() && !draws && options.blank_tile {
+                    // A still cell that draws nothing: its priority and
+                    // palette say nothing either, and 0 is what an unwritten
+                    // tilemap holds.
+                    continue;
+                }
+                let palette = if planes == 4 {
+                    palette_of_cells(&cells, x, y)?.unwrap_or(0)
+                } else {
+                    0
+                };
+                if draws {
+                    palettes.insert(palette);
+                }
+                let frames: Vec<Indices> = cells
+                    .iter()
+                    .map(|c| {
+                        let mut indices: Indices = **c;
+                        if planes == 4 {
+                            for value in indices.iter_mut().flatten() {
+                                *value %= COLORS_PER_PALETTE as u8;
+                            }
+                        }
+                        indices
+                    })
+                    .collect();
+                tilemap[y][x] =
+                    place(&frames, palette, options, &mut pool, &mut numbered)?;
+            }
+        }
+        if let Some(a) = class {
+            let count = numbered.len() - first;
+            let frames = (0..=groups[a].len())
+                .map(|f| {
+                    numbered[first..]
+                        .iter()
+                        .flat_map(|t| pack_tile(&t[f], planes))
+                        .collect()
+                })
+                .collect();
+            animations.push(Animation {
+                first: if count == 0 { 0 } else { first },
+                count,
+                frames,
+            });
+        }
     }
+
+    let tiles = numbered
+        .iter()
+        .flat_map(|t| pack_tile(&t[0], planes))
+        .collect();
     Ok(LaidOut {
-        count: tiles.len() / tile_bytes(planes),
+        count: numbered.len(),
         tiles,
         tilemap,
         palettes,
+        animations,
     })
 }
 
-/// Which palette a 4bpp cell draws with, or `None` if it draws nothing.
+/// Which palette a 4bpp cell draws with in all its frames, or `None` if it
+/// draws nothing.
 ///
 /// A cell drawing with two is not something a tilemap can say: it names one
-/// palette per cell. Whoever wrote the picture promised that, so breaking it
-/// is their mistake, and the message says where.
-fn palette_of_cell(cell: &Cell, x: usize, y: usize) -> Result<Option<usize>> {
-    let used: BTreeSet<usize> = cell
+/// palette per cell, for every frame. Whoever wrote the picture promised that,
+/// so breaking it is their mistake, and the message says where.
+fn palette_of_cells(cells: &[&Cell], x: usize, y: usize) -> Result<Option<usize>> {
+    let used: BTreeSet<usize> = cells
         .iter()
-        .flatten()
+        .flat_map(|c| c.iter().flatten())
         .filter(|&&i| !transparent(i, 4))
         .map(|&i| i as usize / COLORS_PER_PALETTE)
         .collect();
@@ -213,47 +412,21 @@ fn palette_of_cell(cell: &Cell, x: usize, y: usize) -> Result<Option<usize>> {
 }
 
 fn place(
-    cell: &Cell,
-    x: usize,
-    y: usize,
+    frames: &[Indices],
+    palette: usize,
     options: &Options,
-    pool: &mut HashMap<(usize, Indices), u16>,
-    tiles: &mut Vec<u8>,
-    palettes: &mut BTreeSet<usize>,
+    pool: &mut HashMap<(usize, Vec<Indices>), u16>,
+    numbered: &mut Vec<Vec<Indices>>,
 ) -> Result<u16> {
-    let planes = options.bpp;
-    let draws = cell.iter().flatten().any(|&i| !transparent(i, planes));
-    if !draws && options.blank_tile {
-        // A cell that draws nothing: its priority and palette say nothing
-        // either, and 0 is what an unwritten tilemap holds.
-        return Ok(0);
-    }
-    // At 8bpp the index already reaches all of colour memory, so there is one
-    // palette and a mirrored match is a match wherever it was found. At 4bpp
-    // the indices only mean the same thing inside the same palette, which is
-    // why the palette is part of the key.
-    let (palette, indices) = if planes == 4 {
-        let palette = palette_of_cell(cell, x, y)?.unwrap_or(0);
-        let mut indices: Indices = [[0; CELL]; CELL];
-        for (row, source) in indices.iter_mut().zip(cell) {
-            for (value, &index) in row.iter_mut().zip(source) {
-                *value = index % COLORS_PER_PALETTE as u8;
-            }
-        }
-        (palette, indices)
-    } else {
-        (0, *cell)
-    };
-    if draws {
-        palettes.insert(palette);
-    }
-
-    for (oriented, horizontal, vertical) in flips(&indices) {
-        if let Some(number) = pool.get(&(palette, oriented)) {
+    let flipped: Vec<[(Indices, u8, u8); 4]> = frames.iter().map(flips).collect();
+    for k in 0..4 {
+        let key: Vec<Indices> = flipped.iter().map(|f| f[k].0).collect();
+        if let Some(number) = pool.get(&(palette, key)) {
+            let (_, horizontal, vertical) = flipped[0][k];
             return Ok(entry(*number, horizontal, vertical, options.priority, palette as u8));
         }
     }
-    let number = tiles.len() / tile_bytes(planes);
+    let number = numbered.len();
     if number >= options.max_tiles || number >= MAX_TILE_NUMBER {
         return Err(Bad::answer(format!(
             "the picture needs more than {} distinct tiles; a tilemap entry has ten bits \
@@ -261,7 +434,7 @@ fn place(
             options.max_tiles.min(MAX_TILE_NUMBER)
         )));
     }
-    pool.insert((palette, indices), number as u16);
-    tiles.extend_from_slice(&pack_tile(&indices, planes));
+    pool.insert((palette, frames.to_vec()), number as u16);
+    numbered.push(frames.to_vec());
     Ok(entry(number as u16, 0, 0, options.priority, palette as u8))
 }

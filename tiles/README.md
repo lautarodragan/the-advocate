@@ -89,6 +89,32 @@ usually worth one tile to have that be the empty one. An empty cell is written
 as a plain 0 — its priority and palette would say nothing — and `--priority`
 goes on the cells that draw.
 
+## Animations
+
+    tiles convert map.png --bpp 8 -o map.8bpp --tilemap map.map --palette map.cgram \
+        --animation water1.png,water2.png --animation-out water.bin \
+        --animation flag1.png,flag2.png,flag3.png --animation-out flag.bin
+
+An animation is **the frames other than the picture itself**: the picture is
+every animation's first frame. A cell that differs from it in some frame
+animates, and gets tiles of its own — animating is overwriting tile data
+without touching the tilemap, so a tile shared with a still cell would make
+that cell move too.
+
+Still cells are numbered first, then each animation's cells in one contiguous
+run, in the order the animations were given, so that a step is one upload of
+`count` tiles at `first`. `--animation-out` writes that run as every frame draws
+it, the picture first, back to back. A cell that moves with two animations
+would need every combination of their frames, and is refused.
+
+A mirrored match has to hold in every frame at once: the hardware flips the
+tile, not each frame on its own.
+
+All the pictures carry colour memory, and they have to **agree on every entry
+some of them draw with** — otherwise they cannot be shown together, and saying
+which entry is better than picking one. Where nobody draws, the picture's own
+copy is what comes out.
+
 ## Exit codes
 
     0   done

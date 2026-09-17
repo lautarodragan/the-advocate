@@ -51,7 +51,13 @@ enum Command {
                         one palette. Choosing the palettes is not this tool's job.\n\
                         Mirrored cells are not new tiles: a tilemap entry carries an x \
                         and a y flip, so the four orientations are tried against the \
-                        tiles already placed.")]
+                        tiles already placed.\n\
+                        A cell that differs from the picture in some frame of an \
+                        animation gets tiles of its own, in one contiguous run per \
+                        animation after the still ones: stepping it is overwriting the \
+                        run with the next frame's data. All the pictures carry colour \
+                        memory, and they have to agree on every entry some of them \
+                        draw with.")]
 struct Convert {
     /// The indexed PNG to convert
     input: PathBuf,
@@ -83,6 +89,16 @@ struct Convert {
     /// Do not keep tile 0 for the empty cell
     #[arg(long)]
     no_blank_tile: bool,
+
+    /// An animation: its frames other than the picture itself, comma
+    /// separated. Repeat for each animation.
+    #[arg(long, value_name = "PNG,PNG...")]
+    animation: Vec<String>,
+
+    /// Where to write an animation's run as every frame draws it, the picture
+    /// first. One per --animation, in the same order.
+    #[arg(long, value_name = "PATH")]
+    animation_out: Vec<PathBuf>,
 
     /// Print what happened as JSON instead of prose
     #[arg(long)]
@@ -157,7 +173,25 @@ fn do_convert(args: &Convert) -> Result<()> {
         max_tiles: args.max_tiles,
         blank_tile: !args.no_blank_tile,
     };
-    let done = tiles::convert(&picture, &options)?;
+    if !args.animation_out.is_empty() && args.animation_out.len() != args.animation.len() {
+        return Err(Bad::usage(format!(
+            "{} --animation-out for {} --animation: one each, in the same order",
+            args.animation_out.len(),
+            args.animation.len()
+        )));
+    }
+    let mut animations = Vec::with_capacity(args.animation.len());
+    for list in &args.animation {
+        let frames = list
+            .split(',')
+            .map(|path| image::read(Path::new(path)))
+            .collect::<Result<Vec<_>>>()?;
+        animations.push(frames);
+    }
+    let done = tiles::convert(&picture, &animations, &options)?;
+    for (path, animation) in args.animation_out.iter().zip(&done.animations) {
+        write(path, &animation.frames.concat())?;
+    }
 
     write(&args.output, &done.tiles)?;
     if let Some(path) = &args.palette {
@@ -178,7 +212,7 @@ fn do_convert(args: &Convert) -> Result<()> {
         println!(
             "{{\"output\": \"{}\", \"bpp\": {}, \"columns\": {}, \"rows\": {}, \
              \"cells\": {}, \"tiles\": {}, \"tile_bytes\": {}, \"palettes\": {}, \
-             \"colors\": {}}}",
+             \"colors\": {}, \"animations\": [{}]}}",
             args.output.display(),
             args.bpp,
             r.columns,
@@ -187,7 +221,17 @@ fn do_convert(args: &Convert) -> Result<()> {
             r.tiles,
             done.tiles.len(),
             r.palettes,
-            r.colors
+            r.colors,
+            done.animations
+                .iter()
+                .map(|a| format!(
+                    "{{\"first\": {}, \"tiles\": {}, \"frames\": {}}}",
+                    a.first,
+                    a.count,
+                    a.frames.len()
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
         );
     } else {
         println!(
@@ -203,6 +247,14 @@ fn do_convert(args: &Convert) -> Result<()> {
             "  {} colours in {} palette(s) at {}bpp",
             r.colors, r.palettes, args.bpp
         );
+        for (n, a) in done.animations.iter().enumerate() {
+            println!(
+                "  animation {n}: {} tiles from {}, {} frames",
+                a.count,
+                a.first,
+                a.frames.len()
+            );
+        }
     }
     Ok(())
 }

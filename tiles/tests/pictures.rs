@@ -35,7 +35,7 @@ fn picture(width: usize, height: usize, paint: impl Fn(usize, usize) -> u8) -> P
 }
 
 fn convert(picture: &Picture, bpp: usize) -> tiles::Result<tiles::Converted> {
-    tiles::convert(picture, &Options::at(bpp))
+    tiles::convert(picture, &[], &Options::at(bpp))
 }
 
 fn answer(result: tiles::Result<tiles::Converted>) -> String {
@@ -132,7 +132,7 @@ fn priority_is_set_on_the_cells_that_draw() {
         priority: 1,
         ..Options::at(4)
     };
-    let done = tiles::convert(&picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }), &options)
+    let done = tiles::convert(&picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }), &[], &options)
         .unwrap();
     assert_eq!(done.tilemap[0][0] & 0x2000, 0x2000);
     assert_eq!(done.tilemap[0][1], 0);
@@ -248,4 +248,120 @@ fn run(args: &[&str]) {
         "tiles {args:?}: {}",
         String::from_utf8_lossy(&status.stderr)
     );
+}
+
+// --- animations -------------------------------------------------------------
+
+fn animated(picture: &Picture, animations: &[Vec<Picture>]) -> tiles::Result<tiles::Converted> {
+    tiles::convert(picture, animations, &Options::at(8))
+}
+
+/// Two cells that look the same in the base picture, one of them animated:
+/// the animated one cannot share, or the still one would move with it.
+#[test]
+fn an_animated_cell_gets_its_own_tile_in_a_run_after_the_still_ones() {
+    let base = picture(24, 8, |x, _| if x < 16 { 9 } else { 10 });
+    let frame = picture(24, 8, |x, _| if x < 8 { 9 } else if x < 16 { 11 } else { 10 });
+    let done = animated(&base, &[vec![frame]]).unwrap();
+    // Still: blank, the 9 cell, the 10 cell. Then the run: the moving 9 cell.
+    assert_eq!(done.report.tiles, 4);
+    assert_eq!(done.tilemap[0][0] & 0x03FF, 1);
+    assert_eq!(done.tilemap[0][2] & 0x03FF, 2);
+    assert_eq!(done.tilemap[0][1] & 0x03FF, 3);
+    let run = &done.animations[0];
+    assert_eq!((run.first, run.count, run.frames.len()), (3, 1, 2));
+    assert_eq!(run.frames[0], tiles::pack_tile(&[[9; 8]; 8], 8));
+    assert_eq!(run.frames[1], tiles::pack_tile(&[[11; 8]; 8], 8));
+    // What the tile data holds for the run is the base picture's frame.
+    assert_eq!(&done.tiles[3 * 64..], &run.frames[0][..]);
+}
+
+#[test]
+fn each_animation_gets_its_own_run_in_the_order_given() {
+    let base = picture(16, 8, |_, _| 9);
+    let water = picture(16, 8, |x, _| if x < 8 { 12 } else { 9 });
+    let other = picture(16, 8, |x, _| if x < 8 { 9 } else { 13 });
+    let done = animated(&base, &[vec![water.clone_picture()], vec![other]]).unwrap();
+    // Both cells move, so the only still tile is the empty one.
+    let (a, b) = (&done.animations[0], &done.animations[1]);
+    assert_eq!((a.first, a.count), (1, 1));
+    assert_eq!((b.first, b.count), (2, 1));
+    assert_eq!(done.tilemap[0][0] & 0x03FF, 1);
+    assert_eq!(done.tilemap[0][1] & 0x03FF, 2);
+}
+
+#[test]
+fn an_animation_nothing_moves_with_is_an_empty_run() {
+    let base = picture(8, 8, |_, _| 9);
+    let done = animated(&base, &[vec![picture(8, 8, |_, _| 9)]]).unwrap();
+    let run = &done.animations[0];
+    assert_eq!((run.first, run.count), (0, 0));
+    assert!(run.frames.iter().all(|f| f.is_empty()));
+}
+
+#[test]
+fn a_cell_moving_with_two_animations_is_refused() {
+    let base = picture(8, 8, |_, _| 9);
+    let message = answer(animated(
+        &base,
+        &[vec![picture(8, 8, |_, _| 10)], vec![picture(8, 8, |_, _| 11)]],
+    ));
+    assert!(message.contains("animations 0 and 1"), "{message}");
+}
+
+/// The hardware flips the tile, not each frame: a mirrored match has to hold
+/// in every frame at once.
+#[test]
+fn a_mirrored_animated_cell_is_reused_only_if_every_frame_mirrors() {
+    let mark = |x: usize, y: usize, a: u8, b: u8| if x == 0 && y == 0 { a } else { b };
+    let base = picture(16, 8, |x, y| if x < 8 { mark(x, y, 1, 2) } else { mark(15 - x, y, 1, 2) });
+    // Frame 1: the left cell mirrors into the right one; the right cell's
+    // frame is its own mirror too, so they share.
+    let same = picture(16, 8, |x, y| if x < 8 { mark(x, y, 3, 2) } else { mark(15 - x, y, 3, 2) });
+    let done = animated(&base, &[vec![same]]).unwrap();
+    assert_eq!(done.animations[0].count, 1);
+    // Frame 1 again, but the right cell does not mirror the left one there.
+    let apart = picture(16, 8, |x, y| if x < 8 { mark(x, y, 3, 2) } else { mark(15 - x, y, 4, 2) });
+    let done = animated(&base, &[vec![apart]]).unwrap();
+    assert_eq!(done.animations[0].count, 2);
+}
+
+/// Pictures shown together carry copies of colour memory, and the copies have
+/// to agree wherever somebody draws.
+#[test]
+fn frames_that_disagree_on_a_drawn_entry_are_refused() {
+    let base = picture(8, 8, |_, _| 9);
+    let mut frame = picture(8, 8, |_, _| 10);
+    frame.colors[9] = Some((1, 1, 1));
+    // Entry 9 is drawn by the base only, so its copy wins and nothing clashes.
+    assert!(animated(&base, &[vec![frame.clone_picture()]]).is_ok());
+    let mut clashing = picture(8, 8, |_, _| 9);
+    clashing.colors[9] = Some((1, 1, 1));
+    clashing.pixels[0] = 10;
+    let message = answer(animated(&base, &[vec![clashing]]));
+    assert!(message.contains("entry 9"), "{message}");
+}
+
+#[test]
+fn a_frame_of_another_size_is_a_usage_error() {
+    let base = picture(16, 8, |_, _| 9);
+    match animated(&base, &[vec![picture(8, 8, |_, _| 9)]]) {
+        Err(tiles::Bad::Usage(message)) => assert!(message.contains("frame 1"), "{message}"),
+        other => panic!("expected a usage error, got {:?}", other.map(|_| ())),
+    }
+}
+
+trait ClonePicture {
+    fn clone_picture(&self) -> Picture;
+}
+
+impl ClonePicture for Picture {
+    fn clone_picture(&self) -> Picture {
+        Picture {
+            width: self.width,
+            height: self.height,
+            pixels: self.pixels.clone(),
+            colors: self.colors.clone(),
+        }
+    }
 }
