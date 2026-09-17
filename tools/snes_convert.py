@@ -331,7 +331,7 @@ OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
 COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
 SPRITE_POSES = 12
 POSE_INICIAL = 2 * 3 + 1           # mirando abajo, el frame del medio
-OBJ_PALETTES = 8                   # y son ocho, con cronómetro o sin él
+OBJ_PALETTES = 8                   # de la 8 a la 15, con cronómetro o sin él
 
 # La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
 # 32x32 no ocupa 16 tiles seguidos sino un bloque de 4x4 dentro de esa grilla.

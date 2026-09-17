@@ -1236,8 +1236,8 @@ que no tiene cursor que guardar ni manejadores a los que saltar.
   cerca de los primeros diez minutos. Lo que lo frena no es la cuenta, que
   ahora está: es que aceptarlo destraba la automática `DaliaGoingToTasgarde`
   del mapa 66, que es el único mapa sin ventana de las pruebas de estado, y con
-  ella despierta se caen dos casos de `test_condicional.py`. Ver
-  `CHANGE_ENCOUNTER_STEPS` en eventos.py.
+  ella despierta se caen dos casos de `test_condicional.py`. Ver el comentario
+  de `ChangeEncounterSteps`, arriba de `ACEPTADOS_SIN_HACER` en eventos.py.
 
 **Lo cobra `encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1—
 caminando para arriba, con

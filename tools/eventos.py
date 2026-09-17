@@ -199,6 +199,7 @@ def cola_de_escapes(lineas):
 # reintentaría para siempre y una prueba colgada no dice nada—.
 RUTA_HEROE = 10001
 RUTA_ESTE_EVENTO = 10005                    # "este evento", el dueño de la página
+# Del 10002 al 10004 son los vehículos —barco, nave, avión—, que acá no existen.
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
 RUTA_MOVER = {n: n for n in range(8)}      # los cuatro move_* y las
                                            # cuatro diagonales: el código
@@ -334,11 +335,6 @@ ANIM_PARADO = (12, 10, 8, 6, 5, 4)
 ANIM_CONTINUA = (16, 12, 10, 8, 7, 6)
 
 
-# El sonido va adentro de la ruta y se acepta sin hacerlo —PlaySound sí suena
-# desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
-# orden y no cuesta ni un cuadro, que es lo que hace RM2k —no toca el contador
-# de parada—.
-
 # Un salto dura lo que tarda `remaining_step` en bajar de 256 a 0 a
 # `jump_speed[move_speed - 1]` por cuadro. Con la velocidad 4 —la de este
 # juego— son 24 por cuadro, o sea once cuadros, y **no depende de la
@@ -419,6 +415,10 @@ RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
 # comandos que sin esto no compilaba. No cuestan cuadros: en `UpdateMoveRoute`
 # van por la rama que no toca el contador de parada.
 RUTA_TRANSPARENCIA = (40, 41)
+# El sonido va adentro de la ruta y se acepta sin hacerlo —PlaySound sí suena
+# desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al
+# compilar, así que el bytecode sigue siendo un byte por orden y no cuesta ni
+# un cuadro, que es lo que hace RM2k —no toca el contador de parada—.
 RUTA_SONIDO = 35
 
 
@@ -709,8 +709,8 @@ CHANGE_HERO_TITLE = 10620
 #   ahí. Arreglarlo es mudar esa ROM de prueba a otro mapa que tampoco acepte la
 #   ventana, y eso vale más que estas catorce páginas.
 #
-# O sea: este renglón entra el día que los encuentros al azar existan, **junto
-# con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
+# O sea: `ChangeEncounterSteps` entra en `ACEPTADOS_SIN_HACER` el día que los
+# encuentros al azar existan, **junto con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
 # *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
 # lista de tropas, y este port no lee ni una cosa ni la otra.
 
@@ -1107,6 +1107,7 @@ def rampa_de_fundido():
 # Qué dispara una página. Los de `rpg::EventPage::Trigger` de liblcf.
 TRIGGER_ACCION = 0          # el jugador aprieta la tecla de acción enfrente
 TRIGGER_TOCA_HEROE = 1      # el héroe camina encima
+# El 2 es la colisión —el evento camina contra el héroe—, y acá no se nombra.
 TRIGGER_AUTOMATICO = 3
 TRIGGER_PARALELO = 4
 
@@ -1952,6 +1953,8 @@ BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 # De dónde sale el fondo, el parámetro [2] de `CommandEnemyEncounter`: 0 el
 # del terreno, 1 el que nombra el comando, 2 ninguno.
 BATALLA_FONDO_DEL_COMANDO = 1
+# El parámetro de huida: 0 no se puede, 1 corta la pelea. Sólo se pregunta por
+# el 1.
 BATALLA_ESCAPE_CORTA = 1
 BATALLA_DERROTA_GAME_OVER = 0
 
