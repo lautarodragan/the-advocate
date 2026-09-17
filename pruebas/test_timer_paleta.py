@@ -41,7 +41,7 @@ GRUPO = [10]
 def descartados(paletas):
     """Qué eventos del mapa 2 no se dibujan con tantas paletas de sprite."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO, True)
+    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
     game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     _npcs, fuera, _reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, paletas, [])
@@ -67,7 +67,7 @@ def test_no_se_descarta_ningun_grafico(partida=None):
 def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     """Y en particular la del evento 30, que es la que taro perdió jugando."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO, True)
+    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
     game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     npcs, _fuera, reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])

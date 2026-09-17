@@ -20705,8 +20705,6 @@ columna:
 .proc load_ventana
 .a8
 .i16
-    lda #VENTANA_TILES
-    beq listo                   ; esta ROM no lleva ventana
     ldx mapa_ofs
     lda #$80
     sta VMAIN
@@ -20739,7 +20737,6 @@ columna:
     ; vive en un lugar de la VRAM que depende del reparto.
     jsr estampar_ventana
     jsr armar_hdma
-listo:
     rts
 .endproc
 
@@ -20756,10 +20753,6 @@ listo:
 .proc estampar_ventana
 .a8
 .i16
-    lda #VENTANA_TILES
-    bne hay
-    rts
-hay:
     lda #$80
     sta VMAIN
     ldx mapa_ofs
@@ -20983,10 +20976,6 @@ en_el_banco:
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
-    lda #VENTANA_TILES
-    bne hay
-    rts                         ; esta ROM no lleva ventana
-hay:
     ldy #0
     lda [msg_ptr], y            ; la cabecera: los renglones en los tres bits
     sta msg_lineas              ; de abajo, el autocierre en el 3 y las pausas

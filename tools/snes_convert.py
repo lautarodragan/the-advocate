@@ -1449,8 +1449,7 @@ def _huella_de_imagen(img):
 _VERSION_CAPAS = None
 
 
-def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
-                   variantes=None):
+def convert_layers(base, above_img, variantes=None):
     """`_convert_layers`, recordado en disco.
 
     Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
@@ -1474,8 +1473,7 @@ def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
                                                  "asignador.py")
                           + tiles_bin.version())
     partes = [_VERSION_CAPAS, _huella_de_imagen(base),
-              _huella_de_imagen(above_img), str(bool(con_ventana)),
-              repr(ventana_paleta)]
+              _huella_de_imagen(above_img)]
     for familia in sorted(variantes or {}):
         partes.append("familia %s" % familia)
         for img in variantes[familia]:
@@ -1483,14 +1481,12 @@ def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
     en_disco = cache_disco.clave(*partes)
     hecho = cache_disco.leer("capas", en_disco)
     if hecho is None:
-        hecho = _convert_layers(base, above_img, con_ventana, ventana_paleta,
-                                variantes)
+        hecho = _convert_layers(base, above_img, variantes)
         cache_disco.guardar("capas", en_disco, hecho)
     return hecho
 
 
-def _convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
-                    variantes=None):
+def _convert_layers(base, above_img, variantes=None):
     """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
 
     El corte entre el fondo y la capa de encima no lo puede decidir ninguna de
@@ -1750,28 +1746,6 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 # es dónde caen los tilemaps, que ahora son $5800 y $7800 para los cuatro
 # repartos. Los sprites bajan de 512 a 384 para dejarle lugar al de $5800: sobre
 # los 318 mapas que convierten, el que más gasta usa **380**.
-LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 384),
-                "encima": (0x6000, 256)}
-LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x6000, 128),
-                "sprites": (0x6800, 256)}
-
-# Y el tercero sin ventana, que es el hermano de `LAYOUT_VENTANA_SPRITE`: cambia
-# tiles de fondo por tiles de sprite. Lo pidió el mismo mapa, el 17, cuando
-# `heroe 17` lo armó sin ventana: **444 tiles de sprite** contra los 384
-# del reparto ancho. El comentario de arriba decía que sin ventana `sprites` no
-# se mira porque el que más gasta usa 380; el 17 rompió ese número.
-#
-#   sprites   $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
-#   tiles     $2000  28 KB  448 tiles de 8bpp   <- la base de BG1
-#   tilemap   $5800   4 KB
-#   encima    $6000   8 KB  256 tiles           <- la base de BG2
-#   tilemap   $7800   4 KB
-#
-# Va **último** en la lista de `vram_layout`, así que ningún mapa que ya tenía
-# reparto cambia de reparto.
-LAYOUT_ANCHO_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 448),
-                       "encima": (0x6000, 256)}
-
 # Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
 # de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
 # glifo de 6 px no se alinea a celdas de 8 y hay que componerlo pixel por
@@ -1927,21 +1901,12 @@ VENTANA_TILE_BASE = ((LAYOUT_VENTANA["ventana"][0] - LAYOUT_VENTANA["encima"][0]
 MAX_BLOCKS = 1024
 
 
-def vram_layout(tiles, sprites=0, con_ventana=False):
+def vram_layout(tiles, sprites=0):
     """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
 
-    Los dos números se miran en los tres repartos de cada lado, y se devuelve el
-    primero que entre. Los sin ventana **también** miran los sprites desde el
-    2026-09-12: hasta ahí no, porque el que más gastaba usaba 380 de los 384 del
-    reparto ancho, y Delcentric Factory —444— se pasaba sin que nada avisara.
+    Los dos números se miran en los tres repartos, y se devuelve el primero que
+    entre.
     """
-    if not con_ventana:
-        for layout in (LAYOUT_ANCHO, LAYOUT_FONDO, LAYOUT_ANCHO_SPRITE):
-            if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
-                return layout
-        raise SystemExit(
-            "este mapa no entra en ningún reparto de VRAM: gasta %d tiles de "
-            "fondo y %d de sprite" % (tiles, sprites))
     # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
     # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
     # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
@@ -1966,9 +1931,7 @@ def _controlar_ranuras(ranura_tiles):
         raise SystemExit(
             "los %d tiles de la pantalla de ranuras llegan a $%04X y pisan su "
             "tilemap en $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
-    for nombre, layout in (("ANCHO", LAYOUT_ANCHO), ("FONDO", LAYOUT_FONDO),
-                           ("ANCHO_SPRITE", LAYOUT_ANCHO_SPRITE),
-                           ("VENTANA", LAYOUT_VENTANA),
+    for nombre, layout in (("VENTANA", LAYOUT_VENTANA),
                            ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
                            ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE)):
         base, cuantos = layout["tiles"]
@@ -3498,13 +3461,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
            CGRAM_RESERVADAS,
            paleta_de_la_ventana() * COLORS_PER_PALETTE,
-           0 if ventana is None else len(ventana["tiles"]) // 32,
+           len(ventana["tiles"]) // 32,
            VENTANA_FILAS_INC, VENTANA_COLS_INC,
-           0 if ventana is None else ventana["base"],
+           ventana["base"],
            VENTANA_TEXTO_FILA, VENTANA_TEXTO_FILAS,
            VENTANA_TEXTO_COL, VENTANA_TEXTO_COLS, _columnas(),
            FUENTE_ALTO, FUENTE_ANCHO,
-           0 if ventana is None else ventana["sombra"],
+           ventana["sombra"],
            FUENTE_PRE_FILAS, FUENTE_PRE_CHAR,
            len(FAMILIAS), ANIM_STRIDE, ANIM_FAM_STRIDE,
            rm2k.AGUA_CUADROS_LENTO,
@@ -3592,15 +3555,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             etiquetas.append(suyas)
             handle.write(texto)
             handle.write("\n")
-        # Las etiquetas se emiten siempre, aunque la ROM no lleve ventana: el
-        # ensamblador las necesita resueltas y `VENTANA_TILES = 0` es lo que
-        # apaga el código en tiempo de ejecución. Un byte de relleno alcanza.
-        con_ventana = ventana is not None
-        if ventana is None:
-            ventana = {"tiles": b"\x00", "cram": [0] * COLORS_PER_PALETTE,
-                       "celdas": [[0]], "base": 0, "fondo": b"\x00",
-                       "color": [0] * FUENTE_ALTO, "sombra": 0,
-                       "fuente": b"\x00", "mensajes": b"\x00"}
         if True:
             # La ventana de mensaje es una sola para toda la ROM —el mismo
             # skin, el mismo tamaño— así que va como bloque global y no en la
@@ -3650,9 +3604,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             # una máscara de 16x16, pero cada fila es de un solo color, así que
             # doce bytes alcanzan y la ROM no tiene que muestrear nada.
             handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
-            pre = (fuente_prerender(ventana["fuente"], ventana["color"],
-                                    ventana["sombra"]) if con_ventana
-                   else [b"\x00"] * 4)
+            pre = fuente_prerender(ventana["fuente"], ventana["color"],
+                                   ventana["sombra"])
             for fase, datos in enumerate(pre):
                 handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
@@ -4782,18 +4735,9 @@ def orden_de_mapas(args):
 ANIMA_QUIETO_MAX = 4
 
 
-def eventos_movibles(game_map, indice_de_mapa, con_ventana=False,
-                     asociaciones=()):
+def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     """Los eventos con gráfico a los que alguna página compilable manda a
     caminar, y los gráficos a los que alguna ruta cambia con la orden 34.
-
-    `con_ventana` tiene que ser el de la ROM que se está armando, por lo mismo
-    que en `lideres_posibles`: decide **qué páginas compilan**. Acá se
-    compilaba siempre con un bloque de textos, así que una ROM sin ventana le
-    daba las doce poses a los eventos que camina una página que en esa ROM no
-    puede correr. No se veía porque esa página tampoco compilaba por otras
-    cosas; el día que compiló —la escena de apertura, que camina a cuatro—
-    doce casos sin ventana se quedaron sin lugar en VRAM.
 
     Hace falta antes de armar el banco de sprites: a los que se mueven hay que
     darles **las doce poses** del ciclo de caminata, y a los demás la única que
@@ -4817,7 +4761,7 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False,
     graficos = eventos.Graficos(asociaciones)
     paginas = eventos.paginas_del_mapa(
         game_map, indice_de_mapa,
-        eventos.Mensajes() if con_ventana else None, graficos=graficos)
+        eventos.Mensajes(), graficos=graficos)
     npcs = rm2k.collect_npcs(game_map)
     visibles = {npc["evento"] for npc in npcs}
     # Y los que caminan solos con la ruta propia de alguna página, que
@@ -5434,10 +5378,6 @@ def main():
                              "centro. Sirve para llevar la cámara a un lugar "
                              "puntual sin tener que caminar hasta él")
     args = parser.parse_args()
-    # La ventana de mensaje va en todo cartucho: un mapa sin ventana de texto
-    # no existe en la práctica, así que no es una opción. Decisión de taro del
-    # 2026-09-17; lo que queda de los caminos sin ventana se va aparte.
-    args.con_ventana = True
     args.con_timer = args.con_timer or args.timer_de_prueba is not None
 
     renderer = Renderer(args.game_dir)
@@ -5489,7 +5429,7 @@ def main():
     # misma función. **Antes de `lideres_posibles`**, que compila páginas: ver
     # su comentario.
     eventos.indexar_actores(args.game_dir)
-    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    args.lideres = lideres_posibles(renderer, todos, grupo)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
     args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
@@ -5543,8 +5483,7 @@ def main():
     # el mapa donde arranca la ROM ni de en qué orden se compilen. Es el único
     # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
     # querer saber de memoria.
-    mensajes = (eventos.Mensajes(args.relleno_de_mensajes)
-                if args.con_ventana else None)
+    mensajes = eventos.Mensajes(args.relleno_de_mensajes)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.
@@ -5837,28 +5776,23 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
-    ventana_datos = None
-    if args.con_ventana:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-        font_id = renderer.database.font_id
-        ventana_datos = convert_ventana(skin, font_id)
-        ventana_datos["fuente"] = fuente_bytes(font_id)
-        ventana_datos["mensajes"] = mensajes.bytes()
-        print("  ventana de mensaje: %d tiles fijos + %d de texto, %d colores; "
-              "fuente %d B, %d cuadro(s) de texto en %d B"
-              % (len(ventana_datos["tiles"]) // 32,
-                 len(ventana_datos["fondo"]) // 32,
-                 sum(1 for w in ventana_datos["cram"] if w),
-                 len(ventana_datos["fuente"]), len(mensajes.textos),
-                 len(ventana_datos["mensajes"])))
+    import ventana as ventana_mod
+    skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+    font_id = renderer.database.font_id
+    ventana_datos = convert_ventana(skin, font_id)
+    ventana_datos["fuente"] = fuente_bytes(font_id)
+    ventana_datos["mensajes"] = mensajes.bytes()
+    print("  ventana de mensaje: %d tiles fijos + %d de texto, %d colores; "
+          "fuente %d B, %d cuadro(s) de texto en %d B"
+          % (len(ventana_datos["tiles"]) // 32,
+             len(ventana_datos["fondo"]) // 32,
+             sum(1 for w in ventana_datos["cram"] if w),
+             len(ventana_datos["fuente"]), len(mensajes.textos),
+             len(ventana_datos["mensajes"])))
     # La pantalla de ranuras va en toda ROM: la abre el save point desde
     # adentro del juego, y "Resume the Story" desde el título cuando lo hay.
     # Se dibuja con la misma fuente y la misma skin que la ventana de mensaje,
-    # pero no depende de `--con-ventana`: ese flag es un presupuesto de VRAM
-    # del mapa, y esta pantalla vive en la VRAM del título, donde no hay mapa.
-    import ventana as ventana_mod
-    skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+    # y vive en la VRAM del título, donde no hay mapa.
     # Los actores que pueden estar en el grupo cuando se guarda, para tener
     # su cara y su nombre en el cartucho: los de arranque y todos los que
     # agrega algún `ChangePartyMembers` de estos mapas, compilen sus páginas o
@@ -6190,7 +6124,7 @@ def images_de(renderer, args, charset):
 _charsets = {}
 
 
-def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
+def lideres_posibles(renderer, map_ids, grupo):
     """Los actores que pueden llegar a dibujarse como héroe en esta ROM.
 
     El grupo con el que se arranca, más todos los que agregue un
@@ -6261,7 +6195,7 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
                 # cero porque el actor no estaba en la tabla del mapa.
                 if eventos.compilar_pagina(
                         page, indices.get,
-                        eventos.Mensajes() if con_ventana else None,
+                        eventos.Mensajes(),
                         del_mapa.para(evento.id), eventos.Temas(),
                         eventos.Graficos(), eventos.Imagenes(
                             args_game_dir[0])) is None:
@@ -6338,7 +6272,7 @@ def miembros_posibles(map_ids, grupo):
     return sorted(actores)
 
 
-def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
+def convertir(renderer, map_id, args, inicio=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = renderer.cargar_mapa(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
@@ -6350,8 +6284,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
     (tile_data, cram, tilemap, summary), above_data = convert_layers(
-        base, _above, con_ventana=args.con_ventana,
-        ventana_paleta=ventana_paleta, variantes=variantes)
+        base, _above, variantes=variantes)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -6368,7 +6301,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     orden = orden_de_mapas(args)
     movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
-        con_ventana=args.con_ventana, asociaciones=args.asociaciones)
+        asociaciones=args.asociaciones)
     # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
     # ROM, igual que la ruta inventada y por lo mismo: es donde el conversor
     # mete la página de prueba. Se agregan **después** de los del juego, que es
@@ -6646,8 +6579,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             # lado y del otro no, se dice cuál es el mapa.
             cuantos = len(probando) // 32
             try:
-                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos,
-                                     con_ventana=args.con_ventana)
+                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos)
             except SystemExit:
                 layout = None
             if layout is None or cuantos > layout["sprites"][1]:
@@ -6773,8 +6705,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         "bloques": bloques, "pass": block_pass,
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
-            len(sprite[0]) // 32 if sprite else 0,
-            con_ventana=args.con_ventana),
+            len(sprite[0]) // 32 if sprite else 0),
         "resumen": summary, "base": base,
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
