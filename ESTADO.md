@@ -429,12 +429,38 @@ se pueden empezar hoy.
    compilar: se les pasa la ruta del cartucho, que es la idea de taro de que el
    test no sepa armar nada.
 
-   **Y puede pedir compresión primero.** La unión de mapas que las pruebas
-   necesitan hoy son **32**, y `demo-ciudad` con 29 ya usa el **74,4%** del
-   cartucho —con el mapa 52, que es de los grandes, entre los que faltan—. No
-   está medido si entra: el intento de armarlo quedó a medias. Si no entra, la
-   compresión sube de prioridad y va **al final de esta etapa, antes de
-   cualquier feature**, que es lo que taro decidió.
+   **Medido el 2026-09-17: la compresión no es lo que frena.** La unión que
+   pide la regla —los mapas de las pruebas más los de `demo-ciudad`— son 41.
+   Sin el 66 y el 261 (ver abajo), **los datos de los otros 39 entran**; lo que
+   no entra es el **banco 0**, por 361 bytes, y la tabla más grande que el
+   conversor pone ahí es `anim_tabla`, 16 bytes por mapa. Se reproduce con:
+
+       python3 tools/snes_convert.py --grupo 10 --map-id 4 --con-ventana \
+           --con-timer --con-titulo -o rom/build/unico/mapdata.inc \
+           --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 \
+                   29 30 32 33 34 36 52 70 73 74 119 121 133 255 269 348
+       python3 tools/ensamblar.py rom/src/main.s -I rom/build/unico \
+           -o rom/build/unico/unico.sfc
+
+   Lo que sí frena, y es de diseño, son las opciones que hoy son **del
+   cartucho entero** y las pruebas usan distintas:
+
+   * **La ventana de mensaje.** El mapa 66 no la puede llevar —no le queda
+     VRAM— y es justamente el que las pruebas usan como "mapa sin ventana"
+     (`SIN_VENTANA` en `pruebas/conftest.py`). Con la ventana en todo el
+     cartucho, el 66 no convierte.
+   * **El grupo.** El mapa 261 se prueba con `--grupo 11`; con el de
+     `demo-ciudad` el actor 11 puede liderar, comparte paleta con un NPC del
+     mapa, y el conversor corta porque un destello los haría brillar a los
+     dos. `--descartar-eventos` no lo cubre.
+   * **Las páginas de prueba**: unos veinte flags del conversor —de
+     `--pagina-de-prueba` a `--batalla-de-prueba`— meten bytecode distinto en
+     cada cartucho. Con uno solo tienen que estar todas adentro y elegirse al
+     correr.
+   * Y `--descartar-eventos`, que la tanda pasa en 14 cartuchos.
+
+   El censo de lo que se arma hoy: 166 cartuchos de la tanda con 37 flags
+   distintos, en `rom/build/tanda/*/huella.txt`.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
