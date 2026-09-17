@@ -206,21 +206,17 @@ def cgram_word(color):
     return (blue << 10) | (green << 5) | red
 
 
-def convert_above(image, palettes=None, grid=None):
-    """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
+def repartir_encima(grid, limite):
+    """Qué paletas se lleva la capa de encima, con `limite` como tope.
 
-    Es mucho más chica que la de abajo —en Map0073 son 419 celdas de 900, con
-    siete colores— así que casi siempre entra en una o dos paletas. Las celdas
-    vacías apuntan al tile 0, que se deja transparente a propósito.
+    Es la decisión, separada de la emisión: cuántas paletas usa esta capa es
+    lo que decide dónde arranca en CGRAM, y eso a su vez le dice al fondo hasta
+    dónde puede llegar. Por eso la toma `_convert_layers`, que es el único que
+    ve las dos capas, y `convert_above` recibe el resultado.
 
-    `palettes` es cuántas le concede el reparto; sin él se lleva las que pida
-    hasta el tope. Si no le alcanzan, fusiona.
-
-    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados).
+    Si no alcanzan, fusiona. Devuelve (grilla, paletas, fusionados): la grilla
+    es otra si hubo que fusionar.
     """
-    if grid is None:
-        grid = cut_tiles(quantize(image))
-    limite = MAX_ABOVE_PALETTES if palettes is None else palettes
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
     groups = pixeles.try_pack(sets, limite) if sets else []
@@ -235,11 +231,21 @@ def convert_above(image, palettes=None, grid=None):
         # vecino más cercano y reintentar. Es lo que la Mega Drive ya hacía con
         # el fondo, y el código vive allá.
         grid, groups, merged, _ = pixeles.reduce_colors(grid, limite)
-    palettes = [sorted(g) for g in groups]
-    # Sin capa de encima no se reserva nada, pero el DMA igual manda una paleta
-    # vacía (ver abajo), así que el corte se cuenta como si hubiera una.
-    above_first = above_split(max(1, len(palettes)))
+    return grid, [sorted(g) for g in groups], merged
 
+
+def convert_above(grid, palettes, above_first, merged=0):
+    """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
+
+    Es mucho más chica que la de abajo —en Map0073 son 419 celdas de 900, con
+    siete colores— así que casi siempre entra en una o dos paletas. Las celdas
+    vacías apuntan al tile 0, que se deja transparente a propósito.
+
+    **No decide nada**: las paletas las eligió `repartir_encima`, y en cuál de
+    CGRAM arranca, `above_first`, lo eligió `_convert_layers`. Acá se emite.
+
+    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados).
+    """
     blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
     pool = {(0, blank): 0}
     tiles = bytearray(32)
@@ -285,7 +291,7 @@ def convert_above(image, palettes=None, grid=None):
     # CGRAM entera, paletas de sprites incluidas. Se emite una paleta vacía.
     if not cram:
         cram = bytearray(2 * COLORS_PER_PALETTE)
-    return bytes(tiles), bytes(cram), tilemap, above_first, len(merged)
+    return bytes(tiles), bytes(cram), tilemap, above_first, merged
 
 
 def entry(tile, horizontal, vertical, priority=0):
@@ -1531,13 +1537,18 @@ def _convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
     pide = -(-(usados + CGRAM_RESERVADAS) // COLORS_PER_PALETTE)
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
-    above = convert_above(above_img, palettes=libres, grid=above_grid)
+    above_grid, paletas_encima, fusionados = repartir_encima(above_grid, libres)
+    # Sin capa de encima no se reserva nada, pero el DMA igual manda una paleta
+    # vacía —ver `convert_above`—, así que el corte se cuenta como si hubiera
+    # una.
+    primera = above_split(max(1, len(paletas_encima)))
+    above = convert_above(above_grid, paletas_encima, primera, len(fusionados))
     # El fondo llega **hasta donde arranca la capa de encima**, sin dejar
     # paletas en el medio: va a 8 bits y no necesita alineación. La ventana ya
     # no le cobra una paleta porque vive abajo de todo, adentro de
     # `CGRAM_RESERVADAS`; `con_ventana` y `ventana_paleta` quedan por
     # compatibilidad de la firma y no cambian el reparto.
-    tope = above[3]
+    tope = primera
     if tope < 1:
         # Inalcanzable con los datos del juego —haría falta una capa de encima
         # que pida las ocho paletas— pero si pasa, el fondo se quedaría sin
