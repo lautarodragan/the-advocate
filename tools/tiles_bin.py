@@ -65,7 +65,8 @@ def png_indexado(ancho, alto, pixeles, colores, transparentes):
     return salida.getvalue()
 
 
-def convertir(png, bpp, columnas, prioridad=False, animaciones=()):
+def convertir(png, bpp, columnas, prioridad=False, animaciones=(),
+              max_tiles=None):
     """Convierte un PNG indexado. Devuelve (tiles, cgram, tilemap, corridas).
 
     `animaciones` son listas de PNG: los dibujos de cada una además de la
@@ -82,6 +83,8 @@ def convertir(png, bpp, columnas, prioridad=False, animaciones=()):
                 "--tilemap", os.path.join(d, "tilemap.bin"), "--json"]
         if prioridad:
             args.append("--priority")
+        if max_tiles is not None:
+            args += ["--max-tiles", str(max_tiles)]
         for a, dibujos in enumerate(animaciones):
             rutas = []
             for n, dibujo in enumerate(dibujos):

@@ -1634,100 +1634,66 @@ def convert(grid, palette, variantes, otras, resumen):
         dibujos[familia] = [grid] + resto[:cuantas]
         resto = resto[cuantas:]
 
-    def familia_de(y, x):
-        """De qué familia es la celda, o None si dibuja siempre igual.
+    # Lo que decidió el asignador, como imágenes indexadas: el color `k` de la
+    # paleta es la entrada `CGRAM_RESERVADAS + k`, y lo transparente es la 0.
+    # Una por dibujo, todas con la misma CGRAM: `tiles` corta si dos le dan
+    # distinto color a una entrada que alguna dibuja.
+    posicion = {color: CGRAM_RESERVADAS + k for k, color in enumerate(palette)}
+    colores = [None] * 256
+    for color, entrada in posicion.items():
+        colores[entrada] = color
+    transparentes = [e == 0 for e in range(256)]
+    ancho, alto = len(grid[0]) * CELL, len(grid) * CELL
 
-        Una celda que cambiara con las dos animaciones a la vez —agua abajo y
-        un tile animado encima— pediría los doce cruces y no dos corridas. Si
-        aparece se corta acá, en vez de emitir un dibujo que acierta la mitad
-        del tiempo.
-        """
-        cuales = [familia for familia, _ in FAMILIAS
-                  if any(g[y][x] != grid[y][x] for g in dibujos[familia][1:])]
-        if len(cuales) > 1:
-            raise SystemExit(
-                "la celda (%d, %d) cambia con las dos animaciones del ChipSet "
-                "a la vez, y eso no se sabe emitir" % (x, y))
-        return cuales[0] if cuales else None
+    def imagen(g):
+        pixeles = [0] * (ancho * alto)
+        for cy, row in enumerate(g):
+            for cx, tile in enumerate(row):
+                for y, line in enumerate(tile):
+                    fila = (cy * CELL + y) * ancho + cx * CELL
+                    for x, color in enumerate(line):
+                        if color is not None:
+                            pixeles[fila + x] = posicion[color]
+        return tiles_bin.png_indexado(ancho, alto, pixeles, colores,
+                                      transparentes)
 
-    clases = [[familia_de(y, x) for x in range(len(grid[0]))]
-              for y in range(len(grid))]
+    imagenes = [("fondo", imagen(grid))]
+    familias, animaciones = [], []
+    for familia, _ in FAMILIAS:
+        if len(dibujos[familia]) < 2:
+            continue
+        pngs = [imagen(g) for g in dibujos[familia][1:]]
+        imagenes += [("%s-%d" % (familia, d + 1), png)
+                     for d, png in enumerate(pngs)]
+        familias.append(familia)
+        animaciones.append(pngs)
 
-    # El tile 0 es el vacío, igual que en la capa de encima: es lo que la ROM
-    # escribe en el tilemap para lo que queda fuera del mapa —ver
-    # `build_column`— y lo que hay en la VRAM que nadie escribió. Un mapa con
-    # una celda enteramente transparente lo reusa; los demás gastan un tile.
-    blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
-    tilemap = [[None] * len(grid[0]) for _ in grid]
-    pools, corridas, siguiente = {}, {}, 0
-    for familia in (None,) + tuple(nombre for nombre, _ in FAMILIAS):
-        pool = {}
-        if familia is None:
-            pool[(blank,)] = 0
-            siguiente = 1
-        inicio = siguiente
-        for y, row in enumerate(grid):
-            for x in range(len(row)):
-                if clases[y][x] != familia:
-                    continue
-                # La clave lleva **todos los dibujos de la celda** y no sólo el
-                # que se ve al entrar: dos celdas comparten tile sólo si además
-                # se animan igual. Y el espejado se prueba sobre los dibujos
-                # juntos, porque el PPU espeja el tile y no cada dibujo por su
-                # cuenta: si el dibujo 1 no es simétrico de la misma forma que
-                # el 0, esa orientación no sirve.
-                pasos = tuple(to_indices(g[y][x], palette,
-                                         base=CGRAM_RESERVADAS)
-                              for g in dibujos[familia])
-                placed = None
-                for orientaciones in zip(*[flips(t) for t in pasos]):
-                    clave = tuple(o for o, _, _ in orientaciones)
-                    if clave in pool:
-                        _, horizontal, vertical = orientaciones[0]
-                        placed = entry(pool[clave], horizontal, vertical)
-                        break
-                if placed is None:
-                    if siguiente >= MAX_TILES:
-                        raise SystemExit("el mapa necesita más de %d tiles"
-                                         % MAX_TILES)
-                    pool[pasos] = siguiente
-                    placed = entry(siguiente, 0, 0)
-                    siguiente += 1
-                tilemap[y][x] = placed
-        pools[familia] = pool
-        if familia is not None and pool:
-            corridas[familia] = (inicio, siguiente - inicio)
-
-    tile_data = bytearray(BYTES_PER_TILE * siguiente)
-    for pool in pools.values():
-        for pasos, number in pool.items():
-            tile_data[number * BYTES_PER_TILE:
-                      (number + 1) * BYTES_PER_TILE] = pack_tile(pasos[0])
+    # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
+    # corrida contigua por familia, después de los quietos: eso lo hace
+    # `tiles`, que es quien numera. Ver "Animations" en tiles/README.md.
+    tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
+        imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
+        max_tiles=MAX_TILES)
+    siguiente = len(tile_data) // BYTES_PER_TILE
 
     # Y los otros dibujos de cada corrida, uno detrás del otro y en el orden de
     # la VRAM: así subirlos es escribir la dirección y disparar el DMA.
     animacion = {}
-    for familia, cuantos in FAMILIAS:
-        if familia not in corridas:
+    for familia, (inicio, largo, bytes_de) in zip(familias, corridas):
+        if not largo:
             continue
-        inicio, largo = corridas[familia]
-        por_numero = {number: pasos for pasos, number in pools[familia].items()}
-        if len(dibujos[familia]) != cuantos:
+        cuantos = dict(FAMILIAS)[familia]
+        if len(bytes_de) != cuantos:
             raise SystemExit("la familia %r pide %d dibujos y llegaron %d"
-                             % (familia, cuantos, len(dibujos[familia])))
-        animacion[familia] = {
-            "base": inicio,
-            "tiles": largo,
-            "dibujos": [bytes(b"".join(
-                pack_tile(por_numero[number][d])
-                for number in range(inicio, inicio + largo)))
-                for d in range(cuantos)],
-        }
+                             % (familia, cuantos, len(bytes_de)))
+        animacion[familia] = {"base": inicio, "tiles": largo,
+                              "dibujos": list(bytes_de)}
 
     # CGRAM: el bloque del mapa lleva **sólo sus colores** y se sube a partir de
     # `CGRAM_RESERVADAS`. Lo de abajo —el color de fondo de la pantalla y la
     # paleta de la ventana— es de toda la ROM y lo sube `cgram_base`.
-    cram = [cgram_word(c) for c in palette]
+    cram = [int.from_bytes(cgram[2 * e:2 * e + 2], "little")
+            for e in range(CGRAM_RESERVADAS, CGRAM_RESERVADAS + len(palette))]
 
     summary = {
         "colores": resumen["colores"],
@@ -1737,6 +1703,7 @@ def convert(grid, palette, variantes, otras, resumen):
         "tiles": siguiente,
         "celdas": sum(len(row) for row in tilemap),
         "animacion": animacion,
+        "imagenes": imagenes,
     }
     return bytes(tile_data), cram, tilemap, summary
 
@@ -6036,9 +6003,11 @@ def main():
                              "asignador")
     os.makedirs(asignador, exist_ok=True)
     for mapa in mapas:
-        with open(os.path.join(asignador, "%04d-encima.png" % mapa["id"]),
-                  "wb") as handle:
-            handle.write(mapa["above"][5])
+        imagenes = list(mapa["imagenes_fondo"]) + [("encima", mapa["above"][5])]
+        for nombre, png in imagenes:
+            with open(os.path.join(asignador, "%04d-%s.png"
+                                   % (mapa["id"], nombre)), "wb") as handle:
+                handle.write(png)
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:
@@ -6830,6 +6799,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             con_ventana=args.con_ventana),
         "resumen": summary, "base": base,
         "anim": anim_bytes(summary["animacion"]),
+        "imagenes_fondo": summary["imagenes"],
         "puertas_crudas": rm2k.collect_doors(game_map),
         # Se guarda el mapa entero porque las puertas y los eventos no se
         # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
