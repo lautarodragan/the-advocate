@@ -43,7 +43,7 @@ def test_arranca_sin_ningun_actor_cambiado(partida):
     le haya tocado, y el héroe se dibujaría con cualquier cosa desde el primer
     cuadro. Lo evita `actor_graf_limpiar`.
     """
-    una = partida(con_ventana=False)
+    una = partida()
     ninguno = una.simbolos["ACTOR_GRAF_NINGUNO"]
     actores = una.simbolos["ACTORES_N"]
     puestos = [a for a in range(actores) if leer(una, a) != ninguno]
@@ -100,7 +100,7 @@ def test_el_mapa_de_la_ram_lejana_no_se_pisa(partida):
     misma declara, así que un `ACTORES_N` más grande lo dice en vez de
     escribirle encima al primer byte de la batalla.
     """
-    una = partida(con_ventana=False)
+    una = partida()
     fin = una.simbolos["FAR_ACTOR_GRAF"] + una.simbolos["ACTORES_N"]
     assert fin <= una.simbolos["FAR_BATALLA"], (
         "los %d actores llegan hasta $%04X y la pelea empieza en $%04X"

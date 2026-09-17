@@ -25,7 +25,7 @@ def test_el_presupuesto_vuelve_cuando_el_jugador_tiene_el_control(partida):
     Es el alcance que el tope tiene en la referencia, donde `saltos` es local a
     `entrar_al_mapa`.
     """
-    una = partida(con_ventana=False)
+    una = partida()
     for _ in range(3000):
         una.correr(1)
         if not una.corriendo_una_pagina() and not una.byte("esperando_n"):
@@ -69,7 +69,7 @@ def test_el_despachante_del_mapa_4_saca_de_ahi(partida):
 
 def test_nadie_entra_en_panico(partida):
     """El tope no se alcanza jugando. Si esto falla, la ROM se paró sola."""
-    una = partida(con_ventana=False)
+    una = partida()
     una.correr(600)
     assert not una.byte("panico"), \
         "la ROM entró en pánico con el código %d" % una.byte("panico")
