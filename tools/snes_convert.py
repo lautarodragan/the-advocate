@@ -1556,8 +1556,17 @@ def _convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
         raise SystemExit(
             "la capa de encima se llevó las ocho paletas y no queda ninguna "
             "para el fondo")
-    return (convert(base, bg_budget(tope), grid=base_grid,
-                    variantes=grillas), above)
+    # Y la paleta del fondo, con ese presupuesto y sobre **todos** sus dibujos.
+    # Se decide acá y `convert` la recibe, igual que la capa de encima.
+    presupuesto = bg_budget(tope)
+    otras = [g for familia, _ in FAMILIAS for g in grillas.get(familia, ())]
+    antes = len({p for row in base_grid for tile in row
+                 for line in tile for p in line if p is not None})
+    palette, base_grid, otras, merged = build_palette(base_grid, presupuesto,
+                                                      otras)
+    return (convert(base_grid, palette, grillas, otras,
+                    {"colores": antes, "presupuesto": presupuesto,
+                     "fusionados": len(merged)}), above)
 
 
 def paleta_de_la_ventana(primeras=None):
@@ -1584,11 +1593,14 @@ def paleta_de_la_ventana(primeras=None):
 FAMILIAS = rm2k.FAMILIAS_ANIMADAS
 
 
-def convert(image, bg_colors=None, grid=None, variantes=None):
-    """La imagen del mapa a tiles, paleta y tilemap.
+def convert(grid, palette, variantes, otras, resumen):
+    """La grilla del mapa a tiles, paleta y tilemap.
 
-    `bg_colors` es lo que le dejó libre la capa de encima; sin él se asume el
-    reparto de dos paletas arriba, que es el que valía cuando no se elegía.
+    **No decide la paleta**: llega de `build_palette`, que la elige en
+    `_convert_layers` con el presupuesto que le dejó la capa de encima. `grid`
+    y `otras` son las grillas ya fusionadas con esa misma paleta; `variantes`
+    las originales, que sólo se usan para saber cuántos dibujos trae cada
+    familia. `resumen` trae lo que se midió antes de fusionar.
 
     `variantes` son las grillas de los **otros** dibujos de la animación del
     ChipSet, por familia: `{"agua": [g1, g2], "animado": [g1, g2, g3]}`. El
@@ -1604,15 +1616,6 @@ def convert(image, bg_colors=None, grid=None, variantes=None):
     Devuelve (datos de tiles, palabras de CGRAM, tilemap, resumen). Dónde caen
     las corridas y los bytes de cada dibujo van en `resumen["animacion"]`.
     """
-    if bg_colors is None:
-        bg_colors = bg_budget(above_split(2))
-    if grid is None:
-        grid = cut_tiles(quantize(image))
-    variantes = variantes or {}
-    otras = [g for familia, _ in FAMILIAS for g in variantes.get(familia, ())]
-    before = len({p for row in grid for tile in row
-                  for line in tile for p in line if p is not None})
-    palette, grid, otras, merged = build_palette(grid, bg_colors, otras)
     # De vuelta a su familia, ya fusionadas con el mismo mapeo que `grid`, y con
     # el dibujo 0 adelante: `dibujos[familia][d]` es la grilla del dibujo `d`.
     dibujos, resto = {None: [grid]}, list(otras)
@@ -1717,10 +1720,10 @@ def convert(image, bg_colors=None, grid=None, variantes=None):
     cram = [cgram_word(c) for c in palette]
 
     summary = {
-        "colores": before,
+        "colores": resumen["colores"],
         "usados": len(palette),
-        "presupuesto": bg_colors,
-        "fusionados": len(merged),
+        "presupuesto": resumen["presupuesto"],
+        "fusionados": resumen["fusionados"],
         "tiles": siguiente,
         "celdas": sum(len(row) for row in tilemap),
         "animacion": animacion,
