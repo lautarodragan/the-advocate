@@ -2515,9 +2515,16 @@ def anim_tabla(mapas):
     que en el registro del mapa ya no entraba. Sin él, `animar_quietos` tendría
     que recorrer las cuarenta filas de NPC en todos los mapas.
     """
-    out = ["; La animación del ChipSet, una entrada de %d bytes por mapa."
+    out = ['.segment "RODATA"',
+           "; La animación del ChipSet, una entrada de %d bytes por mapa."
            % ANIM_STRIDE,
            "; Ver `anim_tabla` en tools/snes_convert.py y `anim_flush` en main.s.",
+           ";",
+           "; **Vive en RODATA y se lee con `lda f:anim_tabla + campo, x`**, por",
+           "; lo mismo que `mapa_tabla`: son 16 bytes por mapa, y con los mapas",
+           "; que piden las pruebas el banco 0 se pasaba por 361. Entera en un",
+           "; banco, porque lo que sigue a $xxFFFF no es la ROM del siguiente.",
+           ".bloque %d" % (ANIM_STRIDE * len(mapas)),
            "anim_tabla:"]
     for mapa in mapas:
         animacion = mapa["resumen"]["animacion"]
@@ -4605,9 +4612,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "%d" % (eventos.espera_tras_giro(f)
                     if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
             for f in range(eventos.RUTA_FRECUENCIA + 1)))
-        handle.write(anim_tabla(mapas))
-        handle.write("\n\n")
         handle.write(tabla_de_mapas(mapas, etiquetas))
+        handle.write("\n\n")
+        # Después de la de mapas, que ya dejó el segmento en RODATA.
+        handle.write(anim_tabla(mapas))
         handle.write("\n")
     return materiales.informe()
 

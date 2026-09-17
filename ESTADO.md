@@ -476,7 +476,7 @@ se pueden empezar hoy.
 
    | | qué | criterio |
    |---|---|---|
-   | 9a | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
+   | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b | la ventana por mapa, y el 66 entra | ídem, más el caso sin ventana en el 66 |
    | 9c | el grupo en la RAM, y el 261 entra | ídem |
    | 9d | las páginas de prueba en una tabla, elegidas por la RAM | ídem |

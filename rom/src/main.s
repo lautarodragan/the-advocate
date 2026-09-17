@@ -17249,7 +17249,7 @@ listo:
     ; `anim_tabla`; sin esto habría que recorrer las cuarenta filas siempre.
     ldy #(ANIM_FAMILIAS - 1)
     jsr anim_donde
-    lda anim_tabla + 7, x
+    lda f:anim_tabla + 7, x
     bne hay
     rts
 hay:
@@ -21873,19 +21873,19 @@ listo:
 .a8
 .i16
     pha                         ; el dibujo, que las cuentas de abajo pisan
-    lda anim_tabla + 6, x
+    lda f:anim_tabla + 6, x
     bne hay
     pla
     rts                         ; esta familia no anima en este mapa
 hay:
     rep #$20
 .a16
-    lda anim_tabla + 0, x
+    lda f:anim_tabla + 0, x
     sta VMADDL
-    lda anim_tabla + 4, x
+    lda f:anim_tabla + 4, x
     sta DAS0L
     sta temp                    ; cuánto mide un dibujo
-    lda anim_tabla + 2, x
+    lda f:anim_tabla + 2, x
     sta temp + 2                ; y dónde está el 0, adentro del bloque
     sep #$20
 .a8
@@ -22005,7 +22005,7 @@ otra:
     ply
     phy
     jsr anim_donde
-    lda anim_tabla + 6, x
+    lda f:anim_tabla + 6, x
     beq siguiente               ; esta familia no anima en este mapa
     lda temp + 2
     cpy #$0000
@@ -22068,7 +22068,7 @@ baja:
     ; Lo que se llevó, en poses: una pose son 512 bytes y un tile de fondo 64.
     ; Se le descuenta al presupuesto en vez de fijarlo, para que se sume a lo
     ; que ya se hayan llevado el tinte o un renglón de la ventana.
-    lda anim_tabla + 6, x
+    lda f:anim_tabla + 6, x
     lsr a
     lsr a
     lsr a
