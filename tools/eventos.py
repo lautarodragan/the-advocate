@@ -199,7 +199,6 @@ def cola_de_escapes(lineas):
 # reintentaría para siempre y una prueba colgada no dice nada—.
 RUTA_HEROE = 10001
 RUTA_ESTE_EVENTO = 10005                    # "este evento", el dueño de la página
-RUTA_VEHICULOS = (10002, 10003, 10004)      # barco, nave, avión: no existen acá
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
 RUTA_MOVER = {n: n for n in range(8)}      # los cuatro move_* y las
                                            # cuatro diagonales: el código
@@ -339,7 +338,6 @@ ANIM_CONTINUA = (16, 12, 10, 8, 7, 6)
 # desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
 # orden y no cuesta ni un cuadro, que es lo que hace RM2k —no toca el contador
 # de parada—.
-RUTA_SONIDO_SE_TIRA = True
 
 # Un salto dura lo que tarda `remaining_step` en bajar de 256 a 0 a
 # `jump_speed[move_speed - 1]` por cuadro. Con la velocidad 4 —la de este
@@ -715,7 +713,6 @@ CHANGE_HERO_TITLE = 10620
 # con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
 # *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
 # lista de tropas, y este port no lee ni una cosa ni la otra.
-CHANGE_ENCOUNTER_STEPS = 11740
 
 ACEPTADOS_SIN_HACER = {
     # CallEvent **ya no está acá**: desde el 2026-09-12 se compila en línea,
@@ -1110,7 +1107,6 @@ def rampa_de_fundido():
 # Qué dispara una página. Los de `rpg::EventPage::Trigger` de liblcf.
 TRIGGER_ACCION = 0          # el jugador aprieta la tecla de acción enfrente
 TRIGGER_TOCA_HEROE = 1      # el héroe camina encima
-TRIGGER_TOCA_EVENTO = 2
 TRIGGER_AUTOMATICO = 3
 TRIGGER_PARALELO = 4
 
@@ -1649,7 +1645,6 @@ LLUVIA_GOTAS = (15, 45, 75)
 LLUVIA_VIDA = 12
 LLUVIA_NACE = 26    # de 256
 LLUVIA_SEMILLA = 0x1D2B
-LLUVIA_LADO = 256   # la superficie, en los dos sentidos
 LLUVIA_DX, LLUVIA_DY = -1, 4
 LLUVIA_COLORES = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # de 5 bits
 
@@ -1957,7 +1952,6 @@ BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 # De dónde sale el fondo, el parámetro [2] de `CommandEnemyEncounter`: 0 el
 # del terreno, 1 el que nombra el comando, 2 ninguno.
 BATALLA_FONDO_DEL_COMANDO = 1
-BATALLA_ESCAPE_PROHIBIDO = 0
 BATALLA_ESCAPE_CORTA = 1
 BATALLA_DERROTA_GAME_OVER = 0
 

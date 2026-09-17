@@ -331,7 +331,6 @@ OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
 COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
 SPRITE_POSES = 12
 POSE_INICIAL = 2 * 3 + 1           # mirando abajo, el frame del medio
-SPRITE_PALETTE = 8                 # los sprites usan las paletas 8 a 15
 OBJ_PALETTES = 8                   # y son ocho, con cronómetro o sin él
 
 # La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
@@ -1728,7 +1727,6 @@ def convert(grid, palette, variantes, otras, resumen):
 # tener permisos distintos si vinieran de tiles distintos del ChipSet, así que
 # va en la clave y se separan solas.
 WINDOW_W, WINDOW_H = 64, 32     # la ventana de tilemap que vive en la VRAM
-BANK_SIZE = 32 * 1024           # lo que direcciona un banco de LoROM
 MAP_LAYOUT = 1                  # dos pantallas de 32x32 al lado, que es 64x32
 BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 
@@ -2008,7 +2006,6 @@ VENTANA_TEXTO_FILA = 1           # la primera fila de celdas que lleva texto
 VENTANA_TEXTO_FILAS = 8
 VENTANA_TEXTO_COL = 1
 VENTANA_TEXTO_COLS = 30
-
 
 
 def _columnas():
@@ -2547,28 +2544,6 @@ def anim_tabla(mapas):
                           if relleno else ""))
             desplazamiento += tiles * BYTES_PER_TILE * cuantos
     return "\n".join(out)
-
-
-def anim_dibujo(tile_data, animacion, pasos):
-    """`tile_data` con los dibujos que tocan en ese momento ya pisados.
-
-    Es lo que la consola tiene en la VRAM después de subir el paso, y con esto
-    la referencia dibuja **desde los mismos bytes** que la ROM: si la corrida se
-    emitiera corrida un tile, las dos se equivocarían distinto y se vería.
-
-    `pasos` es (paso del agua, paso de los tiles animados); ver
-    `rm2k.paso_animado` y, para el agua, `rm2k.AGUA_CICLO` con
-    `rm2k.AGUA_CUADROS_LENTO`.
-    """
-    datos = bytearray(tile_data)
-    for (familia, _), paso in zip(FAMILIAS, pasos):
-        corrida = animacion.get(familia)
-        if not corrida:
-            continue
-        desde = corrida["base"] * BYTES_PER_TILE
-        dibujo = corrida["dibujos"][paso]
-        datos[desde:desde + len(dibujo)] = dibujo
-    return bytes(datos)
 
 
 def animaciones_de_la_rom(mapas, renderer):
