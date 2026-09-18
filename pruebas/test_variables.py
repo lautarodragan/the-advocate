@@ -21,7 +21,7 @@ import eventos                                          # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
 
-ESPERA = 200
+ESPERA = 198
 # var 17 = 5; var 17 += 7 (12); var 21 = azar entre 0 y 100; var 39 = var 17;
 # var 40 = 3; var 40 -= 10 (-7, con signo); var 41 = otro 0, el oro.
 VARIABLES = (17, 0, 0, 5, 0,

@@ -276,7 +276,7 @@ def test_los_hp_viajan_en_la_partida(partida):
     pisan los HP en la RAM antes de reiniciar porque snes9x no la borra —está
     en ESTADO.md— así que sin eso el 7 podría ser el de antes.
     """
-    una = partida(guardar=200)
+    una = partida(guardar=198)
     pelea = Pelea(una)
     una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[0], [7, 0])
     una.guardar_en()
@@ -328,7 +328,7 @@ def test_los_sp_viajan_en_la_partida(partida):
     sin el renglón de la tabla volverían llenos. Resetea la consola de verdad
     —la SRAM sobrevive— y pisa la RAM antes, porque snes9x no la borra.
     """
-    una = partida(guardar=200)
+    una = partida(guardar=198)
     pelea = Pelea(una)
     una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [7, 0])
     una.guardar_en()

@@ -19,7 +19,7 @@ import eventos                                          # noqa: E402
 
 from consola import TITULO_AIRE
 
-ESPERA = 200
+ESPERA = 198
 GRUPO = (14, 11)
 ORO = 1234
 

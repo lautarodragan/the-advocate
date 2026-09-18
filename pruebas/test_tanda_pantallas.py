@@ -205,20 +205,20 @@ def test_equipo_vuelve(cuadro):
 # de hardware, los toques que pelean, el fondo, los mapas de más, el inventario
 # y el relleno de textos.
 BATALLAS = (
-    ("batalla", "86", "20", 200, (), "ABLBackdropSJ03", (), (), ""),
-    ("batalla-blanco", "86", "20", 200, ("a:130", "down:140", "down:150"),
+    ("batalla", "86", "18", 200, (), "ABLBackdropSJ03", (), (), ""),
+    ("batalla-blanco", "86", "18", 200, ("a:130", "down:140", "down:150"),
      "ABLBackdropSJ03", (), (), ""),
     # La tropa del droide del mapa 2 sobre su fondo, que es la única pelea que
     # el jugador alcanza hoy: un enemigo y otro fondo, o sea el otro camino de
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
-    ("batalla-droide", "82", "20", 200, (), "SJBackdropABL04", (), (), ""),
+    ("batalla-droide", "82", "18", 200, (), "SJBackdropABL04", (), (), ""),
     # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
     # **dos** tropas y dos escenas. Es el único caso donde la pelea no es la
     # tropa 0: el mapa 2 pide la 82 y la de la página de prueba queda segunda,
     # así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
     # siempre con el primer renglón.
-    ("batalla-segunda", "86", "20", 200, (), "ABLBackdropSJ03", ("2",), (),
+    ("batalla-segunda", "86", "18", 200, (), "ABLBackdropSJ03", ("2",), (),
      ""),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
@@ -229,10 +229,10 @@ BATALLAS = (
     # **Son tres derechas y no dos desde el 2026-09-13**: el menú pasó a tener
     # el orden del original —Attack / <habilidad> / Defend / Use Item— y
     # `Use Item` quedó cuarta.
-    ("batalla-item", "86", "20", 220,
+    ("batalla-item", "86", "18", 220,
      ("right:130", "right:140", "right:150", "a:160"), "ABLBackdropSJ03", (),
      ("1", "3", "97", "2"), ""),
-    ("batalla-item-blanco", "86", "20", 250,
+    ("batalla-item-blanco", "86", "18", 250,
      ("right:130", "right:140", "right:150", "a:160", "a:170", "down:180"),
      "ABLBackdropSJ03", (), ("1", "3", "97", "2"), ""),
     # Los tres modos de las habilidades. Una derecha lleva el cursor a la
@@ -250,11 +250,11 @@ BATALLAS = (
     #                       después de elegirla el cursor se va a los actores,
     #                       con la lista en gris. Es el camino que la de ítems
     #                       ya tenía y que una habilidad de enemigo no toca
-    ("batalla-hab", "86", "20", 220, ("right:130", "a:140"),
+    ("batalla-hab", "86", "18", 220, ("right:130", "a:140"),
      "ABLBackdropSJ03", (), (), ""),
-    ("batalla-hab-dos", "86", "20", 240, ("right:130", "a:140", "right:150"),
+    ("batalla-hab-dos", "86", "18", 240, ("right:130", "a:140", "right:150"),
      "ABLBackdropSJ03", (), (), ""),
-    ("batalla-hab-blanco", "86", "20", 240, ("right:130", "a:140", "a:150"),
+    ("batalla-hab-blanco", "86", "18", 240, ("right:130", "a:140", "a:150"),
      "ABLBackdropSJ03", (), (), ""),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
     # taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla
@@ -266,7 +266,7 @@ BATALLAS = (
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "86", "20", 200, (), "ABLBackdropSJ03", (), (),
+    ("batalla-textos-lejos", "86", "18", 200, (), "ABLBackdropSJ03", (), (),
      "200"),
 )
 
@@ -325,7 +325,7 @@ def test_vuelta(cuadro):
     nombre = "vuelta-ventana"
     sfc, simbolos, mapas = cartucho(
         nombre, "--map-id", "6",
-        "--pagina-de-prueba", "20", "--batalla-de-prueba", "82",
+        "--pagina-de-prueba", "18", "--batalla-de-prueba", "82",
         "--fondo-de-prueba", "SJBackdropABL04")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro, toques_hardware=PELEAR)

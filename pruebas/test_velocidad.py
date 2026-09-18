@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "tools"))
 import eventos                                          # noqa: E402
 
-ESPERA = 200
+ESPERA = 198
 
 
 def donde_queda(tile_y, velocidad, cuadros):

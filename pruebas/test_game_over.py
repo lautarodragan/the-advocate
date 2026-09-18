@@ -45,7 +45,7 @@ TROPA = 82
 # Ticks que la página de prueba espera antes de abrir la pelea. Son los que la
 # prueba usa para poner los HP en cero; con menos, la pelea se abre antes de
 # que la escritura llegue.
-ESPERA = 20
+ESPERA = 18
 # El jefe de los Rat Tracks, que es lo que todo esto destraba.
 RAT_TRACKS_B2, JEFE = 26, 6
 # Y el cofre trampa de los Rat Tracks B1, que es la otra de las 15 páginas que

@@ -23,7 +23,7 @@ from eventos import SWITCH_DE_PRUEBA                    # noqa: E402
 
 # Cuántos ticks espera la página de prueba antes de guardar, como en
 # `test_guardar`: alcanzan para irse a otro mapa —el fundido son 90— y sobra.
-ESPERA = 200
+ESPERA = 198
 
 EMPEZAR, SEGUIR = 0, 1
 

@@ -274,7 +274,7 @@ def test_sprite_actor(cuadro):
         "sprite-actor", "--map-id", "6", "--inicio", "22", "12",
         "--sprite-de-prueba", "11", "Future1", "0",
         "--grafico-de-prueba", "Future1", "0",
-        "--pagina-de-prueba", "20", "100", "100", "100")
+        "--pagina-de-prueba", "18", "100", "100", "100")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("sprite-actor-%d" % cuadro, p.imagen())

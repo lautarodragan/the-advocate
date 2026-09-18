@@ -21,7 +21,7 @@ import pytest
 
 # Cuántos ticks espera la página de prueba antes de guardar. Alcanzan para
 # irse a otro mapa —el fundido son 90— y que sobre margen.
-ESPERA = 200
+ESPERA = 198
 
 
 @pytest.fixture
