@@ -501,9 +501,21 @@ se pueden empezar hoy.
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
    | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
-   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"— | ídem |
+   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, cada una tras su switch; (3) las definiciones salen de los flags a datos | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
+
+   **9d, corte 1, a medias.** `_comandos_de_prueba` arma la página como
+   comandos y `_es_la_que_compilaria_el_juego` la compila por
+   `compilar_pagina` y pide los mismos bytes que la escrita a mano; un
+   caso que usa algo que todavía no sabe decir se saltea en silencio.
+   Lo que falta, de lo que más casos saltea a lo que menos: `ruta` y
+   `ruta_ev`, las esperas que no son décimas enteras —RM2k no sabe decir
+   "veinte cuadros", así que ésas hay que redondearlas y volver a aprobar
+   la golden, o dejarlas—, `mensaje`, `variables` y las ramas parcheadas a
+   mano. Los que llevan un blanco ya traducido al índice de la ROM —`flash`,
+   `ruta_ev`, `lugar`— no se pueden decir hasta el corte 3, cuando la
+   página sea un evento del mapa y el blanco lo resuelva `eventos_mapa`.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del

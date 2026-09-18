@@ -507,8 +507,6 @@ FLASH_SPRITE = 11320
 # `Game_Interpreter::CommandChangePartyMember` en easyrpg-player.
 GRUPO_AGREGAR, GRUPO_SACAR = 0, 1
 GRUPO_ID_FIJO = 0
-# La operación de un `ChangePartyMembers`, su parámetro [0].
-GRUPO_METER, GRUPO_SACAR = 0, 1
 GRUPO_MAX = 4           # `Game_Party::AddActor` no agrega si ya hay cuatro
 
 # Comandos que se aceptan sin hacer nada, porque no hacer nada no se ve. Es el
@@ -4620,6 +4618,157 @@ def blanco_de_prueba(blanco):
     return blanco + EVENTOS_DE_PRUEBA if blanco else 0
 
 
+class _NoEsDeRM2k(Exception):
+    """Lo que la página de prueba todavía no sabe decir con comandos de RM2k.
+
+    No es un error: es el estado de la mudanza. Un caso que llegue acá se
+    queda con su bytecode escrito a mano y sin verificar, como estaba.
+    """
+
+
+def _cmd(codigo, parametros=(), texto="", sangria=0):
+    import lcf
+    return lcf.EventCommand(codigo, sangria, texto, list(parametros))
+
+
+def _decimas(cuadros):
+    """Los cuadros como las décimas que RM2k escribe en el comando.
+
+    RM2k no sabe decir "once cuadros": las esperas, los destellos y las
+    sacudidas van en décimas de segundo. Un caso que pidió un número de
+    cuadros que no es múltiplo no tiene comando que lo diga.
+    """
+    if cuadros % CUADROS_POR_DECIMA:
+        raise _NoEsDeRM2k("%d cuadros no son décimas enteras" % cuadros)
+    return cuadros // CUADROS_POR_DECIMA
+
+
+# Argumentos de `pagina_de_prueba` que no emiten nada por sí solos: son
+# contexto de features que todavía no se convierten.
+_SIN_BYTECODE = ("frecuencia", "eventos_mapa", "temas", "graficos")
+
+ACCESO_COMANDO = {ACCESO_GUARDAR: CHANGE_SAVE_ACCESS,
+                  ACCESO_MENU: CHANGE_MENU_ACCESS,
+                  ACCESO_ESCAPAR: CHANGE_ESCAPE_ACCESS}
+
+
+def _comandos_de_prueba(caso):
+    """La página de prueba como comandos de RM2k, en el orden en que se emiten.
+
+    Recibe el caso ya sin lo que quedó en su valor por omisión y va sacando lo
+    que sabe decir; si al final le queda algo, levanta `_NoEsDeRM2k`.
+
+    Es lo que el paso 9d viene a hacer: que lo que las pruebas inventan sea un
+    dato de RM2k y no bytecode escrito a mano, para que lo compile el mismo
+    camino que compila el juego y para que el día que exista el juego golden se
+    mude moviendo archivos.
+    """
+    caso = dict(caso)
+    for nombre in _SIN_BYTECODE:
+        caso.pop(nombre, None)
+    saca = caso.pop
+
+    out = [_cmd(CONTROL_SWITCHES,
+                [SWITCH_UNICO, SWITCH_DE_PRUEBA, SWITCH_DE_PRUEBA, SWITCH_ON])]
+    if "grupo" in caso:
+        del_cartucho, pedido = saca("grupo")
+        out += [_cmd(CHANGE_PARTY_MEMBERS, [GRUPO_SACAR, GRUPO_ID_FIJO, a])
+                for a in del_cartucho]
+        out += [_cmd(CHANGE_PARTY_MEMBERS, [GRUPO_AGREGAR, GRUPO_ID_FIJO, a])
+                for a in pedido]
+    if "lluvia" in caso:
+        out.append(_cmd(WEATHER_EFFECTS, [CLIMA_LLUVIA, saca("lluvia")]))
+    if "timer" in caso:
+        segundos, visible = saca("timer")
+        out.append(_cmd(TIMER_OPERATION,
+                        [TIMER_PONER, TIMER_SEGUNDOS_FIJOS, segundos, 0, 0]))
+        # El cuarto parámetro de arrancar es "también en batalla", que es el
+        # que la ROM lee como "se ve"; ver el `TIMER_OPERATION` de `_compilar`.
+        out.append(_cmd(TIMER_OPERATION,
+                        [TIMER_ARRANCAR, 0, 0, 1 if visible else 0, 0]))
+    for numero in saca("switches", ()):
+        out.append(_cmd(CONTROL_SWITCHES,
+                        [SWITCH_UNICO, numero, numero, SWITCH_ON]))
+    if "rama" in caso:
+        cual, adentro, despues = saca("rama")
+        out.append(_cmd(COND_RAMA, [COND_SWITCH, cual, 0, 0, 0, 0]))
+        out.append(_cmd(CONTROL_SWITCHES,
+                        [SWITCH_UNICO, adentro, adentro, SWITCH_ON], sangria=1))
+        out.append(_cmd(COND_FIN))
+        out.append(_cmd(CONTROL_SWITCHES,
+                        [SWITCH_UNICO, despues, despues, SWITCH_ON]))
+    if "fundir_bgm" in caso:
+        out.append(_cmd(FADE_OUT_BGM, [saca("fundir_bgm")]))
+    if "destello" in caso:
+        r, g, b, fuerza, cuadros = saca("destello")
+        out.append(_cmd(FLASH_SCREEN, [r, g, b, fuerza, _decimas(cuadros), 0]))
+    pan = saca("pan", ())
+    for k in range(0, len(pan), 5):
+        out.append(_cmd(PAN_SCREEN, list(pan[k:k + 5])))
+    if "sacudida" in caso:
+        out.append(_cmd(SHAKE_SCREEN, list(saca("sacudida"))))
+    if "espera" in caso:
+        out.append(_cmd(WAIT, [_decimas(saca("espera"))]))
+    if "tecla" in caso:
+        out.append(_cmd(KEY_INPUT_PROC, list(saca("tecla"))))
+    items = saca("items", ())
+    for k in range(0, len(items), 2):
+        numero, cuanto = items[k:k + 2]
+        out.append(_cmd(CHANGE_ITEMS,
+                        [1 if cuanto < 0 else 0, 0, numero, 0, abs(cuanto)]))
+    acceso = saca("acceso", ())
+    for k in range(0, len(acceso), 2):
+        cual, permitido = acceso[k:k + 2]
+        out.append(_cmd(ACCESO_COMANDO[cual], [permitido]))
+    if saca("guardar", False):
+        out.append(_cmd(OPEN_SAVE_MENU))
+    if "tinte" in caso:
+        tinte = saca("tinte")
+        out.append(_cmd(TINT_SCREEN,
+                        [tinte[0], tinte[1], tinte[2],
+                         tinte[3] if len(tinte) > 3 else TINTE_NEUTRO, 0, 0]))
+    if caso:
+        raise _NoEsDeRM2k(", ".join(sorted(caso)))
+    return out
+
+
+def _es_la_que_compilaria_el_juego(caso, codigo):
+    """Exige que la página escrita a mano sea la que saldría de comandos.
+
+    Mientras las dos existan, ésta es la única red que las ata: el bytecode de
+    `pagina_de_prueba` se escribe byte por byte y el de una página del juego
+    sale de `compilar_pagina`, así que una diferencia entre los dos caminos
+    —un parámetro leído de otro lado, un destino de rama contado a mano— se
+    vería en las goldens de la prueba y en ninguna otra parte.
+
+    Los casos que todavía no se saben decir con comandos se saltean; ver
+    `_comandos_de_prueba`.
+    """
+    import inspect
+    omision = {k: v.default for k, v in
+               inspect.signature(pagina_de_prueba).parameters.items()}
+
+    def ausente(k, v):
+        # Los llamadores pasan `[]` donde la firma dice `()`, y la página los
+        # mira con `if tinte:`. Un `None` por omisión, en cambio, es un `is
+        # not None`: `lluvia=0` es lluvia de fuerza cero, no la falta de lluvia.
+        d = omision[k]
+        return v == d or (d is not None and not d and not v)
+
+    try:
+        comandos = _comandos_de_prueba(
+            {k: v for k, v in caso.items() if not ausente(k, v)})
+    except _NoEsDeRM2k:
+        return
+    salida = compilar_pagina(_Comandos(comandos), None)
+    if salida != codigo:
+        raise AssertionError(
+            "la página de prueba no es la que compilaría el juego:\n"
+            "  a mano   %s\n"
+            "  compilada %s" % (codigo.hex(), "None" if salida is None
+                                else salida.hex()))
+
+
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
@@ -4675,6 +4824,10 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     la ruta no termine, el tinte de más abajo no se aplica, así que el cuadro en
     que la pantalla cambia de color es el cuadro en que la ruta terminó.
     """
+    # El caso entero, antes de que haya ningún otro local: lo mira
+    # `_es_la_que_compilaria_el_juego` al final.
+    caso = dict(locals())
+
     # Lo primero de todo: el switch que la desactiva. Sin esto la página se
     # repetiría mientras siga siendo la activa, que es lo que hace una
     # automática en RM2k; ver `SWITCH_DE_PRUEBA`.
@@ -4697,7 +4850,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         for actor in del_cartucho:
             codigo += bytes([OP_PARTY, GRUPO_SACAR, actor])
         for actor in pedido:
-            codigo += bytes([OP_PARTY, GRUPO_METER, actor])
+            codigo += bytes([OP_PARTY, GRUPO_AGREGAR, actor])
     if lluvia is not None:
         # La fuerza de un WeatherEffects de lluvia, de 0 a 2. La única que
         # llueve en el juego es la apertura, y ahí la cámara no se mueve: sin
@@ -4726,9 +4879,10 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # hay ninguna donde se pueda elegir qué rama se toma. Sin eso, la rama
         # que **corre** no la ejercita nada; sólo la que se saltea.
         #
-        # Compila a lo mismo que compilaría el juego —`OP_IF` y `OP_GOTO`, con el
-        # destino puesto por el mismo parcheo— porque sale del mismo camino:
-        # se arma la lista de comandos y la compila `compilar_pagina`.
+        # Sale lo mismo que compilaría el juego —`OP_IF` con el destino
+        # después del `OP_SWITCH` de adentro—, y eso no es una promesa: lo
+        # exige `_es_la_que_compilaria_el_juego`, que compila este mismo caso
+        # como comandos de RM2k y pide los mismos bytes.
         cual, adentro, despues = rama
         # El destino es el mismo que pondría `compilar_pagina` al cerrar la
         # rama: después del `OP_IF` —siete bytes desde que lleva la clase de
@@ -5018,7 +5172,9 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # (r, g, b) y, si viene, la saturación; si no, la neutra.
         codigo += bytes([OP_TINT]) + bytes(tinte[:3])
         codigo += bytes([tinte[3] if len(tinte) > 3 else TINTE_NEUTRO])
-    return codigo + bytes([OP_DONE])
+    codigo += bytes([OP_DONE])
+    _es_la_que_compilaria_el_juego(caso, codigo)
+    return codigo
 
 
 # Los pesos de luminancia de RM2k, que son los de Y' del Y'CbCr: la cuenta de
