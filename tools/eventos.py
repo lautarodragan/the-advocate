@@ -4952,7 +4952,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         import lcf
         codigo += _compilar(lcf.EventCommand(
             SHOW_BATTLE_ANIMATION, 0, "", list(animacion) + [0]), None,
-            eventos_mapa=eventos_mapa)
+            eventos_mapa=eventos_mapa, temas=temas)
     if ruta_ev:
         blanco, ordenes = ruta_ev
         blanco = blanco_de_prueba(blanco)
@@ -5011,7 +5011,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # apretó.
         import lcf
         codigo += _compilar(lcf.EventCommand(
-            KEY_INPUT_PROC, 0, "", list(tecla)), None)
+            KEY_INPUT_PROC, 0, "", list(tecla)), None,
+            eventos_mapa=eventos_mapa)
     if variables:
         # ControlVars, de a cinco números —variable, operación, clase, a, b—
         # con los mismos números de RM2k, y compilados por el mismo camino que
