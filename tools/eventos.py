@@ -4644,8 +4644,9 @@ def _decimas(cuadros):
 
 
 # Argumentos de `pagina_de_prueba` que no emiten nada por sí solos: son
-# contexto de features que todavía no se convierten.
-_SIN_BYTECODE = ("frecuencia", "eventos_mapa", "temas", "graficos")
+# contexto de features que todavía no se convierten. `frecuencia` no está
+# porque la ruta del héroe sí se convierte, y la lleva.
+_SIN_BYTECODE = ("eventos_mapa", "temas", "graficos")
 
 ACCESO_COMANDO = {ACCESO_GUARDAR: CHANGE_SAVE_ACCESS,
                   ACCESO_MENU: CHANGE_MENU_ACCESS,
@@ -4667,6 +4668,7 @@ def _comandos_de_prueba(caso):
     for nombre in _SIN_BYTECODE:
         caso.pop(nombre, None)
     saca = caso.pop
+    frecuencia = saca("frecuencia", RUTA_FRECUENCIA)
 
     out = [_cmd(CONTROL_SWITCHES,
                 [SWITCH_UNICO, SWITCH_DE_PRUEBA, SWITCH_DE_PRUEBA, SWITCH_ON])]
@@ -4699,6 +4701,12 @@ def _comandos_de_prueba(caso):
                         [SWITCH_UNICO, despues, despues, SWITCH_ON]))
     if "fundir_bgm" in caso:
         out.append(_cmd(FADE_OUT_BGM, [saca("fundir_bgm")]))
+    if "ruta" in caso:
+        # Sin repetir y sin saltear lo que no se puede, que son los dos
+        # booleanos de en medio. Las órdenes van tal cual porque son todas
+        # menores que 128, y RM2k escribe cada entero en siete bits.
+        out.append(_cmd(MOVE_EVENT,
+                        [RUTA_HEROE, frecuencia, 0, 0] + list(saca("ruta"))))
     if "destello" in caso:
         r, g, b, fuerza, cuadros = saca("destello")
         out.append(_cmd(FLASH_SCREEN, [r, g, b, fuerza, _decimas(cuadros), 0]))

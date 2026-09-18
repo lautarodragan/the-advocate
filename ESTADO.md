@@ -509,8 +509,8 @@ se pueden empezar hoy.
    comandos y `_es_la_que_compilaria_el_juego` la compila por
    `compilar_pagina` y pide los mismos bytes que la escrita a mano; un
    caso que usa algo que todavía no sabe decir se saltea en silencio.
-   Lo que falta, de lo que más casos saltea a lo que menos: `ruta` y
-   `ruta_ev`, las esperas que no son décimas enteras —RM2k no sabe decir
+   Lo que falta, de lo que más casos saltea a lo que menos: `ruta_ev`,
+   las esperas que no son décimas enteras —RM2k no sabe decir
    "veinte cuadros", así que ésas hay que redondearlas y volver a aprobar
    la golden, o dejarlas—, `mensaje`, `variables` y las ramas parcheadas a
    mano. Los que llevan un blanco ya traducido al índice de la ROM —`flash`,
