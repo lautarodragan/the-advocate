@@ -1408,6 +1408,21 @@ tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
+## Después de la etapa: la tanda en paralelo
+
+Decidido por taro el 2026-09-18, para **después** de cerrar la etapa y del
+9f: la tanda corre en paralelo, con `pytest-xdist` o equivalente. **El build
+va primero y secuencial** —se arma el cartucho que todas las pruebas usan— y
+recién después se dispara la tanda con paralelismo; así no hay dos procesos
+armando lo mismo y no hace falta un lock.
+
+Lo que se descartó en la misma conversación: **pasar las pruebas a C** para
+hablarle a libretro sin ctypes. Medido ese día con cProfile sobre
+`test_tanda_paginas.py` con los cartuchos armados: de 13 s, casi todo es el
+core emulando y cargándose —ya es C—, y lo que es Python no llega a uno. El
+arnés en C no bajaría el tiempo y cambiaría pytest, PIL y el caché de
+cartuchos por código propio.
+
 ## Lo que se dejó afuera a propósito
 
 * **El panorama del mapa 2** —los puntitos sobre azul cuando se enciende la
