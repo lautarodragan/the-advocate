@@ -4598,6 +4598,20 @@ def blancos_de_ruta(paginas):
 # —es el idioma de RM2k— así que la de prueba hace lo mismo, y de paso ejercita
 # ese idioma.
 SWITCH_DE_PRUEBA = 1023
+
+# La variable que elige cuál de las páginas de prueba corre, cuando un cartucho
+# lleva varias: ver `--caso` en snes_convert.py. La página k pide que valga
+# **al menos** k, que es la única comparación que RM2k 2000 ofrece en la
+# condición de una página, y como gana la de número más alto que se cumple,
+# con la variable en k corre la k y ninguna otra. Con una sola variable
+# alcanza para cualquier cantidad de casos; con un switch por caso no: libres
+# quedan del 1004 al 1020 y el 1022.
+#
+# El número no importa, porque la ROM habla de ranuras, y ninguna página del
+# juego nombra al 1000. Va más arriba que todas las del juego, así que su
+# ranura es la última y no corre la de ninguna otra.
+VARIABLE_DE_CASO = 1000
+COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # El switch que no se prende nunca: es lo que lleva como `switch_a` una página
 # con una condición que el port no puede cumplir —un ítem, ver
 # `rm2k.CONDICIONES_IMPOSIBLES`— para que ni la ROM ni la referencia la elijan

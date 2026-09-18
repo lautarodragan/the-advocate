@@ -29,6 +29,12 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 
 Uso:
     python3 tools/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
+
+Varias páginas de prueba en un cartucho, cada una con sus flags detrás de un
+`--caso`; los del cartucho van antes del primero. El arnés elige cuál corre
+con `Partida(caso=k)`:
+    python3 tools/snes_convert.py -o … --map-id 6 --pan-de-prueba 2 0 2 2 1 \
+        --caso --pan-de-prueba 3 0 0 4 1
 """
 
 import argparse
@@ -5360,8 +5366,11 @@ def main():
                              "esto arranca en el tile abierto más cercano al "
                              "centro. Sirve para llevar la cámara a un lugar "
                              "puntual sin tener que caminar hasta él")
-    args = parser.parse_args()
-    args.con_timer = args.con_timer or args.timer_de_prueba is not None
+    argv, tramos = partir_en_casos(sys.argv[1:])
+    args = parser.parse_args(argv)
+    args.casos = casos_de_prueba(parser, args, tramos)
+    args.con_timer = args.con_timer or any(
+        c.timer_de_prueba is not None for c in args.casos)
 
     renderer = Renderer(args.game_dir)
 
@@ -5396,10 +5405,16 @@ def main():
     #
     # Las variables del juego entero, con su ranura. La referencia arma el
     # mismo índice.
-    eventos.indexar_variables(args.game_dir,
-                              variables_de_prueba(args.vars_de_prueba,
-                                                  args.rama_var_de_prueba,
-                                                  args.tecla_de_prueba))
+    extra = set()
+    for caso in args.casos:
+        extra |= variables_de_prueba(caso.vars_de_prueba,
+                                     caso.rama_var_de_prueba,
+                                     caso.tecla_de_prueba)
+    if len(args.casos) > 1:
+        # La que elige el caso: ver `eventos.VARIABLE_DE_CASO`. Con uno solo
+        # no hace falta, y así ese cartucho sale igual que antes de `--caso`.
+        extra.add(eventos.VARIABLE_DE_CASO)
+    eventos.indexar_variables(args.game_dir, extra)
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
     # línea de tiempo adentro: ver OP_ANIMATION.
     eventos.indexar_animaciones(args.game_dir)
@@ -5415,12 +5430,15 @@ def main():
     args.lideres = lideres_posibles(renderer, todos, grupo)
     # Y los del grupo de prueba, detrás: la prueba puede arrancar con él en
     # cualquier mapa del cartucho.
-    if args.grupo_de_prueba:
-        for actor in lideres_posibles(renderer, todos, args.grupo_de_prueba):
-            if actor not in args.lideres:
-                args.lideres.append(actor)
+    for caso in args.casos:
+        if caso.grupo_de_prueba:
+            for actor in lideres_posibles(renderer, todos,
+                                          caso.grupo_de_prueba):
+                if actor not in args.lideres:
+                    args.lideres.append(actor)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
+    args.con_lluvia = hay_lluvia(todos) or any(
+        c.lluvia_de_prueba is not None for c in args.casos)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -5446,9 +5464,10 @@ def main():
     # va por la misma puerta: si fuera por `--grafico-de-prueba` tendría índice
     # sólo en el mapa donde arranca la ROM, y lo que el comando hace —cruzar el
     # teletransporte— no se podría probar.
-    prueba = sprite_de_prueba(args.sprite_de_prueba)
-    if prueba and (prueba[1], prueba[2]) not in args.asociaciones:
-        args.asociaciones.append((prueba[1], prueba[2]))
+    for caso in args.casos:
+        prueba = sprite_de_prueba(caso.sprite_de_prueba)
+        if prueba and (prueba[1], prueba[2]) not in args.asociaciones:
+            args.asociaciones.append((prueba[1], prueba[2]))
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -5481,8 +5500,9 @@ def main():
     # lleva el id de RM2k— así que sólo dice qué tablas de enemigos hay que
     # emitir. Ver `eventos.Tropas`.
     tropas = eventos.Tropas()
-    prueba = (mensajes.agregar(args.mensaje_de_prueba)
-              if args.mensaje_de_prueba is not None else None)
+    mensaje_de_caso = [mensajes.agregar(c.mensaje_de_prueba)
+                       if c.mensaje_de_prueba is not None else None
+                       for c in args.casos]
 
     for mapa in mapas:
         mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
@@ -5546,8 +5566,7 @@ def main():
             sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
-        if pide_pagina_de_prueba(args) \
-                and mapa is mapas[args.inicial]:
+        if args.casos and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
             # de ningún dato del juego: existe porque ninguna página que compile
             # tiene una espera, así que el intérprete cuadro a cuadro no lo
@@ -5557,50 +5576,29 @@ def main():
             # al principio del mapa: la ROM recorre los eventos de menor a
             # mayor, y esta página tiene que correr antes que las del juego.
             # Hasta el 2026-09-17 iba en el primer índice libre, al final.
-            espera, tinte = 0, ()
-            if args.pagina_de_prueba:
-                espera, *tinte = args.pagina_de_prueba
-            paginas = paginas + [{
-                "evento": 0, "pagina": 0, "prueba": True,
-                "trigger": eventos.TRIGGER_AUTOMATICO,
-                "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
-                "item": 0, "capa": 0,
-                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
-                "codigo": eventos.pagina_de_prueba(
-                    espera, tinte, args.ruta_de_prueba or (), prueba,
-                    ruta_de_evento(args.ruta_de_evento),
-                    args.flash_de_prueba or (), args.switch or (),
-                    args.timer_de_prueba or (),
-                    lugar_de_prueba(args.lugar_de_prueba),
-                    frecuencia=args.frecuencia,
-                    sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
-                    fundir_bgm=args.fundir_bgm,
-                    pan=pan_de_prueba(args.pan_de_prueba),
-                    rama=tuple(args.rama_de_prueba or ()),
-                    destello=tuple(args.destello_de_prueba or ()),
-                    guardar=args.guardar_de_prueba,
-                    variables=tuple(args.vars_de_prueba or ()),
-                    rama_var=tuple(args.rama_var_de_prueba or ()),
-                    items=tuple(args.items_de_prueba or ()),
-                    acceso=tuple(args.acceso_de_prueba or ()),
-                    lluvia=args.lluvia_de_prueba,
-                    animacion=tuple(args.animacion_de_prueba or ()),
-                    eventos_mapa=eventos.Eventos(mapa["game_map"]),
-                    batalla=args.batalla_de_prueba,
-                    batalla_game_over=args.batalla_game_over, temas=temas,
-                    parar=args.parar_de_prueba,
-                    rama_item=tuple(args.rama_item_de_prueba or ()),
-                    sprite=sprite_de_prueba(args.sprite_de_prueba),
-                    graficos=graficos,
-                    tecla=tuple(args.tecla_de_prueba or ()),
-                    rama_actor=tuple(args.rama_actor_de_prueba or ()),
-                    grupo=((tuple(grupo), tuple(args.grupo_de_prueba))
-                           if args.grupo_de_prueba else None))}, {
+            #
+            # **Una página por caso**, y la k pide que `VARIABLE_DE_CASO`
+            # valga al menos k: ver su comentario. La 0 no pide nada, así que
+            # un cartucho de un solo caso es el de siempre.
+            de_prueba = []
+            for k, caso in enumerate(args.casos):
+                de_prueba.append({
+                    "evento": 0, "pagina": k, "prueba": True,
+                    "trigger": eventos.TRIGGER_AUTOMATICO,
+                    "switch_a": 0, "switch_b": 0, "actor": 0,
+                    "variable": ((eventos.ranura_de_variable(
+                        eventos.VARIABLE_DE_CASO),
+                        eventos.COMPARAR_AL_MENOS, k) if k else None),
+                    "item": 0, "capa": 0,
+                    "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                    "codigo": pagina_de_caso(caso, grupo, mensaje_de_caso[k],
+                                             mapa, temas, graficos)})
+            paginas = paginas + de_prueba + [{
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
                 # correr y la primera no se repite.
-                "evento": 0, "pagina": 1, "prueba": True,
+                "evento": 0, "pagina": len(de_prueba), "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
@@ -5776,10 +5774,13 @@ def main():
     # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
     # una de menos deja un hueco en el menú.
     miembros = miembros_posibles(
-        todos, list(grupo) + list(args.grupo_de_prueba or ()))
+        todos, list(grupo) + [a for c in args.casos
+                              for a in c.grupo_de_prueba or ()])
     # Y los ítems que pueden estar en el inventario, para llevar su nombre y
     # su descripción: ver "la pantalla de ítems" en titulo.py.
-    items_rom = items_posibles(todos, args.items_de_prueba, miembros,
+    items_rom = items_posibles(todos, [i for c in args.casos
+                                       for i in c.items_de_prueba or ()],
+                               miembros,
                                renderer.database)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
@@ -5852,8 +5853,9 @@ def main():
         print("  encuentros al azar: %d mapa(s), %d zona(s), %d tropa(s)"
               % (len(encuentros["registros"]), len(encuentros["zonas"]),
                  cuantas))
-    if args.batalla_de_prueba:
-        tropas.pedir(args.batalla_de_prueba, args.fondo_de_prueba)
+    for caso in args.casos:
+        if caso.batalla_de_prueba:
+            tropas.pedir(caso.batalla_de_prueba, caso.fondo_de_prueba)
     # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
     # páginas compilaban. Se vuelve a pedir sólo para leerlos: `Temas` numera
     # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
@@ -5883,6 +5885,11 @@ def main():
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
                    escenas, encuentros)
+    if len(args.casos) > 1:
+        # Dónde escribe el arnés el número de caso: ver `--caso`.
+        with open(args.output, "a") as handle:
+            handle.write("\nCASO_RANURA = %d\n" % eventos.ranura_de_variable(
+                eventos.VARIABLE_DE_CASO))
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     # Lo que decidió el asignador, como imágenes: para mirar qué colores se
@@ -6276,6 +6283,101 @@ def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False):
                 page.character_name += rm2k.COPIA_SUFIJO
 
 
+# Los flags que describen **un caso** de prueba —lo que hace su página— y no
+# el cartucho. Son los que pueden ir detrás de un `--caso`; los demás son del
+# cartucho entero y van antes del primero. `--grafico-de-prueba` es del
+# cartucho a propósito: dice qué gráficos hay en el banco de sprites del mapa,
+# no qué hace la página.
+FLAGS_DE_CASO = (
+    "pagina_de_prueba", "ruta_de_prueba", "rama_de_prueba",
+    "guardar_de_prueba", "batalla_de_prueba", "batalla_game_over",
+    "fondo_de_prueba", "sprite_de_prueba", "tecla_de_prueba",
+    "vars_de_prueba", "rama_var_de_prueba", "items_de_prueba",
+    "acceso_de_prueba", "ruta_de_evento", "flash_de_prueba", "switch",
+    "destello_de_prueba", "timer_de_prueba", "lugar_de_prueba",
+    "parar_de_prueba", "rama_item_de_prueba", "rama_actor_de_prueba",
+    "sacudida_de_prueba", "fundir_bgm", "pan_de_prueba", "lluvia_de_prueba",
+    "animacion_de_prueba", "mensaje_de_prueba", "grupo_de_prueba",
+    "frecuencia",
+)
+
+
+def partir_en_casos(argv):
+    """La línea de comandos partida en `--caso`: lo del cartucho, y los flags
+    de cada caso que va detrás."""
+    tramos = [[]]
+    for token in argv:
+        if token == "--caso":
+            tramos.append([])
+        else:
+            tramos[-1].append(token)
+    return tramos[0], tramos[1:]
+
+
+def casos_de_prueba(parser, args, tramos):
+    """Las páginas de prueba del cartucho, una por caso, en el orden de sus
+    páginas. Cada una es una copia de `args` con los flags de su caso.
+
+    El caso 0 son los flags de antes del primer `--caso`, así que un cartucho
+    de un solo caso se arma como antes de que existiera esto. Si no hay, el
+    primer `--caso` pasa a ser el 0.
+    """
+    import copy
+    casos = [args] if pide_pagina_de_prueba(args) else []
+    defecto = parser.parse_args([])
+    for tramo in tramos:
+        suelto = parser.parse_args(tramo)
+        for dest, valor in vars(suelto).items():
+            if dest not in FLAGS_DE_CASO and valor != getattr(defecto, dest):
+                sys.exit("--%s es del cartucho y no de un caso: va antes del "
+                         "primer --caso" % dest.replace("_", "-"))
+        caso = copy.copy(args)
+        for dest in FLAGS_DE_CASO:
+            setattr(caso, dest, getattr(suelto, dest))
+        if not pide_pagina_de_prueba(caso):
+            sys.exit("un --caso sin nada que la página de prueba haga")
+        casos.append(caso)
+    return casos
+
+
+def pagina_de_caso(caso, grupo, mensaje, mapa, temas, graficos):
+    """El bytecode de la página de prueba de un caso: sus flags, traducidos a
+    los argumentos de `eventos.pagina_de_prueba`."""
+    espera, tinte = 0, ()
+    if caso.pagina_de_prueba:
+        espera, *tinte = caso.pagina_de_prueba
+    return eventos.pagina_de_prueba(
+        espera, tinte, caso.ruta_de_prueba or (), mensaje,
+        ruta_de_evento(caso.ruta_de_evento),
+        caso.flash_de_prueba or (), caso.switch or (),
+        caso.timer_de_prueba or (),
+        lugar_de_prueba(caso.lugar_de_prueba),
+        frecuencia=caso.frecuencia,
+        sacudida=sacudida_de_prueba(caso.sacudida_de_prueba),
+        fundir_bgm=caso.fundir_bgm,
+        pan=pan_de_prueba(caso.pan_de_prueba),
+        rama=tuple(caso.rama_de_prueba or ()),
+        destello=tuple(caso.destello_de_prueba or ()),
+        guardar=caso.guardar_de_prueba,
+        variables=tuple(caso.vars_de_prueba or ()),
+        rama_var=tuple(caso.rama_var_de_prueba or ()),
+        items=tuple(caso.items_de_prueba or ()),
+        acceso=tuple(caso.acceso_de_prueba or ()),
+        lluvia=caso.lluvia_de_prueba,
+        animacion=tuple(caso.animacion_de_prueba or ()),
+        eventos_mapa=eventos.Eventos(mapa["game_map"]),
+        batalla=caso.batalla_de_prueba,
+        batalla_game_over=caso.batalla_game_over, temas=temas,
+        parar=caso.parar_de_prueba,
+        rama_item=tuple(caso.rama_item_de_prueba or ()),
+        sprite=sprite_de_prueba(caso.sprite_de_prueba),
+        graficos=graficos,
+        tecla=tuple(caso.tecla_de_prueba or ()),
+        rama_actor=tuple(caso.rama_actor_de_prueba or ()),
+        grupo=((tuple(grupo), tuple(caso.grupo_de_prueba))
+               if caso.grupo_de_prueba else None))
+
+
 def pide_pagina_de_prueba(args):
     """Si algún flag de prueba necesita la página inventada."""
     return bool(args.pagina_de_prueba or args.ruta_de_prueba
@@ -6301,7 +6403,7 @@ def convertir(renderer, map_id, args, inicio=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = renderer.cargar_mapa(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
-    if pide_pagina_de_prueba(args) and map_id == orden_de_mapas(args)[args.inicial]:
+    if args.casos and map_id == orden_de_mapas(args)[args.inicial]:
         # El evento de la página de prueba va **primero**: la ROM recorre los
         # eventos de menor a mayor, y la página de prueba tiene que correr
         # antes que las del juego. Arma el grupo con el que arranca la prueba,
@@ -6380,7 +6482,8 @@ def convertir(renderer, map_id, args, inicio=None):
     # informe de cada mapa.
     muestra_animacion = mapa_muestra_animacion(
         game_map, renderer,
-        (args.animacion_de_prueba or ())[:1] if map_id == args.map_id else ())
+        [c.animacion_de_prueba[0] for c in args.casos if c.animacion_de_prueba]
+        if map_id == args.map_id else ())
     # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.

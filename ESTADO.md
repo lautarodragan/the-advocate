@@ -501,7 +501,7 @@ se pueden empezar hoy.
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
    | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
-   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, cada una tras su switch; (3) las definiciones salen de los flags a datos | ídem |
+   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, elegidas por una variable; (3) las definiciones salen de los flags a datos | ídem |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
 
@@ -515,6 +515,20 @@ se pueden empezar hoy.
    la operación de `variables` que planta un evento—. Eso espera al corte 3,
    cuando la página sea un evento del mapa y el blanco lo resuelva
    `eventos_mapa`.
+
+   **9d, corte 2, hecho.** Un cartucho lleva varias páginas de prueba: los
+   flags de cada caso van detrás de un `--caso`, cada caso es una página del
+   evento de prueba, y la elige `eventos.VARIABLE_DE_CASO`, que el arnés
+   escribe antes del primer cuadro con `Partida(caso=k)`. Es una variable y no
+   un switch por caso —como decía el plan— porque switches libres quedan
+   dieciocho; la página k pide que valga al menos k, que es la condición de
+   página de RM2k 2000. Lo que el conversor sacaba de los flags de prueba para
+   el cartucho entero —líderes, miembros, ítems, tropas, lluvia, cronómetro,
+   variables, animaciones, mensajes— sale ahora de la unión de los casos.
+   `pruebas/test_casos.py` arma uno con cuatro y pide a cada caso **la golden
+   de su cartucho propio**. Todavía no lo usa ninguna otra prueba: juntar la
+   tanda en pocos cartuchos es el 9f, y antes hace falta el 9e, porque
+   `--inicio` sigue siendo del cartucho.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del

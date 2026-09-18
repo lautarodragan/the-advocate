@@ -126,7 +126,7 @@ class Partida:
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
-                 nucleo=None):
+                 nucleo=None, caso=0):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -163,6 +163,15 @@ class Partida:
         # página de prueba, que corre en el primero.
         if switches:
             self.prender(*switches)
+        # Y el caso de prueba, por lo mismo: la página que lo corre es
+        # automática y se elige en el primer cuadro. El 0 es el que no pide
+        # nada, así que un cartucho de un solo caso no necesita esto. Ver
+        # `--caso` en snes_convert.py.
+        if caso:
+            self.consola.escribir_ram(
+                self.simbolos["FAR_VARIABLES"]
+                + 2 * self.simbolos["CASO_RANURA"], [caso & 0xFF, caso >> 8])
+            self.consola.escribir_ram(self.simbolos["refresco"], [1])
         self.consola.correr(3)
         # Los cuadros de hardware corridos desde que terminó el arranque, que
         # es donde `snes_correr.py` pone su `reloj.corridos` en cero. Es el

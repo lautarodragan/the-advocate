@@ -102,10 +102,11 @@ def cartucho(nombre, *flags, grupo=None):
         except OSError:
             pass
 
+    # `-o` va antes de los flags y no al final: detrás de un `--caso` sería un
+    # flag de ese caso, y el conversor lo rechaza por ser del cartucho.
     convertir = ([sys.executable, os.path.join(RAIZ, "tools",
-                                               "snes_convert.py")]
-                 + flags_de_grupo(grupo) + [str(f) for f in flags]
-                 + ["-o", inc])
+                                               "snes_convert.py"), "-o", inc]
+                 + flags_de_grupo(grupo) + [str(f) for f in flags])
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
     # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
     ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
@@ -146,7 +147,7 @@ def ticks_de_avance(pixeles):
     return pixeles // 2 + RETRASO_DE_PANTALLA
 
 
-def partida(sfc, simbolos, mapas, nucleo=None):
+def partida(sfc, simbolos, mapas, nucleo=None, caso=0):
     """La ROM con el arranque ya pasado, lista para correr ticks.
 
     Una consola nueva por captura, igual que el corredor: arrancar de cero es
@@ -154,9 +155,10 @@ def partida(sfc, simbolos, mapas, nucleo=None):
     anterior.
 
     `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
-    en snes9x y en bsnes.
+    en snes9x y en bsnes. `caso` elige la página de prueba en un cartucho que
+    lleva varias: ver `--caso` en snes_convert.py.
     """
-    return Partida(sfc, simbolos, mapas, nucleo=nucleo)
+    return Partida(sfc, simbolos, mapas, nucleo=nucleo, caso=caso)
 
 
 def consola_cruda(sfc, arranque=ARRANQUE):
