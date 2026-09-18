@@ -511,8 +511,8 @@ def aviso_de_descarte(texto, peligroso):
     el corte no protegería de nada. Por eso el tope es `cambia_de_grafico`, que
     es exactamente la clase a la que pertenecía el evento 30.
 
-    `--descartar-eventos` deja seguir igual, y entonces es una decisión escrita
-    en el comando y no un renglón que se pasa de largo.
+    No hay forma de pedirle que siga: hubo un `--descartar-eventos`, y se fue
+    en el paso 9e, cuando ningún cartucho descartaba ya nada que lo necesitara.
     """
     if not peligroso:
         print("  " + texto)

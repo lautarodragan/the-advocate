@@ -23,8 +23,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # La ROM con Lashe City adentro, que es la única donde la puerta del pad
-# lleva a algún lado. Descarta un evento que cambia de gráfico —el 12 del
-# mapa 8— así que hay que pedirle al conversor que siga.
+# lleva a algún lado.
 CIUDAD = (4, [1, 2, 3, 5, 6, 7, 8])
 
 MAPA, DESTINO = 7, 8
