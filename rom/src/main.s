@@ -1694,6 +1694,7 @@ puesto:
     ; La tabla de actores es de este mapa, así que dónde caen las poses del
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
     jsr elegir_grafico_heroe
+    jsr limpiar_tilemaps        ; lo que `fill_window` no pisa, del mapa de antes
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
     jsr load_ventana            ; tiles, paleta, tilemap propio y tablas de HDMA
     jsr init_hero_ptr
@@ -20636,6 +20637,58 @@ sin_columna:
 ; Llena la ventana entera desde cero: las 64 columnas, una por una. Va con la
 ; pantalla apagada, al arrancar, y es el único momento en que se escribe tanto
 ; tilemap de una vez.
+; Los dos tilemaps del mapa —el fondo y la capa de encima— en cero, y las
+; cuatro tiras con que se llenan.
+;
+; `build_column` y `build_row` **saltean** lo que cae afuera del mapa, y las
+; tiras sólo se escriben hasta donde el mapa llega. En el arranque eso deja
+; ceros, que es la celda vacía y se ve negro, porque el reset limpió la VRAM
+; entera. Después de un teletransporte o de una puerta, en cambio, dejaba lo
+; que hubiera puesto el mapa anterior: lo destapa `ShakeScreen` contra el
+; borde, que corre la pantalla más allá de la primera columna. Lo encontró el
+; paso 9e, cuando los casos de `sacudir-borde` y `tram-viaje` pasaron a
+; llegar a su mapa con un `Teleport` en vez de arrancar ahí.
+;
+; Corre con la pantalla en blanking forzado, que es como corre toda carga de
+; mapa: son dos DMA de 4 KB a la VRAM.
+.proc limpiar_tilemaps
+.a8
+.i16
+    lda #$80
+    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    ldx #VRAM_MAP
+    jsr cero_a_tilemap
+    ldx #VRAM_ABOVE_MAP
+    jsr cero_a_tilemap
+    ldx #$0000
+tiras:
+    stz tira_col, x             ; las cuatro son contiguas: ver su .res
+    inx
+    cpx #(WINDOW_ROWS * 2 * 2 + WINDOW_COLS * 2 * 2)
+    bne tiras
+    rts
+.endproc
+
+; Un tilemap de dos pantallas de 32x32, desde la palabra X de la VRAM, en cero.
+.proc cero_a_tilemap
+.a8
+.i16
+    stx VMADDL
+    ldx #.loword(cero)
+    stx A1T0L
+    lda #^cero
+    sta A1B0
+    ldx #(32 * 32 * 2 * 2)      ; dos pantallas, de a palabras
+    stx DAS0L
+    lda #$09                    ; dos registros, de a palabras, fuente fija
+    sta DMAP0
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
 .proc fill_window
 .a8
 .i16
@@ -24428,6 +24481,7 @@ pose_heroe:     .res 1
 ; Una columna son las 32 celdas de la ventana; una fila, las 64. Se indexan por
 ; la ranura, no por la celda del mapa: así el orden del buffer es exactamente el
 ; orden en que la VRAM las quiere y cada tira sale de un DMA.
+; Las cuatro seguidas y en este orden: `limpiar_tilemaps` las borra de corrido.
 tira_col:   .res WINDOW_ROWS * 2
 tira_col2:  .res WINDOW_ROWS * 2
 tira_row:   .res WINDOW_COLS * 2
