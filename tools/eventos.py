@@ -824,7 +824,7 @@ class Graficos:
 CHANGE_SPRITE_ASSOCIATION = 10630
 
 
-def asociaciones_de(game_maps):
+def asociaciones_de(game_maps, extra=()):
     """Los (CharSet, índice) que algún `ChangeSpriteAssociation` nombra.
 
     Es la pasada previa de `Graficos`: le reserva a cada uno la misma ranura en
@@ -840,20 +840,21 @@ def asociaciones_de(game_maps):
 
     En este juego son dos pares —`Future3:0` y `BLVehicles:2`— y sólo si la ROM
     lleva alguno de los mapas 49, 50, 52 o 54, que son la persecución en auto.
+
+    `extra` son los comandos de las páginas de prueba, que van detrás.
     """
     pares = []
-    for game_map in game_maps:
-        for evento in game_map.events:
-            for page in evento.pages:
-                for cmd in page.commands:
-                    if cmd.code != CHANGE_SPRITE_ASSOCIATION:
-                        continue
-                    p = list(cmd.parameters)
-                    if len(p) != 3 or p[2]:
-                        continue        # los que `_compilar` va a rechazar
-                    par = (cmd.string, p[1])
-                    if par not in pares:
-                        pares.append(par)
+    comandos = [cmd for game_map in game_maps for evento in game_map.events
+                for page in evento.pages for cmd in page.commands]
+    for cmd in comandos + list(extra):
+        if cmd.code != CHANGE_SPRITE_ASSOCIATION:
+            continue
+        p = list(cmd.parameters)
+        if len(p) != 3 or p[2]:
+            continue        # los que `_compilar` va a rechazar
+        par = (cmd.string, p[1])
+        if par not in pares:
+            pares.append(par)
     return pares
 
 
@@ -2267,27 +2268,43 @@ def variables_de(game_dir, map_ids=None, extra=()):
             for page in evento.pages:
                 if "variable" in page.condition.active:
                     ids.add(page.condition.ids["variable"])
-                for cmd in page.commands:
-                    p = cmd.parameters
-                    if cmd.code == CONTROL_VARS and len(p) >= 7:
-                        if p[0] == 0:
-                            ids.add(p[1])
-                        elif p[0] == 1:
-                            ids.update(range(p[1], p[2] + 1))
-                        if p[4] == VAR_VARIABLE:
-                            ids.add(p[5])
-                    elif cmd.code == COND_RAMA and len(p) >= 5 \
-                            and p[0] == COND_VARIABLE:
-                        ids.add(p[1])
-                        if p[2] == 1:
-                            ids.add(p[3])
-                    elif cmd.code == KEY_INPUT_PROC and p:
-                        ids.add(p[0])
-                    elif cmd.code == TIMER_OPERATION and len(p) >= 3 \
-                            and p[0] == TIMER_PONER \
-                            and p[1] != TIMER_SEGUNDOS_FIJOS:
-                        ids.add(p[2])
+                ids |= variables_de_comandos(page.commands)
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
+
+
+def variables_de_comandos(comandos):
+    """Las variables que nombran estos comandos: el barrido de `variables_de`,
+    que es también el de las páginas de prueba.
+
+    `ChangeEventLocation` con la celda en dos variables entró el 2026-09-18,
+    cuando la página de prueba empezó a usarlo. En el juego son 129 y no
+    agregan ninguna: medido, todas sus variables ya las nombra otro comando.
+    """
+    ids = set()
+    for cmd in comandos:
+        p = cmd.parameters
+        if cmd.code == CONTROL_VARS and len(p) >= 7:
+            if p[0] == 0:
+                ids.add(p[1])
+            elif p[0] == 1:
+                ids.update(range(p[1], p[2] + 1))
+            if p[4] == VAR_VARIABLE:
+                ids.add(p[5])
+        elif cmd.code == COND_RAMA and len(p) >= 5 \
+                and p[0] == COND_VARIABLE:
+            ids.add(p[1])
+            if p[2] == 1:
+                ids.add(p[3])
+        elif cmd.code == KEY_INPUT_PROC and p:
+            ids.add(p[0])
+        elif cmd.code == TIMER_OPERATION and len(p) >= 3 \
+                and p[0] == TIMER_PONER \
+                and p[1] != TIMER_SEGUNDOS_FIJOS:
+            ids.add(p[2])
+        elif cmd.code == CHANGE_EVENT_LOCATION and len(p) >= 4 \
+                and p[1] == LUGAR_POR_VARIABLE:
+            ids.update((p[2], p[3]))
+    return ids
 
 
 COMUNES = {}            # evento común de RM2k -> sus comandos
@@ -4668,11 +4685,20 @@ ACCESO_COMANDO = {ACCESO_GUARDAR: CHANGE_SAVE_ACCESS,
                   ACCESO_ESCAPAR: CHANGE_ESCAPE_ACCESS}
 
 
-def _comandos_de_prueba(caso):
+def _comandos_de_prueba(caso, id_de=None, grafico_de=None):
     """La página de prueba como comandos de RM2k, en el orden en que se emiten.
 
     Recibe el caso ya sin lo que quedó en su valor por omisión y va sacando lo
     que sabe decir; si al final le queda algo, levanta `_NoEsDeRM2k`.
+
+    `id_de` traduce un blanco como lo pasan las pruebas —el índice del evento
+    en el mapa más uno— al id de RM2k del evento. Sin él, lo que nombra un
+    evento no se puede decir. `mensaje` se puede decir si son las líneas del
+    cuadro, y no el desplazamiento en el bloque de la ROM.
+
+    `grafico_de` traduce el operando de la orden 34 de una ruta, que en el
+    flag es el índice en la tabla de gráficos del mapa, al (CharSet, índice)
+    que RM2k escribe en el comando.
 
     Es lo que el paso 9d viene a hacer: que lo que las pruebas inventan sea un
     dato de RM2k y no bytecode escrito a mano, para que lo compile el mismo
@@ -4684,6 +4710,32 @@ def _comandos_de_prueba(caso):
         caso.pop(nombre, None)
     saca = caso.pop
     frecuencia = saca("frecuencia", RUTA_FRECUENCIA)
+
+    def evento(blanco):
+        """El id de RM2k de un blanco que tiene que ser un evento."""
+        rm2k_id = id_de(blanco) if id_de is not None and blanco else None
+        if rm2k_id is None:
+            raise _NoEsDeRM2k("el blanco %d" % blanco)
+        return rm2k_id
+
+    def blanco_rm2k(blanco):
+        """El de una ruta o un destello, que también puede ser el héroe."""
+        return RUTA_HEROE if blanco == 0 else evento(blanco)
+
+    def ordenes_rm2k(ordenes):
+        """Las órdenes como las escribe RM2k: la 34 con el nombre del CharSet
+        —el largo y una letra por entero— y el índice."""
+        salida = []
+        ordenes = list(ordenes)
+        while ordenes:
+            orden = ordenes.pop(0)
+            salida.append(orden)
+            if orden == RUTA_CAMBIAR_GRAFICO:
+                if grafico_de is None or not ordenes:
+                    raise _NoEsDeRM2k("la orden 34")
+                charset, index = grafico_de(ordenes.pop(0))
+                salida += [len(charset)] + [ord(c) for c in charset] + [index]
+        return salida
 
     out = [_cmd(CONTROL_SWITCHES,
                 [SWITCH_UNICO, SWITCH_DE_PRUEBA, SWITCH_DE_PRUEBA, SWITCH_ON])]
@@ -4711,6 +4763,7 @@ def _comandos_de_prueba(caso):
         out.append(_cmd(COND_RAMA, [COND_SWITCH, cual, 0, 0, 0, 0]))
         out.append(_cmd(CONTROL_SWITCHES,
                         [SWITCH_UNICO, adentro, adentro, SWITCH_ON], sangria=1))
+        out.append(_cmd(END, sangria=1))
         out.append(_cmd(COND_FIN))
         out.append(_cmd(CONTROL_SWITCHES,
                         [SWITCH_UNICO, despues, despues, SWITCH_ON]))
@@ -4720,18 +4773,47 @@ def _comandos_de_prueba(caso):
         # Sin repetir y sin saltear lo que no se puede, que son los dos
         # booleanos de en medio. Las órdenes van tal cual porque son todas
         # menores que 128, y RM2k escribe cada entero en siete bits.
-        out.append(_cmd(MOVE_EVENT,
-                        [RUTA_HEROE, frecuencia, 0, 0] + list(saca("ruta"))))
+        out.append(_cmd(MOVE_EVENT, [RUTA_HEROE, frecuencia, 0, 0]
+                        + ordenes_rm2k(saca("ruta"))))
+    if "flash" in caso:
+        blanco, r, g, b, fuerza, cuadros = saca("flash")
+        out.append(_cmd(FLASH_SPRITE, [blanco_rm2k(blanco), r, g, b, fuerza,
+                                       _decimas(cuadros), 0]))
     if "destello" in caso:
         r, g, b, fuerza, cuadros = saca("destello")
         out.append(_cmd(FLASH_SCREEN, [r, g, b, fuerza, _decimas(cuadros), 0]))
     if "animacion" in caso:
         out.append(_cmd(SHOW_BATTLE_ANIMATION, list(saca("animacion")) + [0]))
+    ruta_ev = saca("ruta_ev", ())
+    if ruta_ev:
+        blanco, ordenes = ruta_ev
+        out.append(_cmd(MOVE_EVENT, [blanco_rm2k(blanco), frecuencia, 0, 0]
+                        + ordenes_rm2k(ordenes)))
+    if "lugar" in caso:
+        blanco, x, y, cuadros = saca("lugar")
+        if cuadros:
+            out.append(_cmd(WAIT, [_decimas(cuadros)]))
+        out.append(_cmd(CHANGE_EVENT_LOCATION,
+                        [evento(blanco), LUGAR_CONSTANTE, x, y]))
+    if "parar" in caso:
+        out.append(_cmd(WAIT, [_decimas(saca("parar"))]))
+        out.append(_cmd(HALT_ALL_MOVEMENT))
+    if ruta_ev:
+        out.append(_cmd(PROCEED_WITH_MOVEMENT))
     pan = saca("pan", ())
     for k in range(0, len(pan), 5):
         out.append(_cmd(PAN_SCREEN, list(pan[k:k + 5])))
     if "sacudida" in caso:
         out.append(_cmd(SHAKE_SCREEN, list(saca("sacudida"))))
+    if "mensaje" in caso:
+        lineas = saca("mensaje")
+        if isinstance(lineas, int) or not lineas:
+            # Un desplazamiento en el bloque de textos no es un comando: lo
+            # que se dice es el texto. Y un cuadro sin líneas tampoco, porque
+            # un `ShowMessage` trae siempre la primera.
+            raise _NoEsDeRM2k("mensaje")
+        out.append(_cmd(SHOW_MESSAGE, texto=lineas[0]))
+        out += [_cmd(SHOW_MESSAGE_2, texto=linea) for linea in lineas[1:]]
     if "espera" in caso:
         out.append(_cmd(WAIT, [_decimas(saca("espera"))]))
     if "tecla" in caso:
@@ -4742,8 +4824,8 @@ def _comandos_de_prueba(caso):
         if operacion == VARIABLES_PRUEBA_AL_TIMER:
             out.append(_cmd(TIMER_OPERATION, [TIMER_PONER, 1, v, 0, 0]))
         elif operacion == VARIABLES_PRUEBA_AL_LUGAR:
-            # El evento va como el índice de la ROM, no como un id de RM2k.
-            raise _NoEsDeRM2k("variables al lugar")
+            out.append(_cmd(CHANGE_EVENT_LOCATION,
+                            [evento(a), LUGAR_POR_VARIABLE, v, b]))
         else:
             out.append(_cmd(CONTROL_VARS,
                             [0, v, v, operacion, clase, a, b]))
@@ -4760,11 +4842,13 @@ def _comandos_de_prueba(caso):
         numero, *color = saca("rama_item")
         out.append(_cmd(COND_RAMA, [COND_ITEM, numero, 0, 0, 0, 0]))
         out.append(_cmd(TINT_SCREEN, color + [0, 0], sangria=1))
+        out.append(_cmd(END, sangria=1))
         out.append(_cmd(COND_FIN))
     if "rama_actor" in caso:
         sub, actor, dato, *color = saca("rama_actor")
         out.append(_cmd(COND_RAMA, [COND_ACTOR, actor, sub, dato, 0, 0]))
         out.append(_cmd(TINT_SCREEN, color + [0, 0], sangria=1))
+        out.append(_cmd(END, sangria=1))
         out.append(_cmd(COND_FIN))
     if "rama_var" in caso:
         v, comparacion, valor, adentro, despues = saca("rama_var")
@@ -4772,6 +4856,7 @@ def _comandos_de_prueba(caso):
                         [COND_VARIABLE, v, 0, valor, comparacion, 0]))
         out.append(_cmd(CONTROL_SWITCHES,
                         [SWITCH_UNICO, adentro, adentro, SWITCH_ON], sangria=1))
+        out.append(_cmd(END, sangria=1))
         out.append(_cmd(COND_FIN))
         out.append(_cmd(CONTROL_SWITCHES,
                         [SWITCH_UNICO, despues, despues, SWITCH_ON]))
@@ -4787,8 +4872,13 @@ def _comandos_de_prueba(caso):
         # terreno y huir prohibido.
         derrota = (BATALLA_DERROTA_GAME_OVER
                    if saca("batalla_game_over", False) else 1)
+        # El fondo, si lo hay, va como en las peleas del juego: "el que dice
+        # este comando" y el nombre en el string.
+        fondo = saca("fondo", "")
         out.append(_cmd(ENEMY_ENCOUNTER,
-                        [0, saca("batalla"), 0, 0, derrota, 0]))
+                        [0, saca("batalla"),
+                         BATALLA_FONDO_DEL_COMANDO if fondo else 0, 0,
+                         derrota, 0], fondo))
     if "tinte" in caso:
         tinte = saca("tinte")
         out.append(_cmd(TINT_SCREEN,
@@ -4797,6 +4887,22 @@ def _comandos_de_prueba(caso):
     if caso:
         raise _NoEsDeRM2k(", ".join(sorted(caso)))
     return out
+
+
+def _sin_omisiones(caso):
+    """El caso sin los argumentos que quedaron en su valor por omisión."""
+    import inspect
+    omision = {k: v.default for k, v in
+               inspect.signature(pagina_de_prueba).parameters.items()}
+
+    def ausente(k, v):
+        # Los llamadores pasan `[]` donde la firma dice `()`, y la página los
+        # mira con `if tinte:`. Un `None` por omisión, en cambio, es un `is
+        # not None`: `lluvia=0` es lluvia de fuerza cero, no la falta de lluvia.
+        d = omision[k]
+        return v == d or (d is not None and not d and not v)
+
+    return {k: v for k, v in caso.items() if not ausente(k, v)}
 
 
 def _es_la_que_compilaria_el_juego(caso, codigo):
@@ -4811,20 +4917,18 @@ def _es_la_que_compilaria_el_juego(caso, codigo):
     Los casos que todavía no se saben decir con comandos se saltean; ver
     `_comandos_de_prueba`.
     """
-    import inspect
-    omision = {k: v.default for k, v in
-               inspect.signature(pagina_de_prueba).parameters.items()}
-
-    def ausente(k, v):
-        # Los llamadores pasan `[]` donde la firma dice `()`, y la página los
-        # mira con `if tinte:`. Un `None` por omisión, en cambio, es un `is
-        # not None`: `lluvia=0` es lluvia de fuerza cero, no la falta de lluvia.
-        d = omision[k]
-        return v == d or (d is not None and not d and not v)
-
+    eventos_mapa = caso["eventos_mapa"]
+    id_de = None
+    if eventos_mapa is not None:
+        # El blanco de la prueba no cuenta el evento de prueba, que va en el
+        # índice 0 del mapa, así que es justo el índice en la lista de acá.
+        por_indice = {n: i for i, n in eventos_mapa.indices.items()}
+        id_de = por_indice.get
     try:
-        comandos = _comandos_de_prueba(
-            {k: v for k, v in caso.items() if not ausente(k, v)})
+        grafico_de = (caso["graficos"].pares.__getitem__
+                      if caso["graficos"] is not None else None)
+        comandos = _comandos_de_prueba(_sin_omisiones(caso), id_de,
+                                       grafico_de)
     except _NoEsDeRM2k:
         return
     salida = compilar_pagina(_Comandos(comandos), None,

@@ -39,6 +39,7 @@ con `Partida(caso=k)`:
 
 import argparse
 import collections
+import json
 import os
 import sys
 
@@ -1229,7 +1230,7 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     return bytes(tiles), base, cual
 
 
-def mapa_muestra_animacion(game_map, renderer, extra=()):
+def mapa_muestra_animacion(game_map, renderer, extra=(), comandos=()):
     """Si alguna página de este mapa puede dibujar una animación de batalla.
 
     Se mira sobre los comandos crudos y no sobre el bytecode ya compilado, y a
@@ -1239,15 +1240,16 @@ def mapa_muestra_animacion(game_map, renderer, extra=()):
     mostrara una animación que el mapa no reservó, la ROM escribiría los tiles
     encima de los de un personaje.
 
-    `extra` son las animaciones de la página de prueba, que no salen del mapa.
+    `extra` son las animaciones de la página de prueba, que no salen del mapa,
+    y `comandos` los de las páginas de prueba que vienen de un archivo.
     """
     numeros = set(extra)
-    for evento in game_map.events:
-        for page in evento.pages:
-            for cmd in page.commands:
-                if (cmd.code == eventos.SHOW_BATTLE_ANIMATION
-                        and len(cmd.parameters) >= 3):
-                    numeros.add(cmd.parameters[0])
+    for cmd in list(comandos) + [cmd for evento in game_map.events
+                                 for page in evento.pages
+                                 for cmd in page.commands]:
+        if (cmd.code == eventos.SHOW_BATTLE_ANIMATION
+                and len(cmd.parameters) >= 3):
+            numeros.add(cmd.parameters[0])
     return any(animacion_mod.de_numero(renderer, n) is not None
                for n in numeros)
 
@@ -1356,17 +1358,22 @@ def mapas_por_personaje(renderer, map_ids, game_dir):
     return cuenta
 
 
-def hay_lluvia(map_ids):
+def hay_lluvia(map_ids, extra=()):
     """Si alguna página de estos mapas pone lluvia: entonces cada mapa de la
-    ROM lleva las gotas, porque el clima sigue al cambiar de mapa."""
+    ROM lleva las gotas, porque el clima sigue al cambiar de mapa. `extra`
+    son los comandos de las páginas de prueba."""
+    def llueve(cmd):
+        return (cmd.code == eventos.WEATHER_EFFECTS
+                and cmd.parameters[:1] == [eventos.CLIMA_LLUVIA])
+    if any(llueve(cmd) for cmd in extra):
+        return True
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
                 for cmd in page.commands:
-                    if (cmd.code == eventos.WEATHER_EFFECTS
-                            and cmd.parameters[:1] == [eventos.CLIMA_LLUVIA]):
+                    if llueve(cmd):
                         return True
     return False
 
@@ -5054,7 +5061,9 @@ def actor_table_asm(numero, actores, animados, indice_global):
     return "\n".join(out)
 
 
-def main():
+def parser_de_flags():
+    """Los flags del conversor. Aparte de `main` para quien necesite leer una
+    línea de comandos sin convertir nada."""
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--map-id", type=int, default=7)
@@ -5341,6 +5350,13 @@ def main():
                              "RM2k. Por defecto, el de la base: este juego "
                              "arranca con el actor 10, DummyHero, cuyo sprite es "
                              "una celda vacía a propósito")
+    parser.add_argument("--comandos-de-prueba", default=None,
+                        metavar="ARCHIVO",
+                        help="la página de prueba de este caso, como la lista "
+                             "de comandos de una página de RM2k en el JSON de "
+                             "Ditto —ver pruebas/casos/—. La compila el mismo "
+                             "camino que una página del juego, con el "
+                             "contexto del mapa donde arranca la ROM")
     parser.add_argument("--grupo-de-prueba", nargs="+", type=int,
                         default=None, metavar="ACTOR",
                         help="el grupo con el que arranca la prueba: la página "
@@ -5366,11 +5382,18 @@ def main():
                              "esto arranca en el tile abierto más cercano al "
                              "centro. Sirve para llevar la cámara a un lugar "
                              "puntual sin tener que caminar hasta él")
+    return parser
+
+
+def main():
+    parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
     args.casos = casos_de_prueba(parser, args, tramos)
+    de_archivo = comandos_de_casos(args)
     args.con_timer = args.con_timer or any(
-        c.timer_de_prueba is not None for c in args.casos)
+        c.timer_de_prueba is not None for c in args.casos) or any(
+        cmd.code == eventos.TIMER_OPERATION for cmd in de_archivo)
 
     renderer = Renderer(args.game_dir)
 
@@ -5410,6 +5433,7 @@ def main():
         extra |= variables_de_prueba(caso.vars_de_prueba,
                                      caso.rama_var_de_prueba,
                                      caso.tecla_de_prueba)
+    extra |= eventos.variables_de_comandos(de_archivo)
     if len(args.casos) > 1:
         # La que elige el caso: ver `eventos.VARIABLE_DE_CASO`. Con uno solo
         # no hace falta, y así ese cartucho sale igual que antes de `--caso`.
@@ -5431,13 +5455,13 @@ def main():
     # Y los del grupo de prueba, detrás: la prueba puede arrancar con él en
     # cualquier mapa del cartucho.
     for caso in args.casos:
-        if caso.grupo_de_prueba:
-            for actor in lideres_posibles(renderer, todos,
-                                          caso.grupo_de_prueba):
+        de_prueba = caso.grupo_de_prueba or grupo_de_la_pagina(caso, grupo)
+        if de_prueba:
+            for actor in lideres_posibles(renderer, todos, de_prueba):
                 if actor not in args.lideres:
                     args.lideres.append(actor)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos) or any(
+    args.con_lluvia = hay_lluvia(todos, de_archivo) or any(
         c.lluvia_de_prueba is not None for c in args.casos)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
@@ -5458,8 +5482,8 @@ def main():
     # gráfico que le pone a un actor cruza el teletransporte, así que su índice
     # tiene que valer lo mismo en los dos mapas. Ver `eventos.asociaciones_de`.
     args.asociaciones = eventos.asociaciones_de(
-        lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
-        for m in todos)
+        [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
+         for m in todos], de_archivo)
     # Y el de `--sprite-de-prueba`, que es un `ChangeSpriteAssociation` más y
     # va por la misma puerta: si fuera por `--grafico-de-prueba` tendría índice
     # sólo en el mapa donde arranca la ROM, y lo que el comando hace —cruzar el
@@ -5503,6 +5527,12 @@ def main():
     mensaje_de_caso = [mensajes.agregar(c.mensaje_de_prueba)
                        if c.mensaje_de_prueba is not None else None
                        for c in args.casos]
+    # Los de las páginas de prueba que vienen de un archivo, por lo mismo:
+    # acá se guardan y la compilación de la página, más abajo, los encuentra
+    # ya guardados, porque el bloque deduplica por contenido.
+    for cmd, extra_lineas in eventos.agrupar(de_archivo):
+        if cmd.code == eventos.SHOW_MESSAGE:
+            mensajes.agregar([cmd.string] + extra_lineas)
 
     for mapa in mapas:
         mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
@@ -5592,7 +5622,8 @@ def main():
                     "item": 0, "capa": 0,
                     "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                     "codigo": pagina_de_caso(caso, grupo, mensaje_de_caso[k],
-                                             mapa, temas, graficos)})
+                                             mapa, temas, graficos, mensajes,
+                                             indices, args.imagenes)})
             paginas = paginas + de_prueba + [{
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
@@ -5775,13 +5806,14 @@ def main():
     # una de menos deja un hueco en el menú.
     miembros = miembros_posibles(
         todos, list(grupo) + [a for c in args.casos
-                              for a in c.grupo_de_prueba or ()])
+                              for a in c.grupo_de_prueba or ()],
+        de_archivo)
     # Y los ítems que pueden estar en el inventario, para llevar su nombre y
     # su descripción: ver "la pantalla de ítems" en titulo.py.
     items_rom = items_posibles(todos, [i for c in args.casos
                                        for i in c.items_de_prueba or ()],
                                miembros,
-                               renderer.database)
+                               renderer.database, de_archivo)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
@@ -5856,6 +5888,10 @@ def main():
     for caso in args.casos:
         if caso.batalla_de_prueba:
             tropas.pedir(caso.batalla_de_prueba, caso.fondo_de_prueba)
+        for cmd in caso.comandos:
+            if cmd.code == eventos.ENEMY_ENCOUNTER:
+                tropas.pedir(eventos.tropa_de_encuentro(cmd),
+                             eventos.fondo_de_encuentro(cmd))
     # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
     # páginas compilaban. Se vuelve a pedir sólo para leerlos: `Temas` numera
     # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
@@ -6202,65 +6238,92 @@ def lideres_posibles(renderer, map_ids, grupo):
 args_game_dir = [GAME_DIR]
 
 
-def items_posibles(map_ids, de_prueba=None, actores=(), db=None):
+def items_posibles(map_ids, de_prueba=None, actores=(), db=None, extra=()):
     """Los ítems que pueden estar en el inventario con estos mapas en la ROM:
     los que da algún `ChangeItems` de cualquier página, compile o no, los que
     vende alguna `OpenShop`, el equipo con el que arrancan los `actores` y los
     que da la página de prueba. Es un superconjunto, como `miembros_posibles`,
     y por la misma razón: un ítem de más cuesta su texto en el cartucho, uno
-    de menos no se ve en la lista."""
+    de menos no se ve en la lista. `extra` son los comandos de las páginas de
+    prueba, que se barren igual que los de los mapas."""
     items = set()
     for actor in actores:
         if db is not None and actor in db.actors:
             items.update(i for i in db.actors[actor].initial_equipment if i)
+
+    def barrer(comandos):
+        for cmd in comandos:
+            p = cmd.parameters
+            if (cmd.code == eventos.CHANGE_ITEMS and len(p) >= 5
+                    and p[0] == 0 and p[1] == 0):
+                items.add(p[2])
+            elif cmd.code == eventos.OPEN_SHOP:
+                items.update(p[4:])
+
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
-                for cmd in page.commands:
-                    p = cmd.parameters
-                    if (cmd.code == eventos.CHANGE_ITEMS and len(p) >= 5
-                            and p[0] == 0 and p[1] == 0):
-                        items.add(p[2])
-                    elif cmd.code == eventos.OPEN_SHOP:
-                        items.update(p[4:])
+                barrer(page.commands)
+    barrer(extra)
     for k in range(0, len(de_prueba or ()), 2):
         items.add(de_prueba[k])
     return sorted(i for i in items if 0 < i < eventos.ITEMS_N)
 
 
-def miembros_posibles(map_ids, grupo):
+def miembros_posibles(map_ids, grupo, extra=()):
     """Los actores que pueden estar en el grupo con estos mapas en la ROM.
 
     Los de arranque más los que agrega cualquier `ChangePartyMembers` de
     cualquier página de estos mapas. No se mira si la página compila: es para
     la pantalla de ranuras, que necesita la cara y el nombre de quien pueda
     aparecer en una partida guardada, y una cara de más no cuesta nada que
-    importe.
+    importe. `extra` son los comandos de las páginas de prueba.
 
     `grupo` puede traer repetidos —el del cartucho más el de cada caso de
     prueba, que suele ser el mismo— y se cuentan una vez: repetido, un actor
     ocupaba una cara por cada caso que lo pedía.
     """
     actores = list(dict.fromkeys(grupo))
+
+    def barrer(comandos):
+        for cmd in comandos:
+            if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                continue
+            p = cmd.parameters
+            if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                continue
+            if p[0] == 0 and p[2] not in actores:
+                actores.append(p[2])
+
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
-                for cmd in page.commands:
-                    if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
-                        continue
-                    p = cmd.parameters
-                    if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
-                        continue
-                    if p[0] == 0 and p[2] not in actores:
-                        actores.append(p[2])
+                barrer(page.commands)
+    barrer(extra)
     return sorted(actores)
 
 
-def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False):
+def grupo_de_la_pagina(caso, grupo):
+    """Con qué grupo sigue la prueba después de su página, si la página lo
+    toca: los `ChangePartyMembers` del caso aplicados al grupo del cartucho,
+    con las mismas reglas que el intérprete. None si no lo toca."""
+    estado = eventos.Estado(grupo)
+    toca = False
+    for cmd in caso.comandos:
+        p = cmd.parameters
+        if (cmd.code == eventos.CHANGE_PARTY_MEMBERS and len(p) >= 3
+                and p[1] == eventos.GRUPO_ID_FIJO):
+            estado.cambiar_grupo(p[0], p[2])
+            toca = True
+    return estado.grupo if toca else None
+
+
+def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False,
+                      comandos=()):
     """Si algo destella al héroe, los NPCs con su gráfico van con otra paleta.
 
     En la consola el destello se hace sobre la paleta del personaje, y un líder
@@ -6269,12 +6332,14 @@ def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False):
     dos. Se resuelve contando el gráfico de esos NPCs como otro, con el sufijo
     `rm2k.COPIA_SUFIJO`: el mismo dibujo, con su propia paleta. Cuesta una
     paleta por gráfico, y sólo en los mapas donde algo destella al héroe.
+    `comandos` son los de las páginas de prueba que vienen de un archivo.
     """
     destella = destella_por_prueba or any(
         cmd.code == eventos.FLASH_SPRITE and cmd.parameters
         and cmd.parameters[0] == eventos.RUTA_HEROE
-        for ev in game_map.events for page in ev.pages
-        for cmd in page.commands)
+        for cmd in list(comandos) + [cmd for ev in game_map.events
+                                     for page in ev.pages
+                                     for cmd in page.commands])
     if not destella:
         return
     de_lider = set()
@@ -6302,7 +6367,7 @@ FLAGS_DE_CASO = (
     "parar_de_prueba", "rama_item_de_prueba", "rama_actor_de_prueba",
     "sacudida_de_prueba", "fundir_bgm", "pan_de_prueba", "lluvia_de_prueba",
     "animacion_de_prueba", "mensaje_de_prueba", "grupo_de_prueba",
-    "frecuencia",
+    "frecuencia", "comandos_de_prueba",
 )
 
 
@@ -6341,21 +6406,82 @@ def casos_de_prueba(parser, args, tramos):
         if not pide_pagina_de_prueba(caso):
             sys.exit("un --caso sin nada que la página de prueba haga")
         casos.append(caso)
+    for caso in casos:
+        caso.comandos = cargar_comandos_de_prueba(caso, defecto)
     return casos
 
 
-def pagina_de_caso(caso, grupo, mensaje, mapa, temas, graficos):
-    """El bytecode de la página de prueba de un caso: sus flags, traducidos a
-    los argumentos de `eventos.pagina_de_prueba`."""
+def cargar_comandos_de_prueba(caso, defecto):
+    """Los comandos del `--comandos-de-prueba` de un caso, o () si no lo trae.
+
+    Un caso es el archivo **o** los flags, no las dos cosas: mezclados, el
+    orden de la página dependería de cómo se intercalan dos fuentes.
+    """
+    if not caso.comandos_de_prueba:
+        return ()
+    for dest in FLAGS_DE_CASO:
+        if dest != "comandos_de_prueba" \
+                and getattr(caso, dest) != getattr(defecto, dest):
+            sys.exit("--comandos-de-prueba va solo: --%s es otro flag de "
+                     "caso" % dest.replace("_", "-"))
+    with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
+        return lcf.comandos(json.load(archivo))
+
+
+def comandos_de_casos(args):
+    """Los comandos de todos los casos que vienen de un archivo, seguidos.
+
+    Es lo que barren las funciones que miran las páginas del mapa para
+    decidir qué lleva el cartucho —variables, ítems, miembros, lluvia—: una
+    página de prueba es una página más.
+    """
+    return [cmd for caso in args.casos for cmd in caso.comandos]
+
+
+def pagina_de_caso(caso, grupo, mensaje, mapa, temas, graficos, mensajes,
+                   indices, imagenes):
+    """El bytecode de la página de prueba de un caso.
+
+    Si viene de un archivo, se compila como cualquier página del juego, con el
+    contexto del mapa donde arranca la ROM; lo único que el conversor le
+    antepone es el `ControlSwitches` que la apaga, que es convención del
+    arnés y no del caso —ver `eventos.SWITCH_DE_PRUEBA`—. Las tropas no se
+    anotan acá sino al final, en `main`: la de la prueba va última.
+
+    Si viene de flags, son los argumentos de `eventos.pagina_de_prueba`.
+    """
+    if caso.comandos:
+        apagar = lcf.EventCommand(
+            eventos.CONTROL_SWITCHES, 0, "",
+            [eventos.SWITCH_UNICO, eventos.SWITCH_DE_PRUEBA,
+             eventos.SWITCH_DE_PRUEBA, eventos.SWITCH_ON])
+        codigo = eventos.compilar_pagina(
+            eventos._Comandos([apagar] + list(caso.comandos)), indices.get,
+            mensajes, eventos.Eventos(mapa["game_map"]).para(0), temas,
+            graficos, imagenes)
+        if codigo is None:
+            sys.exit("%s: la página de prueba no compila"
+                     % caso.comandos_de_prueba)
+        return codigo
+    return eventos.pagina_de_prueba(**argumentos_de_caso(caso, grupo),
+                                    mensaje=mensaje,
+                                    eventos_mapa=eventos.Eventos(
+                                        mapa["game_map"]),
+                                    temas=temas, graficos=graficos)
+
+
+def argumentos_de_caso(caso, grupo):
+    """Los flags de un caso, traducidos a los argumentos de
+    `eventos.pagina_de_prueba` que no son contexto de la compilación."""
     espera, tinte = 0, ()
     if caso.pagina_de_prueba:
         espera, *tinte = caso.pagina_de_prueba
-    return eventos.pagina_de_prueba(
-        espera, tinte, caso.ruta_de_prueba or (), mensaje,
-        ruta_de_evento(caso.ruta_de_evento),
-        caso.flash_de_prueba or (), caso.switch or (),
-        caso.timer_de_prueba or (),
-        lugar_de_prueba(caso.lugar_de_prueba),
+    return dict(
+        espera=espera, tinte=tinte, ruta=caso.ruta_de_prueba or (),
+        ruta_ev=ruta_de_evento(caso.ruta_de_evento),
+        flash=caso.flash_de_prueba or (), switches=caso.switch or (),
+        timer=caso.timer_de_prueba or (),
+        lugar=lugar_de_prueba(caso.lugar_de_prueba),
         frecuencia=caso.frecuencia,
         sacudida=sacudida_de_prueba(caso.sacudida_de_prueba),
         fundir_bgm=caso.fundir_bgm,
@@ -6369,13 +6495,11 @@ def pagina_de_caso(caso, grupo, mensaje, mapa, temas, graficos):
         acceso=tuple(caso.acceso_de_prueba or ()),
         lluvia=caso.lluvia_de_prueba,
         animacion=tuple(caso.animacion_de_prueba or ()),
-        eventos_mapa=eventos.Eventos(mapa["game_map"]),
         batalla=caso.batalla_de_prueba,
-        batalla_game_over=caso.batalla_game_over, temas=temas,
+        batalla_game_over=caso.batalla_game_over,
         parar=caso.parar_de_prueba,
         rama_item=tuple(caso.rama_item_de_prueba or ()),
         sprite=sprite_de_prueba(caso.sprite_de_prueba),
-        graficos=graficos,
         tecla=tuple(caso.tecla_de_prueba or ()),
         rama_actor=tuple(caso.rama_actor_de_prueba or ()),
         grupo=((tuple(grupo), tuple(caso.grupo_de_prueba))
@@ -6400,7 +6524,8 @@ def pide_pagina_de_prueba(args):
                 or args.pan_de_prueba or args.lluvia_de_prueba is not None
                 or args.animacion_de_prueba
                 or args.mensaje_de_prueba is not None
-                or args.grupo_de_prueba)
+                or args.grupo_de_prueba
+                or args.comandos_de_prueba)
 
 
 def convertir(renderer, map_id, args, inicio=None):
@@ -6419,9 +6544,11 @@ def convertir(renderer, map_id, args, inicio=None):
         vacio.id, vacio.name, vacio.x, vacio.y, vacio.pages = (
             0, "prueba", 0, 0, [])
         game_map.events.insert(0, vacio)
+    es_el_inicial = map_id == orden_de_mapas(args)[args.inicial]
     separar_del_heroe(renderer, game_map, args,
                       args.flash_de_prueba and args.flash_de_prueba[0] == 0
-                      and map_id == orden_de_mapas(args)[args.inicial])
+                      and es_el_inicial,
+                      comandos_de_casos(args) if es_el_inicial else ())
     name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above, variantes = renderer.capas_animadas(game_map)
@@ -6467,6 +6594,17 @@ def convertir(renderer, map_id, args, inicio=None):
         # El blanco viene contado sin el evento de prueba: ver
         # `eventos.blanco_de_prueba`.
         movibles = movibles | {eventos.blanco_de_prueba(prueba_ev[0]) - 1}
+    if map_id == orden[args.inicial]:
+        # Y los que mandan a caminar las páginas de prueba que vienen de un
+        # archivo, que nombran al evento por su id de RM2k: lo traduce el
+        # mismo `Eventos` que usa la compilación.
+        del_mapa = eventos.Eventos(game_map)
+        for cmd in comandos_de_casos(args):
+            if cmd.code == eventos.MOVE_EVENT and cmd.parameters \
+                    and cmd.parameters[0] != eventos.RUTA_HEROE:
+                blanco = del_mapa.blanco(cmd.parameters[0])
+                if blanco:
+                    movibles = movibles | {blanco - 1}
     # Y con eso, qué poses puede mostrar cada gráfico: es lo que decide sobre
     # qué píxeles se eligen sus quince colores. Ver `poses_del_mapa`.
     poses_por_grafico = poses_del_mapa(renderer, game_map, args.lideres,
@@ -6487,7 +6625,8 @@ def convertir(renderer, map_id, args, inicio=None):
     muestra_animacion = mapa_muestra_animacion(
         game_map, renderer,
         [c.animacion_de_prueba[0] for c in args.casos if c.animacion_de_prueba]
-        if map_id == args.map_id else ())
+        if map_id == args.map_id else (),
+        comandos_de_casos(args) if map_id == args.map_id else ())
     # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
