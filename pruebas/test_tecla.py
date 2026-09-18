@@ -29,6 +29,12 @@ from render_map import GAME_DIR                              # noqa: E402
 # La variable de RM2k donde el comando guarda lo que leyó. Cualquiera sirve: el
 # conversor le da ranura porque la nombra la página de prueba.
 VARIABLE = 88
+# Lo que esperan las páginas de prueba `tecla-esperar-*` antes del
+# `KeyInputProc`, en ticks. Las tres guardan en `VARIABLE` y esperan la tecla:
+# `-a` la de acción, que es la forma que usan 23 de las 32 apariciones del
+# juego; `-dir` la cruceta, que es el motor del minijuego de las piedras del
+# mapa 11 —`(8, 1, 1, 0, 0)` en RM2k—; y `-todo` las tres cosas, que es el
+# `(151, 1, 1, 1, 1)` de las otras dos páginas del juego.
 ESPERA = 30
 
 

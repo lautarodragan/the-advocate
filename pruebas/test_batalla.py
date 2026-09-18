@@ -967,6 +967,9 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
 def en_el_droide_con_pocion(partida):
     """La pelea del droide con pociones en el inventario y el grupo herido.
 
+    Las pone la página de prueba `pociones-y-llave`: tres `POCION` y una
+    `LLAVE`.
+
     Herido a mano y no peleando: pelear hasta que a alguien le falten HP
     depende del azar, y lo que este caso mide es la cura.
     """

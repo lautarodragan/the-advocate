@@ -17,7 +17,9 @@ import titulo                                           # noqa: E402
 from consola import TITULO_AIRE
 from test_menu import abrir, tocar
 
-# Una poción de más de diez, un arma y la consola: el arma va en gris.
+# Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
+# que da la página de prueba `items-pantalla`, y `MUCHOS` lo que da
+# `items-pantalla-muchos`: los dos tienen que decir lo mismo que su archivo.
 INVENTARIO = {1: 13, 17: 1, 81: 1}
 # Catorce distintos, para que la lista no entre en las once filas. La primera
 # versión llevaba el texto de cada ítem ya dibujado y éstos no entraban en el

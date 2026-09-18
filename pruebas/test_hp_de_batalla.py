@@ -28,9 +28,12 @@ sys.path.insert(0, os.path.join(
 
 from test_menu import abrir                                  # noqa: E402
 
-# Kersh y Core, que la ganan. Con el grupo por omisión —DummyHero, nivel 1— el
-# droide lo mata de un golpe y los HP quedan en cero, que es un número que no
-# distingue "el menú lo lee" de "el menú dibuja cualquier cosa".
+# La pelea es la de la página de prueba `pelea-82-grupo-11-12`: la tropa del
+# droide del mapa 2, la misma que usan las demás pruebas de pelea, 18 ticks
+# después de arrancar, y con Kersh y Core, que la ganan. Con el grupo por
+# omisión —DummyHero, nivel 1— el droide lo mata de un golpe y los HP quedan en
+# cero, que es un número que no distingue "el menú lo lee" de "el menú dibuja
+# cualquier cosa". `GRUPO` tiene que ser el que arma esa página.
 GRUPO = (11, 12)
 # Lo que la pelea deja, medido.
 DESPUES = {11: 168, 12: 79}

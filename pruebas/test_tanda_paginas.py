@@ -1,7 +1,8 @@
 """Los comandos sueltos de la tanda, disparados desde la página de prueba.
 
-Todo lo de este archivo es lo mismo con un flag distinto: un mapa, una página
-inventada que emite **un** comando, y unos ticks donde mirar lo que hizo. La
+Todo lo de este archivo es lo mismo con otra página: un mapa, una página
+inventada que emite **un** comando —su archivo en `pruebas/casos/`, con el
+nombre del caso—, y unos ticks donde mirar lo que hizo. La
 página es inventada por la razón de siempre —ninguna del juego que compile
 ejercita el comando sola, o la que lo hace termina teletransportando y no queda
 dónde mirar—, y lo inventado es la entrada y no la comparación: los dos lados
@@ -12,7 +13,7 @@ Del arnés hay tres cosas que valen para casi todos:
 * **nadie aprieta el pad**, salvo `cerrar-right`, que existe justamente para
   probar que el pad **no** mueva al héroe mientras hay un mensaje;
 * **el tinte de la página es lo que hace visible que la página siguió.** Muchos
-  casos llevan un `--pagina-de-prueba` con espera y tinte detrás del comando: el
+  casos llevan una espera y un `TintScreen` detrás del comando: el
   tick de después del comando se ve teñido y el de antes no, así que un comando
   que no termina se nota;
 * **los ticks de un caso salen de una sola conversión.** Convertir el mapa es lo
@@ -95,10 +96,10 @@ TEXTOS = (
 def test_texto(nombre, relleno):
     """`texto`: el texto **del juego**, no el que le dictamos a la ROM.
 
-    Todo lo demás usa `--mensaje-de-prueba`, o sea líneas inventadas: eso
-    prueba el dibujo, el bloqueo y el cierre, pero no que un `ShowMessage` de
-    RM2k compile, que su texto entre en el bloque de la ROM y que el operando
-    de `OP_MESSAGE` lo vuelva a encontrar.
+    Todo lo demás usa el `ShowMessage` de una página de prueba, o sea líneas
+    inventadas: eso prueba el dibujo, el bloqueo y el cierre, pero no el texto
+    de un mapa del juego entrando en el bloque de la ROM detrás del de los
+    otros, ni que el operando de `OP_MESSAGE` lo vuelva a encontrar.
 
     El mapa 255 se eligió midiendo: su página automática **sin condición de
     switch** son dos cuadros de texto seguidos y un switch, y de ahí salen tres
@@ -427,9 +428,8 @@ def test_cerrar(direccion, cuadro):
       `Partida` son justamente eso.
 
     Y una que no se ve en el código: **el mensaje va escrito acá y no sale de
-    ningún mapa.** Lo pone `--mensaje-de-prueba`, y el `--pagina-de-prueba
-    0 0 0 50` es el tinte de atrás, con espera en cero: es lo que hace visible
-    que la página siguió.
+    ningún mapa.** Lo pone `pruebas/casos/cerrar.json`, y el `TintScreen` de
+    atrás, sin espera, es lo que hace visible que la página siguió.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los

@@ -28,15 +28,14 @@ pasó a ser obligatoria, y el 66 dejó de armar.
 
 **La rama que corre** no se puede probar con una página del juego. Ninguna de
 las que usan `ConditionalBranch` prende antes el switch que la decide —todas
-leen uno que viene de otra parte— y `--switch` lo prende desde la página de
-prueba, que corre **después** de las del mapa: su evento es el último de la
-tabla, y el barrido va de menor a mayor. Cuando la página del mapa 66 pregunta
-por el 162, el 162 todavía no está.
+leen uno que viene de otra parte— y prenderlo desde la página de prueba, que
+entonces corría **después** de las del mapa, llegaba tarde: cuando la página
+del mapa 66 preguntaba por el 162, el 162 todavía no estaba.
 
 Así que esa mitad va sobre una rama en la página de prueba, que prende el switch
-arriba y ramifica abajo, en la misma página: ahí el orden es nuestro. El
-bytecode que sale es el mismo que emite `compilar_pagina` para una página del
-juego, byte por byte.
+arriba y ramifica abajo, en la misma página: ahí el orden es nuestro. La página
+es `pruebas/casos/rama-300.json`, un dato de RM2k que compila
+`compilar_pagina` igual que a una página del juego.
 """
 
 # La página del juego, y lo que deja.
@@ -46,7 +45,8 @@ DESPUES = 175         # lo que prende la página después de los `end`, siempre
 # Lo que tarda en llegar al final: un PanScreen y dos caminatas del héroe.
 CUADROS = 1200
 
-# (el switch que decide, el de adentro, el de después) para `--rama-de-prueba`.
+# (el switch que decide, el de adentro, el de después) de la rama de
+# `pruebas/casos/rama-300.json`.
 RAMA = (300, 301, 302)
 
 

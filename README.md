@@ -1340,8 +1340,9 @@ Con eso y el direccionamiento largo en vez de la ventana de WMADD, la lluvia
 fuerte bajó de 58 a 24 líneas en `lluvia_tick` y `build_oam` de 130 a 84.
 
 Lo cobran `pan-lluvia` y `sacudir-lluvia` en la tanda, que corren la cámara con
-lluvia fuerte por la página de prueba (`--lluvia-de-prueba`): en la apertura la
-cámara no se mueve, así que ella sola no mira el scroll de las gotas. Y
+lluvia fuerte por la página de prueba —un `WeatherEffects` en su archivo de
+`pruebas/casos/`—: en la apertura la cámara no se mueve, así que ella sola no
+mira el scroll de las gotas. Y
 `apertura` compara con lluvia, que es lo que exige que el caso cuente los ticks
 hasta el final: la lluvia no se aquieta nunca, así que cortar cuando la escena
 se ve quieta deja las gotas de veintipico de ticks antes.
@@ -1582,9 +1583,9 @@ página espera lo que dura. Tres cosas son nuestras:
   propia paleta; es el sistema de al lado, y está abajo.
 
 Lo cobra `animacion` en la tanda —la 82 sobre el héroe, que destella la
-pantalla—, por la página de prueba (`--animacion-de-prueba`): la escena del
-Emitter Room no se puede disparar desde una prueba. Los efectos los cobra el
-paquete de audio de cada mapa, que los cuenta como uno más.
+pantalla—, por la página de prueba de `pruebas/casos/animacion.json`: la escena
+del Emitter Room no se puede disparar desde una prueba. Los efectos los cobra
+el paquete de audio de cada mapa, que los cuenta como uno más.
 
 ### El dibujo de las animaciones de batalla
 

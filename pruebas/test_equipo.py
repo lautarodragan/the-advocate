@@ -18,6 +18,7 @@ from test_menu import abrir, tocar
 
 TALAN, KERSH = 14, 11
 PALO, LANZA, ESCUDO = 17, 19, 44        # la lanza es a dos manos
+# Lo que da la página de prueba `equipo-inventario`: tiene que decir lo mismo.
 INVENTARIO = {PALO: 2, LANZA: 1, ESCUDO: 1}
 
 

@@ -19765,8 +19765,9 @@ producto_sobre_31:
     ; cambiaban de color. taro lo vio el 2026-09-08 en los relámpagos de la
     ; apertura —las vallas amarillas y negras, y los bordes del autotile 17 del
     ; ChipSet3—, que son el **primer** `FlashScreen` que corrió este port.
-    ; Ninguna prueba lo cubría: `--flash-de-prueba` destella un sprite, nunca la
-    ; pantalla, así que este camino no lo ejecutaba nadie.
+    ; Ninguna prueba lo cubría: la página de prueba de `destello` destella un
+    ; sprite —`FlashSprite`—, nunca la pantalla, así que este camino no lo
+    ; ejecutaba nadie.
     lda #CGRAM_BASE
     jsr destellar_rango
     ldx mapa_ofs

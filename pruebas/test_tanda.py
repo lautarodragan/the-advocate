@@ -208,8 +208,9 @@ def test_pagina(mapa, caso, nombre):
              arrancar con él no corre. Es la única página del juego que compila
              y ejercita una ruta.
 
-    Del arnés: el grupo es el único argumento del conversor que `cartucho` no
-    toma como flag suelto, porque hay que pasárselo también a la ROM.
+    Del arnés: el grupo lo arma la página de prueba, así que va en `caso`. El
+    121 no lleva ninguna —arranca con el del juego— y el 74 lleva
+    `grupo-21`.
     """
     sfc, simbolos, mapas = cartucho(nombre, "--map-id", mapa, caso=caso)
     p = partida(sfc, simbolos, mapas)

@@ -16,8 +16,9 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   referencia cuando existía, y por eso están congelados: son lo último que queda
   de ella, y lo que hizo que un caso de caminata dejara de necesitarla.
 * **El grupo es el 11 y no el 10.** Es el default de `grupo` en el justfile y no
-  el de `consola.GRUPO`, que es el del juego de verdad. Con el 10 el líder es
-  otro, el sprite es otro, y las goldens no dan.
+  el del juego de verdad, y lo arma la página de prueba: el caso por omisión de
+  `cartucho` es `grupo-11`, y cada caso propio trae el suyo. Con el 10 el líder
+  es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el mismo `--arranque 115` del corredor**:
   `BOOT_CUADROS` (112) más tres, y de ahí en más los dos cuentan ticks de
   `vueltas` con la misma convención —el cuadro N de la referencia es el tick
@@ -54,9 +55,9 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
     """Convierte y ensambla; devuelve (ROM, símbolos, ids de mapa en orden).
 
     Es `consola.armar()` con los flags del conversor a la vista en vez de un
-    parámetro por flag: los 47 casos de la tanda usan **cuarenta y un** flags
-    distintos, y una firma con cuarenta y un argumentos opcionales es la misma
-    lista escrita dos veces. Acá el caso dice exactamente lo que dice su receta.
+    parámetro por flag: una firma con un argumento opcional por flag es la
+    misma lista escrita dos veces. Lo que hace la página no va en flags sino
+    en `caso`.
 
     `caso` es la página de prueba, por su nombre en `pruebas/casos/` —o una
     tupla de nombres, para un cartucho con varias—, y no va como flag suelto
@@ -66,7 +67,7 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
 
     Se saltea si ya está hecha y no cambió nada de lo que la arma: la clave es
     `huella()` —los fuentes de la ROM, el ensamblador y las herramientas— más
-    los flags.
+    los flags y lo que dice el caso.
 
     **Cada cartucho en su propio directorio**, y por eso `mapdata.inc` deja de
     ser estado global: dos casos con mapas distintos no se pisan, que es la

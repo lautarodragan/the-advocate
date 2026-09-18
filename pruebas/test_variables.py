@@ -20,6 +20,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
 import eventos                                          # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
+# La página de prueba `variables` hace: var 17 = 5; var 17 += 7 (12); var 21 =
+# azar entre 0 y 100; var 39 = var 17; var 40 = 3; var 40 -= 10 (-7, con
+# signo); var 41 = otro 0, el oro. Y una rama: si var 17 >= 12, prende el 200;
+# el 201 se prende siempre. `variables-rama-no` pide >= 99, y
+# `variables-guardar-198` es la primera esperando 198 ticks y guardando.
+
 
 def ranuras():
     # El índice es del juego entero desde el 2026-09-10 a la noche: las cinco
@@ -29,7 +35,7 @@ def ranuras():
 
 @pytest.fixture
 def con_variables(partida):
-    # Sin `guardar`: con él la página espera ESPERA ticks antes de tocar nada.
+    # Sin guardar: con eso la página espera 198 ticks antes de tocar nada.
     una = partida(caso="variables")
     una.correr(30)          # la página corre en el primer tick; treinta de aire
     return una

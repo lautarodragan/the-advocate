@@ -1275,8 +1275,9 @@ class Mensajes:
 
         La cola de escapes se saca **acá** —ver `cola_de_escapes`— y no en el
         compilador, para que todo el que arme un cuadro pase por el mismo lugar:
-        los `ShowMessage` del juego, las opciones de un `ShowChoice` y el
-        `--mensaje-de-prueba` de las recetas, que es como se prueba esto.
+        los `ShowMessage` del juego y los de las páginas de prueba —que es
+        como se prueba esto: `autocierre` en la tanda— y las opciones de un
+        `ShowChoice`.
 
         El recorte a lo que entra en un renglón se hace después de la cola y
         antes de deduplicar: dos textos que sólo difieran en lo que se corta son
@@ -2239,7 +2240,8 @@ def variables_de(game_dir, map_ids=None, extra=()):
     Se miran todos los comandos y las condiciones de todas las páginas,
     compilen o no: es un superconjunto barato —dos bytes por variable— y así
     una página que compile después no cambia las ranuras de las demás. `extra`
-    son las de la página de prueba, que no salen de ningún mapa.
+    son las de las páginas de prueba, que no salen de ningún mapa: el
+    conversor las barre con `variables_de_comandos`.
 
     **`KeyInputProc` también nombra una variable, y hasta el 2026-09-13 no
     estaba en esta lista.** Es el único comando del juego que le escribe a una

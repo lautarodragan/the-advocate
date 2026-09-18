@@ -30,11 +30,13 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 Uso:
     python3 tools/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
 
-Varias páginas de prueba en un cartucho, cada una con sus flags detrás de un
-`--caso`; los del cartucho van antes del primero. El arnés elige cuál corre
-con `Partida(caso=k)`:
-    python3 tools/snes_convert.py -o … --map-id 6 --pan-de-prueba 2 0 2 2 1 \
-        --caso --pan-de-prueba 3 0 0 4 1
+Con una página de prueba, que es la lista de comandos de RM2k de un archivo
+de `pruebas/casos/`; varias en un cartucho, cada una detrás de un `--caso`, y
+los flags del cartucho antes del primero. El arnés elige cuál corre con
+`Partida(caso=k)`:
+    python3 tools/snes_convert.py -o … --map-id 6 \
+        --comandos-de-prueba pruebas/casos/pan.json \
+        --caso --comandos-de-prueba pruebas/casos/pan-vuelve.json
 """
 
 import argparse
@@ -1240,8 +1242,7 @@ def mapa_muestra_animacion(game_map, renderer, comandos=()):
     mostrara una animación que el mapa no reservó, la ROM escribiría los tiles
     encima de los de un personaje.
 
-    `extra` son las animaciones de la página de prueba, que no salen del mapa,
-    y `comandos` los de las páginas de prueba que vienen de un archivo.
+    `comandos` son los de las páginas de prueba, que no salen del mapa.
     """
     numeros = set()
     for cmd in list(comandos) + [cmd for evento in game_map.events
@@ -5036,12 +5037,13 @@ def parser_de_flags():
                              "invisible. Ver `aviso_de_descarte`")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
-                        help="registra un gráfico para que la ruta de\n"
-                             "--ruta-de-evento pueda cambiarse a él con la\n"
-                             "orden 34: en la ruta va `34 N`, donde N es la\n"
-                             "posición en la que se pasó éste. Se puede\n"
-                             "repetir. Ninguna página que compile hoy cambia\n"
-                             "de gráfico, así que sin esto el camino no lo\n"
+                        help="mete este gráfico en el banco de sprites\n"
+                             "del mapa donde arranca la ROM, para que la\n"
+                             "página de prueba pueda cambiarle el gráfico a\n"
+                             "alguien con la orden 34 o con\n"
+                             "ChangeSpriteAssociation. Se puede repetir.\n"
+                             "Ninguna página que compile hoy cambia de\n"
+                             "gráfico, así que sin esto el camino no lo\n"
                              "corre nada")
     parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
                         help="hace que la ROM arranque tocando ese tema en vez\n"
@@ -5159,8 +5161,8 @@ def main():
     # su comentario.
     eventos.indexar_actores(args.game_dir)
     args.lideres = lideres_posibles(renderer, todos, grupo)
-    # Y los del grupo de prueba, detrás: la prueba puede arrancar con él en
-    # cualquier mapa del cartucho.
+    # Y los del grupo con que sigue cada página de prueba, detrás: la prueba
+    # puede arrancar con él en cualquier mapa del cartucho.
     for caso in args.casos:
         de_prueba = grupo_de_la_pagina(caso, grupo)
         if de_prueba:
@@ -5187,6 +5189,11 @@ def main():
     # gráficos de **todos** los mapas, por la misma razón que el cartel: el
     # gráfico que le pone a un actor cruza el teletransporte, así que su índice
     # tiene que valer lo mismo en los dos mapas. Ver `eventos.asociaciones_de`.
+    #
+    # Los de las páginas de prueba entran por la misma puerta: si fueran por
+    # `--grafico-de-prueba` tendrían índice sólo en el mapa donde arranca la
+    # ROM, y lo que el comando hace —cruzar el teletransporte— no se podría
+    # probar.
     args.asociaciones = eventos.asociaciones_de(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
@@ -5207,12 +5214,6 @@ def main():
     # páginas: cada `ShowMessage` deja su texto acá y se lleva un
     # desplazamiento, que es lo que va en el bytecode. La referencia arma el
     # mismo bloque en el mismo orden.
-    #
-    # El mensaje de prueba va **primero**, antes de todos los mapas, y eso no es
-    # estético: así su desplazamiento es 0 y no depende de cuántos textos traiga
-    # el mapa donde arranca la ROM ni de en qué orden se compilen. Es el único
-    # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
-    # querer saber de memoria.
     mensajes = eventos.Mensajes(args.relleno_de_mensajes)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
@@ -5222,9 +5223,12 @@ def main():
     # lleva el id de RM2k— así que sólo dice qué tablas de enemigos hay que
     # emitir. Ver `eventos.Tropas`.
     tropas = eventos.Tropas()
-    # Los de las páginas de prueba que vienen de un archivo, por lo mismo:
-    # acá se guardan y la compilación de la página, más abajo, los encuentra
-    # ya guardados, porque el bloque deduplica por contenido.
+    # Los textos de las páginas de prueba van **primero**, antes de todos los
+    # mapas, y eso no es estético: así su desplazamiento no depende de cuántos
+    # textos traiga el mapa donde arranca la ROM ni de en qué orden se
+    # compilen —el primero es el 0—. Se guardan acá y la compilación de la
+    # página, más abajo, los encuentra guardados, porque el bloque deduplica
+    # por contenido.
     for cmd, extra_lineas in eventos.agrupar(de_archivo):
         if cmd.code == eventos.SHOW_MESSAGE:
             mensajes.agregar([cmd.string] + extra_lineas)
@@ -5292,10 +5296,10 @@ def main():
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if args.casos and mapa is mapas[args.inicial]:
-            # La página inventada, sólo en el mapa donde arranca la ROM. No sale
-            # de ningún dato del juego: existe porque ninguna página que compile
-            # tiene una espera, así que el intérprete cuadro a cuadro no lo
-            # ejercitaba nada.
+            # Las páginas de prueba, sólo en el mapa donde arranca la ROM. No
+            # salen del juego sino de `pruebas/casos/`: existen porque hay
+            # caminos del intérprete que ninguna página del juego que compile
+            # ejercita —la primera fue una espera—.
             #
             # Va en el **índice 0**, el del evento vacío que `convertir` puso
             # al principio del mapa: la ROM recorre los eventos de menor a
@@ -5559,15 +5563,13 @@ def main():
               % (datos["animacion"], datos["cuadros"], datos["caja"][0],
                  datos["caja"][1], datos["original"][0], datos["original"][1],
                  datos["porciento"], datos["colores"], datos["bytes"]))
-    # Y la tropa de la página de prueba, **al final**: así las tropas del
+    # Los encuentros al azar de cada mapa, que piden sus tropas. Van **antes**
+    # que las de las páginas de prueba, que van al final: así las tropas del
     # cartucho se numeran por los mapas y la inventada va última, que es lo
     # mismo que hace `temas_de_la_rom` con el tema del mapa. Pedirla antes le
     # daba siempre el índice 0, y con eso ningún caso de la tanda ejercitaba
-    # que `escena_de` y `tropa_id` se indexen de verdad.
-    # Los encuentros al azar de cada mapa, que piden sus tropas. Van **antes**
-    # que la de `--batalla-de-prueba` por lo mismo que aquélla va última: así
-    # las tropas del cartucho se numeran por los mapas y la inventada no se
-    # queda con el índice 0.
+    # que `escena_de` y `tropa_id` se indexen de verdad. Por eso
+    # `pagina_de_caso` compila sin `Tropas`.
     encuentros = encuentros_de_la_rom(mapas, renderer.tree,
                                       args.encuentros_de_prueba, tropas)
     cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
@@ -6016,7 +6018,7 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     dos. Se resuelve contando el gráfico de esos NPCs como otro, con el sufijo
     `rm2k.COPIA_SUFIJO`: el mismo dibujo, con su propia paleta. Cuesta una
     paleta por gráfico, y sólo en los mapas donde algo destella al héroe.
-    `comandos` son los de las páginas de prueba que vienen de un archivo.
+    `comandos` son los de las páginas de prueba.
     """
     destella = any(
         cmd.code == eventos.FLASH_SPRITE and cmd.parameters
@@ -6038,9 +6040,10 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
 
 # Los flags que describen **un caso** de prueba —lo que hace su página— y no
 # el cartucho. Son los que pueden ir detrás de un `--caso`; los demás son del
-# cartucho entero y van antes del primero. `--grafico-de-prueba` es del
-# cartucho a propósito: dice qué gráficos hay en el banco de sprites del mapa,
-# no qué hace la página.
+# cartucho entero y van antes del primero. Desde el corte 3 del paso 9d es uno
+# solo, el archivo con la página: lo que la página hace es dato de RM2k, no
+# flags. `--grafico-de-prueba` es del cartucho a propósito: dice qué gráficos
+# hay en el banco de sprites del mapa, no qué hace la página.
 FLAGS_DE_CASO = ("comandos_de_prueba",)
 
 
@@ -6062,7 +6065,8 @@ def casos_de_prueba(parser, args, tramos):
 
     El caso 0 son los flags de antes del primer `--caso`, así que un cartucho
     de un solo caso se arma como antes de que existiera esto. Si no hay, el
-    primer `--caso` pasa a ser el 0.
+    primer `--caso` pasa a ser el 0. Cada caso se lleva los comandos de su
+    archivo en `comandos`.
     """
     import copy
     casos = [args] if pide_pagina_de_prueba(args) else []
@@ -6086,7 +6090,7 @@ def casos_de_prueba(parser, args, tramos):
 
 
 def comandos_de_casos(args):
-    """Los comandos de todos los casos que vienen de un archivo, seguidos.
+    """Los comandos de todas las páginas de prueba, seguidos.
 
     Es lo que barren las funciones que miran las páginas del mapa para
     decidir qué lleva el cartucho —variables, ítems, miembros, lluvia—: una
@@ -6167,17 +6171,21 @@ def convertir(renderer, map_id, args, inicio=None):
         game_map, {m: i for i, m in enumerate(orden)}.get,
         asociaciones=args.asociaciones)
     # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
-    # ROM, igual que la ruta inventada y por lo mismo: es donde el conversor
-    # mete la página de prueba. Se agregan **después** de los del juego, que es
+    # ROM, igual que las páginas de prueba y por lo mismo: es donde el
+    # conversor las mete. Se agregan **después** de los del juego, que es
     # el orden en que los numera la compilación de verdad.
     if args.grafico_de_prueba and map_id == orden[args.inicial]:
         for charset, index in graficos_de_prueba(args.grafico_de_prueba):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
     if map_id == orden[args.inicial]:
-        # Y los que mandan a caminar las páginas de prueba que vienen de un
-        # archivo, que nombran al evento por su id de RM2k: lo traduce el
-        # mismo `Eventos` que usa la compilación.
+        # Y los que mandan a caminar las páginas de prueba, que no salen de
+        # `paginas_del_mapa`: hay que sumarlos a mano o el NPC caminaría con
+        # una sola pose. Va **antes** del reparto de paletas: desde que la
+        # paleta se elige sobre las poses que se ven, saber quién camina es
+        # parte de elegir los colores y no sólo de repartir la VRAM. El evento
+        # va por su id de RM2k y lo traduce el mismo `Eventos` que usa la
+        # compilación.
         del_mapa = eventos.Eventos(game_map)
         for cmd in comandos_de_casos(args):
             if cmd.code == eventos.MOVE_EVENT and cmd.parameters \

@@ -19,6 +19,9 @@ darían lo mismo.
 
 import pytest
 
+# La página de prueba `guardar-198` espera 198 ticks antes de guardar. Alcanzan
+# para irse a otro mapa —el fundido son 90— y que sobre margen.
+
 
 @pytest.fixture
 def guardada(partida):

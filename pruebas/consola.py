@@ -468,8 +468,8 @@ class Partida:
         """Prende switches escribiendo el bitmap, como si el juego los hubiera
         prendido antes.
 
-        Reemplaza al `--switch` del conversor, que los prendía desde una página
-        de prueba inventada, y es mejor por dos razones. La primera es que **la
+        Reemplazó al `--switch` que tenía el conversor, que los prendía desde
+        una página de prueba inventada, y es mejor por dos razones. La primera es que **la
         ROM deja de depender de la prueba**: es la misma para todas, así que se
         arma una vez.
 

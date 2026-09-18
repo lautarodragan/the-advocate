@@ -16,8 +16,10 @@ import eventos                                          # noqa: E402
 import lcf                                              # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
-# Tres de la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y
-# cinco menos, que topa en 0; y la 200 queda en cero.
+# Lo que da la página de prueba `inventario`, de a dos —ítem y cuánto—: tres de
+# la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y cinco
+# menos, que topa en 0; y la 200 queda en cero. Es con lo que se calcula lo que
+# tiene que dar, así que tiene que decir lo mismo que el archivo.
 ITEMS = (151, 3, 151, 1, 90, 120, 17, 2, 17, -5)
 
 

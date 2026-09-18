@@ -120,8 +120,8 @@ herramientas:
 #
 # Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
 # maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
-# está acá y no escondida en un default. Las pruebas de pytest tienen el suyo,
-# `GRUPO_TANDA`, en `pruebas/tanda.py`: son las que hoy corren la tanda.
+# está acá y no escondida en un default. Las pruebas de pytest lo arman con la
+# página de prueba `pruebas/casos/grupo-11.json`: ver `pruebas/tanda.py`.
 grupo    := env_var_or_default("GRUPO", "11")
 # Con qué core de libretro corre `shot`, que es la única receta que corre la
 # ROM: todo lo demás vive en pytest y toma el core de `NUCLEO`, ver
@@ -410,7 +410,8 @@ demo nombre="demo-ciudad" titulo="":
 # sale del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
 # juego entra.
 #
-# **`--switch 171` es lo que la hace arrancar**, y hay que saber por qué. El
+# **El switch 171 es lo que la hace arrancar** —lo prende la página de prueba
+# `pruebas/casos/switch-171.json`—, y hay que saber por qué. El
 # evento 1 del mapa 49 tiene dos páginas automáticas, una por switch, y la que
 # arma el auto pide el 171. Con los dos apagados **ninguna es la activa** y el
 # evento no hace nada, así que el héroe se queda siendo `DummyHero`, cuyo sprite

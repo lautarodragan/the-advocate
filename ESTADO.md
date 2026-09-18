@@ -15,7 +15,7 @@ El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treint
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
 que el párrafo de arriba dice que no va acá. Están enteras en el `git log`.
 
-Última vez que se tocó: 2026-09-16.
+Última vez que se tocó: 2026-09-18.
 
 **Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
 y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
@@ -460,9 +460,9 @@ se pueden empezar hoy.
      mapa, y el conversor corta porque un destello los haría brillar a los
      dos. `--descartar-eventos` no lo cubre.
    * **Las páginas de prueba**: unos veinte flags del conversor —de
-     `--pagina-de-prueba` a `--batalla-de-prueba`— meten bytecode distinto en
+     `--pagina-de-prueba` a `--batalla-de-prueba`— metían bytecode distinto en
      cada cartucho. Con uno solo tienen que estar todas adentro y elegirse al
-     correr.
+     correr. (Se fueron con el 9d: hoy cada una es un archivo.)
    * Y `--descartar-eventos`, que la tanda pasa en 14 cartuchos.
 
    El censo de lo que se arma hoy: 166 cartuchos de la tanda con 37 flags
@@ -482,12 +482,15 @@ se pueden empezar hoy.
      reintentaba la conversión anotando el mapa.)
    * **El grupo de cada prueba lo arma la página de prueba**, con
      `ChangePartyMembers`, como lo haría el juego: taro prefirió eso a un
-     gancho en la ROM que existiera sólo para las pruebas. `--grupo-de-prueba`
-     en el conversor; sus líderes y sus caras entran en todos los mapas. Para
+     gancho en la ROM que existiera sólo para las pruebas. Fue
+     `--grupo-de-prueba` en el conversor hasta el corte 3 del 9d, y desde ahí
+     son los `ChangePartyMembers` del caso; sus líderes y sus caras entran en
+     todos los mapas. Para
      que la página corra **antes** que las del juego —el 21 agrega a Talan al
      entrar, y con la página al final el líder salía otro— su evento va
-     primero: un evento vacío en el índice 0, y los blancos que pasan las
-     pruebas se corren con `eventos.blanco_de_prueba`. El conflicto del 261
+     primero: un evento vacío en el índice 0, y los blancos que pasaban las
+     pruebas se corrían con `eventos.blanco_de_prueba` —desde el corte 3 del
+     9d los eventos van por su id de RM2k y no hay nada que correr—. El conflicto del 261
      se resolvió contando como otro gráfico —`rm2k.COPIA_SUFIJO`— a los NPCs
      que dibujan con el de un líder, en los mapas donde algo destella al
      héroe. Con eso el cartucho único arma con 40 mapas; el 66 sigue afuera.
@@ -501,34 +504,55 @@ se pueden empezar hoy.
    | 9a ✅ | `anim_tabla` sale del banco 0 | la ROM se mueve y ninguna golden |
    | 9b ✅ | la ventana deja de ser opcional: se va `--con-ventana`, y las pruebas "sin ventana" pasan a un mapa que la tiene | se volvieron a aprobar 30 goldens, todas miradas |
    | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
-   | 9d | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, elegidas por una variable; (3) las definiciones salen de los flags a datos | ídem |
+   | 9d ✅ | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, elegidas por una variable; (3) las definiciones salen de los flags a datos | ninguna golden se movió, y los `mapdata.inc` de la tanda salieron idénticos en cada corte |
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
 
-   **9d, corte 1, hecho hasta donde puede.** `_comandos_de_prueba` arma la
-   página como comandos y `_es_la_que_compilaria_el_juego` la compila por
-   `compilar_pagina` y pide los mismos bytes que la escrita a mano; un caso
-   que usa algo que todavía no sabe decir se saltea en silencio. Lo que se
-   saltea es lo que el corte 1 no puede decir: `mensaje`, que es un
-   desplazamiento en el bloque de textos de la ROM, y lo que lleva un blanco
-   ya traducido al índice de la ROM —`flash`, `ruta_ev`, `lugar`, `parar` y
-   la operación de `variables` que planta un evento—. Eso espera al corte 3,
-   cuando la página sea un evento del mapa y el blanco lo resuelva
-   `eventos_mapa`.
+   **9d, corte 1, hecho, y se fue con el 3.** Armaba la página escrita a mano
+   también como comandos de RM2k y exigía que `compilar_pagina` diera los
+   mismos bytes. Era la red que ataba las dos formas mientras convivieron; con
+   la escrita a mano borrada no tiene qué atar.
 
-   **9d, corte 2, hecho.** Un cartucho lleva varias páginas de prueba: los
-   flags de cada caso van detrás de un `--caso`, cada caso es una página del
+   **9d, corte 2, hecho.** Un cartucho lleva varias páginas de prueba: cada
+   caso va detrás de un `--caso`, cada caso es una página del
    evento de prueba, y la elige `eventos.VARIABLE_DE_CASO`, que el arnés
    escribe antes del primer cuadro con `Partida(caso=k)`. Es una variable y no
    un switch por caso —como decía el plan— porque switches libres quedan
    dieciocho; la página k pide que valga al menos k, que es la condición de
-   página de RM2k 2000. Lo que el conversor sacaba de los flags de prueba para
-   el cartucho entero —líderes, miembros, ítems, tropas, lluvia, cronómetro,
-   variables, animaciones, mensajes— sale ahora de la unión de los casos.
+   página de RM2k 2000. Lo que el conversor saca de los casos para el
+   cartucho entero —líderes, miembros, ítems, tropas, lluvia, cronómetro,
+   variables, animaciones, mensajes— sale de la unión de los casos.
    `pruebas/test_casos.py` arma uno con cuatro y pide a cada caso **la golden
    de su cartucho propio**. Todavía no lo usa ninguna otra prueba: juntar la
    tanda en pocos cartuchos es el 9f, y antes hace falta el 9e, porque
    `--inicio` sigue siendo del cartucho.
+
+   **9d, corte 3, hecho.** Un caso es un archivo de `pruebas/casos/`: la lista
+   de comandos de una página de RM2k, en el mismo JSON de Ditto que `data/`
+   —`{"event_commands": [...]}`, o sea una página con la condición y el
+   trigger en su default, que los pone el conversor—. El conversor lo recibe
+   con `--comandos-de-prueba`, le antepone el `ControlSwitches` que la apaga y
+   lo compila con `compilar_pagina` y el contexto del mapa; lo que el cartucho
+   saca de los casos lo barren las mismas funciones que barren las páginas del
+   mapa. Los flags de caso, `pagina_de_prueba` y la comparación del corte 1 se
+   fueron. Lo que hay que saber para escribir uno:
+
+   * **el grupo va adentro del caso**, con `ChangePartyMembers`: el de la
+     tanda es `grupo-11`, que es el caso por omisión de `tanda.cartucho`, y un
+     caso propio arma el suyo. Un cartucho sin caso arranca con el del juego;
+   * **los eventos van por su id de RM2k**, no por el índice en el mapa: los
+     resuelve `Eventos`, igual que en una página del juego;
+   * **la orden 34 de una ruta lleva el nombre del CharSet** —el largo y una
+     letra por entero, como lo escribe RM2k— y el gráfico tiene que estar en
+     el banco del mapa: eso lo sigue pidiendo `--grafico-de-prueba`, que es
+     del cartucho y va con el 9e;
+   * **la clave del cartucho lleva lo que dice el archivo**, no sólo su
+     nombre, así que editarlo rearma;
+   * **las pruebas de estado que calculan lo esperado** —`test_items`,
+     `test_equipo`, `test_hp_de_batalla`…— tienen el dato también en Python,
+     y un comentario dice de qué archivo es copia. No lo cuida nada más.
+
+   Mudarlos al juego golden es mover archivos y ponerles la condición.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
@@ -1364,7 +1388,8 @@ hay que bajarlo, se baja sin arrastrar lo valioso.
   conversor lee como cualquier otro. Son el embrión del juego golden, y así
   se mudan moviendo archivos; el conversor pierde los veinte flags que existen
   sólo para las pruebas. Generarlos con Ditto, desde JSON, evita depender de
-  RM2k en una máquina virtual.
+  RM2k en una máquina virtual. **Hecho** el 2026-09-18: son
+  `pruebas/casos/`, en el JSON de Ditto.
 * **El conversor no sabe nada de ABL**: lo propio del juego —el grupo inicial,
   qué mapas van— vive en recetas o en un manifiesto, no en `tools/`.
 * **Las pruebas nombran por símbolo o por comportamiento**, no por número de
