@@ -1400,6 +1400,41 @@ hay que bajarlo, se baja sin arrastrar lo valioso.
   del sistema de RM2k tiene dueño. Los MIDIs de ABL son música de otros
   juegos: quedan del lado de ABL.
 
+**Un paso intermedio, sin juego golden todavía** —de taro, el 2026-09-18—: las
+pruebas se separan por **qué** prueban, aunque todas sigan usando ABL como
+material. En orden, y **después del 9f** —el 9e y el 9f cambian cómo cada
+prueba consigue su cartucho y tocan casi todos los archivos—:
+
+1. **Carpetas**: `test-rpgmaker` —lo que el motor tiene que hacer igual que
+   RM2k—, `test-abl` —lo propio del juego: el recorrido, la carrera, las
+   piedras, las escenas— y `test-tools`, el arnés compartido (`consola.py`,
+   `tanda.py`, `retro.py`). Hay una tercera clase que no es ninguna de las dos:
+   las pruebas de herramientas que no corren ROM —`test_bancos`,
+   `test_ensamblar`, `test_protocolo`, `test_paginas`— y van con su
+   herramienta.
+2. **Un ejecutor con pruebas declarativas**, del estilo `test --game … --tests
+   …`: una prueba es un archivo —TOML o YAML— que dice qué cartucho, qué caso,
+   qué botones en qué cuadro, dónde capturar contra qué golden y qué
+   posiciones de memoria verificar, por símbolo. Los casos y las goldens ya son
+   datos; falta el guion. Va junto con la tanda en paralelo, al cerrar la
+   etapa: las dos cosas tocan cómo se corre la tanda.
+
+Lo medido ese día, para dimensionarlo: de ~465 pruebas, **253 son de los cinco
+`test_tanda*.py`**, que ya son "armar, correr, capturar, comparar" y entran
+tal cual. El resto tiene lógica: calculan lo esperado leyendo el LDB, guardan
+y cargan, caminan hasta chocar, juegan el juego entero, comparan dos cores.
+
+Dos reglas que se acordaron con la idea:
+
+* **Si una prueba no entra en el formato, se queda en Python**; el formato no
+  crece para que entre. El día que necesite un "hasta que", un "si" o una
+  cuenta, se vuelve un lenguaje de programación malo.
+* **El ejecutor es genérico para juegos de RM2k armados con este port, no para
+  cualquier ROM**: elige el caso y lee variables por los símbolos del motor
+  —`CASO_RANURA`, `FAR_VARIABLES`—. Por eso encaja con los dos repos: motor,
+  conversor y ejecutor del lado publicable; las definiciones y las goldens de
+  ABL, del suyo.
+
 ## Una mejora de velocidad gratis que apareció midiendo
 
 La capa de encima llama a `tile_colors` **894.000 veces** —medido el
@@ -1409,6 +1444,9 @@ un diccionario de una línea. (El análisis de por qué `tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
 ## Después de la etapa: la tanda en paralelo
+
+(Va junto con el ejecutor declarativo: ver el paso intermedio de "Hacia dónde
+va".)
 
 Decidido por taro el 2026-09-18, para **después** de cerrar la etapa y del
 9f: la tanda corre en paralelo, con `pytest-xdist` o equivalente. **El build
