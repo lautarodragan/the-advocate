@@ -40,13 +40,6 @@ from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 NUCLEO = os.environ.get(
     "NUCLEO", "/usr/lib/libretro/snes9x_libretro.so")
 
-# El grupo por omisión, igual que `grupo` en el justfile.
-GRUPO = os.environ.get("GRUPO", "10")
-
-# El grupo con el que arranca el cartucho, que es el de la base del juego.
-DEL_JUEGO = ["10"]
-
-
 # Dónde viven las páginas de prueba: una por caso, con la lista de comandos
 # de RM2k en el JSON de Ditto. Ver `--comandos-de-prueba` en snes_convert.py.
 CASOS = os.path.join("pruebas", "casos")
@@ -68,19 +61,6 @@ def flags_de_casos(caso):
             contenido.append((nombre, archivo.read()))
         flags += (["--caso"] if k else []) + ["--comandos-de-prueba", ruta]
     return flags, tuple(contenido)
-
-
-def flags_de_grupo(grupo):
-    """Cómo se le pide al conversor que una prueba arranque con `grupo`.
-
-    El cartucho arranca siempre con el suyo; otro grupo lo arma la página de
-    prueba con `ChangePartyMembers`, como lo haría el juego. Con el del juego
-    no hace falta ninguna página.
-    """
-    grupo = [str(a) for a in grupo]
-    if grupo == DEL_JUEGO:
-        return []
-    return ["--grupo-de-prueba"] + grupo
 
 
 class SimboloDesconocido(KeyError):

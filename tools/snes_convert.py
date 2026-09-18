@@ -1230,7 +1230,7 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     return bytes(tiles), base, cual
 
 
-def mapa_muestra_animacion(game_map, renderer, extra=(), comandos=()):
+def mapa_muestra_animacion(game_map, renderer, comandos=()):
     """Si alguna página de este mapa puede dibujar una animación de batalla.
 
     Se mira sobre los comandos crudos y no sobre el bytecode ya compilado, y a
@@ -1243,7 +1243,7 @@ def mapa_muestra_animacion(game_map, renderer, extra=(), comandos=()):
     `extra` son las animaciones de la página de prueba, que no salen del mapa,
     y `comandos` los de las páginas de prueba que vienen de un archivo.
     """
-    numeros = set(extra)
+    numeros = set()
     for cmd in list(comandos) + [cmd for evento in game_map.events
                                  for page in evento.pages
                                  for cmd in page.commands]:
@@ -4799,38 +4799,6 @@ def graficos_de_prueba(argumento):
     return tuple((charset, int(indice)) for charset, indice in argumento or ())
 
 
-def sprite_de_prueba(argumento):
-    """(actor, CharSet, índice) de `--sprite-de-prueba`, o () si no hay.
-
-    La usan el conversor y la referencia, que es lo que garantiza que los dos
-    lean el mismo flag igual; el actor viene de la línea de comandos como texto
-    y el `int` es lo único que hay que hacerle.
-    """
-    if not argumento:
-        return ()
-    actor, charset, indice = argumento
-    return (int(actor), charset, int(indice))
-
-
-def ruta_de_evento(argumento):
-    """(blanco, órdenes) desde el flag, o () si no se pidió ninguna.
-
-    El blanco es el byte que va en OP_ROUTE: 0 es el héroe y un evento es su
-    índice **más uno**. Ver `Eventos.blanco`.
-    """
-    if not argumento or len(argumento) < 2:
-        return ()
-    if argumento[0] == 0 and any(o in eventos.RUTA_DIAGONALES
-                                 for o in argumento[1:]):
-        # El mismo corte que hace `traducir` con un MoveEvent del juego, para
-        # que no se pueda armar a mano el caso que la ROM no sabe hacer: la
-        # referencia caminaría la diagonal y la ROM se iría hacia la
-        # izquierda. Ya pasó al escribir estas pruebas.
-        sys.exit("--ruta-de-evento: el héroe no camina en diagonal, y el "
-                 "blanco 0 es el héroe (un evento es su índice más uno)")
-    return argumento[0], list(argumento[1:])
-
-
 def variables_n():
     """Cuántas ranuras de variables lleva la ROM: al menos una —un largo cero
     cerraría la tabla de la partida— y hasta 256, que es lo que entra entre
@@ -4840,52 +4808,6 @@ def variables_n():
         sys.exit("%d variables no entran en la RAM lejana: FAR_ITEMS está a "
                  "512 bytes de FAR_VARIABLES" % n)
     return n
-
-
-def variables_de_prueba(vars_de_prueba, rama_var_de_prueba, tecla=None):
-    """Las variables que nombra la página de prueba, para darles ranura."""
-    ids = set()
-    if tecla:
-        # La de `--tecla-de-prueba`, que es donde `KeyInputProc` guarda lo que
-        # leyó. Sin ranura el comando no compila y la página se cae entera.
-        ids.add(tecla[0])
-    if vars_de_prueba:
-        if len(vars_de_prueba) % 5:
-            sys.exit("--vars-de-prueba pide VARIABLE OPERACION CLASE A B, y se "
-                     "puede repetir de a cinco")
-        for k in range(0, len(vars_de_prueba), 5):
-            ids.add(vars_de_prueba[k])
-            if vars_de_prueba[k + 2] == eventos.VAR_VARIABLE:
-                ids.add(vars_de_prueba[k + 3])
-            if vars_de_prueba[k + 1] == eventos.VARIABLES_PRUEBA_AL_LUGAR:
-                # La operación 10 nombra **dos** variables: la de la x, que ya
-                # entró como `[k]`, y la de la y, que va en `[k + 4]`.
-                ids.add(vars_de_prueba[k + 4])
-    if rama_var_de_prueba:
-        ids.add(rama_var_de_prueba[0])
-    return ids
-
-
-def pan_de_prueba(argumento):
-    """Los PanScreen de la página de prueba, de a cinco números."""
-    if not argumento:
-        return ()
-    if len(argumento) % 5:
-        sys.exit("--pan-de-prueba pide OPERACION DIRECCION DISTANCIA VELOCIDAD "
-                 "ESPERAR, y se puede repetir de a cinco")
-    return tuple(argumento)
-
-
-def sacudida_de_prueba(argumento):
-    """(fuerza, velocidad, décimas, esperar) desde `--sacudida-de-prueba`, o
-    () si no hay."""
-    if not argumento:
-        return ()
-    if len(argumento) not in (3, 4):
-        sys.exit("--sacudida-de-prueba pide FUERZA VELOCIDAD DECIMAS y, si se "
-                 "quiere, ESPERA")
-    return (argumento[0], argumento[1], argumento[2],
-            argumento[3] if len(argumento) > 3 else 0)
 
 
 def tabla_de_senos():
@@ -4906,16 +4828,6 @@ def tabla_de_senos():
     # con direccionamiento absoluto indexado y tiene que quedar acá.
     out.append('.segment "TABLAS"')
     return "\n".join(out) + "\n"
-
-
-def lugar_de_prueba(argumento):
-    """(blanco, x, y, espera) desde `--lugar-de-prueba`, o () si no hay."""
-    if not argumento:
-        return ()
-    if len(argumento) not in (3, 4):
-        sys.exit("--lugar-de-prueba pide BLANCO X Y y, si se quiere, ESPERA")
-    return (argumento[0], argumento[1], argumento[2],
-            argumento[3] if len(argumento) > 3 else 0)
 
 
 def ev_pos_bytes(game_map):
@@ -5070,14 +4982,6 @@ def parser_de_flags():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
-    parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
-                        help="mete en el mapa inicial una página automática "
-                             "que abre una ventana de mensaje con estas "
-                             "líneas y espera a que el jugador apriete A. Es "
-                             "lo sintético de siempre —como "
-                             "--pagina-de-prueba—: sirve para comparar la "
-                             "apertura y el cierre sin depender de qué diga "
-                             "el juego")
     parser.add_argument("--relleno-de-textos", type=int, default=0,
                         help="textos muertos delante del bloque de textos de\n"
                              "las pantallas, para que los índices de la\n"
@@ -5091,36 +4995,6 @@ def parser_de_flags():
                              "reproduce el defecto de `msg_empezar` sin armar un\n"
                              "cartucho de diez mapas hablados. El otro lado del\n"
                              "mismo flag de la otra herramienta")
-    parser.add_argument("--batalla-de-prueba", type=int, default=0,
-                        metavar="TROPA",
-                        help="una pelea contra esta tropa al final de la "
-                             "página de prueba. Es lo que le da banco a la "
-                             "tropa de cuatro enemigos del mapa 9, cuya "
-                             "página no compila por una orden de ruta")
-    parser.add_argument("--batalla-game-over", action="store_true",
-                        help="y que perderla sea un Game Over, o sea el "
-                             "`defeat_mode` 0 de RM2k: el destino de la "
-                             "derrota es `BATALLA_PERDER` y la ROM vuelve al "
-                             "arranque. Es la forma que traen las 15 páginas "
-                             "del juego con pelea sin manejadores")
-    parser.add_argument("--fondo-de-prueba", default="",
-                        metavar="NOMBRE",
-                        help="con qué fondo de batalla pelea esa tropa. En una "
-                             "pelea del juego el nombre sale del propio "
-                             "EnemyEncounter; acá no hay comando de donde "
-                             "sacarlo, así que se pasa")
-    parser.add_argument("--guardar-de-prueba", action="store_true",
-                        help="la página de prueba guarda la partida en la "
-                             "SRAM. El save point del juego está en el mapa 8 "
-                             "y hay que caminar hasta él; esto deja probar "
-                             "`OP_SAVE` desde cualquier mapa")
-    parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
-                        metavar=("SEGUNDOS", "VISIBLE"),
-                        help="arranca el cronómetro desde la página de prueba. "
-                             "Existe por lo mismo que el resto de esa página: "
-                             "las seis del juego que lo prenden están cortadas "
-                             "por otra cosa, así que sin esto no habría con qué "
-                             "comparar. Implica --con-timer")
     parser.add_argument("--con-titulo", action="store_true",
                         help="lleva la pantalla de título del juego, con su "
                              "menú de empezar y cargar. Sin esto la ROM "
@@ -5160,125 +5034,6 @@ def parser_de_flags():
                              "un evento que no se dibuja igual cierra el paso, "
                              "así que descartarlo puede dejar una pared "
                              "invisible. Ver `aviso_de_descarte`")
-    parser.add_argument("--switch", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="prende estos switches desde la página de prueba, "
-                             "que es la forma de poner al mundo en un estado al "
-                             "que el juego llega más tarde")
-    parser.add_argument("--vars-de-prueba", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="ControlVars en la página de prueba, de a cinco: "
-                             "VARIABLE OPERACION CLASE A B con los números de "
-                             "RM2k (operación 0 pone, 1 suma, 2 resta; clase "
-                             "0 constante, 1 variable, 3 azar, 7 otro)")
-    parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
-                        default=None,
-                        metavar=("VARIABLE", "COMPARACION", "VALOR", "ADENTRO",
-                                 "DESPUES"),
-                        help="una rama por variable en la página de prueba, "
-                             "como --rama-de-prueba: prende ADENTRO si la "
-                             "variable cumple la comparación con VALOR, y "
-                             "DESPUES siempre")
-    parser.add_argument("--animacion-de-prueba", nargs=3, type=int,
-                        default=None, metavar=("ID", "OBJETIVO", "ESPERAR"),
-                        help="la página de prueba muestra una animación de "
-                             "batalla: sus sonidos y sus destellos")
-    parser.add_argument("--lluvia-de-prueba", type=int, default=None,
-                        metavar="FUERZA",
-                        help="la página de prueba pone lluvia, de 0 a 2, y "
-                             "la ROM lleva las gotas aunque ningún mapa llueva")
-    parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
-                        default=None, metavar="N",
-                        help="CUAL PERMITIDO, repetible de a dos: la página "
-                             "de prueba cambia el permiso de guardar (0) o "
-                             "del menú (1)")
-    parser.add_argument("--items-de-prueba", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="ITEM CUANTO, repetible de a dos: la página de "
-                             "prueba da (o quita, con CUANTO negativo) ese "
-                             "ítem con un ChangeItems")
-    parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
-                        metavar=("SWITCH", "ADENTRO", "DESPUES"),
-                        help="una rama en la página de prueba: si SWITCH está "
-                             "prendido prende ADENTRO, y prenda o no, después "
-                             "prende DESPUES. Con --switch se elige qué rama "
-                             "se toma; sin él se toma la otra")
-    parser.add_argument("--destello-de-prueba", nargs=5, type=int, default=None,
-                        metavar=("R", "G", "B", "POTENCIA", "CUADROS"),
-                        help="destella la **pantalla** desde la página de "
-                             "prueba: es FlashScreen, que no es lo mismo que "
-                             "--flash-de-prueba —aquél destella a un personaje—. "
-                             "Ninguna página del juego que compile lo usa sin "
-                             "depender de un switch, y hasta que apareció el "
-                             "relámpago de la apertura este camino no lo corría "
-                             "nadie")
-    parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
-                        metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
-                        help="hace destellar a alguien desde la página de "
-                             "prueba: el blanco es 0 para el héroe o el índice "
-                             "del evento más uno, el color va de 0 a 31 y los "
-                             "cuadros son cuántos dura")
-    parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="el primer número es sobre quién —el índice del "
-                             "evento en la tabla del mapa más uno— y los que "
-                             "siguen son las órdenes de la ruta. Detrás va un "
-                             "ProceedWithMovement, así que lo que venga "
-                             "después de la página no corre hasta que el "
-                             "evento termine de caminar")
-    parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
-                        metavar="ORDEN",
-                        help="agrega a la página de prueba una ruta forzada "
-                             "sobre el héroe, con los códigos de "
-                             "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
-    parser.add_argument("--frecuencia", type=int, default=eventos.RUTA_FRECUENCIA,
-                        metavar="F",
-                        help="la frecuencia de las rutas de prueba, de 2 a 8: "
-                             "con la 8 las órdenes van seguidas, con las otras "
-                             "el personaje se para entre orden y orden como en "
-                             "RM2k")
-    parser.add_argument("--sacudida-de-prueba", nargs="+", type=int,
-                        default=None, metavar="N",
-                        help="FUERZA VELOCIDAD DECIMAS [ESPERA]: agrega a la "
-                             "página de prueba una sacudida de pantalla, como "
-                             "un ShakeScreen del juego")
-    parser.add_argument("--pan-de-prueba", nargs="+", type=int,
-                        default=None, metavar="N",
-                        help="OPERACION DIRECCION DISTANCIA VELOCIDAD ESPERAR:\n"
-                             "agrega a la página de prueba un PanScreen. La\n"
-                             "operación es 2 para correr la cámara y 3 para\n"
-                             "devolverla; ninguna página del juego que hoy\n"
-                             "compile corre la cámara. Se puede repetir de a\n"
-                             "cinco para encadenar varios")
-    parser.add_argument("--fundir-bgm", type=int, default=0,
-                        metavar="MS",
-                        help="agrega a la página de prueba un FadeOutBGM de esos\n"
-                             "milisegundos. Ninguna página del juego que hoy\n"
-                             "compile apaga la música, así que sin esto el\n"
-                             "camino no lo corre nada")
-    parser.add_argument("--tecla-de-prueba", nargs=5, type=int,
-                        default=None,
-                        metavar="N",
-                        help="agrega a la página de prueba un\n"
-                             "KeyInputProc con los cinco parámetros de\n"
-                             "RM2k: variable, esperar, las cuatro\n"
-                             "direcciones, la tecla de acción y\n"
-                             "cancelar. Ninguna página del juego que\n"
-                             "hoy compile lo usa, así que sin esto el\n"
-                             "camino no lo corre nada")
-    parser.add_argument("--sprite-de-prueba", nargs=3, default=None,
-                        metavar=("ACTOR", "CHARSET", "INDICE"),
-                        help="agrega a la página de prueba un\n"
-                             "ChangeSpriteAssociation: le cambia el\n"
-                             "CharSet a ese actor **después de la\n"
-                             "espera**, y si es el que lidera, el\n"
-                             "héroe pasa a dibujarse con él. El\n"
-                             "gráfico tiene que ir además en\n"
-                             "--grafico-de-prueba, que es lo que le\n"
-                             "pone las poses en el banco de sprites\n"
-                             "del mapa. Las 212 apariciones del\n"
-                             "comando en el juego están en los cuatro\n"
-                             "mapas de la persecución en auto")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="registra un gráfico para que la ruta de\n"
@@ -5295,48 +5050,12 @@ def parser_de_flags():
                              "que escucha desde el arranque: los mapas donde\n"
                              "esto empieza no traen música propia y sin el flag\n"
                              "la ROM sale callada. No cambia el bytecode")
-    parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="BLANCO X Y [ESPERA]: planta al evento —el índice "
-                             "de la tabla más uno— en esa celda desde la página "
-                             "de prueba, después de esperar esos cuadros. Es "
-                             "ChangeEventLocation, y con --ruta-de-evento la "
-                             "espera cae a mitad de la ruta")
-    parser.add_argument("--rama-item-de-prueba", nargs=5, type=int,
-                        default=None,
-                        metavar=("ITEM", "R", "G", "B", "SAT"),
-                        help="una rama por objeto —ConditionalBranch de clase "
-                             "4— en la página de prueba: tiñe la pantalla con "
-                             "ese color sólo si el grupo tiene el ítem. Con "
-                             "--items-de-prueba se elige cuál rama corre")
-    parser.add_argument("--rama-actor-de-prueba", nargs=7, type=int,
-                        default=None,
-                        metavar=("SUB", "ACTOR", "DATO", "R", "G", "B", "SAT"),
-                        help="una rama por actor con dos operandos "
-                             "—ConditionalBranch de clase 5, sub 4 'sabe la "
-                             "habilidad' o sub 5 'tiene puesto el objeto'— en "
-                             "la página de prueba: tiñe la pantalla con ese "
-                             "color sólo si se cumple. DATO es la habilidad o "
-                             "el ítem")
-    parser.add_argument("--parar-de-prueba", type=int, default=None,
-                        metavar="CUADROS",
-                        help="HaltAllMovement desde la página de prueba, "
-                             "después de esperar esos cuadros: corta las rutas "
-                             "forzadas del héroe y de --ruta-de-evento por la "
-                             "mitad. El único del juego está en una página del "
-                             "mapa 11 que teletransporta al final, así que sin "
-                             "esto no hay dónde mirar lo que hace")
     parser.add_argument("--encuentros-de-prueba", type=int, default=None,
                         metavar="PASOS",
                         help="cada cuántos pasos hay un encuentro al azar, "
                              "para todos los mapas del cartucho. Sin esto vale "
                              "el del árbol del juego, que va de 25 a 85 pasos; "
                              "0 los apaga. La referencia toma el mismo número")
-    parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
-                        metavar="N",
-                        help="ESPERA R G B [SAT]: agrega una página automática "
-                             "inventada, en el mapa inicial, que espera N cuadros y "
-                             "después tiñe")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "
@@ -5357,12 +5076,6 @@ def parser_de_flags():
                              "Ditto —ver pruebas/casos/—. La compila el mismo "
                              "camino que una página del juego, con el "
                              "contexto del mapa donde arranca la ROM")
-    parser.add_argument("--grupo-de-prueba", nargs="+", type=int,
-                        default=None, metavar="ACTOR",
-                        help="el grupo con el que arranca la prueba: la página "
-                             "de prueba lo arma con ChangePartyMembers, así que "
-                             "el cartucho sigue arrancando con el suyo. Sus "
-                             "líderes y sus caras entran en todos los mapas")
     parser.add_argument("--charset", default=None,
                         help="forzar el CharSet del héroe; por defecto sale "
                              "del primero del grupo, que es como lo decide RM2k")
@@ -5392,7 +5105,6 @@ def main():
     args.casos = casos_de_prueba(parser, args, tramos)
     de_archivo = comandos_de_casos(args)
     args.con_timer = args.con_timer or any(
-        c.timer_de_prueba is not None for c in args.casos) or any(
         cmd.code == eventos.TIMER_OPERATION for cmd in de_archivo)
 
     renderer = Renderer(args.game_dir)
@@ -5428,12 +5140,7 @@ def main():
     #
     # Las variables del juego entero, con su ranura. La referencia arma el
     # mismo índice.
-    extra = set()
-    for caso in args.casos:
-        extra |= variables_de_prueba(caso.vars_de_prueba,
-                                     caso.rama_var_de_prueba,
-                                     caso.tecla_de_prueba)
-    extra |= eventos.variables_de_comandos(de_archivo)
+    extra = eventos.variables_de_comandos(de_archivo)
     if len(args.casos) > 1:
         # La que elige el caso: ver `eventos.VARIABLE_DE_CASO`. Con uno solo
         # no hace falta, y así ese cartucho sale igual que antes de `--caso`.
@@ -5455,14 +5162,13 @@ def main():
     # Y los del grupo de prueba, detrás: la prueba puede arrancar con él en
     # cualquier mapa del cartucho.
     for caso in args.casos:
-        de_prueba = caso.grupo_de_prueba or grupo_de_la_pagina(caso, grupo)
+        de_prueba = grupo_de_la_pagina(caso, grupo)
         if de_prueba:
             for actor in lideres_posibles(renderer, todos, de_prueba):
                 if actor not in args.lideres:
                     args.lideres.append(actor)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos, de_archivo) or any(
-        c.lluvia_de_prueba is not None for c in args.casos)
+    args.con_lluvia = hay_lluvia(todos, de_archivo)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -5484,14 +5190,6 @@ def main():
     args.asociaciones = eventos.asociaciones_de(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
-    # Y el de `--sprite-de-prueba`, que es un `ChangeSpriteAssociation` más y
-    # va por la misma puerta: si fuera por `--grafico-de-prueba` tendría índice
-    # sólo en el mapa donde arranca la ROM, y lo que el comando hace —cruzar el
-    # teletransporte— no se podría probar.
-    for caso in args.casos:
-        prueba = sprite_de_prueba(caso.sprite_de_prueba)
-        if prueba and (prueba[1], prueba[2]) not in args.asociaciones:
-            args.asociaciones.append((prueba[1], prueba[2]))
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -5524,9 +5222,6 @@ def main():
     # lleva el id de RM2k— así que sólo dice qué tablas de enemigos hay que
     # emitir. Ver `eventos.Tropas`.
     tropas = eventos.Tropas()
-    mensaje_de_caso = [mensajes.agregar(c.mensaje_de_prueba)
-                       if c.mensaje_de_prueba is not None else None
-                       for c in args.casos]
     # Los de las páginas de prueba que vienen de un archivo, por lo mismo:
     # acá se guardan y la compilación de la página, más abajo, los encuentra
     # ya guardados, porque el bloque deduplica por contenido.
@@ -5621,9 +5316,9 @@ def main():
                         eventos.COMPARAR_AL_MENOS, k) if k else None),
                     "item": 0, "capa": 0,
                     "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
-                    "codigo": pagina_de_caso(caso, grupo, mensaje_de_caso[k],
-                                             mapa, temas, graficos, mensajes,
-                                             indices, args.imagenes)})
+                    "codigo": pagina_de_caso(caso, mapa, temas, graficos,
+                                             mensajes, indices,
+                                             args.imagenes)})
             paginas = paginas + de_prueba + [{
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
@@ -5804,16 +5499,11 @@ def main():
     # agrega algún `ChangePartyMembers` de estos mapas, compilen sus páginas o
     # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
     # una de menos deja un hueco en el menú.
-    miembros = miembros_posibles(
-        todos, list(grupo) + [a for c in args.casos
-                              for a in c.grupo_de_prueba or ()],
-        de_archivo)
+    miembros = miembros_posibles(todos, grupo, de_archivo)
     # Y los ítems que pueden estar en el inventario, para llevar su nombre y
     # su descripción: ver "la pantalla de ítems" en titulo.py.
-    items_rom = items_posibles(todos, [i for c in args.casos
-                                       for i in c.items_de_prueba or ()],
-                               miembros,
-                               renderer.database, de_archivo)
+    items_rom = items_posibles(todos, miembros, renderer.database,
+                               de_archivo)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
@@ -5885,13 +5575,10 @@ def main():
         print("  encuentros al azar: %d mapa(s), %d zona(s), %d tropa(s)"
               % (len(encuentros["registros"]), len(encuentros["zonas"]),
                  cuantas))
-    for caso in args.casos:
-        if caso.batalla_de_prueba:
-            tropas.pedir(caso.batalla_de_prueba, caso.fondo_de_prueba)
-        for cmd in caso.comandos:
-            if cmd.code == eventos.ENEMY_ENCOUNTER:
-                tropas.pedir(eventos.tropa_de_encuentro(cmd),
-                             eventos.fondo_de_encuentro(cmd))
+    for cmd in de_archivo:
+        if cmd.code == eventos.ENEMY_ENCOUNTER:
+            tropas.pedir(eventos.tropa_de_encuentro(cmd),
+                         eventos.fondo_de_encuentro(cmd))
     # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
     # páginas compilaban. Se vuelve a pedir sólo para leerlos: `Temas` numera
     # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
@@ -6238,7 +5925,7 @@ def lideres_posibles(renderer, map_ids, grupo):
 args_game_dir = [GAME_DIR]
 
 
-def items_posibles(map_ids, de_prueba=None, actores=(), db=None, extra=()):
+def items_posibles(map_ids, actores=(), db=None, extra=()):
     """Los ítems que pueden estar en el inventario con estos mapas en la ROM:
     los que da algún `ChangeItems` de cualquier página, compile o no, los que
     vende alguna `OpenShop`, el equipo con el que arrancan los `actores` y los
@@ -6267,8 +5954,6 @@ def items_posibles(map_ids, de_prueba=None, actores=(), db=None, extra=()):
             for page in evento.pages:
                 barrer(page.commands)
     barrer(extra)
-    for k in range(0, len(de_prueba or ()), 2):
-        items.add(de_prueba[k])
     return sorted(i for i in items if 0 < i < eventos.ITEMS_N)
 
 
@@ -6322,8 +6007,7 @@ def grupo_de_la_pagina(caso, grupo):
     return estado.grupo if toca else None
 
 
-def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False,
-                      comandos=()):
+def separar_del_heroe(renderer, game_map, args, comandos=()):
     """Si algo destella al héroe, los NPCs con su gráfico van con otra paleta.
 
     En la consola el destello se hace sobre la paleta del personaje, y un líder
@@ -6334,7 +6018,7 @@ def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False,
     paleta por gráfico, y sólo en los mapas donde algo destella al héroe.
     `comandos` son los de las páginas de prueba que vienen de un archivo.
     """
-    destella = destella_por_prueba or any(
+    destella = any(
         cmd.code == eventos.FLASH_SPRITE and cmd.parameters
         and cmd.parameters[0] == eventos.RUTA_HEROE
         for cmd in list(comandos) + [cmd for ev in game_map.events
@@ -6357,18 +6041,7 @@ def separar_del_heroe(renderer, game_map, args, destella_por_prueba=False,
 # cartucho entero y van antes del primero. `--grafico-de-prueba` es del
 # cartucho a propósito: dice qué gráficos hay en el banco de sprites del mapa,
 # no qué hace la página.
-FLAGS_DE_CASO = (
-    "pagina_de_prueba", "ruta_de_prueba", "rama_de_prueba",
-    "guardar_de_prueba", "batalla_de_prueba", "batalla_game_over",
-    "fondo_de_prueba", "sprite_de_prueba", "tecla_de_prueba",
-    "vars_de_prueba", "rama_var_de_prueba", "items_de_prueba",
-    "acceso_de_prueba", "ruta_de_evento", "flash_de_prueba", "switch",
-    "destello_de_prueba", "timer_de_prueba", "lugar_de_prueba",
-    "parar_de_prueba", "rama_item_de_prueba", "rama_actor_de_prueba",
-    "sacudida_de_prueba", "fundir_bgm", "pan_de_prueba", "lluvia_de_prueba",
-    "animacion_de_prueba", "mensaje_de_prueba", "grupo_de_prueba",
-    "frecuencia", "comandos_de_prueba",
-)
+FLAGS_DE_CASO = ("comandos_de_prueba",)
 
 
 def partir_en_casos(argv):
@@ -6407,25 +6080,9 @@ def casos_de_prueba(parser, args, tramos):
             sys.exit("un --caso sin nada que la página de prueba haga")
         casos.append(caso)
     for caso in casos:
-        caso.comandos = cargar_comandos_de_prueba(caso, defecto)
+        with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
+            caso.comandos = lcf.comandos(json.load(archivo))
     return casos
-
-
-def cargar_comandos_de_prueba(caso, defecto):
-    """Los comandos del `--comandos-de-prueba` de un caso, o () si no lo trae.
-
-    Un caso es el archivo **o** los flags, no las dos cosas: mezclados, el
-    orden de la página dependería de cómo se intercalan dos fuentes.
-    """
-    if not caso.comandos_de_prueba:
-        return ()
-    for dest in FLAGS_DE_CASO:
-        if dest != "comandos_de_prueba" \
-                and getattr(caso, dest) != getattr(defecto, dest):
-            sys.exit("--comandos-de-prueba va solo: --%s es otro flag de "
-                     "caso" % dest.replace("_", "-"))
-    with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-        return lcf.comandos(json.load(archivo))
 
 
 def comandos_de_casos(args):
@@ -6438,95 +6095,31 @@ def comandos_de_casos(args):
     return [cmd for caso in args.casos for cmd in caso.comandos]
 
 
-def pagina_de_caso(caso, grupo, mensaje, mapa, temas, graficos, mensajes,
-                   indices, imagenes):
+def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
     """El bytecode de la página de prueba de un caso.
 
-    Si viene de un archivo, se compila como cualquier página del juego, con el
-    contexto del mapa donde arranca la ROM; lo único que el conversor le
-    antepone es el `ControlSwitches` que la apaga, que es convención del
-    arnés y no del caso —ver `eventos.SWITCH_DE_PRUEBA`—. Las tropas no se
-    anotan acá sino al final, en `main`: la de la prueba va última.
-
-    Si viene de flags, son los argumentos de `eventos.pagina_de_prueba`.
+    Se compila como cualquier página del juego, con el contexto del mapa donde
+    arranca la ROM; lo único que el conversor le antepone es el
+    `ControlSwitches` que la apaga, que es convención del arnés y no del caso
+    —ver `eventos.SWITCH_DE_PRUEBA`—. Las tropas no se anotan acá sino al
+    final, en `main`: la de la prueba va última.
     """
-    if caso.comandos:
-        apagar = lcf.EventCommand(
-            eventos.CONTROL_SWITCHES, 0, "",
-            [eventos.SWITCH_UNICO, eventos.SWITCH_DE_PRUEBA,
-             eventos.SWITCH_DE_PRUEBA, eventos.SWITCH_ON])
-        codigo = eventos.compilar_pagina(
-            eventos._Comandos([apagar] + list(caso.comandos)), indices.get,
-            mensajes, eventos.Eventos(mapa["game_map"]).para(0), temas,
-            graficos, imagenes)
-        if codigo is None:
-            sys.exit("%s: la página de prueba no compila"
-                     % caso.comandos_de_prueba)
-        return codigo
-    return eventos.pagina_de_prueba(**argumentos_de_caso(caso, grupo),
-                                    mensaje=mensaje,
-                                    eventos_mapa=eventos.Eventos(
-                                        mapa["game_map"]),
-                                    temas=temas, graficos=graficos)
-
-
-def argumentos_de_caso(caso, grupo):
-    """Los flags de un caso, traducidos a los argumentos de
-    `eventos.pagina_de_prueba` que no son contexto de la compilación."""
-    espera, tinte = 0, ()
-    if caso.pagina_de_prueba:
-        espera, *tinte = caso.pagina_de_prueba
-    return dict(
-        espera=espera, tinte=tinte, ruta=caso.ruta_de_prueba or (),
-        ruta_ev=ruta_de_evento(caso.ruta_de_evento),
-        flash=caso.flash_de_prueba or (), switches=caso.switch or (),
-        timer=caso.timer_de_prueba or (),
-        lugar=lugar_de_prueba(caso.lugar_de_prueba),
-        frecuencia=caso.frecuencia,
-        sacudida=sacudida_de_prueba(caso.sacudida_de_prueba),
-        fundir_bgm=caso.fundir_bgm,
-        pan=pan_de_prueba(caso.pan_de_prueba),
-        rama=tuple(caso.rama_de_prueba or ()),
-        destello=tuple(caso.destello_de_prueba or ()),
-        guardar=caso.guardar_de_prueba,
-        variables=tuple(caso.vars_de_prueba or ()),
-        rama_var=tuple(caso.rama_var_de_prueba or ()),
-        items=tuple(caso.items_de_prueba or ()),
-        acceso=tuple(caso.acceso_de_prueba or ()),
-        lluvia=caso.lluvia_de_prueba,
-        animacion=tuple(caso.animacion_de_prueba or ()),
-        batalla=caso.batalla_de_prueba,
-        batalla_game_over=caso.batalla_game_over,
-        parar=caso.parar_de_prueba,
-        rama_item=tuple(caso.rama_item_de_prueba or ()),
-        sprite=sprite_de_prueba(caso.sprite_de_prueba),
-        tecla=tuple(caso.tecla_de_prueba or ()),
-        rama_actor=tuple(caso.rama_actor_de_prueba or ()),
-        grupo=((tuple(grupo), tuple(caso.grupo_de_prueba))
-               if caso.grupo_de_prueba else None))
-
+    apagar = lcf.EventCommand(
+        eventos.CONTROL_SWITCHES, 0, "",
+        [eventos.SWITCH_UNICO, eventos.SWITCH_DE_PRUEBA,
+         eventos.SWITCH_DE_PRUEBA, eventos.SWITCH_ON])
+    codigo = eventos.compilar_pagina(
+        eventos._Comandos([apagar] + list(caso.comandos)), indices.get,
+        mensajes, eventos.Eventos(mapa["game_map"]).para(0), temas,
+        graficos, imagenes)
+    if codigo is None:
+        sys.exit("%s: la página de prueba no compila"
+                 % caso.comandos_de_prueba)
+    return codigo
 
 def pide_pagina_de_prueba(args):
-    """Si algún flag de prueba necesita la página inventada."""
-    return bool(args.pagina_de_prueba or args.ruta_de_prueba
-                or args.rama_de_prueba or args.guardar_de_prueba
-                or args.batalla_de_prueba
-                or args.sprite_de_prueba
-                or args.tecla_de_prueba
-                or args.vars_de_prueba or args.rama_var_de_prueba
-                or args.items_de_prueba or args.acceso_de_prueba
-                or args.ruta_de_evento or args.flash_de_prueba or args.switch
-                or args.destello_de_prueba
-                or args.timer_de_prueba or args.lugar_de_prueba
-                or args.parar_de_prueba or args.rama_item_de_prueba
-                or args.rama_actor_de_prueba
-                or args.sacudida_de_prueba or args.fundir_bgm
-                or args.pan_de_prueba or args.lluvia_de_prueba is not None
-                or args.animacion_de_prueba
-                or args.mensaje_de_prueba is not None
-                or args.grupo_de_prueba
-                or args.comandos_de_prueba)
-
+    """Si hay una página de prueba antes del primer `--caso`."""
+    return bool(args.comandos_de_prueba)
 
 def convertir(renderer, map_id, args, inicio=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
@@ -6546,8 +6139,6 @@ def convertir(renderer, map_id, args, inicio=None):
         game_map.events.insert(0, vacio)
     es_el_inicial = map_id == orden_de_mapas(args)[args.inicial]
     separar_del_heroe(renderer, game_map, args,
-                      args.flash_de_prueba and args.flash_de_prueba[0] == 0
-                      and es_el_inicial,
                       comandos_de_casos(args) if es_el_inicial else ())
     name = renderer.tree.map_names.get(map_id, "?")
 
@@ -6583,17 +6174,6 @@ def convertir(renderer, map_id, args, inicio=None):
         for charset, index in graficos_de_prueba(args.grafico_de_prueba):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
-    # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
-    # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
-    # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que
-    # es donde el conversor mete esa página. Va **antes** del reparto de
-    # paletas: desde que la paleta se elige sobre las poses que se ven, saber
-    # quién camina es parte de elegir los colores y no sólo de repartir la VRAM.
-    prueba_ev = ruta_de_evento(args.ruta_de_evento)
-    if prueba_ev and map_id == orden[args.inicial]:
-        # El blanco viene contado sin el evento de prueba: ver
-        # `eventos.blanco_de_prueba`.
-        movibles = movibles | {eventos.blanco_de_prueba(prueba_ev[0]) - 1}
     if map_id == orden[args.inicial]:
         # Y los que mandan a caminar las páginas de prueba que vienen de un
         # archivo, que nombran al evento por su id de RM2k: lo traduce el
@@ -6624,8 +6204,6 @@ def convertir(renderer, map_id, args, inicio=None):
     # informe de cada mapa.
     muestra_animacion = mapa_muestra_animacion(
         game_map, renderer,
-        [c.animacion_de_prueba[0] for c in args.casos if c.animacion_de_prueba]
-        if map_id == args.map_id else (),
         comandos_de_casos(args) if map_id == args.map_id else ())
     # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un

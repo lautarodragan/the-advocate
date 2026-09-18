@@ -28,10 +28,6 @@ sys.path.insert(0, os.path.join(
 
 from test_menu import abrir                                  # noqa: E402
 
-# La tropa del droide del mapa 2, la misma que usan las demás pruebas de pelea.
-TROPA = 82
-# Ticks que la página de prueba espera antes de abrirla.
-ESPERA = 18
 # Kersh y Core, que la ganan. Con el grupo por omisión —DummyHero, nivel 1— el
 # droide lo mata de un golpe y los HP quedan en cero, que es un número que no
 # distingue "el menú lo lee" de "el menú dibuja cualquier cosa".

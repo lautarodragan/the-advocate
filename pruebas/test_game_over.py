@@ -39,13 +39,6 @@ import eventos                                              # noqa: E402
 import lcf                                                  # noqa: E402
 from render_map import GAME_DIR                             # noqa: E402
 
-# La tropa del droide del mapa 2, que es la que ya viaja en los cartuchos de
-# prueba: cuál sea da lo mismo, porque nadie llega a pelearla.
-TROPA = 82
-# Ticks que la página de prueba espera antes de abrir la pelea. Son los que la
-# prueba usa para poner los HP en cero; con menos, la pelea se abre antes de
-# que la escritura llegue.
-ESPERA = 18
 # El jefe de los Rat Tracks, que es lo que todo esto destraba.
 RAT_TRACKS_B2, JEFE = 26, 6
 # Y el cofre trampa de los Rat Tracks B1, que es la otra de las 15 páginas que
@@ -241,11 +234,6 @@ RAT_TRACKS_B1 = 21
 # con los de verdad la prueba caminaría minutos. Es `--encuentros-de-prueba`,
 # el mismo que usa el caso `encuentro` de la tanda.
 PASOS = 8
-# El grupo de la intro, que **gana** las peleas de ese mapa en un turno: es lo
-# que hace que el control no dependa de ningún tiro de dado. Medido el
-# 2026-09-13: contra las tropas 94, 95 y 96 el enemigo cae siempre en el
-# primer turno y el grupo no pierde un solo HP.
-GRUPO = (11, 12, 13)
 DIRECCIONES = ("up", "down", "left", "right")
 
 

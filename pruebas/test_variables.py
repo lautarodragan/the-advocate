@@ -21,20 +21,6 @@ import eventos                                          # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
 
-ESPERA = 198
-# var 17 = 5; var 17 += 7 (12); var 21 = azar entre 0 y 100; var 39 = var 17;
-# var 40 = 3; var 40 -= 10 (-7, con signo); var 41 = otro 0, el oro.
-VARIABLES = (17, 0, 0, 5, 0,
-             17, 1, 0, 7, 0,
-             21, 0, 3, 0, 100,
-             39, 0, 1, 17, 0,
-             40, 0, 0, 3, 0,
-             40, 2, 0, 10, 0,
-             41, 0, 7, 0, 0)
-# Y una rama: si var 17 >= 12, prende el 200; el 201 se prende siempre.
-RAMA = (17, 1, 12, 200, 201)
-
-
 def ranuras():
     # El índice es del juego entero desde el 2026-09-10 a la noche: las cinco
     # de la página de prueba ya son del juego, así que no agregan ninguna.

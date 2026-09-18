@@ -30,9 +30,6 @@ from render_map import GAME_DIR                              # noqa: E402
 # conversor le da ranura porque la nombra la página de prueba.
 VARIABLE = 88
 ESPERA = 30
-# Los cinco parámetros de RM2k: variable, esperar, la cruceta, la tecla de
-# acción, cancelar. Es la forma que usan 23 de las 32 apariciones del juego.
-ESPERAR_A = (VARIABLE, 1, 0, 1, 0)
 
 
 def ranura():
@@ -93,13 +90,6 @@ def test_sostener_la_tecla_no_contesta(partida):
     assert leer(una) == 0, (
         "el comando contestó con A sostenida desde antes de arrancar: la "
         "variable quedó en %d" % leer(una))
-
-
-# La forma que espera la cruceta, que es el motor del minijuego de las piedras
-# del mapa 11: `(8, 1, 1, 0, 0)` en RM2k. Y la que espera las tres cosas, que
-# es el `(151, 1, 1, 1, 1)` de las otras dos páginas del juego.
-ESPERAR_DIR = (VARIABLE, 1, 1, 0, 0)
-ESPERAR_TODO = (VARIABLE, 1, 1, 1, 1)
 
 
 def test_la_cruceta_guarda_el_numero_de_cada_direccion(partida):

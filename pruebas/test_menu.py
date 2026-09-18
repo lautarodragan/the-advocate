@@ -15,11 +15,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "tools"))
-import eventos                                          # noqa: E402
 
 from consola import TITULO_AIRE
 
-ESPERA = 198
 GRUPO = (14, 11)
 ORO = 1234
 

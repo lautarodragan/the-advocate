@@ -16,7 +16,6 @@ import eventos                                          # noqa: E402
 import lcf                                              # noqa: E402
 from render_map import GAME_DIR                         # noqa: E402
 
-ESPERA = 198
 # Tres de la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y
 # cinco menos, que topa en 0; y la 200 queda en cero.
 ITEMS = (151, 3, 151, 1, 90, 120, 17, 2, 17, -5)

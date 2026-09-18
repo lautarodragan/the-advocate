@@ -22,7 +22,6 @@ import pytest
 # falta que exista en la tabla del mapa: lo que se mira es que el byte viaje.
 GRAFICO = 3
 OTRO = 7            # con el que se ensucia la WRAM antes del reset
-ESPERA = 198        # los ticks que la página de prueba espera antes de guardar
 
 
 def poner(una, actor, valor):
