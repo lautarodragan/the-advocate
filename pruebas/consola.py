@@ -47,6 +47,29 @@ GRUPO = os.environ.get("GRUPO", "10")
 DEL_JUEGO = ["10"]
 
 
+# Dónde viven las páginas de prueba: una por caso, con la lista de comandos
+# de RM2k en el JSON de Ditto. Ver `--comandos-de-prueba` en snes_convert.py.
+CASOS = os.path.join("pruebas", "casos")
+
+
+def flags_de_casos(caso):
+    """(los flags del conversor, lo que dicen) para un caso o una tupla de
+    casos, por nombre. `caso` None es ningún caso.
+
+    Lo que dicen va en la clave del cartucho junto con el nombre: el conversor
+    lee el archivo, así que cambiarlo sin cambiar el nombre tiene que rearmar.
+    """
+    casos = () if caso is None else (
+        (caso,) if isinstance(caso, str) else tuple(caso))
+    flags, contenido = [], []
+    for k, nombre in enumerate(casos):
+        ruta = os.path.join(CASOS, nombre + ".json")
+        with open(os.path.join(RAIZ, ruta), encoding="utf-8") as archivo:
+            contenido.append((nombre, archivo.read()))
+        flags += (["--caso"] if k else []) + ["--comandos-de-prueba", ruta]
+    return flags, tuple(contenido)
+
+
 def flags_de_grupo(grupo):
     """Cómo se le pide al conversor que una prueba arranque con `grupo`.
 
@@ -691,14 +714,15 @@ def huella():
     return h.hexdigest()[:16]
 
 
-def armar(map_id, mapas=(), destino=None, rama=(),
-          descartar=False, guardar=0, titulo=False, tema=None, variables=(),
-          rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False,
-          batalla=0, game_over=False, encuentros=0, grupo=None):
+def armar(map_id, mapas=(), destino=None, descartar=False, titulo=False,
+          tema=None, timer=False, encuentros=0, caso=None):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
     no sea nunca una ROM armada a mano: ver "Trampas del entorno" en AGENTS.md.
+
+    `caso` es la página de prueba, por su nombre en `pruebas/casos/`: ver
+    `flags_de_casos`.
 
     Se saltea si ya está hecha y nada de lo que la arma cambió; ver `huella`.
     El estado inicial —los switches— ya no se hornea en la ROM sino que se
@@ -710,17 +734,17 @@ def armar(map_id, mapas=(), destino=None, rama=(),
     inc = os.path.join(destino, "mapdata.inc")
     sfc = os.path.join(destino, "prueba.sfc")
     sello = os.path.join(destino, "huella.txt")
+    de_casos, contenido = flags_de_casos(caso)
 
     # La huella lleva **también los argumentos**, y no sólo los fuentes: dos
     # llamadas con mapas distintos y el mismo `destino` devolvían el cartucho de
     # la primera, en silencio. `conftest.partida()` no se lo come porque le da
     # un destino por combinación, pero llamar a `armar()` a mano sí: el
     # 2026-09-13 me hizo medir cuatro mapas y estar midiendo siempre el mismo.
+    # Del caso entra lo que dice, no sólo su nombre: ver `flags_de_casos`.
     actual = huella() + "\n" + repr((
-        map_id, tuple(mapas), tuple(rama), descartar, guardar,
-        titulo, tema, tuple(variables), tuple(rama_var), tuple(items),
-        tuple(acceso), tuple(tecla), espera, timer, batalla, game_over,
-        encuentros, tuple(grupo or ())))
+        map_id, tuple(mapas), descartar, titulo, tema, timer, encuentros,
+        contenido))
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
             with open(sello) as archivo:
@@ -730,49 +754,14 @@ def armar(map_id, mapas=(), destino=None, rama=(),
             pass
 
     convertir = ([sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py")]
-                 + flags_de_grupo(grupo or GRUPO.split())
                  + ["--map-id", str(map_id)])
     if mapas:
         convertir += ["--mapas"] + [str(m) for m in mapas]
-    if rama:
-        convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
-    if variables:
-        convertir += ["--vars-de-prueba"] + [str(n) for n in variables]
-    if rama_var:
-        convertir += ["--rama-var-de-prueba"] + [str(n) for n in rama_var]
-    if items:
-        convertir += ["--items-de-prueba"] + [str(n) for n in items]
-    if acceso:
-        convertir += ["--acceso-de-prueba"] + [str(n) for n in acceso]
-    if tecla:
-        # `KeyInputProc` en la página de prueba, con `espera` cuadros de espera
-        # delante: la espera es lo que le deja a la prueba apretar algo antes
-        # de que el comando lea, que si no lee en el primer cuadro de juego y
-        # no hay forma de tener el pad puesto a tiempo.
-        convertir += ["--tecla-de-prueba"] + [str(n) for n in tecla]
-        convertir += ["--pagina-de-prueba", str(espera)]
-    if batalla:
-        # Una pelea contra esta tropa al final de la página de prueba, con la
-        # derrota puesta en `BATALLA_PERDER`, o sea el Game Over de RM2k. La
-        # espera de delante es lo que le deja a la prueba ponerle los HP del
-        # grupo en cero antes de que la pelea se abra: con todos caídos,
-        # `batalla_correr` devuelve derrota sin pelear —ver "nadie en pie" en
-        # main.s— y ése es el camino que se quiere ejercitar.
-        convertir += ["--batalla-de-prueba", str(batalla),
-                      "--pagina-de-prueba", str(espera)]
-        if game_over:
-            convertir.append("--batalla-game-over")
     if encuentros:
         # Los encuentros al azar cada `encuentros` pasos, en vez de los del
         # árbol de mapas: sin esto una prueba tendría que caminar hasta que le
         # tocara, y en Rat Tracks B1 son ochenta pasos por encuentro.
         convertir += ["--encuentros-de-prueba", str(encuentros)]
-    if guardar:
-        # La página de prueba espera `guardar` ticks y recién ahí guarda la
-        # partida. La espera es lo que le deja a la prueba mover el mundo antes
-        # —irse a otro mapa, por ejemplo— para que lo guardado no sea el estado
-        # del arranque; ver `pagina_de_prueba`.
-        convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
     if timer:
         # El cronómetro, que es lo que las demos llevan: se lo pide `--con-timer`
         # y cuesta la paleta de los dígitos. Lo necesita la prueba de recorrido,
@@ -796,7 +785,8 @@ def armar(map_id, mapas=(), destino=None, rama=(),
         # ROM y no para todas: el corte es la red que avisó del evento 30 del
         # mapa 2, y apagarla en todas la dejaría sin cubrir nada.
         convertir.append("--descartar-eventos")
-    convertir += ["-o", inc]
+    # El caso va al final: detrás de un `--caso` todo sería de ese caso.
+    convertir += ["-o", inc] + de_casos
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
 
     # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.

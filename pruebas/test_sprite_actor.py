@@ -76,7 +76,7 @@ def test_viaja_en_la_partida_guardada(partida):
     jugador que guarda en medio de la carrera carga con el auto dibujado como
     una persona —o al revés—.
     """
-    una = partida(guardar=ESPERA)
+    una = partida(caso="guardar-198")
     lider = una.byte("grupo")
     una.ir_al_mapa(6, 20, 30)
     poner(una, lider, GRAFICO)

@@ -12,38 +12,27 @@ no sería esa.
 
 import pytest
 
-from consola import flags_de_grupo
-from tanda import GRUPO, cartucho, golden, partida
+from tanda import cartucho, golden, partida
 from test_tanda_paginas import ANIMACIONES, PANEOS
 
 # Cuatro casos del mapa 6 que no piden nada del cartucho aparte del mapa: dos
 # animaciones y dos paneos, que son páginas bien distintas. Cada uno es
-# (nombre, sus flags, los cuadros de su golden), sacados de la tupla de su
-# prueba para no copiarlos.
-_ANIM = {c[0]: c for c in ANIMACIONES}
-_PAN = {c[0]: c for c in PANEOS}
-CASOS = tuple(
-    [(n, ("--animacion-de-prueba", *_ANIM[n][1].split(),
-          "--pagina-de-prueba", "0", "0", "0", "50"), _ANIM[n][2])
-     for n in ("animacion", "animacion-dibujo")]
-    + [(n, ("--pan-de-prueba", *_PAN[n][1].split(),
-            "--pagina-de-prueba", "0", "0", "0", "50"), _PAN[n][2])
-       for n in ("pan", "pan-vuelve")])
+# (nombre, los cuadros de su golden), sacados de la tupla de su prueba para no
+# copiarlos; el nombre es también el de su página en `pruebas/casos/`.
+_CUADROS = {c[0]: c[1] for c in ANIMACIONES + PANEOS}
+CASOS = tuple((n, _CUADROS[n]) for n in ("animacion", "animacion-dibujo",
+                                         "pan", "pan-vuelve"))
 
 
 def _cartucho():
-    flags = ["--map-id", "6", *CASOS[0][1]]
-    for _, suyos, _ in CASOS[1:]:
-        # Cada `--caso` lleva su grupo: es un flag del caso, porque lo arma su
-        # página. `cartucho` sólo se lo pone al primero.
-        flags += ["--caso", *flags_de_grupo(GRUPO.split()), *suyos]
-    return cartucho("casos", *flags)
+    return cartucho("casos", "--map-id", "6",
+                    caso=tuple(nombre for nombre, _ in CASOS))
 
 
 @pytest.mark.parametrize("k", range(len(CASOS)),
                          ids=[caso[0] for caso in CASOS])
 def test_cada_caso_da_la_golden_de_su_cartucho_propio(k):
-    nombre, _, cuadros = CASOS[k]
+    nombre, cuadros = CASOS[k]
     sfc, simbolos, mapas = _cartucho()
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas, caso=k)

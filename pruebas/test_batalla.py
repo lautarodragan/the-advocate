@@ -276,7 +276,7 @@ def test_los_hp_viajan_en_la_partida(partida):
     pisan los HP en la RAM antes de reiniciar porque snes9x no la borra —está
     en ESTADO.md— así que sin eso el 7 podría ser el de antes.
     """
-    una = partida(guardar=198)
+    una = partida(caso="guardar-198")
     pelea = Pelea(una)
     una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[0], [7, 0])
     una.guardar_en()
@@ -328,7 +328,7 @@ def test_los_sp_viajan_en_la_partida(partida):
     sin el renglón de la tabla volverían llenos. Resetea la consola de verdad
     —la SRAM sobrevive— y pisa la RAM antes, porque snes9x no la borra.
     """
-    una = partida(guardar=198)
+    una = partida(caso="guardar-198")
     pelea = Pelea(una)
     una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [7, 0])
     una.guardar_en()
@@ -964,13 +964,13 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
 # resto del archivo: **el número exacto**. `batalla.curacion` dice cuánto
 # tendría que curar y la consola tiene que dejar ese HP, ni uno más.
 
-def en_el_droide_con_pocion(partida, cuantas=3):
+def en_el_droide_con_pocion(partida):
     """La pelea del droide con pociones en el inventario y el grupo herido.
 
     Herido a mano y no peleando: pelear hasta que a alguien le falten HP
     depende del azar, y lo que este caso mide es la cura.
     """
-    una = partida(mapas=LINKAGE, items=(POCION, cuantas, LLAVE, 1))
+    una = partida(mapas=LINKAGE, caso="pociones-y-llave")
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])

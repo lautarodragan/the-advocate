@@ -191,9 +191,9 @@ def test_evento(otros, nombre):
     golden(nombre, p.imagen())
 
 
-@pytest.mark.parametrize("mapa,arranca,nombre", ((121, "10", "grupo-121"),
-                                                 (74, "21", "ruta-74")))
-def test_pagina(mapa, arranca, nombre):
+@pytest.mark.parametrize("mapa,caso,nombre", ((121, None, "grupo-121"),
+                                              (74, "grupo-21", "ruta-74")))
+def test_pagina(mapa, caso, nombre):
     """`pagina`: una página automática del juego, con el grupo que pide.
 
     El grupo es parte del caso y no decoración, y por eso va explícito:
@@ -211,7 +211,7 @@ def test_pagina(mapa, arranca, nombre):
     Del arnés: el grupo es el único argumento del conversor que `cartucho` no
     toma como flag suelto, porque hay que pasárselo también a la ROM.
     """
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", mapa, grupo=arranca)
+    sfc, simbolos, mapas = cartucho(nombre, "--map-id", mapa, caso=caso)
     p = partida(sfc, simbolos, mapas)
     p.correr(240)
     golden(nombre, p.imagen())

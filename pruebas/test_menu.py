@@ -115,7 +115,7 @@ def test_guardar_desde_el_menu(partida):
 def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
     """`ChangeSaveAccess` en 0, desde el bytecode de la página de prueba: Save
     va en gris y A no abre la pantalla de ranuras."""
-    una = con_grupo(partida(acceso=(eventos.ACCESO_GUARDAR, 0)))
+    una = con_grupo(partida(caso="sin-guardar"))
     una.correr(30)
     assert una.acceso() & 1, "la página no prohibió guardar"
     abrir(una)
@@ -127,7 +127,7 @@ def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
 
 
 def test_menu_prohibido_b_no_lo_abre(partida):
-    una = con_grupo(partida(acceso=(eventos.ACCESO_MENU, 0)))
+    una = con_grupo(partida(caso="sin-menu"))
     una.correr(30)
     tocar(una, "b", 40)
     assert not una.menu_abierto(), "el menú se abrió estando prohibido"
@@ -158,7 +158,7 @@ def test_b_caminando_abre_el_menu_al_terminar_el_paso(partida):
 
 
 def test_los_permisos_viajan_en_la_partida(partida):
-    una = partida(guardar=ESPERA, acceso=(eventos.ACCESO_GUARDAR, 0))
+    una = partida(caso="sin-guardar-guardar-198")
     una.guardar_en(0)
     assert una.acceso() & 1
     una.reiniciar()
@@ -179,7 +179,7 @@ def test_escapar_prohibido_es_su_bit_y_nada_más(partida):
     una y no tocar el de escapar. Con el defecto puesto —el `inc a` de vuelta—
     esta prueba da rojo en el `assert` de guardar.
     """
-    una = con_grupo(partida(acceso=(eventos.ACCESO_ESCAPAR, 0)))
+    una = con_grupo(partida(caso="sin-escapar"))
     una.correr(30)
     assert una.acceso() & 4, "la página no prohibió escapar"
     assert not una.acceso() & 1, "se llevó puesto el permiso de guardar"
@@ -190,7 +190,7 @@ def test_el_permiso_de_escapar_viaja_en_la_partida(partida):
     """Va en el mismo byte que los otros dos, así que la partida ya lo lleva;
     lo que esto cuida es que siga siendo cierto el día que alguien mude
     `FAR_ACCESO`."""
-    una = partida(guardar=ESPERA, acceso=(eventos.ACCESO_ESCAPAR, 0))
+    una = partida(caso="sin-escapar-guardar-198")
     una.guardar_en(0)
     assert una.acceso() & 4
     una.reiniciar()

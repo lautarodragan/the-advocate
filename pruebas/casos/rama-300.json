@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "ConditionalBranch", "parameters": [0, 300, 0, 0, 0, 0]},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 301, 301, 0]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"},
+    {"code": "ControlSwitches", "parameters": [0, 302, 302, 0]}
+  ]
+}

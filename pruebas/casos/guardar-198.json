@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "Wait", "parameters": [33]},
+    {"code": "OpenSaveMenu"}
+  ]
+}

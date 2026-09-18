@@ -32,10 +32,6 @@ import pytest
 from tanda import (cartucho, consola_cruda, correr_hardware, correr_ticks,
                    golden, partida, ticks_de_avance)
 
-# El grupo de las pantallas que muestran a los tres actores.
-TRES = "11 12 13"
-
-
 @pytest.mark.parametrize("cuadro", (60, 400))
 def test_espera(cuadro):
     """`espera`: que una espera espere de verdad, con una página inventada.
@@ -51,9 +47,8 @@ def test_espera(cuadro):
     prueba sigue siendo filosa: si la espera no esperara, el tick de antes ya
     estaría teñido.
     """
-    sfc, simbolos, mapas = cartucho(
-        "espera", "--map-id", "73",
-        "--pagina-de-prueba", "120", "0", "0", "50")
+    sfc, simbolos, mapas = cartucho("espera", "--map-id", "73",
+                                    caso="espera")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("espera-%d" % cuadro, p.imagen())
@@ -65,9 +60,7 @@ ABRE_LA_DE_RANURAS = 130
 
 
 def cartucho_de_guardar():
-    return cartucho("guardar", "--map-id", "73",
-                    "--pagina-de-prueba", "120", "0", "0", "50",
-                    "--guardar-de-prueba")
+    return cartucho("guardar", "--map-id", "73", caso="guardar")
 
 
 @pytest.mark.parametrize("nombre,cuantos,toques", (
@@ -137,10 +130,6 @@ def test_menu_vuelve(cuadro):
     golden("menu-vuelve-%d" % cuadro, p.imagen())
 
 
-# Lo que la página de prueba le da al grupo antes de abrir la lista.
-ITEMS = ("81", "1", "1", "13", "17", "1")
-
-
 @pytest.mark.parametrize("nombre,cuantos,toques", (
     ("items", 64, ("b:40", "a:52")),
     ("items-2", 74, ("b:40", "a:52", "down:64", "down:68")),
@@ -152,7 +141,7 @@ def test_items(nombre, cuantos, toques):
     ejercita la columna de la cuenta además de la de los nombres.
     """
     sfc, _simbolos, _mapas = cartucho("items", "--map-id", "73",
-                                      "--items-de-prueba", *ITEMS)
+                                      caso="items")
     consola = consola_cruda(sfc)
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
@@ -161,15 +150,11 @@ def test_items(nombre, cuantos, toques):
 @pytest.mark.parametrize("cuadro", (60, 120))
 def test_items_vuelve(cuadro):
     """`items`: el mapa de vuelta al cerrar la lista de ítems."""
-    sfc, simbolos, mapas = cartucho("items", "--map-id", "73",
-                                    "--items-de-prueba", *ITEMS)
+    sfc, simbolos, mapas = cartucho("items", "--map-id", "73", caso="items")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro, toques_hardware=("b:40", "a:52", "down:64", "down:68",
                                       "a:74"))
     golden("items-vuelve-%d" % cuadro, p.imagen())
-
-
-EQUIPO = ("17", "1", "20", "1")
 
 
 @pytest.mark.parametrize("nombre,cuantos,toques", (
@@ -182,7 +167,7 @@ EQUIPO = ("17", "1", "20", "1")
 def test_equipo(nombre, cuantos, toques):
     """`equipo`: la pantalla del equipo de un actor."""
     sfc, _simbolos, _mapas = cartucho("equipo", "--map-id", "73",
-                                      "--items-de-prueba", *EQUIPO)
+                                      caso="equipo")
     consola = consola_cruda(sfc)
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
@@ -193,7 +178,7 @@ def test_equipo_vuelve(cuadro):
     """`equipo`: el mapa de vuelta, con tres B para salir de los tres
     niveles de menú."""
     sfc, simbolos, mapas = cartucho("equipo", "--map-id", "73",
-                                    "--items-de-prueba", *EQUIPO)
+                                    caso="equipo")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro, toques_hardware=("b:40", "down:52", "down:56", "a:60",
                                       "a:72", "a:92", "b:112", "b:132",
@@ -201,25 +186,24 @@ def test_equipo_vuelve(cuadro):
     golden("equipo-vuelve-%d" % cuadro, p.imagen())
 
 
-# La pantalla de batalla: nombre, tropa, espera de la página, cuántos cuadros
-# de hardware, los toques que pelean, el fondo, los mapas de más, el inventario
-# y el relleno de textos.
+# La pantalla de batalla: nombre, la página de prueba —la pelea, con su
+# grupo de tres y su inventario—, cuántos cuadros de hardware, los toques que
+# pelean, los mapas de más y el relleno de textos.
 BATALLAS = (
-    ("batalla", "86", "18", 200, (), "ABLBackdropSJ03", (), (), ""),
-    ("batalla-blanco", "86", "18", 200, ("a:130", "down:140", "down:150"),
-     "ABLBackdropSJ03", (), (), ""),
+    ("batalla", "batalla", 200, (), (), ""),
+    ("batalla-blanco", "batalla", 200, ("a:130", "down:140", "down:150"),
+     (), ""),
     # La tropa del droide del mapa 2 sobre su fondo, que es la única pelea que
     # el jugador alcanza hoy: un enemigo y otro fondo, o sea el otro camino de
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
-    ("batalla-droide", "82", "18", 200, (), "SJBackdropABL04", (), (), ""),
+    ("batalla-droide", "batalla-droide", 200, (), (), ""),
     # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
     # **dos** tropas y dos escenas. Es el único caso donde la pelea no es la
     # tropa 0: el mapa 2 pide la 82 y la de la página de prueba queda segunda,
     # así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
     # siempre con el primer renglón.
-    ("batalla-segunda", "86", "18", 200, (), "ABLBackdropSJ03", ("2",), (),
-     ""),
+    ("batalla-segunda", "batalla", 200, (), ("2",), ""),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
     # inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich—.
@@ -229,12 +213,11 @@ BATALLAS = (
     # **Son tres derechas y no dos desde el 2026-09-13**: el menú pasó a tener
     # el orden del original —Attack / <habilidad> / Defend / Use Item— y
     # `Use Item` quedó cuarta.
-    ("batalla-item", "86", "18", 220,
-     ("right:130", "right:140", "right:150", "a:160"), "ABLBackdropSJ03", (),
-     ("1", "3", "97", "2"), ""),
-    ("batalla-item-blanco", "86", "18", 250,
+    ("batalla-item", "batalla-item", 220,
+     ("right:130", "right:140", "right:150", "a:160"), (), ""),
+    ("batalla-item-blanco", "batalla-item", 250,
      ("right:130", "right:140", "right:150", "a:160", "a:170", "down:180"),
-     "ABLBackdropSJ03", (), ("1", "3", "97", "2"), ""),
+     (), ""),
     # Los tres modos de las habilidades. Una derecha lleva el cursor a la
     # segunda orden, que **no dice "Tech Skill"** sino el `skill_name` del
     # actor: con Kersh primero, "AgentTrain".
@@ -250,12 +233,11 @@ BATALLAS = (
     #                       después de elegirla el cursor se va a los actores,
     #                       con la lista en gris. Es el camino que la de ítems
     #                       ya tenía y que una habilidad de enemigo no toca
-    ("batalla-hab", "86", "18", 220, ("right:130", "a:140"),
-     "ABLBackdropSJ03", (), (), ""),
-    ("batalla-hab-dos", "86", "18", 240, ("right:130", "a:140", "right:150"),
-     "ABLBackdropSJ03", (), (), ""),
-    ("batalla-hab-blanco", "86", "18", 240, ("right:130", "a:140", "a:150"),
-     "ABLBackdropSJ03", (), (), ""),
+    ("batalla-hab", "batalla", 220, ("right:130", "a:140"), (), ""),
+    ("batalla-hab-dos", "batalla", 240, ("right:130", "a:140", "right:150"),
+     (), ""),
+    ("batalla-hab-blanco", "batalla", 240,
+     ("right:130", "a:140", "a:150"), (), ""),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
     # taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla
     # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
@@ -266,16 +248,14 @@ BATALLAS = (
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "86", "18", 200, (), "ABLBackdropSJ03", (), (),
-     "200"),
+    ("batalla-textos-lejos", "batalla", 200, (), (), "200"),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,tropa,espera,cuantos,toques,fondo,mapas,items,relleno", BATALLAS,
+    "nombre,caso,cuantos,toques,mapas,relleno", BATALLAS,
     ids=[caso[0] for caso in BATALLAS])
-def test_batalla(nombre, tropa, espera, cuantos, toques, fondo, mapas, items,
-                 relleno):
+def test_batalla(nombre, caso, cuantos, toques, mapas, relleno):
     """`batalla`: la pantalla de la pelea.
 
     **La pelea no cuesta ningún tick**: `batalla_correr` corre su propio lazo y
@@ -289,10 +269,7 @@ def test_batalla(nombre, tropa, espera, cuantos, toques, fondo, mapas, items,
     sfc, _simbolos, _mapas = cartucho(
         nombre, "--map-id", "6",
         *(("--mapas",) + tuple(mapas) if mapas else ()),
-        *(("--items-de-prueba",) + tuple(items) if items else ()),
-        *(("--relleno-de-textos", relleno) if relleno else ()),
-        "--pagina-de-prueba", espera, "0", "0", "0",
-        "--batalla-de-prueba", tropa, "--fondo-de-prueba", fondo, grupo=TRES)
+        *(("--relleno-de-textos", relleno) if relleno else ()), caso=caso)
     consola = consola_cruda(sfc)
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
@@ -323,10 +300,7 @@ def test_vuelta(cuadro):
     ventana, con otro reparto de VRAM; la ventana pasó a ser obligatoria.
     """
     nombre = "vuelta-ventana"
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6",
-        "--pagina-de-prueba", "18", "--batalla-de-prueba", "82",
-        "--fondo-de-prueba", "SJBackdropABL04")
+    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro, toques_hardware=PELEAR)
     golden("%s-%d" % (nombre, cuadro), p.imagen())
@@ -340,7 +314,7 @@ PASO_DEL_ENCUENTRO = 8
 
 def cartucho_de_encuentro():
     return cartucho("encuentro", "--map-id", "21",
-                    "--encuentros-de-prueba", "8", grupo=TRES)
+                    "--encuentros-de-prueba", "8", caso="grupo-11-12-13")
 
 
 def test_encuentro():

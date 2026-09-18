@@ -74,14 +74,14 @@ def test_la_rama_del_juego_se_saltea(partida):
 
 
 def test_la_rama_corre_con_el_switch_prendido(partida):
-    una = partida(switch=[RAMA[0]], rama=RAMA)
+    una = partida(switch=[RAMA[0]], caso="rama-300")
     una.correr(120)
     assert una.switch(RAMA[1]), "no corrió la rama de adentro"
     assert una.switch(RAMA[2]), "la página no siguió después del `end`"
 
 
 def test_la_rama_no_corre_con_el_switch_apagado(partida):
-    una = partida(rama=RAMA)
+    una = partida(caso="rama-300")
     una.correr(120)
     assert not una.switch(RAMA[1]), "corrió la rama con el switch apagado"
     assert una.switch(RAMA[2]), "la página no siguió después del `end`"

@@ -59,51 +59,25 @@ def partida(builds):
     `switch` se escribe en la RAM antes del primer cuadro de juego; para
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
-    def hacer(switch=(), rama=(), mapas=None,
-              descartar=False, guardar=0, titulo=None, tema=None,
-              variables=(), rama_var=(), items=(), acceso=(), tecla=(),
-              espera=0, timer=False, batalla=0, game_over=False,
-              encuentros=0, grupo=None):
+    def hacer(switch=(), mapas=None, descartar=False, titulo=None, tema=None,
+              timer=False, encuentros=0, caso=None):
         arranca, resto = mapas or MAPAS
-        clave = (arranca, tuple(resto), tuple(rama), descartar,
-                 guardar, titulo is not None, tema, tuple(variables),
-                 tuple(rama_var), tuple(items), tuple(acceso),
-                 tuple(tecla), espera, timer, batalla, game_over,
-                 encuentros, tuple(grupo or ()))
+        clave = (arranca, tuple(resto), descartar, titulo is not None, tema,
+                 timer, encuentros, caso)
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "rom", "build", "pruebas",
                 "m%s-%s%s%s" % (arranca, "_".join(str(m) for m in resto) or "0",
                                 "-v",
-                                ("-r" + "_".join(str(n) for n in rama)
-                                 if rama else "")
-                                + ("-g%d" % guardar if guardar else "")
-                                + ("-t" if titulo is not None else "")
+                                ("-t" if titulo is not None else "")
                                 + ("-" + tema if tema else "")
-                                + ("-v" + "_".join(str(n) for n in variables)
-                                   if variables else "")
-                                + ("-rv" + "_".join(str(n) for n in rama_var)
-                                   if rama_var else "")
-                                + ("-i" + "_".join(str(n) for n in items)
-                                   if items else "")
-                                + ("-p" + "_".join(str(n) for n in acceso)
-                                   if acceso else "")
-                                + ("-k" + "_".join(str(n) for n in tecla)
-                                   + "_%d" % espera if tecla else "")
                                 + ("-c" if timer else "")
-                                + ("-b%d_%d%s" % (
-                                    batalla, espera,
-                                    "-go" if game_over else "")
-                                   if batalla else "")
                                 + ("-e%d" % encuentros if encuentros else "")
-                                + ("-G" + "_".join(str(a) for a in grupo)
-                                   if grupo else "")))
-            builds[clave] = armar(arranca, resto, destino, rama,
-                                  descartar, guardar, titulo is not None, tema,
-                                  variables, rama_var, items, acceso, tecla,
-                                  espera, timer, batalla, game_over,
-                                  encuentros, grupo)
+                                + ("-" + caso if caso else "")))
+            builds[clave] = armar(arranca, resto, destino, descartar,
+                                  titulo is not None, tema, timer, encuentros,
+                                  caso)
         sfc, simbolos, tabla = builds[clave]
         return Partida(sfc, simbolos, tabla, switch, titulo)
 

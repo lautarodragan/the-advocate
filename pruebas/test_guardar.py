@@ -27,7 +27,7 @@ ESPERA = 198
 @pytest.fixture
 def guardada(partida):
     """Una partida que se fue al mapa 6, prendió un switch y guardó."""
-    una = partida(guardar=ESPERA)
+    una = partida(caso="guardar-198")
     una.ir_al_mapa(6, 20, 30)
     una.prender(7)
     una.guardar_en()
@@ -96,7 +96,7 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
     `guardar_partida`, que es el camino del save point de verdad.
     """
     for elegida in (0, 1):
-        una = partida(guardar=ESPERA)
+        una = partida(caso="guardar-198")
         una.guardar_en(elegida)             # en la pantalla, con el cursor
         simbolos = una.simbolos
         assert una.sram(_base(simbolos, elegida), 4) == b"ABLS", (
@@ -116,7 +116,7 @@ def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
     la partida "cargada" de la última fila pintada. Verificado que da rojo
     sacando el `pla; sta ranura` de `cerrar`: queda en 3.
     """
-    una = partida(guardar=ESPERA)
+    una = partida(caso="guardar-198")
     una.guardar_en(cancelar=True)
     assert una.byte("menu_abierto") == 0, "la pantalla sigue abierta"
     assert una.byte("ranura") == 0xFF, (

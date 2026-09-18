@@ -1,0 +1,11 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 12]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 13]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "EnemyEncounter", "parameters": [0, 82, 1, 0, 1, 0], "string": "SJBackdropABL04"},
+    {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]}
+  ]
+}

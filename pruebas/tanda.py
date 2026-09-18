@@ -33,7 +33,7 @@ import subprocess
 import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     flags_de_grupo, huella, mapas_de, toques_de)
+                     flags_de_casos, huella, mapas_de, toques_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
@@ -45,11 +45,12 @@ from snes_correr import ARRANQUE                         # noqa: E402
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden",
                       "tanda")
 
-# El mismo default que `grupo` en el justfile: ver arriba.
-GRUPO = os.environ.get("GRUPO_TANDA", "11")
+# El caso de los cartuchos que no traen uno propio: la página que arma el grupo
+# con el 11, que es el default de `grupo` en el justfile. Ver arriba.
+GRUPO_11 = "grupo-11"
 
 
-def cartucho(nombre, *flags, grupo=None):
+def cartucho(nombre, *flags, caso=GRUPO_11):
     """Convierte y ensambla; devuelve (ROM, símbolos, ids de mapa en orden).
 
     Es `consola.armar()` con los flags del conversor a la vista en vez de un
@@ -57,8 +58,11 @@ def cartucho(nombre, *flags, grupo=None):
     distintos, y una firma con cuarenta y un argumentos opcionales es la misma
     lista escrita dos veces. Acá el caso dice exactamente lo que dice su receta.
 
-    `grupo` es el único que no va como flag suelto, porque hay una receta que lo
-    pisa: `batalla` lleva tres actores en pantalla y las demás uno.
+    `caso` es la página de prueba, por su nombre en `pruebas/casos/` —o una
+    tupla de nombres, para un cartucho con varias—, y no va como flag suelto
+    porque lo que importa de ella es el contenido, que entra en la clave. Arma
+    también el grupo, así que un caso lleva el suyo; sin caso, el cartucho
+    arranca con el del juego.
 
     Se saltea si ya está hecha y no cambió nada de lo que la arma: la clave es
     `huella()` —los fuentes de la ROM, el ensamblador y las herramientas— más
@@ -68,7 +72,7 @@ def cartucho(nombre, *flags, grupo=None):
     ser estado global: dos casos con mapas distintos no se pisan, que es la
     trampa que `AGENTS.md` nombra.
 
-    **Quién es "su propio" lo decide el hash de (grupo, flags), no el nombre.**
+    **Quién es "su propio" lo decide el hash de (caso, flags), no el nombre.**
     Con un directorio por caso son unos 5 MB por cartucho y ~170 casos, o sea
     casi un giga de ROMs casi iguales; con el hash, dos casos que arman
     exactamente la misma ROM comparten el build sin que nadie los empareje a
@@ -82,8 +86,9 @@ def cartucho(nombre, *flags, grupo=None):
     lo que decide si lo que hay adentro sirve.
     """
     tanda = os.path.join(RAIZ, "rom", "build", "tanda")
+    de_casos, contenido = flags_de_casos(caso)
     clave = hashlib.sha256(
-        repr(((grupo or GRUPO), flags)).encode()).hexdigest()[:12]
+        repr((contenido, flags)).encode()).hexdigest()[:12]
     existentes = glob.glob(os.path.join(tanda, "*-" + clave))
     destino = existentes[0] if existentes else os.path.join(
         tanda, "%s-%s" % (nombre, clave))
@@ -91,8 +96,7 @@ def cartucho(nombre, *flags, grupo=None):
     inc = os.path.join(destino, "mapdata.inc")
     sfc = os.path.join(destino, "prueba.sfc")
     sello = os.path.join(destino, "huella.txt")
-    grupo = (grupo or GRUPO).split()
-    actual = huella() + "\n" + repr(("--grupo", tuple(grupo)) + flags)
+    actual = huella() + "\n" + repr((contenido, flags))
 
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
@@ -102,11 +106,11 @@ def cartucho(nombre, *flags, grupo=None):
         except OSError:
             pass
 
-    # `-o` va antes de los flags y no al final: detrás de un `--caso` sería un
-    # flag de ese caso, y el conversor lo rechaza por ser del cartucho.
+    # Los casos van al final: detrás de un `--caso`, cualquier flag del
+    # cartucho sería de ese caso, y el conversor lo rechaza.
     convertir = ([sys.executable, os.path.join(RAIZ, "tools",
                                                "snes_convert.py"), "-o", inc]
-                 + flags_de_grupo(grupo) + [str(f) for f in flags])
+                 + [str(f) for f in flags] + de_casos)
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
     # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
     ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),

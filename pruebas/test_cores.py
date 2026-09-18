@@ -73,7 +73,6 @@ import os
 import pytest
 
 from tanda import cartucho, partida, ticks_de_avance
-from test_tanda_paginas import MENSAJE
 
 # Los dos cores, por ruta. bsnes es el preciso y el que enciende con basura;
 # snes9x es el de todas las demás pruebas, así que una diferencia acá es
@@ -163,9 +162,7 @@ def test_cerrar(cuadro):
     los ticks se miran con margen y no en el borde: a los 60 el mensaje está
     abierto hace rato y a los 400 hace rato que se cerró.
     """
-    sfc, simbolos, mapas = cartucho(
-        "cerrar", "--map-id", "7", "--mensaje-de-prueba", *MENSAJE,
-        "--pagina-de-prueba", "0", "0", "0", "50")
+    sfc, simbolos, mapas = cartucho("cerrar", "--map-id", "7", caso="cerrar")
     iguales("cerrar-%d" % cuadro,
             *dos_cores(sfc, simbolos, mapas, cuadro, apretar_a=(200,)))
 

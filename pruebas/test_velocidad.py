@@ -59,7 +59,7 @@ def test_el_pad_camina_a_la_velocidad_que_dejo_la_ruta(partida):
 
 
 def test_la_velocidad_viaja_en_la_partida(partida):
-    una = partida(guardar=ESPERA)
+    una = partida(caso="guardar-198")
     una.poner_velocidad_del_heroe(2)
     una.guardar_en(0)
     una.reiniciar()

@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "ShowBattleAnimation", "parameters": [82, 10001, 1, 0]},
+    {"code": "TintScreen", "parameters": [0, 0, 50, 100, 0, 0]}
+  ]
+}

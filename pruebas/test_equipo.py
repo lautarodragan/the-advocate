@@ -80,7 +80,7 @@ def test_equipar_desde_el_menu(partida):
     """Las ranuras de Talan, la lista del arma con los parámetros que
     quedarían, y el palo puesto: sale del inventario y queda en la RAM."""
     db, skin = db_y_skin()
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="equipo-inventario"))
     puesto = list(db.actors[TALAN].initial_equipment)
     inv = dict(INVENTARIO)
     comparar(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
@@ -100,7 +100,7 @@ def test_equipar_desde_el_menu(partida):
 def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     """Con el escudo puesto, ponerse la lanza lo devuelve al inventario."""
     db, skin = db_y_skin()
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="equipo-inventario"))
     tocar(una, "down")                  # el escudo
     tocar(una, "a", 10)
     tocar(una, "a", 10)                 # el escudo, único en la lista
@@ -125,7 +125,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
 def test_la_linea_vacia_saca_lo_puesto(partida):
     """La ropa de trabajo de Talan: la lista de la armadura es sólo la línea
     vacía, y elegirla la devuelve al inventario."""
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="equipo-inventario"))
     tocar(una, "down")
     tocar(una, "down")                  # la armadura
     tocar(una, "a", 10)
@@ -135,7 +135,7 @@ def test_la_linea_vacia_saca_lo_puesto(partida):
 
 
 def test_el_equipo_viaja_en_la_partida(partida):
-    una = partida(guardar=198)
+    una = partida(caso="guardar-198")
     una.consola.escribir_ram(una.simbolos["FAR_EQUIPO"] + TALAN * 10,
                              [PALO, 0])
     una.guardar_en(0)

@@ -158,7 +158,7 @@ def test_la_derrota_del_jefe_apunta_al_game_over():
 # --- y lo que la consola hace con eso --------------------------------------
 
 def test_perder_sin_manejador_vuelve_al_arranque(partida):
-    una = partida(batalla=TROPA, game_over=True, espera=ESPERA)
+    una = partida(caso="pelea-82-game-over")
     sin_hp(una)
     cuando = cuadros_hasta_reiniciar(una)
     assert cuando is not None, (
@@ -172,7 +172,7 @@ def test_perder_sin_manejador_vuelve_al_arranque(partida):
 
 def test_perder_con_manejador_no_reinicia(partida):
     """El control. Misma pelea perdida, con la derrota apuntando a la página."""
-    una = partida(batalla=TROPA, game_over=False, espera=ESPERA)
+    una = partida(caso="pelea-82")
     sin_hp(una)
     assert cuadros_hasta_reiniciar(una, tope=300) is None, (
         "la ROM se reinició con una pelea que sí tiene a dónde volver: "
@@ -208,7 +208,7 @@ def test_el_game_over_vuelve_al_juego(partida):
     SPC700. Lo único que dice que el arranque terminó es que el lazo vuelva a
     contar vueltas.
     """
-    una = partida(batalla=TROPA, game_over=True, espera=ESPERA)
+    una = partida(caso="pelea-82-game-over")
     sin_hp(una)
     assert cuadros_hasta_reiniciar(una) is not None, (
         "la ROM no se reinició: sin Game Over esto no prueba nada")
@@ -271,7 +271,8 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
 
 
 def con_encuentros(partida):
-    return partida(mapas=(RAT_TRACKS_B1, []), encuentros=PASOS, grupo=GRUPO)
+    return partida(mapas=(RAT_TRACKS_B1, []), encuentros=PASOS,
+                   caso="grupo-11-12-13")
 
 
 def test_perder_un_encuentro_al_azar_es_game_over(partida):

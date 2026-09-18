@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "ChangeItems", "parameters": [0, 0, 1, 0, 13]},
+    {"code": "ChangeItems", "parameters": [0, 0, 17, 0, 1]},
+    {"code": "ChangeItems", "parameters": [0, 0, 81, 0, 1]}
+  ]
+}

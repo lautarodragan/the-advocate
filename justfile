@@ -432,8 +432,9 @@ demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
-      --con-timer --switch 171 --inicio 1 26 \
-      -o rom/build/{{nombre}}/mapdata.inc
+      --con-timer --inicio 1 26 \
+      -o rom/build/{{nombre}}/mapdata.inc \
+      --comandos-de-prueba pruebas/casos/switch-171.json
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
@@ -504,8 +505,9 @@ demo-piedras nombre="demo-piedras":
 demo-cofres nombre="demo-cofres":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
-      --con-timer --inicio 80 19 --ruta-de-prueba 36 \
-      -o rom/build/{{nombre}}/mapdata.inc
+      --con-timer --inicio 80 19 \
+      -o rom/build/{{nombre}}/mapdata.inc \
+      --comandos-de-prueba pruebas/casos/atravesar-sin-paso.json
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym

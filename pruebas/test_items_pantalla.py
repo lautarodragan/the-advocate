@@ -66,7 +66,7 @@ def comparar(una, inventario, elegida, arriba=0, nombre="items"):
 def test_la_pantalla_se_ve_como_la_referencia(partida):
     """Como se entra, y con el cursor dos más abajo: el cursor y la
     descripción cambian adentro del vblank. B vuelve al menú."""
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="items-pantalla"))
     comparar(una, INVENTARIO, 0)
     tocar(una, "down")
     tocar(una, "down")
@@ -78,7 +78,7 @@ def test_la_pantalla_se_ve_como_la_referencia(partida):
 def test_usar_la_consola_prende_su_switch_y_vuelve_al_mapa(partida):
     """La Portable Console es de switch: prende el 710, no se gasta —tiene
     cero usos, que en RM2k es "infinitos"— y RM2k vuelve derecho al mapa."""
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="items-pantalla"))
     assert not una.switch(710)
     tocar(una, "down")
     tocar(una, "down")                  # la consola, tercera en la lista
@@ -89,7 +89,7 @@ def test_usar_la_consola_prende_su_switch_y_vuelve_al_mapa(partida):
 
 
 def test_un_item_en_gris_no_hace_nada(partida):
-    una = entrar(partida(items=items_de(INVENTARIO)))
+    una = entrar(partida(caso="items-pantalla"))
     tocar(una, "down")
     tocar(una, "a", 20)                 # el arma, en gris
     assert una.menu_abierto()
@@ -105,7 +105,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     import ventana
     from render_map import GAME_DIR
     from snes_compare import quantize
-    una = partida(items=items_de(INVENTARIO))
+    una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
     entrar(una)
@@ -131,7 +131,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
 def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
     """Catorce ítems en once filas: bajando hasta el último la lista se corre
     tres, y subiendo hasta el primero vuelve."""
-    una = entrar(partida(items=items_de(MUCHOS)))
+    una = entrar(partida(caso="items-pantalla-muchos"))
     for _ in range(13):
         tocar(una, "down")
     comparar(una, MUCHOS, 13, arriba=3, nombre="items-abajo")

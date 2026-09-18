@@ -29,21 +29,20 @@ from tanda import cartucho, golden, partida
 # Ruta forzada sobre el héroe: nombre, la ruta, los ticks, la celda de arranque
 # —vacía es la del mapa— y la frecuencia de la página.
 RUTAS = (
-    ("ruta", "1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0", (18, 60, 120, 400), "", 8),
-    ("salto", "1 1 24 1 1 25 2 2", (10, 14, 20, 26, 60), "", 8),
-    ("through", "36 0 0 0 0 0 0", (20, 40, 60), "10 8", 8),
-    ("anim", "38 2 2 2 39 2 2 2", (4, 10, 16, 28, 34, 44), "10 8", 8),
-    ("ruta-lenta", "1 1 12 2 23 2", (20, 44, 88, 100, 150, 400), "", 4),
-    ("ruta-frec", "2 2 31 2 2 30 2 2", (20, 30, 40, 52), "", 8),
-    ("ruta-vel", "28 2 2 2 29 2 2", (10, 20, 30, 44, 60, 80), "", 8),
-    ("ruta-vel-lenta", "29 29 2 2 28 28 28 2 2",
-     (5, 33, 64, 70, 90, 120, 200), "", 8),
+    ("ruta", (18, 60, 120, 400), ""),
+    ("salto", (10, 14, 20, 26, 60), ""),
+    ("through", (20, 40, 60), "10 8"),
+    ("anim", (4, 10, 16, 28, 34, 44), "10 8"),
+    ("ruta-lenta", (20, 44, 88, 100, 150, 400), ""),
+    ("ruta-frec", (20, 30, 40, 52), ""),
+    ("ruta-vel", (10, 20, 30, 44, 60, 80), ""),
+    ("ruta-vel-lenta", (5, 33, 64, 70, 90, 120, 200), ""),
 )
 
 
-@pytest.mark.parametrize("nombre,ruta,cuadros,inicio,frecuencia", RUTAS,
+@pytest.mark.parametrize("nombre,cuadros,inicio", RUTAS,
                          ids=[caso[0] for caso in RUTAS])
-def test_ruta(nombre, ruta, cuadros, inicio, frecuencia):
+def test_ruta(nombre, cuadros, inicio):
     """`ruta`: una ruta forzada sobre el héroe, en varios ticks.
 
     Lo que cada caso ejercita, que es lo que decidió su ruta:
@@ -73,7 +72,7 @@ def test_ruta(nombre, ruta, cuadros, inicio, frecuencia):
     sfc, simbolos, mapas = cartucho(
         nombre, "--map-id", "6",
         *(("--inicio",) + tuple(inicio.split()) if inicio else ()),
-        "--ruta-de-prueba", *ruta.split(), "--frecuencia", frecuencia)
+        caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -98,10 +97,8 @@ def test_ruta_evento(cuadro):
     comodidad.** Son el 89 y el 91 porque el 90 sale partido: la ROM sube CGRAM
     en el vblank **siguiente**, así que el tinte entra a mitad de pantalla.
     """
-    sfc, simbolos, mapas = cartucho(
-        "ruta-evento", "--map-id", "6",
-        "--ruta-de-evento", *"3 0 0 0 0 0 0 3 3 3 23 2 2 1 13".split(),
-        "--pagina-de-prueba", "0", "0", "0", "50")
+    sfc, simbolos, mapas = cartucho("ruta-evento", "--map-id", "6",
+                                    caso="ruta-evento")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("ruta-evento-%d" % cuadro, p.imagen())
@@ -110,21 +107,21 @@ def test_ruta_evento(cuadro):
 # Un evento con gráfico caminando: nombre, mapa, ruta, celda del héroe, ticks y
 # frecuencia de la página.
 NPCS = (
-    ("npc", 6, "4 2 2 2 2 1 1 12", "22 12", (10, 27, 40, 60), 8),
-    ("npc-lento", 6, "4 2 2 12 1", "22 12", (20, 44, 88, 100, 200), 4),
-    ("npc-encara", 6, "4 21", "22 12", (5, 30), 8),
-    ("npc-encara-lado", 6, "4 21", "25 10", (5, 30), 8),
-    ("npc-frec", 6, "4 2 31 2 1 1 30 12", "22 12", (20, 40, 60, 80), 8),
-    ("salto-npc", 6, "4 24 2 2 25 1 1", "22 12", (3, 6, 10, 14, 20, 40), 8),
-    ("npc-diagonal", 10, "1 4 6 7 6", "6 10", (10, 25, 40, 70), 8),
-    ("npc-diagonal-gira", 6, "4 15 5 5 5", "22 12", (20, 40), 8),
-    ("npc-hacia-heroe", 6, "4 9 9 9 9", "25 10", (5, 25, 44, 70), 8),
+    ("npc", 6, "22 12", (10, 27, 40, 60)),
+    ("npc-lento", 6, "22 12", (20, 44, 88, 100, 200)),
+    ("npc-encara", 6, "22 12", (5, 30)),
+    ("npc-encara-lado", 6, "25 10", (5, 30)),
+    ("npc-frec", 6, "22 12", (20, 40, 60, 80)),
+    ("salto-npc", 6, "22 12", (3, 6, 10, 14, 20, 40)),
+    ("npc-diagonal", 10, "6 10", (10, 25, 40, 70)),
+    ("npc-diagonal-gira", 6, "22 12", (20, 40)),
+    ("npc-hacia-heroe", 6, "25 10", (5, 25, 44, 70)),
 )
 
 
-@pytest.mark.parametrize("nombre,mapa,ruta,celda,cuadros,frecuencia", NPCS,
+@pytest.mark.parametrize("nombre,mapa,celda,cuadros", NPCS,
                          ids=[caso[0] for caso in NPCS])
-def test_npc(nombre, mapa, ruta, celda, cuadros, frecuencia):
+def test_npc(nombre, mapa, celda, cuadros):
     """`npc`: un evento **con gráfico** caminando en pantalla.
 
     Es la otra mitad de `MoveEvent`: en `ruta-evento` el evento es invisible y
@@ -143,8 +140,7 @@ def test_npc(nombre, mapa, ruta, celda, cuadros, frecuencia):
     puede—.
     """
     sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        "--ruta-de-evento", *ruta.split(), "--frecuencia", frecuencia)
+        nombre, "--map-id", mapa, "--inicio", *celda.split(), caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro)
@@ -153,16 +149,16 @@ def test_npc(nombre, mapa, ruta, celda, cuadros, frecuencia):
 
 # La orden 34 de ruta: nombre, ruta, el gráfico al que cambia y los ticks.
 GRAFICOS = (
-    ("grafico", "4 2 2 34 0 2 2", "Future1 0", (10, 25, 40, 70)),
-    ("invisible", "4 2 2 34 0 2 2", "nobodyhere 0", (10, 25, 40, 70)),
-    ("grafico-heroe", "0 2 2 34 0 2 2", "Future1 0", (10, 20, 25, 40)),
-    ("heroe-invisible", "0 2 2 34 0 2 2", "nobodyhere 0", (10, 25, 40)),
+    ("grafico", "Future1 0", (10, 25, 40, 70)),
+    ("invisible", "nobodyhere 0", (10, 25, 40, 70)),
+    ("grafico-heroe", "Future1 0", (10, 20, 25, 40)),
+    ("heroe-invisible", "nobodyhere 0", (10, 25, 40)),
 )
 
 
-@pytest.mark.parametrize("nombre,ruta,grafico,cuadros", GRAFICOS,
+@pytest.mark.parametrize("nombre,grafico,cuadros", GRAFICOS,
                          ids=[caso[0] for caso in GRAFICOS])
-def test_grafico(nombre, ruta, grafico, cuadros):
+def test_grafico(nombre, grafico, cuadros):
     """`grafico`: un personaje que cambia de gráfico a mitad de una ruta.
 
     Es la orden 34, la última de `MoveCommand` de las que este juego usa y la
@@ -181,21 +177,20 @@ def test_grafico(nombre, ruta, grafico, cuadros):
     """
     sfc, simbolos, mapas = cartucho(
         nombre, "--map-id", "6", "--inicio", "22", "12",
-        "--ruta-de-evento", *ruta.split(),
-        "--grafico-de-prueba", *grafico.split())
+        "--grafico-de-prueba", *grafico.split(), caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-LUGARES = (("lugar", "4 21 13 12", "4 2 2 2 2", (14, 15, 20, 60)),
-           ("lugar-quieto", "4 21 10", "", (10, 60)))
+LUGARES = (("lugar", (14, 15, 20, 60)),
+           ("lugar-quieto", (10, 60)))
 
 
-@pytest.mark.parametrize("nombre,lugar,ruta,cuadros", LUGARES,
+@pytest.mark.parametrize("nombre,cuadros", LUGARES,
                          ids=[caso[0] for caso in LUGARES])
-def test_lugar(nombre, lugar, ruta, cuadros):
+def test_lugar(nombre, cuadros):
     """`lugar`: plantar a un evento en una celda, `ChangeEventLocation`.
 
     Es `MoveTo`, y la vuelta que tiene está en lo que **no** hace: no toca la
@@ -211,9 +206,7 @@ def test_lugar(nombre, lugar, ruta, cuadros):
     caían antes del corte.
     """
     sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", "22", "12",
-        *(("--ruta-de-evento",) + tuple(ruta.split()) if ruta else ()),
-        "--lugar-de-prueba", *lugar.split())
+        nombre, "--map-id", "6", "--inicio", "22", "12", caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -244,9 +237,7 @@ def test_parar_rutas(cuadro):
     """
     sfc, simbolos, mapas = cartucho(
         "parar-rutas", "--map-id", "6", "--inicio", "22", "12",
-        "--ruta-de-evento", *"4 2 2 2 2".split(),
-        "--ruta-de-prueba", *"2 2 2 2".split(),
-        "--parar-de-prueba", "24", "--pagina-de-prueba", "0", "12", "0", "0")
+        caso="parar-rutas")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("parar-rutas-%d" % cuadro, p.imagen())
@@ -272,17 +263,10 @@ def test_sprite_actor(cuadro):
     """
     sfc, simbolos, mapas = cartucho(
         "sprite-actor", "--map-id", "6", "--inicio", "22", "12",
-        "--sprite-de-prueba", "11", "Future1", "0",
-        "--grafico-de-prueba", "Future1", "0",
-        "--pagina-de-prueba", "18", "100", "100", "100")
+        "--grafico-de-prueba", "Future1", "0", caso="sprite-actor")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("sprite-actor-%d" % cuadro, p.imagen())
-
-
-MENSAJE = ("SEWELL",
-           "There you are, Talan. Ready for",
-           "the big night?")
 
 
 @pytest.mark.parametrize("cuadro", (21, 23, 50, 130))
@@ -301,22 +285,21 @@ def test_anclada(cuadro):
     del mapa, sólo puede caer bien cuando `camara_x` y `camara_y` son múltiplos
     de 8.
     """
-    sfc, simbolos, mapas = cartucho(
-        "anclada", "--map-id", "6", "--mensaje-de-prueba", *MENSAJE,
-        "--ruta-de-prueba", *"1 1 1 1 1 1 2 2 2 2 2 2".split())
+    sfc, simbolos, mapas = cartucho("anclada", "--map-id", "6",
+                                    caso="anclada")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("anclada-%d" % cuadro, p.imagen())
 
 
-PISADAS = (("ruta-pisa", "0 0 0 0", "0", (16, 24, 200)),
-           ("ruta-pasa", "0 0 0 0 0", "0", (100, 200)),
-           ("ruta-pisa-cola", "0 0 0 0", "60 0 0 50", (50, 200)))
+PISADAS = (("ruta-pisa", (16, 24, 200)),
+           ("ruta-pasa", (100, 200)),
+           ("ruta-pisa-cola", (50, 200)))
 
 
-@pytest.mark.parametrize("nombre,ruta,pagina,cuadros", PISADAS,
+@pytest.mark.parametrize("nombre,cuadros", PISADAS,
                          ids=[caso[0] for caso in PISADAS])
-def test_ruta_pisa(nombre, ruta, pagina, cuadros):
+def test_ruta_pisa(nombre, cuadros):
     """`ruta-pisa`: una ruta forzada que termina sobre un evento de
     contacto, y otra que le pasa por encima.
 
@@ -333,23 +316,21 @@ def test_ruta_pisa(nombre, ruta, pagina, cuadros):
     y lo corre cuando la página termina—.
     """
     sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "70", "--inicio", "12", "8",
-        "--ruta-de-prueba", *ruta.split(),
-        "--pagina-de-prueba", *pagina.split())
+        nombre, "--map-id", "70", "--inicio", "12", "8", caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-PISAR = (("pisar", 70, "12 8", "up", ""),
-         ("atravesar-cofre", 20, "80 19", "left", "36"),
-         ("atravesar-savept", 20, "90 27", "left", "36"))
+PISAR = (("pisar", 70, "12 8", "up", "grupo-11"),
+         ("atravesar-cofre", 20, "80 19", "left", "atravesar-cofre"),
+         ("atravesar-savept", 20, "90 27", "left", "atravesar-savept"))
 
 
-@pytest.mark.parametrize("nombre,mapa,celda,direccion,ruta", PISAR,
+@pytest.mark.parametrize("nombre,mapa,celda,direccion,caso", PISAR,
                          ids=[caso[0] for caso in PISAR])
-def test_pisar(nombre, mapa, celda, direccion, ruta):
+def test_pisar(nombre, mapa, celda, direccion, caso):
     """`pisar`: el héroe camina con el pad y pisa un evento de contacto.
 
     La caminata **frena** al pisar: mientras el intérprete tiene una página en
@@ -381,8 +362,7 @@ def test_pisar(nombre, mapa, celda, direccion, ruta):
     cuánto tardó—.
     """
     sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        *(("--ruta-de-prueba",) + tuple(ruta.split()) if ruta else ()))
+        nombre, "--map-id", mapa, "--inicio", *celda.split(), caso=caso)
     p = partida(sfc, simbolos, orden)
     p.correr(200, sosteniendo=(direccion,))
     golden(nombre, p.imagen())

@@ -1,0 +1,10 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "ShowMessage", "string": "SEWELL"},
+    {"code": "ShowMessage_2", "string": "There you are, Talan. Ready for"},
+    {"code": "ShowMessage_2", "string": "the big night?"},
+    {"code": "TintScreen", "parameters": [0, 0, 50, 100, 0, 0]}
+  ]
+}

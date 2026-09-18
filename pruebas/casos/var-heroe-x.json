@@ -1,0 +1,12 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "TimerOperation", "parameters": [0, 0, 60, 0, 0]},
+    {"code": "TimerOperation", "parameters": [1, 0, 0, 1, 0]},
+    {"code": "Wait", "parameters": [2]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 6, 10001, 1]},
+    {"code": "TimerOperation", "parameters": [0, 1, 17, 0, 0]},
+    {"code": "TintScreen", "parameters": [0, 0, 50, 100, 0, 0]}
+  ]
+}

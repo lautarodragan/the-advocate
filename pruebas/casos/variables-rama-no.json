@@ -1,0 +1,16 @@
+{
+  "event_commands": [
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 0, 5, 0]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 7, 0]},
+    {"code": "ControlVars", "parameters": [0, 21, 21, 0, 3, 0, 100]},
+    {"code": "ControlVars", "parameters": [0, 39, 39, 0, 1, 17, 0]},
+    {"code": "ControlVars", "parameters": [0, 40, 40, 0, 0, 3, 0]},
+    {"code": "ControlVars", "parameters": [0, 40, 40, 2, 0, 10, 0]},
+    {"code": "ControlVars", "parameters": [0, 41, 41, 0, 7, 0, 0]},
+    {"code": "ConditionalBranch", "parameters": [1, 17, 0, 99, 1, 0]},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 200, 200, 0]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"},
+    {"code": "ControlSwitches", "parameters": [0, 201, 201, 0]}
+  ]
+}

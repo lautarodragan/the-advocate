@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "Wait", "parameters": [5]},
+    {"code": "KeyInputProc", "parameters": [88, 1, 1, 0, 0]}
+  ]
+}

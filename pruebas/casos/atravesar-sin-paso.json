@@ -1,0 +1,5 @@
+{
+  "event_commands": [
+    {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36]}
+  ]
+}

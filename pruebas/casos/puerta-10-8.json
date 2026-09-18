@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]}
+  ]
+}

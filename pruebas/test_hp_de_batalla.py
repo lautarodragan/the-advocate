@@ -73,7 +73,7 @@ def hp_de(una):
 
 def test_la_pelea_baja_los_hp_y_los_deja_en_la_partida(partida):
     """La primera mitad: `modo_fin` guarda lo que quedó en `FAR_HP`."""
-    una = pelear(partida(batalla=TROPA, espera=ESPERA, grupo=GRUPO))
+    una = pelear(partida(caso="pelea-82-grupo-11-12"))
     assert hp_de(una) == DESPUES, (
         "la pelea del droide contra Kersh y Core dejó %s y venía dejando %s: "
         "si es a propósito, hay que corregir el número acá" % (hp_de(una),
@@ -92,7 +92,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     import ventana
     from render_map import GAME_DIR
     from snes_compare import quantize
-    una = pelear(partida(batalla=TROPA, espera=ESPERA, grupo=GRUPO))
+    una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
     abrir(una)
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))

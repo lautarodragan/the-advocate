@@ -57,7 +57,7 @@ def test_mientras_nadie_aprieta_la_variable_queda_en_cero(partida):
     variable terminaría en el valor de la tecla igual, sólo que sin haber
     esperado a nadie.
     """
-    una = partida(tecla=ESPERAR_A, espera=ESPERA)
+    una = partida(caso="tecla-esperar-a")
     una.correr(ESPERA + 60)
     assert leer(una) == 0, (
         "la variable quedó en %d sin que nadie apretara nada" % leer(una))
@@ -65,7 +65,7 @@ def test_mientras_nadie_aprieta_la_variable_queda_en_cero(partida):
 
 def test_al_apretar_guarda_el_numero_de_la_tecla_de_accion(partida):
     """Cinco, que es lo que dice `CheckInput` y lo que dice el modelo."""
-    una = partida(tecla=ESPERAR_A, espera=ESPERA)
+    una = partida(caso="tecla-esperar-a")
     una.correr(ESPERA + 10)
     assert leer(una) == 0, "se adelantó: la variable ya tenía %d" % leer(una)
     una.tocar("a")
@@ -88,7 +88,7 @@ def test_sostener_la_tecla_no_contesta(partida):
     del flanco: ahí la variable queda en 5 sin que nadie haya apretado nada
     nuevo.
     """
-    una = partida(tecla=ESPERAR_A, espera=ESPERA)
+    una = partida(caso="tecla-esperar-a")
     una.correr(ESPERA + 20, sosteniendo=("a",))
     assert leer(una) == 0, (
         "el comando contestó con A sostenida desde antes de arrancar: la "
@@ -110,7 +110,7 @@ def test_la_cruceta_guarda_el_numero_de_cada_direccion(partida):
     la página sigue, así que el segundo toque ya no lo mira nadie.
     """
     for boton, direccion in (("up", 0), ("right", 1), ("down", 2), ("left", 3)):
-        una = partida(tecla=ESPERAR_DIR, espera=ESPERA)
+        una = partida(caso="tecla-esperar-dir")
         una.correr(ESPERA + 10)
         assert leer(una) == 0, (
             "se adelantó con %s: la variable ya tenía %d" % (boton, leer(una)))
@@ -139,7 +139,7 @@ def test_cancelar_guarda_seis(partida):
     no lo modela, así que un caso que lo abriera mediría dos programas
     distintos.
     """
-    una = partida(tecla=ESPERAR_TODO, espera=ESPERA)
+    una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
     una.sostener(1, "b")
     esperado = eventos.tecla_de(eventos.TECLA_CANCELAR, {"b"})
@@ -153,7 +153,7 @@ def test_con_las_tres_pedidas_gana_cancelar(partida):
     """El orden de `CheckInput` es de mayor valor a menor —"RPG processes keys
     from highest variable value to lowest"— así que B le gana a A y A a la
     cruceta. Los dos lados lo miran con el mismo orden."""
-    una = partida(tecla=ESPERAR_TODO, espera=ESPERA)
+    una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
     una.sostener(1, "b", "a", "up")
     assert leer(una) == eventos.TECLA_VALOR_CANCELAR, (
@@ -168,7 +168,7 @@ def test_sostener_una_direccion_no_contesta(partida):
     `--walk` sabe hacer— contestaría en el primer cuadro de un lado y en otro
     del otro, y el caso `tecla-dir` de la tanda no mediría nada.
     """
-    una = partida(tecla=ESPERAR_DIR, espera=ESPERA)
+    una = partida(caso="tecla-esperar-dir")
     una.correr(ESPERA + 20, sosteniendo=("left",))
     assert leer(una) == 0, (
         "el comando contestó con izquierda sostenida desde antes de arrancar: "

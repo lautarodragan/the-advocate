@@ -1,0 +1,5 @@
+{
+  "event_commands": [
+    {"code": "ChangeSaveAccess", "parameters": [0]}
+  ]
+}

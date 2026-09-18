@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "Wait", "parameters": [3]},
+    {"code": "EnemyEncounter", "parameters": [0, 82, 0, 0, 1, 0]}
+  ]
+}

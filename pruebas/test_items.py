@@ -29,7 +29,7 @@ def test_items_n_es_el_del_ldb():
 
 
 def test_sumar_y_quitar_topan_como_rm2k(partida):
-    una = partida(items=ITEMS)
+    una = partida(caso="inventario")
     una.correr(30)
     assert una.item(151) == 4
     assert una.item(90) == eventos.ITEM_MAX
@@ -45,7 +45,7 @@ def test_sumar_y_quitar_topan_como_rm2k(partida):
 
 
 def test_el_inventario_viaja_en_la_partida(partida):
-    una = partida(guardar=ESPERA, items=ITEMS)
+    una = partida(caso="inventario-guardar-198")
     una.guardar_en(0)
     assert una.item(151) == 4
     una.reiniciar()

@@ -44,7 +44,7 @@ def ranuras():
 @pytest.fixture
 def con_variables(partida):
     # Sin `guardar`: con él la página espera ESPERA ticks antes de tocar nada.
-    una = partida(variables=VARIABLES, rama_var=RAMA)
+    una = partida(caso="variables")
     una.correr(30)          # la página corre en el primer tick; treinta de aire
     return una
 
@@ -89,7 +89,7 @@ def test_la_rama_por_variable_que_no_se_cumple_no_corre(partida):
     Verificado que **da rojo con el defecto puesto**: sin el `cmp` el switch
     200 queda prendido igual.
     """
-    una = partida(variables=VARIABLES, rama_var=(17, 1, 99, 200, 201))
+    una = partida(caso="variables-rama-no")
     una.correr(30)
     assert not una.switch(200), (
         "var 17 vale 12, la rama pedía >= 99, y entró igual")
@@ -100,7 +100,7 @@ def test_la_rama_por_variable_que_no_se_cumple_no_corre(partida):
 def test_las_variables_viajan_en_la_partida(partida):
     """Se guardan con la partida y vuelven después del reset, que las pone
     en cero antes de cargar."""
-    una = partida(guardar=ESPERA, variables=VARIABLES, rama_var=RAMA)
+    una = partida(caso="variables-guardar-198")
     r = ranuras()
     una.guardar_en(0)
     assert una.variable(r[17]) == 12

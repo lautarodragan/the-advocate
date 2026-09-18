@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "ChangeItems", "parameters": [0, 0, 81, 0, 1]},
+    {"code": "ChangeItems", "parameters": [0, 0, 1, 0, 13]},
+    {"code": "ChangeItems", "parameters": [0, 0, 17, 0, 1]}
+  ]
+}
