@@ -98,6 +98,7 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
     sfc = os.path.join(destino, "prueba.sfc")
     sello = os.path.join(destino, "huella.txt")
     actual = huella() + "\n" + repr((contenido, flags))
+    SALTAN[sfc] = tuple(salta_al_empezar(texto) for _nombre, texto in contenido)
 
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
@@ -119,6 +120,22 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
     with open(sello, "w") as archivo:
         archivo.write(actual)
     return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
+
+
+# Qué casos de cada cartucho arrancan con un `Teleport`, por ruta de la ROM y
+# en el orden de sus páginas. Lo llena `cartucho` y lo lee `partida`, que así
+# sabe que tiene que esperar la llegada: ver `Partida._esperar_la_llegada`. Va
+# aparte y no en lo que devuelve `cartucho` porque cada prueba desarma esa
+# tupla, y agregarle un campo es tocarlas a todas para algo que casi ninguna
+# mira.
+SALTAN = {}
+
+
+def salta_al_empezar(texto):
+    """Si el caso —el JSON de su archivo— empieza con un `Teleport`."""
+    import json
+    comandos = json.loads(texto).get("event_commands") or [{}]
+    return comandos[0].get("code") == "Teleport"
 
 
 def plan(nombre):
@@ -163,7 +180,9 @@ def partida(sfc, simbolos, mapas, nucleo=None, caso=0):
     en snes9x y en bsnes. `caso` elige la página de prueba en un cartucho que
     lleva varias: ver `--caso` en snes_convert.py.
     """
-    return Partida(sfc, simbolos, mapas, nucleo=nucleo, caso=caso)
+    saltan = SALTAN.get(sfc, ())
+    return Partida(sfc, simbolos, mapas, nucleo=nucleo, caso=caso,
+                   salta=caso < len(saltan) and saltan[caso])
 
 
 def consola_cruda(sfc, arranque=ARRANQUE):

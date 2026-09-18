@@ -129,7 +129,7 @@ class Partida:
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
-                 nucleo=None, caso=0):
+                 nucleo=None, caso=0, salta=False):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -146,6 +146,10 @@ class Partida:
         self.consola = retro.Consola(sfc, nucleo or NUCLEO)
         self.cuadro = 0
         self.hardware = 0
+        # Cuántas vueltas del lazo quedaron antes del primer tick de la
+        # prueba: cero, salvo que el caso arranque con un `Teleport`. Ver
+        # `_esperar_la_llegada`.
+        self.llegada = 0
         # El arranque, que lo dice la ROM y no un número copiado: mientras
         # sube el banco de muestras a la ARAM el mapa está congelado.
         #
@@ -176,6 +180,17 @@ class Partida:
                 + 2 * self.simbolos["CASO_RANURA"], [caso & 0xFF, caso >> 8])
             self.consola.escribir_ram(self.simbolos["refresco"], [1])
         self.consola.correr(3)
+        # Un caso que empieza con un `Teleport` —así elige dónde arranca desde
+        # el paso 9e— sale en el primer tick y está fundiendo acá. Lo dice
+        # quien armó el cartucho, que leyó el caso: mirar si hay un fundido
+        # no alcanza, porque hay mapas cuya cinemática funde sola al entrar
+        # —el 4 de `apertura`— y ahí la prueba cuenta desde el arranque.
+        if salta:
+            if not self.byte("fundido"):
+                raise AssertionError(
+                    "el caso %d empieza con un Teleport y la ROM no está "
+                    "fundiendo después del primer tick" % caso)
+            self._esperar_la_llegada()
         # Los cuadros de hardware corridos desde que terminó el arranque, que
         # es donde `snes_correr.py` pone su `reloj.corridos` en cero. Es el
         # reloj de los toques de `--toques-hardware`, y es otro que el de los
@@ -183,6 +198,33 @@ class Partida:
         # del save point— `vueltas` no avanza y éste sí, así que es el único
         # que puede decir cuándo apretar ahí.
         self.hardware = 0
+
+    def _esperar_la_llegada(self):
+        """Corre hasta que el `Teleport` del caso llega, y cuenta desde ahí.
+
+        Los dos relojes de la prueba —ticks y cuadros de hardware— arrancan
+        en la llegada, así que una prueba cuenta igual que si la ROM hubiera
+        arrancado en ese mapa. Lo que cuesta llegar **no se escribe en ningún
+        lado**, se mira: en ticks el fundido dura siempre lo mismo, pero en
+        cuadros de hardware va de 74 a 139 según lo que haya que cargar
+        adentro del negro, medido en el paso 9e. Un número fijo servía para
+        uno de los dos relojes y mentía en el otro.
+
+        La llegada es la vuelta **siguiente** a la que apaga el fundido: en
+        ésa el mundo corre por primera vez en el mapa nuevo, que es lo que en
+        una partida que arranca ahí es el tick 1.
+        """
+        antes = self.palabra("vueltas")
+        for _ in range(600):
+            if not self.byte("fundido"):
+                break
+            self.consola.correr(1)
+        else:
+            raise RuntimeError("el Teleport del caso no terminó de fundir")
+        apagado = self.palabra("vueltas")
+        while self.palabra("vueltas") <= apagado:
+            self.consola.correr(1)
+        self.llegada = self.palabra("vueltas") - antes
 
     def _bajar_y_elegir(self, cuantas):
         """`cuantas` toques de abajo y después A.
@@ -375,7 +417,7 @@ class Partida:
         self.consola.correr(1)
         self.hardware += 1
         # El cuadro 0 es el tick 1: ver `TICK_DEL_CUADRO_CERO` en snes_correr.
-        self.cuadro = self.palabra("vueltas") - 1
+        self.cuadro = self.palabra("vueltas") - 1 - self.llegada
 
     def _un_tick(self):
         """Cuadros hasta que el juego avance una vuelta."""
