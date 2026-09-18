@@ -50,6 +50,14 @@ GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden",
 # con el 11, que es el default de `grupo` en el justfile. Ver arriba.
 GRUPO_11 = "grupo-11"
 
+# Dónde arranca un cartucho que no dice `--map-id`. Es el mapa de la mayoría
+# de las páginas de prueba, y un caso que corre en otro lugar llega con el
+# `Teleport` con que empieza: ver `mapa_del_caso` en snes_convert.py. Para el
+# cartucho único del 9f el lugar de arranque es uno solo, y éste es el que se
+# midió en el 9e —arrancando acá y saltando, las goldens se mueven menos que
+# saltando dentro del mismo mapa, que no recarga nada—.
+MAPA_DE_ARRANQUE = 6
+
 
 def cartucho(nombre, *flags, caso=GRUPO_11):
     """Convierte y ensambla; devuelve (ROM, símbolos, ids de mapa en orden).
@@ -88,6 +96,7 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
     """
     tanda = os.path.join(RAIZ, "rom", "build", "tanda")
     de_casos, contenido = flags_de_casos(caso)
+    flags = con_los_destinos(flags, contenido)
     clave = hashlib.sha256(
         repr((contenido, flags)).encode()).hexdigest()[:12]
     existentes = glob.glob(os.path.join(tanda, "*-" + clave))
@@ -129,6 +138,38 @@ def cartucho(nombre, *flags, caso=GRUPO_11):
 # tupla, y agregarle un campo es tocarlas a todas para algo que casi ninguna
 # mira.
 SALTAN = {}
+
+
+def con_los_destinos(flags, contenido):
+    """Los flags del cartucho con el mapa de arranque y los mapas a los que
+    saltan sus casos.
+
+    El mapa del `Teleport` de un caso está escrito en el caso, así que la
+    prueba no lo repite: entra solo en `--mapas`. Y sin `--map-id`, el
+    cartucho arranca en `MAPA_DE_ARRANQUE`.
+    """
+    import json
+    flags = [str(f) for f in flags]
+    if "--map-id" not in flags:
+        flags = ["--map-id", str(MAPA_DE_ARRANQUE)] + flags
+    arranque = flags[flags.index("--map-id") + 1]
+    for _nombre, texto in contenido:
+        comandos = json.loads(texto).get("event_commands") or [{}]
+        if comandos[0].get("code") != "Teleport":
+            continue
+        destino = str(comandos[0]["parameters"][0])
+        if destino == arranque:
+            continue
+        if "--mapas" not in flags:
+            flags += ["--mapas", destino]
+            continue
+        i = flags.index("--mapas") + 1
+        fin = i
+        while fin < len(flags) and not flags[fin].startswith("--"):
+            fin += 1
+        if destino not in flags[i:fin]:
+            flags.insert(fin, destino)
+    return tuple(flags)
 
 
 def salta_al_empezar(texto):

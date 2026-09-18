@@ -116,27 +116,26 @@ def test_varios(direccion):
     golden(nombre, p.imagen())
 
 
-# Mapa, celda y nombre de la captura, de la familia `parado`.
-PARADOS = ((1, 75, 88, "borde"),
-           (1, 75, 90, "medias"),
-           (1, 66, 40, "tapado"),
-           (261, 59, 2, "paquete"))
+# El nombre de la captura, de la familia `parado`. El mapa y la celda son los
+# del `Teleport` de su caso, `parado-<nombre>`.
+PARADOS = ("borde", "medias", "tapado", "paquete")
 
 
-@pytest.mark.parametrize("mapa,tx,ty,nombre", PARADOS)
-def test_parado(mapa, tx, ty, nombre):
+@pytest.mark.parametrize("nombre", PARADOS)
+def test_parado(nombre):
     """`parado`: el héroe plantado en una celda elegida, sin caminar.
 
     Llegar a un lugar puntual caminando depende de cuánto se mantenga la
-    cruceta; acá la celda se fija con `--inicio` y la captura no se negocia.
+    cruceta; acá la celda la fija el `Teleport` del caso y la captura no se
+    negocia.
 
     Del arnés: **los 240 son ticks y no cuadros de hardware**. La receta los
     pedía por `shot`, que le pasa `--teclas` vacío al corredor, y ése es el
     camino que cuenta `vueltas` igual que los demás. En un mapa que no pierde
     cuadros da lo mismo; en uno que sí, no.
     """
-    sfc, simbolos, mapas = cartucho("parado-%d-%d-%d" % (mapa, tx, ty),
-                                    "--map-id", mapa, "--inicio", tx, ty)
+    sfc, simbolos, mapas = cartucho("parado-" + nombre,
+                                    caso="parado-" + nombre)
     p = partida(sfc, simbolos, mapas)
     p.correr(240)
     golden(nombre, p.imagen())
@@ -154,8 +153,8 @@ def test_encima():
     La celda se eligió midiendo: en (66,40) del mapa 1 la capa de encima parte
     al sprite en dos, así que la silueta tiene que coincidir de los dos lados.
     """
-    sfc, simbolos, mapas = cartucho("encima", "--map-id", "1",
-                                    "--inicio", "66", "40", "--heroe-encima")
+    sfc, simbolos, mapas = cartucho("encima", "--heroe-encima",
+                                    caso="parado-tapado")
     p = partida(sfc, simbolos, mapas)
     p.correr(240)
     golden("encima", p.imagen())

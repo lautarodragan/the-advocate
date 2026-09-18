@@ -32,54 +32,54 @@ import pytest
 
 from tanda import cartucho, golden, partida
 
-# Cada caso es: nombre —que es también el de su página de prueba, con la ruta
-# forzada y el switch que arranca prendido—, mapa, celda de arranque, los ticks
-# que se capturan, los toques de A por tick, los mapas de más que entran al
+# Cada caso es: nombre —que es también el de su página de prueba, con el
+# `Teleport` a su mapa y su celda, la ruta forzada y el switch que arranca
+# prendido—, los ticks que se capturan, los toques de A por tick, los mapas de más que entran al
 # cartucho, y los toques por cuadro de hardware. Es la
 # línea que el caso tenía en la lista de la tanda, sin el `dir` y sin el
 # `115` del arranque, que es el de siempre.
 ESCENAS = (
     # Las dos del Sector 32: la puerta de la izquierda y la pantalla que se
     # lee. La segunda es la más larga de las dos y la que más mensajes encadena.
-    ("puerta-izq", 2, "4 54", (100, 230, 600, 950),
+    ("puerta-izq", (100, 230, 600, 950),
      (20, 202, 323, 444, 565), (), ()),
-    ("pantalla", 2, "36 74", (60, 200, 450, 930, 1300, 1800),
+    ("pantalla", (60, 200, 450, 930, 1300, 1800),
      (161, 282, 342, 584, 735, 857, 948, 1008, 1099, 1159, 1219, 1430, 1490,
       1732), (), ()),
     # El save point de Lashe City, mirado sin abrirlo: los cuatro ticks son la
     # animación del brillo.
-    ("savepoint", 8, "9 55", (20, 30, 40, 50), (), (), ()),
+    ("savepoint", (20, 30, 40, 50), (), (), ()),
     # La tienda del mapa 10, y la B que la cierra. La B va por cuadro de
     # hardware porque adentro del menú de la tienda el reloj del juego no corre.
-    ("tienda", 10, "42 6", (20, 60, 120, 200), (25, 90, 150), (),
+    ("tienda", (20, 60, 120, 200), (25, 90, 150), (),
      ("b:110",)),
     # El save point de verdad: parado encima del evento 67, A, la pantalla de
     # ranuras, y B por cuadros de hardware. Arranca **encima** del evento y no
     # enfrente a propósito: a un evento de la capa de abajo se le habla desde
     # su celda —`CheckEventTriggerHere`— y no desde la de al lado, y de frente
     # la página no corre y el caso pasa en vacío.
-    ("savepoint-guarda", 8, "9 56", (60, 200), (10,), (), ("b:40",)),
+    ("savepoint-guarda", (60, 200), (10,), (), ("b:40",)),
     # Las puertas entre Lashe City y sus dos vecinos, Interiors (10) y 33,36
     # (9), pisadas con un paso de ruta, y la vuelta. El cruce 8→9 es el que
     # encontró el `PanScreen` de espera cero: la puerta EV0009 vuelve la cámara
     # antes del Teleport, y el auto rojo del 9 delataba el tick.
-    ("puerta-8-10", 8, "48 21", (40, 120, 220), (), ("10",), ()),
-    ("puerta-10-8", 10, "42 16", (40, 120, 220), (), ("8",), ()),
-    ("puerta-8-9", 8, "73 56", (40, 120, 220), (), ("9",), ()),
-    ("puerta-9-8", 9, "73 47", (40, 120, 220), (), ("8",), ()),
+    ("puerta-8-10", (40, 120, 220), (), ("10",), ()),
+    ("puerta-10-8", (40, 120, 220), (), ("8",), ()),
+    ("puerta-8-9", (40, 120, 220), (), ("9",), ()),
+    ("puerta-9-8", (40, 120, 220), (), ("8",), ()),
     # EV0041 del mapa 8, que hasta el 2026-09-10 se caía entero por la
     # condición de ítem de su tercera página: con el switch 24 corre la primera
     # —"Well, it's worth a try"— y el héroe salta la reja y se va para arriba.
     # Verificado que sin hablarle la referencia difiere en miles de pixeles en
     # el cuadro 200.
-    ("ev41", 8, "52 24", (60, 120, 200), (10, 40), ("10",), ()),
+    ("ev41", (60, 120, 200), (10, 40), ("10",), ()),
     # El droide del Sector 32 y sus cuatro variantes: bloqueado, roto —con el
     # switch 22—, frenado, en cuadrado, y tapado por la capa de encima.
-    ("bloqueo", 2, "7 76", (40, 60, 100), (), (), ()),
-    ("droide", 2, "7 74", (3, 8, 25, 60, 106, 200), (), (), ()),
-    ("droide-roto", 2, "7 74", (10, 20, 30, 45, 100), (), (), ()),
-    ("droide-frenado", 2, "7 71", (20, 60, 120, 300), (), (), ()),
-    ("droide-cuadrado", 2, "32 58", (50, 120, 300, 600), (), (), ()),
+    ("bloqueo", (40, 60, 100), (), (), ()),
+    ("droide", (3, 8, 25, 60, 106, 200), (), (), ()),
+    ("droide-roto", (10, 20, 30, 45, 100), (), (), ()),
+    ("droide-frenado", (20, 60, 120, 300), (), (), ()),
+    ("droide-cuadrado", (50, 120, 300, 600), (), (), ()),
     # `ShowChoice`, del que la tanda sólo ve la ventana dibujada: acá sólo se
     # aprieta A, así que arriba, abajo y B no los toca nadie. El cursor lo
     # cubre `pruebas/test_elegir.py`.
@@ -90,22 +90,22 @@ ESCENAS = (
     # compilara de los dos lados. Contra una captura congelada eso no se puede
     # preguntar, y taro lo aceptó: lo que queda son los pixeles de esa misma
     # ventana, que si la página no corriera no estarían dibujados.
-    ("elegir", 7, "6 5", (55, 90, 140, 210), (25, 60, 95, 150), (), ()),
-    ("droide-tapado", 2, "7 73", (25, 50, 80, 95, 130), (), (), ()),
+    ("elegir", (55, 90, 140, 210), (25, 60, 95, 150), (), ()),
+    ("droide-tapado", (25, 50, 80, 95, 130), (), (), ()),
     # Core rompiendo la puerta, con el switch 7: los seis ticks caen alrededor
     # del golpe.
-    ("core-puerta", 2, "87 76", (380, 407, 410, 425, 470, 600),
+    ("core-puerta", (380, 407, 410, 425, 470, 600),
      (242, 311, 362, 457, 568, 588), (), ()),
     # Los escombros del Sector 32, abiertos con el switch 10 y cerrados sin él.
-    ("escombros", 2, "85 71", (20, 40, 60, 90), (), (), ()),
-    ("escombros-cerrados", 2, "85 71", (20, 60), (), (), ()),
-    ("ascensor", 2, "71 72", (10, 30), (), (), ()),
-    ("puerta-emisor", 3, "38 69", (10, 40), (20,), (), ()),
+    ("escombros", (20, 40, 60, 90), (), (), ()),
+    ("escombros-cerrados", (20, 60), (), (), ()),
+    ("ascensor", (10, 30), (), (), ()),
+    ("puerta-emisor", (10, 40), (20,), (), ()),
     # El más largo de la tanda: mil doscientos ticks de la escena entera del
     # Emitter Room. Un cero largo no prueba nada por sí solo —este caso estuvo
     # una vez en verde sin ejercitar nada, con la página sin compilar de los
     # dos lados—, así que lo que lo sostiene es que la página compile.
-    ("talan", 3, "38 69", (40, 90, 120, 200, 400, 700, 1200), (),
+    ("talan", (40, 90, 120, 200, 400, 700, 1200), (),
      ("1", "2", "4", "5"), ()),
     # El Tram Officer del mapa 9 entero: cuatro mensajes, la elección
     # "1 minute", la caminata de espera, el cronómetro leído a una variable y
@@ -113,16 +113,15 @@ ESCENAS = (
     # "It's here!". Los ticks van después de que cada ventana esté compuesta de
     # los dos lados: la ROM tarda unos doce en componerla. El `CallEvent` al
     # Hover-Tram se acepta sin hacer.
-    ("tram", 9, "24 8",
-     (26, 50, 70, 88, 108, 150, 190, 220, 243, 256, 320),
+    ("tram", (26, 50, 70, 88, 108, 150, 190, 220, 243, 256, 320),
      (10, 30, 54, 74, 91, 115, 224, 246, 260), ("8",), ()),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,mapa,celda,cuadros,apretar,mapas,toques",
+    "nombre,cuadros,apretar,mapas,toques",
     ESCENAS, ids=[caso[0] for caso in ESCENAS])
-def test_escena(nombre, mapa, celda, cuadros, apretar, mapas, toques):
+def test_escena(nombre, cuadros, apretar, mapas, toques):
     """`escena`: una página del juego disparada desde una celda y una ruta.
 
     Los cuadros de un mismo caso salen de **una sola** conversión, que es lo
@@ -130,31 +129,30 @@ def test_escena(nombre, mapa, celda, cuadros, apretar, mapas, toques):
     desde cero: arrancar de nuevo es parte de lo que se compara.
     """
     sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        *(("--mapas",) + tuple(mapas) if mapas else ()), caso=nombre)
+        nombre, *(("--mapas",) + tuple(mapas) if mapas else ()), caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro, apretar_a=apretar, toques_hardware=toques)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-# Hablarle a algo: nombre, mapa, celda del héroe, la página de prueba —el
-# switch que arranca prendido y, si hace falta, la ruta terminada de un
-# evento—, los ticks de los toques de A, los ticks que se capturan y los mapas
+# Hablarle a algo: nombre, la página de prueba —el `Teleport` al mapa y a la
+# celda del héroe, el switch que arranca prendido y, si hace falta, la ruta
+# terminada de un evento—, los ticks de los toques de A, los ticks que se capturan y los mapas
 # de más del cartucho.
 HABLADAS = (
-    ("hablar", 7, "3 7", "switch-24", (25,), (20, 60), ()),
+    ("hablar", "hablar", (25,), (20, 60), ()),
     # Diecisiete toques de A sobre el mismo evento, o sea nueve aperturas de
     # mensaje. Es el primer caso que pasa de la octava interacción, que era
     # justo donde se rompía la cola de ocho punteros que los eventos tenían
     # antes de los dos bits. Verificado que **da rojo con la ROM de antes del
     # anillo**, en el cuadro 360 y sólo ahí.
-    ("hablar-repetido", 7, "3 7", "switch-24", tuple(range(25, 346, 20)),
+    ("hablar-repetido", "hablar", tuple(range(25, 346, 20)),
      (40, 200, 360), ()),
     # El mismo con el switch **25** en vez del 24: la página no queda activa y
     # apretar A no tiene que hacer nada. Es lo único que ejercita que se miren
     # las condiciones.
-    ("hablar-sin-switch", 7, "3 7", "switch-25", (25,), (20, 60), ()),
+    ("hablar-sin-switch", "hablar-sin-switch", (25,), (20, 60), ()),
     # El viaje en el Hover-Tram, la única página que traba el mapa 13: la
     # sacudida del tranvía y la ruta forzada que le da vuelta la cabeza a Talan
     # mientras arranca. Pide el 16 adentro —Sector 30, a donde el viaje termina
@@ -168,49 +166,49 @@ HABLADAS = (
     # ROM sí, y el cuadro 10 daba 1,22%. Poco en pixeles y mucho en
     # significado: la pose de Talan y el corrimiento de la cámara, o sea la
     # escena entera contra ninguna.
-    ("tram-viaje", 13, "2 7", "switch-24", (900,), (10, 30, 60), ("16",)),
+    ("tram-viaje", "hablar-tram-viaje", (900,), (10, 30, 60), ("16",)),
     # Los dos de Lashe City que taro no podía usar el 2026-09-08: caminan y
     # además aparecen con la página, y hasta ese día eso era un solo bit. El
     # `Mechanic` habla porque su página ya no se frena por el giro.
-    ("mecanico", 8, "18 21", "switch-24", (25,), (20, 60), ()),
-    ("bum", 8, "38 54", "switch-24", (25,), (20, 60), ()),
+    ("mecanico", "hablar-mecanico", (25,), (20, 60), ()),
+    ("bum", "hablar-bum", (25,), (20, 60), ()),
     # El giro hacia el héroe: el que camina gira en su ranura, y el quieto se
     # muda a la de giro del mapa y deja a su gemelo —el 14, el mismo Future2:6—
     # como estaba. Los ticks del medio lo miran girado y el último de vuelta en
     # su pose, después de cerrar el último mensaje. `bum-vuelve` encontró que
     # la fila guardada del que gira pasaba a ser de otro cuando las filas se
     # reordenan.
-    ("bum-vuelve", 8, "38 54", "switch-24", (24, 70, 110, 150, 190),
+    ("bum-vuelve", "hablar-bum", (24, 70, 110, 150, 190),
      (60, 170, 200), ()),
-    ("gemelo", 10, "11 4", "switch-24", (25, 70, 110, 150),
+    ("gemelo", "hablar-gemelo", (25, 70, 110, 150),
      (20, 60, 140, 160), ()),
     # El mismo con una ruta terminada: la orden 13 lo deja mirando a la
     # derecha, y la ranura de ruta queda. Tiene que girar igual y volver a la
     # derecha. Es el `GangMember1` que taro encontró sin girar.
-    ("gemelo-ruta", 10, "11 4", "gemelo-ruta", (25, 70, 110, 150),
+    ("gemelo-ruta", "gemelo-ruta", (25, 70, 110, 150),
      (20, 60, 140, 160), ()),
     # Los fuegos translúcidos de los barriles del mapa 9, con la mezcla
     # horneada en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra
     # que el conversor y la referencia horneen contra el mismo fondo.
-    ("fuego", 9, "57 36", "switch-24", (900,), (20, 40), ()),
+    ("fuego", "hablar-fuego", (900,), (20, 40), ()),
     # El Tram Officer del mapa 9 con el 13 adentro: **es el caso de
     # `CallEvent`**, y sin ese mapa el `Teleport` del Hover-Tram no compila,
     # con él no compila el Hover-Tram entero, y entonces la llamada se saltea.
-    ("tram", 9, "24 6", "switch-24", tuple(range(25, 1786, 40)),
+    ("tram", "hablar-tram", tuple(range(25, 1786, 40)),
      (200, 420, 620, 900, 1200), ("13",)),
     # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
     # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
     # `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
     # se puede mirar todavía: pierde dos cuadros al entrar y la comparación
     # arranca corrida.
-    ("autos9", 9, "8 14", "switch-24", (900,), (2, 20, 60, 120, 240), ()),
+    ("autos9", "hablar-autos9", (900,), (2, 20, 60, 120, 240), ()),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,mapa,celda,caso,apretar,cuadros,mapas", HABLADAS,
+    "nombre,caso,apretar,cuadros,mapas", HABLADAS,
     ids=[caso[0] for caso in HABLADAS])
-def test_hablar(nombre, mapa, celda, caso, apretar, cuadros, mapas):
+def test_hablar(nombre, caso, apretar, cuadros, mapas):
     """`hablar`: hablarle a algo, que es lo que convierte esto en un juego.
 
     La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del
@@ -235,8 +233,7 @@ def test_hablar(nombre, mapa, celda, caso, apretar, cuadros, mapas):
       antes. Lo que se compara ahí es la escena corriendo sola.
     """
     sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa, "--inicio", *celda.split(),
-        *(("--mapas",) + tuple(mapas) if mapas else ()), caso=caso)
+        nombre, *(("--mapas",) + tuple(mapas) if mapas else ()), caso=caso)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro, apretar_a=apretar)

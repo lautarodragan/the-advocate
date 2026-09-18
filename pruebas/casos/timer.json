@@ -1,5 +1,6 @@
 {
   "event_commands": [
+    {"code": "Teleport", "parameters": [6, 2, 10]},
     {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
     {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
     {"code": "TimerOperation", "parameters": [0, 0, 600, 0, 0]},

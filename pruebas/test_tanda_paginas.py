@@ -28,25 +28,25 @@ import pytest
 
 from tanda import cartucho, golden, partida
 
-# `KeyInputProc`: nombre —que es también el de su caso en `pruebas/casos/`—,
-# la celda del héroe, los ticks, los toques de A y los toques de dirección por
-# tick.
+# `KeyInputProc`: nombre —que es también el de su caso en `pruebas/casos/`,
+# con el `Teleport` a la celda del héroe—, los ticks, los toques de A y los
+# toques de dirección por tick.
 TECLAS = (
-    ("tecla-espera", "22 12", (20, 60), (40,), ()),
+    ("tecla-espera", (20, 60), (40,), ()),
     # La cruceta, que es lo que le faltaba al minijuego de las piedras del mapa
     # 11. El héroe arranca en **(22,8), donde abajo está cerrado**, y el toque
     # es hacia abajo, que es hacia donde ya mira: así el flanco lo lee el
     # comando y no mueve ni gira a nadie, que es lo único que la referencia no
     # modela de un toque de dirección. La celda no es decoración: en otra, el
     # mismo toque camina.
-    ("tecla-dir", "22 8", (41, 60), (), ("down:40",)),
+    ("tecla-dir", (41, 60), (), ("down:40",)),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,celda,cuadros,apretar,tocar", TECLAS,
+    "nombre,cuadros,apretar,tocar", TECLAS,
     ids=[caso[0] for caso in TECLAS])
-def test_tecla(nombre, celda, cuadros, apretar, tocar):
+def test_tecla(nombre, cuadros, apretar, tocar):
     """`tecla`: `KeyInputProc`, la tecla leída desde una página.
 
     Del arnés: **los dos toques van por caminos distintos y los dos tienen que
@@ -60,8 +60,7 @@ def test_tecla(nombre, celda, cuadros, apretar, tocar):
     dejó una vez un caso en verde que no apretaba A y por lo tanto no probaba
     nada.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", *celda.split(), caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro, apretar_a=apretar, tocar=tocar)
@@ -123,12 +122,12 @@ def test_texto(nombre, relleno):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-# `ControlVars` visto por el cronómetro: nombre —el de su caso—, mapa, la
-# celda del héroe y los ticks.
+# `ControlVars` visto por el cronómetro: nombre —el de su caso, que lleva el
+# `Teleport` al mapa y a la celda del héroe— y los ticks.
 VARIABLES = (
     # 60 segundos a la variable 17, menos 25, y el cronómetro desde ella. Sin
     # las variables mostraría 60.
-    ("vars", 6, "2 10", (2, 31, 61, 90)),
+    ("vars", (2, 31, 61, 90)),
     # El mismo `MoveTo` de `lugar` pero con la celda en **dos variables**, que
     # es la otra rama de `CommandChangeEventLocation` y lo que le faltaba al
     # minijuego de las piedras del mapa 11. La página pone 21 y 13 en dos
@@ -136,11 +135,11 @@ VARIABLES = (
     # que salir igual que el de `lugar`, que lo planta con los números
     # escritos. Verificado en rojo: sumándole uno a la y en `op_place_var` da
     # 392 pixeles, y leyendo la variable de la y también para la x, 246.
-    ("lugar-var", 6, "22 12", (20, 60)),
+    ("lugar-var", (20, 60)),
     # El cofre del mapa 133 y su llave: la rama por variable con y sin el ítem.
-    ("cofre", 133, "4 7", (2, 30)),
-    ("cofre-no", 133, "4 7", (2, 30)),
-    ("cofre-llave", 133, "4 7", (2, 30)),
+    ("cofre", (2, 30)),
+    ("cofre-no", (2, 30)),
+    ("cofre-llave", (2, 30)),
     # La clase 6 de `ControlVars` —las coordenadas de un personaje—, que es lo
     # que leen los mapas 49, 52 y 54 para seguir al auto de Lashe City. Los dos
     # ponen la coordenada en la variable 17 y el cronómetro desde ella, así que
@@ -150,7 +149,7 @@ VARIABLES = (
     # 12. Verificado en rojo con el `cmp #PERSONAJE_X` de
     # `var_personaje_heroe` cambiado por PERSONAJE_Y: 48 pixeles en el cuadro
     # 30.
-    ("var-heroe-x", 6, "22 12", (2, 30)),
+    ("var-heroe-x", (2, 30)),
     # `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de
     # caminarle cuatro celdas para abajo con una ruta forzada, así que sólo da
     # si los dos lados leen la celda viva y no la que trae el mapa: son 13 y no
@@ -158,13 +157,13 @@ VARIABLES = (
     # rojo con el `+ 2` de `ev_pos_buf` cambiado por `+ 0` —o sea leyendo la
     # x—: 96 pixeles en el cuadro 80. **El tick es el 80 y no el 30** porque la
     # página espera a que la ruta termine antes de leer.
-    ("var-evento-y", 6, "22 12", (2, 80)),
+    ("var-evento-y", (2, 80)),
 )
 
 
-@pytest.mark.parametrize("nombre,mapa,celda,cuadros", VARIABLES,
+@pytest.mark.parametrize("nombre,cuadros", VARIABLES,
                          ids=[caso[0] for caso in VARIABLES])
-def test_vars(nombre, mapa, celda, cuadros):
+def test_vars(nombre, cuadros):
     """`vars`: las variables, leídas con los dígitos del cronómetro.
 
     El cronómetro es el único número que este port dibuja en pantalla, así que
@@ -172,21 +171,18 @@ def test_vars(nombre, mapa, celda, cuadros):
     pixeles: la página pone el número en la variable y después arranca el
     cronómetro **desde** ella.
     """
-    sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa, "--inicio", *celda.split(), caso=nombre)
+    sfc, simbolos, orden = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-DESTELLOS = (("destello", "2 10"),
-             ("destello-compartido", "22 10"))
+DESTELLOS = ("destello", "destello-compartido")
 
 
-@pytest.mark.parametrize("nombre,celda", DESTELLOS,
-                         ids=[caso[0] for caso in DESTELLOS])
-def test_destello(nombre, celda):
+@pytest.mark.parametrize("nombre", DESTELLOS)
+def test_destello(nombre):
     """`destello`: `FlashSprite`, el destello de un personaje.
 
     En la consola es un tinte de CGRAM —`pintar_flash` sube la paleta entera
@@ -195,8 +191,7 @@ def test_destello(nombre, celda):
     caso tiene un segundo sprite visible compartiendo la paleta del que
     destella. Lo cuida `pruebas/test_destello_paleta.py`.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", *celda.split(), caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 12, 15, 23, 25):
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -235,8 +230,7 @@ TIMERS = (("timer", (2, 31, 61, 90)),
                          ids=[caso[0] for caso in TIMERS])
 def test_timer(nombre, cuadros):
     """`timer`: el cronómetro corriendo, con sus dígitos en pantalla."""
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", "2", "10", caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -253,8 +247,7 @@ def test_rama_item(nombre):
     `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
     que no lo tiene: el caso con el ítem da esos mismos 40012.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", "22", "12", caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 30):
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -280,8 +273,7 @@ def test_rama_actor(nombre):
     `rama-hab-no` dan 40012 pixeles; contestando siempre que no, los dan
     `rama-equipo` y `rama-hab`.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6", "--inicio", "22", "12", caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 30):
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
@@ -295,60 +287,57 @@ def test_relampago(cuadro):
 
     Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
     """
-    sfc, simbolos, mapas = cartucho(
-        "relampago", "--map-id", "1", "--inicio", "22", "56",
-        caso="relampago")
+    sfc, simbolos, mapas = cartucho("relampago", caso="relampago")
     p = partida(sfc, simbolos, mapas)
     p.correr(cuadro)
     golden("relampago-%d" % cuadro, p.imagen())
 
 
-# `PanScreen`: nombre —el de su caso—, los ticks y la celda del héroe.
+# `PanScreen`: nombre —el de su caso— y los ticks.
 PANEOS = (
-    ("pan", (16, 32, 48, 64, 65, 66), ""),
-    ("pan-vuelve", (16, 48, 65, 70, 82, 83), ""),
+    ("pan", (16, 32, 48, 64, 65, 66)),
+    ("pan-vuelve", (16, 48, 65, 70, 82, 83)),
     # Un "volver" con espera y la cámara ya en su lugar: cero cuadros, y la
     # página sigue en el mismo. Verificado que da rojo con el `rts` de antes:
     # 13710 pixeles en el cuadro 1, el tinte un tick tarde.
-    ("pan-cero", (1, 2, 3, 4), ""),
+    ("pan-cero", (1, 2, 3, 4)),
     # La lluvia pegada al mapa: la cámara se corre dos celdas y las gotas con
     # ella. La apertura es el único lugar donde llueve y ahí la cámara no se
     # mueve, así que sin esto nada miraría el scroll de las gotas. `pan-lluvia`
     # encontró además que la referencia pintaba encimadas al revés que el PPU.
-    ("pan-lluvia", (16, 32, 48, 64, 65, 66), ""),
+    ("pan-lluvia", (16, 32, 48, 64, 65, 66)),
 )
 
 
-@pytest.mark.parametrize("nombre,cuadros,celda", PANEOS,
+@pytest.mark.parametrize("nombre,cuadros", PANEOS,
                          ids=[caso[0] for caso in PANEOS])
-def test_pan(nombre, cuadros, celda):
+def test_pan(nombre, cuadros):
     """`pan`: `PanScreen`, la cámara corrida sin que el héroe se mueva."""
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6",
-        *(("--inicio",) + tuple(celda.split()) if celda else ()), caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
+# `ShakeScreen`: nombre —el de su caso—, el mapa donde arranca y los ticks.
+# Sin mapa, el caso llega a su lugar con un `Teleport`.
 SACUDIDAS = (
-    ("sacudir", 7, (3, 6, 9, 11, 13, 60), ""),
-    ("sacudir-fuerte", 6, (2, 5, 9, 14, 17, 60), ""),
+    ("sacudir", 7, (3, 6, 9, 11, 13, 60)),
+    ("sacudir-fuerte", 6, (2, 5, 9, 14, 17, 60)),
     # Contra el borde del mapa, que es donde la sacudida no puede correr la
     # cámara para los dos lados.
-    ("sacudir-borde", 2, (3, 6, 9, 11, 13, 60), "4 54"),
-    ("sacudir-lluvia", 6, (2, 5, 9, 14, 17, 60), ""),
+    ("sacudir-borde", None, (3, 6, 9, 11, 13, 60)),
+    ("sacudir-lluvia", 6, (2, 5, 9, 14, 17, 60)),
 )
 
 
-@pytest.mark.parametrize("nombre,mapa,cuadros,celda",
+@pytest.mark.parametrize("nombre,mapa,cuadros",
                          SACUDIDAS, ids=[caso[0] for caso in SACUDIDAS])
-def test_sacudir(nombre, mapa, cuadros, celda):
+def test_sacudir(nombre, mapa, cuadros):
     """`sacudir`: `ShakeScreen`, la pantalla temblando."""
     sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa,
-        *(("--inicio",) + tuple(celda.split()) if celda else ()), caso=nombre)
+        nombre, *(("--map-id", mapa) if mapa else ()), caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, orden)
         p.correr(cuadro)
@@ -359,33 +348,31 @@ ANIMACIONES = (
     # La 82 es de alcance "pantalla" y achicada al 11%: lo que se mira son sus
     # **destellos**. Encontró que un destello de pantalla con cuadros impares
     # arranca por la fase que ninguna página toma.
-    ("animacion", (1, 3, 35, 37, 43, 60), ""),
+    ("animacion", (1, 3, 35, 37, 43, 60)),
     # Y el **dibujo**, que es lo que `animacion` no miraba: la 78 —"Single
     # Magic Flame B", 144x176 achicada al 36%— sobre el héroe. Los ticks miran
     # el primero, uno de los tres que la animación tiene **vacíos**, y los tres
     # más cargados.
-    ("animacion-dibujo", (1, 15, 33, 37, 41, 47), ""),
+    ("animacion-dibujo", (1, 15, 33, 37, 41, 47)),
     # La misma sobre un **evento**, que en la ROM es otro camino: el héroe sale
     # de `hero_x` y el evento de su fila de NPC, por `npc_de_evento`. Es sobre
     # Manta, que está pegada al borde izquierdo: la caja arranca en -18 y
     # `emit_object` la recorta. El objetivo es ella y no Kersh a propósito:
     # Kersh es el líder, comparte paleta con el héroe, y el destello del
     # objetivo se la teñiría a los dos.
-    ("animacion-evento", (1, 25, 33, 41, 47), "3 10"),
+    ("animacion-evento", (1, 25, 33, 41, 47)),
 )
 
 
-@pytest.mark.parametrize("nombre,cuadros,celda", ANIMACIONES,
+@pytest.mark.parametrize("nombre,cuadros", ANIMACIONES,
                          ids=[caso[0] for caso in ANIMACIONES])
-def test_animacion(nombre, cuadros, celda):
+def test_animacion(nombre, cuadros):
     """`animacion`: una animación de batalla sobre el mapa, `OP_ANIMATION`.
 
     Va por la página de prueba porque la escena del Emitter Room, que es la que
     las usa, no se puede disparar desde una prueba.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--map-id", "6",
-        *(("--inicio",) + tuple(celda.split()) if celda else ()), caso=nombre)
+    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     for cuadro in cuadros:
         p = partida(sfc, simbolos, mapas)
         p.correr(cuadro)
