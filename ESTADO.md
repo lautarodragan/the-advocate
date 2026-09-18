@@ -508,6 +508,31 @@ se pueden empezar hoy.
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
 
+   **9e, decidido por taro el 2026-09-18**, sobre lo que midió un sub-agente
+   (rama `worktree-agent-a0e54b96ce9bbc0ac`, `medicion-9e/`; capturas en
+   `/extras/capturas/9e/lado/`):
+
+   * **Cada caso arranca con un `Teleport` de RM2k** a su mapa y su celda, en
+     vez de `--map-id`/`--inicio` por cartucho. El conversor compila cada caso
+     con el contexto de su mapa de destino —24 de los 149 casos nombran
+     eventos de su mapa—, y el arnés pone sus relojes en cero al llegar en vez
+     de sumar un corrimiento fijo: el salto cuesta siempre 70 ticks, pero en
+     cuadros de hardware va de 74 a 139 según lo que se cargue en el negro.
+   * **Las animaciones del mapa no avanzan mientras el mundo está congelado**
+     en un fundido, que es lo que hace easyrpg-player —en una transición
+     `Player::Update(false)` no llama a `IncFrame`—. En su propio commit;
+     mueve `talan-400` y `manta-1200`, la fase del agua después de un
+     teletransporte.
+   * **`--descartar-eventos` se va**: los 14 cartuchos que lo usan salen byte
+     por byte iguales sin él.
+   * **Lo que no entra en el cartucho único va en uno aparte**, chico: los
+     casos del actor 21 —con ellos la pantalla de ranuras junta 462 tiles de
+     448—, `--heroe-encima` y los dos rellenos de mensajes, que cuidan una
+     disposición del cartucho y no una imagen.
+   * Encontrado midiendo, sin causa aislada: **después de un `Teleport` desde
+     otro mapa, el cofre del caso `cofre` no aparece aunque la variable 123
+     vale 8.** Es un camino que hoy no ejecuta ninguna prueba.
+
    **9d, corte 1, hecho, y se fue con el 3.** Armaba la página escrita a mano
    también como comandos de RM2k y exigía que `compilar_pagina` diera los
    mismos bytes. Era la red que ataba las dos formas mientras convivieron; con
