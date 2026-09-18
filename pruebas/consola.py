@@ -694,7 +694,7 @@ def huella():
     return h.hexdigest()[:16]
 
 
-def armar(map_id, mapas=(), destino=None, descartar=False, titulo=False,
+def armar(map_id, mapas=(), destino=None, titulo=False,
           tema=None, timer=False, encuentros=0, caso=None):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
@@ -723,7 +723,7 @@ def armar(map_id, mapas=(), destino=None, descartar=False, titulo=False,
     # 2026-09-13 me hizo medir cuatro mapas y estar midiendo siempre el mismo.
     # Del caso entra lo que dice, no sólo su nombre: ver `flags_de_casos`.
     actual = huella() + "\n" + repr((
-        map_id, tuple(mapas), descartar, titulo, tema, timer, encuentros,
+        map_id, tuple(mapas), titulo, tema, timer, encuentros,
         contenido))
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
@@ -759,12 +759,6 @@ def armar(map_id, mapas=(), destino=None, descartar=False, titulo=False,
         # partida sola y espera a que el menú lo decida. Va en su propio
         # cartucho justamente por eso.
         convertir.append("--con-titulo")
-    if descartar:
-        # Esta ROM descarta algún evento que cambia de gráfico y el conversor
-        # corta si no se le dice que siga; ver `aviso_de_descarte`. Se pide por
-        # ROM y no para todas: el corte es la red que avisó del evento 30 del
-        # mapa 2, y apagarla en todas la dejaría sin cubrir nada.
-        convertir.append("--descartar-eventos")
     # El caso va al final: detrás de un `--caso` todo sería de ese caso.
     convertir += ["-o", inc] + de_casos
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)

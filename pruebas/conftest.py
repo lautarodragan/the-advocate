@@ -59,10 +59,10 @@ def partida(builds):
     `switch` se escribe en la RAM antes del primer cuadro de juego; para
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
-    def hacer(switch=(), mapas=None, descartar=False, titulo=None, tema=None,
+    def hacer(switch=(), mapas=None, titulo=None, tema=None,
               timer=False, encuentros=0, caso=None):
         arranca, resto = mapas or MAPAS
-        clave = (arranca, tuple(resto), descartar, titulo is not None, tema,
+        clave = (arranca, tuple(resto), titulo is not None, tema,
                  timer, encuentros, caso)
         if clave not in builds:
             destino = os.path.join(
@@ -75,7 +75,7 @@ def partida(builds):
                                 + ("-c" if timer else "")
                                 + ("-e%d" % encuentros if encuentros else "")
                                 + ("-" + caso if caso else "")))
-            builds[clave] = armar(arranca, resto, destino, descartar,
+            builds[clave] = armar(arranca, resto, destino,
                                   titulo is not None, tema, timer, encuentros,
                                   caso)
         sfc, simbolos, tabla = builds[clave]

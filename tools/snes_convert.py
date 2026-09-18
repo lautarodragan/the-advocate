@@ -490,7 +490,7 @@ def cambia_de_grafico(evento):
     return len(graficos) > 1
 
 
-def aviso_de_descarte(args, texto, peligroso):
+def aviso_de_descarte(texto, peligroso):
     """Un evento que no se dibuja. Si es de los que rompen, corta la conversión.
 
     **Y corta a propósito.** Esto era un `print` entre otros cincuenta, y el
@@ -517,16 +517,12 @@ def aviso_de_descarte(args, texto, peligroso):
     if not peligroso:
         print("  " + texto)
         return
-    if getattr(args, "descartar_eventos", False):
-        print("  DESCARTADO Y CAMBIA DE GRÁFICO: " + texto)
-        return
     sys.exit(
         "%s\n\n"
         "No se arma la ROM: ese evento **cambia de gráfico entre sus páginas**, o\n"
         "sea que es un mecanismo y no un adorno. Sin dibujarse, el cambio no se ve\n"
         "nunca, y como el evento igual cierra el paso y dispara, lo que queda es\n"
-        "una pared invisible donde el juego esperaba una puerta.\n\n"
-        "Si es lo que se quiere, `--descartar-eventos` deja seguir y los marca." % texto)
+        "una pared invisible donde el juego esperaba una puerta." % texto)
 
 
 # --- el peso de un gráfico --------------------------------------------------
@@ -5029,12 +5025,6 @@ def parser_de_flags():
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
                              "de sprites. Comparten paleta con un personaje")
-    parser.add_argument("--descartar-eventos", action="store_true",
-                        help="seguir aunque algún evento no entre en las "
-                             "paletas de sprite. Sin esto la conversión corta: "
-                             "un evento que no se dibuja igual cierra el paso, "
-                             "así que descartarlo puede dejar una pared "
-                             "invisible. Ver `aviso_de_descarte`")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="mete este gráfico en el banco de sprites\n"
@@ -6240,7 +6230,7 @@ def convertir(renderer, map_id, args, inicio=None):
                              ", ".join(sorted("%s:%d" % k for k in prestadas))))
     for evento, tile in descartados:
         aviso_de_descarte(
-            args, "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
+            "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
             "las %d paletas de sprite y no se dibuja"
             % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
                tope_de_paletas),
@@ -6299,7 +6289,7 @@ def convertir(renderer, map_id, args, inicio=None):
                           images_de(renderer, args, par[0]), par[1])]
     for charset, index in afuera_de_ruta:
         aviso_de_descarte(
-            args, "mapa %d: el gráfico %s:%d, al que cambia una ruta, no entra "
+            "mapa %d: el gráfico %s:%d, al que cambia una ruta, no entra "
             "en las %d paletas de sprite: esa orden esconde al evento en vez "
             "de cambiarlo" % (map_id, charset, index, tope_de_paletas),
             # Una orden 34 **es** un cambio de gráfico, así que siempre cuenta.

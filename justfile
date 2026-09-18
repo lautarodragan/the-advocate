@@ -157,7 +157,7 @@ snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
 convert mapa="7":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
-      --descartar-eventos --reference {{snes_pngs}}/python.png
+      --reference {{snes_pngs}}/python.png
 
 build:
   {{ensamblar}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym

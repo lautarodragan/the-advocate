@@ -34,7 +34,7 @@ LISTO = 24              # el switch que activa la página con el script
 
 
 def test_pararse_encima_de_la_puerta_y_apretar_a_la_abre(partida):
-    una = partida(mapas=CIUDAD, switch=[LISTO], descartar=True)
+    una = partida(mapas=CIUDAD, switch=[LISTO])
     una.ir_al_mapa(MAPA, *PUERTA)
     for _ in range(25):
         if una.mapa() == DESTINO:
@@ -58,7 +58,7 @@ def test_de_frente_no_la_dispara(partida):
     El héroe se para en (9,14) —no puede en (9,13), que lo bloquea el
     `TalDoorBottom`— y mira hacia arriba.
     """
-    una = partida(mapas=CIUDAD, switch=[LISTO], descartar=True)
+    una = partida(mapas=CIUDAD, switch=[LISTO])
     una.ir_al_mapa(MAPA, ABAJO[0], ABAJO[1] + 1)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     for _ in range(6):

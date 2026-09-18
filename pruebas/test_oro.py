@@ -78,7 +78,7 @@ def test_el_peaje_cobra_si_alcanza_y_no_da_la_vuelta_si_no(partida):
     recorte de `GainGold` daría más de dieciséis millones.
     """
     for antes, despues in ((500, 0), (700, 200), (499, 499), (0, 0)):
-        una = partida(mapas=CIUDAD, descartar=True, switch=[24])
+        una = partida(mapas=CIUDAD, switch=[24])
         una.ir_al_mapa(8, 62, 33)
         una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
         poner(una, antes)

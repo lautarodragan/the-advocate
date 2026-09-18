@@ -58,8 +58,7 @@ def test_heroe(mapa, direccion):
     Una consola nueva por dirección, como hace el corredor: arrancar de cero es
     parte de lo que se compara.
     """
-    sfc, simbolos, mapas = cartucho("heroe-%d" % mapa, "--map-id", mapa,
-                                    "--descartar-eventos")
+    sfc, simbolos, mapas = cartucho("heroe-%d" % mapa, "--map-id", mapa)
     ticks = plan(str(mapa))[direccion]
     p = partida(sfc, simbolos, mapas)
     p.correr(ticks, sosteniendo=() if direccion == "none" else (direccion,))
