@@ -946,6 +946,12 @@ rapido:
     stz boot_cuadros
     stz vueltas                 ; la RAM arranca con basura y el arnés lo
     stz vueltas + 1             ; lee desde el cuadro cero
+    rep #$20
+.a16
+    lda #0
+    sta f:vueltas_congeladas    ; y ésta, que las animaciones restan
+    sep #$20
+.a8
     lda #$81
     sta NMITIMEN                ; y la NMI, que cuenta los cuadros del arranque
 
@@ -1289,7 +1295,19 @@ loop:
     jsr mensaje_tick            ; y unos caracteres del mensaje que se esté
                                 ; componiendo, si hay alguno
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
+    bra contada
 congelado:
+    ; Una vuelta del fundido: el tick corre —el fundido y el arnés lo cuentan—
+    ; pero el mundo no, y las animaciones del mapa tampoco. Ver
+    ; `vueltas_congeladas`.
+    rep #$20
+.a16
+    lda f:vueltas_congeladas
+    inc a
+    sta f:vueltas_congeladas
+    sep #$20
+.a8
+contada:
     rep #$20
 .a16
     inc vueltas
@@ -17265,8 +17283,11 @@ otra:
     ; El tick que dibuja la referencia es `vueltas + 1` visto desde acá, que es
     ; el mismo número que mira la animación del ChipSet —ella lo lee después
     ; del `inc vueltas`—. Medido: sin el `inc`, el save point del mapa 8 se
-    ; queda una columna atrás y son 76 pixeles.
+    ; queda una columna atrás y son 76 pixeles. Sin los ticks congelados, como
+    ; ella: ver `vueltas_congeladas`.
     lda vueltas
+    sec
+    sbc f:vueltas_congeladas
     inc a
     sta WRDIVL                  ; el dividendo, en una sola escritura de 16
     sep #$20
@@ -21733,12 +21754,13 @@ sin_fila:
 ; es un DMA solo: entre 128 y 1664 bytes según el mapa. Ver `convert` en
 ; tools/snes_convert.py.
 ;
-; **No gasta un byte de RAM y no lee nada del cartucho para decidir**, y las dos
-; cosas son obligatorias y no elegancia: la BSS estaba en 7680 de 7680 y la
+; **No guarda en qué punto va y no lee nada del cartucho para decidir**, y las
+; dos cosas eran obligatorias y no elegancia: la BSS estaba en 7680 de 7680 y la
 ; página directa en 255 de 256, así que no había dónde poner ni un contador ni
 ; un puntero para `lda [puntero], y`. En qué punto del ciclo va cada familia
-; sale de dividir `vueltas` por su cadencia con el divisor del hardware; dónde
-; están sus tiles y sus dibujos lo trae `anim_tabla`, que arma el conversor.
+; sale de dividir `vueltas` —menos `vueltas_congeladas`, los ticks del fundido—
+; por su cadencia con el divisor del hardware; dónde están sus tiles y sus
+; dibujos lo trae `anim_tabla`, que arma el conversor.
 ;
 ; El resto de esa división dice además **si este tick es el del cambio**, que es
 ; lo único que hay que preguntar para saber si hace falta el DMA.
@@ -21939,6 +21961,8 @@ otra:
     rep #$20
 .a16
     lda vueltas
+    sec
+    sbc f:vueltas_congeladas    ; el reloj de las animaciones: ver ahí
     tax
     sep #$20
 .a8
@@ -21971,6 +21995,8 @@ otra:
     rep #$20
 .a16
     lda vueltas
+    sec
+    sbc f:vueltas_congeladas    ; el reloj de las animaciones: ver ahí
     tax
     sep #$20
 .a8
@@ -24252,6 +24278,15 @@ done:
 .endproc
 
 .segment "BSS"
+; Cuántas vueltas del lazo pasaron con el mundo congelado por un fundido. Las
+; animaciones del mapa —la del ChipSet y la de los que animan quietos— cuentan
+; `vueltas` **menos** éstas, así que no avanzan mientras la pantalla funde, y
+; es lo que hace easyrpg-player: en una transición `Player::Update(false)` no
+; llama a `IncFrame`, y el `GetFrameCounter` que mira `tilemap_layer.cpp:288`
+; se queda quieto. `vueltas` no se puede frenar ahí: es el reloj del fundido
+; mismo y el del arnés. Contándolas, el agua salía de un teletransporte con
+; setenta ticks de fase de más.
+vueltas_congeladas: .res 2
 
 
 ; Dos bits por evento, en vez de una cola. `FLAG_AUTO` dice si la página activa
