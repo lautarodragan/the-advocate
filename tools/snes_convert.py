@@ -6238,8 +6238,12 @@ def miembros_posibles(map_ids, grupo):
     la pantalla de ranuras, que necesita la cara y el nombre de quien pueda
     aparecer en una partida guardada, y una cara de más no cuesta nada que
     importe.
+
+    `grupo` puede traer repetidos —el del cartucho más el de cada caso de
+    prueba, que suele ser el mismo— y se cuentan una vez: repetido, un actor
+    ocupaba una cara por cada caso que lo pedía.
     """
-    actores = list(grupo)
+    actores = list(dict.fromkeys(grupo))
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
