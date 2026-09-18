@@ -4766,6 +4766,15 @@ def _comandos_de_prueba(caso):
         out.append(_cmd(CHANGE_SPRITE_ASSOCIATION, [actor, indice, 0], charset))
     if saca("guardar", False):
         out.append(_cmd(OPEN_SAVE_MENU))
+    if "batalla" in caso:
+        # Sin bloque de manejadores, que es lo que hace que los tres destinos
+        # caigan en el comando de abajo; con perder por manejador en vez de
+        # Game Over, salvo que el caso lo pida. Tropa por constante, fondo del
+        # terreno y huir prohibido.
+        derrota = (BATALLA_DERROTA_GAME_OVER
+                   if saca("batalla_game_over", False) else 1)
+        out.append(_cmd(ENEMY_ENCOUNTER,
+                        [0, saca("batalla"), 0, 0, derrota, 0]))
     if "tinte" in caso:
         tinte = saca("tinte")
         out.append(_cmd(TINT_SCREEN,

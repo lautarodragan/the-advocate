@@ -505,17 +505,16 @@ se pueden empezar hoy.
    | 9e | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | ídem |
    | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
 
-   **9d, corte 1, a medias.** `_comandos_de_prueba` arma la página como
-   comandos y `_es_la_que_compilaria_el_juego` la compila por
-   `compilar_pagina` y pide los mismos bytes que la escrita a mano; un
-   caso que usa algo que todavía no sabe decir se saltea en silencio.
-   Lo que falta, de lo que más casos saltea a lo que menos: `ruta_ev`,
-   las esperas que no son décimas enteras —RM2k no sabe decir
-   "veinte cuadros", así que ésas hay que redondearlas y volver a aprobar
-   la golden, o dejarlas— y `mensaje`. Los que llevan un blanco ya traducido al índice de la ROM —`flash`,
-   `ruta_ev`, `lugar`, y la operación de `variables` que planta un evento—
-   no se pueden decir hasta el corte 3, cuando la
-   página sea un evento del mapa y el blanco lo resuelva `eventos_mapa`.
+   **9d, corte 1, hecho hasta donde puede.** `_comandos_de_prueba` arma la
+   página como comandos y `_es_la_que_compilaria_el_juego` la compila por
+   `compilar_pagina` y pide los mismos bytes que la escrita a mano; un caso
+   que usa algo que todavía no sabe decir se saltea en silencio. Lo que se
+   saltea es lo que el corte 1 no puede decir: `mensaje`, que es un
+   desplazamiento en el bloque de textos de la ROM, y lo que lleva un blanco
+   ya traducido al índice de la ROM —`flash`, `ruta_ev`, `lugar`, `parar` y
+   la operación de `variables` que planta un evento—. Eso espera al corte 3,
+   cuando la página sea un evento del mapa y el blanco lo resuelva
+   `eventos_mapa`.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
    `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
