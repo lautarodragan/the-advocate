@@ -5028,7 +5028,7 @@ def parser_de_flags():
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="mete este gráfico en el banco de sprites\n"
-                             "del mapa donde arranca la ROM, para que la\n"
+                             "de los mapas donde corre algún caso, para que la\n"
                              "página de prueba pueda cambiarle el gráfico a\n"
                              "alguien con la orden 34 o con\n"
                              "ChangeSpriteAssociation. Se puede repetir.\n"
@@ -5067,7 +5067,9 @@ def parser_de_flags():
                              "de comandos de una página de RM2k en el JSON de "
                              "Ditto —ver pruebas/casos/—. La compila el mismo "
                              "camino que una página del juego, con el "
-                             "contexto del mapa donde arranca la ROM")
+                             "contexto del mapa donde corre: el de su "
+                             "Teleport si empieza con uno, y si no el de "
+                             "arranque")
     parser.add_argument("--charset", default=None,
                         help="forzar el CharSet del héroe; por defecto sale "
                              "del primero del grupo, que es como lo decide RM2k")
@@ -5095,6 +5097,11 @@ def main():
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
     args.casos = casos_de_prueba(parser, args, tramos)
+    orden = orden_de_mapas(args)
+    if not 0 <= args.inicial < len(orden):
+        sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(orden)))
+    for caso in args.casos:
+        caso.mapa = mapa_del_caso(caso, orden, args.inicial)
     de_archivo = comandos_de_casos(args)
     args.con_timer = args.con_timer or any(
         cmd.code == eventos.TIMER_OPERATION for cmd in de_archivo)
@@ -5222,6 +5229,8 @@ def main():
     for cmd, extra_lineas in eventos.agrupar(de_archivo):
         if cmd.code == eventos.SHOW_MESSAGE:
             mensajes.agregar([cmd.string] + extra_lineas)
+    # Las páginas de prueba ya compiladas, por caso: ver la segunda vuelta.
+    de_prueba = {}
 
     for mapa in mapas:
         mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
@@ -5255,7 +5264,7 @@ def main():
         if con_paralela:
             print("  mapa %d: %d evento(s) con página paralela"
                   % (mapa["id"], len(con_paralela)))
-        if args.grafico_de_prueba and mapa is mapas[args.inicial]:
+        if args.grafico_de_prueba and mapa["id"] in mapas_de_prueba(args):
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
                 graficos.indice(charset, index)
         # **Sólo el mapa que se llevó sus tiles puede mostrar el cartel.** El
@@ -5285,136 +5294,16 @@ def main():
             sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
-        if args.casos and mapa is mapas[args.inicial]:
-            # Las páginas de prueba, sólo en el mapa donde arranca la ROM. No
-            # salen del juego sino de `pruebas/casos/`: existen porque hay
-            # caminos del intérprete que ninguna página del juego que compile
-            # ejercita —la primera fue una espera—.
-            #
-            # Va en el **índice 0**, el del evento vacío que `convertir` puso
-            # al principio del mapa: la ROM recorre los eventos de menor a
-            # mayor, y esta página tiene que correr antes que las del juego.
-            # Hasta el 2026-09-17 iba en el primer índice libre, al final.
-            #
-            # **Una página por caso**, y la k pide que `VARIABLE_DE_CASO`
-            # valga al menos k: ver su comentario. La 0 no pide nada, así que
-            # un cartucho de un solo caso es el de siempre.
-            de_prueba = []
-            for k, caso in enumerate(args.casos):
-                de_prueba.append({
-                    "evento": 0, "pagina": k, "prueba": True,
-                    "trigger": eventos.TRIGGER_AUTOMATICO,
-                    "switch_a": 0, "switch_b": 0, "actor": 0,
-                    "variable": ((eventos.ranura_de_variable(
-                        eventos.VARIABLE_DE_CASO),
-                        eventos.COMPARAR_AL_MENOS, k) if k else None),
-                    "item": 0, "capa": 0,
-                    "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
-                    "codigo": pagina_de_caso(caso, mapa, temas, graficos,
-                                             mensajes, indices,
-                                             args.imagenes)})
-            paginas = paginas + de_prueba + [{
-                # Y la que la apaga: misma idea que en la referencia, ver
-                # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
-                # gana, el evento inventado deja de tener una automática que
-                # correr y la primera no se repite.
-                "evento": 0, "pagina": len(de_prueba), "prueba": True,
-                "trigger": eventos.TRIGGER_AUTOMATICO,
-                "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
-                "actor": 0, "variable": None, "item": 0, "capa": 0,
-                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
-                "codigo": b""}]
-        codigo = bytearray()
-        for pagina in paginas:
-            pagina["offset"] = len(codigo)
-            if pagina["codigo"]:
-                codigo += pagina["codigo"]
-            # Y las órdenes de la ruta propia, detrás, un byte por orden.
-            propia = pagina.get("ruta_propia")
-            if propia:
-                pagina["ruta_offset"] = len(codigo)
-                codigo += bytes(propia["ordenes"])
+        # Las páginas de los casos que corren en este mapa, compiladas con su
+        # contexto aunque vayan a vivir en el mapa de arranque: ver
+        # `mapa_del_caso`. Se ponen allá en la segunda vuelta, cuando ya
+        # están todas.
+        for k, caso in enumerate(args.casos):
+            if caso.mapa == mapa["id"]:
+                de_prueba[k] = pagina_de_caso(caso, mapa, temas, graficos,
+                                              mensajes, indices,
+                                              args.imagenes)
         mapa["paginas"] = paginas
-        # Lo que dibuja cada página de los eventos que cambian de gráfico, ya
-        # como lo quiere OAM: es lo que la ROM copia a la fila del NPC cuando
-        # la página activa cambia. Ver `tabla_de_paginas`, +20.
-        for pagina in paginas:
-            sigue = pagina["evento"] in mapa["cambian"]
-            if not sigue and pagina["evento"] not in mapa["aparecen"]:
-                continue
-            grafico = pagina.get("grafico")
-            if grafico is None \
-                    or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
-                continue
-            if not sigue:
-                # El que sólo aparece no lleva tile ni atributos: los suyos
-                # apuntan a su ranura de doce poses y la ROM no los toca. Va
-                # la pose —con el bit 7, que es "esta página dibuja algo"— y
-                # lo que su tile le impone a la celda.
-                pagina["oam"] = (0, 0, grafico[2] | 0x80,
-                                 0xFF if pagina.get("tile_pasa") is None
-                                 else pagina["tile_pasa"])
-                continue
-            block, slot = mapa["where"][grafico]
-            tile = block_tile(block)
-            prioridad = (OBJ_PRIORITY_ABOVE
-                         if pagina["capa"] == rm2k.LAYER_ABOVE
-                         else OBJ_PRIORITY)
-            pagina["oam"] = (tile & 0xFF,
-                             prioridad | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
-                             grafico[2] | 0x80,
-                             0xFF if pagina.get("tile_pasa") is None
-                             else pagina["tile_pasa"])
-        mapa["evcodigo"] = bytes(codigo)
-        # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
-        # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
-        # descarta **sin decir nada**, que es la clase de diferencia que ninguna
-        # comparación vería: la referencia la caminaría y la consola no. Con los
-        # datos de este juego el peor mapa usa dos, así que el control no molesta
-        # a nadie; está para que un cambio futuro no las tire en silencio.
-        blancos = {c[i + 1] for p in paginas if p["codigo"]
-                   for i, c in recorrer_codigo(p["codigo"])
-                   if c[i] == eventos.OP_ROUTE and c[i + 1]}
-        # Y que nadie destelle a alguien que comparte gráfico con otro. En la
-        # consola el destello se hace sobre la paleta del personaje, así que dos
-        # que compartan gráfico destellarían juntos. `eventos.py` ya rechaza el
-        # caso de dos eventos; acá se cubre el que allá no se puede ver, que es
-        # el del héroe: qué gráfico tiene depende del grupo, y eso lo sabe el
-        # conversor y no el compilador.
-        #
-        # `separar_del_heroe` ya evita esto en los mapas cuyas páginas destellan
-        # al héroe. Esto queda para lo que aquél no ve: un `FlashSprite` que
-        # llega adentro de un evento común, que se compila en el lugar desde
-        # cualquier `CallEvent` y no está en las páginas del mapa.
-        graficos = collections.Counter(
-            (npc["charset"], npc["index"])
-            for npc in rm2k.collect_npcs(mapa["game_map"]))
-        for actor in args.lideres:
-            a = renderer.database.actors[actor]
-            graficos[(a.charset, a.charset_index)] += 1
-        for pagina in paginas:
-            for i, c in recorrer_codigo(pagina["codigo"] or b""):
-                if c[i] != eventos.OP_FLASH or c[i + 1] != 0:
-                    continue
-                for actor in args.lideres:
-                    a = renderer.database.actors[actor]
-                    if graficos[(a.charset, a.charset_index)] > 1:
-                        raise SystemExit(
-                            "mapa %d: una página hace destellar al héroe, y el "
-                            "actor %d se dibuja con %s[%d], que también usa un "
-                            "NPC del mapa. En la consola comparten paleta y "
-                            "destellarían los dos"
-                            % (mapa["id"], actor, a.charset, a.charset_index))
-
-        if len(blancos) > RUTA_EV_MAX:
-            raise SystemExit(
-                "mapa %d: sus páginas mandan a caminar %d eventos distintos y "
-                "la ROM tiene %d ranuras de ruta"
-                % (mapa["id"], len(blancos), RUTA_EV_MAX))
-        corribles = sum(1 for p in paginas if p["codigo"])
-        if paginas:
-            print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
-                  % (mapa["id"], len(paginas), corribles))
         # Y a qué mapas de afuera de la ROM apuntan las que no compilan.
         #
         # Un `Teleport` a un mapa que no entró corta la página entera, y una
@@ -5468,6 +5357,144 @@ def main():
                   "ver ACEPTADOS_SIN_HACER en tools/eventos.py"
                   % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
                                                              codigo_cmd)))
+
+
+    # La segunda vuelta: con las páginas de todos los casos compiladas, se
+    # ponen en el mapa de arranque y se arma el bloque de cada mapa.
+    for mapa in mapas:
+        paginas = mapa["paginas"]
+        if args.casos and mapa is mapas[args.inicial]:
+            # Las páginas de prueba, sólo en el mapa donde arranca la ROM. No
+            # salen del juego sino de `pruebas/casos/`: existen porque hay
+            # caminos del intérprete que ninguna página del juego que compile
+            # ejercita —la primera fue una espera—.
+            #
+            # Va en el **índice 0**, el del evento vacío que `convertir` puso
+            # al principio del mapa: la ROM recorre los eventos de menor a
+            # mayor, y esta página tiene que correr antes que las del juego.
+            # Hasta el 2026-09-17 iba en el primer índice libre, al final.
+            #
+            # **Una página por caso**, y la k pide que `VARIABLE_DE_CASO`
+            # valga al menos k: ver su comentario. La 0 no pide nada, así que
+            # un cartucho de un solo caso es el de siempre.
+            paginas = paginas + [{
+                "evento": 0, "pagina": k, "prueba": True,
+                "trigger": eventos.TRIGGER_AUTOMATICO,
+                "switch_a": 0, "switch_b": 0, "actor": 0,
+                "variable": ((eventos.ranura_de_variable(
+                    eventos.VARIABLE_DE_CASO),
+                    eventos.COMPARAR_AL_MENOS, k) if k else None),
+                "item": 0, "capa": 0,
+                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                "codigo": de_prueba[k]} for k in range(len(args.casos))] + [{
+                # Y la que la apaga: misma idea que en la referencia, ver
+                # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
+                # gana, el evento inventado deja de tener una automática que
+                # correr y la primera no se repite.
+                "evento": 0, "pagina": len(args.casos), "prueba": True,
+                "trigger": eventos.TRIGGER_AUTOMATICO,
+                "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
+                "actor": 0, "variable": None, "item": 0, "capa": 0,
+                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                "codigo": b""}]
+        codigo = bytearray()
+        for pagina in paginas:
+            pagina["offset"] = len(codigo)
+            if pagina["codigo"]:
+                codigo += pagina["codigo"]
+            # Y las órdenes de la ruta propia, detrás, un byte por orden.
+            propia = pagina.get("ruta_propia")
+            if propia:
+                pagina["ruta_offset"] = len(codigo)
+                codigo += bytes(propia["ordenes"])
+        mapa["paginas"] = paginas
+        # Lo que dibuja cada página de los eventos que cambian de gráfico, ya
+        # como lo quiere OAM: es lo que la ROM copia a la fila del NPC cuando
+        # la página activa cambia. Ver `tabla_de_paginas`, +20.
+        for pagina in paginas:
+            sigue = pagina["evento"] in mapa["cambian"]
+            if not sigue and pagina["evento"] not in mapa["aparecen"]:
+                continue
+            grafico = pagina.get("grafico")
+            if grafico is None \
+                    or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
+                continue
+            if not sigue:
+                # El que sólo aparece no lleva tile ni atributos: los suyos
+                # apuntan a su ranura de doce poses y la ROM no los toca. Va
+                # la pose —con el bit 7, que es "esta página dibuja algo"— y
+                # lo que su tile le impone a la celda.
+                pagina["oam"] = (0, 0, grafico[2] | 0x80,
+                                 0xFF if pagina.get("tile_pasa") is None
+                                 else pagina["tile_pasa"])
+                continue
+            block, slot = mapa["where"][grafico]
+            tile = block_tile(block)
+            prioridad = (OBJ_PRIORITY_ABOVE
+                         if pagina["capa"] == rm2k.LAYER_ABOVE
+                         else OBJ_PRIORITY)
+            pagina["oam"] = (tile & 0xFF,
+                             prioridad | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
+                             grafico[2] | 0x80,
+                             0xFF if pagina.get("tile_pasa") is None
+                             else pagina["tile_pasa"])
+        mapa["evcodigo"] = bytes(codigo)
+        # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
+        # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
+        # descarta **sin decir nada**, que es la clase de diferencia que ninguna
+        # comparación vería: la referencia la caminaría y la consola no. Con los
+        # datos de este juego el peor mapa usa dos, así que el control no molesta
+        # a nadie; está para que un cambio futuro no las tire en silencio.
+        #
+        # Las páginas que **corren** acá: las del mapa y las de los casos que
+        # saltan a él, que viven en el de arranque. Ver `mapa_del_caso`.
+        corren_aca = [p["codigo"] for p in paginas
+                      if p["codigo"] and not p.get("prueba")]
+        corren_aca += [de_prueba[k] for k, caso in enumerate(args.casos)
+                       if caso.mapa == mapa["id"]]
+        blancos = {c[i + 1] for codigo in corren_aca
+                   for i, c in recorrer_codigo(codigo)
+                   if c[i] == eventos.OP_ROUTE and c[i + 1]}
+        # Y que nadie destelle a alguien que comparte gráfico con otro. En la
+        # consola el destello se hace sobre la paleta del personaje, así que dos
+        # que compartan gráfico destellarían juntos. `eventos.py` ya rechaza el
+        # caso de dos eventos; acá se cubre el que allá no se puede ver, que es
+        # el del héroe: qué gráfico tiene depende del grupo, y eso lo sabe el
+        # conversor y no el compilador.
+        #
+        # `separar_del_heroe` ya evita esto en los mapas cuyas páginas destellan
+        # al héroe. Esto queda para lo que aquél no ve: un `FlashSprite` que
+        # llega adentro de un evento común, que se compila en el lugar desde
+        # cualquier `CallEvent` y no está en las páginas del mapa.
+        graficos = collections.Counter(
+            (npc["charset"], npc["index"])
+            for npc in rm2k.collect_npcs(mapa["game_map"]))
+        for actor in args.lideres:
+            a = renderer.database.actors[actor]
+            graficos[(a.charset, a.charset_index)] += 1
+        for codigo in corren_aca:
+            for i, c in recorrer_codigo(codigo):
+                if c[i] != eventos.OP_FLASH or c[i + 1] != 0:
+                    continue
+                for actor in args.lideres:
+                    a = renderer.database.actors[actor]
+                    if graficos[(a.charset, a.charset_index)] > 1:
+                        raise SystemExit(
+                            "mapa %d: una página hace destellar al héroe, y el "
+                            "actor %d se dibuja con %s[%d], que también usa un "
+                            "NPC del mapa. En la consola comparten paleta y "
+                            "destellarían los dos"
+                            % (mapa["id"], actor, a.charset, a.charset_index))
+
+        if len(blancos) > RUTA_EV_MAX:
+            raise SystemExit(
+                "mapa %d: sus páginas mandan a caminar %d eventos distintos y "
+                "la ROM tiene %d ranuras de ruta"
+                % (mapa["id"], len(blancos), RUTA_EV_MAX))
+        corribles = sum(1 for p in paginas if p["codigo"])
+        if paginas:
+            print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
+                  % (mapa["id"], len(paginas), corribles))
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
@@ -6079,21 +6106,60 @@ def casos_de_prueba(parser, args, tramos):
     return casos
 
 
-def comandos_de_casos(args):
+def comandos_de_casos(args, map_id=None):
     """Los comandos de todas las páginas de prueba, seguidos.
 
     Es lo que barren las funciones que miran las páginas del mapa para
     decidir qué lleva el cartucho —variables, ítems, miembros, lluvia—: una
     página de prueba es una página más.
+
+    Con `map_id`, sólo los de los casos que **corren** en ese mapa —ver
+    `mapa_del_caso`—: son los que deciden lo que es de cada mapa, como quién
+    camina o qué gráficos van en su banco de sprites.
     """
-    return [cmd for caso in args.casos for cmd in caso.comandos]
+    return [cmd for caso in args.casos
+            if map_id is None or caso.mapa == map_id
+            for cmd in caso.comandos]
+
+
+def mapa_del_caso(caso, orden, inicial):
+    """El mapa donde corre un caso: el de su `Teleport`, si empieza con uno, y
+    si no el mapa donde arranca la ROM.
+
+    Es como un caso elige dónde arrancar desde el paso 9e, en vez de un
+    `--map-id` y un `--inicio` por cartucho: con el `Teleport` de RM2k, que
+    es dato y no flag. La página vive igual en el evento 0 del mapa de
+    arranque —ahí la encuentra la ROM y ahí corre primero—, pero lo que viene
+    después del salto corre en el otro mapa, así que se compila con su
+    contexto: sus eventos, las variables que miran sus páginas, sus gráficos.
+    Compilada con el del mapa de arranque, una escritura a una variable que
+    sólo mira el destino no pedía refresco, y el cofre del mapa 133 no
+    aparecía aunque la variable ya valía lo que su página pide.
+    """
+    primero = caso.comandos[0] if caso.comandos else None
+    if primero is None or primero.code != eventos.TELEPORT:
+        return orden[inicial]
+    destino = primero.parameters[0]
+    if destino not in orden:
+        sys.exit("%s: el caso salta al mapa %d, que no está en el cartucho "
+                 "(lleva %s)" % (caso.comandos_de_prueba, destino,
+                                 " ".join(str(m) for m in orden)))
+    return destino
+
+
+def mapas_de_prueba(args):
+    """Los mapas donde corre algún caso, que son los que llevan en su banco
+    los gráficos de `--grafico-de-prueba`."""
+    if args.casos:
+        return {caso.mapa for caso in args.casos}
+    return {orden_de_mapas(args)[args.inicial]}
 
 
 def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
     """El bytecode de la página de prueba de un caso.
 
     Se compila como cualquier página del juego, con el contexto del mapa donde
-    arranca la ROM; lo único que el conversor le antepone es el
+    corre —ver `mapa_del_caso`—; lo único que el conversor le antepone es el
     `ControlSwitches` que la apaga, que es convención del arnés y no del caso
     —ver `eventos.SWITCH_DE_PRUEBA`—. Las tropas no se anotan acá sino al
     final, en `main`: la de la prueba va última.
@@ -6131,9 +6197,8 @@ def convertir(renderer, map_id, args, inicio=None):
         vacio.id, vacio.name, vacio.x, vacio.y, vacio.pages = (
             0, "prueba", 0, 0, [])
         game_map.events.insert(0, vacio)
-    es_el_inicial = map_id == orden_de_mapas(args)[args.inicial]
     separar_del_heroe(renderer, game_map, args,
-                      comandos_de_casos(args) if es_el_inicial else ())
+                      comandos_de_casos(args, map_id))
     name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above, variantes = renderer.capas_animadas(game_map)
@@ -6160,15 +6225,15 @@ def convertir(renderer, map_id, args, inicio=None):
     movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
         asociaciones=args.asociaciones)
-    # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
-    # ROM, igual que las páginas de prueba y por lo mismo: es donde el
-    # conversor las mete. Se agregan **después** de los del juego, que es
-    # el orden en que los numera la compilación de verdad.
-    if args.grafico_de_prueba and map_id == orden[args.inicial]:
+    # Y los de `--grafico-de-prueba`, que van sólo en los mapas donde corre
+    # algún caso, y por lo mismo que sus páginas se compilan con el contexto
+    # de ese mapa. Se agregan **después** de los del juego, que es el orden
+    # en que los numera la compilación de verdad.
+    if args.grafico_de_prueba and map_id in mapas_de_prueba(args):
         for charset, index in graficos_de_prueba(args.grafico_de_prueba):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
-    if map_id == orden[args.inicial]:
+    if comandos_de_casos(args, map_id):
         # Y los que mandan a caminar las páginas de prueba, que no salen de
         # `paginas_del_mapa`: hay que sumarlos a mano o el NPC caminaría con
         # una sola pose. Va **antes** del reparto de paletas: desde que la
@@ -6177,7 +6242,7 @@ def convertir(renderer, map_id, args, inicio=None):
         # va por su id de RM2k y lo traduce el mismo `Eventos` que usa la
         # compilación.
         del_mapa = eventos.Eventos(game_map)
-        for cmd in comandos_de_casos(args):
+        for cmd in comandos_de_casos(args, map_id):
             if cmd.code == eventos.MOVE_EVENT and cmd.parameters \
                     and cmd.parameters[0] != eventos.RUTA_HEROE:
                 blanco = del_mapa.blanco(cmd.parameters[0])
@@ -6202,7 +6267,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # informe de cada mapa.
     muestra_animacion = mapa_muestra_animacion(
         game_map, renderer,
-        comandos_de_casos(args) if map_id == args.map_id else ())
+        comandos_de_casos(args, map_id))
     # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
