@@ -4643,9 +4643,10 @@ def _decimas(cuadros):
     return cuadros // CUADROS_POR_DECIMA
 
 
-# Argumentos de `pagina_de_prueba` que no emiten nada por sí solos: son
-# contexto de features que todavía no se convierten. `frecuencia` no está
-# porque la ruta del héroe sí se convierte, y la lleva.
+# Argumentos de `pagina_de_prueba` que no emiten nada por sí solos: son el
+# contexto con el que se compila, y `_es_la_que_compilaria_el_juego` se los
+# pasa a `compilar_pagina` tal cual. `frecuencia` no está porque la lleva la
+# ruta del héroe, que es un comando.
 _SIN_BYTECODE = ("eventos_mapa", "temas", "graficos")
 
 ACCESO_COMANDO = {ACCESO_GUARDAR: CHANGE_SAVE_ACCESS,
@@ -4710,6 +4711,8 @@ def _comandos_de_prueba(caso):
     if "destello" in caso:
         r, g, b, fuerza, cuadros = saca("destello")
         out.append(_cmd(FLASH_SCREEN, [r, g, b, fuerza, _decimas(cuadros), 0]))
+    if "animacion" in caso:
+        out.append(_cmd(SHOW_BATTLE_ANIMATION, list(saca("animacion")) + [0]))
     pan = saca("pan", ())
     for k in range(0, len(pan), 5):
         out.append(_cmd(PAN_SCREEN, list(pan[k:k + 5])))
@@ -4719,6 +4722,17 @@ def _comandos_de_prueba(caso):
         out.append(_cmd(WAIT, [_decimas(saca("espera"))]))
     if "tecla" in caso:
         out.append(_cmd(KEY_INPUT_PROC, list(saca("tecla"))))
+    variables = saca("variables", ())
+    for k in range(0, len(variables), 5):
+        v, operacion, clase, a, b = variables[k:k + 5]
+        if operacion == VARIABLES_PRUEBA_AL_TIMER:
+            out.append(_cmd(TIMER_OPERATION, [TIMER_PONER, 1, v, 0, 0]))
+        elif operacion == VARIABLES_PRUEBA_AL_LUGAR:
+            # El evento va como el índice de la ROM, no como un id de RM2k.
+            raise _NoEsDeRM2k("variables al lugar")
+        else:
+            out.append(_cmd(CONTROL_VARS,
+                            [0, v, v, operacion, clase, a, b]))
     items = saca("items", ())
     for k in range(0, len(items), 2):
         numero, cuanto = items[k:k + 2]
@@ -4728,6 +4742,28 @@ def _comandos_de_prueba(caso):
     for k in range(0, len(acceso), 2):
         cual, permitido = acceso[k:k + 2]
         out.append(_cmd(ACCESO_COMANDO[cual], [permitido]))
+    if "rama_item" in caso:
+        numero, *color = saca("rama_item")
+        out.append(_cmd(COND_RAMA, [COND_ITEM, numero, 0, 0, 0, 0]))
+        out.append(_cmd(TINT_SCREEN, color + [0, 0], sangria=1))
+        out.append(_cmd(COND_FIN))
+    if "rama_actor" in caso:
+        sub, actor, dato, *color = saca("rama_actor")
+        out.append(_cmd(COND_RAMA, [COND_ACTOR, actor, sub, dato, 0, 0]))
+        out.append(_cmd(TINT_SCREEN, color + [0, 0], sangria=1))
+        out.append(_cmd(COND_FIN))
+    if "rama_var" in caso:
+        v, comparacion, valor, adentro, despues = saca("rama_var")
+        out.append(_cmd(COND_RAMA,
+                        [COND_VARIABLE, v, 0, valor, comparacion, 0]))
+        out.append(_cmd(CONTROL_SWITCHES,
+                        [SWITCH_UNICO, adentro, adentro, SWITCH_ON], sangria=1))
+        out.append(_cmd(COND_FIN))
+        out.append(_cmd(CONTROL_SWITCHES,
+                        [SWITCH_UNICO, despues, despues, SWITCH_ON]))
+    if "sprite" in caso:
+        actor, charset, indice = saca("sprite")
+        out.append(_cmd(CHANGE_SPRITE_ASSOCIATION, [actor, indice, 0], charset))
     if saca("guardar", False):
         out.append(_cmd(OPEN_SAVE_MENU))
     if "tinte" in caso:
@@ -4768,7 +4804,9 @@ def _es_la_que_compilaria_el_juego(caso, codigo):
             {k: v for k, v in caso.items() if not ausente(k, v)})
     except _NoEsDeRM2k:
         return
-    salida = compilar_pagina(_Comandos(comandos), None)
+    salida = compilar_pagina(_Comandos(comandos), None,
+                             eventos_mapa=caso["eventos_mapa"],
+                             temas=caso["temas"], graficos=caso["graficos"])
     if salida != codigo:
         raise AssertionError(
             "la página de prueba no es la que compilaría el juego:\n"

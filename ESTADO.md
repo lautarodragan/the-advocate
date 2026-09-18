@@ -512,9 +512,9 @@ se pueden empezar hoy.
    Lo que falta, de lo que más casos saltea a lo que menos: `ruta_ev`,
    las esperas que no son décimas enteras —RM2k no sabe decir
    "veinte cuadros", así que ésas hay que redondearlas y volver a aprobar
-   la golden, o dejarlas—, `mensaje`, `variables` y las ramas parcheadas a
-   mano. Los que llevan un blanco ya traducido al índice de la ROM —`flash`,
-   `ruta_ev`, `lugar`— no se pueden decir hasta el corte 3, cuando la
+   la golden, o dejarlas— y `mensaje`. Los que llevan un blanco ya traducido al índice de la ROM —`flash`,
+   `ruta_ev`, `lugar`, y la operación de `variables` que planta un evento—
+   no se pueden decir hasta el corte 3, cuando la
    página sea un evento del mapa y el blanco lo resuelva `eventos_mapa`.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
