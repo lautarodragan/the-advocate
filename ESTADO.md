@@ -1426,22 +1426,16 @@ hay que bajarlo, se baja sin arrastrar lo valioso.
   juegos: quedan del lado de ABL.
 
 **Un paso intermedio, sin juego golden todavía** —de taro, el 2026-09-18—: las
-pruebas se separan por **qué** prueban, aunque todas sigan usando ABL como
-material. En orden, y **después del 9f** —el 9e y el 9f cambian cómo cada
-prueba consigue su cartucho y tocan casi todos los archivos—:
+pruebas se separan en carpetas por **qué** prueban, aunque todas sigan usando
+ABL como material. Va **después del 9f**, porque el 9e y el 9f cambian cómo
+cada prueba consigue su cartucho y tocan casi todos los archivos.
 
-1. **Carpetas**: `test-rpgmaker` —lo que el motor tiene que hacer igual que
-   RM2k—, `test-abl` —lo propio del juego: el recorrido, la carrera, las
-   piedras, las escenas— y `test-tools`, el arnés compartido (`consola.py`,
-   `tanda.py`, `retro.py`). Hay una tercera clase que no es ninguna de las dos:
-   las pruebas de herramientas que no corren ROM —`test_bancos`,
-   `test_ensamblar`, `test_protocolo`, `test_paginas`— y van con su
-   herramienta.
-2. ~~Un ejecutor con pruebas declarativas~~: **pausado, probablemente
-   descartado** por taro el 2026-09-18. Cubriría unas 290 de las ~390
-   pruebas que corren ROM, y no vale sumar la complejidad de un segundo
-   camino si las demás siempre van a necesitar Python. La investigación y el
-   razonamiento están en `wishlist/test-declarative-script.md`.
+Serían `test-rpgmaker` —lo que el motor tiene que hacer igual que RM2k—,
+`test-abl` —lo propio del juego: el recorrido, la carrera, las piedras, las
+escenas— y `test-tools`, el arnés compartido (`consola.py`, `tanda.py`,
+`retro.py`). Hay una tercera clase que no es ninguna de las dos: las pruebas
+de herramientas que no corren ROM —`test_bancos`, `test_ensamblar`,
+`test_protocolo`, `test_paginas`— y van con su herramienta.
 
 ## Una mejora de velocidad gratis que apareció midiendo
 
