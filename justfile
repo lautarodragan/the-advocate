@@ -306,22 +306,56 @@ assets-medir que="todo":
 # `main.s` hace fallar la prueba diciendo qué símbolo falta.
 #
 # Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
-# se arman antes, en serie, y sólo si cambió algo de lo que los arma.
-pruebas *args: cartuchos
-  python3 -m pytest pruebas {{args}}
+# se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después
+# corren en paralelo**, con pytest-xdist: ver `procesos`.
+pruebas *args: _xdist cartuchos
+  python3 -m pytest pruebas {{xdist}} {{args}}
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
 # igual que RM2k—, `abl` —lo propio del juego— y `herramientas` —las que no
 # corren ninguna ROM—. Todas dependen de `cartuchos` porque una de
 # herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
-pruebas-rpgmaker *args: cartuchos
-  python3 -m pytest pruebas/rpgmaker {{args}}
+# Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
+# ninguna ROM, gana.
+pruebas-rpgmaker *args: _xdist cartuchos
+  python3 -m pytest pruebas/rpgmaker {{xdist}} {{args}}
 
-pruebas-abl *args: cartuchos
-  python3 -m pytest pruebas/abl {{args}}
+pruebas-abl *args: _xdist cartuchos
+  python3 -m pytest pruebas/abl {{xdist}} {{args}}
 
-pruebas-herramientas *args: cartuchos
-  python3 -m pytest pruebas/herramientas {{args}}
+pruebas-herramientas *args: _xdist cartuchos
+  python3 -m pytest pruebas/herramientas {{xdist}} {{args}}
+
+# Cuántos procesos de pytest corren las pruebas a la vez. **`PROCESOS=0` es en
+# serie**, en un solo proceso y sin xdist: es lo que hay que usar para depurar
+# con `--pdb`, con `-s`, o para leer la salida de una prueba en orden. `just
+# pruebas -n 0` hace lo mismo, porque el `-n` que llega último es el que vale.
+#
+# Son 8 porque son los núcleos **físicos** de esta máquina —16 hilos, 8
+# núcleos—, y está medido que más no rinde: lo que tarda es el core de
+# libretro emulando, que usa la CPU entera, así que el segundo hilo de cada
+# núcleo no suma y cada proceso de más es memoria de más. `auto` sería 16 acá:
+# sin `psutil`, xdist cuenta hilos y no núcleos.
+#
+# `worksteal` y no el reparto por omisión porque las pruebas duran muy
+# distinto —de milisegundos a varios segundos— y con el reparto fijo la
+# corrida la termina un proceso solo con la cola.
+procesos := env_var_or_default("PROCESOS", "8")
+xdist := if procesos == "0" { "" } else { "-n " + procesos + " --dist worksteal" }
+
+# Si falta xdist, se corta acá, antes de armar los cartuchos, y dice qué
+# instalar. **No cae a serie**, a propósito: la tanda en serie tarda varias
+# veces más, y el aviso de que cayó quedaría arriba de cuatrocientas líneas de
+# pytest, donde nadie lo lee. Sin el chequeo, pytest diría "unrecognized
+# arguments: -n", que no dice qué falta.
+_xdist:
+  #!/usr/bin/env sh
+  [ "{{procesos}}" = 0 ] && exit 0
+  python3 -c 'import xdist' 2>/dev/null && exit 0
+  echo "las pruebas corren en paralelo con pytest-xdist, y este python3 no lo tiene." >&2
+  echo "en Arch: pacman -S python-pytest-xdist; con pip: pip install pytest-xdist." >&2
+  echo "para correrlas en serie sin instalarlo: PROCESOS=0 just pruebas" >&2
+  exit 1
 
 # Los cartuchos de prueba, en `rom/build/pruebas-unico/`: el de pruebas, que
 # lleva todos los casos de `pruebas/casos/`, y los chicos, que llevan lo que
