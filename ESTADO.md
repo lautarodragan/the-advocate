@@ -1030,6 +1030,40 @@ de cada una está en `README.md`.
   terminó mirando el mapa 6 creyendo que era la demo del hito 12.
 
 
+## Lo que taro encontró jugando el 2026-09-19, y en qué orden se arregla
+
+Jugando `pruebas-manuales/2026-09-19-62ef7d4/`. Cada uno se investigó aparte, sin
+tocar el repo; los scripts de reproducción están en `/extras/scratchpad/` con el
+nombre del bug.
+
+* **Vuelve al título al entrar a una pelea al azar en los back alleys.** No es
+  un crash: es Game Over. La pelea obligatoria del mapa 9 contra cuatro
+  GangMember se pierde por diseño, y su manejador de derrota llama a
+  `FullHeal`, que **compila a nada** —`eventos.py`, desde `ced9464`, cuando los
+  HP no bajaban nunca fuera de pelea; al día siguiente, `9527063` los hizo
+  estado—. Talan sigue con 0 HP, y el primer encuentro se da por perdido sin
+  abrirse. **La demo no se puede pasar de ahí.** Tampoco curan el Life Bucket
+  del mapa 23 ni `ResetAfterBattles`. Ninguna prueba corría un `FullHeal`
+  después de perder.
+* **El bum del mapa 20 no habla**: su página usa `ShowInn`, que el compilador no
+  conoce. Hay 18 en el juego; 17 compilarían con él. Necesita curar, así que va
+  después de lo de arriba.
+* **El director muerto gira al hablarle** (mapas 19, 46 y 96): la ruta de
+  `RunDirectorScene` le fija la mirada con la orden 26, y `giro_disparar` no
+  mira ese bit. Tres instrucciones en `main.s`.
+
+**El orden, decidido por taro:**
+
+1. **`OP_HEAL`** —`FullHeal` que cura de verdad—, primero: sin él la demo no
+   avanza, y en el banco 0 sólo cuesta la entrada del despacho; la rutina vive
+   afuera, con `jsl`.
+2. **Liberar el banco 0**: al cartucho de pruebas le quedaban 26 bytes y la BSS
+   del banco 0 está llena (se pasa por 1 byte con la divergencia 3 de los
+   mensajes). Medir qué hay y mover afuera lo que se pueda, antes de sumar nada
+   más.
+3. **Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
+   mensajes —un paralelo espera a su propio mensaje—.
+
 ## Lo que taro probó, y lo que falta probar
 
 Al 2026-09-12. Lo viejo se borra a medida que deja de ser noticia: lo que anda y
