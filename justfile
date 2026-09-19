@@ -6,15 +6,15 @@
 #
 # `--check` es lo que corre la tanda: falla si alguno quedó viejo.
 protocolo *args:
-  protocol protocol/events.toml \
+  protocol tools/protocol/events.toml \
       --python tools/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
-  protocol protocol/music.toml \
+  protocol tools/protocol/music.toml \
       --python tools/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
 
 # Las pruebas del generador: los errores que tiene que dar ante una declaración
 # rota, y la forma exacta del texto que emite. No necesitan el juego ni la ROM.
 protocolo-pruebas:
-  cd protocol && cargo test
+  cd tools/protocol && cargo test
 
 # El códec BRR y el lector de SoundFont, y **el que arma las muestras de la
 # ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
@@ -22,7 +22,7 @@ protocolo-pruebas:
 # necesitan ni el juego ni un soundfont. Que las muestras de verdad salgan bien
 # lo cobra cualquier demo, porque viajan adentro del `.sfc`.
 brr-pruebas:
-  cd brr && cargo test
+  cd tools/brr && cargo test
 
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
 # conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este
@@ -36,10 +36,10 @@ brr-pruebas:
 # que el binario vuelva **byte por byte**. Va aparte porque es la que uno quiere
 # ver con el número, no la que corre callada.
 ditto-pruebas:
-  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test
+  cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test
 
 ditto-vuelta-entera:
-  cd ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
+  cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
 # lee `tools/lcf.py` y de ahí el conversor. Es derivado —se puede volver a
@@ -66,7 +66,7 @@ ditto-volcado DIR="/extras/volcado-ditto":
 # Sus pruebas son imágenes generadas adentro de la prueba, más los mensajes de
 # error, así que no necesitan el juego.
 tiles-pruebas:
-  cd tiles && cargo test
+  cd tools/tiles && cargo test
 
 # Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
 # leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
@@ -82,10 +82,10 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # consume **desde el PATH**, como consume python3 o un core de libretro: ningún
 # script ni prueba de este juego llama a `cargo`. Se instalan una vez y quedan.
 herramientas:
-  cargo install --locked --path protocol --root {{cargo_root}}
-  cargo install --locked --path brr --root {{cargo_root}}
-  cargo install --locked --path ditto --root {{cargo_root}}
-  cargo install --locked --path tiles --root {{cargo_root}}
+  cargo install --locked --path tools/protocol --root {{cargo_root}}
+  cargo install --locked --path tools/brr --root {{cargo_root}}
+  cargo install --locked --path tools/ditto --root {{cargo_root}}
+  cargo install --locked --path tools/tiles --root {{cargo_root}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las

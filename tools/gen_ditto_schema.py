@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-DITTO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ditto")
+DITTO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ditto")
 
 STRUCT_RE = re.compile(
     r"schema_struct! \{(.*?)\n\}\n\}", re.S)

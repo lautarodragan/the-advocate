@@ -51,7 +51,7 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
     """Regenerar no cambia nada: si no, el árbol tiene dos verdades."""
     hecho = subprocess.run(
         ["protocol",
-         os.path.join(REPO, "protocol", nombre + ".toml"),
+         os.path.join(REPO, "tools", "protocol", nombre + ".toml"),
          "--python", os.path.join(REPO, py),
          "--asm", os.path.join(REPO, inc), "--check"],
         capture_output=True, text=True)

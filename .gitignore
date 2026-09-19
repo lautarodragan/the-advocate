@@ -32,5 +32,5 @@ rom/shots/
 .vscode
 
 # El target de Ditto: binarios y dependencias compiladas.
-ditto/target/
-ditto/.idea/
+tools/ditto/target/
+tools/ditto/.idea/
