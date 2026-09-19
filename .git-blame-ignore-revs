@@ -30,3 +30,14 @@
 # Las etiquetas del intérprete tomaron el nombre del opcode que atienden
 # (`op_lugar` -> `op_place`). 121 usos, 120 y 120.
 ec9436950f7b868eb87587acb5ac3a495b4a87ac
+
+# Los proyectos de Rust se mudaron de la raíz a `tools/`: `git mv` y las rutas
+# que los nombraban como código. Los cinco cartuchos y las dos demos salieron
+# iguales, y los binarios reinstalados desde ahí también.
+3f91b141fd5ee10d4cdba79ea5b6565f322f896c
+
+# Los `.py` de `tools/` se repartieron en paquetes, y cada import pasó a
+# nombrar el suyo (`import lcf` -> `from rpgmaker import lcf`). 175 líneas en
+# 45 archivos. Los cartuchos, las siete demos y sus 48 `.inc`, mapas de memoria
+# y tablas de símbolos salieron byte por byte iguales.
+e8b9287b9d740a0339bad09f53f910730111b566
