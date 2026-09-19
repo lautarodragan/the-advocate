@@ -305,11 +305,17 @@ assets-medir que="todo":
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `main.s` hace fallar la prueba diciendo qué símbolo falta.
 #
-# Las ROMs no se arman acá: `pruebas/tanda.py` las cachea en
-# `rom/build/tanda/<caso>-<hash de sus flags>/` y las rearma sólo si cambió
-# algo de lo que las arma.
-pruebas *args:
+# Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
+# se arman antes, en serie, y sólo si cambió algo de lo que los arma.
+pruebas *args: cartuchos
   python3 -m pytest pruebas {{args}}
+
+# Los cartuchos de prueba, en `rom/build/pruebas-unico/`: el de pruebas, que
+# lleva todos los casos de `pruebas/casos/`, y los chicos, que llevan lo que
+# no entra en él. Qué va en cada uno y por qué está en `pruebas/cartuchos.py`;
+# `--lista` lo imprime.
+cartuchos *args:
+  python3 pruebas/cartuchos.py {{args}}
 
 # Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
 # cuatro esquinas a las que puede llegar.

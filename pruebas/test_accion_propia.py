@@ -22,10 +22,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# La ROM con Lashe City adentro, que es la única donde la puerta del pad
-# lleva a algún lado.
-CIUDAD = (4, [1, 2, 3, 5, 6, 7, 8])
-
 MAPA, DESTINO = 7, 8
 PUERTA = (9, 12)        # TalDoorTop, capa 2: el héroe se para ahí
 ABAJO = (9, 13)         # TalDoorBottom, capa del héroe: cierra el paso
@@ -33,7 +29,7 @@ LISTO = 24              # el switch que activa la página con el script
 
 
 def test_pararse_encima_de_la_puerta_y_apretar_a_la_abre(partida):
-    una = partida(mapas=CIUDAD, switch=[LISTO])
+    una = partida(switch=[LISTO])
     una.ir_al_mapa(MAPA, *PUERTA)
     for _ in range(25):
         if una.mapa() == DESTINO:
@@ -57,7 +53,7 @@ def test_de_frente_no_la_dispara(partida):
     El héroe se para en (9,14) —no puede en (9,13), que lo bloquea el
     `TalDoorBottom`— y mira hacia arriba.
     """
-    una = partida(mapas=CIUDAD, switch=[LISTO])
+    una = partida(switch=[LISTO])
     una.ir_al_mapa(MAPA, ABAJO[0], ABAJO[1] + 1)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     for _ in range(6):

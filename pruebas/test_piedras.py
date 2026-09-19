@@ -43,7 +43,7 @@ import lcf                                                   # noqa: E402
 from render_map import GAME_DIR                              # noqa: E402
 
 # El mapa solo: el minijuego no sale de ahí y armar el cartucho es lo caro.
-MAPAS = (11, [])
+MAPAS = "en-11"
 # Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
 # mirando hacia arriba. Es la misma celda que usa `just demo-piedras`.
 DEBAJO_DE_LA_REJA = (26, 52)
@@ -94,7 +94,7 @@ def hablarle_a_la_reja(p):
 def test_la_reja_da_tres_piedras(partida):
     """La mitad que ya andaba, y que taro confirmó jugando. Está acá porque es
     lo que la otra prueba da por sentado."""
-    p = hablarle_a_la_reja(partida(mapas=MAPAS))
+    p = hablarle_a_la_reja(partida(caso=MAPAS))
     assert p.switch(43), (
         "hablarle a la reja tiene que prender el switch 43, que es lo que "
         "activa el motor del minijuego")
@@ -115,7 +115,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
     vuelta se come el flanco. Cuatro ticks sobran y no llegan a la vuelta
     siguiente de la página.
     """
-    p = hablarle_a_la_reja(partida(mapas=MAPAS))
+    p = hablarle_a_la_reja(partida(caso=MAPAS))
     p.correr(4)
     assert p.variable(ranura(8)) == 0, (
         "antes de apretar nada la dirección tendría que estar en cero")
@@ -154,7 +154,7 @@ def test_una_direccion_sola_no_tira_nada(partida, mapa11):
 
     Sin esto, un caso que apretara A y dirección juntos daría verde con un
     `KeyInputProc` que contestara cualquier cosa."""
-    p = hablarle_a_la_reja(partida(mapas=MAPAS))
+    p = hablarle_a_la_reja(partida(caso=MAPAS))
     p.correr(4)
     lejos = celda_de(p, mapa11, STONE)
     p.tocar("left")

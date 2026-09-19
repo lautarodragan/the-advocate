@@ -27,58 +27,38 @@ desde el reset. Compartirla dejaría a una corriendo sobre lo que dejó otra, qu
 es la clase de error que este repo ya cobró con `mapdata.inc`.
 """
 
-import os
-
 import pytest
 
-from consola import Partida, armar
+import tanda
 
-# Los mapas que lleva la ROM de siempre. Agregar uno acá es más barato que armar
-# un cartucho nuevo, mientras entre: son 512 KB y los mapas grandes pesan más de
-# cien. Hasta el 2026-09-17 había otra, sin ventana, en el mapa 66: la ventana
-# pasó a ser obligatoria y el 66 no la puede llevar.
-MAPAS = (5, [3, 6, 7, 4])
-# Y una tercera, con el mapa 2 solo: el Linkage Block entero. Sus dos cuartos
-# parecen dos mapas jugando pero son el mismo, y se cruzan con teletransportes
-# internos, así que para probarlos no hace falta ningún otro mapa. Ver
+# Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
+# grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe
+# caía cuando el 5 era el mapa de arranque de su cartucho.
+ARRANQUE = "en-5"
+# Y el mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
+# jugando pero son el mismo, y se cruzan con teletransportes internos. Ver
 # `test_puerta_misma.py`.
-LINKAGE = (2, [])
-
-
-@pytest.fixture(scope="session")
-def builds():
-    """Las ROMs ya armadas, por configuración."""
-    return {}
+LINKAGE = "en-2"
 
 
 @pytest.fixture
-def partida(builds):
+def partida():
     """Una fábrica: `partida()`, o `partida(switch=[16])`.
 
-    Devuelve la partida arrancada en el primer mapa de la ROM que corresponda.
-    `switch` se escribe en la RAM antes del primer cuadro de juego; para
-    empezar en otro mapa, `.ir_al_mapa(...)`.
+    Devuelve la partida arrancada en el caso que se pida —`en-5` si no se
+    pide ninguno—. `switch` se escribe en la RAM antes del primer cuadro de
+    juego; para ir a otro mapa, `.ir_al_mapa(...)`. Con `titulo` la partida
+    pasa la pantalla de título del cartucho del juego, que es el único que
+    la lleva.
     """
-    def hacer(switch=(), mapas=None, titulo=None, tema=None,
-              timer=False, encuentros=0, caso=None):
-        arranca, resto = mapas or MAPAS
-        clave = (arranca, tuple(resto), titulo is not None, tema,
-                 timer, encuentros, caso)
-        if clave not in builds:
-            destino = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "rom", "build", "pruebas",
-                "m%s-%s%s%s" % (arranca, "_".join(str(m) for m in resto) or "0",
-                                "-v",
-                                ("-t" if titulo is not None else "")
-                                + ("-" + tema if tema else "")
-                                + ("-c" if timer else "")
-                                + ("-e%d" % encuentros if encuentros else "")
-                                + ("-" + caso if caso else "")))
-            builds[clave] = armar(arranca, resto, destino,
-                                  titulo is not None, tema, timer, encuentros,
-                                  caso)
-        sfc, simbolos, tabla = builds[clave]
-        return Partida(sfc, simbolos, tabla, switch, titulo)
+    def hacer(switch=(), caso=None, titulo=None, en=None):
+        if titulo is not None:
+            # El título va en su propio cartucho, que es el de pruebas con
+            # la pantalla de título delante; ahí el caso que no pide nada es
+            # `nada`, que deja el grupo del juego en el mapa de arranque.
+            en = en or "titulo"
+            caso = caso or "nada"
+        return tanda.partida(caso or ARRANQUE, en=en, switches=switch,
+                             titulo=titulo)
 
     return hacer

@@ -162,8 +162,8 @@ def test_el_codigo_a_mano_entra_en_el_banco_1():
     `$02:8000`.
     """
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import consola
-    _sfc, simbolos, _mapas = consola.armar(7)
+    import tanda
+    simbolos = tanda.cartucho().simbolos
     rom = [int(v) for v in simbolos.tabla.values()
            if 0x028000 <= int(v) < 0x7E0000]
     assert min(rom) == 0x028000, "lo primero pasando el banco 1 está en $%06X" % min(rom)

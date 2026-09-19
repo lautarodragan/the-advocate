@@ -29,7 +29,7 @@ EMPEZAR, SEGUIR = 0, 1
 
 # El mapa donde arranca la ROM de las pruebas, que es el primero de su tabla.
 # Es el 5 y no el 4 del juego: lo dice `MAPAS` en conftest.py.
-MAPA_DE_ARRANQUE = 5
+MAPA_DE_ARRANQUE = 6
 
 
 def test_empezar_la_historia_arranca_en_el_mapa_inicial(partida):
@@ -74,7 +74,7 @@ def test_seguir_la_historia_carga_la_partida(partida):
     sería más contundente y hoy no se puede: ver
     `test_irse_de_mapa_antes_de_guardar_no_guarda`, acá abajo.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.prender(7)
     una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
@@ -116,8 +116,8 @@ def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
     empiece a pasar, la prueba falla y obliga a sacar el xfail en vez de dejar
     una deuda que ya no existe.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
-    una.ir_al_mapa(6, 20, 30)
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una.ir_al_mapa(5, 39, 34)
     una.prender(7)
     una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
@@ -141,7 +141,7 @@ def test_empezar_ignora_la_partida_guardada(partida):
     de ranuras y se cuelga si no se abre, que fue lo que lo delató; y la
     aserción sobre la SRAM está para que no vuelva a pasar.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.prender(7)
     una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
@@ -171,7 +171,7 @@ def test_la_musica_viaja_en_la_partida(partida):
     La ROM lleva `--tema-de-arranque` porque los mapas de las pruebas no traen
     música propia.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198", tema="escape_newyork")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     assert not una.byte("music_apagada"), (
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
@@ -215,7 +215,7 @@ def test_la_partida_cargada_arranca_con_su_musica(partida):
     sin ensuciarla el estado viejo sobrevive solo y no se compara nada. Es la
     misma trampa que escondió el bug de página directa de `partida_suma`.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198", tema="escape_newyork")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
@@ -243,7 +243,7 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     mitad de este caso pasaría igual —hay una partida y se carga— y sólo la
     segunda lo delataría. Por eso están las dos.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.prender(7)
     una.guardar_en(1)                   # se elige la segunda en la pantalla
     base = una.simbolos["SRAM_MAGIA"] + una.simbolos["SRAM_STRIDE"]
@@ -274,7 +274,7 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida):
     Medido: sin esto `ev_activo` queda en cero para siempre después de "Resume
     the Story". Es de la página inventada, no del juego.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.prender(7)
     una.guardar_en(2)
     una.reiniciar(SEGUIR, ranura=2)
@@ -308,7 +308,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     from render_map import GAME_DIR
     from snes_compare import quantize
 
-    una = partida(titulo=EMPEZAR, caso="guardar-198")
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.poner_grupo(14, 10)
     una.guardar_en(1)
     una.abrir_ranuras_desde_el_titulo()

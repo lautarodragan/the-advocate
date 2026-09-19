@@ -33,12 +33,6 @@ import pytest
 from consola import RAIZ
 from recorrido import Mundo, Recorrido
 
-# Los mapas del cartucho: el enrutador del arranque, la apertura, el Linkage
-# Block —donde termina el primer tramo—, la casa de Talan, Lashe City, la
-# corrida al trabajo, la fábrica y el auditorio. Van con `--con-timer` porque la
-# cuenta atrás de diez minutos arranca en la casa de Talan.
-MAPAS = (4, [1, 2, 7, 8, 16, 17, 18])
-
 # Dónde quedan las capturas de cada hito.
 FOTOS = os.path.join(RAIZ, "rom", "build", "pruebas", "recorrido")
 
@@ -64,7 +58,7 @@ def mundo():
 @pytest.fixture
 def recorrido(partida, mundo):
     def hacer(nombre, switch=()):
-        return Recorrido(partida(switch=switch, mapas=MAPAS, timer=True),
+        return Recorrido(partida(switch=switch, caso="nada", en="juego"),
                          mundo, fotos=os.path.join(FOTOS, nombre))
     return hacer
 

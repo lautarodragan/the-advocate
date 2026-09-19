@@ -1,0 +1,5 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [52, 250, 20]}
+  ]
+}

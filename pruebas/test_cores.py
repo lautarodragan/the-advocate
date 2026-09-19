@@ -72,7 +72,7 @@ import os
 
 import pytest
 
-from tanda import cartucho, partida, ticks_de_avance
+from tanda import partida, ticks_de_avance
 
 # Los dos cores, por ruta. bsnes es el preciso y el que enciende con basura;
 # snes9x es el de todas las demás pruebas, así que una diferencia acá es
@@ -118,26 +118,22 @@ def iguales(nombre, una, otra):
         % (nombre, distintos, len(aqui), 100.0 * distintos / len(aqui), donde))
 
 
-def dos_cores(sfc, simbolos, mapas, ticks, **como):
+def dos_cores(caso, ticks, **como):
     """La misma partida corrida en los dos cores; devuelve las dos pantallas."""
-    return tuple(partida(sfc, simbolos, mapas, nucleo=nucleo)
+    return tuple(partida(caso, nucleo=nucleo)
                  .correr(ticks, **como).imagen()
                  for nucleo in (SNES9X, BSNES))
 
 
-def cartucho_de_evento():
-    """El mapa 4: prende dos switches, tiñe la pantalla y teletransporta.
-
-    Es la página que abre A Blurred Line, y lo que se ve es el mapa destino ya
-    teñido sin haber tocado una tecla. El destino tiene que estar en la ROM: un
-    teletransporte a un mapa que no entró no compila.
-    """
-    return cartucho("evento-4-1", "--map-id", "4", "--mapas", "1")
+# El mapa 4: prende dos switches, tiñe la pantalla y teletransporta. Es la
+# página que abre A Blurred Line, y lo que se ve es el mapa destino ya teñido
+# sin haber tocado una tecla.
+EVENTO = "grupo-11-en-4"
 
 
 def test_evento():
     """El tinte desde un evento: CGRAM y el intérprete, en los dos cores."""
-    iguales("evento", *dos_cores(*cartucho_de_evento(), 240))
+    iguales("evento", *dos_cores(EVENTO, 240))
 
 
 def test_caminando():
@@ -148,9 +144,8 @@ def test_caminando():
     sí, o sea la RAM del control: es ahí donde vivía `ruta_n`/`ruta_i` sin
     inicializar, que es el error que estrenó esta comparación.
     """
-    sfc, simbolos, mapas = cartucho("caminando-73", "--map-id", "73")
     iguales("caminando-73-right-60",
-            *dos_cores(sfc, simbolos, mapas, ticks_de_avance(60),
+            *dos_cores("grupo-11-en-73", ticks_de_avance(60),
                        sosteniendo=("right",)))
 
 
@@ -162,9 +157,8 @@ def test_cerrar(cuadro):
     los ticks se miran con margen y no en el borde: a los 60 el mensaje está
     abierto hace rato y a los 400 hace rato que se cerró.
     """
-    sfc, simbolos, mapas = cartucho("cerrar", "--map-id", "7", caso="cerrar")
     iguales("cerrar-%d" % cuadro,
-            *dos_cores(sfc, simbolos, mapas, cuadro, apretar_a=(200,)))
+            *dos_cores("cerrar", cuadro, apretar_a=(200,)))
 
 
 def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():
@@ -183,9 +177,8 @@ def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():
     mismo tramo, esto se pone en rojo antes de que los otros cuatro casos
     empiecen a dar cero por la razón equivocada.
     """
-    sfc, simbolos, mapas = cartucho_de_evento()
     for nombre, imagen in zip(("snes9x", "bsnes"),
-                              dos_cores(sfc, simbolos, mapas, 240)):
+                              dos_cores(EVENTO, 240)):
         canales = list(zip(*imagen.convert("RGB").get_flattened_data()))
         for cual, valores in zip("rgb", canales):
             vistos = set(valores)

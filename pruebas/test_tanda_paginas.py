@@ -26,7 +26,7 @@ el de su golden.
 
 import pytest
 
-from tanda import cartucho, golden, partida
+from tanda import golden, partida
 
 # `KeyInputProc`: nombre —que es también el de su caso en `pruebas/casos/`,
 # con el `Teleport` a la celda del héroe—, los ticks, los toques de A y los
@@ -60,20 +60,19 @@ def test_tecla(nombre, cuadros, apretar, tocar):
     dejó una vez un caso en verde que no apretaba A y por lo tanto no probaba
     nada.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro, apretar_a=apretar, tocar=tocar)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
 TEXTOS = (
-    ("texto", ""),
+    ("texto", "grupo-11-en-255", None),
     # El mismo caso con el bloque de textos corrido más allá del primer banco.
     # Verificado en rojo con el `msg_empezar` de antes: 3116 pixeles en el
     # cuadro 60 y 3404 en el 400, todos en la ventana, que ahí dibuja el texto
     # que le tocó leer de otro lado.
-    ("texto-lejos", "33000"),
+    ("texto-lejos", "grupo-11-en-255", "chico"),
     # Y el mismo con el cuadro **encima** del borde de banco, que es lo que
     # `texto-lejos` no cubría: allá el cuadro entero cae del otro lado y
     # `msg_empezar` ya lo ubicaba bien, acá la cabecera y el primer largo
@@ -86,13 +85,13 @@ TEXTOS = (
     # borde es el que lo cruza. Verificado en rojo con el `inc msg_ptr` de
     # antes: **3414 pixeles en el cuadro 60**. El 400 da cero también con el
     # defecto puesto, porque el segundo cuadro arranca entero del otro lado.
-    ("texto-cruza", "32766"),
+    ("texto-cruza", "grupo-11", "cruza"),
 )
 
 
-@pytest.mark.parametrize("nombre,relleno", TEXTOS,
+@pytest.mark.parametrize("nombre,caso,en", TEXTOS,
                          ids=[caso[0] for caso in TEXTOS])
-def test_texto(nombre, relleno):
+def test_texto(nombre, caso, en):
     """`texto`: el texto **del juego**, no el que le dictamos a la ROM.
 
     Todo lo demás usa el `ShowMessage` de una página de prueba, o sea líneas
@@ -113,11 +112,8 @@ def test_texto(nombre, relleno):
     banco de LoROM. Reproducirlo de verdad pide un cartucho de muchos mapas
     hablados; con el relleno lo hace uno de un mapa.
     """
-    sfc, simbolos, mapas = cartucho(
-        "texto-%s" % (relleno or "sin-relleno"), "--map-id", "255",
-        *(("--relleno-de-mensajes", relleno) if relleno else ()))
     for cuadro in (60, 400):
-        p = partida(sfc, simbolos, mapas)
+        p = partida(caso, en=en)
         p.correr(cuadro, apretar_a=(200,))
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -171,9 +167,8 @@ def test_vars(nombre, cuadros):
     pixeles: la página pone el número en la variable y después arranca el
     cronómetro **desde** ella.
     """
-    sfc, simbolos, orden = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, orden)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -191,9 +186,8 @@ def test_destello(nombre):
     caso tiene un segundo sprite visible compartiendo la paleta del que
     destella. Lo cuida `pruebas/test_destello_paleta.py`.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 12, 15, 23, 25):
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -210,9 +204,8 @@ def test_saturar(nombre):
     **pasados de 100**, que es donde la cuenta puede desbordar. Un tick antes
     del tinte y uno después.
     """
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "73", caso=nombre)
     for cuadro in (30, 120):
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -230,9 +223,8 @@ TIMERS = (("timer", (2, 31, 61, 90)),
                          ids=[caso[0] for caso in TIMERS])
 def test_timer(nombre, cuadros):
     """`timer`: el cronómetro corriendo, con sus dígitos en pantalla."""
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -247,9 +239,8 @@ def test_rama_item(nombre):
     `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
     que no lo tiene: el caso con el ítem da esos mismos 40012.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 30):
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -273,9 +264,8 @@ def test_rama_actor(nombre):
     `rama-hab-no` dan 40012 pixeles; contestando siempre que no, los dan
     `rama-equipo` y `rama-hab`.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in (2, 30):
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -287,8 +277,7 @@ def test_relampago(cuadro):
 
     Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
     """
-    sfc, simbolos, mapas = cartucho("relampago", caso="relampago")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("relampago")
     p.correr(cuadro)
     golden("relampago-%d" % cuadro, p.imagen())
 
@@ -313,9 +302,8 @@ PANEOS = (
                          ids=[caso[0] for caso in PANEOS])
 def test_pan(nombre, cuadros):
     """`pan`: `PanScreen`, la cámara corrida sin que el héroe se mueva."""
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -336,10 +324,8 @@ SACUDIDAS = (
                          SACUDIDAS, ids=[caso[0] for caso in SACUDIDAS])
 def test_sacudir(nombre, mapa, cuadros):
     """`sacudir`: `ShakeScreen`, la pantalla temblando."""
-    sfc, simbolos, orden = cartucho(
-        nombre, *(("--map-id", mapa) if mapa else ()), caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, orden)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -372,9 +358,8 @@ def test_animacion(nombre, cuadros):
     Va por la página de prueba porque la escena del Emitter Room, que es la que
     las usa, no se puede disparar desde una prueba.
     """
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -422,9 +407,8 @@ def test_cerrar(direccion, cuadro):
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
-    sfc, simbolos, mapas = cartucho("cerrar", "--map-id", "7", caso="cerrar")
     nombre = "cerrar" if direccion == "none" else "cerrar-right"
-    p = partida(sfc, simbolos, mapas)
+    p = partida("cerrar")
     p.correr(cuadro, apretar_a=(200,),
              sosteniendo=() if direccion == "none" else (direccion,))
     golden("%s-%d" % (nombre, cuadro), p.imagen())
@@ -449,26 +433,18 @@ def test_autocierre(nombre, pausas, cuadros):
     Del arnés: **la cola del mensaje se arma acá**, con una barra por pausa y
     el `\\^` al final, que es lo que la receta hacía con un `for` de bash.
     """
-    sfc, simbolos, mapas = cartucho(
-        "autocierre-%d" % pausas, "--map-id", "7",
-        caso="autocierre-%d" % pausas)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida("autocierre-%d" % pausas)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-VENTANAS = (("ventana", 7, ()),
-            ("ventana-1", 1, ()),
-            ("ventana-6", 6, ()),
-            ("ventana-269", 269, ()),
-            ("ventana-348", 348, ()),
-            ("ventana-7-y-269", 7, ("269",)))
+VENTANAS = ("ventana", "ventana-1", "ventana-6", "ventana-269", "ventana-348",
+            "ventana-7-y-269")
 
 
-@pytest.mark.parametrize("nombre,mapa,mapas", VENTANAS,
-                         ids=[caso[0] for caso in VENTANAS])
-def test_ventana(nombre, mapa, mapas):
+@pytest.mark.parametrize("nombre", VENTANAS)
+def test_ventana(nombre):
     """`ventana`: la ventana de mensaje dibujada por la consola.
 
     La fuente, el marco, la paleta y dónde caen las celdas en el tilemap. La
@@ -485,9 +461,6 @@ def test_ventana(nombre, mapa, mapas):
     que gana la más baja de las que cada mapa pediría, y el cero mide que la
     ROM y la referencia apretaron igual.
     """
-    sfc, simbolos, orden = cartucho(
-        nombre, "--map-id", mapa,
-        *(("--mapas",) + tuple(mapas) if mapas else ()), caso="ventana")
-    p = partida(sfc, simbolos, orden)
+    p = partida(nombre)
     p.correr(200)
     golden(nombre, p.imagen())

@@ -235,11 +235,10 @@ def test_el_game_over_vuelve_al_juego(partida):
 # Un encuentro al azar no puede traer manejador de derrota: no hay página que
 # lo emita. Así que la derrota es siempre Game Over, como en RM2k.
 
-RAT_TRACKS_B1 = 21
-# Cada cuántos pasos sale un encuentro, en vez de los 80 que dice el árbol:
-# con los de verdad la prueba caminaría minutos. Es `--encuentros-de-prueba`,
-# el mismo que usa el caso `encuentro` de la tanda.
-PASOS = 8
+# Los encuentros salen cada ocho pasos, en vez de los 80 que dice el árbol:
+# con los de verdad la prueba caminaría minutos. Es el `--encuentros-de-prueba`
+# del cartucho chico, el mismo que usa el caso `encuentro` de la tanda.
+#
 # El grupo lo arma la página de prueba `grupo-11-12-13`: el de la intro, que
 # **gana** las peleas de ese mapa en un turno, y es lo que hace que el control
 # no dependa de ningún tiro de dado. Medido el 2026-09-13: contra las tropas
@@ -270,8 +269,7 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
 
 
 def con_encuentros(partida):
-    return partida(mapas=(RAT_TRACKS_B1, []), encuentros=PASOS,
-                   caso="grupo-11-12-13")
+    return partida(caso="grupo-11-12-13", en="chico")
 
 
 def test_perder_un_encuentro_al_azar_es_game_over(partida):

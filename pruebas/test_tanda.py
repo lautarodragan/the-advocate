@@ -20,7 +20,7 @@ comentario de la receta, más el porqué del caso, que se mudó con él.
 
 import pytest
 
-from tanda import cartucho, golden, partida, plan, ticks_de_avance
+from tanda import golden, partida, plan, ticks_de_avance
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
@@ -30,6 +30,13 @@ DIRECCIONES = ("none", "right", "left", "up", "down")
 # terminado. Con pytest en serie no cambia nada, y se deja igual porque
 # reordenarlo no compra nada.
 MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
+
+
+def grupo_11_en(mapa):
+    """El caso que arma el grupo de la tanda y salta al mapa, a la celda donde
+    el héroe caía cuando el mapa era el de arranque de su cartucho. En el 6,
+    que es el de arranque, no salta."""
+    return "grupo-11" if mapa == 6 else "grupo-11-en-%d" % mapa
 
 
 @pytest.mark.parametrize("mapa", MAPAS_DE_HEROE)
@@ -58,9 +65,8 @@ def test_heroe(mapa, direccion):
     Una consola nueva por dirección, como hace el corredor: arrancar de cero es
     parte de lo que se compara.
     """
-    sfc, simbolos, mapas = cartucho("heroe-%d" % mapa, "--map-id", mapa)
     ticks = plan(str(mapa))[direccion]
-    p = partida(sfc, simbolos, mapas)
+    p = partida(grupo_11_en(mapa))
     p.correr(ticks, sosteniendo=() if direccion == "none" else (direccion,))
     golden("%d-%s" % (mapa, direccion), p.imagen())
 
@@ -84,9 +90,7 @@ def test_puerta_30_28():
     El mapa destino tiene que estar en el cartucho: una puerta a un mapa que no
     entró no lleva a ningún lado, ni en la consola ni en la referencia.
     """
-    sfc, simbolos, mapas = cartucho("puerta-30-28", "--map-id", "30",
-                                    "--mapas", "28")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("grupo-11-en-30")
     p.correr(plan("puerta-30-28")["down"], sosteniendo=("down",))
     golden("puerta-30-28", p.imagen())
 
@@ -107,10 +111,8 @@ def test_varios(direccion):
     cinco. Se dejan como están: son los congelados, y rearmarlos en uno sería
     regenerar una golden para ahorrar una línea.
     """
-    sfc, simbolos, mapas = cartucho("varios-18", "--map-id", "18",
-                                    "--mapas", "7", "19", "--inicial", "2")
     nombre = "varios-18-%s" % direccion
-    p = partida(sfc, simbolos, mapas)
+    p = partida("grupo-11-en-19")
     p.correr(plan(nombre)[direccion],
              sosteniendo=() if direccion == "none" else (direccion,))
     golden(nombre, p.imagen())
@@ -134,9 +136,7 @@ def test_parado(nombre):
     camino que cuenta `vueltas` igual que los demás. En un mapa que no pierde
     cuadros da lo mismo; en uno que sí, no.
     """
-    sfc, simbolos, mapas = cartucho("parado-" + nombre,
-                                    caso="parado-" + nombre)
-    p = partida(sfc, simbolos, mapas)
+    p = partida("parado-" + nombre)
     p.correr(240)
     golden(nombre, p.imagen())
 
@@ -153,16 +153,13 @@ def test_encima():
     La celda se eligió midiendo: en (66,40) del mapa 1 la capa de encima parte
     al sprite en dos, así que la silueta tiene que coincidir de los dos lados.
     """
-    sfc, simbolos, mapas = cartucho("encima", "--heroe-encima",
-                                    caso="parado-tapado")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("parado-tapado", en="chico")
     p.correr(240)
     golden("encima", p.imagen())
 
 
-@pytest.mark.parametrize("otros,nombre", ((("1",), "evento"),
-                                          (("7", "19", "1"), "tabla")))
-def test_evento(otros, nombre):
+@pytest.mark.parametrize("nombre", ("evento", "tabla"))
+def test_evento(nombre):
     """`just evento`: la cinemática del mapa 4 vista en su cuadro asentado.
 
     El mapa 4 es una habitación vacía y negra cuyo único trabajo es prender dos
@@ -182,16 +179,14 @@ def test_evento(otros, nombre):
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
-    sfc, simbolos, mapas = cartucho("evento-4-%s" % "-".join(otros),
-                                    "--map-id", "4", "--mapas", *otros)
-    p = partida(sfc, simbolos, mapas)
+    p = partida("grupo-11-en-4")
     p.correr(240)
     golden(nombre, p.imagen())
 
 
-@pytest.mark.parametrize("mapa,caso,nombre", ((121, None, "grupo-121"),
-                                              (74, "grupo-21", "ruta-74")))
-def test_pagina(mapa, caso, nombre):
+@pytest.mark.parametrize("caso,nombre", (("en-121", "grupo-121"),
+                                         ("grupo-21-en-74", "ruta-74")))
+def test_pagina(caso, nombre):
     """`pagina`: una página automática del juego, con el grupo que pide.
 
     El grupo es parte del caso y no decoración, y por eso va explícito:
@@ -210,8 +205,7 @@ def test_pagina(mapa, caso, nombre):
     121 no lleva ninguna —arranca con el del juego— y el 74 lleva
     `grupo-21`.
     """
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", mapa, caso=caso)
-    p = partida(sfc, simbolos, mapas)
+    p = partida(caso)
     p.correr(240)
     golden(nombre, p.imagen())
 
@@ -245,8 +239,7 @@ def test_caminando(mapa, direccion, avances):
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
-    sfc, simbolos, mapas = cartucho("caminando-%d" % mapa, "--map-id", mapa)
     for pixeles in avances:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(grupo_11_en(mapa))
         p.correr(ticks_de_avance(pixeles), sosteniendo=(direccion,))
         golden("%d-%s-%d" % (mapa, direccion, pixeles), p.imagen())

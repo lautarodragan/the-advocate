@@ -61,9 +61,6 @@ POCION = 1
 # trama. Va en el inventario a propósito, para que la lista tenga algo que
 # dejar afuera; sin él, ofrecer todo y ofrecer lo correcto dan lo mismo.
 LLAVE = 151
-# Un tema para el mapa del droide, que no trae ninguno: sin él no se puede
-# comprobar que el tema del mapa vuelva al terminar la pelea.
-TEMA_DEL_MAPA = "escape_newyork"
 # Qué dice el mensaje, como `BA_MSG_ATAQUE` en main.s.
 MSG_ATAQUE = 0
 # El nombre de la constante de la ROM para cada caso del reparto.
@@ -236,8 +233,11 @@ def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):
          for n, e in enumerate(base.troops[tropa].members)])
 
 
-def en_el_droide(partida, tema=None):
-    una = partida(mapas=LINKAGE, tema=tema)
+def en_el_droide(partida, con_tema=False):
+    # El mapa del droide no trae tema, y sin uno no se puede comprobar que el
+    # del mapa vuelva al terminar la pelea: el cartucho del juego arranca con
+    # uno sonando, `--tema-de-arranque`.
+    una = partida(caso=LINKAGE, en="juego" if con_tema else None)
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
@@ -838,7 +838,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida):
     paquete de la pelea las desaloja, así que salir sin recargar el del mapa
     dejaría el tema sonando contra el bloque de silencio.
     """
-    una = en_el_droide(partida, tema=TEMA_DEL_MAPA)
+    una = en_el_droide(partida, con_tema=True)
     tema = una.palabra("tema_actual")
     assert not una.byte("music_apagada"), \
         "el mapa tenía que arrancar con su tema: el caso no mide nada"
@@ -973,7 +973,7 @@ def en_el_droide_con_pocion(partida):
     Herido a mano y no peleando: pelear hasta que a alguien le falten HP
     depende del azar, y lo que este caso mide es la cura.
     """
-    una = partida(mapas=LINKAGE, caso="pociones-y-llave")
+    una = partida(caso="pociones-y-llave")
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
@@ -1110,7 +1110,7 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     base = db()
     assert not modelo.habilidades_de(base, 14), \
         "Talan tenía que no saber ninguna: si supiera, este caso no distingue"
-    una = partida(mapas=LINKAGE)
+    una = partida(caso=LINKAGE)
     una.poner_grupo(14, 12, 13)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])

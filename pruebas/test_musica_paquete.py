@@ -29,10 +29,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
 
 EMPEZAR = 0
 
-# Un tema para el mapa de arranque: los mapas de estas pruebas no traen música
-# propia, y sin uno `TEMA_ARRANQUE` es $FF y no hay con qué comparar.
-TEMA_DEL_MAPA = "escape_newyork"
-
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     """La pantalla de título, sin MSU-1: el tema arranca y sus muestras están.
@@ -81,7 +77,11 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(partida):
     Los dos temas piden muestras distintas —se comprueba, porque si pidieran
     las mismas el caso pasaría sin mover nada—.
     """
-    una = partida(titulo=EMPEZAR, tema=TEMA_DEL_MAPA)
+    una = partida(titulo=EMPEZAR)
+    # Un tick, para que el mapa arranque su tema: en el cartucho de pruebas la
+    # primera vuelta del lazo termina unos cuadros después de que `Partida`
+    # entrega la consola.
+    una.correr(1)
 
     del_mapa = una.palabra("tema_actual")
     assert not una.byte("music_apagada"), (

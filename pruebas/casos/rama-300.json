@@ -1,5 +1,6 @@
 {
   "event_commands": [
+    {"code": "Teleport", "parameters": [5, 39, 34]},
     {"code": "ConditionalBranch", "parameters": [0, 300, 0, 0, 0, 0]},
     {"code": "ControlSwitches", "indent": 1, "parameters": [0, 301, 301, 0]},
     {"code": "END", "indent": 1},

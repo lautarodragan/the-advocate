@@ -24,7 +24,7 @@ docstring es el del caso, que es también el de su golden.
 
 import pytest
 
-from tanda import cartucho, golden, partida
+from tanda import golden, partida
 
 # Ruta forzada sobre el héroe: nombre —el de su caso, que lleva la ruta, la
 # frecuencia de la página y, si no arranca donde arranca el mapa, el
@@ -70,9 +70,8 @@ def test_ruta(nombre, cuadros):
 
     Y los ticks de un caso salen de una sola conversión, que es lo caro.
     """
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -95,9 +94,7 @@ def test_ruta_evento(cuadro):
     comodidad.** Son el 89 y el 91 porque el 90 sale partido: la ROM sube CGRAM
     en el vblank **siguiente**, así que el tinte entra a mitad de pantalla.
     """
-    sfc, simbolos, mapas = cartucho("ruta-evento", "--map-id", "6",
-                                    caso="ruta-evento")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("ruta-evento")
     p.correr(cuadro)
     golden("ruta-evento-%d" % cuadro, p.imagen())
 
@@ -138,9 +135,8 @@ def test_npc(nombre, cuadros):
     dirección se recalcule en cada orden y que girar pase antes de mirar si se
     puede—.
     """
-    sfc, simbolos, orden = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, orden)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -173,10 +169,8 @@ def test_grafico(nombre, grafico, cuadros):
     Los ticks no llegan más lejos por algo **anterior a esto**: ver el aviso de
     los tiles animados en la cabecera de este archivo.
     """
-    sfc, simbolos, mapas = cartucho(
-        nombre, "--grafico-de-prueba", *grafico.split(), caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -202,9 +196,8 @@ def test_lugar(nombre, cuadros):
     la espera: `OP_DELAY n` suelta la página en el cuadro n+2, y elegidos a ojo
     caían antes del corte.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -231,8 +224,7 @@ def test_parar_rutas(cuadro):
     **Los ticks llegan hasta el 40 y no más lejos a propósito**: ver el aviso
     de los tiles animados en la cabecera de este archivo.
     """
-    sfc, simbolos, mapas = cartucho("parar-rutas", caso="parar-rutas")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("parar-rutas")
     p.correr(cuadro)
     golden("parar-rutas-%d" % cuadro, p.imagen())
 
@@ -255,10 +247,7 @@ def test_sprite_actor(cuadro):
     Lo que este caso **no** mira: que el cambio sobreviva al teletransporte.
     Eso lo cobra `pruebas/test_sprite_actor.py`.
     """
-    sfc, simbolos, mapas = cartucho(
-        "sprite-actor", "--grafico-de-prueba", "Future1", "0",
-        caso="sprite-actor")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("sprite-actor")
     p.correr(cuadro)
     golden("sprite-actor-%d" % cuadro, p.imagen())
 
@@ -279,9 +268,7 @@ def test_anclada(cuadro):
     del mapa, sólo puede caer bien cuando `camara_x` y `camara_y` son múltiplos
     de 8.
     """
-    sfc, simbolos, mapas = cartucho("anclada", "--map-id", "6",
-                                    caso="anclada")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("anclada")
     p.correr(cuadro)
     golden("anclada-%d" % cuadro, p.imagen())
 
@@ -309,9 +296,8 @@ def test_ruta_pisa(nombre, cuadros):
     la página todavía corriendo —RM2k no pierde el contacto: lo deja esperando
     y lo corre cuando la página termina—.
     """
-    sfc, simbolos, mapas = cartucho(nombre, caso=nombre)
     for cuadro in cuadros:
-        p = partida(sfc, simbolos, mapas)
+        p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -356,7 +342,6 @@ def test_pisar(nombre, direccion):
     ticks son un número fijo y no un plan —lo que se mira es dónde frenó, no
     cuánto tardó—.
     """
-    sfc, simbolos, orden = cartucho(nombre, caso=nombre)
-    p = partida(sfc, simbolos, orden)
+    p = partida(nombre)
     p.correr(200, sosteniendo=(direccion,))
     golden(nombre, p.imagen())

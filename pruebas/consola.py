@@ -93,6 +93,9 @@ class Simbolos:
 # aprieta, así que pasarse no cuesta nada.
 TITULO_AIRE = 30
 
+# La primera opción del menú del título, "Begin the Story". La segunda carga.
+EMPEZAR = 0
+
 
 def toques_de(pares, flag):
     """Los `BOTON:CUADRO` del corredor, a {cuadro: (botones,)}.
@@ -174,11 +177,8 @@ class Partida:
         # automática y se elige en el primer cuadro. El 0 es el que no pide
         # nada, así que un cartucho de un solo caso no necesita esto. Ver
         # `--caso` en snes_convert.py.
-        if caso:
-            self.consola.escribir_ram(
-                self.simbolos["FAR_VARIABLES"]
-                + 2 * self.simbolos["CASO_RANURA"], [caso & 0xFF, caso >> 8])
-            self.consola.escribir_ram(self.simbolos["refresco"], [1])
+        self.caso = caso
+        self._elegir_el_caso()
         self.consola.correr(3)
         # Un caso que empieza con un `Teleport` —así elige dónde arranca desde
         # el paso 9e— sale en el primer tick y está fundiendo acá. Lo dice
@@ -186,6 +186,14 @@ class Partida:
         # no alcanza, porque hay mapas cuya cinemática funde sola al entrar
         # —el 4 de `apertura`— y ahí la prueba cuenta desde el arranque.
         if salta:
+            # El primer tick no cae siempre en el mismo cuadro: en el
+            # cartucho de pruebas, con cuarenta mapas y todos los casos, la
+            # primera vuelta del lazo termina tres cuadros más tarde que en
+            # uno de un mapa. Se espera a que haya corrido.
+            for _ in range(60):
+                if self.palabra("vueltas"):
+                    break
+                self.consola.correr(1)
             if not self.byte("fundido"):
                 raise AssertionError(
                     "el caso %d empieza con un Teleport y la ROM no está "
@@ -352,8 +360,24 @@ class Partida:
         elegir = self.titulo if opcion is None else opcion
         if elegir is not None:
             self.pasar_el_titulo(elegir, ranura)
+        # Empezar de nuevo desde el título arranca con la WRAM limpia, y la
+        # página de prueba se elige otra vez como al encender. Cargar no:
+        # la variable vuelve con la partida, y sin título el arranque carga
+        # la partida solo.
+        if elegir == EMPEZAR:
+            self._elegir_el_caso()
         self.consola.correr(3)
         return self
+
+    def _elegir_el_caso(self):
+        """Escribe la variable que elige la página de prueba, con el refresco
+        que la hace mirar. El 0 es el que no pide nada."""
+        if self.caso:
+            self.consola.escribir_ram(
+                self.simbolos["FAR_VARIABLES"]
+                + 2 * self.simbolos["CASO_RANURA"],
+                [self.caso & 0xFF, self.caso >> 8])
+            self.consola.escribir_ram(self.simbolos["refresco"], [1])
 
     def sram(self, direccion=0, largo=None):
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""

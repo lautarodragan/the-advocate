@@ -22,8 +22,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ORO_MAX = 999999
 
-# La ROM con Lashe City, que es donde está el peaje.
-CIUDAD = (4, [1, 2, 3, 5, 6, 7, 8])
 
 
 def leer(una):
@@ -78,7 +76,7 @@ def test_el_peaje_cobra_si_alcanza_y_no_da_la_vuelta_si_no(partida):
     recorte de `GainGold` daría más de dieciséis millones.
     """
     for antes, despues in ((500, 0), (700, 200), (499, 499), (0, 0)):
-        una = partida(mapas=CIUDAD, switch=[24])
+        una = partida(switch=[24])
         una.ir_al_mapa(8, 62, 33)
         una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
         poner(una, antes)

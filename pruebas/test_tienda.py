@@ -34,7 +34,7 @@ def oro(una):
 
 
 def entrar(partida):
-    una = partida(mapas=(10, []))
+    una = partida(caso="en-10")
     una.correr(5)
     una.poner_grupo(KERSH)
     una.consola.escribir_ram(una.simbolos["oro"],

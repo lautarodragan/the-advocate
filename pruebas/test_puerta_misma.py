@@ -61,7 +61,7 @@ def caminar(una, tecla, destino, vueltas=80):
 
 def abierta(partida):
     """Una partida con la puerta ya abierta, parada delante de ella."""
-    una = partida(mapas=LINKAGE)
+    una = partida(caso=LINKAGE)
     una.ir_al_mapa(MAPA, PUERTA_X, PUERTA_Y)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     for _ in range(40):

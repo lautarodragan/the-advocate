@@ -37,8 +37,8 @@ DESPUES = 23      # el que la página prende antes de teletransportar
 
 def test_la_pagina_del_ano_antes_corre(partida):
     una = partida()
-    una.ir_al_mapa(MAPA, 9, 9)      # donde la escena de Talan deja al héroe
     una.prender(SI)
+    una.ir_al_mapa(MAPA, 9, 9)      # donde la escena de Talan deja al héroe
     una.correr(CUADROS)
     assert una.switch(DESPUES), \
         "la página no llegó al final: o no compiló, o se trabó en el camino"
@@ -46,7 +46,7 @@ def test_la_pagina_del_ano_antes_corre(partida):
 
 def test_el_juego_llega_al_pad_de_talan(partida):
     una = partida()
-    una.ir_al_mapa(MAPA, 9, 9)      # donde la escena de Talan deja al héroe
     una.prender(SI)
+    una.ir_al_mapa(MAPA, 9, 9)      # donde la escena de Talan deja al héroe
     una.correr(CUADROS)
     assert una.mapa() == DESTINO

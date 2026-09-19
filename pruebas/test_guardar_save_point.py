@@ -36,7 +36,7 @@ en mednafen, en mesen y en la SNES.
 import pytest
 
 from recorrido import Mundo, Recorrido
-from test_recorrido import MAPAS, UN_ANO_DESPUES
+from test_recorrido import UN_ANO_DESPUES
 
 EMPEZAR, SEGUIR = 0, 1
 
@@ -93,7 +93,7 @@ def test_el_save_point_guarda_sin_titulo(partida, mundo):
     prueba.
     """
     r = caminar_hasta_el_save_point(
-        partida(mapas=MAPAS, timer=True, switch=[UN_ANO_DESPUES]), mundo)
+        partida(caso="nada", en="juego", switch=[UN_ANO_DESPUES]), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
@@ -119,7 +119,7 @@ def test_el_save_point_guarda_con_titulo_y_tras_cambiar_de_mapa(partida,
     lo que se escribió era esta partida y no el estado del arranque.
     """
     r = caminar_hasta_el_save_point(
-        partida(mapas=MAPAS, timer=True, switch=[UN_ANO_DESPUES],
+        partida(caso="en-4", switch=[UN_ANO_DESPUES],
                 titulo=EMPEZAR), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (

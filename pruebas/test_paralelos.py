@@ -21,7 +21,7 @@ no está, así que esto es lo único que lo cuida.
 """
 
 # El HQ de los Lazer Teeth, que es el mapa con más paralelos del juego.
-HQ = (11, [])
+HQ = "en-11"
 
 # Dónde vive la lista, para leerla: la RAM lejana se direcciona igual que el
 # banco $7E, así que el offset de `FAR_PAR_LISTA` es el de la WRAM.
@@ -57,7 +57,7 @@ def test_la_lista_sigue_a_la_pagina_activa(partida):
     activa tiene que volver a la lista. Sin eso, lo que se mide es que la ROM
     sabe sacar y no que sabe poner.
     """
-    una = partida(mapas=HQ)
+    una = partida(caso=HQ)
     una.correr(10)
     assert lista_de(una) == TODOS, "los once paralelos del mapa 11"
 
@@ -87,7 +87,7 @@ def test_el_hq_de_los_lazer_teeth_entra_en_el_cuadro(partida):
     150 y no en 173 para que un cuadro de más no pinte de rojo lo que anda: lo
     que esta prueba cuida es la caída a la mitad, que es la que se ve jugando.
     """
-    una = partida(mapas=HQ)
+    una = partida(caso=HQ)
     una.correr(30)
     antes = una.palabra("vueltas")
     una.consola.correr(180)

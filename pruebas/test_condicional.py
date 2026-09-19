@@ -61,11 +61,11 @@ def hasta_el_final(una):
 
 def test_la_pagina_del_juego_sigue_despues_del_end(partida):
     """Con la rama salteada, la página tiene que llegar igual al final."""
-    hasta_el_final(partida(mapas=(MAPA, [])))
+    hasta_el_final(partida(caso="en-%d" % MAPA))
 
 
 def test_la_rama_del_juego_se_saltea(partida):
-    una = partida(mapas=(MAPA, []))
+    una = partida(caso="en-%d" % MAPA)
     hasta_el_final(una)
     grupo = una.consola.ram(una.simbolos["grupo"], una.byte("grupo_n"))
     assert QUE_VUELVE not in grupo, \

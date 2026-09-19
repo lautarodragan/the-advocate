@@ -30,7 +30,7 @@ docstring es el del caso, que es también el de su golden.
 import pytest
 
 from tanda import (cartucho, consola_cruda, correr_hardware, correr_ticks,
-                   golden, partida, ticks_de_avance)
+                   encender, golden, partida, ticks_de_avance)
 
 @pytest.mark.parametrize("cuadro", (60, 400))
 def test_espera(cuadro):
@@ -47,9 +47,7 @@ def test_espera(cuadro):
     prueba sigue siendo filosa: si la espera no esperara, el tick de antes ya
     estaría teñido.
     """
-    sfc, simbolos, mapas = cartucho("espera", "--map-id", "73",
-                                    caso="espera")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("espera")
     p.correr(cuadro)
     golden("espera-%d" % cuadro, p.imagen())
 
@@ -57,10 +55,6 @@ def test_espera(cuadro):
 # El save point abre su pantalla diez cuadros después de que la espera de la
 # página termina.
 ABRE_LA_DE_RANURAS = 130
-
-
-def cartucho_de_guardar():
-    return cartucho("guardar", "--map-id", "73", caso="guardar")
 
 
 @pytest.mark.parametrize("nombre,cuantos,toques", (
@@ -82,8 +76,7 @@ def test_guardar_pantalla(nombre, cuantos, toques):
     porque así los pasaba la receta, y eso les corre el cuadro en uno. Ver la
     cabecera de este archivo.
     """
-    sfc, _simbolos, _mapas = cartucho_de_guardar()
-    consola = consola_cruda(sfc)
+    consola = consola_cruda("guardar")
     correr_hardware(consola, cuantos, toques=toques)
     golden(nombre, consola.imagen())
 
@@ -103,8 +96,7 @@ def test_guardar_vuelve(nombre, toques, cuadro):
     toques siguen en cuadros de hardware porque caen adentro de la pantalla,
     donde no hay ticks en los que caer.
     """
-    sfc, simbolos, mapas = cartucho_de_guardar()
-    p = partida(sfc, simbolos, mapas)
+    p = partida("guardar")
     p.correr(cuadro, toques_hardware=toques)
     golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -115,8 +107,7 @@ def test_guardar_vuelve(nombre, toques, cuadro):
 ))
 def test_menu(nombre, cuantos, toques):
     """`menu`: el menú de pausa, abierto con B desde el mapa."""
-    sfc, _simbolos, _mapas = cartucho("menu", "--map-id", "73")
-    consola = consola_cruda(sfc)
+    consola = consola_cruda("grupo-11-en-73")
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
 
@@ -124,8 +115,7 @@ def test_menu(nombre, cuantos, toques):
 @pytest.mark.parametrize("cuadro", (50, 120))
 def test_menu_vuelve(cuadro):
     """`menu`: el mapa de vuelta al cerrar el menú de pausa."""
-    sfc, simbolos, mapas = cartucho("menu", "--map-id", "73")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("grupo-11-en-73")
     p.correr(cuadro, toques_hardware=("b:40", "b:52"))
     golden("menu-vuelve-%d" % cuadro, p.imagen())
 
@@ -140,9 +130,7 @@ def test_items(nombre, cuantos, toques):
     Tres ítems distintos y uno de ellos repetido trece veces, que es lo que
     ejercita la columna de la cuenta además de la de los nombres.
     """
-    sfc, _simbolos, _mapas = cartucho("items", "--map-id", "73",
-                                      caso="items")
-    consola = consola_cruda(sfc)
+    consola = consola_cruda("items")
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
 
@@ -150,8 +138,7 @@ def test_items(nombre, cuantos, toques):
 @pytest.mark.parametrize("cuadro", (60, 120))
 def test_items_vuelve(cuadro):
     """`items`: el mapa de vuelta al cerrar la lista de ítems."""
-    sfc, simbolos, mapas = cartucho("items", "--map-id", "73", caso="items")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("items")
     p.correr(cuadro, toques_hardware=("b:40", "a:52", "down:64", "down:68",
                                       "a:74"))
     golden("items-vuelve-%d" % cuadro, p.imagen())
@@ -166,9 +153,7 @@ def test_items_vuelve(cuadro):
 ))
 def test_equipo(nombre, cuantos, toques):
     """`equipo`: la pantalla del equipo de un actor."""
-    sfc, _simbolos, _mapas = cartucho("equipo", "--map-id", "73",
-                                      caso="equipo")
-    consola = consola_cruda(sfc)
+    consola = consola_cruda("equipo")
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
 
@@ -177,9 +162,7 @@ def test_equipo(nombre, cuantos, toques):
 def test_equipo_vuelve(cuadro):
     """`equipo`: el mapa de vuelta, con tres B para salir de los tres
     niveles de menú."""
-    sfc, simbolos, mapas = cartucho("equipo", "--map-id", "73",
-                                    caso="equipo")
-    p = partida(sfc, simbolos, mapas)
+    p = partida("equipo")
     p.correr(cuadro, toques_hardware=("b:40", "down:52", "down:56", "a:60",
                                       "a:72", "a:92", "b:112", "b:132",
                                       "b:152"))
@@ -190,20 +173,20 @@ def test_equipo_vuelve(cuadro):
 # grupo de tres y su inventario—, cuántos cuadros de hardware, los toques que
 # pelean, los mapas de más y el relleno de textos.
 BATALLAS = (
-    ("batalla", "batalla", 200, (), (), ""),
+    ("batalla", "batalla", 200, (), None),
     ("batalla-blanco", "batalla", 200, ("a:130", "down:140", "down:150"),
-     (), ""),
+     None),
     # La tropa del droide del mapa 2 sobre su fondo, que es la única pelea que
     # el jugador alcanza hoy: un enemigo y otro fondo, o sea el otro camino de
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
-    ("batalla-droide", "batalla-droide", 200, (), (), ""),
+    ("batalla-droide", "batalla-droide", 200, (), None),
     # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
     # **dos** tropas y dos escenas. Es el único caso donde la pelea no es la
     # tropa 0: el mapa 2 pide la 82 y la de la página de prueba queda segunda,
     # así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
     # siempre con el primer renglón.
-    ("batalla-segunda", "batalla", 200, (), ("2",), ""),
+    ("batalla-segunda", "batalla", 200, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
     # inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich—.
@@ -214,10 +197,10 @@ BATALLAS = (
     # el orden del original —Attack / <habilidad> / Defend / Use Item— y
     # `Use Item` quedó cuarta.
     ("batalla-item", "batalla-item", 220,
-     ("right:130", "right:140", "right:150", "a:160"), (), ""),
+     ("right:130", "right:140", "right:150", "a:160"), None),
     ("batalla-item-blanco", "batalla-item", 250,
      ("right:130", "right:140", "right:150", "a:160", "a:170", "down:180"),
-     (), ""),
+     None),
     # Los tres modos de las habilidades. Una derecha lleva el cursor a la
     # segunda orden, que **no dice "Tech Skill"** sino el `skill_name` del
     # actor: con Kersh primero, "AgentTrain".
@@ -233,11 +216,11 @@ BATALLAS = (
     #                       después de elegirla el cursor se va a los actores,
     #                       con la lista en gris. Es el camino que la de ítems
     #                       ya tenía y que una habilidad de enemigo no toca
-    ("batalla-hab", "batalla", 220, ("right:130", "a:140"), (), ""),
+    ("batalla-hab", "batalla", 220, ("right:130", "a:140"), None),
     ("batalla-hab-dos", "batalla", 240, ("right:130", "a:140", "right:150"),
-     (), ""),
+     None),
     ("batalla-hab-blanco", "batalla", 240,
-     ("right:130", "a:140", "a:150"), (), ""),
+     ("right:130", "a:140", "a:150"), None),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
     # taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla
     # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
@@ -248,14 +231,14 @@ BATALLAS = (
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "batalla", 200, (), (), "200"),
+    ("batalla-textos-lejos", "batalla", 200, (), "chico"),
 )
 
 
 @pytest.mark.parametrize(
-    "nombre,caso,cuantos,toques,mapas,relleno", BATALLAS,
+    "nombre,caso,cuantos,toques,en", BATALLAS,
     ids=[caso[0] for caso in BATALLAS])
-def test_batalla(nombre, caso, cuantos, toques, mapas, relleno):
+def test_batalla(nombre, caso, cuantos, toques, en):
     """`batalla`: la pantalla de la pelea.
 
     **La pelea no cuesta ningún tick**: `batalla_correr` corre su propio lazo y
@@ -266,11 +249,7 @@ def test_batalla(nombre, caso, cuantos, toques, mapas, relleno):
     a los tres. La pelea es la misma todas las veces porque el azar está
     clavado en `BATALLA_SEMILLA`.
     """
-    sfc, _simbolos, _mapas = cartucho(
-        nombre, "--map-id", "6",
-        *(("--mapas",) + tuple(mapas) if mapas else ()),
-        *(("--relleno-de-textos", relleno) if relleno else ()), caso=caso)
-    consola = consola_cruda(sfc)
+    consola = consola_cruda(caso, en=en)
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
 
@@ -300,8 +279,7 @@ def test_vuelta(cuadro):
     ventana, con otro reparto de VRAM; la ventana pasó a ser obligatoria.
     """
     nombre = "vuelta-ventana"
-    sfc, simbolos, mapas = cartucho(nombre, "--map-id", "6", caso=nombre)
-    p = partida(sfc, simbolos, mapas)
+    p = partida(nombre)
     p.correr(cuadro, toques_hardware=PELEAR)
     golden("%s-%d" % (nombre, cuadro), p.imagen())
 
@@ -310,11 +288,6 @@ def test_vuelta(cuadro):
 # está congelado con la golden: el paso 8, contra la tropa 96. El avance de la
 # captura de control es `(paso - 1) * 16`, o sea una celda antes.
 PASO_DEL_ENCUENTRO = 8
-
-
-def cartucho_de_encuentro():
-    return cartucho("encuentro", "--map-id", "21",
-                    "--encuentros-de-prueba", "8", caso="grupo-11-12-13")
 
 
 def test_encuentro():
@@ -329,8 +302,7 @@ def test_encuentro():
     Va en cuadros de hardware por lo de siempre: la pantalla de batalla no
     cuenta ticks.
     """
-    sfc, _simbolos, _mapas = cartucho_de_encuentro()
-    consola = consola_cruda(sfc)
+    consola = consola_cruda("grupo-11-12-13", en="chico")
     correr_hardware(consola, 200, sosteniendo=("up",))
     golden("encuentro", consola.imagen())
 
@@ -347,8 +319,7 @@ def test_encuentro_antes():
     dio paso a la pelea, y el tick sale de la cuenta del avance —`--avance` del
     corredor—, no de un número suelto.
     """
-    sfc, simbolos, mapas = cartucho_de_encuentro()
-    p = partida(sfc, simbolos, mapas)
+    p = partida("grupo-11-12-13", en="chico")
     p.correr(ticks_de_avance((PASO_DEL_ENCUENTRO - 1) * 16),
              sosteniendo=("up",))
     golden("encuentro.antes", p.imagen())
@@ -357,15 +328,6 @@ def test_encuentro_antes():
 # La pantalla de título se come cuadros de arranque que el mapa no: 150 en vez
 # de los 115 de todo lo demás.
 ARRANQUE_CON_TITULO = 150
-
-MAPAS_DEL_TITULO = ("1", "2", "3", "5", "6", "7", "8")
-
-
-def cartucho_de_titulo(con_titulo=True):
-    return cartucho("titulo" if con_titulo else "titulo-sin",
-                    "--map-id", "4", "--mapas", *MAPAS_DEL_TITULO,
-                    *(("--con-titulo",) if con_titulo else ()))
-
 
 @pytest.mark.parametrize("nombre,sosteniendo,toques", (
     ("titulo", (), ()),
@@ -390,8 +352,7 @@ def test_titulo(nombre, sosteniendo, toques):
 
     Las cuatro ranuras salen vacías porque la SRAM del emulador arranca virgen.
     """
-    sfc, _simbolos, _mapas = cartucho_de_titulo()
-    consola = consola_cruda(sfc, ARRANQUE_CON_TITULO)
+    consola = encender("titulo", ARRANQUE_CON_TITULO)
     correr_hardware(consola, 20, toques=toques, sosteniendo=sosteniendo)
     golden(nombre, consola.imagen())
 
@@ -416,13 +377,12 @@ def test_titulo_es_el_mismo_juego():
     Verificado sacando el `jsr ppu_init` que lo arregla: snes9x sigue dando
     cero. Lo que sí cobra es el reparto de la VRAM.
     """
-    con, simbolos, _mapas = cartucho_de_titulo()
-    sin, simbolos_sin, _sin_mapas = cartucho_de_titulo(con_titulo=False)
     imagenes = []
-    for sfc, tabla, nombre in ((con, simbolos, "titulo-juego"),
-                               (sin, simbolos_sin, "titulo-juego-sin")):
-        consola = consola_cruda(sfc, 0)
-        correr_ticks(consola, tabla, 300, sosteniendo=("start",))
+    for en, nombre in (("titulo", "titulo-juego"),
+                       ("pruebas", "titulo-juego-sin")):
+        consola = encender(en, 0)
+        correr_ticks(consola, cartucho(en).simbolos, 300,
+                     sosteniendo=("start",))
         imagenes.append(consola.imagen())
         golden(nombre, imagenes[-1])
     assert imagenes[0].tobytes() == imagenes[1].tobytes(), (

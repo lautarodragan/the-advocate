@@ -2,11 +2,16 @@
 
 Lo que hasta el 2026-09-16 era una receta de `just` por caso, en cinco procesos
 —convertir, ensamblar, correr la referencia, correr el emulador, comparar— acá
-son dos llamadas: `cartucho()` arma la ROM y `Partida` la corre. Y lo que se
-compara ya no es una referencia de Python sino el PNG congelado de
-`pruebas/golden/tanda/`, que **es una captura del emulador** y por eso se compara
-en cero pixeles exactos, sin máscara; el porqué está en el `LEEME.md` de ese
-directorio.
+es una llamada: `partida(caso)` busca el caso en los cartuchos de prueba y lo
+corre. Y lo que se compara ya no es una referencia de Python sino el PNG
+congelado de `pruebas/golden/tanda/`, que **es una captura del emulador** y por
+eso se compara en cero pixeles exactos, sin máscara; el porqué está en el
+`LEEME.md` de ese directorio.
+
+**Acá no se arma nada.** Los cartuchos los arma `pruebas/cartuchos.py`, una
+vez, antes de la tanda —`just pruebas` lo corre primero—, y el arnés sólo sabe
+buscar un caso por su nombre y decir en qué cartucho y en qué página está. Si
+el cartucho es de otros fuentes, se niega a correr: ver `Cartucho`.
 
 Tres cosas que este archivo hace y conviene tener a la vista:
 
@@ -16,8 +21,8 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   referencia cuando existía, y por eso están congelados: son lo último que queda
   de ella, y lo que hizo que un caso de caminata dejara de necesitarla.
 * **El grupo es el 11 y no el 10.** Es el default de `grupo` en el justfile y no
-  el del juego de verdad, y lo arma la página de prueba: el caso por omisión de
-  `cartucho` es `grupo-11`, y cada caso propio trae el suyo. Con el 10 el líder
+  el del juego de verdad, y lo arma la página de prueba: `grupo-11`, o
+  `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el mismo `--arranque 115` del corredor**:
   `BOOT_CUADROS` (112) más tres, y de ahí en más los dos cuentan ticks de
@@ -27,156 +32,122 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `snes_correr.py`; no hay una segunda convención que mantener.
 """
 
-import glob
-import hashlib
 import os
-import subprocess
 import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     flags_de_casos, huella, mapas_de, toques_de)
+                     mapas_de, toques_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                             # noqa: E402
-import ensamblar                                         # noqa: E402
-from snes_correr import ARRANQUE                         # noqa: E402
+
+import cartuchos                                         # noqa: E402
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden",
                       "tanda")
 
-# El caso de los cartuchos que no traen uno propio: la página que arma el grupo
-# con el 11, que es el default de `grupo` en el justfile. Ver arriba.
-GRUPO_11 = "grupo-11"
 
-# Dónde arranca un cartucho que no dice `--map-id`. Es el mapa de la mayoría
-# de las páginas de prueba, y un caso que corre en otro lugar llega con el
-# `Teleport` con que empieza: ver `mapa_del_caso` en snes_convert.py. Para el
-# cartucho único del 9f el lugar de arranque es uno solo, y éste es el que se
-# midió en el 9e —arrancando acá y saltando, las goldens se mueven menos que
-# saltando dentro del mismo mapa, que no recarga nada—.
-MAPA_DE_ARRANQUE = 6
+class Cartucho:
+    """Uno de los cartuchos que dejó `pruebas/cartuchos.py`, ya leído.
 
-
-def cartucho(nombre, *flags, caso=GRUPO_11):
-    """Convierte y ensambla; devuelve (ROM, símbolos, ids de mapa en orden).
-
-    Es `consola.armar()` con los flags del conversor a la vista en vez de un
-    parámetro por flag: una firma con un argumento opcional por flag es la
-    misma lista escrita dos veces. Lo que hace la página no va en flags sino
-    en `caso`.
-
-    `caso` es la página de prueba, por su nombre en `pruebas/casos/` —o una
-    tupla de nombres, para un cartucho con varias—, y no va como flag suelto
-    porque lo que importa de ella es el contenido, que entra en la clave. Arma
-    también el grupo, así que un caso lleva el suyo; sin caso, el cartucho
-    arranca con el del juego.
-
-    Se saltea si ya está hecha y no cambió nada de lo que la arma: la clave es
-    `huella()` —los fuentes de la ROM, el ensamblador y las herramientas— más
-    los flags y lo que dice el caso.
-
-    **Cada cartucho en su propio directorio**, y por eso `mapdata.inc` deja de
-    ser estado global: dos casos con mapas distintos no se pisan, que es la
-    trampa que `AGENTS.md` nombra.
-
-    **Quién es "su propio" lo decide el hash de (caso, flags), no el nombre.**
-    Con un directorio por caso son unos 5 MB por cartucho y ~170 casos, o sea
-    casi un giga de ROMs casi iguales; con el hash, dos casos que arman
-    exactamente la misma ROM comparten el build sin que nadie los empareje a
-    mano. `nombre` queda de prefijo para poder mirar el directorio y saber de
-    quién es, y el que gana es el primero que lo pida: lo que identifica al
-    directorio es lo que viene después del guión.
-
-    Lo que **no** entra en el hash es `huella()`, a propósito: si entrara,
-    tocar un fuente de la ROM estrenaría un directorio por caso en vez de
-    reusar el suyo, y el disco crecería con cada cambio. Va en el sello, que es
-    lo que decide si lo que hay adentro sirve.
+    **Se niega a servir uno viejo.** Si los fuentes, las herramientas o los
+    casos cambiaron desde que se armó, la tanda correría contra una ROM que
+    no es la del árbol y daría verde o rojo por algo que ya no existe; así que
+    dice qué correr y corta. Es la misma cuenta con que `cartuchos.py` decide
+    si rearmar, así que los dos no pueden estar en desacuerdo.
     """
-    tanda = os.path.join(RAIZ, "rom", "build", "tanda")
-    de_casos, contenido = flags_de_casos(caso)
-    flags = con_los_destinos(flags, contenido)
-    clave = hashlib.sha256(
-        repr((contenido, flags)).encode()).hexdigest()[:12]
-    existentes = glob.glob(os.path.join(tanda, "*-" + clave))
-    destino = existentes[0] if existentes else os.path.join(
-        tanda, "%s-%s" % (nombre, clave))
-    os.makedirs(destino, exist_ok=True)
-    inc = os.path.join(destino, "mapdata.inc")
-    sfc = os.path.join(destino, "prueba.sfc")
-    sello = os.path.join(destino, "huella.txt")
-    actual = huella() + "\n" + repr((contenido, flags))
-    SALTAN[sfc] = tuple(salta_al_empezar(texto) for _nombre, texto in contenido)
 
-    if os.path.exists(sfc) and os.path.exists(inc):
-        try:
-            with open(sello) as archivo:
-                if archivo.read().strip() == actual:
-                    return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
-        except OSError:
-            pass
-
-    # Los casos van al final: detrás de un `--caso`, cualquier flag del
-    # cartucho sería de ese caso, y el conversor lo rechaza.
-    convertir = ([sys.executable, os.path.join(RAIZ, "tools",
-                                               "snes_convert.py"), "-o", inc]
-                 + [str(f) for f in flags] + de_casos)
-    subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
-    # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
-    ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
-                        destino, sfc, sfc + ".sym")
-    with open(sello, "w") as archivo:
-        archivo.write(actual)
-    return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
+    def __init__(self, nombre):
+        self.nombre = nombre
+        self.dir = os.path.join(cartuchos.DESTINO, nombre)
+        self.sfc = os.path.join(self.dir, "prueba.sfc")
+        viejo = cartuchos.viejo(nombre)
+        if viejo:
+            raise AssertionError(
+                "el cartucho de prueba %r %s. Las pruebas no arman nada: "
+                "corré `just cartuchos` —o `just pruebas`, que lo corre "
+                "primero—." % (nombre, viejo))
+        self.simbolos = Simbolos(self.sfc + ".sym")
+        self.mapas = mapas_de(os.path.join(self.dir, "mapdata.inc"))
+        self.casos, self.saltan = cartuchos.manifiesto(nombre)
 
 
-# Qué casos de cada cartucho arrancan con un `Teleport`, por ruta de la ROM y
-# en el orden de sus páginas. Lo llena `cartucho` y lo lee `partida`, que así
-# sabe que tiene que esperar la llegada: ver `Partida._esperar_la_llegada`. Va
-# aparte y no en lo que devuelve `cartucho` porque cada prueba desarma esa
-# tupla, y agregarle un campo es tocarlas a todas para algo que casi ninguna
-# mira.
-SALTAN = {}
+_CARGADOS = {}
 
 
-def con_los_destinos(flags, contenido):
-    """Los flags del cartucho con el mapa de arranque y los mapas a los que
-    saltan sus casos.
+def cartucho(nombre=cartuchos.PRUEBAS):
+    """El cartucho `nombre`, leído una vez por corrida."""
+    if nombre not in _CARGADOS:
+        _CARGADOS[nombre] = Cartucho(nombre)
+    return _CARGADOS[nombre]
 
-    El mapa del `Teleport` de un caso está escrito en el caso, así que la
-    prueba no lo repite: entra solo en `--mapas`. Y sin `--map-id`, el
-    cartucho arranca en `MAPA_DE_ARRANQUE`.
+
+def rom(caso, en=None):
+    """(el cartucho, la página) donde está el caso.
+
+    Sin `en`, el cartucho de pruebas si lo lleva, y si no el único que lo
+    lleve: los chicos existen por lo que no entra en el grande, y cada caso
+    vive en uno. Un caso que está en dos —los del cartucho del juego, que
+    repite algunos a propósito— se pide con `en`.
     """
-    import json
-    flags = [str(f) for f in flags]
-    if "--map-id" not in flags:
-        flags = ["--map-id", str(MAPA_DE_ARRANQUE)] + flags
-    arranque = flags[flags.index("--map-id") + 1]
-    for _nombre, texto in contenido:
-        comandos = json.loads(texto).get("event_commands") or [{}]
-        if comandos[0].get("code") != "Teleport":
-            continue
-        destino = str(comandos[0]["parameters"][0])
-        if destino == arranque:
-            continue
-        if "--mapas" not in flags:
-            flags += ["--mapas", destino]
-            continue
-        i = flags.index("--mapas") + 1
-        fin = i
-        while fin < len(flags) and not flags[fin].startswith("--"):
-            fin += 1
-        if destino not in flags[i:fin]:
-            flags.insert(fin, destino)
-    return tuple(flags)
+    nombres = [en] if en else cartuchos.donde_esta(caso)
+    if not nombres:
+        raise AssertionError(
+            "ningún cartucho de prueba lleva el caso %r: ¿existe "
+            "pruebas/casos/%s.json?" % (caso, caso))
+    uno = cartucho(nombres[0])
+    if caso not in uno.casos:
+        raise AssertionError("el cartucho %r no lleva el caso %r"
+                             % (uno.nombre, caso))
+    return uno, uno.casos.index(caso)
 
 
-def salta_al_empezar(texto):
-    """Si el caso —el JSON de su archivo— empieza con un `Teleport`."""
-    import json
-    comandos = json.loads(texto).get("event_commands") or [{}]
-    return comandos[0].get("code") == "Teleport"
+def partida(caso, nucleo=None, en=None, switches=(), titulo=None):
+    """El caso corriendo, con el arranque ya pasado y, si empieza con un
+    `Teleport`, con la llegada ya esperada.
+
+    Una consola nueva por captura, igual que el corredor: arrancar de cero es
+    parte de lo que se compara, y reusarla traería el estado de la corrida
+    anterior.
+
+    `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
+    en snes9x y en bsnes. `en` elige el cartucho: ver `rom`.
+    """
+    uno, k = rom(caso, en)
+    return Partida(uno.sfc, uno.simbolos, uno.mapas, switches=switches,
+                   titulo=titulo, nucleo=nucleo, caso=k, salta=uno.saltan[k])
+
+
+def consola_cruda(caso, en=None):
+    """La ROM con el arranque pasado y **sin reloj de juego**.
+
+    Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
+    —la pantalla de ranuras, el menú de pausa, la de batalla—, que no son el
+    juego. Ahí un `Partida.correr` no termina nunca, porque espera un tick que
+    no va a llegar.
+
+    Es la consola de una `Partida` recién arrancada, que ya eligió su caso y
+    esperó la llegada si salta: los cuadros de hardware que siguen se cuentan
+    desde ahí, igual que los contaba el corredor desde el arranque de un
+    cartucho que empezaba en ese mapa. No devuelve la `Partida` a propósito:
+    `Partida` *es* el reloj de ticks, y una que no pueda contarlos sería una
+    que miente sobre lo que sabe.
+    """
+    return partida(caso, en=en).consola
+
+
+def encender(en, cuadros):
+    """La ROM del cartucho `en`, recién encendida y con `cuadros` corridos.
+
+    Sin caso y sin arranque: es para lo que se mira antes de que haya juego
+    —la pantalla de título—, donde el arranque de `Partida` todavía no
+    terminó. Corre la página 0, la de siempre.
+    """
+    consola = retro.Consola(cartucho(en).sfc, NUCLEO)
+    consola.correr(cuadros)
+    return consola
 
 
 def plan(nombre):
@@ -208,39 +179,6 @@ def ticks_de_avance(pixeles):
     unos 25.000 pixeles de diferencia, medido en el mapa 73.
     """
     return pixeles // 2 + RETRASO_DE_PANTALLA
-
-
-def partida(sfc, simbolos, mapas, nucleo=None, caso=0):
-    """La ROM con el arranque ya pasado, lista para correr ticks.
-
-    Una consola nueva por captura, igual que el corredor: arrancar de cero es
-    parte de lo que se compara, y reusarla traería el estado de la corrida
-    anterior.
-
-    `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
-    en snes9x y en bsnes. `caso` elige la página de prueba en un cartucho que
-    lleva varias: ver `--caso` en snes_convert.py.
-    """
-    saltan = SALTAN.get(sfc, ())
-    return Partida(sfc, simbolos, mapas, nucleo=nucleo, caso=caso,
-                   salta=caso < len(saltan) and saltan[caso])
-
-
-def consola_cruda(sfc, arranque=ARRANQUE):
-    """La ROM con el arranque pasado y **sin reloj de juego**.
-
-    Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
-    —la pantalla de título, la de ranuras, el menú de pausa, la de batalla—,
-    que no son el juego. Ahí un `Partida.correr` no termina nunca, porque
-    espera un tick que no va a llegar.
-
-    No devuelve una `Partida` a propósito: `Partida` *es* el reloj de ticks, y
-    una que no pueda contarlos sería una que miente sobre lo que sabe. Lo que
-    se devuelve es la consola pelada, que es todo lo que estos casos usan.
-    """
-    consola = retro.Consola(sfc, NUCLEO)
-    consola.correr(arranque)
-    return consola
 
 
 def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
