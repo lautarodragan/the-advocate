@@ -216,6 +216,31 @@ frena es el desempate de `try_pack`, acá abajo.
   Python. Cualquiera de las dos mueve el tilemap de algunos mapas y hay que
   rebendecir esas goldens; el código del desempate determinista está en la
   historia de `tiles/`, antes de `4953089`.
+
+* **Que un paralelo espere a su propio mensaje.** Es el tercero de los
+  arreglos del A de las piedras, y quedó sin hacer porque **no entra**. En RM2k
+  el paralelo que abrió un mensaje se para hasta que se cierra
+  (`game_interpreter.cpp:439-441` de easyrpg), y un `ShowMessage` de un
+  paralelo con otro mensaje abierto espera (`:928`). Acá el paralelo sigue en
+  el tick siguiente: la pág. 3 de `LTSentry1` —la que abre el guardia cuando
+  la piedra rompe la PC— prende los switches 46 y 51 y echa a caminar al
+  guardia con el mensaje todavía en pantalla. Y un paralelo que abre un mensaje
+  con otro abierto **lo pisa**. No se vio pasar en este juego, pero nada lo
+  impide.
+
+  Lo que costaba, medido el 2026-09-19 con una implementación de prueba —el
+  dueño del mensaje en un byte, `par_ev` en `$FF` fuera del lazo de
+  paralelos, el salteo en `un_paralelo` y la espera en `op_message`—: **49
+  bytes del banco 0**, cuando al cartucho de pruebas le quedaban 26 y al de
+  título 22, y **un byte de la BSS del banco 0, que está llena**: `ld65` dice
+  que se pasa por uno. Para comparar, los otros tres arreglos del mismo bug
+  costaron 8, 16 y 4 bytes. Hacerlo pide antes liberar lugar en el banco 0 —el
+  comentario de `TABLAS` dice qué se podría bajar— y un byte de RAM: o en la
+  lejana, que cuesta un byte más por acceso, o uno que se libere. Decide taro.
+
+  La prueba está pensada y es barata: tirar la piedra hacia arriba desde
+  (19,52) y mirar que los switches 46 y 51 sigan apagados con el mensaje
+  abierto y se prendan después de cerrarlo. Hoy daría rojo.
 ### Defectos de los originales, anotados y no arreglados
 
 Ninguno se tocó al portar, porque arreglarlos cambiaría la salida y eso es
@@ -1172,6 +1197,25 @@ entera del Emitter Room. Lo que la tanda no mira:
   una lista de toques hay que dejar treinta cuadros desde que el mensaje se
   abre, no veinte: con veinte, el toque del cuadro 1976 llegó **uno** antes de
   tiempo.
+
+* **Los ocho cuadros de después de cerrar un mensaje.** En RM2k el mensaje
+  sigue "activo" mientras se anima el cierre —unos ocho cuadros, easyrpg
+  `window_message.cpp:379-403` y `window_message.h:216-218`— y en ese rato el
+  héroe no busca eventos, un `KeyInputProc` que espera no mira el pad, y el
+  paralelo que lo abrió sigue parado. Acá la ventana se apaga de golpe: lo que
+  se copió es que **el A que cierra** no lo vea nadie más (lo consume
+  `espera_boton`, y lo cobran las pruebas de `pruebas/abl/test_piedras.py`),
+  pero **un A nuevo** apretado dentro de esos ocho cuadros acá sí cuenta —le
+  habla al de enfrente, o saca una piedra— y en RM2k no. Para una persona son
+  dos toques en 130 ms, así que no se nota jugando; no lo prueba nada.
+
+* **El Dalia's Blast de las catacumbas**, el `EV0001` paralelo que espera la
+  A con `KeyInputProc [176,1,0,1,0]`, tiene el mismo patrón que el motor de las
+  piedras: medido el 2026-09-19, sus 23 páginas (mapas 281 a 283 y 324 a 344)
+  **compilan**, pero ningún cartucho —ni los de las pruebas ni los de las
+  demos— lleva esos mapas, así que ninguna prueba mira que cerrar un mensaje
+  ahí no dispare la ráfaga. Si entran en un cartucho, ésa es la prueba que
+  falta.
 
 * **El audio no lo mira nada automático.** Las medidas contra el MIDI —`just
   bgm`, `audio-check` y `referencia`— se fueron el 2026-09-19 con todo lo que no
