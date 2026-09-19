@@ -291,8 +291,9 @@ se pueden empezar hoy.
 
    Lo que quedó decidido y hay que respetar de acá en adelante:
 
-   * **corre secuencial, sin `pytest-xdist`** —primero simplificar, el
-     paralelismo después—;
+   * ~~corre secuencial, sin `pytest-xdist`~~ —primero simplificar, el
+     paralelismo después—: el después llegó el 2026-09-19, ver "La tanda en
+     paralelo";
    * **la clave del directorio de cada cartucho es el hash de (grupo, flags)**,
      porque un directorio por caso son ~900 MB. De ahí sale que `mapdata.inc`
      haya dejado de ser estado global para las pruebas;
@@ -1585,17 +1586,55 @@ tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
-## Después de la etapa: la tanda en paralelo
+## ~~La tanda en paralelo~~ hecho el 2026-09-19
 
-Decidido por taro el 2026-09-18, para **después** de cerrar la etapa y del
-9f: la tanda corre en paralelo, con `pytest-xdist` o equivalente. **El build
-va primero y secuencial** —desde el 9f es así: `just pruebas` corre `just
-cartuchos` antes que pytest— y recién después se dispara la tanda con
-paralelismo; así no hay dos procesos armando lo mismo y no hace falta un
-lock.
+Decidido por taro el 2026-09-18: **el build va primero y en serie** —`just
+pruebas` corre `just cartuchos` antes que pytest, desde el 9f— y recién
+después la tanda corre en paralelo, con `pytest-xdist`. Así no hay dos
+procesos armando lo mismo y no hace falta lock: con un cartucho viejo cada
+proceso se niega a correr, igual que en serie, y nadie lo rearma.
 
-Lo que se descartó en la misma conversación: **pasar las pruebas a C** para
-hablarle a libretro sin ctypes. Medido ese día con cProfile sobre
+Lo que quedó, con el porqué en el comentario de `procesos` en el justfile:
+
+* **8 procesos con `--dist worksteal`**, porque son los núcleos físicos
+  —la máquina tiene 16 hilos— y más no rinde: lo que tarda es el core
+  emulando. `auto` daría 16, porque sin `psutil` xdist cuenta hilos.
+* **`PROCESOS=0 just pruebas` es en serie**, para depurar con `--pdb` o `-s`.
+* **Sin xdist, la receta corta antes de armar nada** y dice qué instalar; no
+  cae a serie, porque el aviso quedaría enterrado en la salida de pytest.
+  Desde el host puede hacer falta `pacman -S python-pytest-xdist`.
+
+Medido el 2026-09-19 en el contenedor, con la tanda entera; el pico es el RSS
+sumado de todos los procesos:
+
+    -n            caliente   pico
+    serie          157 s     3,0 GB
+    4               52 s     3,8 GB
+    8               33 s     4,5 GB
+    16 (= auto)     36 s     6,1 GB
+    8 worksteal     27 s     4,4 GB
+    16 worksteal    30 s     5,9 GB
+
+En frío, desde `rom/build/` vacío —sin el caché del conversor—, **7m26s en
+serie y 5m13s en paralelo**: los casi cinco minutos que quedan son armar los
+cinco cartuchos, que siguen en serie. **La memoria no limita**: el
+`MemAvailable` nunca bajó de 44 GB, y ninguna corrida en primer plano la mató
+el reaper.
+
+Lo que se revisó para que nada se pise, y no hizo falta tocar: las capturas en
+rojo llevan el nombre de su golden y ninguna golden la compara más de una
+prueba; las de `rom/shots/` y `rom/build/cores/` son de una prueba cada una;
+el recorrido escribe en una carpeta por prueba; y el caché BRR ya escribía con
+`os.replace`. Y ninguna prueba depende de otra: las 464, cada una en su propio
+proceso, dan verde.
+
+Lo que queda, si alguna vez importa: con un cartucho viejo la tanda da **un
+rojo por prueba**, todos con el mismo mensaje claro —"corré `just
+cartuchos`"—. Con la receta no pasa, porque arma antes; sólo con un `pytest`
+suelto.
+
+Lo que se descartó el 2026-09-18: **pasar las pruebas a C** para hablarle a
+libretro sin ctypes. Medido ese día con cProfile sobre
 `test_tanda_paginas.py` con los cartuchos armados: de 13 s, casi todo es el
 core emulando y cargándose —ya es C—, y lo que es Python no llega a uno. El
 arnés en C no bajaría el tiempo y cambiaría pytest, PIL y el caché de
