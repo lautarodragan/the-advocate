@@ -310,12 +310,25 @@ assets-medir que="todo":
 pruebas *args: cartuchos
   python3 -m pytest pruebas {{args}}
 
+# Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
+# igual que RM2k—, `abl` —lo propio del juego— y `herramientas` —las que no
+# corren ninguna ROM—. Todas dependen de `cartuchos` porque una de
+# herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
+pruebas-rpgmaker *args: cartuchos
+  python3 -m pytest pruebas/rpgmaker {{args}}
+
+pruebas-abl *args: cartuchos
+  python3 -m pytest pruebas/abl {{args}}
+
+pruebas-herramientas *args: cartuchos
+  python3 -m pytest pruebas/herramientas {{args}}
+
 # Los cartuchos de prueba, en `rom/build/pruebas-unico/`: el de pruebas, que
 # lleva todos los casos de `pruebas/casos/`, y los chicos, que llevan lo que
 # no entra en él. Qué va en cada uno y por qué está en `pruebas/cartuchos.py`;
 # `--lista` lo imprime.
 cartuchos *args:
-  python3 pruebas/cartuchos.py {{args}}
+  python3 pruebas/arnes/cartuchos.py {{args}}
 
 # Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
 # cuatro esquinas a las que puede llegar.
