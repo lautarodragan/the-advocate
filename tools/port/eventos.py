@@ -3240,7 +3240,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             bytes([i & 0xFF, i >> 8]) for i in vende)
 
     if cmd.code == FULL_HEAL:
-        return b""
+        # [tipo, id]: `GetActors` de easyrpg (`game_interpreter.cpp:1539`),
+        # 0 el grupo, 1 un actor fijo, 2 el actor que diga una variable. El
+        # operando de OP_HEAL es el actor, con 0 por "todo el grupo": el LDB no
+        # tiene actor 0, así que no se confunde con nadie.
+        #
+        # La forma 2 no la usa ningún `FullHeal` del juego —medido el
+        # 2026-09-19 sobre los 328 mapas y los eventos comunes: 23 al grupo y
+        # 50 a un actor fijo—, así que no compila en vez de resolverse en la
+        # ROM sin nada que la ejercite.
+        if len(p) < 2:
+            raise NoSePuede("FullHeal sin operandos")
+        if p[0] == 0:
+            return bytes([OP_HEAL, 0])
+        if p[0] == 1 and 0 < p[1] <= 0xFF:
+            return bytes([OP_HEAL, p[1]])
+        raise NoSePuede("FullHeal con el actor en una variable")
     if cmd.code == CHANGE_HP:
         if len(p) < 3 or p[2] != 0:
             raise NoSePuede("ChangeHP que resta: los HP dejarían de estar "

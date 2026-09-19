@@ -372,3 +372,10 @@ args = [
   { name = "x_slot", type = "byte" },
   { name = "y_slot", type = "byte" },
 ]
+
+[[opcode]]
+name = "OP_HEAL"
+code = 0x28
+args = [
+  { name = "actor", type = "byte" },
+]

@@ -4135,7 +4135,10 @@ otro:
 :   cmp #OP_STOP_ROUTES
     bne :+
     jmp op_stop_routes
-:   stz ev_activo               ; OP_DONE, o algo que no conocemos: se corta
+:   cmp #OP_HEAL
+    bne :+
+    jmp op_heal
+:   stz ev_activo              ; OP_DONE, o algo que no conocemos: se corta
     rts
 
 ; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
@@ -5739,6 +5742,12 @@ op_actor_sprite:
     jsr aplicar_tinte
 graf_no_lidera:
     ply
+    jmp otro
+
+; `FullHeal`. Acá está sólo la entrada: el cuerpo es `curar`, fuera del banco
+; 0, y lee su operando y avanza el cursor él mismo, con Y en la mano.
+op_heal:
+    jsl f:curar
     jmp otro
 
 ; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
@@ -25645,6 +25654,70 @@ cero:
     lda #$01
     sta f:MDMAEN
     rtl
+.endproc
+
+; `FullHeal`: los HP y los SP de cada actor del blanco, a sus máximos. Es
+; `Game_Actor::FullHeal` de easyrpg (`game_actor.cpp:391`), que además
+; `RemoveAllStates` y repone los estados del equipo: acá no hay nada de eso
+; que limpiar, porque fuera de pelea los estados no existen —la pelea los
+; arma y los tira— y un caído es sólo un actor con cero HP, así que llenarlos
+; ya lo levanta.
+;
+; Se entra desde `op_heal` con Y en el operando, que es el actor o 0 por todo
+; el grupo —el `GetActors` de `game_interpreter.cpp:1539`, ver FULL_HEAL en
+; eventos.py—, y se vuelve con Y después de él. Vive **fuera del banco 0**
+; por lo mismo que `hp_inicial_poner`, y por eso todo lo que toca va con `f:`
+; o es de la página directa.
+;
+; No reusa `hp_inicial_poner` a propósito: aquélla llena a los 61 actores de
+; una, y `FullHeal [0, 0]` es el grupo y nadie más. Lo cobra
+; `test_full_heal_del_grupo_no_cura_a_los_de_afuera`.
+.proc curar
+.a8
+.i16
+    lda [cod_ptr], y
+    iny
+    phy
+    cmp #0
+    bne uno
+    ; Hasta `grupo_n` y no las cuatro ranuras: las de más no se limpian al
+    ; sacar a alguien, y en la tanda se vio una con 85 —curarlo era escribir
+    ; en los SP del actor 21—.
+    ldx #0
+ranura:
+    cpx grupo_n
+    bcs listo
+    lda grupo, x
+    phx
+    jsr curar_actor
+    plx
+    inx
+    bra ranura
+listo:
+    ply
+    rtl
+uno:
+    jsr curar_actor
+    ply
+    rtl
+.endproc
+
+; El actor A, a sus máximos. Se lleva X.
+.proc curar_actor
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_hpmax, x
+    sta f:FAR_LARGO + FAR_HP, x
+    lda f:actor_spmax, x
+    sta f:FAR_LARGO + FAR_SP, x
+    sep #$20
+.a8
+    rts
 .endproc
 
 ; Los HP de ahora de un actor, en su fila del panel del grupo: tres cifras

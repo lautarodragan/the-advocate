@@ -44,3 +44,4 @@ OP_IF_ACTOR      = $24
 OP_ACTOR_SPRITE  = $25
 OP_KEY           = $26
 OP_PLACE_VAR     = $27
+OP_HEAL          = $28

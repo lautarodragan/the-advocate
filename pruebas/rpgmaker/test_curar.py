@@ -1,0 +1,115 @@
+"""`FullHeal` después de perder una pelea: el grupo vuelve con todo lleno.
+
+Es el bug que taro encontró jugando el 2026-09-19. La pelea obligatoria del
+mapa 9 —`EV0004`, tropa 86: cuatro GangMember contra Talan en nivel 1— se
+pierde por diseño, y su manejador de derrota llama a `FullHeal`. Ése
+**compilaba a nada** desde `ced9464`, de cuando los HP no bajaban nunca fuera
+de pelea; al día siguiente `9527063` los hizo estado y nadie volvió a mirarlo.
+Así que Talan seguía en cero, el primer encuentro al azar se daba por perdido
+sin abrirse —"nadie en pie", `batalla_correr`— y `move_hero` volvía al título.
+La demo no pasaba de ahí.
+
+Ninguna prueba corría un `FullHeal` después de perder, que es exactamente lo
+que AGENTS.md llama un camino que ninguna prueba ejecuta.
+
+**Cómo se pierde sin pelear**: igual que en `test_game_over.py`, con los HP de
+todos en cero antes de que la página abra la pelea. La página `pelea-82-curar`
+espera 18 ticks para eso, y su manejador de derrota es un `FullHeal [0, 0]`.
+Corre en el mapa 20 porque tiene encuentros al azar en la celda de llegada y
+ningún evento que toque el grupo, y el control necesita las dos cosas.
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+
+from test_game_over import cuadros_hasta_reiniciar, sin_hp    # noqa: E402
+
+# Cuántos ticks se le dan a la página para perder la pelea y correr el
+# manejador. La pelea sale a los 18 y, perdida sin pelear, no abre pantalla.
+DESPUES_DE_PERDER = 60
+
+
+def maximos():
+    """Los HP y SP máximos de cada actor, sacados del LDB y no de la ROM.
+
+    Es la misma cuenta que emite `actor_hpmax`, pero leída del otro lado: si
+    la ROM copiara de una tabla equivocada, comparar contra esa misma tabla
+    daría verde.
+    """
+    from port import titulo
+    from rpgmaker import lcf
+    from render.render_map import GAME_DIR
+    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    return {a: (titulo.parametro_de(actor, "maxhp"),
+                titulo.parametro_de(actor, "maxsp"))
+            for a, actor in db.actors.items()}
+
+
+def palabra_de(una, simbolo, actor):
+    bajo, alto = una.consola.ram(una.simbolos[simbolo] + 2 * actor, 2)
+    return bajo | (alto << 8)
+
+
+def grupo_de(una):
+    """Hasta `grupo_n`: las ranuras de más no se limpian y traen basura."""
+    return list(una.consola.ram(una.simbolos["grupo"], una.palabra("grupo_n")))
+
+
+def perdida_y_curada(partida):
+    una = partida(caso="pelea-82-curar")
+    sin_hp(una)
+    largo = una.simbolos["FAR_SP"] - una.simbolos["FAR_HP"]
+    una.consola.escribir_ram(una.simbolos["FAR_SP"], [0] * largo)
+    una.correr(DESPUES_DE_PERDER)
+    return una
+
+
+def test_full_heal_despues_de_perder_llena_hp_y_sp_del_grupo(partida):
+    una = perdida_y_curada(partida)
+    grupo = grupo_de(una)
+    assert grupo, "el grupo quedó vacío: la prueba no mide nada"
+    tope = maximos()
+    for actor in grupo:
+        hp, sp = tope[actor]
+        assert palabra_de(una, "FAR_HP", actor) == hp, (
+            "el actor %d quedó con %d HP después del FullHeal y el máximo es "
+            "%d" % (actor, palabra_de(una, "FAR_HP", actor), hp))
+        assert palabra_de(una, "FAR_SP", actor) == sp, (
+            "el actor %d quedó con %d SP después del FullHeal y el máximo es "
+            "%d" % (actor, palabra_de(una, "FAR_SP", actor), sp))
+
+
+def test_full_heal_del_grupo_no_cura_a_los_de_afuera(partida):
+    """`GetActors(0, …)` es el grupo y nadie más: uno de afuera sigue en cero.
+
+    Sin esto, una ROM que llenara a los 61 actores —que es lo que hace
+    `hp_inicial_poner`, y reusarla era la tentación— pasaría la de arriba.
+    """
+    una = perdida_y_curada(partida)
+    afuera = [a for a in range(1, 13) if a not in grupo_de(una)]
+    for actor in afuera:
+        assert palabra_de(una, "FAR_HP", actor) == 0, (
+            "el actor %d no está en el grupo y el FullHeal [0, 0] le llenó "
+            "los HP" % actor)
+
+
+def test_el_encuentro_de_despues_no_reinicia(partida):
+    """El control del bug entero: con el grupo curado, un encuentro al azar se
+    abre y se pelea en vez de darse por perdido y volver al título.
+
+    `ENC_PIDE` es lo que `encuentro_paso` prende cuando sale uno; se lo prende
+    a mano para no depender de caminar ni de un tiro de dado. Visto en rojo
+    antes del arreglo: la ROM se reiniciaba a los pocos cuadros.
+    """
+    una = perdida_y_curada(partida)
+    una.consola.escribir_ram(una.simbolos["ENC_PIDE"], [1])
+    assert cuadros_hasta_reiniciar(una, tope=300) is None, (
+        "el grupo perdió una pelea, el manejador llamó a FullHeal, y el "
+        "encuentro siguiente igual volvió al título: los HP no se curaron")
+    assert una.byte("menu_abierto"), (
+        "el encuentro no abrió la pelea: sin eso, que no se reinicie no dice "
+        "nada")

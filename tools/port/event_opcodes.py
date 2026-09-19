@@ -45,6 +45,7 @@ OP_IF_ACTOR      = 0x24
 OP_ACTOR_SPRITE  = 0x25
 OP_KEY           = 0x26
 OP_PLACE_VAR     = 0x27
+OP_HEAL          = 0x28
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -86,6 +87,7 @@ OPCODE_SIZE = {
     OP_ACTOR_SPRITE: 3,
     OP_KEY: 3,
     OP_PLACE_VAR: 4,
+    OP_HEAL: 2,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -139,6 +141,7 @@ LAYOUT = {
     OP_ACTOR_SPRITE: (("actor", 1, False), ("graphic", 1, False)),
     OP_KEY: (("slot", 1, False), ("flags", 1, False)),
     OP_PLACE_VAR: (("target", 1, False), ("x_slot", 1, False), ("y_slot", 1, False)),
+    OP_HEAL: (("actor", 1, False),),
 }
 
 

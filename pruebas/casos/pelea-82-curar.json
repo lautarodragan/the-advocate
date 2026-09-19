@@ -1,0 +1,11 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [20, 51, 50]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "EnemyEncounter", "parameters": [0, 82, 0, 0, 1, 0]},
+    {"code": "VictoryHandler"},
+    {"code": "DefeatHandler"},
+    {"code": "FullHeal", "indent": 1, "parameters": [0, 0]},
+    {"code": "EndBattle"}
+  ]
+}
