@@ -393,8 +393,7 @@ def puede_en_diagonal(orden, puede):
     return ((puede(vertical) and puede(horizontal, codo_v))
             or (puede(horizontal) and puede(vertical, codo_h)))
 
-# Las órdenes de ruta que sabemos caminar, en un solo lugar. `destraba.py` mide
-# con esta misma lista, así que el día que aprenda una más el número sube solo.
+# Las órdenes de ruta que sabemos caminar, en un solo lugar.
 RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
@@ -1409,10 +1408,8 @@ def agrupar(comandos):
     Un `ShowMessage_2` suelto se devuelve solo y no compila, que es lo correcto:
     sería una línea sin ventana donde ponerla.
 
-    Lo usan los dos que filtran páginas —`compilar_pagina` y `destraba.py`—
-    porque el agrupado es parte del filtro, no del emisor: contar los comandos
-    por separado es lo que hizo medir mal cuánto destrababa hacer los cuadros
-    de texto.
+    Es parte del filtro y no del emisor: contar los comandos por separado es
+    lo que hizo medir mal cuánto destrababa hacer los cuadros de texto.
     """
     comandos = list(comandos)
     i = 0
@@ -2391,7 +2388,7 @@ def escritura_pide_refresco(numero, eventos_mapa):
     Es `SetNeedRefreshForVarChange` resuelto al compilar: sólo piden refresco
     las variables que alguna condición de página del mapa mira. **Sin el mapa
     se pide siempre**, que es lo que hacía el port antes de esto y lo único
-    honesto cuando no se sabe quién mira qué: `destraba.py` compila así.
+    honesto cuando no se sabe quién mira qué.
     """
     if eventos_mapa is None or eventos_mapa.vars_observadas is None:
         return VAR_REFRESCO     # sin el mapa, o después de irse de él
@@ -3090,8 +3087,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
 
 # Hasta dónde se anida un `CallEvent`. No es una precaución abstracta: un
 # evento común puede llamarse a sí mismo —el cuerpo en línea sería infinito— y
-# dos pueden llamarse entre ellos. Cuatro es lo que usa `destraba.py` desde que
-# mide CallEvent, y en este juego la cadena más larga que compila es de uno.
+# dos pueden llamarse entre ellos. En este juego la cadena más larga que
+# compila es de uno.
 LLAMADA_MAX = 4
 
 

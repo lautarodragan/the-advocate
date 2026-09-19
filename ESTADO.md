@@ -151,9 +151,10 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
 efectos por el SPC700.
 
-Las páginas automáticas que compilan enteras son **350 de 489** —medido el
-2026-09-15 con `just destraba`; el 332 que decía acá y el 281 y el 314 que
-decía el README eran los tres viejos—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
+**Cuántas páginas compilan ya no lo mide nada**: lo hacía `just destraba`, que
+se fue el 2026-09-19 porque no era ni pipeline ni prueba. Lo último medido: las
+páginas automáticas que compilan enteras eran **350 de 489** —el 2026-09-15; el
+332 que decía acá y el 281 y el 314 que decía el README eran los tres viejos—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
 eran 5170 antes de las dos preguntas de actor de una rama, y 5016 antes de la
 clase 6 de `ControlVars`. El 5156 que decía acá era de antes del merge
 `f336b63`; medido de nuevo el 2026-09-13 sobre `5461d6d`, la base es 5170.
@@ -1324,8 +1325,7 @@ al borrarlo.
 
 Mudado del README el 2026-09-15: es lo que está a medias, o sea de este
 archivo. Lo derivable no está acá y no debería volver: qué comandos se aceptan
-sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/eventos.py`, y cuánto
-destraba cada uno, `just destraba`.
+sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/eventos.py`.
 
 * **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
   compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
@@ -1487,20 +1487,12 @@ destraba cada uno, `just destraba`.
   jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
   **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
   el toque de A resincroniza los dos lados.
-* **Lo que le falta al juego entero.** Cuántas de las páginas automáticas con
-  comandos compilan enteras, y cuántas destrabaría cada comando que falta, lo
-  imprime **`just destraba`**, y ése es el único lugar del que hay que
-  sacarlo: los números que estuvieron escritos acá envejecieron sin avisar, y
-  llegaron a contradecirse entre sí en dos archivos del repo.
-
-  **Ese número hay que leerlo con cuidado, y por eso `tools/destraba.py` muestra
-  dos columnas.** Contar qué comando corta *primero* cada página no mide lo que
-  se destraba: una página cortada por un cuadro de texto puede estar cortada
-  además por otras cuatro cosas. Y aceptar un código entero cuenta lo que se
-  destrabaría con el comando hecho **para todos los casos que el juego usa**, que
-  es un techo: sobre `MoveEvent`, contar las rutas que la ROM no va a saber
-  caminar y los blancos que no existen infla el número frente a contar sólo las
-  órdenes que ya hace. Los candidatos que todavía no tienen filtro son techos.
+* **Lo que le falta al juego entero.** Hasta el 2026-09-19 lo medía `just
+  destraba`: cuántas páginas pasarían a compilar enteras con cada comando que
+  falta. Se fue con lo que no era ni pipeline ni prueba; el criterio que usaba
+  —contar páginas enteras y no qué comando corta primero, y leer como techo lo
+  que un comando destrabaría hecho para todos los casos— está en su historia,
+  `git log -- tools/destraba.py`.
 
   Y una nota que sigue valiendo: de las páginas con `MoveEvent`, la mayoría
   mueve **otro evento** y no al héroe, o sea que piden que los NPCs caminen, que
@@ -1685,16 +1677,11 @@ de ese día —herramientas y recetas, lo muerto adentro de lo que queda, y la
 prosa—; lo que queda acá es lo que **se quedó sin estar claro**, para que
 decida taro:
 
-* **`destraba`** no es pipeline ni prueba, pero `AGENTS.md` lo nombra como el
-  comando que imprime cuántas páginas compilan. Se quedó por eso.
+* **`destraba`, `play` y `rom/Containerfile`**: decidido por taro el mismo día,
+  se fueron.
 * **`tools/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
   sale `tools/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
   sin cómo regenerarse. Se quedó; una receta como `protocolo` lo haría visible.
-* **`play`** y las variables `corrida`, `snes_dir` y `snes_rom`: corre desde el
-  host y por eso no se tocó, pero la ROM que abre por omisión, `abl.sfc`, la
-  armaba `build`, que se fue.
-* **`rom/Containerfile`**: el toolchain en podman de antes de `box`. No lo usa
-  ninguna receta; es de podman y por eso no se tocó.
 * **`assets/medir.py`** se fue, y con él la forma de repetir los números de
   `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.
 * **Las cuatro esquinas de la cámara** y **el audio contra el MIDI** quedaron
