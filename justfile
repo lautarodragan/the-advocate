@@ -96,33 +96,6 @@ herramientas:
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;
 # si falta alguna, el que la busca dice cuál y cómo tenerla.
 
-# Qué ROM abre `play`: `rom/build/abl.sfc`, o con `CORRIDA=algo` la de
-# `rom/build/algo/`. **Nada arma ya esa ruta por omisión**: la armaba `build`,
-# que se fue el 2026-09-19 con todo lo que no era ni pipeline ni pruebas.
-# `play` corre desde el host y por eso no se tocó; `CORRIDA=demo-ciudad just
-# play` abre la demo.
-corrida  := env_var_or_default("CORRIDA", "")
-snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
-snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
-
-# Cuánto destraba cada comando de evento que todavía no hacemos: cuántas páginas
-# pasan a compilar **enteras** si se hiciera.
-#
-# Es lo que decide por dónde seguir, y no es lo mismo que la tabla de "Lo que
-# falta" del README, que cuenta qué comando corta **primero** cada página: una
-# cortada por un cuadro de texto puede estar cortada además por otras cuatro
-# cosas.
-#
-# Se corre después de cada feature nueva: el orden cambia a medida que las
-# páginas se van destrabando entre ellas.
-#
-# Al final imprime aparte **qué órdenes de `MoveCommand` faltan**, sobre todas
-# las páginas del juego. Es la pregunta de adentro de `MoveEvent`, y está acá
-# porque la respuesta cambia de signo de un día para el otro: un número viejo de
-# esta pregunta ya mandó a hacer trabajo que no existía.
-destraba:
-  python3 tools/destraba.py
-
 # **Todas las pruebas**, que desde el 2026-09-16 son las dos redes a la vez.
 #
 # Las de estado le preguntan a la ROM en qué mapa está, qué switch tiene
@@ -454,8 +427,3 @@ demos:
 # el MSU-1 no se enciende.
 msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
-
-# La ROM en una ventana, con sonido. Va en el host: acá adentro no hay
-# dispositivo de audio, y el ALSA propio de mednafen abre hw:0.
-play:
-  mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl {{snes_rom}}
