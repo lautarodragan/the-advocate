@@ -3047,7 +3047,6 @@ se pregunta:
 
 * qué comandos se aceptan y no se hacen lo dice `ACEPTADOS_SIN_HACER`, en
   `tools/eventos.py`, que es una lista ejecutable y no puede desincronizarse;
-* cuántas páginas destraba cada cosa que falta lo dice `just destraba`;
 * qué órdenes de ruta no sabemos caminar, también.
 
 ## Referencias

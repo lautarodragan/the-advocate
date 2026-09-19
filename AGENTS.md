@@ -24,9 +24,8 @@ código no lo lee nadie cuando hace falta.
 **Un número se escribe sólo si es propiedad del hardware o del formato.** Los
 32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
 ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
-va escrito en ningún lado, va el comando que lo imprime**: cuántas páginas
-compilan es `just destraba`, cuántos casos pasan es `just pruebas`,
-cuánto pesa el cartucho lo dice el build.
+va escrito en ningún lado, va el comando que lo imprime**: cuántos casos
+pasan es `just pruebas`, cuánto pesa el cartucho lo dice el build.
 
 El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
 y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de ésos
@@ -202,9 +201,8 @@ acá queda escrito en su disco. El resto del sistema es descartable, y por eso
 
 Lo que el contenedor cambia en la práctica:
 
-* **No hay podman adentro.** Las recetas que lo usan —todo el port a Mega
-  Drive, y `audio-validar`— van desde el host. El justfile lo aclara en cada
-  una.
+* **No hay podman adentro**, y desde el 2026-09-19 ninguna receta lo usa: el
+  port a Mega Drive, `audio-validar` y el `rom/Containerfile` se fueron.
 * **`.git/config` y `.git/info` están montados de sólo lectura**, y
   `.git/hooks` es un tmpfs vacío: `git config` falla y ningún hook corre.
 * **No hay puertos publicados.** Nada que se sirva acá adentro se ve desde el
