@@ -259,8 +259,8 @@ filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
 que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen rom/build/abl.sfc`, una receta de `just`—
-suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
+que se le pida a taro —`mednafen rom/build/demo-ciudad/demo-ciudad.sfc`, una
+receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 
 Lo que sí o sí es del host: el `git push`, cualquier cosa con podman, el
@@ -286,10 +286,11 @@ y se tira.
 **Un `.inc` generado nunca va al lado de `main.s`.** `ca65` busca los
 `.include` primero en el directorio del archivo que incluye y recién después en
 los `-I`, así que un `mapdata.inc` en `rom/src/` taparía al del cartucho sin
-avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 `convert`
-escribía justo ahí —era "estado global", y así se terminó mirando el mapa 6
-creyendo que era la demo del hito 12—; hoy escribe en `rom/build/inc/`, y
-`tools/ensamblar.py` se niega a armar si encuentra uno en `rom/src/`. **Las
+avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
+`convert` escribía justo ahí —era "estado global", y así se terminó mirando el
+mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
+en su directorio de `rom/build/`, y `tools/ensamblar.py` se niega a armar si
+encuentra uno en `rom/src/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 
 **Cuánto le sobra al banco 0 depende de qué cartucho se arme.** Las tablas que
@@ -468,7 +469,7 @@ Y en cualquier caso, al retomar conviene mirar, en este orden:
    `~/.claude/projects/<proyecto>/<sesión>/subagents/agent-<id>.jsonl`. Son
    megas: se lee **del final hacia atrás, una entrada por vez**, mirando qué
    herramienta usó última. Nunca entero.
-4. **Lo que dejó corriendo**: `pgrep -af "pytest|snes_correr"` y
+4. **Lo que dejó corriendo**: `pgrep -af "pytest|cartuchos"` y
    `git worktree list`.
 
 Y para el agente nuevo que lo reemplace: pasarle lo que el anterior dejó escrito

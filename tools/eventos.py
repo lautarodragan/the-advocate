@@ -532,9 +532,7 @@ IGNORABLES = {
 # SPC700 al arrancar, así que cambiar de tema en caliente pide varios bancos en
 # el cartucho y volver a subir en mitad del juego; es una feature de audio, no
 # un comando más. Lo que se pierde: una página que cambie la música deja la que
-# venía sonando. La pantalla no lo nota, pero `audio-check` compararía el audio
-# contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
-# la prueba mediría lo que no es. Ver "Lo que falta" en README.md.
+# venía sonando. La pantalla no lo nota. Ver "Lo que falta" en README.md.
 # WeatherEffects prende o apaga la lluvia. Se acepta sin dibujarla, y la deuda
 # es de las grandes, así que va con todas las letras.
 #
@@ -566,9 +564,7 @@ WEATHER_EFFECTS = 11070
 # PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan.
 # Suena desde el 2026-09-11 (ver OP_SOUND); hasta ahí se aceptaba sin
 # tocarlo, y era la deuda más barata de todas las que hay acá: **no se
-# ve**. La pantalla que se compara es exactamente la misma con y sin sonido, y
-# el audio que sí se compara —`audio-check`, contra el MIDI del mapa— tampoco
-# cambia, porque el tema de fondo sigue sonando igual.
+# ve**. La pantalla que se compara es exactamente la misma con y sin sonido.
 #
 # Lo que costaba hacerlo era la ARAM: la ROM sube **un solo banco de muestras**
 # al SPC700 al arrancar. Se resolvió metiendo los efectos en ese mismo banco,

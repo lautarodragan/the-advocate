@@ -1173,15 +1173,11 @@ entera del Emitter Room. Lo que la tanda no mira:
   abre, no veinte: con veinte, el toque del cuadro 1976 llegó **uno** antes de
   tiempo.
 
-* **El audio.** `just bgm <tema>` graba cuarenta segundos y los compara
-  contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
-  demo pasaron el 2026-09-06 —96%, 98%, 83% y 90%—, pero eso hay que volver a
-  correrlo a mano.
-
-  `evilrhys` es el ruidoso: dio 66%, 75% y 83% en tres corridas contra un techo
-  de 95% que le da FluidSynth con el mismo MIDI. No es el banco compartido —sus
-  escrituras melódicas son idénticas con banco propio—; es que tiene ocho
-  canales melódicos para seis voces, así que dos no suenan nunca.
+* **El audio no lo mira nada automático.** Las medidas contra el MIDI —`just
+  bgm`, `audio-check` y `referencia`— se fueron el 2026-09-19 con todo lo que no
+  era ni pipeline ni pruebas; la última vez que se corrieron, el 2026-09-06, los
+  cuatro temas de la demo dieron 96%, 98%, 83% y 90%. Lo que queda es el oído de
+  taro. Ver "Cómo se verificaba el audio" en el README.
 
 * **La convención de la tabla de mapas.** Cómo se arma —el de `--map-id`
   primero, después los de `--mapas` sin repetir— está escrito igual en el
@@ -1304,7 +1300,7 @@ destraba cada uno, `just destraba`.
   acordado con taro el 2026-09-11, **no** es un secuenciador en el SPC700 como
   los de los juegos comerciales, sino uno chico que lea el mismo stream de hoy
   desde un buffer circular en la ARAM, a su propio ritmo, y que el 65816 sólo
-  mantenga lleno. El conversor y `audio-check` no cambian, y los efectos de
+  mantenga lleno. El conversor no cambia, y los efectos de
   sonido pasarían allá también. Se encara cuando haga falta el margen del lazo,
   o si en la consola el audio muestra algo que el emulador no.
 * **El sistema de imágenes, más allá del cartel.** La ROM dibuja **un**
@@ -1436,10 +1432,6 @@ destraba cada uno, `just destraba`.
   está—; con los cuatro
   puertos en vez de uno, en cambio, se acorta el arranque, que hoy es
   `BOOT_CUADROS`, dimensionado para una ARAM llena.
-
-  Y un efecto que conviene tener presente: `audio-check` compara el audio contra
-  el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
-  nombrarlo. Para eso está `just bgm <tema>`.
 
 * **La cinemática de apertura, entera.** Corre con ventana
   —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y `escape_newyork`
@@ -1639,6 +1631,31 @@ libretro sin ctypes. Medido ese día con cProfile sobre
 core emulando y cargándose —ya es C—, y lo que es Python no llega a uno. El
 arnés en C no bajaría el tiempo y cambiaría pytest, PIL y el caché de
 cartuchos por código propio.
+
+## Lo que no es pipeline ni pruebas: se fue el 2026-09-19
+
+La regla es de taro: *"yo no estoy usando nada manualmente, así que si algo no
+es ni parte del pipeline ni parte de las pruebas, puede irse"*. Es la limpieza
+previa a repartir `tools/` en carpetas. Qué se fue lo dicen los tres commits
+de ese día —herramientas y recetas, lo muerto adentro de lo que queda, y la
+prosa—; lo que queda acá es lo que **se quedó sin estar claro**, para que
+decida taro:
+
+* **`destraba`** no es pipeline ni prueba, pero `AGENTS.md` lo nombra como el
+  comando que imprime cuántas páginas compilan. Se quedó por eso.
+* **`tools/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
+  sale `tools/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
+  sin cómo regenerarse. Se quedó; una receta como `protocolo` lo haría visible.
+* **`play`** y las variables `corrida`, `snes_dir` y `snes_rom`: corre desde el
+  host y por eso no se tocó, pero la ROM que abre por omisión, `abl.sfc`, la
+  armaba `build`, que se fue.
+* **`rom/Containerfile`**: el toolchain en podman de antes de `box`. No lo usa
+  ninguna receta; es de podman y por eso no se tocó.
+* **`assets/medir.py`** se fue, y con él la forma de repetir los números de
+  `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.
+* **Las cuatro esquinas de la cámara** y **el audio contra el MIDI** quedaron
+  sin quien los mire: los cobraban `mapa` y `bgm`/`audio-check`, y no estaban en
+  `just pruebas`. El README lo dice en cada lugar.
 
 ## Lo que se dejó afuera a propósito
 

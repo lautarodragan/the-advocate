@@ -1978,7 +1978,8 @@ def convert_ventana(sys_img, font_id=None):
     """La ventana de mensaje: tiles, paleta, celdas y lo que la fuente necesita.
 
     La imagen la arma `ventana.py`, que sigue las reglas de easyrpg-player y
-    está verificada contra una captura del juego original: ver `oraculo`.
+    está verificada contra una captura del juego original corriendo en
+    EasyRPG.
     Acá se la corta en celdas de 8x8 y se separa lo fijo de lo que la ROM
     compone.
 
@@ -5037,11 +5038,11 @@ def parser_de_flags():
                              "corre nada")
     parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
                         help="hace que la ROM arranque tocando ese tema en vez\n"
-                             "del que le toca al mapa. Existe para poder\n"
-                             "verificar cada tema del cartucho con audio-check,\n"
-                             "que escucha desde el arranque: los mapas donde\n"
-                             "esto empieza no traen música propia y sin el flag\n"
-                             "la ROM sale callada. No cambia el bytecode")
+                             "del que le toca al mapa. Existe para escuchar un\n"
+                             "tema desde el arranque —la receta `musica`— y\n"
+                             "para las pruebas: los mapas donde esto empieza\n"
+                             "no traen música propia y sin el flag la ROM sale\n"
+                             "callada. No cambia el bytecode")
     parser.add_argument("--encuentros-de-prueba", type=int, default=None,
                         metavar="PASOS",
                         help="cada cuántos pasos hay un encuentro al azar, "

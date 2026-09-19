@@ -1,11 +1,11 @@
 """La batalla por turnos: los HP, el daño, el orden de turnos y por dónde sigue
 la página.
 
-Es la mitad de la red que la tanda de pixeles no puede cubrir. `batalla`
-compara **la pantalla** contra `pantallas.pantalla_batalla` y no puede hacer
-más: la pelea bloquea adentro del intérprete y no cuesta ningún tick, así que
-del lado de la referencia no había nada dibujado —ver `OP_BATTLE` en
-tools/eventos.py—. Lo que pasa adentro se mira desde acá.
+Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
+`batalla*` de `test_tanda_pantallas.py` comparan **la pantalla** contra su
+golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
+cuesta ningún tick —ver `OP_BATTLE` en tools/eventos.py—. Lo que pasa adentro
+se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
 modelo de `tools/batalla.py` juega la misma pelea con el mismo azar y las

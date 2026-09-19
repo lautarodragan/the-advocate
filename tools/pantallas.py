@@ -377,7 +377,7 @@ BA_ORDENES = (
 )
 
 # Ninguna orden está sin hacer desde el 2026-09-13: la habilidad era la única y
-# ahora se puede elegir. Queda la tupla porque la pantalla la consulta y porque
+# ahora se puede elegir. Queda la tupla porque el conversor la consulta y porque
 # es donde va la próxima que se agregue a medias.
 #
 # Lo que sí se pone en gris es la habilidad **de un actor que no sabe ninguna**

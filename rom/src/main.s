@@ -809,9 +809,9 @@ par_ev:      .res 1     ; de qué evento es, para moverlo detrás del intérpret
 ; dibuja: la lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante.
 ; Acá normalmente coinciden, y se separan cuando una vuelta se pasa del cuadro.
 ;
-; Lo lee `snes_correr.py` por la WRAM para saber **qué tick** está mirando: la
-; comparación es contra la referencia, que cuenta ticks, así que con esto deja
-; de importar si la ROM llegó tarde. Lo tarde que llega lo dice
+; Lo leen las pruebas por la WRAM para saber **qué tick** están mirando —ver
+; `Partida` en pruebas/arnes/consola.py—, así que con esto deja de importar si
+; la ROM llegó tarde. Lo tarde que llega lo dice
 ; `cuadros_perdidos`, que es otra pregunta.
 vueltas:     .res 2
 ; Lo único que la animación del ChipSet guarda: qué hay que subir en el vblank
@@ -1323,10 +1323,11 @@ contada:
 ; uno de más es un cuadro que la ROM perdió, porque la vuelta tardó más que un
 ; cuadro y `wait_vblank` tuvo que esperar al siguiente. Se mira acá, al final
 ; de la vuelta, y no a la salida de `wait_vblank`: ahí la NMI de este cuadro
-; puede no haber corrido todavía. Contra la referencia un cuadro perdido es
+; puede no haber corrido todavía. Contra una golden un cuadro perdido es
 ; una posición atrasada, y la comparación lo cobra en pixeles sin decir por
-; qué; este contador dice por qué. Lo lee snes_correr.py por la WRAM del
-; emulador, y en la consola no lo lee nadie. Satura en 255.
+; qué; este contador dice por qué. Lo leen las pruebas por la WRAM del
+; emulador —`Partida.cuadros_perdidos`—, y en la consola no lo lee nadie.
+; Satura en 255.
 .proc contar_perdidos
 .a8
 .i16
@@ -14721,8 +14722,7 @@ si_a:
 ; Las reglas —daño, acierto, crítico, varianza, orden de turnos, huida— salen
 ; de easyrpg-player y están escritas dos veces: acá y en `tools/batalla.py`,
 ; que es lo que le permite a `pruebas/rpgmaker/test_batalla.py` predecir el número
-; exacto que cada HP va a tener. La pantalla es de texto, sobre negro, y su
-; referencia es `pantallas.pantalla_batalla`.
+; exacto que cada HP va a tener. La pantalla es de texto, sobre negro.
 ;
 ; **El código de la pelea no vive en el banco 0**: son unos dos kilobytes y en
 ; el banco 0 quedaban trescientos bytes. Vive en RODATA —ver `batalla_correr`,
@@ -26661,9 +26661,8 @@ ordenado:
 ; --- la pantalla ----------------------------------------------------------
 ;
 ; De texto y sobre negro, en la misma grilla de 32 por 28 celdas que el equipo
-; y la tienda: `pantallas.pantalla_batalla` es la referencia y el conversor
-; emite las posiciones, así que la geometría la escribe **uno solo de los dos
-; lados**. Arriba los enemigos, abajo el grupo, y el último renglón es o el
+; y la tienda. La geometría sale de `tools/pantallas.py` y el conversor emite
+; las posiciones, así que la escribe **uno solo de los dos lados**. Arriba los enemigos, abajo el grupo, y el último renglón es o el
 ; menú de órdenes o los dos renglones del mensaje.
 
 ; `BA_T1` = A16 + `BA_S0` por lo que mide un renglón: dónde arranca el renglón
@@ -27950,7 +27949,7 @@ no:
     rts
 .endproc
 
-; La pantalla entera, en `texto_buf`. Es `pantallas.pantalla_batalla`.
+; La pantalla entera, en `texto_buf`.
 .proc ba_componer
 .a8
 .i16

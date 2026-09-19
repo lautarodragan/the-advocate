@@ -444,8 +444,7 @@ def _escribir_nivel(destino, sys_img, x, y, db, font_id, actor):
     número a dos cifras en el color normal. En el ABL es "L  1". Los puntos de
     vida que RM2k pone al lado no van: este port no los tiene.
 
-    Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo:
-    ver `rom/easyrpg.sh`.
+    Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo.
 
     **El número es el del actor y no una constante**, desde el 2026-09-13: con
     Kersh de líder dice 20 y con Core 15. Por eso este renglón se dibuja en la

@@ -8,8 +8,8 @@ de esperar en tiempo real, y deja de depender de cuántos cuadros alcanzó a
 emular la máquina mientras dormíamos.
 
 Andan los tres cores que hay instalados —snes9x, bsnes y mesen-s— y los tres
-dibujan **el mismo cuadro a 15 bits**, que es la precisión a la que compara
-`snes_compare.py`: 0 pixeles de diferencia de 57344, medido en el mapa 7 a los
+dibujan **el mismo cuadro a 15 bits**, que es la precisión a la que comparan
+las pruebas: 0 pixeles de diferencia de 57344, medido en el mapa 7 a los
 180 cuadros. Que tres emuladores independientes coincidan es lo que vuelve
 creíble a cualquiera de ellos como segunda opinión.
 

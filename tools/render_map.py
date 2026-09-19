@@ -1,14 +1,9 @@
-"""Renderiza un mapa de A Blurred Line (RPG Maker 2000) a un PNG.
+"""Las capas de un mapa de A Blurred Line (RPG Maker 2000) como imágenes.
 
-Las dos capas de tiles más los eventos en su posición inicial, tal como se
-verían al empezar una partida nueva. Sin panorama y sin el héroe.
-Es el paso cero del port a Mega Drive: confirmar que podemos leer los datos
-originales y reconstruir lo que se ve en pantalla.
-
-Uso:
-    python3 tools/render_map.py                 # el mapa por defecto
-    python3 tools/render_map.py --map-id 8
-    python3 tools/render_map.py --map Maps/Map0001.lmu -o /tmp/mapa.png
+Las dos capas de tiles resueltas contra su ChipSet, con los dibujos de la
+animación del agua y de los tiles animados, y los CharSets que se les ponen
+encima. Es lo que el conversor corta en tiles: ver `Renderer.capas_animadas`.
+Sin panorama y sin eventos: de los eventos se ocupa el conversor.
 """
 
 import os
@@ -212,8 +207,8 @@ class Charsets:
         """Un CharSet inventado con un tile de la página alta del chipset en
         las doce poses del personaje 0, apoyado en la celda: el cuadro de un
         personaje mide 24x32 y se dibuja en (x - 4, y - 16), así que el tile
-        de 16x16 va en (4, 16) de cada cuadro. Es lo que hace `draw_events`
-        con un evento sin CharSet, sólo que como sprite, para que se mueva y
+        de 16x16 va en (4, 16) de cada cuadro. Es como RM2k dibuja un evento
+        sin CharSet, sólo que como sprite, para que se mueva y
         se cambie de lugar como cualquier otro."""
         _, chipset, indice = name.split(":", 2)
         atlas = self.atlas_por_nombre(chipset) if self.atlas_por_nombre else None

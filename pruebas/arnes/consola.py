@@ -81,12 +81,10 @@ EMPEZAR = 0
 
 
 def toques_de(pares, flag):
-    """Los `BOTON:CUADRO` del corredor, a {cuadro: (botones,)}.
+    """Los `BOTON:CUADRO` de una lista de toques, a {cuadro: (botones,)}.
 
-    Es el mismo formato que `--toques`, `--tocar` y `--toques-hardware` leen en
-    `snes_correr.py`, y a propósito: mientras las recetas y las pruebas
-    convivan, un caso mudado tiene que poder copiar su lista tal cual. El
-    número está en el reloj que diga cada flag; acá sólo se parte el par.
+    El número está en el reloj que diga cada lista —ver `Partida.correr`—; acá
+    sólo se parte el par.
     """
     cuando = {}
     for toque in pares or ():
@@ -101,17 +99,16 @@ def toques_de(pares, flag):
 class Partida:
     """La ROM corriendo, con el arranque ya pasado.
 
-    `correr` avanza **ticks** apretando A donde se le diga, con la misma
-    convención que `snes_correr.py` —un toque por número, apretado un tick
-    antes por `RETRASO_DE_PANTALLA`— para que una lista de toques sirva igual
-    en un caso de pixeles y en una prueba de estado.
+    `correr` avanza **ticks** apretando A donde se le diga: un toque por
+    número, apretado un tick antes por `RETRASO_DE_PANTALLA`. Es la misma
+    convención en un caso de pixeles y en una prueba de estado, así que una
+    lista de toques sirve igual en los dos.
 
     Un tick es una vuelta del lazo principal, o sea un paso de lógica de RM2k.
     Normalmente es un cuadro de hardware, y se separan cuando una vuelta se
     pasa del cuadro: al entrar a Lashe City las dos primeras miden 370 y 386
     líneas de las 262 que hay. La ROM lleva la cuenta en `vueltas` y acá se la
-    pregunta, en vez de suponer que un cuadro es un tick. Ver `Reloj` en
-    `tools/snes_correr.py`.
+    pregunta, en vez de suponer que un cuadro es un tick.
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
@@ -140,9 +137,8 @@ class Partida:
         # sube el banco de muestras a la ARAM el mapa está congelado.
         #
         # Y el contador **no** lo cuenta: los números de `apretar_a` se cuentan
-        # desde el primer cuadro de juego, que es como los cuenta `--arranque`
-        # en `snes_correr.py`. Contándolo, cada toque caía ciento quince
-        # cuadros antes de tiempo y la escena no avanzaba.
+        # desde el primer cuadro de juego. Contándolo, cada toque caía ciento
+        # quince cuadros antes de tiempo y la escena no avanzaba.
         self.consola.correr(self.simbolos["BOOT_CUADROS"])
         # Con pantalla de título el arranque no termina en el mapa sino en el
         # menú, y el primer cuadro de juego es el de después de elegir.
@@ -182,9 +178,8 @@ class Partida:
                     "el caso %d empieza con un Teleport y la ROM no está "
                     "fundiendo después del primer tick" % caso)
             self._esperar_la_llegada()
-        # Los cuadros de hardware corridos desde que terminó el arranque, que
-        # es donde `snes_correr.py` pone su `reloj.corridos` en cero. Es el
-        # reloj de los toques de `--toques-hardware`, y es otro que el de los
+        # Los cuadros de hardware corridos desde que terminó el arranque. Es el
+        # reloj de los toques de `toques_hardware`, y es otro que el de los
         # ticks: adentro de una pantalla que congela el juego —la de ranuras
         # del save point— `vueltas` no avanza y éste sí, así que es el único
         # que puede decir cuándo apretar ahí.
@@ -271,8 +266,7 @@ class Partida:
 
         Es `reiniciar(SEGUIR)` cortado antes de elegir: lo que la pantalla
         muestra de cada ranura —el nombre y las caras del grupo guardado— sólo
-        se puede comprobar con una partida guardada de verdad, y eso una
-        captura de `snes_correr.py` no lo tiene.
+        se puede comprobar con una partida guardada de verdad.
         """
         self.consola.reset()
         self.cuadro = 0
@@ -373,29 +367,27 @@ class Partida:
         El botón se sostiene mientras dure el tick: la ROM lee el pad una vez
         por vuelta, así que si la vuelta se estira sigue siendo un solo flanco.
 
-        `sosteniendo` son los que quedan apretados **todos** los cuadros, que
-        es lo que hace `--teclas` en `snes_correr.py`. Hace falta porque esto
-        suelta el pad en cada vuelta: un `consola.apretar(...)` de afuera se
+        `sosteniendo` son los que quedan apretados **todos** los cuadros. Hace
+        falta porque esto suelta el pad en cada vuelta: un `consola.apretar(...)` de afuera se
         perdía en el primer cuadro, y `KeyInputProc` sin espera leía cero.
 
-        Los otros tres son los `BOTON:CUADRO` del corredor, y cada uno cuenta
+        Los otros tres son listas de `BOTON:CUADRO`, y cada uno cuenta
         su número en otro reloj. Ninguno es un capricho:
 
-            toques            en ticks, sin corrimiento. Es `--toques`, el que
-                              camina un menú: los menús miran **flancos**, así
-                              que sostener abajo mueve el cursor una sola vez.
+            toques            en ticks, sin corrimiento. Es el que camina un
+                              menú: los menús miran **flancos**, así que
+                              sostener abajo mueve el cursor una sola vez.
             tocar             en ticks, un tick antes por `RETRASO_DE_PANTALLA`,
-                              igual que `apretar_a`. Es `--tocar`, y existe
-                              porque la forma de `KeyInputProc` que espera la
-                              cruceta necesita un flanco de dirección a mitad
-                              de una escena.
+                              igual que `apretar_a`. Existe porque la forma de
+                              `KeyInputProc` que espera la cruceta necesita un
+                              flanco de dirección a mitad de una escena.
             toques_hardware   en **cuadros de hardware** desde el arranque. Es
-                              `--toques-hardware`, y es el único que puede
-                              apretar adentro de una pantalla que congela el
-                              reloj del juego —la de ranuras del save point—:
-                              ahí no hay ticks en los que caer.
+                              el único que puede apretar adentro de una
+                              pantalla que congela el reloj del juego —la de
+                              ranuras del save point—: ahí no hay ticks en los
+                              que caer.
 
-        Que un flag se ignore calladito es cómo se dejó un caso en verde que no
+        Que una lista se ignore calladita es cómo se dejó un caso en verde que no
         apretaba nada, así que los cuatro caminos valen a la vez.
         """
         presiones = {n - RETRASO_DE_PANTALLA for n in apretar_a}
@@ -423,7 +415,7 @@ class Partida:
         """Un cuadro de hardware, y el reloj del juego al día."""
         self.consola.correr(1)
         self.hardware += 1
-        # El cuadro 0 es el tick 1: ver `TICK_DEL_CUADRO_CERO` en snes_correr.
+        # El cuadro 0 es el tick 1.
         self.cuadro = self.palabra("vueltas") - 1 - self.llegada
 
     def _un_tick(self):

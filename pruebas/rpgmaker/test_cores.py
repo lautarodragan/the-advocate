@@ -28,7 +28,8 @@ encima los recibe en formatos distintos —snes9x en RGB565, bsnes en XRGB8888�
 para un mismo nivel 8 del canal azul, snes9x escribe 65 y bsnes 66.
 
 Volver a recortar los tres bits bajos deshace exactamente esa expansión, que es
-lo mismo que hace `tools/snes_compare.py` desde siempre y por la misma razón. Y
+lo mismo que hace `tanda.quince_bits` para las demás pruebas y por la misma
+razón. Y
 que lo deshaga *exactamente* no se supone: lo mide
 `test_los_dos_cores_expanden_a_8_bits_sin_pisarse`, que comprueba que los dos
 cores emiten a lo sumo 32 niveles por canal y que cada nivel cae en su propio

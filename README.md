@@ -73,7 +73,7 @@ se llegó, que está en `git log`.
     * [La percusión](#la-percusión)
     * [Toolchain](#toolchain)
     * [Cómo se verifica el ensamblador](#cómo-se-verifica-el-ensamblador)
-    * [Cómo se verifica la ROM](#cómo-se-verifica-la-rom)
+    * [Cómo se verificaba el audio](#cómo-se-verificaba-el-audio)
     * [El parche de bsnes](#el-parche-de-bsnes)
     * [Trampas del hardware](#trampas-del-hardware)
     * [El inventario, y lo que una condición de ítem hace](#el-inventario-y-lo-que-una-condición-de-ítem-hace)
@@ -84,16 +84,10 @@ se llegó, que está en `git log`.
 
 ## Leer el juego original
 
-Lee los datos originales de RPG Maker 2000 y saca un PNG del mapa entero: las
-dos capas de tiles más los eventos en su posición inicial, como se verían al
-empezar una partida nueva. Sin panorama y sin el héroe.
-
-    just render        # mapa 1, "Introduction" -> un PNG del mapa entero
-    just render 8      # "Lashe City - 34,35"
-    just maps          # todos los mapas, su chipset, eventos y assets faltantes
-    just check         # renderiza los 328 sin guardar, para ver si algo rompe
-
-No hay nada que instalar: es Python con Pillow, que ya está en el sistema.
+Lo primero que hace el conversor es leer los datos de RPG Maker 2000 y
+reconstruir lo que se ve: las dos capas de tiles de cada mapa, resueltas contra
+su ChipSet, como imágenes que después se cortan en tiles. No hay nada que
+instalar: es Python con Pillow, que ya está en el sistema.
 
 El mapa de arranque del juego es el 4, "Blank (Leave START here)": un cuarto
 vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
@@ -105,8 +99,7 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
     tools/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
     tools/chipset.py      expansión del ChipSet a un atlas de tiles resueltos
     tools/charset.py      recorte de sprites de personaje
-    tools/render_map.py   el render en sí
-    tools/list_maps.py    inventario de mapas
+    tools/render_map.py   las capas de un mapa como imagen, y los CharSets
     tools/event_codes.py  generado: nombres de los opcodes de evento
     protocol/               el generador, en Rust: declaración -> constantes
     tools/event_opcodes.py  generado desde protocol/events.toml
@@ -146,8 +139,7 @@ variable, ítem, actor, timer) y su propia apariencia. El motor usa la de númer
 más alto cuyas condiciones se cumplen todas. Como no simulamos la lógica del
 juego, usamos la última página sin ninguna condición: es exactamente el estado
 de partida nueva. Un evento cuyas páginas tienen todas condiciones no se
-dibuja, que es lo correcto — todavía no existe en pantalla. `--first-page`
-fuerza la página 1 para ver el estado "de autor".
+dibuja, que es lo correcto — todavía no existe en pantalla.
 
 Cada página trae dirección y frame explícitos, así que no hay que inventar una
 pose. Y un evento **sin** CharSet se dibuja como un tile de la página alta del
@@ -170,10 +162,7 @@ y por la misma razón —no es nuestro para redistribuir—. Para reponerlo, de
 
     7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP /extras/rtp && rm -rf RTP-tmp
 
-Se puede apuntar a otra copia con `--rtp-dir` o con `ABL_RTP_DIR`.
-
-Con eso, los 328 mapas renderizan sin faltantes. `just maps` avisa si falta
-algo.
+Se puede apuntar a otra copia con `ABL_RTP_DIR`.
 
 
 ## Los datos en formato versionable
@@ -258,9 +247,7 @@ No era evitable de otra forma: Map0007 tiene tiles de 16, 17 y 19 colores, y
 VRAM por tile, 64 bytes en vez de 32; con 92 tiles son 5,8 KB de los 64.
 
 El resultado se verifica pixel por pixel a 15 bits, que es la profundidad real
-de la consola, y contra el render de Python del mapa: `just convert` lo emite
-con `--reference` y `just compare` lo mide contra la captura de la consola,
-sobre los 57344 pixeles de la pantalla.
+de la consola, contra las capturas congeladas de la tanda.
 
 En la Mega Drive esto no se podía hacer: los 9 bits obligaban a fusionar
 colores, así que sólo se podía comparar por forma. Acá la comparación es exacta.
@@ -274,11 +261,14 @@ El tilemap del PPU se arma con "pantallas" de 32×32 celdas encadenadas en VRAM,
 y no van una al lado de la otra en memoria: cada una ocupa sus 1024 celdas
 seguidas.
 
-**Cómo se verifica.** Cada dirección se mantiene apretada hasta que la cámara
-choca contra el borde. Dónde tiene que quedar no se estima: es exactamente el
-ancho del mapa menos el de la pantalla, que el conversor emite como `CAM_MAX_X`
-y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
-comparación falla.
+Dónde tiene que frenar no se estima: es exactamente el ancho del mapa menos el
+de la pantalla, que el conversor emite como `CAM_MAX_X` y `CAM_MAX_Y`.
+
+Que frene ahí lo cobran las caminatas de `test_heroe`, en
+`pruebas/rpgmaker/test_tanda.py`: cada dirección se sostiene hasta chocar, y
+una caminata termina contra un borde del mapa, que es donde la cámara queda
+pegada. Las cuatro esquinas de un mismo mapa, en cambio, ya no las mira nadie:
+eso era la receta `mapa`, que se fue el 2026-09-19.
 
 Las cinco capturas de un mapa —la parada y las cuatro direcciones— las corre
 `test_heroe` de `pruebas/rpgmaker/test_tanda.py`, sobre los mapas de `MAPAS_DE_HEROE`.
@@ -564,9 +554,8 @@ a dos cifras, "L  1", mockeado en 1 porque no hay actores con nivel— y las
 **caras** del grupo, del FaceSet y a 48x48, que es por lo que la fila mide 48
 pixeles.
 
-Está mirado contra el oráculo y no sólo leído del código: `rom/easyrpg.sh` con
-`REPLAY` corre la misma escena en el juego original y deja la captura al lado.
-Lo que difiere a propósito: los puntos de vida
+Está mirado contra el juego original corriendo la misma escena en EasyRPG, y
+no sólo leído del código. Lo que difiere a propósito: los puntos de vida
 no van, porque este port no los tiene; entran tres caras y no cuatro, y
 pegadas en vez de a 56 px, porque en 256 de ancho no hay más lugar sin comerse
 el borde que un televisor de tubo no muestra; y el cursor es un ">" sobre
@@ -601,7 +590,7 @@ Lo cobran `test_guardar_pantalla` y `test_guardar_vuelve`, de
 `pruebas/rpgmaker/test_tanda_pantallas.py`, en seis cuadros y todos en cero: la pantalla
 al abrirse y con el cursor dos ranuras abajo, y el mapa de vuelta después de
 cancelar y después de elegir, en dos ticks. Los toques de adentro de la
-pantalla van con `--toques-hardware`,
+pantalla van con `toques_hardware`,
 que cuenta cuadros de hardware desde el arranque: un toque por tick no puede
 caer donde no hay ticks. Y lo que queda en la SRAM lo mira
 `pruebas/rpgmaker/test_guardar.py`, que ahora **atraviesa la pantalla** —baja el cursor
@@ -1933,8 +1922,8 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/snes_convert.py` |
-| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py`, y `ARRANQUE` en `pruebas/arnes/tanda.py` |
-| Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `snes_correr.py` de la WRAM |
+| El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `pruebas/arnes/consola.py` |
+| Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
 
 Lo que hace que el lazo entre en un cuadro —FastROM, los glifos precompuestos,
@@ -2067,29 +2056,14 @@ acuse, unos 1,4 cuadros por kilobyte, así que un banco de 62 KB tarda el doble
 que uno de 32, y `BOOT_CUADROS` está dimensionado sobre el techo por eso: ver
 "El arranque dura siempre lo mismo".
 
-**Cómo se verifica.** `just bgm <tema>`, que arma la ROM de las primeras
-secuencias con `--tema-de-arranque`, la corre sin pantalla, graba el audio y se
-lo pasa a `snes_check`. El flag existe porque `audio-check` escucha desde el
-arranque y los mapas de estas secuencias no traen música propia —la prende un
-`PlayBGM`—, así que sin él la ROM sale callada; no toca el bytecode, es el
-mismo stream prendido antes. Lo que la prueba mira es justamente lo del banco
-compartido: que las notas de cada tema salgan de los índices de muestra del
-banco de todos.
+**Que las notas de cada tema salgan de los índices de muestra del banco de
+todos no lo verifica ninguna prueba**: lo medía `just bgm`, que se fue el
+2026-09-19 —ver "Cómo se verificaba el audio"—. Las pruebas son visuales.
 
-**`bgm` no está en `just pruebas`**, y conviene tenerlo presente: las pruebas
-son visuales y esto pide grabar cuarenta segundos de audio por tema. O sea que
-este camino no lo corre nadie salvo que se lo pida a mano.
-
-**`evilrhys` es el ruidoso y conviene saberlo antes de asustarse**: tres
-corridas seguidas del mismo tema dan porcentajes que se llevan quince puntos
-entre sí, contra el techo que le da FluidSynth tocando el mismo MIDI. La medida
-se toma sobre sesenta ventanas de una
-grabación que arranca donde haya señal, así que en un tema con poca nota
-sostenida el corrimiento elegido cambia bastante el número. Lo que **no**
-cambia es el banco compartido: las escrituras melódicas de su stream son las
-mismas con banco propio y con banco compartido. Lo que sí lo tiene al límite es
-que tiene ocho canales melódicos para seis voces, así que dos no suenan nunca y
-los seis que quedan son monofónicos.
+**`evilrhys` está al límite, y no por el banco compartido**: las escrituras
+melódicas de su stream son las mismas con banco propio y con banco compartido.
+Lo que lo tiene al límite es que tiene ocho canales melódicos para seis voces,
+así que dos no suenan nunca y los seis que quedan son monofónicos.
 
 #### Cómo se verifica
 
@@ -2208,10 +2182,8 @@ se pisan y el Package tiene que quedar adelante aunque el héroe esté más abaj
 en la pantalla, que es la regla de RM2k de ordenar primero por capa y recién
 después por Y. Tratarlo como un NPC común mueve 79 pixeles.
 
-Qué mapa elegir para eso no se adivina mirando el tamaño —uno enorme lleno de
-paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
-todos los mapas con las mismas reglas que la ROM y dice cuánto se recorre en
-cada dirección.
+Qué mapa elegir para eso no se adivina mirando el tamaño: uno enorme lleno de
+paredes frena en la tercera celda.
 
 Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
@@ -2617,15 +2589,11 @@ la consola sólo un intérprete de un stream de escrituras.** El driver del SPC7
 son **20 bytes**.
 
     rom/src/main.s        65816: arranque, carga al SPC700, reproductor
-    rom/audio.cfg          enlazado LoROM de 32 KB
-    rom/record.sh         corre la ROM sin pantalla y graba el audio a WAV
     tools/spc700.py       ensamblador de SPC700, porque no hay uno empaquetado
     brr/                  códec BRR y lector de SoundFont, en Rust
     tools/muestras_brr.py el puente entre el conversor y ese binario
     tools/sdsp.py         registros del DSP y el banco de timbres
     tools/snes_music.py   el MIDI del mapa a muestras y stream
-    tools/snes_check.py   compara lo que suena contra el MIDI
-    tools/wavtone.py      mide la frecuencia de un WAV, para un tono suelto
 
 ### El banco de muestras
 
@@ -2780,46 +2748,23 @@ con `.a8`/`.a16`/`.i8`/`.i16`. **Lo que ya no hay es quien lo compruebe**: una
 etiqueta nueva que lo necesite y no lo diga es un `BRK` que aparece lejos. Si
 una ROM se va por la ventana sin razón aparente, mirar primero ahí.
 
-### Cómo se verifica la ROM
+### Cómo se verificaba el audio
 
-`mednafen -soundrecord` vuelca lo que sale del DSP a un WAV. Sobre eso hay dos
-medidas, ninguna de las cuales necesita escuchar.
+**Hoy no lo verifica nada automático**, y conviene tenerlo a la vista: el audio
+de la ROM lo cobra el oído de taro y nada más.
 
-Para un tono suelto alcanza con la frecuencia: `wavtone.py` la saca por
-autocorrelación, y si se pidió un La de 440 tiene que dar 440, dentro de un
-cent.
+Hasta el 2026-09-19 había dos medidas sobre un WAV grabado con `mednafen
+-soundrecord` —la frecuencia de un tono suelto por autocorrelación, y para un
+tema entero la energía de cada nota del MIDI contra un **señuelo** un cuarto de
+tono más arriba, con FluidSynth tocando el mismo MIDI como techo— y las
+recetas que las corrían (`audio-check`, `bgm`, `referencia`). Se fueron con
+todo lo que no era ni pipeline ni pruebas: no estaban en `just pruebas` y nadie
+las corría. Están en el `git log` para quien las quiera volver a traer.
 
-Para un tema entero eso no sirve, porque suenan varias notas a la vez. Así que
-`snes_check.py` lo hace al revés: del MIDI ya sabemos qué notas deberían estar
-sonando en cada momento, así que en vez de preguntarle al audio qué frecuencia
-tiene se le pregunta cuánta energía tiene en esa frecuencia. La prueba está en
-que además se mide un **señuelo** un cuarto de tono más arriba, que no cae en
-ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
-energía como la nota buena. El puntaje es cuántas de las sesenta ventanas
-tienen la nota por encima de su señuelo.
-
-Cuánto de lo que falta es culpa nuestra lo dice `just referencia`, que
-toca el mismo MIDI con FluidSynth en la PC —el mismo SoundFont del que salen
-nuestras muestras— y lo mide con la misma vara. **Ese par de números es lo que
-hay que mirar, y no el nuestro solo**: un 97% no significa nada sin saber si el
-techo del sintetizador es 98 o 100.
-
-La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
-1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
-Sirve de los medios para arriba.
-
-Y hay un corrimiento que no se puede suponer: la ROM tarda casi dos segundos en
-llegar a su primer cuadro, porque sube el banco entero al SPC700 por el
-protocolo de la ROM interna, que va byte por byte con acuse —ver "El arranque
-dura siempre lo mismo"—. La primera vez que se midió con muestras reales el
-puntaje bajó a 80%, y no era el audio: era la búsqueda de corrimiento, que sólo
-miraba el primer segundo y alineaba las ventanas con las notas equivocadas.
-Ahora se busca dónde empieza a haber señal y se afina alrededor.
-
-También se controla el pico del WAV. El DSP suma las ocho voces y recién después
-aplica el volumen general, sin limitar en el medio: la primera versión saturaba
-(pico 32768 clavado) y hubo que bajar el techo por voz. Los números de `sdsp.py`
-salen de medir, no de la teoría, porque la teoría supone que todas las voces
+Lo que sí queda de ellas son los números de `sdsp.py`: el DSP suma las ocho
+voces y recién después aplica el volumen general, sin limitar en el medio; la
+primera versión saturaba (pico 32768 clavado) y el techo por voz salió de medir
+el pico del WAV, no de la teoría, porque la teoría supone que todas las voces
 pican juntas y en fase y eso no pasa nunca.
 
 ### El parche de bsnes

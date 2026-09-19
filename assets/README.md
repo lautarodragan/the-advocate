@@ -6,24 +6,19 @@ formato de origen y el de destino dicen lo mismo. Pasar los gráficos de RM2k a
 un cartucho de SNES no lo es: hay que **elegir** qué se lleva, con qué paleta y
 compartido con quién, y esas decisiones se toman midiendo.
 
-Acá viven las mediciones y la estrategia que sale de ellas.
-
-    medir.py    las mediciones, por rubro
-    comun.py    lo que comparten: leer el material y contarlo bien
+Acá vive la estrategia que salió de medir.
 
     LIMITACIONES.md   lo que decidimos que este port **no** hace, con el
                       número que justificó cada cosa. Varias de esas
                       decisiones valen porque el ABL es como es, así que es
                       lo primero a releer si esto se apunta a otro juego.
 
-    python3 assets/medir.py sprites     los CharSets, por fotograma
-    python3 assets/medir.py fondos      los ChipSets, sólo lo que se usa
-    python3 assets/medir.py colores     si alcanza una paleta por chipset
-    python3 assets/medir.py resto       backdrops, imágenes, panoramas
-    python3 assets/medir.py todo
-
-**Los números de este archivo salen de correr eso.** Si alguno no coincide, el
-que miente es el README.
+**Los números de este archivo salieron de `assets/medir.py`**, que medía por
+rubro —los CharSets por fotograma, los ChipSets en lo que se usa, si alcanza
+una paleta por chipset, y el resto— y se borró el 2026-09-19 con todo lo que no
+era ni pipeline ni pruebas. Para volver a medir, está en el historial: el
+último commit que lo tiene es 5fadb64. Si un número de acá no coincide con lo
+que mide, el que miente es el README.
 
 
 ## Cómo contar sin engañarse

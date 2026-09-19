@@ -26,9 +26,6 @@ Tres restricciones mandan en el resultado:
     largo.
   * **Los ataques no se tocan.** Es lo que distingue un piano de un órgano, y
     dura poco: recortarlo ahorra poco y cuesta mucho.
-
-Uso:
-    python3 tools/snes_samples.py --map-id 67
 """
 
 import math

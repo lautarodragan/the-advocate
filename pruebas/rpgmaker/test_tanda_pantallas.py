@@ -15,7 +15,7 @@ miente sobre lo que sabe.
 De ahí sale la trampa que hay que tener a la vista: **`toques` y
 `toques_hardware` cuentan con un cuadro de diferencia.** Con el reloj en
 cuadros, el primero cae en el cuadro `n-1` y el segundo en el `n`, que es lo
-que hace `snes_correr.py`. Medido: ninguna golden de hoy los distingue —se
+que hacía el corredor —ver `pruebas/arnes/tanda.py`—. Medido: ninguna golden de hoy los distingue —se
 probó unificarlos y no se puso nada rojo— pero un caso nuevo que caiga en el
 borde sí. Está explicado en `correr_hardware`.
 

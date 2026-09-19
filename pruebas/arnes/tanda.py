@@ -20,16 +20,18 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   caminata; lo segundo es lo que dice cuánto correr el emulador. Los escribió la
   referencia cuando existía, y por eso están congelados: son lo último que queda
   de ella, y lo que hizo que un caso de caminata dejara de necesitarla.
-* **El grupo es el 11 y no el 10.** Es el default de `grupo` en el justfile y no
-  el del juego de verdad, y lo arma la página de prueba: `grupo-11`, o
+* **El grupo es el 11 y no el 10.** Es el del banco de pruebas y no el del
+  juego de verdad, y lo arma la página de prueba: `grupo-11`, o
   `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
-* **El arranque de `Partida` es el mismo `--arranque 115` del corredor**:
-  `BOOT_CUADROS` (112) más tres, y de ahí en más los dos cuentan ticks de
-  `vueltas` con la misma convención —el cuadro N de la referencia es el tick
-  N+1— y aprietan A un tick antes por `RETRASO_DE_PANTALLA`. O sea que para un
-  caso de caminata con toques de A, `Partida.correr` **es** el lazo de
-  `snes_correr.py`; no hay una segunda convención que mantener.
+* **El arranque de `Partida` es el `--arranque 115` del corredor**, que era
+  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_CUADROS`
+  (112) más tres, y de ahí en más se cuentan ticks de `vueltas` con la misma
+  convención —el cuadro N de la referencia es el tick N+1— y se aprieta A un
+  tick antes por `RETRASO_DE_PANTALLA`. O sea que para un caso de caminata con
+  toques de A, `Partida.correr` **es** el lazo de aquel corredor, y por eso las
+  goldens que sacó siguen valiendo. El corredor se borró el 2026-09-19; cuando
+  este archivo o una prueba lo nombran, es para decir qué convención copian.
 """
 
 import os
@@ -186,7 +188,7 @@ def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
     """`cuantos` cuadros de hardware, con los toques que se le digan.
 
     Los dos diccionarios de toques **cuentan con un cuadro de diferencia**, y
-    está copiado a propósito de `snes_correr.py`: con `--sin-contador` el
+    está copiado a propósito del corredor: con `--sin-contador` el
     corredor pone su reloj a contar cuadros, así que `--toques` cae en el
     cuadro `n-1` —el lazo pregunta por `cuadro() + 1`— y `--toques-hardware` en
     el `n`, porque ése lee `reloj.corridos` directo. Dos flags que parecen el

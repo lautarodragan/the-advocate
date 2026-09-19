@@ -96,12 +96,11 @@ herramientas:
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;
 # si falta alguna, el que la busca dice cuál y cómo tenerla.
 
-# Una corrida aislada. `CORRIDA=algo just <receta>` deja el mapdata, la ROM y las
-# capturas adentro de `rom/build/algo/` y no toca nada de lo de siempre; sin
-# CORRIDA, todo queda donde estaba, para que `mednafen rom/build/abl.sfc` y las
-# rutas escritas en el README sigan valiendo. Existe porque
-# `rom/build/inc/mapdata.inc` es de todos —lo pisa cualquier `convert`— y sin
-# esto no se puede compilar mientras algo corre.
+# Qué ROM abre `play`: `rom/build/abl.sfc`, o con `CORRIDA=algo` la de
+# `rom/build/algo/`. **Nada arma ya esa ruta por omisión**: la armaba `build`,
+# que se fue el 2026-09-19 con todo lo que no era ni pipeline ni pruebas.
+# `play` corre desde el host y por eso no se tocó; `CORRIDA=demo-ciudad just
+# play` abre la demo.
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })

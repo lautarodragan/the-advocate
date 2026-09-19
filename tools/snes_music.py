@@ -12,10 +12,8 @@ cuadrada.
 
 Salen dos cosas: el bloque que se sube a la memoria del SPC700 (el directorio
 de muestras más las muestras en BRR) y el stream de escrituras al DSP, que el
-65816 va escupiendo cuadro a cuadro.
-
-Uso:
-    python3 tools/snes_music.py --map-id 67 -o rom/build/inc/musicdata.inc
+65816 va escupiendo cuadro a cuadro. Quien lo llama es el conversor, con
+todos los temas del cartucho a la vez: ver `build_varios`.
 """
 
 import collections
