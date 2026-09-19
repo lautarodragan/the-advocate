@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Renderiza un mapa de A Blurred Line (RPG Maker 2000) a un PNG.
 
 Las dos capas de tiles más los eventos en su posición inicial, tal como se
@@ -12,7 +11,6 @@ Uso:
     python3 tools/render_map.py --map Maps/Map0001.lmu -o /tmp/mapa.png
 """
 
-import argparse
 import os
 import sys
 
@@ -41,8 +39,6 @@ GAME_DIR = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
 # es la peor combinación —ocupaba lugar, no se versionaba, y parecía del
 # proyecto—. Con ABL_RTP_DIR se apunta a otra copia.
 RTP_DIR = os.environ.get("ABL_RTP_DIR", "/extras/rtp")
-
-DEFAULT_MAP_ID = 1
 
 
 def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):
@@ -134,7 +130,6 @@ class Charsets:
     def __init__(self, search_dirs, atlas_por_nombre=None, fondo_de_mapa=None):
         self.search_dirs = search_dirs
         self.images = {}
-        self.missing = set()
         self.atlas_por_nombre = atlas_por_nombre
         self.fondo_de_mapa = fondo_de_mapa
 
@@ -152,8 +147,6 @@ class Charsets:
                 self.images[name] = self._de_tile(name)
             else:
                 path = find_resource(self.search_dirs, "CharSet", name)
-                if not path:
-                    self.missing.add(name)
                 self.images[name] = load_image(path) if path else None
         return self.images[name]
 
@@ -225,7 +218,6 @@ class Charsets:
         _, chipset, indice = name.split(":", 2)
         atlas = self.atlas_por_nombre(chipset) if self.atlas_por_nombre else None
         if atlas is None:
-            self.missing.add(name)
             return None
         tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         atlas.render_tile(tile, 0, 0, UPPER + int(indice))
@@ -233,27 +225,6 @@ class Charsets:
         for pose in range(12):
             image.paste(tile, ((pose % 3) * 24 + 4, (pose // 3) * 32 + 16))
         return image
-
-
-def draw_events(image, atlas, charsets, events, layer, ignore_conditions):
-    """Dibuja los eventos de una capa, ordenados por Y.
-
-    Un evento sin CharSet se dibuja como un tile de la página alta del chipset:
-    así están hechas las puertas, los cofres y buena parte del decorado.
-    """
-    for event in sorted(events, key=lambda e: e.y):
-        page = event.active_page(ignore_conditions)
-        if page is None or page.layer != layer:
-            continue
-
-        if not page.character_name:
-            atlas.render_tile(image, event.x, event.y, UPPER + page.character_index)
-            continue
-
-        sheet = charsets.get(page.character_name)
-        if sheet is not None:
-            charset.draw(image, sheet, event.x, event.y, page.character_index,
-                         page.character_direction, page.character_pattern)
 
 
 class Renderer:
@@ -363,83 +334,3 @@ class Renderer:
                     (d, 0) if familia == "agua" else (0, d))[0]
                 for d in range(1, dibujos)]
         return base, above, variantes
-
-    def render(self, game_map, draw_events_too=True, first_page=False):
-        """El orden del motor: tiles bajos, los eventos que van debajo del héroe
-        y a su altura, los tiles altos que tapan, y por último los eventos que
-        van por encima de todo.
-        """
-        chipset = self.database.chipsets[game_map.chipset_id]
-        atlas = self.atlas(chipset)
-        if atlas is None:
-            return None, 0
-
-        flags = build_passability(chipset)
-        events = game_map.events if draw_events_too else []
-
-        image = Image.new("RGBA", (game_map.width * TILE, game_map.height * TILE),
-                          (0, 0, 0, 255))
-        draw_tiles(image, atlas, game_map, flags, pass_upper=False)
-        for layer in (0, 1):
-            draw_events(image, atlas, self.charsets, events, layer, first_page)
-        draw_tiles(image, atlas, game_map, flags, pass_upper=True)
-        draw_events(image, atlas, self.charsets, events, 2, first_page)
-
-        drawn = sum(1 for e in events if e.active_page(first_page) is not None)
-        return image, drawn
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--map", help="ruta a un .lmu concreto")
-    parser.add_argument("--map-id", type=int, default=DEFAULT_MAP_ID,
-                        help="número de mapa (default: %d)" % DEFAULT_MAP_ID)
-    parser.add_argument("--maps-dir", default=GAME_DIR)
-    parser.add_argument("--game-dir", default=GAME_DIR,
-                        help="proyecto RM2k original, para RPG_RT.ldb/.lmt y chipsets")
-    parser.add_argument("--rtp-dir", default=RTP_DIR,
-                        help="RTP donde buscar los chipsets que no trae el juego")
-    parser.add_argument("-o", "--output", help="PNG de salida (default: render/MapXXXX.png)")
-    parser.add_argument("--no-events", action="store_true",
-                        help="sólo los tiles, sin eventos")
-    parser.add_argument("--first-page", action="store_true",
-                        help="usar siempre la página 1 de cada evento en vez de la "
-                             "última sin condiciones (el estado 'de autor')")
-    args = parser.parse_args()
-
-    renderer = Renderer(args.game_dir, args.rtp_dir)
-
-    if args.map:
-        map_path = args.map
-        map_id = int(os.path.basename(map_path)[3:7])
-    else:
-        map_id = args.map_id
-        map_path = os.path.join(args.maps_dir, "Map%04d.lmu" % map_id)
-
-    game_map = lcf.Map(map_path)
-    chipset = renderer.database.chipsets[game_map.chipset_id]
-
-    print("Mapa %d %r: %dx%d tiles, chipset %d %r (%s)" % (
-        map_id, renderer.tree.map_names.get(map_id, "?"),
-        game_map.width, game_map.height,
-        game_map.chipset_id, chipset.name, chipset.filename))
-
-    image, drawn = renderer.render(game_map, not args.no_events, args.first_page)
-    if image is None:
-        sys.exit("No encuentro el chipset %r en %s"
-                 % (chipset.filename, renderer.search_dirs))
-
-    print("Eventos: %d dibujados de %d" % (drawn, len(game_map.events)))
-    if renderer.charsets.missing:
-        print("CharSets que faltan: %s"
-              % ", ".join(sorted(renderer.charsets.missing)))
-
-    output = args.output or os.path.join(REPO, "render", "Map%04d.png" % map_id)
-    os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
-    image.save(output)
-    print("-> %s (%dx%d px)" % (output, image.width, image.height))
-
-
-if __name__ == "__main__":
-    main()

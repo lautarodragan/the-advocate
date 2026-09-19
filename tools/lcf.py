@@ -279,16 +279,13 @@ class Event:
                     page.character_name = DECORAR_TRANSLUCIDO(
                         page.character_name, map_id, self.x, self.y)
 
-    def active_page(self, ignore_conditions=False):
+    def active_page(self):
         """La página que mostraría el motor en una partida recién empezada.
 
         RM2k usa la página de número más alto cuyas condiciones se cumplen
         todas. Sin switches ni variables seteadas, eso es la última página que
         no tiene ninguna condición. Puede no haber ninguna.
         """
-        if ignore_conditions:
-            return self.pages[0] if self.pages else None
-
         for page in reversed(self.pages):
             if page.unconditional:
                 return page

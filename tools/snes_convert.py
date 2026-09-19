@@ -5075,7 +5075,6 @@ def parser_de_flags():
                              "del primero del grupo, que es como lo decide RM2k")
     parser.add_argument("--charset-index", type=int, default=None,
                         help="cuál de los 8 personajes del CharSet")
-    parser.add_argument("--reference", help="PNG del render de Python, para comparar")
     parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
                         help="otros mapas para meter en la misma ROM. El de "
                              "--map-id va primero en la tabla")
@@ -5779,10 +5778,6 @@ def main():
             print("    sin pista de MSU-1, o sea recortados siempre: %s"
                   % ", ".join(t for t in afuera
                               if t not in snes_music.PISTAS_MSU))
-
-    if args.reference:
-        mapas[args.inicial]["base"].save(args.reference)
-        print("referencia -> %s" % args.reference)
 
 
 def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
@@ -6646,7 +6641,7 @@ def convertir(renderer, map_id, args, inicio=None):
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0),
-        "resumen": summary, "base": base,
+        "resumen": summary,
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
         "puertas_crudas": rm2k.collect_doors(game_map),

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """La pantalla de título: de `Title/ABL20Title.png` a tiles, paleta y tilemap.
 
 Vive aparte de `snes_convert.py` porque no es un mapa: no tiene chipset, ni
@@ -183,130 +182,6 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
                     px[tx + x, ty + y] = tuple(
                         v << 3 for v in paleta_menu[valor])
     return fuera
-
-
-def main():
-    import argparse
-    import os
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from PIL import Image
-    from render_map import GAME_DIR
-    import lcf
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-o", "--output", required=True,
-                        help="PNG con la pantalla como la tiene que mostrar "
-                             "la consola: es la referencia contra la que se "
-                             "compara la captura")
-    parser.add_argument("--game-dir", default=GAME_DIR)
-    parser.add_argument("--elegida", type=int, default=0,
-                        help="qué opción del menú —o qué ranura— está marcada, "
-                             "desde cero")
-    parser.add_argument("--ranuras", type=int, default=None, metavar="N",
-                        help="dibuja la pantalla de N ranuras en vez de la de "
-                             "título")
-    parser.add_argument("--llenas", default="", metavar="0,1,...",
-                        help="qué ranuras tienen partida, separadas por comas. "
-                             "Sin esto, ninguna")
-    parser.add_argument("--grupo-ranura", action="append", default=[],
-                        metavar="N:ACTOR,ACTOR,...",
-                        help="el grupo guardado en la ranura N, por ids de "
-                             "actor: pone el nombre del primero y las caras. "
-                             "La ranura cuenta como llena. Se repite por "
-                             "ranura")
-    parser.add_argument("--modo", type=int, default=0,
-                        help="0 para la pantalla de cargar y 1 para la de "
-                             "guardar; cambia el texto de la cabecera")
-    parser.add_argument("--menu", metavar="ACTOR,ACTOR,...", default=None,
-                        help="dibuja el menú de pausa con este grupo, por ids "
-                             "de actor, en vez de la pantalla de título")
-    parser.add_argument("--oro", type=int, default=0,
-                        help="el oro que muestra el menú de pausa")
-    parser.add_argument("--actores", default=None, metavar="ACTOR,...",
-                        help="los actores que la ROM puede tener en el grupo, "
-                             "que deciden el banco de tiles; sin esto, el "
-                             "grupo del menú")
-    parser.add_argument("--items", metavar="ITEM:CUANTOS,...", default=None,
-                        help="dibuja la pantalla de ítems con este inventario")
-    parser.add_argument("--objetivo", metavar="ACTOR,ACTOR,...", default=None,
-                        help="dibuja la elección de actor con este grupo")
-    parser.add_argument("--arriba", type=int, default=0,
-                        help="el primer ítem que se ve en la lista")
-    parser.add_argument("--sin-guardar", action="store_true",
-                        help="el menú con 'Save' prohibido")
-    parser.add_argument("--sin-menu", action="store_true",
-                        help="sólo la imagen, sin las opciones encima")
-    parser.add_argument("--informe", action="store_true",
-                        help="además, los números del reparto")
-    args = parser.parse_args()
-
-    # Qué imagen es lo dice el LDB y no la línea de comandos: `title_name`.
-    db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
-    imagen = Image.open(os.path.join(args.game_dir, "Title",
-                                     db.title_name + ".png"))
-    if args.objetivo is not None:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, db.system_name)
-        grupo = [int(a) for a in args.objetivo.split(",") if a]
-        render_objetivo(skin, db, args.ranuras or 4, grupo, args.elegida,
-                        db.font_id, None, args.game_dir).save(args.output)
-        print("elección de actor con %s -> %s" % (grupo, args.output))
-        return
-    if args.items is not None:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, db.system_name)
-        inventario = {}
-        for par in args.items.split(","):
-            if par:
-                numero, _, cuantos = par.partition(":")
-                inventario[int(numero)] = int(cuantos or 1)
-        render_items(skin, db, inventario, args.elegida, args.arriba,
-                     db.font_id).save(args.output)
-        print("ítems %s -> %s" % (inventario, args.output))
-        return
-    if args.menu is not None:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, db.system_name)
-        grupo = [int(a) for a in args.menu.split(",") if a]
-        actores = ([int(a) for a in args.actores.split(",") if a]
-                   if args.actores else None)
-        render_menu(skin, db, args.ranuras or 4, grupo, args.oro,
-                    args.elegida, not args.sin_guardar, db.font_id, actores,
-                    args.game_dir).save(args.output)
-        print("menú con %s y %d de oro -> %s" % (grupo, args.oro,
-                                                   args.output))
-        return
-    if args.ranuras:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, db.system_name)
-        llenas = [n in {int(x) for x in args.llenas.split(",") if x != ""}
-                  for n in range(args.ranuras)]
-        grupos = {}
-        for uno in args.grupo_ranura:
-            ranura, _, actores = uno.partition(":")
-            grupos[int(ranura)] = [int(a) for a in actores.split(",") if a]
-            llenas[int(ranura)] = True
-        render_ranuras(skin, db, args.ranuras, llenas, args.elegida,
-                       args.modo, db.font_id, grupos,
-                       args.game_dir).save(args.output)
-        print("ranuras %s -> %s"
-              % ("".join("X" if l else "." for l in llenas), args.output))
-        return
-    if args.sin_menu:
-        render(imagen).save(args.output)
-    else:
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, db.system_name)
-        render(imagen, skin, opciones(db), args.elegida,
-               db.font_id).save(args.output)
-    if args.informe:
-        datos = informe(imagen)
-        print("%s: %d tiles de 8bpp (%d B) + %d colores, %d B de tilemap"
-              % (db.title_name, datos["tiles"], datos["bytes_tiles"],
-                 datos["colores"], datos["bytes_tilemap"]))
-    print("%s -> %s" % (db.title_name, args.output))
-
 
 
 # --- el menú -----------------------------------------------------------------
@@ -1298,7 +1173,3 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
                 pegar(caras[actor], fila0, CARA_COL + lugar * CARA_PASO,
                       CARA_CELDAS)
     return fuera
-
-
-if __name__ == "__main__":
-    main()

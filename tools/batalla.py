@@ -346,9 +346,6 @@ class Combatiente:
         self.sp_max = sp_max
         self.sp = sp_max
         self.habilidades = list(habilidades)
-        # Cómo se llama su orden de habilidades en el menú. Es del actor y no
-        # un término fijo: ver `nombre_de_orden_habilidad`.
-        self.nombre_habilidad = ""
         self.defendiendo = False
         self.orden = 0
 
@@ -405,7 +402,6 @@ def actor_de(db, numero, equipo=None):
                         ataque, defensa, agilidad, 90, critico, True, numero,
                         espiritu, titulo.parametro_de(actor, "maxsp"),
                         habilidades_de(db, numero))
-    quien.nombre_habilidad = nombre_de_orden_habilidad(db, numero)
     return quien
 
 

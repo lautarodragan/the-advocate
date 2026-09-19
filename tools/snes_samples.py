@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Arma el banco de muestras de la SNES a partir del SoundFont.
 
 Reemplaza las ondas de un ciclo de sdsp.py por grabaciones reales. El problema
@@ -32,7 +31,6 @@ Uso:
     python3 tools/snes_samples.py --map-id 67
 """
 
-import argparse
 import math
 import os
 import sys
@@ -324,26 +322,3 @@ def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
             reparto[program] += sobra // len(hambrientos)
             del hechas[program]         # sólo se rearman los que cambiaron
     return voices
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--programs", type=int, nargs="+", required=True)
-    parser.add_argument("--soundfont", default=SOUNDFONT)
-    parser.add_argument("--budget", type=int, default=ARAM_BUDGET)
-    args = parser.parse_args()
-
-    voices = build_bank(args.programs, args.budget, args.soundfont)
-    total = sum(len(v.data) for v in voices)
-
-    print("Banco de %d instrumentos, %d bytes de %d (%.0f%% de los 64 KB)"
-          % (len(voices), total, args.budget, 100.0 * total / 65536))
-    for voice in voices:
-        print("  programa %3d %-22s %6d B  %5.0f Hz  nota %3d  loop en bloque %d"
-              % (voice.program, voice.name[:22], len(voice.data), voice.rate,
-                 voice.root, voice.loop_block))
-
-
-if __name__ == "__main__":
-    main()

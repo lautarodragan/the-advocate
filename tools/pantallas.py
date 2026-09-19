@@ -35,15 +35,10 @@ class Texto:
         """Alineado a la derecha, con espacios adelante."""
         self.escribir(fila, col, ("%*d" % (ancho, valor))[-ancho:], gris)
 
-    def render(self, sys_img, font_id=None, fondo=None):
+    def render(self, sys_img, font_id=None):
         from PIL import Image
         tiles, paletas, glifos = titulo.pantalla_items(sys_img, font_id)
         fuera = Image.new("RGB", (titulo.ANCHO, titulo.ALTO), (0, 0, 0))
-        if fondo is not None:
-            # La escena de la pelea, arriba de todo y **debajo del texto**: es
-            # BG1 y el texto es BG2 con el bit de prioridad puesto. Ver
-            # `escena_prender` en main.s.
-            fuera.paste(fondo, (0, 0))
         pegar = titulo._pintor(fuera, tiles, paletas)
         for (fila, col), (c, gris) in self.celdas.items():
             pegar(glifos[gris][c], fila, col, 1)
@@ -340,7 +335,6 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
 #   menú de arriba, antes de elegir qué hace cada uno; meterlo en la lista de
 #   cada actor ahorra un modo entero de la máquina. Declarado.
 BA_ENEMIGO_FILA0 = 0
-BA_ENEMIGOS_FILAS = 8           # `batalla.ENEMIGOS_MAX`
 BA_GRUPO_FILA0 = 16
 BA_MSG_FILA1 = 24
 BA_MSG_FILA2 = 26
@@ -391,12 +385,6 @@ BA_ORDENES = (
 # pausa con lo que no lleva a ningún lado.
 BA_ORDEN_SIN_HACER = ()
 
-# Los modos de la pantalla, que la ROM lleva en `ba_modo`. **El orden importa**:
-# la ROM pregunta `cmp #BA_M_MENSAJE / bcs` para decir "mensaje o fin", así que
-# los que eligen algo van todos antes.
-(BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_ELIGE_ITEM, BA_ELIGE_ACTOR,
- BA_ELIGE_HAB, BA_MENSAJE, BA_FIN) = range(7)
-
 # La lista de habilidades, que ocupa los mismos renglones que la de ítems y por
 # lo mismo. Es la forma del original —ver la captura
 # `capturas-batalla/auto_20260912_123023.png`—: la descripción de la que marca
@@ -431,7 +419,6 @@ BA_HAB_COSTO_CIFRAS = 2
 
 # La lista de ítems ocupa los renglones de los enemigos: mientras se elige qué
 # usar, los enemigos no hacen falta y el grupo sí, que es a quién se cura.
-BA_ITEM_FILAS = BA_ENEMIGOS_FILAS
 BA_ITEM_CUENTA_COL = 18
 
 # Los términos del LDB que la pantalla usa, en el orden en que el conversor los
@@ -479,269 +466,6 @@ def texto_de_orden(termino):
     return titulo.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
 
 
-def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
-                     blanco=0, mensaje=("", ""), items=(), item=0, arriba=0,
-                     habilidad=0):
-    """La pantalla como la compone la ROM.
-
-    `combate` es una `batalla.Batalla`. `modo` dice qué se está eligiendo:
-    `BA_ELIGE_ORDEN` pone el cursor en la orden de `orden` y marca al actor
-    `actor`; `BA_ELIGE_BLANCO` lo pone en el enemigo `blanco`; `BA_ELIGE_ITEM`
-    reemplaza la lista de enemigos por la de ítems y pone el cursor en `item`,
-    con `arriba` como el primero que se ve; `BA_ELIGE_ACTOR` deja la lista de
-    ítems y pone el cursor en el actor `blanco`; `BA_MENSAJE` y `BA_FIN`
-    muestran los dos renglones de `mensaje`.
-
-    `items` es la lista de ítems usables, como `(numero, cuantos)`.
-
-    Un enemigo muerto **se sigue mostrando**, en gris y con los HP en cero, que
-    es lo que hace la ROM: sacarlo de la lista movería a los de abajo en mitad
-    de un turno.
-    """
-    t = Texto()
-    # **Eligiendo a quién se le da, la lista de arriba es la de la orden que se
-    # está usando**: la de ítems si es `Use Item` y la de habilidades si es la
-    # habilidad, en gris las dos. Cuál de las dos lo dice `orden`, que sigue
-    # puesto mientras se elige el blanco, igual que en la ROM.
-    eligiendo_hab = (modo == BA_ELIGE_HAB
-                     or (modo == BA_ELIGE_ACTOR
-                         and orden == BA_ORDEN_HABILIDAD))
-    eligiendo_item = not eligiendo_hab and modo in (BA_ELIGE_ITEM,
-                                                    BA_ELIGE_ACTOR)
-    if eligiendo_hab:
-        # La lista de habilidades del que está ordenando, con la descripción de
-        # la que marca el cursor arriba. Va donde iban los enemigos, como la de
-        # ítems.
-        import batalla as batalla_mod
-        quien = combate.actores[actor]
-        lista = list(quien.habilidades)
-        if lista and modo == BA_ELIGE_HAB:
-            desc = db.skills[lista[habilidad]].description
-            t.escribir(BA_HAB_DESC_FILA, BA_HAB_DESC_COL,
-                       titulo.texto_de_item(desc, BA_HAB_DESC_ANCHO))
-        for k, numero in enumerate(lista[:BA_HAB_FILAS * BA_HAB_COLUMNAS]):
-            skill = db.skills[numero]
-            fila = BA_HAB_FILA0 + 2 * (k // BA_HAB_COLUMNAS)
-            col = BA_HAB_COLUMNA_DX * (k % BA_HAB_COLUMNAS)
-            # En gris la que no se puede pagar —los SP, que es lo único que
-            # este port chequea de `CanUseSkill`— y toda la lista mientras se
-            # elige el blanco, que es lo que la de ítems ya hace.
-            gris = 0 if (modo == BA_ELIGE_HAB
-                         and quien.sp >= batalla_mod.costo_de(skill)) else 1
-            if modo == BA_ELIGE_HAB and k == habilidad:
-                t.escribir(fila, col, ELEGIR_CURSOR)
-            t.escribir(fila, col + BA_HAB_NOMBRE_COL, titulo.texto_de_item(
-                skill.name, BA_HAB_NOMBRE_ANCHO), gris)
-            t.escribir(fila, col + BA_HAB_GUION_COL, "-", gris)
-            t.numero(fila, col + BA_HAB_COSTO_COL,
-                     min(batalla_mod.costo_de(skill), 99),
-                     BA_HAB_COSTO_CIFRAS, gris)
-    elif eligiendo_item:
-        # La lista de ítems, donde iban los enemigos: mientras se elige qué
-        # usar lo que hace falta ver es el grupo, que es a quién se cura.
-        lista = list(items)
-        for f in range(BA_ITEM_FILAS):
-            k = arriba + f
-            if k >= len(lista):
-                break
-            numero, cuantos = lista[k]
-            fila = BA_ENEMIGO_FILA0 + 2 * f
-            gris = 0 if modo == BA_ELIGE_ITEM else 1
-            if modo == BA_ELIGE_ITEM and k == item:
-                t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
-            t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
-                db.items[numero].name, BA_NOMBRE_ANCHO), gris)
-            t.escribir(fila, BA_ITEM_CUENTA_COL,
-                       ":%2d" % min(cuantos, 99), gris)
-    else:
-        for n, enemigo in enumerate(combate.enemigos[:BA_ENEMIGOS_FILAS]):
-            fila = BA_ENEMIGO_FILA0 + 2 * n
-            gris = 0 if enemigo.vivo else 1
-            if modo == BA_ELIGE_BLANCO and n == blanco:
-                t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
-            t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
-                enemigo.nombre, BA_NOMBRE_ANCHO), gris)
-            t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
-            t.numero(fila, BA_HP_NUM, min(enemigo.hp, 999), 3, gris)
-    for n, quien in enumerate(combate.actores[:4]):
-        fila = BA_GRUPO_FILA0 + 2 * n
-        gris = 0 if quien.vivo else 1
-        marcado = blanco if modo == BA_ELIGE_ACTOR else actor
-        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_ELIGE_ITEM,
-                    BA_ELIGE_ACTOR, BA_ELIGE_HAB) and n == marcado:
-            t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
-        t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
-            quien.nombre, BA_NOMBRE_ANCHO), gris)
-        t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
-        t.numero(fila, BA_HP_NUM, min(quien.hp, 999), 3, gris)
-        t.escribir(fila, BA_BARRA_COL, "/", gris)
-        t.numero(fila, BA_HP_MAX_NUM, min(quien.hp_max, 999), 3, gris)
-    if modo < BA_MENSAJE:
-        term = terminos_batalla(db)
-        quien = combate.actores[actor] if combate.actores else None
-        for n, (nombre, renglon, col) in enumerate(BA_ORDENES):
-            fila = (BA_MSG_FILA1, BA_MSG_FILA2)[renglon]
-            # En blanco sólo la que se puede elegir ahora, y nunca la que no
-            # está hecha: es lo mismo que hace el menú de pausa.
-            gris = 0 if (modo == BA_ELIGE_ORDEN
-                         and n not in BA_ORDEN_SIN_HACER) else 1
-            texto = term[nombre]
-            if n == BA_ORDEN_HABILIDAD and quien is not None:
-                # **No dice "Tech Skill"**: dice el `skill_name` del actor que
-                # está ordenando, que es `Game_Actor::GetSkillName`. Y va en
-                # gris si no sabe ninguna, como el menú de pausa con lo que no
-                # lleva a ningún lado.
-                texto = quien.nombre_habilidad or texto
-                if not quien.habilidades:
-                    gris = 1
-            if modo == BA_ELIGE_ORDEN and n == orden:
-                t.escribir(fila, col - 1, ELEGIR_CURSOR)
-            t.escribir(fila, col, texto_de_orden(texto), gris)
-    else:
-        escribir_corrido(t, BA_MSG_FILA1, 1, mensaje[0])
-        escribir_corrido(t, BA_MSG_FILA2, 1, mensaje[1])
-    return t
-
-
-def escribir_corrido(pantalla, fila, col, texto):
-    """Un texto que **sigue en el renglón de abajo** cuando no entra.
-
-    No es una decisión de diseño: es lo que hace `pant_glifo` en la ROM, que
-    avanza dos bytes por carácter dentro de un búfer de 32 celdas de ancho y
-    al pasarse cae en la fila siguiente. La referencia lo copia en vez de
-    cortar el texto porque los dos lados tienen que dibujar lo mismo, y el
-    mensaje de escapar del ABL —"You extricate yourself from the fray!"— mide
-    36 caracteres y se pasa.
-
-    El corte no queda en un espacio, como no queda en la ROM.
-
-    **Lo que esto modela no lo compara nada**, y conviene decirlo: la tanda
-    sólo mira la pantalla con el menú de órdenes, no con un mensaje puesto.
-    Medido contra una captura de la consola del mensaje de escapar —el más
-    largo, el único que se pasa de renglón— quedan 66 pixeles de diferencia en
-    la fila donde los dos textos se enciman. Es deuda declarada y no un camino
-    a medias: el día que un caso compare un mensaje, hay que cerrarla.
-    """
-    for c in titulo.texto_de_item(texto, 255):
-        if col >= COLS:
-            # **Una fila y no dos**: la ROM avanza 64 bytes, que es una fila
-            # del tilemap, no un renglón de texto. El carácter que sigue queda
-            # medio renglón más abajo, encimado con la mitad de abajo del
-            # anterior. Se ve raro y es lo que hace la ROM; corregirlo sería
-            # corregir los dos lados.
-            fila, col = fila + 1, 0
-        if fila >= FILAS:
-            return
-        pantalla.escribir(fila, col, c)
-        col += 1
-
-
 def lcf_termino(db, chunk):
     import lcf
     return lcf.to_string(db.terminos.get(chunk, b""))
-
-
-def main():
-    import argparse
-    import os
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from render_map import GAME_DIR
-    import lcf
-    import ventana
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-o", "--output", required=True)
-    parser.add_argument("--game-dir", default=GAME_DIR)
-    parser.add_argument("--equipo", type=int, metavar="ACTOR",
-                        help="la pantalla de equipo de este actor")
-    parser.add_argument("--puesto", default=None, metavar="I,I,I,I,I",
-                        help="lo que tiene puesto; sin esto, el inicial")
-    parser.add_argument("--items", default="", metavar="ITEM:CUANTOS,...")
-    parser.add_argument("--ranura", type=int, default=0)
-    parser.add_argument("--eligiendo", action="store_true")
-    parser.add_argument("--elegido", type=int, default=0)
-    parser.add_argument("--arriba", type=int, default=0)
-    parser.add_argument("--tienda", default=None, metavar="TIPO:JUEGO:I,I,...",
-                        help="la tienda de `OpenShop` con estos ítems")
-    parser.add_argument("--modo", type=int, default=0)
-    parser.add_argument("--oro", type=int, default=0)
-    parser.add_argument("--cuantos", type=int, default=1)
-    parser.add_argument("--resaludo", action="store_true")
-    parser.add_argument("--grupo", default="", metavar="ACTOR,...",
-                        help="el grupo, para contar lo que lleva puesto")
-    parser.add_argument("--batalla", type=int, default=None, metavar="TROPA",
-                        help="la pantalla de batalla contra esta tropa")
-    parser.add_argument("--turnos", type=int, default=0,
-                        help="cuántos turnos jugar antes de dibujar, todos "
-                             "atacando al primero que quede vivo")
-    parser.add_argument("--item", type=int, default=0,
-                        help="qué ítem de la lista marca el cursor")
-    parser.add_argument("--fondo", default="", metavar="NOMBRE",
-                        help="el fondo de batalla, con los battlers de la "
-                             "tropa horneados encima: ver tools/escena.py")
-    parser.add_argument("--blanco", type=int, default=0)
-    parser.add_argument("--actor", type=int, default=0)
-    parser.add_argument("--orden", type=int, default=0)
-    parser.add_argument("--habilidad", type=int, default=0,
-                        help="qué habilidad de la lista marca el cursor")
-    args = parser.parse_args()
-    db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
-    skin = ventana.skin(args.game_dir, db.system_name)
-    inventario = {}
-    for par in args.items.split(","):
-        if par:
-            n, _, c = par.partition(":")
-            inventario[int(n)] = int(c or 1)
-    if args.batalla is not None:
-        import batalla
-        grupo = [int(a) for a in args.grupo.split(",") if a]
-        combate = batalla.Batalla(
-            [batalla.actor_de(db, a) for a in grupo],
-            [batalla.enemigo_de(db, e, n)
-             for n, e in enumerate(db.troops[args.batalla].members)])
-        for _ in range(args.turnos):
-            if combate.resultado is not None:
-                break
-            vivo = next((n for n, e in enumerate(combate.enemigos) if e.vivo),
-                        0)
-            combate.jugar_turno([(batalla.ORDEN_ATACAR, vivo)]
-                                * len(combate.vivos(combate.actores)))
-        # La lista de ítems usables, con la misma regla que la ROM: ver
-        # `batalla.item_usable_en_batalla`. `--items` trae el inventario.
-        usables = [(n, c) for n, c in sorted(inventario.items())
-                   if c > 0 and batalla.item_usable_en_batalla(db.items[n])]
-        escena_img = None
-        if args.fondo:
-            import escena
-            info = escena.convertir(db, args.batalla, args.fondo,
-                                    args.game_dir)
-            escena_img = escena.render(info) if info else None
-        pantalla_batalla(db, combate, args.modo, args.actor, args.orden,
-                         args.blanco, items=usables, item=args.item,
-                         habilidad=args.habilidad).render(
-            skin, db.font_id, escena_img).save(args.output)
-        print("batalla %d sobre %r -> %s"
-              % (args.batalla, args.fondo, args.output))
-        return
-    if args.tienda is not None:
-        tipo, juego, lista = args.tienda.split(":")
-        vende = [int(x) for x in lista.split(",") if x]
-        equipos = [list(db.actors[int(a)].initial_equipment)
-                   for a in args.grupo.split(",") if a]
-        pantalla_tienda(db, int(tipo), int(juego), vende, args.oro,
-                        inventario, equipos, args.modo, args.elegido,
-                        args.arriba, args.cuantos, args.resaludo).render(
-            skin, db.font_id).save(args.output)
-        print("tienda -> %s" % args.output)
-        return
-    equipo = ([int(x) for x in args.puesto.split(",")] if args.puesto
-              else list(db.actors[args.equipo].initial_equipment))
-    pantalla_equipo(db, args.equipo, equipo, inventario, args.ranura,
-                    args.eligiendo, args.elegido,
-                    args.arriba).render(skin, db.font_id).save(args.output)
-    print("equipo de %d -> %s" % (args.equipo, args.output))
-
-
-if __name__ == "__main__":
-    main()

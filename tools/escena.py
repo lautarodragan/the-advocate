@@ -164,21 +164,6 @@ def tiles(info):
     return salida
 
 
-def render(info):
-    """La escena como se ve en la pantalla: una imagen RGB de 256x128 para
-    pegar arriba de todo antes del texto.
-
-    Se dibuja desde `indices` y no desde la imagen compuesta, a propósito: es
-    lo que la consola tiene después de cuantizar, y la comparación es contra
-    eso."""
-    from PIL import Image
-    colores = {i + CGRAM_BASE: (r << 3, g << 3, b << 3)
-               for i, (r, g, b) in enumerate(info["paleta"])}
-    salida = Image.new("RGB", (ANCHO, ALTO))
-    salida.putdata([colores[i] for fila in info["indices"] for i in fila])
-    return salida
-
-
 def informe(info):
     """Los números que justifican el reparto, para que el conversor los
     imprima."""

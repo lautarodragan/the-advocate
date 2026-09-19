@@ -116,18 +116,6 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     return True
 
 
-def walk(passable, width, height, start, dx, dy, blocked=()):
-    """Hasta dónde llega el personaje caminando en una dirección sin soltar.
-
-    Mismas reglas que la ROM, para poder predecir dónde va a terminar y
-    comparar contra eso.
-    """
-    x, y = start
-    while puede_pasar(passable, width, height, x, y, dx, dy, blocked):
-        x, y = x + dx, y + dy
-    return x, y
-
-
 # --- la animación del ChipSet -----------------------------------------------
 #
 # Dos animaciones que no tienen nada que ver entre sí y corren a la vez, las dos

@@ -217,11 +217,3 @@ def extraer(selector, soundfont):
     muestra = Muestra(campos, pcm)
     _extraidas[clave] = muestra
     return muestra
-
-
-def presets(soundfont):
-    """Los presets que declara el banco: (banco, programa, nombre)."""
-    salida = _correr(["sf2", soundfont, "--list", "--json"])
-    import json
-    filas = [json.loads(l) for l in salida.splitlines() if l.startswith("{")]
-    return [(f["bank"], f["program"], f["name"]) for f in filas]

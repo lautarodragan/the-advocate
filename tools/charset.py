@@ -12,22 +12,8 @@ from chipset import TILE, blit
 
 SPRITE_WIDTH = 24
 SPRITE_HEIGHT = 32
-BLOCK_WIDTH = SPRITE_WIDTH * 3
-BLOCK_HEIGHT = SPRITE_HEIGHT * 4
-COLUMNS = 4
 
 # El sprite es más ancho y más alto que la celda de 16x16 sobre la que se para:
 # se centra horizontalmente y se apoya por los pies.
 OFFSET_X = -(SPRITE_WIDTH - TILE) // 2
 OFFSET_Y = -(SPRITE_HEIGHT - TILE)
-
-
-def draw(dst, image, tile_x, tile_y, index, direction, pattern):
-    """Dibuja una pose del personaje `index` parado en la celda (tile_x, tile_y)."""
-    blit(dst,
-         tile_x * TILE + OFFSET_X,
-         tile_y * TILE + OFFSET_Y,
-         image,
-         (index % COLUMNS) * BLOCK_WIDTH + pattern * SPRITE_WIDTH,
-         (index // COLUMNS) * BLOCK_HEIGHT + direction * SPRITE_HEIGHT,
-         SPRITE_WIDTH, SPRITE_HEIGHT)

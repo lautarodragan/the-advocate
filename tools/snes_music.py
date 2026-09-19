@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Convierte el MIDI de un mapa a muestras BRR y un stream para el S-DSP.
 
 Es el equivalente de musica.py para la Super Nintendo, y comparte con él todo
@@ -19,14 +18,12 @@ Uso:
     python3 tools/snes_music.py --map-id 67 -o rom/build/inc/musicdata.inc
 """
 
-import argparse
 import collections
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import bancos
 import lcf
 import musica
 import midi
@@ -34,7 +31,7 @@ import muestras_brr
 import sdsp
 import snes_samples
 import spc700
-from render_map import GAME_DIR, REPO, find_resource
+from render_map import GAME_DIR, find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
@@ -643,16 +640,6 @@ def pack(frames, length, init):
     return bytes(stream)
 
 
-def build(map_id, game_dir=GAME_DIR):
-    """El tema de un mapa, listo para la ROM.
-
-    Devuelve (nombre, driver, bloque de muestras, stream, segundos, resumen).
-    """
-    tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
-    music = tree.map_music(map_id)
-    return build_nombre(music["name"] if music else "", game_dir)
-
-
 def tema_del_mapa(map_id, game_dir=GAME_DIR):
     """El nombre del tema que le toca a un mapa por el árbol, o "" si no tiene."""
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
@@ -816,18 +803,6 @@ def notas_que_suenan(leido, banco):
             programa = leido["programas"].get(nota.channel, 0)
             suenan += banco.melodicas.get(programa) is not None
     return suenan / max(1, total)
-
-
-def build_nombre(name, game_dir=GAME_DIR):
-    """Un tema solo, con el banco armado nada más que para él.
-
-    Queda para `music` y `audio-check`, que miran un tema suelto. La ROM no
-    pasa por acá desde que lleva varios: ver `build_varios`.
-    """
-    driver, samples, temas, _banco, _afuera = build_varios([name], game_dir)
-    tema = temas[0]
-    return (name, driver, samples, tema["stream"], tema["segundos"],
-            tema["resumen"])
 
 
 def tabla_de_sonidos(sonidos, banco):
@@ -1033,48 +1008,3 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                tema_muestras, bloque_paquetes,
                "\n".join(muestras),
                "\n".join(block(e, st) for e, st in zip(etiquetas, streams))))
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--map-id", type=int, default=67)
-    parser.add_argument("--game-dir", default=GAME_DIR)
-    parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "rom/build/inc/musicdata.inc"))
-    args = parser.parse_args()
-
-    name, driver, samples, stream, seconds, summary = build(args.map_id,
-                                                            args.game_dir)
-    if len(stream) <= 1:
-        print("El mapa %d no tiene un MIDI propio (%s): sale mudo."
-              % (args.map_id, name or "sin música"))
-    else:
-        print("Mapa %d: %s, %.0f s" % (args.map_id, name, seconds))
-        print("  voces por canal: %s" % summary["voices"])
-        print("  timbres:         %s" % summary["sounds"])
-        print("  banco:           %s" % ", ".join(summary["bank"]))
-        print("  se reproduce el %.0f%% del tiempo-nota"
-              % (100 * summary["coverage"]))
-        # Y el otro número, que es el que se oye como voces que faltan: ver
-        # `notas_que_suenan`. Con un tema solo suele ser 100%, y justamente por
-        # eso conviene que esté: la diferencia contra la ROM entera es el costo
-        # de compartir el banco.
-        print("  suenan el %.0f%% de las notas"
-              % (100 * summary["notas"]))
-
-    emit(args.output,
-         [{"nombre": name, "stream": stream, "segundos": seconds,
-           "resumen": summary}],
-         driver, samples, arranque=0, paquetes=[([0], [])])
-    # El acomodo de bancos, igual que cuando lo emite el conversor: acá la
-    # música es lo único que hay en RODATA, así que se resuelve sola. Ver
-    # `tools/bancos.py`.
-    bancos.resolver([args.output])
-    print("  driver %d B, muestras %d B, stream %d B -> %s"
-          % (len(driver), sum(len(v.data) for v in samples), len(stream),
-             args.output))
-
-
-if __name__ == "__main__":
-    main()
