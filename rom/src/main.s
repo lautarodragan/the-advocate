@@ -5752,9 +5752,22 @@ op_key:
     and #TECLA_ARRANCA
     beq tecla_mirar
     ; La primera de las dos: la variable en cero y el control de vuelta sin
-    ; mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT, que acá sale
-    ; gratis: el flanco se calcula contra el pad del cuadro anterior, así que
-    ; dejar pasar un cuadro es exactamente perderlo.
+    ; mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT: el flanco se
+    ; calcula contra el pad del cuadro anterior, así que dejar pasar un cuadro
+    ; es perderlo **para este intérprete**.
+    ;
+    ; Para el resto del cuadro no alcanzaba, y por eso se pisan los dos
+    ; "anteriores" con el pad de ahora: easyrpg dice que el reset también
+    ; impide "player actions for this frame such as summoning the menu or
+    ; triggering events" (`game_interpreter.cpp:3403-3408`). Un paralelo corre
+    ; antes que el héroe, así que sin esto la A con la que el motor de las
+    ; piedras del mapa 11 prepara una le hablaba además a la reja que el héroe
+    ; tenía enfrente. Lo cobra `test_con_a_y_una_direccion_la_piedra_sale_
+    ; volando`.
+    lda pad
+    sta pad_ant
+    lda pad_a
+    sta pad_a_ant
     stz temp + 2
     stz temp + 3
     lda temp

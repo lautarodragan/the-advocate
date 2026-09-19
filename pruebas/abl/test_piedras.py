@@ -126,6 +126,12 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
     assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
         "el primer KeyInputProc tendría que haber leído la tecla de acción, y "
         "la variable 5 quedó en %d" % p.variable(ranura(5)))
+    # El héroe sigue mirando a la reja, que es un evento de acción. La A es
+    # del motor y de nadie más: el `KeyInputProc` de la dirección, que el
+    # motor ejecuta en ese mismo tick, hace `Input::ResetTriggerKeys()` y el
+    # héroe ya no ve el flanco. Si lo viera, la reja volvería a hablar.
+    assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
+        "la A que prepara la piedra le habló también a la reja")
     assert (p.variable(ranura(6)), p.variable(ranura(7))) == DEBAJO_DE_LA_REJA, (
         "las variables 6 y 7 tendrían que traer la celda del héroe")
     assert celda_de(p, mapa11, STONE) == DEBAJO_DE_LA_REJA, (
