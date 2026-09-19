@@ -712,22 +712,19 @@ orden de número como `Game_Party`. En gris va lo que A no usa, como
 la Portable Console: prende su switch —el 710—, gasta uno si tiene usos
 —`uses` en cero es infinito—, pide el refresco de páginas y vuelve derecho al
 mapa, que es el `PopUntil(Scene::Map)` de RM2k. B vuelve al menú. Las
-medicinas quedan en gris: piden HP que cambien, y en los mapas de la demo no
-hay cómo conseguir una ni nadie baja los HP —`ChangeHP` suma 1 a un grupo con
-la vida llena—. El switch 710 dispara el evento común 39, "NewMenuActivated",
+medicinas quedan en gris: piden HP que cambien, y en los mapas de la demo la
+única forma de perderlos es una pelea. El switch 710 dispara el evento común 39, "NewMenuActivated",
 que es el menú propio del juego hecho con imágenes: 568 comandos, y los
 eventos comunes todavía no corren.
 
 **Las medicinas van en blanco y abren la elección de actor**, que es el panel
 del grupo del menú con un cursor al costado —`render_objetivo`—. A no hace
-nada, y es exacto: `UseItem` sólo gasta la medicina si sube algo, y en este
-juego **fuera de batalla nadie baja nunca de los HP ni de los SP máximos**.
-Medido sobre los 328 mapas: los 11 `ChangeHP` suman, los 16 `ChangeCondition`
-quitan un estado y los 54 `FullHeal` llenan. Por eso esos tres comandos
-compilan a nada —el que reste o ponga un estado no compila— y los HP que
-muestra el menú son siempre los del máximo. El día que haya batallas, los HP
-pasan a ser estado del juego y a viajar en la partida. Libros, materiales y
-especiales siguen en gris.
+nada, y eso **sí** es deuda: `UseItem` sólo gasta la medicina si sube algo, y
+desde que hay peleas los HP bajan, así que usarla tendría algo que hacer.
+Hasta el 2026-09-12 no la tenía, porque fuera de batalla nadie bajaba nunca de
+los máximos y los tres comandos que tocan HP o estados compilaban a nada; hoy
+`FullHeal` y el `ChangeHP` que suma son OP_HEAL y curan de verdad. Libros,
+materiales y especiales siguen en gris.
 
 **El texto va de a una letra por celda.** La pantalla tiene su propio banco de
 tiles con cada carácter de la fuente en dos celdas, en blanco y en gris —307
@@ -1883,6 +1880,7 @@ sacudida, los destellos, la imagen, la animación— el conversor les pone un
 | `EnemyEncounter` | `OP_BATTLE` | `op_battle` → `pelea_arrancar` |
 | `OpenSaveMenu` | `OP_SAVE` | `op_save` → `ranuras_pantalla` |
 | `ChangeSaveAccess` y sus dos hermanas | `OP_ACCESS` | `op_access` |
+| `FullHeal`, y `ChangeHP` cuando suma | `OP_HEAL` | `op_heal` → `curar`, `curar_actor` |
 | `KeyInputProc` | `OP_KEY` | `op_key` → `tecla_de` |
 | el final de la página | `OP_DONE` | `correr_codigo` |
 

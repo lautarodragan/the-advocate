@@ -1604,13 +1604,23 @@ ITEM_MAX = 99
 # hacer y acepta los permisos que haga falta.
 #
 # OP_ACCESS: el bit en FAR_ACCESO (byte), permitido (byte)
-# Los HP y los estados, que fuera de batalla **no bajan nunca** en este juego:
-# medido sobre los 328 mapas, los 11 `ChangeHP` suman —siete de a 1 al grupo,
-# cuatro de 300 y 999 a un actor—, los 16 `ChangeCondition` quitan un estado y
-# los 54 `FullHeal` llenan. O sea que fuera de batalla todos tienen siempre los
-# HP y los SP al máximo y ningún estado, y estos tres comandos no cambian nada:
-# compilan a nada, y es exacto, no una aproximación. El que baje HP o ponga un
-# estado no compila, porque ahí sí habría algo que llevar.
+# Los HP, los SP y los estados. Hasta el 2026-09-12 fuera de batalla no bajaban
+# nunca —medido sobre los 328 mapas: los 11 `ChangeHP` suman, los 16
+# `ChangeCondition` quitan un estado y los 54 `FullHeal` llenan— así que los
+# tres comandos compilaban a nada y era exacto. **Dejó de serlo el día
+# siguiente**, con la pelea: los HP y los SP pasaron a ser estado, en `FAR_HP`
+# y `FAR_SP`, y un `FullHeal` que no cura deja al grupo caído. Eso trabó la
+# demo hasta el 2026-09-19, porque la pelea del mapa 9 se pierde por guion y su
+# manejador de derrota es justamente un `FullHeal`.
+#
+# Hoy `FullHeal` y el `ChangeHP` que suma son los dos OP_HEAL, y los separa la
+# cantidad; el que resta sigue sin compilar. `ChangeCondition` que quita un
+# estado sigue compilando a nada, y eso **no** es deuda: fuera de pelea los
+# estados no existen —la pelea los arma y los tira— así que no hay nada que
+# quitar. El que pone uno sigue sin compilar.
+#
+# OP_HEAL: actor (byte), cuánto (word). El actor en 0 es todo el grupo y la
+#     cantidad en 0 es `FullHeal`, o sea los HP y los SP al máximo.
 # La tienda, desde el 2026-09-11: `OpenShop` compila a OP_SHOP con el tipo
 # —0 compra y vende, 1 sólo compra, 2 sólo vende—, el juego de mensajes y la
 # lista de lo que vende, por número de ítem. Es de largo variable, como
