@@ -235,3 +235,55 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
         "con el mensaje cerrado, la A siguiente tendría que preparar la "
         "piedra, y la variable 5 quedó en %d" % p.variable(ranura(5)))
     assert celda_de(p, mapa11, STONE) == FRENTE_A_LA_PC
+
+
+# Al lado de `EV0060`, que es un evento de acción en (22,44): tirando hacia la
+# izquierda la piedra pasa por la PC de (19,44), y el héroe se da vuelta a
+# mirar al evento mientras la piedra vuela.
+AL_LADO_DE_EV0060 = (21, 44)
+EV0060 = 60
+DERECHA = 1                     # `hero_dir`: 0 arriba, 1 derecha, 2 abajo
+
+
+def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
+                                                               mapa11):
+    """El A que cierra un mensaje queda consumido: el héroe no lo ve.
+
+    El mensaje es de un paralelo —el de la PC rota—, así que al cerrarlo no
+    queda ninguna página de primer plano corriendo y `eventos_tick` sigue de
+    largo hasta `probar_accion` en el mismo cuadro, con el flanco de A
+    todavía ahí. En RM2k eso no pasa: el mensaje sigue "activo" unos ocho
+    cuadros después de cerrarse, mientras se anima el cierre, y con un
+    mensaje activo el héroe no busca eventos de acción (easyrpg
+    `game_player.cpp:297`)."""
+    p = hablarle_a_la_reja(partida(caso=MAPAS))
+    p.ir_al_mapa(11, *AL_LADO_DE_EV0060)
+    p.correr(10)
+    p.tocar("a")
+    p.correr(4)
+    p.tocar("left")
+    # Mientras vuela, el héroe se da vuelta hacia el evento. No camina: el
+    # evento ocupa la celda.
+    p.correr(20)
+    p.tocar("right")
+    assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
+    assert p.byte("hero_dir") == DERECHA, "el héroe tendría que mirar a EV0060"
+    assert mapa11.para(1).blanco(EV0060)
+    for _ in range(TOPE_HASTA_EL_MENSAJE):
+        if p.byte("msg_abierto"):
+            break
+        p.correr(1)
+    else:
+        raise AssertionError(
+            "la piedra tirada hacia la izquierda tendría que haber roto la PC")
+    p.correr(60)
+    assert p.byte("msg_abierto")
+    assert not p.byte("ev_activo"), (
+        "el mensaje es del paralelo: no tendría que haber una página de "
+        "primer plano corriendo")
+
+    p.tocar("a")
+    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
+    assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
+        "el A que cerró el mensaje le habló también a EV0060, que el héroe "
+        "tenía enfrente")

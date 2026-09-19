@@ -1888,6 +1888,16 @@ espera_boton:
     bne no_avanza               ; ya lo tenía apretado: no es un flanco
     stz msg_abierto             ; y con eso `flush_video` apaga el HDMA: cerrar
                                 ; la ventana no escribe un solo byte de VRAM
+    ; Y el flanco queda consumido, como el de B en la elección. Si el mensaje
+    ; era de un paralelo no hay página que siga, así que este mismo cuadro cae
+    ; en `probar_accion` con la A todavía "recién apretada" y le hablaba al
+    ; evento que el héroe tuviera enfrente. En RM2k el mensaje sigue activo
+    ; unos ocho cuadros más, mientras se anima el cierre (easyrpg
+    ; `window_message.cpp:379-403`), y con un mensaje activo el héroe no busca
+    ; eventos (`game_player.cpp:297`). Lo cobra `test_la_a_que_cierra_el_
+    ; mensaje_no_le_habla_al_de_enfrente`.
+    lda pad_a
+    sta pad_a_ant
 sigue:
     ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
     ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
