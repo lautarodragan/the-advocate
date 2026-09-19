@@ -2215,10 +2215,11 @@ cada dirección.
 
 Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
-el medio. Para eso `cartucho()` acepta `--inicio TX TY`, que planta al héroe en
-una celda elegida y compara sin caminar —lo usa `test_parado` en
-`pruebas/test_tanda.py`—, y además no depende de cuántos ticks se sostenga la
-cruceta. Así se reprodujo el error de la banda de OAM.
+el medio. Para eso el caso de la prueba empieza con un `Teleport` de RM2k a una
+celda elegida, y se compara sin caminar —lo usa `test_parado` en
+`pruebas/test_tanda.py`—, sin depender de cuántos ticks se sostenga la
+cruceta. Así se reprodujo el error de la banda de OAM. (Hasta el paso 9e era
+el `--inicio TX TY` del conversor, que sigue existiendo para las recetas.)
 
 ### El personaje
 

@@ -177,8 +177,9 @@ compare nombre="mapa" x="0" y="0":
 #
 # La captura sin teñir sale de plantar al héroe en el destino del
 # teletransporte, que es la misma pantalla sin el evento. Quien la quiera hoy
-# la arma con `--inicio 7 65` desde `pruebas/tanda.py`: la receta `parado` que
-# la sacaba se fue con la mudanza a pytest.
+# la arma desde `pruebas/tanda.py` con un caso que empiece con un `Teleport`
+# a (7,65) del mapa 1: la receta `parado` que la sacaba se fue con la mudanza
+# a pytest.
 tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
   python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 

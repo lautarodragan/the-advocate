@@ -215,8 +215,8 @@ def test_hablar(nombre, caso, apretar, cuadros, mapas):
     héroe y después la de adelante, y gana la página de número más alto que
     cumpla sus condiciones.
 
-    El switch 24 que prende `switch-24`, la página de prueba del primer caso,
-    no es una licencia: **todas** las páginas del pad de Talan lo piden, y lo
+    El switch 24 que prenden las páginas de prueba `hablar-*` no es una
+    licencia: **todas** las páginas del pad de Talan lo piden, y lo
     prende la cinemática de apertura. Ponerlo a mano es dejar el mundo en el
     estado al que el juego llega solo.
 

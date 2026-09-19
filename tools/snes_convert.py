@@ -5197,8 +5197,8 @@ def main():
     # tiene que valer lo mismo en los dos mapas. Ver `eventos.asociaciones_de`.
     #
     # Los de las páginas de prueba entran por la misma puerta: si fueran por
-    # `--grafico-de-prueba` tendrían índice sólo en el mapa donde arranca la
-    # ROM, y lo que el comando hace —cruzar el teletransporte— no se podría
+    # `--grafico-de-prueba` tendrían índice sólo en los mapas donde corre un
+    # caso, y lo que el comando hace —cruzar el teletransporte— no se podría
     # probar.
     args.asociaciones = eventos.asociaciones_de(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
@@ -6069,7 +6069,9 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
 # cartucho entero y van antes del primero. Desde el corte 3 del paso 9d es uno
 # solo, el archivo con la página: lo que la página hace es dato de RM2k, no
 # flags. `--grafico-de-prueba` es del cartucho a propósito: dice qué gráficos
-# hay en el banco de sprites del mapa, no qué hace la página.
+# hay en el banco de sprites de los mapas donde corren los casos, no qué hace
+# la página. Y dónde corre un caso tampoco es flag: lo dice el `Teleport` con
+# que empieza, ver `mapa_del_caso`.
 FLAGS_DE_CASO = ("comandos_de_prueba",)
 
 
