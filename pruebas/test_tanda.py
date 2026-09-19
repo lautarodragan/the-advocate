@@ -97,7 +97,11 @@ def test_puerta_30_28():
 
 @pytest.mark.parametrize("direccion", ("none", "down"))
 def test_varios(direccion):
-    """`varios`: el mapa 18 en un cartucho donde **no** es el primero.
+    """`varios`: el mapa 19 en un cartucho donde **no** es el primero.
+
+    Se llama `18` porque su cartucho era `--map-id 18 --mapas 7 19 --inicial
+    2`, que arrancaba en el tercero de la tabla, el 19. Desde el 9f ningún
+    mapa de los que miran estas pruebas es el primero salvo el 6.
 
     Lo que prueba no es que el mapa se vea bien —eso ya lo cubre `heroe`— sino
     que se vea bien cuando su registro no está al principio de la tabla: con el
@@ -171,9 +175,9 @@ def test_evento(nombre):
     no entró no compila, y entonces la página no se emite y el evento no hace
     nada. Con el mapa 4 solo la pantalla se queda en negro, y eso es correcto.
 
-    El segundo caso —`tabla`— es el mismo con el destino **último** en la lista
-    de mapas, o sea con el teletransporte resolviendo un índice que no es 0
-    ni 1.
+    El segundo caso —`tabla`— era el mismo con el destino **último** en la
+    lista de mapas. Desde el 9f los dos corren en el cartucho de pruebas, así
+    que son la misma partida: se deja por la golden.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
@@ -202,8 +206,9 @@ def test_pagina(caso, nombre):
              y ejercita una ruta.
 
     Del arnés: el grupo lo arma la página de prueba, así que va en `caso`. El
-    121 no lleva ninguna —arranca con el del juego— y el 74 lleva
-    `grupo-21`.
+    121 llega con `en-121`, que deja el del juego, y el 74 con
+    `grupo-21-en-74`, que va en el cartucho chico: con el actor 21 la
+    pantalla de ranuras no entra en el de pruebas.
     """
     p = partida(caso)
     p.correr(240)
@@ -233,7 +238,7 @@ def test_caminando(mapa, direccion, avances):
 
     Del arnés: **el avance no es un número de ticks sino una cuenta**, la de
     `ticks_de_avance`, y errarle por uno mueve media pantalla. Los avances de
-    un mismo mapa salen de una sola conversión, que es lo caro.
+    un mismo mapa son la misma partida corrida otra vez desde el reset.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
     ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los

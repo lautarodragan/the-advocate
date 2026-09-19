@@ -34,8 +34,8 @@ from tanda import golden, partida
 
 # Cada caso es: nombre —que es también el de su página de prueba, con el
 # `Teleport` a su mapa y su celda, la ruta forzada y el switch que arranca
-# prendido—, los ticks que se capturan, los toques de A por tick, los mapas de más que entran al
-# cartucho, y los toques por cuadro de hardware. Es la
+# prendido—, los ticks que se capturan, los toques de A por tick y los toques
+# por cuadro de hardware. Es la
 # línea que el caso tenía en la lista de la tanda, sin el `dir` y sin el
 # `115` del arranque, que es el de siempre.
 ESCENAS = (
@@ -123,9 +123,8 @@ ESCENAS = (
 def test_escena(nombre, cuadros, apretar, toques):
     """`escena`: una página del juego disparada desde una celda y una ruta.
 
-    Los cuadros de un mismo caso salen de **una sola** conversión, que es lo
-    caro; correr el emulador una vez por cuadro no lo es. Y cada uno corre
-    desde cero: arrancar de nuevo es parte de lo que se compara.
+    Cada cuadro corre desde cero: arrancar de nuevo es parte de lo que se
+    compara.
     """
     for cuadro in cuadros:
         p = partida(nombre)
@@ -135,8 +134,8 @@ def test_escena(nombre, cuadros, apretar, toques):
 
 # Hablarle a algo: nombre, la página de prueba —el `Teleport` al mapa y a la
 # celda del héroe, el switch que arranca prendido y, si hace falta, la ruta
-# terminada de un evento—, los ticks de los toques de A, los ticks que se capturan y los mapas
-# de más del cartucho.
+# terminada de un evento—, los ticks de los toques de A y los ticks que se
+# capturan.
 HABLADAS = (
     ("hablar", "hablar", (25,), (20, 60)),
     # Diecisiete toques de A sobre el mismo evento, o sea nueve aperturas de
@@ -239,9 +238,11 @@ def test_hablar(nombre, caso, apretar, cuadros):
 TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
                    2259, 2380, 2489, 2683, 2743)
 
-# Las cinemáticas: nombre, mapa de arranque, los mapas de destino, los ticks,
-# los toques de A y la página de prueba, que prende el switch con que arranca
-# —ninguna si no arranca con ninguno—.
+# Las cinemáticas: nombre, los ticks, los toques de A, la página de prueba
+# —la que prende el switch con que arranca, o `nada`— y el cartucho. Las que
+# arrancan en el 4 van en `juego`, que arranca ahí como el juego de verdad:
+# llegar al 4 con un `Teleport` no da lo mismo —la rampa del fundido y el
+# tinte salen corridos—.
 CINEMATICAS = (
     # La misma que `apertura`, mirada en otros ticks: los dos primeros caen
     # adentro de la rampa del primer fundido. Hasta el 2026-09-17 iba sin

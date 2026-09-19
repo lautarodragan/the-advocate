@@ -7,7 +7,8 @@ mapa y la diferencia está en la RAM.
 
 El reparto es el de siempre: la tanda mira la pantalla y esto mira el estado.
 
-La ROM de estas pruebas lleva `--con-titulo` y por eso es un cartucho propio: el
+La ROM de estas pruebas lleva `--con-titulo` y por eso es un cartucho propio,
+`titulo`, que es el de pruebas con la pantalla delante: el
 flag cambia el arranque —sin él la partida guardada se carga sola, con él espera
 a que el menú lo decida— y ése es justamente el camino que hay que probar.
 """
@@ -27,8 +28,8 @@ ESPERA = 198
 
 EMPEZAR, SEGUIR = 0, 1
 
-# El mapa donde arranca la ROM de las pruebas, que es el primero de su tabla.
-# Es el 5 y no el 4 del juego: lo dice `MAPAS` en conftest.py.
+# El mapa donde arranca el cartucho `titulo`, que es el de pruebas: el 6 y no
+# el 4 del juego. Ver `pruebas/cartuchos.py`.
 MAPA_DE_ARRANQUE = 6
 
 
@@ -88,7 +89,8 @@ def test_seguir_la_historia_carga_la_partida(partida):
     "la PÁGINA DE PRUEBA de guardado no llega a guardar si se cambia de mapa, "
     "y sólo con pantalla de título. Medido el 2026-09-10: quedándose en el "
     "mapa de arranque la SRAM tiene la magia a las ~350 vueltas; con un "
-    "ir_al_mapa(6) en el medio no la tiene ni a las 891, o sea que no es "
+    "ir_al_mapa(6) en el medio no la tiene ni a las 891 —desde el 9f el "
+    "arranque es el 6 y se va al 5—, o sea que no es "
     "cuestión de esperar más. Sin pantalla de título el mismo camino guarda a "
     "las 351. "
     "Lo que se descartó: no es el bug de página directa de partida_suma "

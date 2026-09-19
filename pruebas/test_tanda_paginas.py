@@ -15,9 +15,7 @@ Del arnés hay tres cosas que valen para casi todos:
 * **el tinte de la página es lo que hace visible que la página siguió.** Muchos
   casos llevan una espera y un `TintScreen` detrás del comando: el
   tick de después del comando se ve teñido y el de antes no, así que un comando
-  que no termina se nota;
-* **los ticks de un caso salen de una sola conversión.** Convertir el mapa es lo
-  caro; correr el emulador una vez por tick no lo es.
+  que no termina se nota.
 
 De las quince recetas que esto reemplaza sólo sobrevive `cerrar`, porque la
 llama `bsnes`; el nombre que abre cada docstring es el del caso, que es también
@@ -107,10 +105,11 @@ def test_texto(nombre, caso, en):
     entero. Y el **encadenado**: al apretar A el primero se cierra y el segundo
     se abre en el mismo tick.
 
-    `relleno` son bytes muertos delante del bloque de textos, que es lo que
-    corre los desplazamientos más allá de los 32 KB que mide la ventana de un
-    banco de LoROM. Reproducirlo de verdad pide un cartucho de muchos mapas
-    hablados; con el relleno lo hace uno de un mapa.
+    `en` es el cartucho: los dos corridos van en uno con bytes muertos
+    delante del bloque de textos —`--relleno-de-mensajes`, el chico y
+    `cruza`—, que es lo que corre los desplazamientos más allá de los 32 KB
+    que mide la ventana de un banco de LoROM. Son dos cartuchos porque cada
+    relleno pone el mismo mensaje en otro lugar.
     """
     for cuadro in (60, 400):
         p = partida(caso, en=en)
@@ -455,11 +454,12 @@ def test_ventana(nombre):
     Los mapas no son varias veces lo mismo: la ventana se lleva la paleta que
     queda justo debajo de la capa de encima, y quién la paga cambia de mapa en
     mapa —hay uno donde al fondo le sobran paletas, otro que fusiona el máximo
-    posible, y otro que no entra en el tilemap de 64x32—. El último caso es
-    **dos mapas en la misma ROM**: la paleta de la ventana es una sola para
-    todo el cartucho —las celdas se emiten una vez con la paleta adentro— así
-    que gana la más baja de las que cada mapa pediría, y el cero mide que la
-    ROM y la referencia apretaron igual.
+    posible, y otro que no entra en el tilemap de 64x32—. La paleta de la
+    ventana es una sola para todo el cartucho —las celdas se emiten una vez
+    con la paleta adentro— así que gana la más baja de las que cada mapa
+    pediría. El último caso existía para mirar eso con dos mapas en la ROM;
+    desde el 9f todos corren en el cartucho de los 40, y se deja por la
+    golden.
     """
     p = partida(nombre)
     p.correr(200)

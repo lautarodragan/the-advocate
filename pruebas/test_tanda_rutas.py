@@ -68,7 +68,6 @@ def test_ruta(nombre, cuadros):
     porque ahí un error de contador no se ve. Por eso las rutas van en patas
     cortas con esperas en el medio y no de corrido.
 
-    Y los ticks de un caso salen de una sola conversión, que es lo caro.
     """
     for cuadro in cuadros:
         p = partida(nombre)

@@ -87,7 +87,8 @@ def guardar(r, ranura=0):
 def test_el_save_point_guarda_sin_titulo(partida, mundo):
     """El control: el mismo camino en la ROM sin pantalla de título.
 
-    Sale gratis —comparte el cartucho con `test_recorrido`— y es lo que hace
+    Sale gratis —comparte el cartucho `juego` con `test_recorrido`— y el de
+    abajo corre en `titulo`, que llega al 4 con un `Teleport`. Es lo que hace
     que el caso de abajo signifique algo: si los dos guardan, la pantalla de
     título no es la variable, y el defecto del `xfail` es de la página de
     prueba.

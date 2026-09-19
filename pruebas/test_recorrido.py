@@ -8,8 +8,8 @@ tiene que seguir siendo jugable de punta a punta.
 
 Lo que la hace barata es que **la emulación no es el problema**: snes9x corre
 unos 2.900 ticks por segundo, así que los cinco mil ticks de las dos jugadas
-cuestan menos de tres segundos. Lo caro es armar el cartucho, y por eso lleva
-ocho mapas y no los veintinueve de `demo-ciudad`: son los que el recorrido pisa.
+cuestan menos de tres segundos. Corre en el cartucho `juego`, que arranca en
+el 4 como el juego de verdad y lleva el cronómetro en todos los mapas.
 
 **Dos cosas que esta prueba no hace, las dos medidas.**
 

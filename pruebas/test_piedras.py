@@ -42,7 +42,7 @@ import eventos                                               # noqa: E402
 import lcf                                                   # noqa: E402
 from render_map import GAME_DIR                              # noqa: E402
 
-# El mapa solo: el minijuego no sale de ahí y armar el cartucho es lo caro.
+# El mapa del minijuego, con el grupo del juego: no sale de ahí.
 MAPAS = "en-11"
 # Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
 # mirando hacia arriba. Es la misma celda que usa `just demo-piedras`.

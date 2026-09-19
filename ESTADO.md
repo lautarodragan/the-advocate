@@ -466,8 +466,7 @@ se pueden empezar hoy.
    * Y `--descartar-eventos`, que la tanda pasaba en 14 cartuchos. (Se fue
      con el 9e: ninguno lo necesitaba ya.)
 
-   El censo de lo que se arma hoy: 166 cartuchos de la tanda con 37 flags
-   distintos, en `rom/build/tanda/*/huella.txt`.
+   Qué se arma desde el 9f lo imprime `just cartuchos --lista`.
 
    **Decidido por taro el 2026-09-17**, para cada una:
 
@@ -507,7 +506,7 @@ se pueden empezar hoy.
    | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
    | 9d ✅ | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, elegidas por una variable; (3) las definiciones salen de los flags a datos | ninguna golden se movió, y los `mapdata.inc` de la tanda salieron idénticos en cada corte |
    | 9e ✅ | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | se regeneraron diez goldens, las diez por fase de animación: esperan que taro las mire |
-   | 9f | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada |
+   | 9f ✅ | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada; se regeneraron ocho goldens, una de fase y siete del cartucho único: esperan que taro las mire |
 
    **9e, decidido por taro el 2026-09-18**, sobre lo que midió un sub-agente
    (rama `worktree-agent-a0e54b96ce9bbc0ac`, `medicion-9e/`; capturas en
@@ -539,8 +538,8 @@ se pueden empezar hoy.
    lugar:
 
    * **empieza con un `Teleport`** a su mapa y su celda, y nada más dice dónde
-     corre. `tanda.cartucho` mete ese mapa en `--mapas` solo, y sin `--map-id`
-     el cartucho arranca en `MAPA_DE_ARRANQUE`, el 6. La página vive igual en
+     corre. El cartucho de pruebas lleva todos los mapas y arranca en el 6
+     —`MAPA_DE_ARRANQUE` en `pruebas/cartuchos.py`—. La página vive igual en
      el evento 0 del mapa de arranque, pero **se compila con el contexto del
      destino** —`mapa_del_caso` en snes_convert.py—, y a ese mapa van lo que
      el conversor decide por mapa a partir de los casos: quién camina, los
@@ -574,22 +573,73 @@ se pueden empezar hoy.
    que la página corre en el 6 antes de saltar, que en RM2k también cuenta.
    Todo lado a lado en `/extras/capturas/9e-c/` y `/extras/capturas/9e-arranque/`.
 
-   **Lo que queda para el 9f**:
+   **9f, hecho.** Las pruebas no arman nada: `just pruebas` corre primero
+   `just cartuchos` —`pruebas/cartuchos.py`—, que arma en serie los cartuchos
+   de `rom/build/pruebas-unico/` si algo de lo que los arma cambió, y las
+   pruebas piden su caso por el nombre, `tanda.partida("<caso>")`. Si el
+   cartucho es de otros fuentes, el arnés se niega a correr y dice qué receta
+   correr. Qué caso va en cuál lo imprime `just cartuchos --lista`.
 
-   * sólo se mudaron las 94 pruebas que pedían `--inicio`. **Las que piden un
-     `--map-id` distinto del 6 sin celda** —`test_heroe`, los paneos y
-     sacudidas de otros mapas, las pantallas del 73, las de `conftest` con
-     `ir_al_mapa`— siguen arrancando en su mapa, y para un solo cartucho
-     necesitan su `Teleport` a la celda donde hoy caen solas;
-   * **el mapa de arranque es el 6** porque es el de la mayoría de los casos y
-     el que se midió, no porque sea el bueno: el cartucho del juego golden
-     querría uno vacío, sin páginas propias que corran en ese primer tick;
-   * **los dígitos del cronómetro** ya van sólo en los mapas donde corre un
-     caso que lo toca, pero esos casos corren en el 6, que es el mismo de los
-     que no lo tocan: cuánto mueve eso en el cartucho único no se midió;
-   * y, visto de pasada: comparando conversiones **en paralelo**, una de 193
-     salió con los bloques en otros bancos y repetida salió igual. Parece una
-     carrera en el caché de disco; con el build secuencial del 9f no muerde.
+   **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y la prueba lo
+   pide por el nombre. Entra solo en el cartucho de pruebas. Si corre en otro
+   mapa que el 6, empieza con un `Teleport` a su mapa y a su celda; para el
+   grupo de la tanda en un mapa sin nada más están los `grupo-11-en-<mapa>`, y
+   para el del juego los `en-<mapa>`, con la celda donde el héroe caía cuando
+   ese mapa era el de arranque de su cartucho.
+
+   **Son cinco y no uno**, y cada uno tiene su porqué en `CARTUCHOS`:
+
+   * `pruebas`, los 40 mapas arrancando en el 6, con todo lo que entra;
+   * `titulo`, el mismo con pantalla de título —y un tema de arranque—. El
+     título cambia el arranque del cartucho entero: con él adentro caían 28
+     pruebas por el arnés y se movían tres goldens. Como lleva los mismos
+     mapas y casos, `test_titulo_es_el_mismo_juego` lo compara contra el de
+     pruebas;
+   * `juego`, los 40 mapas arrancando en el 4 con cronómetro: el recorrido,
+     el save point, la apertura y el cartel. Llegar al 4 con un `Teleport` no
+     es arrancar ahí —la cinemática sale con otra rampa y otro tinte—, y el
+     cronómetro en todos los mapas le saca una paleta a cada uno;
+   * `chico`, lo que no entra o cuida una disposición del cartucho: el actor
+     21, `--heroe-encima`, los encuentros cada 8 pasos, los dos rellenos que
+     pueden convivir y **las dos lluvias**, por el defecto de abajo;
+   * `cruza`, el relleno de 32766, que pone el mismo mensaje en otro lugar que
+     el de 33000 y no puede convivir con él.
+
+   `ChangeEncounterSteps` no está implementado, así que los encuentros de
+   prueba siguen siendo un flag del cartucho chico.
+
+   **Lo que el cartucho único cambió de las goldens**, ocho, cada causa aislada
+   armando el cartucho viejo con una sola cosa del nuevo: una de fase —la
+   llegada por `Teleport`, como las del 9e— y siete porque ahora están los 40
+   mapas y la unión de los casos —una puerta que ahora lleva a algún lado,
+   páginas que compilan porque su destino está, y los actores 12 y 13, que
+   pueden liderar y le sacan paletas al mapa 13—. Lado a lado en
+   `/extras/capturas/9f/`, y esperan que taro las mire.
+
+   **Encontrado midiendo, sin arreglar**:
+
+   * **las gotas de lluvia en un mapa con cronómetro no se tiñen.** Las gotas
+     buscan la primera paleta de sprite con lugar, y si el mapa lleva los
+     dígitos suele ser la de ellos; `subir_timer_pal` sube esa paleta **sin
+     teñir**, a propósito para los dígitos, y las gotas salen grises en una
+     pantalla azul. Lo destapó juntar `pan-lluvia` con los casos de
+     cronómetro en el 6. Se evita no juntándolos —las lluvias van en el
+     chico—, pero en `demo-ciudad`, que lleva cronómetro en todos los mapas,
+     puede estar pasando: no se miró;
+   * **en el cartucho de pruebas la primera vuelta del lazo termina tres
+     cuadros más tarde** que en uno de un mapa. `Partida` lo espera antes de
+     mirar el `Teleport`, pero lo que cuenta cuadros de hardware desde el
+     arranque —`consola_cruda`, `toques_hardware`— cuenta desde un poco antes
+     del primer tick. Ninguna golden lo distingue hoy;
+   * **las goldens `titulo-juego` y `titulo-juego-sin` son negras enteras**,
+     desde antes del 9f: la prueba que compara la ROM con título contra la
+     misma sin él compara dos pantallas negras. No se tocó.
+
+   Lo que quedó igual: `ir_al_mapa` sigue —escribe el pedido en la RAM y anda
+   en cualquier cartucho que lleve el mapa—, y **el mapa de arranque sigue
+   siendo el 6**, que no es el bueno para el juego golden: querría uno vacío,
+   sin páginas propias que corran en ese primer tick. La carrera del caché
+   de disco no se vio: el build es en serie.
 
    **9d, corte 1, hecho, y se fue con el 3.** Armaba la página escrita a mano
    también como comandos de RM2k y exigía que `compilar_pagina` diera los
@@ -606,9 +656,8 @@ se pueden empezar hoy.
    cartucho entero —líderes, miembros, ítems, tropas, lluvia, cronómetro,
    variables, animaciones, mensajes— sale de la unión de los casos.
    `pruebas/test_casos.py` arma uno con cuatro y pide a cada caso **la golden
-   de su cartucho propio**. Todavía no lo usa ninguna otra prueba: juntar la
-   tanda en pocos cartuchos es el 9f, y antes hacía falta el 9e, porque
-   `--inicio` era del cartucho.
+   de su cartucho propio**. Desde el 9f eso es la tanda entera, y
+   `test_casos.py` se fue.
 
    **9d, corte 3, hecho.** Un caso es un archivo de `pruebas/casos/`: la lista
    de comandos de una página de RM2k, en el mismo JSON de Ditto que `data/`
@@ -621,8 +670,8 @@ se pueden empezar hoy.
    fueron. Lo que hay que saber para escribir uno:
 
    * **el grupo va adentro del caso**, con `ChangePartyMembers`: el de la
-     tanda es `grupo-11`, que es el caso por omisión de `tanda.cartucho`, y un
-     caso propio arma el suyo. Un cartucho sin caso arranca con el del juego;
+     tanda es `grupo-11`, que es la página 0 del cartucho de pruebas, y un
+     caso propio arma el suyo; `nada` y los `en-<mapa>` dejan el del juego;
    * **los eventos van por su id de RM2k**, no por el índice en el mapa: los
      resuelve `Eventos`, igual que en una página del juego;
    * **la orden 34 de una ruta lleva el nombre del CharSet** —el largo y una
@@ -653,13 +702,8 @@ se pueden empezar hoy.
    de encima es el tile vacío**, así que si hiciera falta más, el primer lugar
    donde mirar es un RLE sobre la grilla de bloques, no los ceros de la capa.
 
-   Lo de abajo queda absorbido por lo de arriba: son 176 directorios y 874 MB en `rom/build/tanda/`, con la clave ya
-   siendo el hash de (grupo, flags) —o sea que el hash solo no agrupa—.
-   Agruparlos a mano en unos pocos da tres cosas: el banco 0 pasa a tener un
-   número por cartucho en vez de uno por caso, `mapdata.inc` deja de ser estado
-   global, y la tanda deja de rearmar lo mismo. Y encaja la idea de taro de
-   **pasarle la ruta del cartucho a la suite**, para que el test deje de saber
-   compilar. Mueve goldens.
+   Lo que en este lugar decía que la tanda armaba 176 cartuchos casi iguales
+   es el 9f, y está hecho.
 
 10. **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. **Va
     último**: es el único paso que no destraba ninguno de los otros, y `main.s`
@@ -1507,9 +1551,10 @@ estaba acá, lo reemplazó el paso 8.)
 
 Decidido por taro el 2026-09-18, para **después** de cerrar la etapa y del
 9f: la tanda corre en paralelo, con `pytest-xdist` o equivalente. **El build
-va primero y secuencial** —se arma el cartucho que todas las pruebas usan— y
-recién después se dispara la tanda con paralelismo; así no hay dos procesos
-armando lo mismo y no hace falta un lock.
+va primero y secuencial** —desde el 9f es así: `just pruebas` corre `just
+cartuchos` antes que pytest— y recién después se dispara la tanda con
+paralelismo; así no hay dos procesos armando lo mismo y no hace falta un
+lock.
 
 Lo que se descartó en la misma conversación: **pasar las pruebas a C** para
 hablarle a libretro sin ctypes. Medido ese día con cProfile sobre

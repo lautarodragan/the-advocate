@@ -79,15 +79,36 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, *[
 
 CARTUCHOS = {
     PRUEBAS: (_DE_PRUEBAS, None),
+    # El mismo con la pantalla de título delante. El título cambia el
+    # arranque del cartucho entero —`consola_cruda`, `reiniciar` y los
+    # cuadros de hardware cuentan desde otro lado—, así que no puede ir en el
+    # de pruebas. Lleva los mismos mapas y casos a propósito:
+    # `test_titulo_es_el_mismo_juego` compara uno contra el otro. El tema de
+    # arranque es para las pruebas de música, porque el 6 no trae uno propio.
     "titulo": (_DE_PRUEBAS + ["--con-titulo",
                               "--tema-de-arranque", "escape_newyork"], None),
+    # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
+    # no una imagen: el actor 21 —con él la pantalla de ranuras junta 462
+    # tiles de 448—, el héroe por encima de la capa, los encuentros cada 8
+    # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
+    # puede pedir— y el relleno de textos y el de mensajes. Y las dos
+    # lluvias: en el 6 del de pruebas corren casos con cronómetro, las gotas
+    # caen en la paleta de los dígitos, y ésa `subir_timer_pal` la sube sin
+    # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
     "chico": (["--map-id", "6", "--mapas", "74", "1", "21", "255",
                "--heroe-encima", "--encuentros-de-prueba", "8",
                "--relleno-de-textos", "200", "--relleno-de-mensajes", "33000"],
               ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "pan-lluvia", "sacudir-lluvia"]),
+    # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
+    # del borde de banco. No convive con el del chico: los dos corren el mismo
+    # mensaje, cada uno a otro lugar.
     "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766"],
               ["grupo-11"]),
+    # El juego como se juega: arranca en el 4, con cronómetro en todos los
+    # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
+    # sale con otra rampa de fundido y otro tinte— y el cronómetro le saca
+    # una paleta a cada mapa, que en el de pruebas movía goldens.
     "juego": (_con_mapas(4, "--con-timer",
                          "--tema-de-arranque", "escape_newyork"),
               ["nada", "cartel", "en-2"]),

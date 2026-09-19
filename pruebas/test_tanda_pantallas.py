@@ -171,7 +171,7 @@ def test_equipo_vuelve(cuadro):
 
 # La pantalla de batalla: nombre, la página de prueba —la pelea, con su
 # grupo de tres y su inventario—, cuántos cuadros de hardware, los toques que
-# pelean, los mapas de más y el relleno de textos.
+# pelean y el cartucho, si no es el de pruebas.
 BATALLAS = (
     ("batalla", "batalla", 200, (), None),
     ("batalla-blanco", "batalla", 200, ("a:130", "down:140", "down:150"),
@@ -182,10 +182,10 @@ BATALLAS = (
     # los Lazer Teeth.
     ("batalla-droide", "batalla-droide", 200, (), None),
     # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
-    # **dos** tropas y dos escenas. Es el único caso donde la pelea no es la
-    # tropa 0: el mapa 2 pide la 82 y la de la página de prueba queda segunda,
-    # así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
-    # siempre con el primer renglón.
+    # **dos** tropas y dos escenas, para que `tropa_id` y `escena_de` se
+    # indexaran de verdad en vez de acertar siempre con el primer renglón.
+    # Desde el 9f el cartucho de pruebas lleva todas las tropas y eso lo
+    # cumplen todas; se deja por la golden.
     ("batalla-segunda", "batalla", 200, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
@@ -224,9 +224,9 @@ BATALLAS = (
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
     # taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla
     # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
-    # otros cuatro uno encima del otro, y con eso el menú era ilegible. Ningún
-    # otro caso lo ve porque sus cartuchos llevan un mapa y ningún ítem: ahí
-    # los textos arrancan en el 103.
+    # otros cuatro uno encima del otro, y con eso el menú era ilegible. El
+    # relleno, en el cartucho chico, lo garantiza sin depender de cuántos
+    # ítems y mapas lleve el de pruebas.
     #
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
