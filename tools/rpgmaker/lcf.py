@@ -28,9 +28,9 @@ Acá se vuelven al número que espera el port, con las tablas del mismo esquema.
 import json
 import os
 
-from ditto_schema import CAMPOS, ENUMS
+from rpgmaker.ditto_schema import CAMPOS, ENUMS
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATOS = os.path.join(REPO, "data")
 MANIFIESTO = "ditto.json"
 

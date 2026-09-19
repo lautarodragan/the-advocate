@@ -20,8 +20,8 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
 
-import eventos                                          # noqa: E402
-import ventana                                          # noqa: E402
+from port import eventos                                # noqa: E402
+from port import ventana                                # noqa: E402
 
 
 def test_la_cola_sale_del_texto_y_se_cuenta():

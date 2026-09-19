@@ -7,18 +7,15 @@ Sin panorama y sin eventos: de los eventos se ocupa el conversor.
 """
 
 import os
-import sys
 
 from PIL import Image
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from render import charset
+from rpgmaker import lcf
+from rpgmaker import rm2k
+from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, TILE, UPPER
 
-import charset
-import lcf
-import rm2k
-from chipset import ANIMATED, ChipsetAtlas, TERRAIN, TILE, UPPER
-
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # El proyecto RM2k original. Es una copia dentro del contenedor, no un montaje
 # del host: así el directorio original ni siquiera es alcanzable desde acá, que
 # protege más que un montaje de sólo lectura. Todas las herramientas aceptan

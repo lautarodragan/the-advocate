@@ -26,11 +26,15 @@ import subprocess
 import sys
 import wave
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
+# y no `tools/`, que es de donde se importan los paquetes: ver el mismo
+# arranque en `port/snes_convert.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-import snes_music                                           # noqa: E402
-import snes_samples                                         # noqa: E402
-from render_map import GAME_DIR, find_resource              # noqa: E402
+from audio import snes_music                                # noqa: E402
+from audio import snes_samples                              # noqa: E402
+from render.render_map import GAME_DIR, find_resource       # noqa: E402
 
 # La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
 # que se renderiza bajo y después se normaliza: el pico de la pista queda en

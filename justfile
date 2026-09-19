@@ -7,9 +7,9 @@
 # `--check` es lo que corre la tanda: falla si alguno quedó viejo.
 protocolo *args:
   protocol tools/protocol/events.toml \
-      --python tools/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
+      --python tools/port/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
   protocol tools/protocol/music.toml \
-      --python tools/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
+      --python tools/audio/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
 
 # Las pruebas del generador: los errores que tiene que dar ante una declaración
 # rota, y la forma exacta del texto que emite. No necesitan el juego ni la ROM.
@@ -72,7 +72,7 @@ tiles-pruebas:
 # leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
 # `pruebas/arnes/consola.py`. El mapa de memoria lo escribe el conversor al lado de
 # los `.inc`. Ver tools/ensamblar.py.
-ensamblar := "python3 tools/ensamblar.py"
+ensamblar := "python3 tools/ensamblado/ensamblar.py"
 
 # Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
@@ -206,7 +206,7 @@ demo nombre="demo-ciudad" titulo="":
   set -euo pipefail
   titulo="{{titulo}}"
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 10 --map-id 4 \
+  python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
       --con-timer ${titulo:+--con-titulo} \
@@ -261,7 +261,7 @@ demo nombre="demo-ciudad" titulo="":
 # la lista escrita a mano.
 demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 14 --map-id 49 \
+  python3 tools/port/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
       --con-timer --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc \
@@ -286,7 +286,7 @@ demo-carrera nombre="demo-carrera":
 # `--grupo 14` es Talan, igual que en la carrera y en las piedras.
 demo-vipers nombre="demo-vipers":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 14 --map-id 14 \
+  python3 tools/port/snes_convert.py --grupo 14 --map-id 14 \
       --con-timer \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
@@ -313,7 +313,7 @@ demo-vipers nombre="demo-vipers":
 # la lista de mapas no se parece en nada.
 demo-piedras nombre="demo-piedras":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 14 --map-id 11 \
+  python3 tools/port/snes_convert.py --grupo 14 --map-id 11 \
       --con-timer --inicio 26 52 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
@@ -335,7 +335,7 @@ demo-piedras nombre="demo-piedras":
 # `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
 demo-cofres nombre="demo-cofres":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
+  python3 tools/port/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
       --con-timer --inicio 80 19 \
       -o rom/build/{{nombre}}/mapdata.inc \
       --comandos-de-prueba pruebas/casos/atravesar-sin-paso.json
@@ -381,7 +381,7 @@ musica mapa tema banco="":
   if [ -z "$inicial" ]; then echo "el mapa {{mapa}} no está en demo-ciudad"; exit 1; fi
   inicial=$((inicial - 1))
   mkdir -p rom/build/$nombre
-  python3 tools/snes_convert.py --grupo 10 --map-id 4 \
+  python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
       --inicial $inicial --tema-de-arranque {{tema}} \
@@ -404,7 +404,7 @@ musica mapa tema banco="":
 # pierde igual.
 demo-trampa nombre="demo-trampa":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
+  python3 tools/port/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
       --con-timer --inicio 22 36 \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
@@ -426,4 +426,4 @@ demos:
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
 # el MSU-1 no se enciende.
 msu nombre="demo-ciudad":
-  python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
+  python3 tools/audio/msu.py rom/build/{{nombre}}/{{nombre}}.sfc

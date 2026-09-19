@@ -23,8 +23,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "..", "tools"))
 
-import eventos                                               # noqa: E402
-from render_map import GAME_DIR                              # noqa: E402
+from port import eventos                                     # noqa: E402
+from render.render_map import GAME_DIR                              # noqa: E402
 
 # La variable de RM2k donde el comando guarda lo que leyó. Cualquiera sirve: el
 # conversor le da ranura porque la nombra la página de prueba.

@@ -25,7 +25,7 @@ import os
 
 from PIL import Image
 
-import render_map
+from render import render_map
 
 # El tamaño y el lugar de la ventana de mensaje. En RM2k la pantalla es de
 # 320x240 y la ventana ocupa 320x80 abajo; acá la pantalla son 256x224, así que
@@ -135,7 +135,7 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
     solo: en la fase 1 las líneas que no entran se truncan, que es la decisión
     escrita en ESTADO.md.
     """
-    import fuente
+    from port import fuente
     if font_id is None:
         font_id = fuente.MINCHO
     bloque = color_de_texto(sys_img, color)

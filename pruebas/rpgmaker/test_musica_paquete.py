@@ -123,7 +123,7 @@ def test_un_tema_pierde_sus_muestras_pero_nunca_su_numero():
     pista no gasta ni un byte de ARAM; lo único que necesita es que el tema
     tenga número. Sin número no hay nada que tocar ni con los archivos al lado.
     """
-    import snes_music
+    from audio import snes_music
 
     nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
     titulo = nombres.index("Fantasia_Of_The_Wind")
@@ -181,7 +181,7 @@ def test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice():
     banco propio, así que con él parecía que compartir no costaba nada. Son dos
     preguntas distintas y por eso van las dos.
     """
-    import snes_music
+    from audio import snes_music
 
     nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
     titulo = nombres.index("Fantasia_Of_The_Wind")

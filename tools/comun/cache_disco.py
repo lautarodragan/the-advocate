@@ -22,7 +22,7 @@ import os
 import pickle
 import tempfile
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DONDE = os.environ.get("ABL_CACHE", os.path.join(RAIZ, "rom", "build", "cache"))
 APAGADO = os.environ.get("SIN_CACHE") == "1"
 

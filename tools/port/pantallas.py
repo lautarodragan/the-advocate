@@ -14,8 +14,8 @@ pantallas en 320x240 con ventanas y la fuente a 6 pixeles; acá van en
 256x224, sobre negro y a una letra por celda. Es cosmético y está declarado.
 """
 
-import titulo
-from eventos import ELEGIR_CURSOR, ITEM_MAX
+from port import titulo
+from port.eventos import ELEGIR_CURSOR, ITEM_MAX
 
 FILAS, COLS = 28, 32
 
@@ -203,7 +203,7 @@ TI_TERMINO_TENGO, TI_TERMINO_LLEVO = 0x5C, 0x5D
 
 
 def terminos_tienda(db, juego):
-    import lcf
+    from rpgmaker import lcf
     base = 0x29 + 13 * juego
     return {n: lcf.to_string(db.terminos.get(base + k, b""))
             for k, n in enumerate(TI_TERMINOS)}
@@ -450,7 +450,7 @@ BA_TERMINOS = (
 
 
 def terminos_batalla(db):
-    import lcf
+    from rpgmaker import lcf
     return {n: lcf.to_string(db.terminos.get(c, b"")) for n, c in BA_TERMINOS}
 
 
@@ -467,5 +467,5 @@ def texto_de_orden(termino):
 
 
 def lcf_termino(db, chunk):
-    import lcf
+    from rpgmaker import lcf
     return lcf.to_string(db.terminos.get(chunk, b""))

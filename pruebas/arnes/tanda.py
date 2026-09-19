@@ -42,7 +42,7 @@ from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
-import retro                                             # noqa: E402
+from emulador import retro                               # noqa: E402
 
 import cartuchos                                         # noqa: E402
 

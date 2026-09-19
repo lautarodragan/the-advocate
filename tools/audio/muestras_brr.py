@@ -25,13 +25,10 @@ import hashlib
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import wave
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import cache_disco
+from comun import cache_disco
 
 FALTA = """falta `brr`, el códec de muestras del SPC700.
 

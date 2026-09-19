@@ -28,15 +28,15 @@ sys.path.insert(0, os.path.join(REPO, "tools"))
 
 import pytest  # noqa: E402
 
-import event_opcodes  # noqa: E402
-import music_opcodes  # noqa: E402
+from port import event_opcodes  # noqa: E402
+from audio import music_opcodes  # noqa: E402
 
 # Cada bytecode: su declaración, su módulo de Python y su .inc.
 GENERADOS = [
     ("events", event_opcodes, "rom/src/event_opcodes.inc",
-     "tools/event_opcodes.py"),
+     "tools/port/event_opcodes.py"),
     ("music", music_opcodes, "rom/src/music_opcodes.inc",
-     "tools/music_opcodes.py"),
+     "tools/audio/music_opcodes.py"),
 ]
 MAIN = os.path.join(REPO, "rom", "src", "main.s")
 

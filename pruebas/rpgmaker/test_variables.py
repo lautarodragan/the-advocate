@@ -17,8 +17,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-import eventos                                          # noqa: E402
-from render_map import GAME_DIR                         # noqa: E402
+from port import eventos                                # noqa: E402
+from render.render_map import GAME_DIR                         # noqa: E402
 
 # La página de prueba `variables` hace: var 17 = 5; var 17 += 7 (12); var 21 =
 # azar entre 0 y 100; var 39 = var 17; var 40 = 3; var 40 -= 10 (-7, con

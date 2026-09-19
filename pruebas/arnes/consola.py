@@ -27,7 +27,7 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
-import retro                                            # noqa: E402
+from emulador import retro                              # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.

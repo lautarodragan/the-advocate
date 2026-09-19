@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-import eventos                                          # noqa: E402
+from port import eventos                                # noqa: E402
 
 
 def donde_queda(tile_y, velocidad, cuadros):

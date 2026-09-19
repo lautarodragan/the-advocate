@@ -23,8 +23,8 @@ import pytest
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
 
-import render_map                                            # noqa: E402
-import snes_convert                                          # noqa: E402
+from render import render_map                                # noqa: E402
+from port import snes_convert                                # noqa: E402
 
 JUEGO = os.environ.get("GAME_DIR", "/extras/abl-rm")
 MAPA = 2
@@ -86,7 +86,7 @@ def paletas_de(cuantos_colores, cuantas=snes_convert.OBJ_PALETTES):
 
 def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     """Con las ocho paletas ocupadas pero con lugar, no se agrega ninguna."""
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     palettes = paletas_de(13)
@@ -100,7 +100,7 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
 
 def test_si_de_verdad_no_entra_lo_dice():
     """Con las ocho llenas no hay magia posible, y tiene que cortar."""
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     with pytest.raises(SystemExit):
@@ -122,7 +122,7 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     igual con el guard sacado —se probó, y pasaba—. Lo que se prueba acá es el
     mecanismo: si la primera paleta con lugar es de un líder, hay que saltearla.
     """
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     # Dos paletas con lugar de sobra; la primera es la del líder.

@@ -89,7 +89,7 @@ def _abrir(game_dir, carpeta, nombre):
     """Un PNG del juego con el color 0 como transparente, que es la regla de
     RM2k. Sale de `render_map.load_image` para no tener dos maneras de leer lo
     mismo."""
-    import render_map
+    from render import render_map
     camino = render_map.find_resource([game_dir], carpeta, nombre,
                                       (".png", ".bmp", ".xyz"))
     if camino is None:
@@ -139,7 +139,7 @@ def convertir(db, tropa, fondo, game_dir):
                  CGRAM desde `CGRAM_BASE`.
       `fondo`    el nombre, para el informe.
     """
-    import titulo
+    from port import titulo
     imagen = componer(db, tropa, fondo, game_dir)
     if imagen is None:
         return None

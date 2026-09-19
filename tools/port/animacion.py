@@ -85,7 +85,7 @@ _CACHE = {}
 
 def hoja_de(renderer, anim):
     """La hoja de `Battle` de esta animación, o None si no tiene o no está."""
-    import render_map
+    from render import render_map
     nombre = anim.get("imagen") or ""
     if not nombre:
         return None
@@ -154,7 +154,7 @@ def _pintar_cuadro(anim, hoja, i, caja):
     centrada en su (x, y).
     """
     from PIL import Image
-    import eventos
+    from port import eventos
     x0, y0, ancho, alto = caja
     canvas = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
     lado_hoja = CELDA_GRANDE if anim.get("grande") else CELDA
@@ -189,7 +189,7 @@ def _tenir(trozo, tono):
     la comparación mira: teñir los ocho del PNG y recortar después daría otro
     número, y sería una diferencia que los dos lados no comparten.
     """
-    import eventos
+    from port import eventos
     from PIL import Image
     salida = Image.new("RGBA", trozo.size)
     memo = {}
@@ -224,7 +224,7 @@ def convertir(anim, hoja):
     if caja is None or hoja is None:
         return None
     from PIL import Image
-    import titulo
+    from port import titulo
     x0, y0, ancho, alto = caja
     ta, tal = tamano(ancho, alto)
     ox, oy = (CAJA - ta) // 2, (CAJA - tal) // 2
@@ -274,7 +274,7 @@ def de_numero(renderer, numero):
     Convertir una son unos cuantos `resize` grandes y el conversor la pide una
     vez por mapa que la muestre; la referencia, una vez por cuadro que dibuje.
     """
-    import eventos
+    from port import eventos
     if numero in _CACHE:
         return _CACHE[numero]
     anim = eventos.ANIMACIONES.get(numero)

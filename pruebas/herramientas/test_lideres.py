@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
 
-import snes_convert                                          # noqa: E402
+from port import snes_convert                                # noqa: E402
 
 KERSH, DUMMY_HERO, TALAN = 11, 10, 14
 

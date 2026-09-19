@@ -12,9 +12,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-import eventos                                          # noqa: E402
-import lcf                                              # noqa: E402
-from render_map import GAME_DIR                         # noqa: E402
+from port import eventos                                # noqa: E402
+from rpgmaker import lcf                                # noqa: E402
+from render.render_map import GAME_DIR                         # noqa: E402
 
 # Lo que da la página de prueba `inventario`, de a dos —ítem y cuánto—: tres de
 # la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y cinco

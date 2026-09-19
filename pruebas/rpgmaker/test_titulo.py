@@ -20,7 +20,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-from eventos import SWITCH_DE_PRUEBA                    # noqa: E402
+from port.eventos import SWITCH_DE_PRUEBA                    # noqa: E402
 
 # Cuántos ticks espera la página de prueba antes de guardar, como en
 # `test_guardar`: alcanzan para irse a otro mapa —el fundido son 90— y sobra.
@@ -304,10 +304,10 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     import sys
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__)))), "tools"))
-    import lcf
-    import titulo
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import titulo
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
 
     una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")

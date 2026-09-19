@@ -18,17 +18,14 @@ ojo y tres estaban mal.
 
 import math
 import os
-import sys
 
-import rm2k
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from rpgmaker import rm2k
 
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
 # salen de `protocol/events.toml`, que es de los dos lados —de esto y del
 # intérprete en main.s— y de ninguno. Ver protocol/README.md.
-from event_opcodes import *   # noqa: F401,F403
-from event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
+from port.event_opcodes import *   # noqa: F401,F403
+from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
 # --- los comandos de RM2k que sabemos ejecutar ------------------------------
 END = 10
@@ -1305,7 +1302,7 @@ class Mensajes:
         haría durar lo mismo en la ROM y en la referencia a la vez, o sea que la
         comparación daría cero con el error puesto.
         """
-        import ventana as ventana_mod
+        from port import ventana as ventana_mod
         lineas, pausas, autocierre = cola_de_escapes(lineas)
         lineas = tuple(t[:ventana_mod.COLUMNAS]
                        for t in list(lineas)[:ventana_mod.LINEAS])
@@ -1384,7 +1381,7 @@ def mensaje_bytes(lineas, pausas=0, autocierre=False):
     menos 32. Todo el texto de este juego entra ahí: se midió, y no tiene una
     sola letra acentuada.
     """
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     assert 0 <= pausas <= PAUSAS_MAX
     out = bytearray([min(len(lineas), ventana_mod.LINEAS)
                      | (CABECERA_AUTOCIERRE if autocierre else 0)
@@ -2013,7 +2010,7 @@ AUDIO_APAGADO = ("", "(OFF)")
 def indexar_audio_de_batalla(game_dir):
     """El tema y los efectos de la pelea, del LDB. Lo llaman el conversor y la
     referencia, igual que `indexar_animaciones`."""
-    import lcf
+    from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     AUDIO_BATALLA.clear()
     AUDIO_BATALLA["battle_music"] = db.battle_music
@@ -2105,7 +2102,7 @@ class Imagenes:
         bytecode distintos, que es la clase de error que la comparación reporta
         sin decir dónde.
         """
-        import imagen as imagen_mod
+        from port import imagen as imagen_mod
         if self.nombre is not None:
             return self.info    # la ranura ya está tomada
         for game_map in game_maps:
@@ -2150,7 +2147,7 @@ def indexar_animaciones(game_dir):
     """Las animaciones de batalla del LDB, por id: sus cuadros y sus
     timings, con los valores por omisión de liblcf —el decodificador omite
     los que no están—. Lo llaman el conversor y la referencia."""
-    import lcf
+    from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     ANIMACIONES.clear()
     for numero, anim in db.decode().get("animations", {}).items():
@@ -2264,7 +2261,7 @@ def variables_de(game_dir, map_ids=None, extra=()):
     No era circular —no dependía de que la página compilara—: este barrido mira
     todos los comandos compilen o no, y a éste no lo miraba.
     """
-    import lcf
+    from rpgmaker import lcf
     ids = set(extra)
     for map_id in (mapas_del_juego(game_dir) if map_ids is None else map_ids):
         game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
@@ -2321,7 +2318,7 @@ def indexar_comunes(game_dir):
     `indexar_variables`, y por lo mismo: `CallEvent` los compila en el lugar,
     así que los dos lados tienen que estar mirando la misma base.
     """
-    import lcf
+    from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     COMUNES.clear()
     COMUNES.update(db.common_events)
@@ -2347,8 +2344,8 @@ def indexar_actores(game_dir):
     `AGENTS.md` nombra. Por eso hay una lista que dice si se llamó y `OP_IF_ACTOR`
     la mira.
     """
-    import lcf
-    import batalla
+    from rpgmaker import lcf
+    from port import batalla
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     ACTOR_EQUIPO.clear()
     ACTOR_SABE.clear()

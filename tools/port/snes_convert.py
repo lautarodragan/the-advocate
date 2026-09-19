@@ -45,30 +45,36 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Corrido como script —que es como lo corren las recetas—, Python pone en el
+# `sys.path` la carpeta de este archivo y no `tools/`, que es de donde se
+# importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
+# las dos, un `import eventos` suelto andaría y cargaría una segunda copia del
+# módulo, distinta de `port.eventos`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-import bancos
-import tiles_bin
-import event_codes
-import eventos
-import lcf
-import rm2k
+from ensamblado import bancos
+from port import tiles_bin
+from rpgmaker import event_codes
+from port import eventos
+from rpgmaker import lcf
+from rpgmaker import rm2k
 
 # Los eventos translúcidos llevan su propio gráfico: ver
 # `rm2k.decorar_translucido` —horneado contra el fondo, tramado, u opaco—.
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
-import animacion as animacion_mod
-import imagen
-import asignador
-import titulo as titulo_mod
-import pantallas as pantallas_mod
-import batalla as batalla_mod
-import escena as escena_mod
-import snes_music
-from asignador import CELL, cut_tiles, tile_colors
-from rm2k import collect_npcs, hero_start, passability_map
-from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
-                        find_resource, load_image)
+from port import animacion as animacion_mod
+from port import imagen
+from port import asignador
+from port import titulo as titulo_mod
+from port import pantallas as pantallas_mod
+from port import batalla as batalla_mod
+from port import escena as escena_mod
+from audio import snes_music
+from port.asignador import CELL, cut_tiles, tile_colors
+from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
+from render.render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
+                               find_resource, load_image)
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -1473,14 +1479,15 @@ def convert_layers(base, above_img, variantes=None):
     Verificado con `SIN_CACHE=1`: el `.sfc` es el mismo byte por byte.
     """
     global _VERSION_CAPAS
-    import cache_disco
+    from comun import cache_disco
     if _VERSION_CAPAS is None:
         # Y el binario de `tiles`, que es el que emite: recompilarlo sin tocar
         # nada de acá tiene que invalidar lo guardado.
         # Y el asignador, que decide qué colores quedan: hasta el 2026-09-17
         # no estaba, así que cambiar cómo se fusiona no invalidaba nada.
-        _VERSION_CAPAS = (cache_disco.version_de("snes_convert.py", "rm2k.py",
-                                                 "asignador.py")
+        _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
+                                                 "rpgmaker/rm2k.py",
+                                                 "port/asignador.py")
                           + tiles_bin.version())
     partes = [_VERSION_CAPAS, _huella_de_imagen(base),
               _huella_de_imagen(above_img)]
@@ -1962,7 +1969,7 @@ VENTANA_TEXTO_COLS = 30
 def _columnas():
     """Cuántos caracteres entran en una línea. Vive en `ventana.py` con el
     resto de la geometría, y el porqué del número está ahí."""
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     return ventana_mod.COLUMNAS
 
 
@@ -1996,8 +2003,8 @@ def convert_ventana(sys_img, font_id=None):
         color     el índice de paleta de cada una de las 12 filas del glifo
         sombra    el índice de la sombra
     """
-    import fuente as fuente_mod
-    import ventana as ventana_mod
+    from port import fuente as fuente_mod
+    from port import ventana as ventana_mod
 
     if font_id is None:
         font_id = fuente_mod.MINCHO
@@ -2091,7 +2098,7 @@ def fuente_bytes(font_id):
     izquierda es el bit 7. Darlos vuelta acá y no en la ROM sale gratis: es una
     tabla de 1140 bytes que se genera una vez.
     """
-    import fuente as fuente_mod
+    from port import fuente as fuente_mod
     out = bytearray()
     for code in range(32, 127):
         for fila in fuente_mod.filas(chr(code), font_id):
@@ -5507,7 +5514,7 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
     font_id = renderer.database.font_id
     ventana_datos = convert_ventana(skin, font_id)
@@ -6280,7 +6287,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
     timer_colores = ()
     if map_id in args.timer_en:
-        import ventana as ventana_mod
+        from port import ventana as ventana_mod
         timer_colores = sorted(colores_del_timer(ventana_mod.skin(
             args.game_dir, renderer.database.system_name)))
     solos = {c for c, n in getattr(args, "mapas_por_personaje", {}).items()
@@ -6458,7 +6465,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # comparten paleta con quien tenga lugar, que casi siempre hay.
     timer_base, timer_pal = 0, None
     if map_id in args.timer_en:
-        import ventana as ventana_mod
+        from port import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
             sys_img, tiles, palettes, reparto[3],

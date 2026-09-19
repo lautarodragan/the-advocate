@@ -41,10 +41,10 @@ def abrir(una, tope=60):
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    import lcf
-    import titulo
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import titulo
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
@@ -238,10 +238,10 @@ def test_los_hp_del_menu_cambian_de_verdad():
     arriba el día que la referencia se equivocara igual, que es la forma de
     falla que AGENTS.md nombra primero.
     """
-    import lcf
-    import titulo
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import titulo
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)

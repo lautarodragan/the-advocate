@@ -86,10 +86,10 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
-    import lcf
-    import titulo
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import titulo
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)

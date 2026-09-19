@@ -30,11 +30,8 @@ Tres restricciones mandan en el resultado:
 
 import math
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import muestras_brr
+from audio import muestras_brr
 
 # El sintetizador por software de Windows, que es con el que se compuso y se
 # escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del

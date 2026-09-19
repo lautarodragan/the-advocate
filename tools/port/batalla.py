@@ -44,7 +44,7 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
   una aproximación.
 """
 
-import eventos
+from port import eventos
 
 # La semilla del azar de la batalla. Es otra que `AZAR_SEMILLA` a propósito:
 # ver arriba. El valor no significa nada, sólo tiene que ser distinto de cero
@@ -147,7 +147,7 @@ def habilidad_usable(skill):
     cartucho con más actores sí: `Gamble for Credits`, la única de Arden, tiene
     alcance `enemies` y queda afuera, y por eso Arden aparece sin ninguna.
     """
-    import lcf
+    from rpgmaker import lcf
     return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
             and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
                                 lcf.SKILL_SCOPE_ALIADO)
@@ -201,7 +201,7 @@ def nombre_de_orden_habilidad(db, numero):
     cuatro actores de la intro lo tienen puesto: "AgentTrain", "Telepathy",
     "Slicing" y "Special".
     """
-    import pantallas
+    from port import pantallas
     actor = db.actors[numero]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
@@ -389,8 +389,8 @@ def actor_de(db, numero, equipo=None):
     Hasta el 2026-09-13 era el 1 y Kersh peleaba con 40 HP y ataque 17 en vez
     de 168 y 80.
     """
-    import pantallas
-    import titulo
+    from port import pantallas
+    from port import titulo
     actor = db.actors[numero]
     if equipo is None:
         equipo = list(actor.initial_equipment)
@@ -597,7 +597,7 @@ class Batalla:
         pide: los estados, los atributos, el absorber, revivir y el `affect_sp`
         —el tiro está igual, por el orden del azar, pero nadie lo usa—.
         """
-        import lcf
+        from rpgmaker import lcf
         fuente.sp = max(0, fuente.sp - costo_de(skill))
         if skill.type == lcf.SKILL_TIPO_SWITCH:
             self.switches.append(skill.switch_id)

@@ -18,18 +18,15 @@ todos los temas del cartucho a la vez: ver `build_varios`.
 
 import collections
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import lcf
-import musica
-import midi
-import muestras_brr
-import sdsp
-import snes_samples
-import spc700
-from render_map import GAME_DIR, find_resource
+from rpgmaker import lcf
+from audio import musica
+from audio import midi
+from audio import muestras_brr
+from audio import sdsp
+from audio import snes_samples
+from audio import spc700
+from render.render_map import GAME_DIR, find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
@@ -55,7 +52,7 @@ ARAM_MARGEN = 1024
 # `protocol/music.toml`, que es del que escribe el stream y del que lo lee, y
 # de ninguno. Hasta el 2026-09-15 estaban escritos a mano de los dos lados, en
 # este archivo y en main.s, sin nada que los atara.
-from music_opcodes import *   # noqa: E402,F401,F403
+from audio.music_opcodes import *   # noqa: E402,F401,F403
 
 # La percusión se lleva dos voces. Con una sola, un bombo y un charles que caen
 # en el mismo cuadro se pisan, y en un patrón de batería eso pasa todo el
@@ -265,7 +262,7 @@ def leer_wav(nombre, game_dir=GAME_DIR):
     """Las muestras de un WAV mono como enteros de 16 bits con signo, y su
     tasa. None si no está o no es un WAV que se entienda."""
     import wave
-    from render_map import RTP_DIR
+    from render.render_map import RTP_DIR
     ruta = find_resource([game_dir, RTP_DIR], "Sound", nombre,
                          (".wav", ".WAV"))
     if not ruta:

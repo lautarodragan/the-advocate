@@ -13,7 +13,7 @@ en /extras/ref; ninguno de estos números se escribió de memoria.
 
 import os
 
-import lcf
+from rpgmaker import lcf
 
 CELL = 8
 

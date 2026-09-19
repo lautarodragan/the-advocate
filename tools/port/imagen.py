@@ -108,7 +108,7 @@ def convertir(imagen, cx, cy):
     volver a cuantizar, y no depende de la versión de PIL. De 226 colores a
     quince el degradé del resplandor se escalona; se ve y está declarado.
     """
-    import titulo
+    from port import titulo
     x, y, ancho, alto = caja(imagen.width, imagen.height, cx, cy)
     filas = _quince(imagen, ancho, alto)
     pixeles = [c for fila in filas for c in fila]
@@ -183,7 +183,7 @@ def render(info, tono):
     cartel, así que teñir la paleta y pintar da exactamente lo mismo.
     """
     from PIL import Image
-    import eventos
+    from port import eventos
     paleta = [eventos.tenir(c[0] | (c[1] << 5) | (c[2] << 10), tono)
               for c in info["paleta"]]
     colores = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),

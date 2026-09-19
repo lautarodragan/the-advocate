@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-import pantallas as P                                   # noqa: E402
+from port import pantallas as P                         # noqa: E402
 
 from consola import TITULO_AIRE
 from test_menu import tocar
@@ -21,9 +21,9 @@ KERSH = 11
 
 
 def db_y_skin():
-    import lcf
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import ventana
+    from render.render_map import GAME_DIR
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     return db, ventana.skin(GAME_DIR, db.system_name)
 

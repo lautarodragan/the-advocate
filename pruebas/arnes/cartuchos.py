@@ -33,8 +33,8 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
-import ensamblar                                        # noqa: E402
-import tiles_bin                                        # noqa: E402
+from ensamblado import ensamblar                        # noqa: E402
+from port import tiles_bin                              # noqa: E402
 
 CASOS = os.path.join(RAIZ, "pruebas", "casos")
 
@@ -147,7 +147,7 @@ def huella():
     h = hashlib.sha256()
     partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
               + ensamblar.binarios() + [tiles_bin.binario()])
-    partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
+    partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:
             h.update(archivo.read())
@@ -237,7 +237,7 @@ def armar(nombre, fuentes):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.join("pruebas", "casos", caso + ".json")]
-    convertir = ([sys.executable, os.path.join(RAIZ, "tools",
+    convertir = ([sys.executable, os.path.join(RAIZ, "tools", "port",
                                                "snes_convert.py"),
                   "-o", _archivo(nombre, "mapdata.inc")] + flags + de_casos)
     hecho = subprocess.run(convertir, cwd=RAIZ, capture_output=True,

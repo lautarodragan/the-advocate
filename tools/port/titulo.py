@@ -21,7 +21,7 @@ De ahí sale el único paso que no es mecánico: de 369 colores a 256.
 
 import collections
 
-import asignador
+from port import asignador
 
 CELL = 8
 ANCHO = 256
@@ -224,7 +224,7 @@ def _capa_de_texto(sys_img, textos, elegida, font_id=None):
     mantener.
     """
     from PIL import Image
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     capa = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
     for n, texto in enumerate(textos):
         marca = CURSOR if n == elegida else SIN_CURSOR
@@ -450,7 +450,7 @@ def _escribir_nivel(destino, sys_img, x, y, db, font_id, actor):
     Kersh de líder dice 20 y con Core 15. Por eso este renglón se dibuja en la
     capa del actor y no en la de la fila, igual que su nombre.
     """
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     corto = (db.term_lvl_short or "")[:2].ljust(2)
     fin = ventana_mod.dibujar_linea(destino, sys_img, x, y, corto, color=1,
                                     font_id=font_id)
@@ -468,7 +468,7 @@ def cara_de(db, actor, game_dir):
     cara era un cuadrado rojo con un muñeco adentro.
     """
     import os
-    import render_map
+    from render import render_map
     a = db.actors[actor]
     if not a.face_name:
         return None
@@ -636,14 +636,14 @@ def item_usable(item):
     `Game_Party::IsItemUsable` fuera de batalla. Los de switch con
     `occasion_field2`, y las medicinas, que abren la elección de actor. Los
     libros, los materiales y los especiales todavía no: van en gris."""
-    import lcf
+    from rpgmaker import lcf
     return ((item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2)
             or item.type == lcf.ITEM_TIPO_MEDICINA)
 
 
 def item_pide_actor(item):
     """Si usarlo abre `Scene_ActorTarget`: las medicinas."""
-    import lcf
+    from rpgmaker import lcf
     return item.type == lcf.ITEM_TIPO_MEDICINA
 
 
@@ -686,7 +686,7 @@ def pantalla_items(sys_img, font_id=None):
     tilemap. El espacio son dos celdas en blanco: es el que borra el cursor.
     """
     from PIL import Image
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     capas = []
     for gris in (0, 1):
         for n in range(ITEM_CARACTERES):
@@ -735,7 +735,7 @@ def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
     celda cada una, con los mismos bloques que el oro. El precio es el mismo
     que ya paga el oro: van a 8 pixeles y no a los 6 de la fuente.
     """
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
 
     def escribir(x, y, texto, color=0):
         return ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
@@ -811,7 +811,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     el banco de tiles es uno solo.
     """
     from PIL import Image
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
 
     def capa():
         return Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
@@ -845,7 +845,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
         capas.append(("nombre", actor, una))
     # Las del menú de pausa, en el mismo banco. Todas en la fila de más arriba
     # que les toca: los bloques valen en cualquier otra porque van alineados.
-    import ventana as ventana_mod
+    from port import ventana as ventana_mod
     for orden, texto in enumerate(db.term_menu):
         for deshabilitada in (0, 1):
             una = capa()

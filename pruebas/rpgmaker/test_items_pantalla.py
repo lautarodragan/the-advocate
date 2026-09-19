@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-import titulo                                           # noqa: E402
+from port import titulo                                 # noqa: E402
 
 from consola import TITULO_AIRE
 from test_menu import abrir, tocar
@@ -42,9 +42,9 @@ def entrar(una):
 
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
-    import lcf
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
@@ -103,9 +103,9 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     """La poción va en blanco y abre `Scene_ActorTarget`. A no tiene efecto
     —nadie tiene los HP por debajo del máximo fuera de batalla— y la poción
     no se gasta; B vuelve a la lista con el cursor donde estaba."""
-    import lcf
-    import ventana
-    from render_map import GAME_DIR
+    from rpgmaker import lcf
+    from port import ventana
+    from render.render_map import GAME_DIR
     from tanda import quince_bits
     una = partida(caso="items-pantalla")
     una.correr(5)

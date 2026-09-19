@@ -8,7 +8,7 @@ Las direcciones van 0=arriba, 1=derecha, 2=abajo, 3=izquierda, y el frame del
 medio (patrón 1) es la pose parada.
 """
 
-from chipset import TILE, blit
+from render.chipset import TILE, blit
 
 SPRITE_WIDTH = 24
 SPRITE_HEIGHT = 32

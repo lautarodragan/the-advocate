@@ -32,9 +32,9 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from consola import TITULO_AIRE                              # noqa: E402
-from render_map import GAME_DIR, Renderer                    # noqa: E402
-from rm2k import (TELEPORT, grafico_de_pagina,                # noqa: E402
-                  pasabilidad_del_tile, passability_map, puede_pasar)
+from render.render_map import GAME_DIR, Renderer                    # noqa: E402
+from rpgmaker.rm2k import (TELEPORT, grafico_de_pagina,                # noqa: E402
+                           pasabilidad_del_tile, passability_map, puede_pasar)
 
 # Los disparos de una página, en el orden de `lcf.TRIGGERS`.
 TRIGGER_ACCION, TRIGGER_CONTACTO, TRIGGER_CHOQUE, TRIGGER_AUTO, \
