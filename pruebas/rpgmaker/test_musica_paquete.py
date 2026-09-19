@@ -1,7 +1,7 @@
 """Que el tema que la ROM dice estar tocando tenga sus muestras en la ARAM.
 
 Esto es la otra mitad de la red, y acá se ve por qué hace falta: **el silencio
-no cambia un pixel**. La tanda de `pruebas/test_tanda*.py` compara la pantalla cuadro por
+no cambia un pixel**. La tanda de `pruebas/*/test_tanda*.py` compara la pantalla cuadro por
 cuadro contra la referencia y da cero igual con la música muda, así que un tema
 que suena contra un directorio de silencios pasa entero por delante de ella sin
 que nada se ponga rojo. El defecto de la pantalla de título vivió un día por

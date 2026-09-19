@@ -180,7 +180,7 @@ def test_evento(nombre):
     que son la misma partida: se deja por la golden.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
     p = partida("grupo-11-en-4")
@@ -241,7 +241,7 @@ def test_caminando(mapa, direccion, avances):
     un mismo mapa son la misma partida corrida otra vez desde el reset.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
     for pixeles in avances:

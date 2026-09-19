@@ -183,7 +183,7 @@ def test_destello(nombre):
     del personaje— y en RM2k es sobre la **imagen** del sprite. Son dos cosas
     distintas, y la única razón por la que no se ven distintas es que ningún
     caso tiene un segundo sprite visible compartiendo la paleta del que
-    destella. Lo cuida `pruebas/test_destello_paleta.py`.
+    destella. Lo cuida `pruebas/herramientas/test_destello_paleta.py`.
     """
     for cuadro in (2, 12, 15, 23, 25):
         p = partida(nombre)
@@ -403,7 +403,7 @@ def test_cerrar(direccion, cuadro):
     atrás, sin espera, es lo que hace visible que la página siguió.
 
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/test_cores.py`, que corre esta misma ROM en los
+    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
     nombre = "cerrar" if direccion == "none" else "cerrar-right"

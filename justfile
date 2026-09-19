@@ -85,7 +85,7 @@ tiles-pruebas:
 
 # Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
 # leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
-# `pruebas/consola.py`. El mapa de memoria lo escribe el conversor al lado de
+# `pruebas/arnes/consola.py`. El mapa de memoria lo escribe el conversor al lado de
 # los `.inc`. Ver tools/ensamblar.py.
 ensamblar := "python3 tools/ensamblar.py"
 
@@ -121,17 +121,17 @@ herramientas:
 # Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
 # maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
 # está acá y no escondida en un default. Las pruebas de pytest lo arman con la
-# página de prueba `pruebas/casos/grupo-11.json`: ver `pruebas/tanda.py`.
+# página de prueba `pruebas/casos/grupo-11.json`: ver `pruebas/arnes/tanda.py`.
 grupo    := env_var_or_default("GRUPO", "11")
 # Con qué core de libretro corre `shot`, que es la única receta que corre la
 # ROM: todo lo demás vive en pytest y toma el core de `NUCLEO`, ver
-# `pruebas/consola.py`. snes9x es el de siempre porque emula muchísimos más
+# `pruebas/arnes/consola.py`. snes9x es el de siempre porque emula muchísimos más
 # cuadros por segundo que bsnes —2747 contra 121—, y para mirar una captura con
 # otro core alcanza con `CORE=bsnes just shot ...`.
 #
 # Los tres que hay instalados —snes9x, bsnes y mesen-s— dibujan el mismo cuadro
 # a 15 bits, y eso ya no es una afirmación de un comentario: lo comprueba
-# `pruebas/test_cores.py`, que corre la misma ROM en snes9x y en bsnes y compara
+# `pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en bsnes y compara
 # las dos pantallas entre sí. Ver `tools/retro.py` para lo que hay que forzarle
 # a cada uno, y ese archivo para por qué mesen-s queda afuera.
 core     := env_var_or_default("CORE", "snes9x")
@@ -177,7 +177,7 @@ compare nombre="mapa" x="0" y="0":
 #
 # La captura sin teñir sale de plantar al héroe en el destino del
 # teletransporte, que es la misma pantalla sin el evento. Quien la quiera hoy
-# la arma desde `pruebas/tanda.py` con un caso que empiece con un `Teleport`
+# la arma desde `pruebas/arnes/tanda.py` con un caso que empiece con un `Teleport`
 # a (7,65) del mapa 1: la receta `parado` que la sacaba se fue con la mudanza
 # a pytest.
 tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
@@ -294,7 +294,7 @@ assets-medir que="todo":
 #
 # Las de estado le preguntan a la ROM en qué mapa está, qué switch tiene
 # prendido, qué evento corre, y no miran la pantalla. Las de la tanda
-# —`pruebas/test_tanda*.py`— miran sólo la pantalla, contra las capturas
+# —`pruebas/*/test_tanda*.py`— miran sólo la pantalla, contra las capturas
 # congeladas de `pruebas/golden/tanda/`. Son dos redes distintas y se
 # complementan: una cobra los errores de PPU —una paleta mal repartida, una
 # prioridad de OAM—, la otra los de lógica, que es donde la comparación de
@@ -325,7 +325,7 @@ pruebas-herramientas *args: cartuchos
 
 # Los cartuchos de prueba, en `rom/build/pruebas-unico/`: el de pruebas, que
 # lleva todos los casos de `pruebas/casos/`, y los chicos, que llevan lo que
-# no entra en él. Qué va en cada uno y por qué está en `pruebas/cartuchos.py`;
+# no entra en él. Qué va en cada uno y por qué está en `pruebas/arnes/cartuchos.py`;
 # `--lista` lo imprime.
 cartuchos *args:
   python3 pruebas/arnes/cartuchos.py {{args}}

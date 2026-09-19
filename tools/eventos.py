@@ -2619,7 +2619,7 @@ class Tropas:
 # pasa nada, que es lo que hace `PrepareEncounter` al volver `false`.
 #
 # **Dos simplificaciones, las dos medidas sobre el juego entero** y cobradas
-# por `pruebas/test_encuentros.py`, que es lo que evita que se vuelvan mentira
+# por `pruebas/herramientas/test_encuentros.py`, que es lo que evita que se vuelvan mentira
 # el día que alguien toque los datos:
 #
 # * **el terreno no cambia nada**: los once tags de terreno que pisan los 53
@@ -3317,7 +3317,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # tener final y el lazo corta en su tope de 10000 vueltas —27566
             # cuadros de emulador para una sola dirección—. Antes de aceptar
             # este comando hay que decidir qué mira ese caso, porque el mapa 52
-            # es de la carrera y está en `pruebas/test_tanda*.py`.
+            # es de la carrera y está en `pruebas/*/test_tanda*.py`.
             #
             # Para reproducir las dos mediciones sin tocar código:
             # `TECLA_SIN_ESPERA=1` sobre el caso `heroe` del mapa 52.
@@ -3333,7 +3333,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # no lo podía producir ningún caso, y modelarlo igual habría sido
         # escribir de los dos lados un camino que nada ejecuta.
         #
-        # Esa razón dejó de valer con `pruebas/recorrido.py`, que juega el
+        # Esa razón dejó de valer con `pruebas/arnes/recorrido.py`, que juega el
         # juego de verdad y puede apretar cualquier botón en cualquier cuadro,
         # y con `--tocar` de las dos mitades de la tanda, que aprieta una
         # dirección en un cuadro anotado como ya se apretaba A.

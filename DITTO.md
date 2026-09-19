@@ -76,7 +76,7 @@ los chunks crudos de `db.fields`, que ya no existen porque no hay binario.
 * `tools/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
   el chunk 0x19 de la base y el 0x16 de cada uno; ahora es `db.common_events`,
   que la capa arma.
-* `pruebas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
+* `pruebas/herramientas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
   tropas igual; ahora salen de `db.decode()`.
 
 `db.terminos` —los términos por número de chunk, que es como los pide la

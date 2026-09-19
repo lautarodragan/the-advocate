@@ -169,7 +169,7 @@ recorrido con un tinte pegado**, y dos de ellas **pasaban** —una con 10,3% de
 diferencia bajo un tope del 15%—. Lo que contrapesa esto es que taro juega.
 
 **Y hay una clase de error que ninguna golden puede ver, porque el emulador que
-la sacó tampoco la ve.** Para eso está `pruebas/test_cores.py`: corre el mismo
+la sacó tampoco la ve.** Para eso está `pruebas/rpgmaker/test_cores.py`: corre el mismo
 cartucho en **snes9x y en bsnes** y compara las dos capturas entre sí. bsnes
 arranca la WRAM con basura y snes9x en cero, así que una diferencia significa
 que la ROM depende de memoria sin inicializar. Da rojo **cuatro de cada cinco
@@ -369,7 +369,7 @@ Lo que hay que hacer siempre:
   tardan, y matarlas por impaciencia arruina la corrida.
 * **Repartirles los números de antemano.** Todo lo que se elige tomando "el
   siguiente libre" —un opcode, un índice en una tupla de
-  `pruebas/test_tanda*.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  `pruebas/*/test_tanda*.py`, una dirección de la RAM lejana— lo va a elegir cada agente
   mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes

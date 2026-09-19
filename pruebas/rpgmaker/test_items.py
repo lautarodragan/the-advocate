@@ -1,7 +1,7 @@
 """El inventario: que la ROM sume y quite ítems como `Game_Party::AddItem`,
 los tope en 99 y en 0, y los guarde con la partida.
 
-Lo que se ve de un ítem lo cobra la tanda: `cofre-llave` en `pruebas/test_tanda*.py`, el
+Lo que se ve de un ítem lo cobra la tanda: `cofre-llave` en `pruebas/*/test_tanda*.py`, el
 KeyChest del mapa 133, cuya tercera página pide la llave 151 y gana cuando
 está. Acá se le pregunta a la ROM por la RAM lejana, que es donde vive la
 cuenta de cada ítem, con la página de prueba dando y quitando.

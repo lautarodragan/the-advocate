@@ -29,7 +29,7 @@ ESPERA = 198
 EMPEZAR, SEGUIR = 0, 1
 
 # El mapa donde arranca el cartucho `titulo`, que es el de pruebas: el 6 y no
-# el 4 del juego. Ver `pruebas/cartuchos.py`.
+# el 4 del juego. Ver `pruebas/arnes/cartuchos.py`.
 MAPA_DE_ARRANQUE = 6
 
 

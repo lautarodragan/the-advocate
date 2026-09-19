@@ -5,7 +5,7 @@ prueban. Las escenas y las cinemáticas son de ABL; esto es la regla de RM2k
 para disparar una página con A —`Game_Player::CheckActionEvent`—, sus
 condiciones, el giro hacia el héroe y la cola de interacciones, aunque el
 material sean los personajes de ABL. El arnés es el mismo que el de las
-escenas, y está explicado allá.
+escenas, y está explicado en `pruebas/abl/test_tanda_escenas.py`.
 """
 
 import pytest

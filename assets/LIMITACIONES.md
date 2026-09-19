@@ -219,7 +219,7 @@ aparece invisible en Rat Tracks B2 y el juego no se puede seguir.
 O sea que lo que queda es una divergencia **con RM2k**, declarada acá y modelada
 igual de los dos lados, y no una divergencia entre la ROM y la referencia, que
 es la que no se puede tolerar. Se sigue cuidando que **nadie comparta la paleta
-de un líder posible** —ver `pruebas/test_destello_paleta.py`—, porque ahí el que
+de un líder posible** —ver `pruebas/herramientas/test_destello_paleta.py`—, porque ahí el que
 filtra es el héroe, que está en pantalla todo el tiempo.
 
 En el mapa 20 el que destella es `BumGuardingEntrance` y el que se tiñe con él

@@ -1019,7 +1019,7 @@ grupo_listo:
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
     ; en mednafen. Está medido: con estas dos sin inicializar a mano y diez
     ; corridas por core, snes9x da 0 de 10 en rojo y bsnes 2 de 10. Contra eso
-    ; existe `pruebas/test_cores.py`, que corre la misma ROM en snes9x y en
+    ; existe `pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en
     ; bsnes —éste con `bsnes_entropy=High`— y compara las dos pantallas entre
     ; sí; ese archivo tiene el resto de los números. Verificado el 2026-09-16
     ; sacando estas dos líneas: de cinco corridas, cuatro en rojo.
@@ -6349,7 +6349,7 @@ menor:
 ; **Este camino no lo cubre la tanda de pixeles**, que sólo sabe apretar A, y
 ; por eso la referencia no lo modela: escribir del otro lado código que ninguna
 ; prueba corre es la manera en que este repo ya se equivocó tres veces. Lo cubre
-; `pruebas/test_elegir.py`, que sí puede apretar cualquier botón.
+; `pruebas/rpgmaker/test_elegir.py`, que sí puede apretar cualquier botón.
 .proc eleccion_tick
 .a8
 .i16
@@ -10275,7 +10275,7 @@ SRAM_RANURAS = 4
 ; siguiente empieza a pisar el final de la anterior. Hoy son 159, y crecen cada
 ; vez que se agrega un campo a la partida —ya pasó con la música—. El
 ; ensamblador no lo puede cortar, así que lo cuida
-; `pruebas/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
+; `pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
 SRAM_STRIDE = 2048
 
 ; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
@@ -14720,7 +14720,7 @@ si_a:
 ;
 ; Las reglas —daño, acierto, crítico, varianza, orden de turnos, huida— salen
 ; de easyrpg-player y están escritas dos veces: acá y en `tools/batalla.py`,
-; que es lo que le permite a `pruebas/test_batalla.py` predecir el número
+; que es lo que le permite a `pruebas/rpgmaker/test_batalla.py` predecir el número
 ; exacto que cada HP va a tener. La pantalla es de texto, sobre negro, y su
 ; referencia es `pantallas.pantalla_batalla`.
 ;
@@ -25309,7 +25309,7 @@ done:
 ; segmento propio esto iba detrás de los datos generados: caía en un banco
 ; distinto con cada cartucho, y un relleno calculado a ojo tenía que evitar que
 ; la pelea quedara partida. Lo que garantiza que entre lo cobra
-; `pruebas/test_bancos.py`, sobre la tabla de símbolos.
+; `pruebas/herramientas/test_bancos.py`, sobre la tabla de símbolos.
 .segment "FAR"
 
 ; --- lo que no hace falta que viva en el banco 0 ---------------------------
@@ -26871,7 +26871,7 @@ ancho_listo:
 ; `Game_BattleAlgorithm::Item` con lo que este port sabe hacer: las medicinas
 ; que recuperan HP. Qué entra en la lista y cuánto cura no se decide acá sino
 ; en `batalla.item_usable_en_batalla` y `batalla.curacion`, que es el modelo con
-; el que `pruebas/test_batalla.py` predice el HP exacto; el conversor emite el
+; el que `pruebas/rpgmaker/test_batalla.py` predice el HP exacto; el conversor emite el
 ; resultado en `item_batalla`, `item_cura_rate` e `item_cura_hp`.
 ;
 ; Todo esto corre con el banco de datos en $7E, así que **el inventario se lee
@@ -27851,7 +27851,7 @@ falla_dice:
 ; `Game_BattleAlgorithm::Skill` con lo que este port sabe hacer. Qué sabe cada
 ; actor, cuánto cuesta y cuánto hace **no se decide acá**: sale de
 ; `batalla.habilidades_de`, `batalla.costo_de` y `batalla.efecto_habilidad`,
-; que es el modelo con el que `pruebas/test_batalla.py` predice el número
+; que es el modelo con el que `pruebas/rpgmaker/test_batalla.py` predice el número
 ; exacto, y el conversor lo emite en `actor_hab*` y `hab_*`.
 
 ; A8 = el número de actor del LDB del combatiente `BA_ACTOR`. Es lo que indexa

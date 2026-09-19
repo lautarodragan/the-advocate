@@ -1,4 +1,4 @@
-"""Las escenas del juego: la familia `escena` de la tanda.
+"""Las escenas del juego: las familias `escena` y `cinematica` de la tanda.
 
 Una escena es el héroe plantado en una celda, una ruta forzada que lo lleva a
 pisar o a encarar algo, y la página del juego que eso dispara, mirada en varios
@@ -25,7 +25,11 @@ Los cuadros de cada caso —por qué el 380 y no el 400— son del caso y no del
 arnés, y están en el docstring de cada uno.
 
 Las recetas `escena`, `hablar` y `cinematica` ya no existen: el nombre que abre
-cada docstring es el del caso, que es también el de su golden.
+cada docstring es el del caso, que es también el de su golden. La familia
+`hablar` vive en `pruebas/rpgmaker/test_tanda_hablar.py` desde que las pruebas
+se separaron por lo que prueban: lo que cobra es la regla de RM2k para hablarle
+a algo, y lo de acá son escenas de ABL. Las tres cosas del arnés de arriba
+valen también para ella.
 """
 
 import pytest
@@ -82,7 +86,7 @@ ESCENAS = (
     ("droide-cuadrado", (50, 120, 300, 600), (), ()),
     # `ShowChoice`, del que la tanda sólo ve la ventana dibujada: acá sólo se
     # aprieta A, así que arriba, abajo y B no los toca nadie. El cursor lo
-    # cubre `pruebas/test_elegir.py`.
+    # cubre `pruebas/rpgmaker/test_elegir.py`.
     #
     # **Lo que este caso pierde al mudarse**: la receta además imprimía el
     # texto de la ventana —el cuadro 140 tiene que decir `('> Yes', '  No')`—

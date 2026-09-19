@@ -112,7 +112,7 @@ Tres cosas, y conviene tener las tres juntas porque ninguna sola alcanza:
   deliberado** —va a git, se mira, y el commit dice por qué el render cambió; la
   tanda nunca regenera—, y ése es el único modo de falla real del esquema. El
   porqué largo está en `pruebas/golden/tanda/LEEME.md` y en `AGENTS.md`;
-* **`pruebas/test_cores.py`**, que corre el mismo cartucho en snes9x y en bsnes
+* **`pruebas/rpgmaker/test_cores.py`**, que corre el mismo cartucho en snes9x y en bsnes
   y compara las dos capturas entre sí. Es lo único que puede ver un error que
   snes9x no ve, y por eso el parche de WRAM de bsnes pasó a importar más;
 * **que taro juegue.** Es lo que sostiene la corrección, y no es una frase: los
@@ -137,7 +137,7 @@ vuelta a vuelta.
 
 Cuántas pruebas hay y cuántas pasan lo imprime **`just pruebas`**, que desde el
 2026-09-16 las corre todas: la tanda de regresión dejó de ser una tanda aparte y
-sus casos son pruebas de pytest en `pruebas/test_tanda*.py`, contra las goldens.
+sus casos son pruebas de pytest en `pruebas/*/test_tanda*.py`, contra las goldens.
 Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —es
 un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
 en "Lo que la tanda no cubre".
@@ -282,12 +282,12 @@ se pueden empezar hoy.
    criterio de aceptación. Tener dos sólo obliga a tocar las dos. Cómo se
    comparaban queda en el `git log`.
 3. ~~Las recetas de la tanda pasan a pytest~~ **hecho el 2026-09-16**. La tanda
-   dejó de existir como tanda: sus casos son pruebas de `pruebas/test_tanda*.py`
+   dejó de existir como tanda: sus casos son pruebas de `pruebas/*/test_tanda*.py`
    y comparan contra las goldens. Se fueron `rom/hitos.txt`, las recetas
    `hitos`, `hitos-paralelo` y `hitos-foto`, el prefijo `snes-` de las recetas
    que quedaron, `tools/snes_crop.py` y la receta `mednafen` con
    `rom/mednafen.sh`. Lo que era el caso `bsnes` es ahora
-   `pruebas/test_cores.py`, comparando snes9x contra bsnes.
+   `pruebas/rpgmaker/test_cores.py`, comparando snes9x contra bsnes.
 
    Lo que quedó decidido y hay que respetar de acá en adelante:
 
@@ -539,7 +539,7 @@ se pueden empezar hoy.
 
    * **empieza con un `Teleport`** a su mapa y su celda, y nada más dice dónde
      corre. El cartucho de pruebas lleva todos los mapas y arranca en el 6
-     —`MAPA_DE_ARRANQUE` en `pruebas/cartuchos.py`—. La página vive igual en
+     —`MAPA_DE_ARRANQUE` en `pruebas/arnes/cartuchos.py`—. La página vive igual en
      el evento 0 del mapa de arranque, pero **se compila con el contexto del
      destino** —`mapa_del_caso` en snes_convert.py—, y a ese mapa van lo que
      el conversor decide por mapa a partir de los casos: quién camina, los
@@ -574,7 +574,7 @@ se pueden empezar hoy.
    Todo lado a lado en `/extras/capturas/9e-c/` y `/extras/capturas/9e-arranque/`.
 
    **9f, hecho.** Las pruebas no arman nada: `just pruebas` corre primero
-   `just cartuchos` —`pruebas/cartuchos.py`—, que arma en serie los cartuchos
+   `just cartuchos` —`pruebas/arnes/cartuchos.py`—, que arma en serie los cartuchos
    de `rom/build/pruebas-unico/` si algo de lo que los arma cambió, y las
    pruebas piden su caso por el nombre, `tanda.partida("<caso>")`. Si el
    cartucho es de otros fuentes, el arnés se niega a correr y dice qué receta
@@ -984,7 +984,7 @@ de cada una está en `README.md`.
 * **Los líderes posibles son una aproximación.** El conversor simula los
   `ChangePartyMembers` de las páginas que compilan para saber qué actores pueden
   ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el primer
-  lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya falló.
+  lugar donde mirar; `pruebas/herramientas/test_lideres.py` cuida la parte que ya falló.
 
 * **El cartucho se queda en 4 MB.** Decidido con taro el 2026-09-13, con el
   número delante: la demo de 29 mapas, siete animaciones, la batalla y 19 temas
@@ -1112,7 +1112,7 @@ van a mover.
 * **Nada de lo que se oye.** El silencio no cambia un pixel, así que la tanda da
   cero igual con la ROM muda. Eso dejó vivir un día al defecto de
   `tema_asegurar` —la pantalla de título sin música, 2026-09-12—. Lo mira ahora
-  `pruebas/test_musica_paquete.py`, que le pregunta a la ROM si las muestras del
+  `pruebas/rpgmaker/test_musica_paquete.py`, que le pregunta a la ROM si las muestras del
   tema que dice estar tocando están de verdad en la ARAM (`FAR_ARAM_DE` contra
   `tema_muestras`). Lo que **sigue** sin mirar nadie es que lo que sale del DSP
   suene a lo que tiene que sonar: eso es oído, y es de taro.
@@ -1129,7 +1129,7 @@ van a mover.
   filtraría igual.
 
 * **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
-  y B no los toca ningún caso de ella. Los cubre `pruebas/test_elegir.py`.
+  y B no los toca ningún caso de ella. Los cubre `pruebas/rpgmaker/test_elegir.py`.
   Lo que la tanda sí compara es la ventana dibujada, en el caso `elegir`: cuatro
   cuadros contra sus goldens, el de la elección abierta y el de la respuesta de
   la rama que corrió. **Compara sólo píxeles**, decidido con taro el 2026-09-16;
@@ -1198,7 +1198,7 @@ entera del Emitter Room. Lo que la tanda no mira:
 * **La RAM sin inicializar, del todo.** `snes9x` —con el que corre casi toda la
   tanda y con el que se capturaron las goldens— deja siempre la misma basura,
   así que una variable que nadie inicializa da verde. Lo mitiga
-  `pruebas/test_cores.py`, que corre los mismos cartuchos en `bsnes` con la WRAM
+  `pruebas/rpgmaker/test_cores.py`, que corre los mismos cartuchos en `bsnes` con la WRAM
   llena de basura al encender y compara las dos capturas entre sí, pero la
   detección es **probabilística**: con un error de esta clase puesto a mano, el
   cuadro sale mal 11 corridas de 20. Si molesta, la salida es correr ese archivo
@@ -1211,7 +1211,7 @@ entera del Emitter Room. Lo que la tanda no mira:
   título, y dos más; **tres los encontró taro jugando, con la tanda en verde**.
   El caso extremo quedó medido: sacando el `jsr ppu_init` que arregla el
   segundo, snes9x sigue dando **cero pixeles de diferencia**. Lo mitiga
-  `pruebas/test_cores.py`, y el reset de snes9x **no borra la WRAM**, así que
+  `pruebas/rpgmaker/test_cores.py`, y el reset de snes9x **no borra la WRAM**, así que
   una prueba que dependa de que algo no sobreviva a un reinicio tiene que
   ensuciarla a mano.
 
@@ -1544,15 +1544,38 @@ hay que bajarlo, se baja sin arrastrar lo valioso.
 
 **Un paso intermedio, sin juego golden todavía** —de taro, el 2026-09-18—: las
 pruebas se separan en carpetas por **qué** prueban, aunque todas sigan usando
-ABL como material. Va **después del 9f**, porque el 9e y el 9f cambian cómo
-cada prueba consigue su cartucho y tocan casi todos los archivos.
+ABL como material. **Hecho** el 2026-09-19, después del 9f:
 
-Serían `test-rpgmaker` —lo que el motor tiene que hacer igual que RM2k—,
-`test-abl` —lo propio del juego: el recorrido, la carrera, las piedras, las
-escenas— y `test-tools`, el arnés compartido (`consola.py`, `tanda.py`,
-`retro.py`). Hay una tercera clase que no es ninguna de las dos: las pruebas
-de herramientas que no corren ROM —`test_bancos`, `test_ensamblar`,
-`test_protocolo`, `test_paginas`— y van con su herramienta.
+    pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k
+    pruebas/abl/           lo propio del juego: el recorrido, las piedras,
+                           el recuerdo, el cartel, las escenas y cinemáticas
+    pruebas/herramientas/  las que no corren ninguna ROM
+    pruebas/arnes/         consola, tanda, cartuchos y recorrido
+
+Cada una tiene su receta —`just pruebas-rpgmaker`, `pruebas-abl`,
+`pruebas-herramientas`— y `just pruebas` sigue corriendo todo. Lo que no se
+movió, a propósito: `conftest.py` queda en `pruebas/`, que es donde pytest lo
+carga para las tres carpetas, y `golden/` y `casos/` son de las dos clases;
+moverlos es de cuando existan los dos repos. `tools/retro.py` sigue en
+`tools/`.
+
+Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
+
+* **`rpgmaker/` es más "motor" que "RM2k"**: `test_cores`, `test_compositor`,
+  `test_paralelos` y `test_musica_paquete` cuidan propiedades del port —la
+  WRAM sin inicializar, el buffer del texto, el presupuesto del cuadro, las
+  muestras en la ARAM— y no comportamiento de RM2k. Van con el motor igual.
+* **`abl/test_tanda_escenas.py` tiene casos que ejercitan comandos
+  genéricos** —`elegir`, `tienda`, `savepoint-guarda`, las puertas— con
+  páginas del juego, y `factoria`, que es el tercer reparto de VRAM. Partirlo
+  por caso pedía duplicar la función de la familia; se partió sólo por
+  familia: `hablar` se fue a `rpgmaker/test_tanda_hablar.py`.
+* **`herramientas/` se decidió por la forma** —no corre ROM— y varias miran
+  el conversor sobre mapas de ABL: `test_lideres`, `test_destello_paleta`,
+  `test_timer_paleta`, `test_encuentros`. `test_bancos` lee la tabla de
+  símbolos del cartucho armado, sin correrlo. Si van "con su herramienta",
+  el lugar natural es al lado de `tools/`, y eso se decide cuando `tools/`
+  se reparta entre los dos repos.
 
 ## Una mejora de velocidad gratis que apareció midiendo
 

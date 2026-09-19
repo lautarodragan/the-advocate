@@ -8,7 +8,7 @@ congelado de `pruebas/golden/tanda/`, que **es una captura del emulador** y por
 eso se compara en cero pixeles exactos, sin máscara; el porqué está en el
 `LEEME.md` de ese directorio.
 
-**Acá no se arma nada.** Los cartuchos los arma `pruebas/cartuchos.py`, una
+**Acá no se arma nada.** Los cartuchos los arma `pruebas/arnes/cartuchos.py`, una
 vez, antes de la tanda —`just pruebas` lo corre primero—, y el arnés sólo sabe
 buscar un caso por su nombre y decir en qué cartucho y en qué página está. Si
 el cartucho es de otros fuentes, se niega a correr: ver `Cartucho`.
@@ -50,7 +50,7 @@ GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden"
 
 
 class Cartucho:
-    """Uno de los cartuchos que dejó `pruebas/cartuchos.py`, ya leído.
+    """Uno de los cartuchos que dejó `pruebas/arnes/cartuchos.py`, ya leído.
 
     **Se niega a servir uno viejo.** Si los fuentes, las herramientas o los
     casos cambiaron desde que se armó, la tanda correría contra una ROM que

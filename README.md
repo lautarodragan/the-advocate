@@ -281,7 +281,7 @@ y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
 comparación falla.
 
 Las cinco capturas de un mapa —la parada y las cuatro direcciones— las corre
-`test_heroe` de `pruebas/test_tanda.py`, sobre los mapas de `MAPAS_DE_HEROE`.
+`test_heroe` de `pruebas/rpgmaker/test_tanda.py`, sobre los mapas de `MAPAS_DE_HEROE`.
 Que la cámara llegue justo al ancho del mapa menos el de la pantalla, y ni un
 pixel más, prueba a la vez el movimiento y el tope.
 
@@ -598,13 +598,13 @@ que es lo que la repinta en el vblank. Contra una referencia sin grupo o con
 Kersh son unos 400 pixeles, así que el cero no es vacío.
 
 Lo cobran `test_guardar_pantalla` y `test_guardar_vuelve`, de
-`pruebas/test_tanda_pantallas.py`, en seis cuadros y todos en cero: la pantalla
+`pruebas/rpgmaker/test_tanda_pantallas.py`, en seis cuadros y todos en cero: la pantalla
 al abrirse y con el cursor dos ranuras abajo, y el mapa de vuelta después de
 cancelar y después de elegir, en dos ticks. Los toques de adentro de la
 pantalla van con `--toques-hardware`,
 que cuenta cuadros de hardware desde el arranque: un toque por tick no puede
 caer donde no hay ticks. Y lo que queda en la SRAM lo mira
-`pruebas/test_guardar.py`, que ahora **atraviesa la pantalla** —baja el cursor
+`pruebas/rpgmaker/test_guardar.py`, que ahora **atraviesa la pantalla** —baja el cursor
 y aprieta A— en vez de escribir `ranura` a mano; `menu_abierto` es el byte que
 la ROM le deja para saber cuándo, porque esperar por ticks ahí se colgaría.
 
@@ -628,7 +628,7 @@ cosas hacen falta: la SRAM sin escribir trae basura —snes9x la llena de $60—
 una ROM de prueba que la tomara por buena cargaría una partida inventada.
 
 **Lo que se escribe no lo puede cubrir la tanda de pixeles**, porque guardar
-no cambia un pixel. Lo cubre `pruebas/test_guardar.py`, que hace lo único que
+no cambia un pixel. Lo cubre `pruebas/rpgmaker/test_guardar.py`, que hace lo único que
 prueba algo: va a otro mapa, prende un switch, guarda, **resetea la consola de
 verdad** y mira dónde arranca. La SRAM sobrevive al reset y la WRAM no, así que
 si la partida vuelve es porque salió del cartucho. Con `guardar_partida`
@@ -704,9 +704,9 @@ el permiso, como `OpenSaveMenu`.
 Mientras el menú se ve **el reloj del juego no corre**, igual que con la
 pantalla de ranuras, así que el menú no cuesta ningún tick y el mapa sigue por
 el cuadro que le tocaba. Lo cobran `test_menu` y `test_menu_vuelve` de
-`pruebas/test_tanda_pantallas.py`: el menú como se abre, con el cursor movido, y
+`pruebas/rpgmaker/test_tanda_pantallas.py`: el menú como se abre, con el cursor movido, y
 el mapa después de cerrar. Quien lo compara contra una referencia en Python
-—`titulo.render_menu`, que sigue viva— es `pruebas/test_menu.py`, y es además lo
+—`titulo.render_menu`, que sigue viva— es `pruebas/rpgmaker/test_menu.py`, y es además lo
 que mira lo que la tanda no alcanza: el menú con un grupo y oro
 puestos, guardar desde el menú, los dos permisos puestos por el bytecode, B a
 mitad de un paso, y que los permisos vuelvan de la SRAM.
@@ -756,9 +756,9 @@ filas, la lista se repinta entera con la pantalla apagada, que es un cuadro
 en negro.
 
 Lo cobran `test_items` y `test_items_vuelve` de
-`pruebas/test_tanda_pantallas.py` —la pantalla como se entra, con el cursor
+`pruebas/rpgmaker/test_tanda_pantallas.py` —la pantalla como se entra, con el cursor
 sobre la consola, y el mapa después de usarla— y
-`pruebas/test_items_pantalla.py`, que la compara contra `titulo.render_items`:
+`pruebas/rpgmaker/test_items_pantalla.py`, que la compara contra `titulo.render_items`:
 la consola prende el 710
 y no se gasta, un ítem en gris no hace nada, catorce ítems en once filas se
 corren y vuelven, y la lista vacía.
@@ -792,10 +792,10 @@ lectura automática terminada, cada vuelta duraba dos cuadros y la mitad de los
 toques se perdía. Lo cobró `equipo`.
 
 Lo cobran `test_equipo` y `test_equipo_vuelve` de
-`pruebas/test_tanda_pantallas.py` —las ranuras de Kersh con su equipo inicial,
+`pruebas/rpgmaker/test_tanda_pantallas.py` —las ranuras de Kersh con su equipo inicial,
 la lista del arma con los parámetros que quedarían, y el mapa después de
 volver—
-y `pruebas/test_equipo.py`: el equipo inicial en la RAM, equipar desde el
+y `pruebas/rpgmaker/test_equipo.py`: el equipo inicial en la RAM, equipar desde el
 menú, la lanza a dos manos que saca el escudo, la línea vacía, y el equipo en
 la partida.
 
@@ -820,7 +820,7 @@ Con una sola orden —sólo comprar o sólo vender— no hay principal. Los
 mensajes salen de los tres juegos de términos del LDB, partidos en dos
 renglones; las ramas de "compró" y "no compró" no compilan, y ninguna tienda
 del juego las usa. El caso `tienda` de la tanda entra y sale de la del mapa
-10, y `pruebas/test_tienda.py` la recorre entera pixel por pixel contra
+10, y `pruebas/rpgmaker/test_tienda.py` la recorre entera pixel por pixel contra
 `pantallas.pantalla_tienda`: comprar, el tope del oro, vender, el oro y el
 inventario que quedan.
 
@@ -834,7 +834,7 @@ y el fondo con los battlers llegó después (ver más abajo).
 Lo que sí es de RM2k son las palabras —todas del LDB— y **todas las cuentas**,
 que salen de easyrpg-player y están escritas dos veces: en `main.s` y en
 `tools/batalla.py`. Que las dos den lo mismo es lo que le permite a
-`pruebas/test_batalla.py` predecir **el número exacto** que cada HP va a tener
+`pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que cada HP va a tener
 después de cada turno, en vez de conformarse con "bajó".
 
     daño            max(0, atk / 2 - def / 4), por 3 si es crítico, varianza
@@ -888,7 +888,7 @@ tema; los dos están declarados en `assets/LIMITACIONES.md`.
 
 Ese camino **la tanda de pixeles no lo puede ver**: una derrota reinicia la
 consola, así que no hay cuadro que comparar contra una golden.
-Lo cobra `pruebas/test_game_over.py`, que pone el grupo entero en cero HP —con
+Lo cobra `pruebas/rpgmaker/test_game_over.py`, que pone el grupo entero en cero HP —con
 nadie en pie `batalla_correr` contesta derrota sin abrir la pantalla— y exige
 que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
 
@@ -1179,7 +1179,7 @@ tropas del mapa más las de cada área que tape la celda y elige una al azar. Si
 no lo tapa ninguna —el héroe está afuera del rectángulo— no pasa nada.
 
 **Dos simplificaciones, las dos medidas y las dos cobradas por
-`pruebas/test_encuentros.py`:**
+`pruebas/herramientas/test_encuentros.py`:**
 
 * **el terreno no cambia nada.** Los once tags que pisan los 53 mapas con
   encuentros tienen `encounter_rate` 100, así que el acumulado sube de a 100 y
@@ -1284,7 +1284,7 @@ Tres cosas que no son obvias:
   y otro tanto al entrar; es el mismo precio que paga cada cambio de mapa, con
   la diferencia de que allá lo tapa un fundido.
 
-Lo que lo cobra es `pruebas/test_batalla.py`, y **no la tanda de pixeles**: el
+Lo que lo cobra es `pruebas/rpgmaker/test_batalla.py`, y **no la tanda de pixeles**: el
 silencio no cambia un pixel, que es el mismo argumento de
 `test_musica_paquete.py`. Son cuatro casos —el tema al entrar con sus muestras
 en la ARAM, el de victoria, el del mapa al volver, y cuál de los cinco efectos
@@ -1419,7 +1419,7 @@ mapa de siempre: unas siete décimas de segundo de negro más.
 Cómo se verifica, porque la tanda no mide audio: la ARAM se lee del estado
 guardado del core —`retro_serialize`, ubicando el driver— y cada muestra que la
 ROM dice tener se compara con la del cartucho byte por byte, con su entrada del
-directorio. Y `pruebas/test_musica_paquete.py` lo cobra solo: para el tema que la
+directorio. Y `pruebas/rpgmaker/test_musica_paquete.py` lo cobra solo: para el tema que la
 ROM dice estar tocando, que cada muestra de su `tema_muestras` tenga entrada en
 `FAR_ARAM_DE`. Hace falta una prueba de estado porque **el silencio no cambia un
 pixel**, y el tema de la pantalla de título es el más expuesto: es el único que
@@ -1725,7 +1725,7 @@ de la animación de batalla. No es elegante: es que en el banco 0 no entraba
 —la BSS estaba en 7680 de 7680— y esto se lee y se escribe unas pocas veces por
 cuadro, así que el direccionamiento largo no se nota.
 
-Lo cobra el caso `cartel` de `pruebas/test_tanda_escenas.py`: cinco cuadros
+Lo cobra el caso `cartel` de `pruebas/abl/test_tanda_escenas.py`: cinco cuadros
 contra su golden, **los cinco en cero**. El de la mitad de cada rampa no es
 adorno: es el único que ejercita la interpolación cuadro a cuadro, que es donde
 un valor de más o de menos no se vería a ojo.
@@ -1929,11 +1929,11 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
-| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/test_saltos.py` |
+| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/snes_convert.py` |
-| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py`, y `ARRANQUE` en `pruebas/tanda.py` |
+| El arranque dura siempre lo mismo | `BOOT_CUADROS` | el `--arranque` de `snes_correr.py`, y `ARRANQUE` en `pruebas/arnes/tanda.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `snes_correr.py` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
 
@@ -2122,7 +2122,7 @@ rehacer uno, es un acto deliberado como el de rehacer una golden.
 el mismo cuadro a 15 bits**, que es la precisión a la que se compara. Que tres
 emuladores independientes coincidan es lo que vuelve creíble a cualquiera de
 ellos, y desde que las goldens son capturas de snes9x es además la única defensa
-que queda contra un error que snes9x no ve: de eso vive `pruebas/test_cores.py`,
+que queda contra un error que snes9x no ve: de eso vive `pruebas/rpgmaker/test_cores.py`,
 que corre el mismo cartucho en snes9x y en bsnes y compara **las dos capturas
 entre sí**. bsnes llena la WRAM de basura al encender y snes9x no, así que una
 diferencia significa que la ROM depende de memoria que nadie escribió. Los
@@ -2136,7 +2136,7 @@ pasa: snes9x y bsnes redondean `canal * brillo / 15` y **mesen-s trunca**, o sea
 que con brillo 6 un canal de 7 le da 2 donde los otros dan 3. Acá se sigue a
 bsnes, que es de donde sale la tabla y el que mide contra hardware, y a
 snes9x, que es el core con el que se capturaron las goldens; ninguna prueba usa
-mesen-s, y por qué queda afuera está en el docstring de `pruebas/test_cores.py`.
+mesen-s, y por qué queda afuera está en el docstring de `pruebas/rpgmaker/test_cores.py`.
 Lo desempata la SNES de taro.
 
 Casi todo corre en snes9x porque emula un orden de magnitud más rápido que
@@ -2145,7 +2145,7 @@ lo que tocan —el intérprete y la CGRAM, la RAM del control mientras se camina
 la ventana de mensaje, que es lo que más VRAM escribe con la pantalla apagada—.
 
 `test_heroe` camina las cuatro direcciones y se queda parado en un mapa, y la
-lista de cuáles vive en `MAPAS_DE_HEROE`, en `pruebas/test_tanda.py`. Por qué
+lista de cuáles vive en `MAPAS_DE_HEROE`, en `pruebas/rpgmaker/test_tanda.py`. Por qué
 está cada uno, para los que se eligieron por una razón concreta:
 
     73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero
@@ -2217,7 +2217,7 @@ Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
 el medio. Para eso el caso de la prueba empieza con un `Teleport` de RM2k a una
 celda elegida, y se compara sin caminar —lo usa `test_parado` en
-`pruebas/test_tanda.py`—, sin depender de cuántos ticks se sostenga la
+`pruebas/rpgmaker/test_tanda.py`—, sin depender de cuántos ticks se sostenga la
 cruceta. Así se reprodujo el error de la banda de OAM. (Hasta el paso 9e era
 el `--inicio TX TY` del conversor, que sigue existiendo para las recetas.)
 
@@ -2404,7 +2404,7 @@ Y dejó dos cosas que valen aunque la rama no entre:
   el chip—, y snes9x redondea para arriba cuando la suma de un canal es impar.
   Son trece pixeles y no se ven, pero es **la primera vez que el emulador con el
   que se capturan las goldens se aparta de la consola**: si algún día se compara
-  color math, el caso va a `pruebas/test_cores.py`.
+  color math, el caso va a `pruebas/rpgmaker/test_cores.py`.
 
 **Menos el save point**, que va **opaco**: está en
 `rm2k.SIN_TRAMA` y `lcf` no le pega el sufijo. Es una divergencia deliberada de
@@ -2827,7 +2827,7 @@ pican juntas y en fase y eso no pasa nunca.
 `tools/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
 repo, y **desde que las goldens son capturas de snes9x importa más que antes**:
 sin bsnes no hay con qué contestar "anda en el emulador y no en la consola", que
-es lo único que `pruebas/test_cores.py` existe para contestar.
+es lo único que `pruebas/rpgmaker/test_cores.py` existe para contestar.
 
 Existe porque el reloj de las pruebas le pregunta a la ROM en qué vuelta del
 lazo va —lo lleva en `vueltas`, en la WRAM— y bsnes no expone la WRAM:
@@ -3075,7 +3075,7 @@ respuesta —si la página es paralela y si compiló—, porque si no lo fuera e
 evento no estaría en la lista. **Eso era una red**, y al sacarla la lista pasó a
 ser la única verdad: si un refresco dejara de rehacerla, un evento que ya no
 tiene página paralela seguiría corriendo la vieja para siempre. Lo cuida
-`pruebas/test_paralelos.py`, que exige que un switch que cambia la página activa
+`pruebas/rpgmaker/test_paralelos.py`, que exige que un switch que cambia la página activa
 lo saque de la lista y que apagarlo lo vuelva a meter.
 
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=

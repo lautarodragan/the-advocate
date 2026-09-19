@@ -1,7 +1,7 @@
 """El recuerdo de CORE y MANTA, sin mirar la pantalla.
 
-El caso `manta` de `pruebas/test_tanda*.py` compara esta misma escena pixel por pixel
-contra la referencia, en ocho cuadros elegidos a mano esquivando la animación
+El caso `manta` de `pruebas/abl/test_tanda_escenas.py` compara esta misma
+escena pixel por pixel contra la referencia, en ocho cuadros elegidos a mano esquivando la animación
 de la ventana de mensaje. Esto pregunta otra cosa, más chica y más directa: si
 la partida **llegó** a donde tenía que llegar.
 

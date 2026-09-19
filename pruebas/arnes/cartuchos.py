@@ -7,8 +7,8 @@ era casi todo el tiempo de una corrida en frío. Desde acá **ninguna prueba
 convierte ni ensambla**: `just pruebas` corre esto primero, en serie, y las
 pruebas buscan su caso por el nombre en lo que dejó —ver `tanda.rom`—.
 
-    python3 pruebas/cartuchos.py            arma lo que haga falta
-    python3 pruebas/cartuchos.py --lista    qué caso va en qué cartucho
+    python3 pruebas/arnes/cartuchos.py            arma lo que haga falta
+    python3 pruebas/arnes/cartuchos.py --lista    qué caso va en qué cartucho
 
 Un cartucho se rearma sólo si cambió algo de lo que lo arma: los fuentes de la
 ROM, las herramientas, los binarios, los flags o lo que dice alguno de sus

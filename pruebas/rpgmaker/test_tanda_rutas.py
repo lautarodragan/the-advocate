@@ -244,7 +244,7 @@ def test_sprite_actor(cuadro):
     que le mete las poses al banco de sprites del mapa.
 
     Lo que este caso **no** mira: que el cambio sobreviva al teletransporte.
-    Eso lo cobra `pruebas/test_sprite_actor.py`.
+    Eso lo cobra `pruebas/rpgmaker/test_sprite_actor.py`.
     """
     p = partida("sprite-actor")
     p.correr(cuadro)

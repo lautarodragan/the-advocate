@@ -3,7 +3,7 @@
 Es el hermano de `pantallas.py` para la pelea: acá viven las fórmulas —daño,
 acierto, crítico, varianza, orden de turnos, huida— y la máquina de turnos, y
 la ROM las copia. Que los dos lados hagan la misma cuenta es lo que le permite
-a `pruebas/test_batalla.py` predecir **el número exacto** que la consola va a
+a `pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que la consola va a
 poner en cada HP, en vez de conformarse con "bajó".
 
 **Ningún número de acá se escribió de memoria.** Todos salen de

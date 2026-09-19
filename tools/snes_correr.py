@@ -244,7 +244,7 @@ def main():
                              "que es lo que cierra una ventana de mensaje. Los "
                              "números se cuentan desde que termina el "
                              "arranque, que es la misma convención que usa "
-                             "Partida.correr en pruebas/consola.py")
+                             "Partida.correr en pruebas/arnes/consola.py")
     parser.add_argument("--tocar", nargs="+", default=None,
                         metavar="BOTON:CUADRO",
                         help="toques anotados en el camino de las escenas, el "
