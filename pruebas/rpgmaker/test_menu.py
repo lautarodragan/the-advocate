@@ -45,14 +45,14 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     import titulo
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
-    distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
+    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
     if distintos:
         donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -242,14 +242,14 @@ def test_los_hp_del_menu_cambian_de_verdad():
     import titulo
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)
     herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                 None, GAME_DIR, HP_DE_PELEA)
-    distintos = sum(1 for x, y in zip(quantize(llena), quantize(herida))
+    distintos = sum(1 for x, y in zip(quince_bits(llena), quince_bits(herida))
                     if x != y)
     assert distintos > 50, (
         "la referencia dibuja lo mismo con el grupo entero y con el grupo "

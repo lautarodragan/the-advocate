@@ -45,13 +45,13 @@ def comparar(una, inventario, elegida, arriba=0, nombre="items"):
     import lcf
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_items(skin, db, inventario, elegida, arriba,
                                    db.font_id)
-    distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
+    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
     if distintos:
         donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -106,7 +106,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     import lcf
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
     una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
@@ -118,8 +118,8 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
         captura = una.imagen().convert("RGB")
         esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
                                           db.font_id, None, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quantize(captura),
-                                          quantize(esperada)) if x != y)
+        distintos = sum(1 for x, y in zip(quince_bits(captura),
+                                          quince_bits(esperada)) if x != y)
         assert distintos == 0, (
             "la elección de actor con el cursor en %d difiere de la "
             "referencia en %d pixeles" % (elegida, distintos))

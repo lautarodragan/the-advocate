@@ -308,7 +308,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     import titulo
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
 
     una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.poner_grupo(14, 10)
@@ -324,8 +324,8 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
         esperada = titulo.render_ranuras(skin, db, ranuras, [False] * ranuras,
                                          elegida, 0, db.font_id,
                                          {1: [14, 10]}, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quantize(captura),
-                                          quantize(esperada)) if x != y)
+        distintos = sum(1 for x, y in zip(quince_bits(captura),
+                                          quince_bits(esperada)) if x != y)
         if distintos:
             donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))), "rom", "shots")

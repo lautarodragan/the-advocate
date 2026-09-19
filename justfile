@@ -1,18 +1,3 @@
-# Renderiza un mapa a un PNG. Sin dependencias que instalar:
-# usa Pillow, que ya está en el sistema.
-#   just render        -> mapa 1
-#   just render 8
-render map_id="1":
-  python3 tools/render_map.py --map-id {{map_id}}
-
-# Lista los mapas del juego con su chipset, sus eventos y los assets que falten.
-maps:
-  python3 tools/list_maps.py
-
-# Lo mismo, pero renderizando todo: verifica que ningún mapa rompa el pipeline.
-check:
-  python3 tools/list_maps.py --render
-
 # Los opcodes de los eventos: su número y su layout. La declaración está en
 # `protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
 # salen generados los dos módulos de `tools/` y los dos `.inc` de `rom/src/`,
@@ -111,31 +96,6 @@ herramientas:
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;
 # si falta alguna, el que la busca dice cuál y cómo tenerla.
 
-# Con qué grupo arrancan las pruebas. En RM2k el gráfico del héroe es el del
-# primero del grupo, y este juego arranca con el actor 10 —`DummyHero`, cuyo
-# sprite en Chubby2 es una celda **vacía a propósito**: la apertura es una
-# cinemática y ahí no hay personaje que mostrar—. Fiel, pero con él ninguna
-# prueba verificaría un solo sprite del héroe: se irían las poses, el ciclo de
-# caminata y la prioridad de objeto contra la capa de encima.
-#
-# Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
-# maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
-# está acá y no escondida en un default. Las pruebas de pytest lo arman con la
-# página de prueba `pruebas/casos/grupo-11.json`: ver `pruebas/arnes/tanda.py`.
-grupo    := env_var_or_default("GRUPO", "11")
-# Con qué core de libretro corre `shot`, que es la única receta que corre la
-# ROM: todo lo demás vive en pytest y toma el core de `NUCLEO`, ver
-# `pruebas/arnes/consola.py`. snes9x es el de siempre porque emula muchísimos más
-# cuadros por segundo que bsnes —2747 contra 121—, y para mirar una captura con
-# otro core alcanza con `CORE=bsnes just shot ...`.
-#
-# Los tres que hay instalados —snes9x, bsnes y mesen-s— dibujan el mismo cuadro
-# a 15 bits, y eso ya no es una afirmación de un comentario: lo comprueba
-# `pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en bsnes y compara
-# las dos pantallas entre sí. Ver `tools/retro.py` para lo que hay que forzarle
-# a cada uno, y ese archivo para por qué mesen-s queda afuera.
-core     := env_var_or_default("CORE", "snes9x")
-nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 # Una corrida aislada. `CORRIDA=algo just <receta>` deja el mapdata, la ROM y las
 # capturas adentro de `rom/build/algo/` y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda donde estaba, para que `mednafen rom/build/abl.sfc` y las
@@ -145,43 +105,6 @@ nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
-snes_inc := if corrida == "" { "rom/build/inc" } else { snes_dir }
-snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
-
-# ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
-# render de Python contra el que se compara después.
-convert mapa="7":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
-      --reference {{snes_pngs}}/python.png
-
-build:
-  {{ensamblar}} rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym
-
-# Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
-# apretadas mientras corre, para capturar con la cámara movida.
-shot nombre="mapa" cuadros="240" teclas="":
-  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
-      --cuadros {{cuadros}} --teclas $(echo "{{teclas}}" | tr 'A-Z' 'a-z')
-
-# La captura contra el render de Python, pixel por pixel y a 15 bits.
-compare nombre="mapa" x="0" y="0":
-  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png {{snes_pngs}}/python.png \
-      --camara {{x}} {{y}} -o {{snes_pngs}}/comparacion-{{nombre}}.png
-
-# El tinte solo, contra la cuenta de Python y sin referencia de por medio: toma
-# la misma pantalla capturada de la consola sin teñir y teñida, y pregunta si la
-# transformación de una a la otra es exactamente canal * valor / 100 sobre los
-# 15 bits. Es una segunda opinión sobre evento, que compara un camino
-# entero; si evento falla y esto da cero, el tinte no es el problema.
-#
-# La captura sin teñir sale de plantar al héroe en el destino del
-# teletransporte, que es la misma pantalla sin el evento. Quien la quiera hoy
-# la arma desde `pruebas/arnes/tanda.py` con un caso que empiece con un `Teleport`
-# a (7,65) del mapa 1: la receta `parado` que la sacaba se fue con la mudanza
-# a pytest.
-tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
-  python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 
 # Cuánto destraba cada comando de evento que todavía no hacemos: cuántas páginas
 # pasan a compilar **enteras** si se hiciera.
@@ -200,95 +123,6 @@ tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100"
 # esta pregunta ya mandó a hacer trabajo que no existía.
 destraba:
   python3 tools/destraba.py
-
-# El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
-# ventana comparada contra eso.
-#
-# Es el único oráculo externo del repo: todo lo demás compara la ROM contra
-# nuestra propia referencia, y si las dos se equivocan igual da cero. Esto ya lo
-# cobró: encontró que el índice 0 de la paleta del System es transparente —el
-# marco salía naranja y macizo donde el juego lo tiene de 2 px— y que la fuente
-# del juego es rmg2000 y no ttyp0, que era lo que decía el camino del código que
-# leí. Las dos veces la ventana se veía perfectamente bien.
-#
-# No entra en `just pruebas` y es a propósito: levanta un Xvfb, corre el juego
-# durante medio minuto y depende de EasyRPG bajado a /extras. Se corre a mano
-# cuando se toca la ventana o la fuente. El detalle está en `rom/easyrpg.sh`.
-#
-# Lo único que puede diferir sin ser un error es la flecha roja de "seguir" que
-# EasyRPG anima mientras espera al jugador, que nosotros no dibujamos.
-oraculo mapa="145" segundos="20":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  rom/easyrpg.sh {{mapa}} {{segundos}}
-  # De la tanda de capturas, la que tenga texto en la franja de la ventana.
-  # La última con ventana, no la que más texto tenga: sin avanzar, el primer
-  # mensaje se queda quieto esperando, así que las de más al final lo tienen
-  # entero y ya terminó de escribirse letra por letra.
-  #
-  # Y "con ventana" se decide por la esquina del marco y no por cuánto blanco
-  # hay abajo: en un mapa claro el piso solo pasaba cualquier umbral de brillo
-  # y la comparación terminaba midiendo la ventana contra el suelo.
-  mejor=$(python3 - <<'PY'
-  import glob, sys
-  sys.path.insert(0, "tools")
-  from PIL import Image
-  import lcf, ventana
-  skin = ventana.skin("/extras/abl-rm",
-                      lcf.Database("/extras/abl-rm/RPG_RT.ldb").system_name)
-  esquina = ventana.ventana(skin, 320, 80).convert("RGB").crop((0, 0, 8, 8))
-  patron = list(esquina.get_flattened_data())
-  ultima = ""
-  for f in sorted(glob.glob("/extras/capturas/easyrpg/*.png")):
-      im = Image.open(f).convert("RGB")
-      if list(im.crop((0, im.height - 80, 8, im.height - 72))
-              .get_flattened_data()) == patron:
-          ultima = f
-  print(ultima)
-  PY
-  )
-  test -n "$mejor" || { echo "ninguna captura tiene una ventana de mensaje"; exit 1; }
-  echo "la captura con más texto: $mejor"
-  python3 tools/snes_mensaje.py --map-id {{mapa}} --indice 0 --contra "$mejor" \
-      -o {{snes_pngs}}/oraculo-{{mapa}}.png
-
-# Una página de mensaje del juego, dibujada como la dibujaría RM2k.
-#
-# Todavía no hay nada del lado de la ROM, así que esto no compara nada: existe
-# para poder poner nuestra ventana **al lado de una captura de EasyRPG** de esa
-# misma página. Es la única forma de salir del agujero de siempre —si la
-# referencia y la ROM se equivocan igual, la comparación da cero—, y acá el
-# tercero en discordia es el juego original.
-#
-#   just mensaje 1        la primera página de mensaje del mapa 1
-#   just mensaje 1 4 4    la quinta, agrandada cuatro veces
-mensaje mapa="1" indice="0" escala="1":
-  mkdir -p {{snes_pngs}}
-  python3 tools/snes_mensaje.py --map-id {{mapa}} --indice {{indice}} \
-      --escala {{escala}} -o {{snes_pngs}}/mensaje-{{mapa}}-{{indice}}.png
-
-# Pasa todos los mapas del juego por los límites del hardware sin armar ninguna
-# ROM: dice
-# cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
-# de la VRAM.
-relevar desde="0":
-  python3 tools/snes_survey.py --desde {{desde}}
-
-# Cuánto llega a caminar el héroe en cada mapa, con las mismas reglas que la
-# ROM. Sirve para elegir contra qué mapa probar el redibujado: uno enorme lleno
-# de paredes frena en la tercera celda y no prueba nada.
-recorrido desde="66":
-  python3 tools/snes_recorrido.py --desde {{desde}}
-
-# Cuánto ocuparía en el cartucho el arte del juego, por rubro. Sin argumento
-# los lista.
-#
-# No es una prueba: no falla nunca. Es la medición de la que sale la estrategia
-# de `assets/README.md`, y está acá para que se pueda repetir cuando el material
-# o el criterio cambien. Tarda minutos: expandir los ChipSets a su atlas y
-# recorrerlos pixel por pixel no es barato.
-assets-medir que="todo":
-  python3 assets/medir.py {{que}}
 
 # **Todas las pruebas**, que desde el 2026-09-16 son las dos redes a la vez.
 #
@@ -363,32 +197,6 @@ _xdist:
 # `--lista` lo imprime.
 cartuchos *args:
   python3 pruebas/arnes/cartuchos.py {{args}}
-
-# Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
-# cuatro esquinas a las que puede llegar.
-#
-# Cada dirección se mantiene apretada hasta que la cámara choca contra el borde
-# del mapa, así que dónde tiene que quedar no se estima: es exactamente
-# CAM_MAX_X y CAM_MAX_Y, que salen del tamaño del mapa. Si la ROM se moviera de
-# más, de menos, o no frenara, la comparación falla.
-mapa mapa="7" cuadros="300":
-  just convert {{mapa}}
-  just build
-  just shot {{mapa}}-centro {{cuadros}}
-  just compare {{mapa}}-centro 0 0
-  just shot {{mapa}}-derecha {{cuadros}} "Right"
-  just compare {{mapa}}-derecha $(just _cam-x) 0
-  just shot {{mapa}}-abajo {{cuadros}} "Down"
-  just compare {{mapa}}-abajo 0 $(just _cam-y)
-  just shot {{mapa}}-esquina {{cuadros}} "Right Down"
-  just compare {{mapa}}-esquina $(just _cam-x) $(just _cam-y)
-
-# Los topes de la cámara salen del .inc que generó el conversor, así que las
-# recetas no repiten números que dependen del mapa.
-_cam-x:
-  @grep -oP 'CAM_MAX_X\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
-_cam-y:
-  @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
 
 # Las dos ROMs que taro juega: `demo-ciudad`, la cadena entera de la apertura
 # hasta Lashe City, y `demo-titulo`, la misma con pantalla de título. Van a
@@ -647,61 +455,6 @@ demos:
 # el MSU-1 no se enciende.
 msu nombre="demo-ciudad":
   python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
-
-# La música de un mapa a mano: el MIDI a muestras BRR y un stream para el DSP.
-# Normalmente no hace falta —`convert` ya la genera junto con el mapdata, que es
-# lo que garantiza que los dos describan la misma ROM—; esto queda para mirar un
-# tema suelto sin armar nada más.
-music mapa="67":
-  mkdir -p {{snes_inc}}
-  python3 tools/snes_music.py --map-id {{mapa}} -o {{snes_inc}}/musicdata.inc
-
-# Corre la ROM sin pantalla, graba el audio y compara lo que suena contra el
-# MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar
-# sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
-audio-check mapa="67" segundos="60" tema="":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  cual=""
-  if [ -n "{{tema}}" ]; then cual="--tema {{tema}}"; fi
-  rom/record.sh {{snes_rom}} {{snes_pngs}}/tema.wav {{segundos}}
-  python3 tools/snes_check.py {{snes_pngs}}/tema.wav --map-id {{mapa}} $cual
-
-# Cada tema del cartucho, escuchado desde el arranque.
-#
-# El cartucho lleva varios y todos comparten el banco de muestras, así que lo que
-# hay que verificar de cada uno no es "suena algo" sino que **sus notas salgan
-# del banco compartido**: los índices de muestra que su stream escribe son los
-# del banco de todos, no los de uno propio.
-#
-# `--tema-de-arranque` está para esto: `audio-check` escucha desde el arranque, y
-# los mapas de las primeras secuencias no traen música propia —la prende un
-# `PlayBGM`—, así que sin el flag la ROM sale callada y no hay qué medir. El flag
-# no toca el bytecode: es el mismo stream, prendido antes.
-bgm tema="escape_newyork" mapa="4" mapas="1 2 3" segundos="40":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --mapas {{mapas}} --tema-de-arranque {{tema}} -o {{snes_inc}}/mapdata.inc
-  just build
-  rom/record.sh {{snes_rom}} {{snes_pngs}}/bgm-{{tema}}.wav {{segundos}}
-  python3 tools/snes_check.py {{snes_pngs}}/bgm-{{tema}}.wav \
-      --map-id {{mapa}} --tema {{tema}}
-
-# El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
-# salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto
-# de lo que falta es culpa nuestra y cuánto es de la medición.
-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
-  mkdir -p {{snes_pngs}} {{snes_inc}}
-  fluidsynth -F rom/shots/referencia.wav -r 48000 \
-      "{{banco}}" \
-      "$(python3 tools/midi_path.py --map-id {{mapa}})"
-  python3 tools/snes_check.py rom/shots/referencia.wav --map-id {{mapa}}
-
-# Todo junto: convertir, compilar y verificar.
-audio mapa="67": (music mapa) build (audio-check mapa)
 
 # La ROM en una ventana, con sonido. Va en el host: acá adentro no hay
 # dispositivo de audio, y el ALSA propio de mednafen abre hw:0.

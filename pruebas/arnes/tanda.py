@@ -233,6 +233,12 @@ def correr_ticks(consola, simbolos, ticks, sosteniendo=()):
             raise RuntimeError("la ROM no llegó al tick %d" % ticks)
 
 
+def quince_bits(imagen):
+    """La imagen a 15 bits, que es lo que la consola puede mostrar."""
+    return [(r >> 3, g >> 3, b >> 3)
+            for r, g, b in imagen.convert("RGB").get_flattened_data()]
+
+
 def golden(nombre, imagen):
     """La captura contra su congelada, y tienen que ser **idénticas**.
 

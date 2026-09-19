@@ -72,7 +72,7 @@ import os
 
 import pytest
 
-from tanda import partida, ticks_de_avance
+from tanda import partida, quince_bits, ticks_de_avance
 
 # Los dos cores, por ruta. bsnes es el preciso y el que enciende con basura;
 # snes9x es el de todas las demás pruebas, así que una diferencia acá es
@@ -84,12 +84,6 @@ BSNES = "/usr/lib/libretro/bsnes_libretro.so"
 # Cuántos niveles tiene un canal de la consola, que es propiedad del hardware:
 # 5 bits por canal, 15 en total.
 NIVELES = 32
-
-
-def quince_bits(imagen):
-    """El cuadro a 15 bits, que es lo que la consola muestra. Ver arriba."""
-    return [(r >> 3, g >> 3, b >> 3)
-            for r, g, b in imagen.convert("RGB").get_flattened_data()]
 
 
 def iguales(nombre, una, otra):

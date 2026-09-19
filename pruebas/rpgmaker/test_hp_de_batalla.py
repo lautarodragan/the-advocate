@@ -90,7 +90,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     import titulo
     import ventana
     from render_map import GAME_DIR
-    from snes_compare import quantize
+    from tanda import quince_bits
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
     abrir(una)
@@ -101,7 +101,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo)
-    distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
+    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
     if distintos:
         donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -119,7 +119,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     llena = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                GRUPO, oro, 0, True, db.font_id, None,
                                GAME_DIR, MAXIMOS)
-    assert sum(1 for x, y in zip(quantize(llena), quantize(esperada))
+    assert sum(1 for x, y in zip(quince_bits(llena), quince_bits(esperada))
                if x != y) > 20, (
         "la referencia dibuja lo mismo con Core en 79 que con Core en 127")
 

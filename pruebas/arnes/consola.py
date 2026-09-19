@@ -28,12 +28,22 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                            # noqa: E402
-from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.
 NUCLEO = os.environ.get(
     "NUCLEO", "/usr/lib/libretro/snes9x_libretro.so")
+
+# El cuadro que se ve en pantalla muestra el estado de la vuelta ANTERIOR del
+# lazo principal: `flush_video` sube el OAM que armó `build_oam` la vuelta
+# pasada, y por eso está al principio del lazo y no al final. De ahí sale este
+# +1, que no es un ajuste sino una consecuencia del orden de main.s.
+#
+# Con eso, para ver al héroe con N pixeles de avance hay que correr N/2 + 1
+# cuadros desde que se aprieta: se mueve WALK_SPEED = 2 por cuadro. Medido en el
+# mapa 73 a 40, 60 y 80 px: exacto da 0, y errarle por un cuadro para cualquier
+# lado da unos 25000 pixeles de diferencia.
+RETRASO_DE_PANTALLA = 1
 
 
 class SimboloDesconocido(KeyError):

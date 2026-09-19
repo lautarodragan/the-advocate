@@ -55,9 +55,9 @@ def entrar(partida):
 
 
 def comparar(una, esperada, nombre):
-    from snes_compare import quantize
+    from tanda import quince_bits
     captura = una.imagen().convert("RGB")
-    distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
+    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
     if distintos:
         donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
