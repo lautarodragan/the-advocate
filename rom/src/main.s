@@ -4649,7 +4649,7 @@ op_shop_next:
     bra op_shop_other
 op_shop_done:
     phy
-    jsr tienda_pantalla
+    jsl f:tienda_pantalla
     ; Los flancos que cerraron la tienda son de ella, como en el menú.
     lda pad
     sta pad_ant
@@ -12139,7 +12139,7 @@ no_abajo:
     sep #$20
 .a8
     lda grupo, x
-    jsr equipo_pantalla
+    jsl f:equipo_pantalla
 volver_de_equipo:
     lda #2
     sta titulo_sel
@@ -12519,2246 +12519,6 @@ escribir:
     jmp pant_glifo
 .endproc
 
-; --- el equipo -----------------------------------------------------------------
-;
-; `Scene_Equip`: el actor, sus cuatro parámetros, las cinco ranuras con lo que
-; tiene puesto; A sobre una ranura muestra la lista de lo que puede ponerse
-; ahí —reemplaza a las ranuras mientras dura— con los parámetros que
-; quedarían. La línea vacía del final es sacarse lo de la ranura. B vuelve.
-; `pantallas.pantalla_equipo` es la referencia, y `pantallas.equipar` la regla.
-;   eq_actor     es comp_char      ; el número de actor
-;   eq_ranura    es comp_col       ; la ranura marcada, 0 a 4
-;   eq_eligiendo es comp_col + 1   ; si se muestra la lista
-;   eq_elegido   es comp_fase      ; el lugar del cursor en la lista
-;   eq_arriba    es comp_fase + 1  ; y el primero que se ve
-;   eq_n         es comp_base      ; cuántos hay en la lista, con la vacía
-;   eq_cand      es comp_mask      ; el ítem que marca el cursor, 0 si ninguno
-;   eq_suma      es comp_or01      ; un parámetro, mientras se suma
-;   eq_param     es comp_or01 + 2  ; cuál
-;   eq_s         es comp_or01 + 3  ; la ranura que se mira
-;   eq_id        es comp_or23      ; un ítem, dos bytes
-;   eq_tmp       es comp_and       ; escritorio de `eq_apuntar`, cuatro bytes
-
-; A: la ranura. Deja apuntada la ventana de la WRAM a esa ranura del actor:
-; `FAR_EQUIPO` + actor * 10 + ranura * 2.
-.proc eq_apuntar
-.a8
-.i16
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    sta comp_and                  ; la ranura por dos
-    lda comp_char
-    and #$00FF
-    asl a
-    sta comp_and + 2              ; el actor por dos
-    asl a
-    asl a                       ; por ocho
-    clc
-    adc comp_and + 2
-    clc
-    adc comp_and
-    clc
-    adc #FAR_EQUIPO
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    rts
-.endproc
-
-; A: la ranura. Vuelve con el ítem en `eq_id`.
-.proc eq_leer
-.a8
-.i16
-    jsr eq_apuntar
-    lda WMDATA
-    sta comp_or23
-    lda WMDATA
-    sta comp_or23 + 1
-    rts
-.endproc
-
-; A: la ranura; `eq_id`: el ítem nuevo.
-.proc eq_escribir
-.a8
-.i16
-    jsr eq_apuntar
-    lda comp_or23
-    sta WMDATA
-    lda comp_or23 + 1
-    sta WMDATA
-    rts
-.endproc
-
-; El `k` del ítem de `eq_id`, en X, y Z=1 si es ninguno o uno que la ROM no
-; conoce.
-.proc eq_k
-.a8
-.i16
-    rep #$20
-.a16
-    lda comp_or23
-    beq ninguno
-    cmp #ITEMS_N
-    bcs ninguno
-    tax
-    sep #$20
-.a8
-    lda f:item_k, x
-    cmp #$FF
-    beq ninguno8
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda #1                      ; Z=0
-    rts
-.a16
-ninguno:
-    sep #$20
-.a8
-ninguno8:
-    lda #0                      ; Z=1
-    rts
-.endproc
-
-; Cuántos hay en el inventario del ítem `eq_id`, en A.
-.proc eq_inv_apuntar
-.a8
-.i16
-    rep #$20
-.a16
-    lda comp_or23
-    clc
-    adc #FAR_ITEMS
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    rts
-.endproc
-
-; Uno más —topado en 99— o uno menos del ítem `eq_id`. A: 1 suma, 0 resta.
-.proc eq_inv_mover
-.a8
-.i16
-    pha
-    jsr eq_inv_apuntar
-    lda WMDATA
-    sta comp_and
-    jsr eq_inv_apuntar
-    pla
-    beq resta
-    lda comp_and
-    cmp #ITEM_MAX
-    bcs listo
-    inc a
-    bra escribir
-resta:
-    lda comp_and
-    beq listo
-    dec a
-escribir:
-    sta WMDATA
-listo:
-    rts
-.endproc
-
-; ¿El ítem `eq_id` es un arma a dos manos? Z=0 si sí.
-.proc eq_dos_manos
-.a8
-.i16
-    jsr eq_k
-    beq no
-    lda item_uso, x
-    and #8
-    rts
-no:
-    lda #0
-    rts
-.endproc
-
-; El ítem que tendría la ranura A: el que tiene, o —eligiendo— el que marca
-; el cursor si es la ranura elegida, y ninguno en la otra si el arma es a dos
-; manos. Es `pantallas.equipar` sin tocar nada. Vuelve en `eq_id`.
-.proc eq_efectivo
-.a8
-.i16
-    sta comp_or01 + 3
-    lda comp_col + 1
-    beq tiene
-    lda comp_or01 + 3
-    cmp comp_col
-    bne otra
-    rep #$20
-.a16
-    lda comp_mask
-    sta comp_or23
-    sep #$20
-.a8
-    rts
-otra:
-    ; Un arma a dos manos saca el escudo; un escudo saca el arma a dos manos.
-    rep #$20
-.a16
-    lda comp_mask
-    sta comp_or23
-    sep #$20
-.a8
-    lda comp_or01 + 3
-    cmp #1
-    bne no_escudo
-    lda comp_col
-    bne tiene                   ; no se está eligiendo el arma
-    jsr eq_dos_manos
-    bne ninguno
-    bra tiene
-no_escudo:
-    lda comp_or01 + 3
-    bne tiene                   ; ni escudo ni arma: la de siempre
-    lda comp_col
-    cmp #1
-    bne tiene                   ; no se está eligiendo el escudo
-    rep #$20
-.a16
-    lda comp_mask
-    sep #$20
-.a8
-    beq tiene                   ; sacarse el escudo no toca el arma
-    lda #0
-    jsr eq_leer
-    jsr eq_dos_manos
-    bne ninguno
-    rts                         ; `eq_id` ya es el arma
-tiene:
-    lda comp_or01 + 3
-    jmp eq_leer
-ninguno:
-    stz comp_or23
-    stz comp_or23 + 1
-    rts
-.endproc
-
-; El parámetro `eq_param` —0 ataque, 1 defensa, 2 espíritu, 3 agilidad— con el
-; equipo que dice `eq_efectivo`, en `pant_valor`, topado en [1, 999].
-.proc eq_parametro
-.a8
-.i16
-    ; El del nivel: `actor_params`, cuatro palabras por actor.
-    rep #$20
-.a16
-    lda comp_char
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    sta comp_or01
-    lda comp_or01 + 2
-    and #$00FF
-    asl a
-    clc
-    adc comp_or01
-    tax
-    lda f:actor_params, x       ; fuera del banco 0: ver `actor_params`
-    sta comp_or01
-    sep #$20
-.a8
-    lda #0
-ranura:
-    pha
-    jsr eq_efectivo
-    jsr eq_k
-    beq sin_puntos
-    rep #$20
-.a16
-    txa
-    asl a
-    asl a
-    asl a                       ; ocho bytes por ítem
-    sta comp_and
-    lda comp_or01 + 2
-    and #$00FF
-    asl a
-    clc
-    adc comp_and
-    tax
-    lda f:item_puntos, x
-    clc
-    adc comp_or01
-    sta comp_or01
-    sep #$20
-.a8
-sin_puntos:
-    pla
-    inc a
-    cmp #5
-    bcc ranura
-    rep #$20
-.a16
-    lda comp_or01
-    bmi uno                     ; con signo: el equipo puede restar
-    beq uno
-    cmp #1000
-    bcc listo
-    lda #999
-    bra listo
-uno:
-    lda #1
-listo:
-    sta comp_dup
-    sep #$20
-.a8
-    rts
-.endproc
-
-; La lista de lo que el actor puede ponerse en `eq_ranura`, como `k` en
-; `FAR_ITEM_LISTA`, y al final un $FF que es la línea vacía. Cuántos en
-; `eq_n`. Es `pantallas.candidatos`.
-.proc eq_lista_armar
-.a8
-.i16
-    stz comp_base
-    ldx #1
-otro:
-    rep #$20
-.a16
-    txa
-    clc
-    adc #FAR_ITEMS
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
-    beq siguiente
-    lda f:item_k, x
-    cmp #$FF
-    beq siguiente
-    phx
-    rep #$20
-.a16
-    and #$00FF
-    tax                         ; X = k
-    sep #$20
-.a8
-    lda comp_col
-    inc a
-    cmp item_tipo, x
-    bne no_va
-    ; ¿Lo puede usar el actor? Un bit por actor, ocho bytes por ítem.
-    rep #$20
-.a16
-    txa
-    asl a
-    asl a
-    asl a
-    sta comp_and
-    lda comp_char
-    and #$00FF
-    dec a
-    pha
-    lsr a
-    lsr a
-    lsr a
-    clc
-    adc comp_and
-    sta comp_and                ; el byte; `comp_and` ya no lleva k por ocho
-    pla
-    and #$0007
-    sta comp_and + 2              ; y el bit
-    sep #$20
-.a8
-    ; Con `f:` porque `item_actores` se mudó a RODATA el 2026-09-13: son 496
-    ; bytes y el área del banco 0 ya se pasaba por quince antes de las
-    ; habilidades. Cuesta un byte y un ciclo por lectura, y esto corre una vez
-    ; por ítem al abrir la pantalla de equipo.
-    ;
-    ; **Por X y no por Y**: el 65816 no tiene `lda long, y`, sólo `long, x`. X
-    ; trae el `k` del ítem y lo necesita más abajo, así que va y vuelve por la
-    ; pila. El `plx` no deja ninguna bandera mirada: lo que sigue es un `and`.
-    ;
-    ; El índice sale de `comp_and` y no de Y, y eso no es indistinto: dos ramas
-    ; mudaron este mismo código a RODATA por separado, una dejando el byte en Y
-    ; —`tay`— y la otra en `comp_and`. En el merge git se quedó con el `sta
-    ; comp_and` de una y dejó el `tyx` de la otra en conflicto: juntas
-    ; ensamblaban y leían un registro que ya nadie cargaba.
-    phx
-    ldx comp_and
-    lda f:item_actores, x
-    plx
-    ldy comp_and + 2
-    beq bit_listo
-correr:
-    lsr a
-    dey
-    bne correr
-bit_listo:
-    and #1
-    beq no_va
-    txa                         ; el k, que entra en un byte
-    pha
-    rep #$20
-.a16
-    lda comp_base
-    and #$00FF
-    clc
-    adc #FAR_ITEM_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    pla
-    sta WMDATA
-    inc comp_base
-no_va:
-    plx
-siguiente:
-    inx
-    cpx #ITEMS_N
-    bcs lista_lista
-    jmp otro                    ; los 127 bytes de un `bcc` se quedaron cortos
-                                ; al leer `item_actores` larga
-lista_lista:
-    rep #$20
-.a16
-    lda comp_base
-    and #$00FF
-    clc
-    adc #FAR_ITEM_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda #$FF                    ; la línea vacía
-    sta WMDATA
-    inc comp_base
-    rts
-.endproc
-
-; El ítem del lugar A de la lista, en `eq_id`: 0 si es la línea vacía.
-.proc eq_de_lista
-.a8
-.i16
-    jsr item_de_lista
-    cmp #$FF
-    beq vacia
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda item_id, x
-    sta comp_or23
-    sep #$20
-.a8
-    rts
-vacia:
-    stz comp_or23
-    stz comp_or23 + 1
-    rts
-.endproc
-
-; Escribe en `eleg_tabla` el nombre del ítem `eq_id`, si la ROM lo conoce, con
-; no más de A letras.
-.proc eq_nombre
-.a8
-.i16
-    sta comp_dup + 3
-    jsr eq_k
-    beq nada
-    rep #$20
-.a16
-    txa
-    sta comp_and
-    asl a
-    clc
-    adc comp_and
-    tax                         ; 3k, el nombre
-    sep #$20
-.a8
-    stz temp + 1
-    jmp pant_texto
-nada:
-    lda #255
-    sta comp_dup + 3
-    rts
-.endproc
-
-; La descripción del ítem `eq_id`, en los dos renglones de arriba.
-.proc eq_desc
-.a8
-.i16
-    jsr eq_k
-    beq nada
-    rep #$20
-.a16
-    txa
-    sta comp_and
-    asl a
-    clc
-    adc comp_and
-    inc a                       ; 3k + 1
-    pha
-    lda #PANT_DESC_POS
-    sta eleg_tabla
-    plx
-    phx
-    sep #$20
-.a8
-    stz temp + 1
-    jsr pant_texto
-    rep #$20
-.a16
-    lda #(PANT_DESC_POS + 128)
-    sta eleg_tabla
-    plx
-    inx
-    sep #$20
-.a8
-    stz temp + 1
-    jmp pant_texto
-nada:
-    rts
-.endproc
-
-; La pantalla entera, en el búfer: `pantallas.pantalla_equipo`.
-.proc eq_componer
-.a8
-.i16
-    lda #255
-    sta comp_dup + 3
-    jsr pant_limpiar
-    stz temp + 1
-    ; --- el nombre del actor ---
-    rep #$20
-.a16
-    lda #EQ_ACTOR_POS
-    sta eleg_tabla
-    lda comp_char
-    and #$00FF
-    asl a
-    tax
-    lda actor_txt, x
-    tax
-    cmp #$FFFF                  ; un actor sin nombre en esta ROM
-    sep #$20                    ; `sep` no toca Z
-.a8
-    beq sin_nombre
-    jsr pant_texto
-sin_nombre:
-    ; --- la descripción ---
-    lda comp_col + 1
-    beq la_puesta
-    lda comp_fase
-    jsr eq_de_lista
-    rep #$20
-.a16
-    lda comp_or23
-    sta comp_mask
-    sep #$20
-.a8
-    bra desc
-la_puesta:
-    lda comp_col
-    jsr eq_leer
-desc:
-    jsr eq_desc
-    ; --- los parámetros: ahora y, eligiendo, después ---
-    stz comp_or01 + 2
-param:
-    lda comp_or01 + 2
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda eq_param_pos, x
-    sta eleg_tabla
-    lda comp_or01 + 2
-    and #$00FF
-    clc
-    adc #EQ_TEXTO_PARAM
-    tax
-    sep #$20
-.a8
-    stz temp + 1
-    jsr pant_texto
-    lda comp_col + 1
-    pha
-    stz comp_col + 1            ; ahora: lo puesto
-    jsr eq_parametro
-    pla
-    sta comp_col + 1
-    jsr param_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_PARAM_VALOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #3
-    sta comp_dup + 2
-    jsr pant_numero
-    lda comp_col + 1
-    beq sin_flecha
-    jsr param_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_PARAM_FLECHA
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #$3E                    ; '>'
-    jsr pant_glifo
-    jsr eq_parametro            ; después: con lo que marca el cursor
-    lda #3
-    sta comp_dup + 2
-    jsr pant_numero
-sin_flecha:
-    inc comp_or01 + 2
-    lda comp_or01 + 2
-    cmp #4
-    bcc param
-    lda comp_col + 1
-    bne lista
-    ; --- las ranuras ---
-    lda #0
-ranura:
-    pha
-    cmp comp_col
-    bne sin_cursor
-    jsr fila_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #$3E
-    jsr pant_glifo
-sin_cursor:
-    pla
-    pha
-    jsr fila_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_RANURA_TERM
-    sta eleg_tabla
-    sep #$20
-.a8
-    pla
-    pha
-    rep #$20
-.a16
-    and #$00FF
-    clc
-    adc #EQ_TEXTO_RANURA
-    tax
-    sep #$20
-.a8
-    jsr pant_texto
-    pla
-    pha
-    jsr fila_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_RANURA_NOMBRE
-    sta eleg_tabla
-    sep #$20
-.a8
-    pla
-    pha
-    jsr eq_leer
-    lda #EQ_RANURA_ANCHO
-    jsr eq_nombre
-    pla
-    inc a
-    cmp #5
-    bcc ranura
-    rts
-
-    ; --- la lista ---
-lista:
-    lda #0
-lista_fila:
-    pha
-    clc
-    adc comp_fase + 1
-    cmp comp_base
-    bcs lista_listo
-    pla
-    pha
-    jsr fila_pos_lista
-    rep #$20
-.a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    pla
-    pha
-    clc
-    adc comp_fase + 1
-    cmp comp_fase
-    bne sin_cursor_lista
-    lda #$3E
-    jsr pant_glifo
-sin_cursor_lista:
-    pla
-    pha
-    clc
-    adc comp_fase + 1
-    jsr eq_de_lista
-    rep #$20
-.a16
-    lda comp_or23
-    sep #$20
-.a8
-    beq lista_siguiente         ; la línea vacía
-    pla
-    pha
-    jsr fila_pos_lista
-    rep #$20
-.a16
-    clc
-    adc #PANT_NOMBRE
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #255
-    jsr eq_nombre
-    pla
-    pha
-    jsr fila_pos_lista
-    rep #$20
-.a16
-    clc
-    adc #PANT_DOS_PUNTOS
-    sta eleg_tabla
-    sep #$20
-.a8
-    stz temp + 1
-    lda #$3A                    ; ':'
-    jsr pant_glifo
-    jsr eq_inv_apuntar
-    lda WMDATA
-    sta comp_dup
-    stz comp_dup + 1
-    lda #2
-    sta comp_dup + 2
-    jsr pant_numero
-lista_siguiente:
-    pla
-    inc a
-    cmp #EQ_LISTA_FILAS
-    bcc lista_fila
-    rts
-lista_listo:
-    pla
-    rts
-
-; A16 = la posición del parámetro `eq_param`.
-param_pos:
-    lda comp_or01 + 2
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda eq_param_pos, x
-    rts
-.a8
-
-; A: la ranura. A16 = la posición de su fila.
-fila_pos:
-    rep #$20
-.a16
-    and #$00FF
-    xba
-    lsr a                       ; por 128: dos filas de celdas
-    clc
-    adc #EQ_RANURA_POS0
-    rts
-.a8
-
-; A: la fila de la lista. A16 = la posición de su fila.
-fila_pos_lista:
-    rep #$20
-.a16
-    and #$00FF
-    xba
-    lsr a
-    clc
-    adc #EQ_LISTA_POS0
-    rts
-.a8
-.endproc
-
-; A sobre la lista: `pantallas.equipar` con lo que marca el cursor.
-.proc eq_equipar
-.a8
-.i16
-    lda comp_fase
-    jsr eq_de_lista
-    rep #$20
-.a16
-    lda comp_or23
-    sta comp_mask
-    sep #$20
-.a8
-    lda comp_col
-    jsr sacar
-    rep #$20
-.a16
-    lda comp_mask
-    sep #$20
-.a8
-    beq listo
-    rep #$20
-.a16
-    lda comp_mask
-    sta comp_or23
-    sep #$20
-.a8
-    lda #0
-    jsr eq_inv_mover            ; uno menos en el inventario
-    rep #$20
-.a16
-    lda comp_mask
-    sta comp_or23
-    sep #$20
-.a8
-    lda comp_col
-    jsr eq_escribir
-    ; Las dos manos.
-    lda comp_col
-    bne no_arma
-    jsr eq_dos_manos            ; `eq_id` es el arma nueva
-    beq listo
-    lda #1
-    jmp sacar
-no_arma:
-    cmp #1
-    bne listo
-    lda #0
-    jsr eq_leer
-    jsr eq_dos_manos
-    beq listo
-    lda #0
-    jmp sacar
-listo:
-    rts
-
-; A: la ranura. Lo que tiene vuelve al inventario y queda vacía.
-sacar:
-    pha
-    jsr eq_leer
-    rep #$20
-.a16
-    lda comp_or23
-    sep #$20
-.a8
-    beq vacia
-    lda #1
-    jsr eq_inv_mover
-    stz comp_or23
-    stz comp_or23 + 1
-    pla
-    jmp eq_escribir
-vacia:
-    pla
-    rts
-.endproc
-
-; La pantalla de equipo del actor A, hasta que el jugador vuelve con B.
-.proc equipo_pantalla
-.a8
-.i16
-    sta comp_char
-    stz comp_col
-    stz comp_col + 1
-    lda #$80
-    sta INIDISP
-    stz HDMAEN
-    stz TM
-    jsl f:items_banco_subir
-    jsr eq_componer
-    jsr pant_subir
-    jsr ranura_ppu_prender
-espera:
-    jsr wait_vblank
-    ; El control primero y el DMA después. Al revés, los 1792 bytes duran
-    ; unas diez líneas y `read_pad` llegaba con la lectura automática del
-    ; control ya terminada: esperaba la del cuadro siguiente, cada vuelta
-    ; duraba dos cuadros, y un toque de un cuadro se perdía la mitad de las
-    ; veces. Con el control leído, el DMA entra igual en el vblank.
-    jsr read_pad
-    jsr pant_subir
-    lda pad
-    eor pad_ant
-    and pad
-    sta titulo_flancos
-    lda comp_col + 1
-    beq en_ranuras
-    jmp en_lista
-en_ranuras:
-    lda titulo_flancos
-    and #PAD_UP
-    beq r_no_arriba
-    lda comp_col
-    beq espera
-    dec comp_col
-    jmp recomponer
-r_no_arriba:
-    lda titulo_flancos
-    and #PAD_DOWN
-    beq r_no_abajo
-    lda comp_col
-    cmp #4
-    bcs espera
-    inc comp_col
-    jmp recomponer
-r_no_abajo:
-    lda titulo_flancos
-    and #PAD_B
-    beq r_mira_a
-    rts
-r_mira_a:
-    lda pad_a
-    beq espera
-    lda pad_a_ant
-    bne espera
-    jsr eq_lista_armar
-    stz comp_fase
-    stz comp_fase + 1
-    lda #1
-    sta comp_col + 1
-    jmp recomponer
-en_lista:
-    lda titulo_flancos
-    and #PAD_UP
-    beq l_no_arriba
-    lda comp_fase
-    beq espera2
-    dec comp_fase
-    lda comp_fase
-    cmp comp_fase + 1
-    bcs recomponer
-    sta comp_fase + 1
-    bra recomponer
-l_no_arriba:
-    lda titulo_flancos
-    and #PAD_DOWN
-    beq l_no_abajo
-    lda comp_fase
-    inc a
-    cmp comp_base
-    bcs espera2
-    sta comp_fase
-    sec
-    sbc comp_fase + 1
-    cmp #EQ_LISTA_FILAS
-    bcc recomponer
-    inc comp_fase + 1
-    bra recomponer
-l_no_abajo:
-    lda titulo_flancos
-    and #PAD_B
-    beq l_mira_a
-    stz comp_col + 1
-    bra recomponer
-l_mira_a:
-    lda pad_a
-    beq espera2
-    lda pad_a_ant
-    bne espera2
-    jsr eq_equipar
-    stz comp_col + 1
-recomponer:
-    jsr eq_componer
-espera2:
-    jmp espera
-.endproc
-
-; --- la tienda -----------------------------------------------------------------
-;
-; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la
-; pantalla bloquea adentro de la página, no cuesta ningún tick, y al salir el
-; mapa vuelve y la página sigue. Es una pantalla de texto —ver "las pantallas
-; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Lo
-; que vende va como `k` en `FAR_TIENDA`; la lista de vender, en
-; `FAR_ITEM_LISTA`.
-;
-; El escritorio, prestado del compositor de mensajes:
-;   ti_modo      es comp_col       ; TI_PRINCIPAL ... TI_VENDIDO
-;   ti_tipo      es comp_col + 1   ; 0 compra y vende, 1 compra, 2 vende
-;   ti_juego     es comp_fase      ; el juego de mensajes, 0 a 2
-;   ti_resaludo  es comp_fase + 1  ; si ya se volvió a la principal
-;   ti_elegido   es comp_base      ; el cursor
-;   ti_arriba    es comp_base + 1  ; el primero que se ve de la lista
-;   ti_n         es comp_mask      ; cuántos hay en la lista del modo
-;   ti_nt        es comp_mask + 1  ; cuántos vende la tienda
-;   ti_cuantos   es comp_color     ; la cantidad que se elige
-;   ti_max       es comp_fila      ; y hasta cuánto
-;   ti_timer     es comp_glifo     ; los cuadros del "listo"
-;   ti_pos       es comp_glifo + 1 ; dos bytes: dónde va la cifra
-;   ti_num       es comp_or01      ; tres bytes: un número de 24 bits
-FAR_TIENDA = $2B00
-TI_PRINCIPAL = 0
-TI_COMPRAR = 1
-TI_CUANTOS_COMPRA = 2
-TI_COMPRADO = 3
-TI_VENDER = 4
-TI_CUANTOS_VENTA = 5
-TI_VENDIDO = 6
-
-; A: un lugar de la lista del modo. Vuelve con A = su `k`.
-.proc ti_k_de
-.a8
-.i16
-    pha
-    lda comp_col
-    cmp #TI_VENDER
-    bcs de_venta
-    pla
-    rep #$20
-.a16
-    and #$00FF
-    clc
-    adc #FAR_TIENDA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
-    rts
-de_venta:
-    pla
-    jmp item_de_lista
-.endproc
-
-; El ítem que marca el cursor, en `eq_id`, y su `k` en X.
-.proc ti_item
-.a8
-.i16
-    lda comp_base
-    jsr ti_k_de
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    asl a
-    tay
-    lda item_id, y
-    sta comp_or23
-    sep #$20
-.a8
-    rts
-.endproc
-
-; El precio del `k` de X, en `ti_num`, a la mitad si se vende.
-.proc ti_precio
-.a8
-.i16
-    rep #$20
-.a16
-    txa
-    asl a
-    tay
-    lda item_precio, y
-    sta comp_or01
-    sep #$20
-.a8
-    stz comp_or01 + 2
-    lda comp_col
-    cmp #TI_VENDER
-    bcc listo
-    rep #$20
-.a16
-    lsr comp_or01
-    sep #$20
-.a8
-listo:
-    rts
-.endproc
-
-; ¿Alcanza el oro para el `k` de X, y tiene menos de 99? Z=0 si se puede
-; comprar. `Window_ShopBuy::CheckEnable`.
-.proc ti_puede
-.a8
-.i16
-    phx
-    jsr ti_precio
-    plx
-    ; oro >= precio, de 24 bits
-    lda oro + 2
-    bne alcanza
-    rep #$20
-.a16
-    lda oro
-    cmp comp_or01
-    sep #$20
-.a8
-    bcc no
-alcanza:
-    rep #$20
-.a16
-    txa
-    asl a
-    tay
-    lda item_id, y
-    sta comp_or23
-    sep #$20
-.a8
-    jsr eq_inv_apuntar
-    lda WMDATA
-    cmp #ITEM_MAX
-    bcs no
-    lda #1
-    rts
-no:
-    lda #0
-    rts
-.endproc
-
-; Un número de 24 bits de `ti_num` —se pierde—, alineado a la derecha con su
-; última cifra en `ti_pos`, en la variante de `temp + 1`. Se divide por diez
-; de a un byte, como el oro del menú.
-.proc pant_numero24
-.a8
-.i16
-cifra:
-    stz temp + 3                ; el resto que se arrastra
-    ldx #2
-dividir:
-    lda comp_or01, x
-    sta WRDIVL
-    lda temp + 3
-    sta WRDIVH
-    lda #10
-    sta WRDIVB
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    lda RDDIVL
-    sta comp_or01, x
-    lda RDMPYL
-    sta temp + 3
-    dex
-    bpl dividir
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    sta eleg_tabla
-    dec a
-    dec a
-    sta comp_glifo + 1
-    sep #$20
-.a8
-    lda temp + 3
-    clc
-    adc #$30
-    jsr pant_glifo
-    rep #$20
-.a16
-    lda comp_or01
-    sep #$20
-.a8
-    bne cifra
-    lda comp_or01 + 2
-    bne cifra
-    rts
-.endproc
-
-; Cuántos del ítem `eq_id` lleva puestos el grupo: `GetEquippedItemCount`.
-; Vuelve en `pant_valor`.
-.proc ti_llevados
-.a8
-.i16
-    rep #$20
-.a16
-    lda comp_or23
-    sta comp_or01                  ; el que se busca
-    stz comp_dup
-    sep #$20
-.a8
-    lda #0
-miembro:
-    cmp grupo_n
-    bcs listo
-    pha
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda grupo, x
-    sta comp_char
-    lda #0
-ranura:
-    pha
-    jsr eq_leer
-    rep #$20
-.a16
-    lda comp_or23
-    cmp comp_or01
-    bne otra
-    inc comp_dup
-otra:
-    sep #$20
-.a8
-    pla
-    inc a
-    cmp #5
-    bcc ranura
-    pla
-    inc a
-    bra miembro
-listo:
-    rep #$20
-.a16
-    lda comp_or01
-    sta comp_or23
-    sep #$20
-.a8
-    rts
-.endproc
-
-; El mensaje A del juego de la tienda, en los dos renglones de arriba.
-.proc ti_mensaje
-.a8
-.i16
-    sta temp + 3
-    lda comp_fase
-    asl a
-    asl a
-    asl a                       ; por 8
-    clc
-    adc comp_fase
-    adc comp_fase
-    adc comp_fase                ; por 11
-    clc
-    adc temp + 3
-    rep #$20
-.a16
-    and #$00FF
-    asl a                       ; dos renglones cada uno
-    clc
-    adc #TI_TEXTO
-    pha
-    lda #PANT_DESC_POS
-    sta eleg_tabla
-    plx
-    phx
-    sep #$20
-.a8
-    stz temp + 1
-    jsr pant_texto
-    rep #$20
-.a16
-    lda #(PANT_DESC_POS + 128)
-    sta eleg_tabla
-    plx
-    inx
-    sep #$20
-.a8
-    stz temp + 1
-    jmp pant_texto
-.endproc
-
-; La moneda en `eleg_tabla`.
-.proc ti_moneda
-.a8
-.i16
-    stz temp + 1
-    ldx #TI_TEXTO_MONEDA
-    jmp pant_texto
-.endproc
-
-; La pantalla entera, en el búfer: `pantallas.pantalla_tienda`.
-.proc ti_componer
-.a8
-.i16
-    lda #255
-    sta comp_dup + 3
-    jsr pant_limpiar
-    ; --- el mensaje: saludo, resaludo, o el del modo ---
-    lda comp_col
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda mensaje_de, x
-    bne con_mensaje
-    lda comp_fase + 1             ; la principal: saludo o resaludo
-con_mensaje:
-    jsr ti_mensaje
-    lda comp_col
-    bne no_principal
-    jmp principal
-no_principal:
-    ; --- el oro, y cuántos tiene y lleva puestos del que marca el cursor ---
-    lda comp_col
-    cmp #TI_VENDER
-    bne cerca_12209
-    jmp sin_oro
-cerca_12209:
-    rep #$20
-.a16
-    lda oro
-    sta comp_or01
-    lda #TI_ORO_POS
-    sta comp_glifo + 1
-    clc
-    adc #2
-    pha
-    sep #$20
-.a8
-    lda oro + 2
-    sta comp_or01 + 2
-    stz temp + 1
-    jsr pant_numero24
-    rep #$20
-.a16
-    pla
-    sta eleg_tabla
-    sep #$20
-.a8
-    jsr ti_moneda
-    lda comp_mask
-    beq sin_oro
-    jsr ti_item
-    rep #$20
-.a16
-    lda #TI_TENGO_POS
-    sta eleg_tabla
-    sep #$20
-.a8
-    stz temp + 1
-    ldx #TI_TEXTO_TENGO
-    jsr pant_texto
-    jsr ti_item
-    jsr eq_inv_apuntar
-    lda WMDATA
-    sta comp_dup
-    stz comp_dup + 1
-    rep #$20
-.a16
-    lda #TI_TENGO_NUM
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #2
-    sta comp_dup + 2
-    jsr pant_numero
-    rep #$20
-.a16
-    lda #TI_LLEVO_POS
-    sta eleg_tabla
-    sep #$20
-.a8
-    ldx #TI_TEXTO_LLEVO
-    jsr pant_texto
-    jsr ti_item
-    jsr ti_llevados
-    rep #$20
-.a16
-    lda #TI_LLEVO_NUM
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #2
-    sta comp_dup + 2
-    jsr pant_numero
-sin_oro:
-    lda comp_col
-    cmp #TI_CUANTOS_COMPRA
-    beq cuantos
-    cmp #TI_CUANTOS_VENTA
-    beq cuantos
-    jmp lista
-
-    ; --- la cantidad: el ítem, "x" y cuántos, y el total ---
-cuantos:
-    jsr ti_item
-    rep #$20
-.a16
-    lda #(TI_LISTA_POS0 + PANT_NOMBRE)
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #255
-    jsr eq_nombre
-    rep #$20
-.a16
-    lda #(TI_LISTA_POS0 + TI_CUANTOS)
-    sta eleg_tabla
-    sep #$20
-.a8
-    stz temp + 1
-    lda #$78                    ; 'x'
-    jsr pant_glifo
-    lda comp_color
-    sta comp_dup
-    stz comp_dup + 1
-    lda #2
-    sta comp_dup + 2
-    jsr pant_numero
-    jsr ti_item
-    jsr ti_precio
-    jsr ti_por_cuantos          ; ti_num = precio * cuantos
-    rep #$20
-.a16
-    lda #TI_TOTAL_POS
-    sta comp_glifo + 1
-    sep #$20
-.a8
-    stz temp + 1
-    jsr pant_numero24
-    rep #$20
-.a16
-    lda #(TI_TOTAL_POS + 2)
-    sta eleg_tabla
-    sep #$20
-.a8
-    jmp ti_moneda
-
-    ; --- la principal: las órdenes ---
-principal:
-    lda #0
-orden:
-    pha
-    cmp comp_base
-    bne sin_cursor
-    jsr orden_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    stz temp + 1
-    lda #$3E
-    jsr pant_glifo
-sin_cursor:
-    pla
-    pha
-    jsr orden_pos
-    rep #$20
-.a16
-    clc
-    adc #PANT_NOMBRE
-    sta eleg_tabla
-    sep #$20
-.a8
-    pla
-    pha
-    jsr orden_mensaje           ; qué término: comprar, vender o salir
-    jsr ti_renglon1
-    pla
-    inc a
-    cmp comp_mask
-    bcc orden
-    rts
-
-    ; --- la lista: comprar o vender ---
-lista:
-    lda #0
-lista_fila:
-    pha
-    clc
-    adc comp_base + 1
-    bcc cerca_12378
-    jmp lista_listo
-cerca_12378:
-    cmp comp_mask
-    bcc cerca_12382
-    jmp lista_listo
-cerca_12382:
-    pla
-    pha
-    jsr fila_pos
-    rep #$20
-.a16
-    sta eleg_tabla
-    sta comp_glifo + 1                  ; la fila, para las posiciones de abajo
-    sep #$20
-.a8
-    pla
-    pha
-    clc
-    adc comp_base + 1
-    pha
-    jsr ti_k_de
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    asl a
-    tay
-    lda item_id, y
-    sta comp_or23
-    sep #$20
-.a8
-    phx
-    ; el color: comprando, si alcanza; vendiendo, si vale algo
-    lda comp_col
-    cmp #TI_VENDER
-    bcs color_venta
-    jsr ti_puede
-    bra color
-color_venta:
-    jsr ti_precio
-    rep #$20
-.a16
-    lda comp_or01
-    sep #$20
-.a8
-color:
-    beq gris
-    lda #0
-    bra color_listo
-gris:
-    lda #1
-color_listo:
-    sta temp + 1
-    plx
-    pla                         ; el lugar en la lista
-    cmp comp_base
-    bne sin_cursor_lista
-    lda comp_col
-    cmp #TI_COMPRAR
-    beq con_cursor
-    cmp #TI_VENDER
-    bne sin_cursor_lista
-con_cursor:
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda temp + 1
-    pha
-    stz temp + 1
-    phx                         ; `pant_glifo` se lleva X, que es el `k`
-    lda #$3E
-    jsr pant_glifo
-    plx
-    pla
-    sta temp + 1
-sin_cursor_lista:
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    clc
-    adc #PANT_NOMBRE
-    sta eleg_tabla
-    sep #$20
-.a8
-    phx
-    lda temp + 1
-    pha
-    lda #255
-    sta comp_dup + 3
-    jsr eq_k                    ; el nombre, con la variante puesta
-    rep #$20
-.a16
-    txa
-    sta comp_and
-    asl a
-    clc
-    adc comp_and
-    tax
-    sep #$20
-.a8
-    pla
-    sta temp + 1
-    pha
-    jsr pant_texto
-    pla
-    sta temp + 1
-    plx
-    lda comp_col
-    cmp #TI_VENDER
-    bcs cuenta
-    ; comprando: el precio, alineado a la derecha
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    clc
-    adc #TI_PRECIO
-    pha
-    sep #$20
-.a8
-    jsr ti_precio
-    rep #$20
-.a16
-    pla
-    sta comp_glifo + 1
-    sep #$20
-.a8
-    jsr pant_numero24
-    bra lista_siguiente
-cuenta:
-    ; vendiendo: cuántos tiene
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    clc
-    adc #PANT_DOS_PUNTOS
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #$3A
-    jsr pant_glifo
-    jsr eq_inv_apuntar
-    lda WMDATA
-    sta comp_dup
-    stz comp_dup + 1
-    lda #2
-    sta comp_dup + 2
-    jsr pant_numero
-lista_siguiente:
-    pla
-    inc a
-    cmp #TI_LISTA_FILAS
-    bcs lista_fin
-    jmp lista_fila
-lista_fin:
-    rts
-lista_listo:
-    pla
-    rts
-
-; A: la orden de la principal. A16 = la posición de su fila.
-orden_pos:
-    rep #$20
-.a16
-    and #$00FF
-    xba
-    lsr a
-    clc
-    adc #TI_ORDEN_POS0
-    rts
-.a8
-
-; A: la fila de la lista. A16 = la posición de su fila.
-fila_pos:
-    rep #$20
-.a16
-    and #$00FF
-    xba
-    lsr a
-    clc
-    adc #TI_LISTA_POS0
-    rts
-.a8
-
-; A: la orden. A = el número de mensaje: 2 comprar, 3 vender, 4 salir; con
-; una sola orden, la que dice el tipo.
-orden_mensaje:
-    pha
-    lda comp_col + 1
-    beq tres
-    pla
-    lda comp_col + 1                 ; 1 compra: 2; 2 vende: 3
-    inc a
-    rts
-tres:
-    pla
-    clc
-    adc #2
-    rts
-
-; A: el número de mensaje. Su primer renglón, en `eleg_tabla`, en blanco.
-ti_renglon1:
-    sta temp + 3
-    lda comp_fase
-    asl a
-    asl a
-    asl a
-    clc
-    adc comp_fase
-    adc comp_fase
-    adc comp_fase
-    clc
-    adc temp + 3
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    clc
-    adc #TI_TEXTO
-    tax
-    sep #$20
-.a8
-    stz temp + 1
-    jmp pant_texto
-
-; El mensaje de cada modo: 0 es "el saludo o el resaludo".
-mensaje_de:
-    .byte 0, 5, 6, 7, 8, 9, 10
-.endproc
-
-; `ti_num` por `ti_cuantos`, sumando: son 99 vueltas a lo sumo.
-.proc ti_por_cuantos
-.a8
-.i16
-    rep #$20
-.a16
-    lda comp_or01
-    sta comp_and
-    stz comp_or01
-    sep #$20
-.a8
-    lda comp_or01 + 2
-    sta comp_and + 2
-    stz comp_or01 + 2
-    lda comp_color
-    beq listo
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-otra:
-    rep #$20
-.a16
-    lda comp_or01
-    clc
-    adc comp_and
-    sta comp_or01
-    sep #$20
-.a8
-    lda comp_or01 + 2
-    adc comp_and + 2
-    sta comp_or01 + 2
-    dex
-    bne otra
-listo:
-    rts
-.endproc
-
-; Hasta cuántos se pueden comprar del que marca el cursor: los que faltan para
-; 99, y no más de los que paga el oro. Vendiendo, los que tiene. En `ti_max`.
-.proc ti_maximo
-.a8
-.i16
-    jsr ti_item
-    phx
-    jsr eq_inv_apuntar
-    lda WMDATA
-    plx
-    sta temp + 3                ; cuántos tiene
-    lda comp_col
-    cmp #TI_VENDER
-    bcc comprando
-    lda temp + 3
-    sta comp_fila
-    rts
-comprando:
-    lda #ITEM_MAX
-    sec
-    sbc temp + 3
-    sta temp + 3                ; los que faltan
-    jsr ti_precio
-    rep #$20
-.a16
-    lda oro
-    sta comp_and
-    sep #$20
-.a8
-    lda oro + 2
-    sta comp_and + 2
-    stz comp_fila
-otro:
-    lda comp_fila
-    cmp temp + 3
-    bcs listo
-    ; ¿eq_tmp >= precio? Si el precio es cero, siempre.
-    rep #$20
-.a16
-    lda comp_and
-    sec
-    sbc comp_or01
-    tay
-    sep #$20
-.a8
-    lda comp_and + 2
-    sbc comp_or01 + 2
-    bcc listo
-    sta comp_and + 2
-    rep #$20
-.a16
-    tya
-    sta comp_and
-    sep #$20
-.a8
-    inc comp_fila
-    bra otro
-listo:
-    rts
-.endproc
-
-; Comprar o vender `ti_cuantos` del que marca el cursor: el oro y el
-; inventario, como `UpdateNumberInput`.
-.proc ti_cerrar_trato
-.a8
-.i16
-    jsr ti_item
-    jsr ti_precio
-    jsr ti_por_cuantos
-    lda comp_col
-    cmp #TI_CUANTOS_VENTA
-    beq vender
-    ; --- comprar: el oro baja y los ítems suben ---
-    rep #$20
-.a16
-    lda oro
-    sec
-    sbc comp_or01
-    sta oro
-    sep #$20
-.a8
-    lda oro + 2
-    sbc comp_or01 + 2
-    sta oro + 2
-    lda comp_color
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-suma:
-    phx
-    jsr ti_item
-    lda #1
-    jsr eq_inv_mover
-    plx
-    dex
-    bne suma
-    rts
-vender:
-    ; --- vender: el oro sube, topado en ORO_MAX, y los ítems bajan ---
-    rep #$20
-.a16
-    lda oro
-    clc
-    adc comp_or01
-    sta oro
-    sep #$20
-.a8
-    lda oro + 2
-    adc comp_or01 + 2
-    sta oro + 2
-    cmp #^ORO_MAX
-    bcc resta
-    bne tope
-    rep #$20
-.a16
-    lda oro
-    cmp #.loword(ORO_MAX)
-    sep #$20
-.a8
-    bcc resta
-    beq resta
-tope:
-    rep #$20
-.a16
-    lda #.loword(ORO_MAX)
-    sta oro
-    sep #$20
-.a8
-    lda #^ORO_MAX
-    sta oro + 2
-resta:
-    lda comp_color
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-quita:
-    phx
-    jsr ti_item
-    lda #0
-    jsr eq_inv_mover
-    plx
-    dex
-    bne quita
-    rts
-.endproc
-
-; La lista de vender: el inventario que la ROM conoce, en `FAR_ITEM_LISTA`.
-.proc ti_lista_venta
-.a8
-.i16
-    jsr items_armar_lista
-    lda eleg_n
-    sta comp_mask
-    lda comp_base
-    cmp comp_mask
-    bcc listo
-    lda comp_mask                    ; se vendió el último: el cursor sube
-    beq cero
-    dec a
-cero:
-    sta comp_base
-listo:
-    rts
-.endproc
-
-; A: el modo nuevo. Pone lo que hace falta para entrar: la lista, el cursor.
-.proc ti_modo_poner
-.a8
-.i16
-    sta comp_col
-    cmp #TI_PRINCIPAL
-    bne no_principal
-    lda comp_col + 1
-    beq tres
-    lda #1
-    bra n_listo
-tres:
-    lda #3
-n_listo:
-    sta comp_mask
-    rts
-no_principal:
-    cmp #TI_COMPRAR
-    bne no_comprar
-    lda comp_mask + 1
-    sta comp_mask
-    rts
-no_comprar:
-    cmp #TI_VENDER
-    bne listo
-    jmp ti_lista_venta
-listo:
-    rts
-.endproc
-
-; El cursor de la lista, con la vista que lo sigue.
-.proc ti_mover
-.a8
-.i16
-    sta comp_base
-    cmp comp_base + 1
-    bcs no_arriba
-    sta comp_base + 1
-    rts
-no_arriba:
-    sec
-    sbc comp_base + 1
-    cmp #TI_LISTA_FILAS
-    bcc listo
-    lda comp_base
-    sec
-    sbc #(TI_LISTA_FILAS - 1)
-    sta comp_base + 1
-listo:
-    rts
-.endproc
-
-; La tienda: `ti_tipo`, `ti_juego` y `FAR_TIENDA` con `ti_nt` ítems, puestos
-; por `op_shop`. Vuelve cuando el jugador sale.
-.proc tienda_pantalla
-.a8
-.i16
-    stz comp_fase + 1
-    stz comp_base
-    stz comp_base + 1
-    lda comp_col + 1
-    beq a_principal
-    cmp #1
-    beq a_comprar
-    lda #TI_VENDER
-    bra empieza
-a_comprar:
-    lda #TI_COMPRAR
-    bra empieza
-a_principal:
-    lda #TI_PRINCIPAL
-empieza:
-    jsr ti_modo_poner
-    lda #$80
-    sta INIDISP
-    stz HDMAEN
-    stz TM
-    jsl f:items_banco_subir
-    jsr ti_componer
-    jsr pant_subir
-    jsr ranura_ppu_prender
-    lda #1
-    sta menu_abierto
-espera:
-    jsr wait_vblank
-    jsr read_pad                ; el control antes del DMA: ver el equipo
-    jsr pant_subir
-    lda pad
-    eor pad_ant
-    and pad
-    sta titulo_flancos
-    ; Según el modo. Sin `jmp (tabla, x)` en el ensamblador, una cadena.
-    lda comp_col
-    bne no_es_principal
-    jmp principal
-no_es_principal:
-    cmp #TI_CUANTOS_COMPRA
-    bne :+
-    jmp cuantos
-:   cmp #TI_CUANTOS_VENTA
-    bne :+
-    jmp cuantos
-:   cmp #TI_COMPRADO
-    bne :+
-    jmp listo_trato
-:   cmp #TI_VENDIDO
-    bne :+
-    jmp listo_trato
-:   jmp comprar                 ; comprar y vender comparten el código
-
-    ; --- la principal ---
-principal:
-    lda titulo_flancos
-    and #PAD_UP
-    beq p_no_arriba
-    lda comp_base
-    beq espera
-    dec comp_base
-    jmp recomponer
-p_no_arriba:
-    lda titulo_flancos
-    and #PAD_DOWN
-    beq p_no_abajo
-    lda comp_base
-    inc a
-    cmp comp_mask
-    bcs espera
-    sta comp_base
-    jmp recomponer
-p_no_abajo:
-    lda titulo_flancos
-    and #PAD_B
-    beq p_mira_a
-    jmp salir
-p_mira_a:
-    jsr flanco_a
-    beq espera
-    lda comp_base
-    cmp #2
-    bne p_no_salir
-    jmp salir
-p_no_salir:
-    cmp #1
-    beq p_vender
-    lda #TI_COMPRAR
-    bra p_entrar
-p_vender:
-    lda #TI_VENDER
-p_entrar:
-    stz comp_base
-    stz comp_base + 1
-    jsr ti_modo_poner
-    jmp recomponer
-
-    ; --- las listas ---
-comprar:
-vender:
-    lda titulo_flancos
-    and #PAD_UP
-    beq l_no_arriba
-    lda comp_base
-    beq espera2
-    dec a
-    jsr ti_mover
-    jmp recomponer
-l_no_arriba:
-    lda titulo_flancos
-    and #PAD_DOWN
-    beq l_no_abajo
-    lda comp_base
-    inc a
-    cmp comp_mask
-    bcs espera2
-    jsr ti_mover
-    jmp recomponer
-l_no_abajo:
-    lda titulo_flancos
-    and #PAD_B
-    beq l_mira_a
-    ; B: a la principal, con el resaludo; sin principal, afuera.
-    lda comp_col + 1
-    beq a_la_principal
-    jmp salir
-a_la_principal:
-    lda comp_col
-    cmp #TI_VENDER
-    lda #0
-    bcc cursor_listo
-    lda #1                      ; el cursor sobre la orden de donde se vuelve
-cursor_listo:
-    sta comp_base
-    lda #1
-    sta comp_fase + 1
-    lda #TI_PRINCIPAL
-    jsr ti_modo_poner
-    jmp recomponer
-l_mira_a:
-    jsr flanco_a
-    beq espera2
-    lda comp_mask
-    beq espera2
-    lda comp_col
-    cmp #TI_VENDER
-    bcs l_vender
-    jsr ti_item                 ; X = k
-    jsr ti_puede
-    beq espera2                 ; en gris: suena y no hace nada
-    lda #TI_CUANTOS_COMPRA
-    bra l_cuantos
-l_vender:
-    jsr ti_item
-    jsr ti_precio
-    rep #$20
-.a16
-    lda comp_or01
-    sep #$20
-.a8
-    beq espera2                 ; no vale nada
-    lda #TI_CUANTOS_VENTA
-l_cuantos:
-    pha
-    jsr ti_maximo
-    pla
-    sta comp_col
-    lda #1
-    sta comp_color
-    jmp recomponer
-espera2:
-    jmp espera
-
-    ; --- la cantidad ---
-cuantos:
-    lda titulo_flancos
-    and #PAD_RIGHT
-    beq c_no_derecha
-    lda #1
-    bra c_sumar
-c_no_derecha:
-    lda titulo_flancos
-    and #PAD_LEFT
-    beq c_no_izquierda
-    lda #$FF
-    bra c_sumar
-c_no_izquierda:
-    lda titulo_flancos
-    and #PAD_UP
-    beq c_no_arriba
-    lda #10
-    bra c_sumar
-c_no_arriba:
-    lda titulo_flancos
-    and #PAD_DOWN
-    beq c_no_abajo
-    lda #$F6                    ; -10
-c_sumar:
-    ; Con signo, y topado en [1, ti_max].
-    clc
-    adc comp_color
-    bmi c_uno                   ; bajó de cero: son 99 como mucho
-    beq c_uno
-    cmp comp_fila
-    bcc c_poner
-    beq c_poner
-    lda comp_fila
-    bra c_poner
-c_uno:
-    lda #1
-c_poner:
-    sta comp_color
-    jmp recomponer
-c_no_abajo:
-    lda titulo_flancos
-    and #PAD_B
-    beq c_mira_a
-    lda comp_col
-    cmp #TI_CUANTOS_VENTA
-    beq c_a_vender
-    lda #TI_COMPRAR
-    sta comp_col
-    jmp recomponer
-c_a_vender:
-    lda #TI_VENDER
-    sta comp_col
-    jmp recomponer
-c_mira_a:
-    jsr flanco_a
-    beq espera2
-    jsr ti_cerrar_trato
-    lda #TI_SEGUNDO
-    sta comp_glifo
-    lda comp_col
-    inc a                       ; CUANTOS_COMPRA -> COMPRADO, y la venta igual
-    sta comp_col
-    cmp #TI_VENDIDO
-    bne recomponer
-    jsr ti_lista_venta          ; lo vendido puede no estar más
-    jmp recomponer
-
-    ; --- el "listo", un segundo ---
-listo_trato:
-    dec comp_glifo
-    bne espera2
-    lda comp_col
-    dec a
-    dec a                       ; COMPRADO -> COMPRAR, VENDIDO -> VENDER
-    sta comp_col
-recomponer:
-    jsr ti_componer
-    jmp espera
-
-salir:
-    rts
-
-; Z=0 si A se acaba de apretar.
-flanco_a:
-    lda pad_a
-    beq no_a
-    lda pad_a_ant
-    beq si_a
-no_a:
-    lda #0
-    rts
-si_a:
-    lda #1
-    rts
-.endproc
 
 ; --- la batalla -----------------------------------------------------------------
 ;
@@ -14857,7 +12617,7 @@ ba_t_param:
     phb
     phk
     plb
-    jsr eq_parametro
+    jsl f:eq_parametro
     plb
     rtl
 ; Los dos del audio, que son de esta vuelta: un efecto de sonido —A16 el
@@ -14874,6 +12634,23 @@ ba_t_bgm:
     phk
     plb
     jsr batalla_bgm
+    plb
+    rtl
+
+; Y los dos de la tienda y el equipo, que también viven afuera: la lista de
+; ítems del inventario y armarla. `ti_lista_venta` y `eq_de_lista` las llaman.
+ba_t_lista:
+    phb
+    phk
+    plb
+    jsr item_de_lista
+    plb
+    rtl
+ba_t_armar:
+    phb
+    phk
+    plb
+    jsr items_armar_lista
     plb
     rtl
 
@@ -30502,6 +28279,2272 @@ afuera:
     and #$FF00
     eor ENC_SEM
     sta ENC_SEM
+    rts
+.endproc
+
+; --- el equipo y la tienda, fuera del banco 0 -------------------------------
+;
+; Las dos pantallas son tres kilobytes, y al banco 0 le quedaban doce bytes en
+; el cartucho de pruebas. Bajaron acá el 2026-09-19 por la misma razón que la
+; pelea y por el mismo camino: se entra con `jsl` a `equipo_pantalla` y a
+; `tienda_pantalla`, y lo que necesitan del banco 0 se llama por los puentes
+; `ba_t_*`, que ya estaban para la pelea —sólo hicieron falta dos nuevos,
+; `ba_t_lista` y `ba_t_armar`—.
+;
+; **El banco de datos sigue siendo el 0**, a diferencia de la pelea: estas dos
+; leen y escriben el escritorio y las tablas del banco 0 con direccionamiento
+; absoluto y así siguen funcionando sin tocar nada. Lo que sí cambió es al
+; revés: un dato **de acá** leído con absoluto caería en el banco 0. Hay uno
+; solo, `mensaje_de`, y va con `f:`; costó una tarde de tienda sin saludo.
+;
+; No cuesta cuadros: las dos bloquean adentro de la página, `vueltas` no
+; avanza mientras se ven, y los dos ciclos de más de cada `jsl` caen en una
+; pantalla que espera al control.
+;
+; `Scene_Equip`: el actor, sus cuatro parámetros, las cinco ranuras con lo que
+; tiene puesto; A sobre una ranura muestra la lista de lo que puede ponerse
+; ahí —reemplaza a las ranuras mientras dura— con los parámetros que
+; quedarían. La línea vacía del final es sacarse lo de la ranura. B vuelve.
+; `pantallas.pantalla_equipo` es la referencia, y `pantallas.equipar` la regla.
+;   eq_actor     es comp_char      ; el número de actor
+;   eq_ranura    es comp_col       ; la ranura marcada, 0 a 4
+;   eq_eligiendo es comp_col + 1   ; si se muestra la lista
+;   eq_elegido   es comp_fase      ; el lugar del cursor en la lista
+;   eq_arriba    es comp_fase + 1  ; y el primero que se ve
+;   eq_n         es comp_base      ; cuántos hay en la lista, con la vacía
+;   eq_cand      es comp_mask      ; el ítem que marca el cursor, 0 si ninguno
+;   eq_suma      es comp_or01      ; un parámetro, mientras se suma
+;   eq_param     es comp_or01 + 2  ; cuál
+;   eq_s         es comp_or01 + 3  ; la ranura que se mira
+;   eq_id        es comp_or23      ; un ítem, dos bytes
+;   eq_tmp       es comp_and       ; escritorio de `eq_apuntar`, cuatro bytes
+
+; A: la ranura. Deja apuntada la ventana de la WRAM a esa ranura del actor:
+; `FAR_EQUIPO` + actor * 10 + ranura * 2.
+.proc eq_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    sta comp_and                  ; la ranura por dos
+    lda comp_char
+    and #$00FF
+    asl a
+    sta comp_and + 2              ; el actor por dos
+    asl a
+    asl a                       ; por ocho
+    clc
+    adc comp_and + 2
+    clc
+    adc comp_and
+    clc
+    adc #FAR_EQUIPO
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; A: la ranura. Vuelve con el ítem en `eq_id`.
+.proc eq_leer
+.a8
+.i16
+    jsr eq_apuntar
+    lda WMDATA
+    sta comp_or23
+    lda WMDATA
+    sta comp_or23 + 1
+    rts
+.endproc
+
+; A: la ranura; `eq_id`: el ítem nuevo.
+.proc eq_escribir
+.a8
+.i16
+    jsr eq_apuntar
+    lda comp_or23
+    sta WMDATA
+    lda comp_or23 + 1
+    sta WMDATA
+    rts
+.endproc
+
+; El `k` del ítem de `eq_id`, en X, y Z=1 si es ninguno o uno que la ROM no
+; conoce.
+.proc eq_k
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or23
+    beq ninguno
+    cmp #ITEMS_N
+    bcs ninguno
+    tax
+    sep #$20
+.a8
+    lda f:item_k, x
+    cmp #$FF
+    beq ninguno8
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #1                      ; Z=0
+    rts
+.a16
+ninguno:
+    sep #$20
+.a8
+ninguno8:
+    lda #0                      ; Z=1
+    rts
+.endproc
+
+; Cuántos hay en el inventario del ítem `eq_id`, en A.
+.proc eq_inv_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or23
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; Uno más —topado en 99— o uno menos del ítem `eq_id`. A: 1 suma, 0 resta.
+.proc eq_inv_mover
+.a8
+.i16
+    pha
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_and
+    jsr eq_inv_apuntar
+    pla
+    beq resta
+    lda comp_and
+    cmp #ITEM_MAX
+    bcs listo
+    inc a
+    bra escribir
+resta:
+    lda comp_and
+    beq listo
+    dec a
+escribir:
+    sta WMDATA
+listo:
+    rts
+.endproc
+
+; ¿El ítem `eq_id` es un arma a dos manos? Z=0 si sí.
+.proc eq_dos_manos
+.a8
+.i16
+    jsr eq_k
+    beq no
+    lda item_uso, x
+    and #8
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; El ítem que tendría la ranura A: el que tiene, o —eligiendo— el que marca
+; el cursor si es la ranura elegida, y ninguno en la otra si el arma es a dos
+; manos. Es `pantallas.equipar` sin tocar nada. Vuelve en `eq_id`.
+.proc eq_efectivo
+.a8
+.i16
+    sta comp_or01 + 3
+    lda comp_col + 1
+    beq tiene
+    lda comp_or01 + 3
+    cmp comp_col
+    bne otra
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+otra:
+    ; Un arma a dos manos saca el escudo; un escudo saca el arma a dos manos.
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda comp_or01 + 3
+    cmp #1
+    bne no_escudo
+    lda comp_col
+    bne tiene                   ; no se está eligiendo el arma
+    jsr eq_dos_manos
+    bne ninguno
+    bra tiene
+no_escudo:
+    lda comp_or01 + 3
+    bne tiene                   ; ni escudo ni arma: la de siempre
+    lda comp_col
+    cmp #1
+    bne tiene                   ; no se está eligiendo el escudo
+    rep #$20
+.a16
+    lda comp_mask
+    sep #$20
+.a8
+    beq tiene                   ; sacarse el escudo no toca el arma
+    lda #0
+    jsr eq_leer
+    jsr eq_dos_manos
+    bne ninguno
+    rts                         ; `eq_id` ya es el arma
+tiene:
+    lda comp_or01 + 3
+    jmp eq_leer
+ninguno:
+    stz comp_or23
+    stz comp_or23 + 1
+    rts
+.endproc
+
+; El parámetro `eq_param` —0 ataque, 1 defensa, 2 espíritu, 3 agilidad— con el
+; equipo que dice `eq_efectivo`, en `pant_valor`, topado en [1, 999].
+.proc eq_parametro
+.a8
+.i16
+    ; El del nivel: `actor_params`, cuatro palabras por actor.
+    rep #$20
+.a16
+    lda comp_char
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    sta comp_or01
+    lda comp_or01 + 2
+    and #$00FF
+    asl a
+    clc
+    adc comp_or01
+    tax
+    lda f:actor_params, x       ; fuera del banco 0: ver `actor_params`
+    sta comp_or01
+    sep #$20
+.a8
+    lda #0
+ranura:
+    pha
+    jsr eq_efectivo
+    jsr eq_k
+    beq sin_puntos
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a                       ; ocho bytes por ítem
+    sta comp_and
+    lda comp_or01 + 2
+    and #$00FF
+    asl a
+    clc
+    adc comp_and
+    tax
+    lda f:item_puntos, x
+    clc
+    adc comp_or01
+    sta comp_or01
+    sep #$20
+.a8
+sin_puntos:
+    pla
+    inc a
+    cmp #5
+    bcc ranura
+    rep #$20
+.a16
+    lda comp_or01
+    bmi uno                     ; con signo: el equipo puede restar
+    beq uno
+    cmp #1000
+    bcc listo
+    lda #999
+    bra listo
+uno:
+    lda #1
+listo:
+    sta comp_dup
+    sep #$20
+.a8
+    rtl
+.endproc
+
+; La lista de lo que el actor puede ponerse en `eq_ranura`, como `k` en
+; `FAR_ITEM_LISTA`, y al final un $FF que es la línea vacía. Cuántos en
+; `eq_n`. Es `pantallas.candidatos`.
+.proc eq_lista_armar
+.a8
+.i16
+    stz comp_base
+    ldx #1
+otro:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    beq siguiente
+    lda f:item_k, x
+    cmp #$FF
+    beq siguiente
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; X = k
+    sep #$20
+.a8
+    lda comp_col
+    inc a
+    cmp item_tipo, x
+    bne no_va
+    ; ¿Lo puede usar el actor? Un bit por actor, ocho bytes por ítem.
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a
+    sta comp_and
+    lda comp_char
+    and #$00FF
+    dec a
+    pha
+    lsr a
+    lsr a
+    lsr a
+    clc
+    adc comp_and
+    sta comp_and                ; el byte; `comp_and` ya no lleva k por ocho
+    pla
+    and #$0007
+    sta comp_and + 2              ; y el bit
+    sep #$20
+.a8
+    ; Con `f:` porque `item_actores` se mudó a RODATA el 2026-09-13: son 496
+    ; bytes y el área del banco 0 ya se pasaba por quince antes de las
+    ; habilidades. Cuesta un byte y un ciclo por lectura, y esto corre una vez
+    ; por ítem al abrir la pantalla de equipo.
+    ;
+    ; **Por X y no por Y**: el 65816 no tiene `lda long, y`, sólo `long, x`. X
+    ; trae el `k` del ítem y lo necesita más abajo, así que va y vuelve por la
+    ; pila. El `plx` no deja ninguna bandera mirada: lo que sigue es un `and`.
+    ;
+    ; El índice sale de `comp_and` y no de Y, y eso no es indistinto: dos ramas
+    ; mudaron este mismo código a RODATA por separado, una dejando el byte en Y
+    ; —`tay`— y la otra en `comp_and`. En el merge git se quedó con el `sta
+    ; comp_and` de una y dejó el `tyx` de la otra en conflicto: juntas
+    ; ensamblaban y leían un registro que ya nadie cargaba.
+    phx
+    ldx comp_and
+    lda f:item_actores, x
+    plx
+    ldy comp_and + 2
+    beq bit_listo
+correr:
+    lsr a
+    dey
+    bne correr
+bit_listo:
+    and #1
+    beq no_va
+    txa                         ; el k, que entra en un byte
+    pha
+    rep #$20
+.a16
+    lda comp_base
+    and #$00FF
+    clc
+    adc #FAR_ITEM_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    pla
+    sta WMDATA
+    inc comp_base
+no_va:
+    plx
+siguiente:
+    inx
+    cpx #ITEMS_N
+    bcs lista_lista
+    jmp otro                    ; los 127 bytes de un `bcc` se quedaron cortos
+                                ; al leer `item_actores` larga
+lista_lista:
+    rep #$20
+.a16
+    lda comp_base
+    and #$00FF
+    clc
+    adc #FAR_ITEM_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda #$FF                    ; la línea vacía
+    sta WMDATA
+    inc comp_base
+    rts
+.endproc
+
+; El ítem del lugar A de la lista, en `eq_id`: 0 si es la línea vacía.
+.proc eq_de_lista
+.a8
+.i16
+    jsl f:ba_t_lista
+    cmp #$FF
+    beq vacia
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda item_id, x
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+vacia:
+    stz comp_or23
+    stz comp_or23 + 1
+    rts
+.endproc
+
+; Escribe en `eleg_tabla` el nombre del ítem `eq_id`, si la ROM lo conoce, con
+; no más de A letras.
+.proc eq_nombre
+.a8
+.i16
+    sta comp_dup + 3
+    jsr eq_k
+    beq nada
+    rep #$20
+.a16
+    txa
+    sta comp_and
+    asl a
+    clc
+    adc comp_and
+    tax                         ; 3k, el nombre
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+nada:
+    lda #255
+    sta comp_dup + 3
+    rts
+.endproc
+
+; La descripción del ítem `eq_id`, en los dos renglones de arriba.
+.proc eq_desc
+.a8
+.i16
+    jsr eq_k
+    beq nada
+    rep #$20
+.a16
+    txa
+    sta comp_and
+    asl a
+    clc
+    adc comp_and
+    inc a                       ; 3k + 1
+    pha
+    lda #PANT_DESC_POS
+    sta eleg_tabla
+    plx
+    phx
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rep #$20
+.a16
+    lda #(PANT_DESC_POS + 128)
+    sta eleg_tabla
+    plx
+    inx
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+nada:
+    rts
+.endproc
+
+; La pantalla entera, en el búfer: `pantallas.pantalla_equipo`.
+.proc eq_componer
+.a8
+.i16
+    lda #255
+    sta comp_dup + 3
+    jsl f:ba_t_limpiar
+    stz temp + 1
+    ; --- el nombre del actor ---
+    rep #$20
+.a16
+    lda #EQ_ACTOR_POS
+    sta eleg_tabla
+    lda comp_char
+    and #$00FF
+    asl a
+    tax
+    lda actor_txt, x
+    tax
+    cmp #$FFFF                  ; un actor sin nombre en esta ROM
+    sep #$20                    ; `sep` no toca Z
+.a8
+    beq sin_nombre
+    jsl f:ba_t_texto
+sin_nombre:
+    ; --- la descripción ---
+    lda comp_col + 1
+    beq la_puesta
+    lda comp_fase
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sta comp_mask
+    sep #$20
+.a8
+    bra desc
+la_puesta:
+    lda comp_col
+    jsr eq_leer
+desc:
+    jsr eq_desc
+    ; --- los parámetros: ahora y, eligiendo, después ---
+    stz comp_or01 + 2
+param:
+    lda comp_or01 + 2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda eq_param_pos, x
+    sta eleg_tabla
+    lda comp_or01 + 2
+    and #$00FF
+    clc
+    adc #EQ_TEXTO_PARAM
+    tax
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    lda comp_col + 1
+    pha
+    stz comp_col + 1            ; ahora: lo puesto
+    jsl f:eq_parametro
+    pla
+    sta comp_col + 1
+    jsr param_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_PARAM_VALOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #3
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    lda comp_col + 1
+    beq sin_flecha
+    jsr param_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_PARAM_FLECHA
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #$3E                    ; '>'
+    jsl f:ba_t_glifo
+    jsl f:eq_parametro            ; después: con lo que marca el cursor
+    lda #3
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+sin_flecha:
+    inc comp_or01 + 2
+    lda comp_or01 + 2
+    cmp #4
+    bcc param
+    lda comp_col + 1
+    bne lista
+    ; --- las ranuras ---
+    lda #0
+ranura:
+    pha
+    cmp comp_col
+    bne sin_cursor
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #$3E
+    jsl f:ba_t_glifo
+sin_cursor:
+    pla
+    pha
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_RANURA_TERM
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #EQ_TEXTO_RANURA
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    pla
+    pha
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_RANURA_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    jsr eq_leer
+    lda #EQ_RANURA_ANCHO
+    jsr eq_nombre
+    pla
+    inc a
+    cmp #5
+    bcc ranura
+    rts
+
+    ; --- la lista ---
+lista:
+    lda #0
+lista_fila:
+    pha
+    clc
+    adc comp_fase + 1
+    cmp comp_base
+    bcs lista_listo
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    clc
+    adc comp_fase + 1
+    cmp comp_fase
+    bne sin_cursor_lista
+    lda #$3E
+    jsl f:ba_t_glifo
+sin_cursor_lista:
+    pla
+    pha
+    clc
+    adc comp_fase + 1
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sep #$20
+.a8
+    beq lista_siguiente         ; la línea vacía
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #PANT_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #255
+    jsr eq_nombre
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #PANT_DOS_PUNTOS
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    lda #$3A                    ; ':'
+    jsl f:ba_t_glifo
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_dup
+    stz comp_dup + 1
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+lista_siguiente:
+    pla
+    inc a
+    cmp #EQ_LISTA_FILAS
+    bcc lista_fila
+    rts
+lista_listo:
+    pla
+    rts
+
+; A16 = la posición del parámetro `eq_param`.
+param_pos:
+    lda comp_or01 + 2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda eq_param_pos, x
+    rts
+.a8
+
+; A: la ranura. A16 = la posición de su fila.
+fila_pos:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a                       ; por 128: dos filas de celdas
+    clc
+    adc #EQ_RANURA_POS0
+    rts
+.a8
+
+; A: la fila de la lista. A16 = la posición de su fila.
+fila_pos_lista:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a
+    clc
+    adc #EQ_LISTA_POS0
+    rts
+.a8
+.endproc
+
+; A sobre la lista: `pantallas.equipar` con lo que marca el cursor.
+.proc eq_equipar
+.a8
+.i16
+    lda comp_fase
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sta comp_mask
+    sep #$20
+.a8
+    lda comp_col
+    jsr sacar
+    rep #$20
+.a16
+    lda comp_mask
+    sep #$20
+.a8
+    beq listo
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda #0
+    jsr eq_inv_mover            ; uno menos en el inventario
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda comp_col
+    jsr eq_escribir
+    ; Las dos manos.
+    lda comp_col
+    bne no_arma
+    jsr eq_dos_manos            ; `eq_id` es el arma nueva
+    beq listo
+    lda #1
+    jmp sacar
+no_arma:
+    cmp #1
+    bne listo
+    lda #0
+    jsr eq_leer
+    jsr eq_dos_manos
+    beq listo
+    lda #0
+    jmp sacar
+listo:
+    rts
+
+; A: la ranura. Lo que tiene vuelve al inventario y queda vacía.
+sacar:
+    pha
+    jsr eq_leer
+    rep #$20
+.a16
+    lda comp_or23
+    sep #$20
+.a8
+    beq vacia
+    lda #1
+    jsr eq_inv_mover
+    stz comp_or23
+    stz comp_or23 + 1
+    pla
+    jmp eq_escribir
+vacia:
+    pla
+    rts
+.endproc
+
+; La pantalla de equipo del actor A, hasta que el jugador vuelve con B.
+.proc equipo_pantalla
+.a8
+.i16
+    sta comp_char
+    stz comp_col
+    stz comp_col + 1
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM
+    jsl f:items_banco_subir
+    jsr eq_componer
+    jsl f:ba_t_subir
+    jsl f:ba_t_ppu
+espera:
+    jsl f:ba_t_vblank
+    ; El control primero y el DMA después. Al revés, los 1792 bytes duran
+    ; unas diez líneas y `read_pad` llegaba con la lectura automática del
+    ; control ya terminada: esperaba la del cuadro siguiente, cada vuelta
+    ; duraba dos cuadros, y un toque de un cuadro se perdía la mitad de las
+    ; veces. Con el control leído, el DMA entra igual en el vblank.
+    jsl f:ba_t_pad
+    jsl f:ba_t_subir
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    lda comp_col + 1
+    beq en_ranuras
+    jmp en_lista
+en_ranuras:
+    lda titulo_flancos
+    and #PAD_UP
+    beq r_no_arriba
+    lda comp_col
+    beq espera
+    dec comp_col
+    jmp recomponer
+r_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq r_no_abajo
+    lda comp_col
+    cmp #4
+    bcs espera
+    inc comp_col
+    jmp recomponer
+r_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq r_mira_a
+    rtl
+r_mira_a:
+    lda pad_a
+    beq espera
+    lda pad_a_ant
+    bne espera
+    jsr eq_lista_armar
+    stz comp_fase
+    stz comp_fase + 1
+    lda #1
+    sta comp_col + 1
+    jmp recomponer
+en_lista:
+    lda titulo_flancos
+    and #PAD_UP
+    beq l_no_arriba
+    lda comp_fase
+    beq espera2
+    dec comp_fase
+    lda comp_fase
+    cmp comp_fase + 1
+    bcs recomponer
+    sta comp_fase + 1
+    bra recomponer
+l_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq l_no_abajo
+    lda comp_fase
+    inc a
+    cmp comp_base
+    bcs espera2
+    sta comp_fase
+    sec
+    sbc comp_fase + 1
+    cmp #EQ_LISTA_FILAS
+    bcc recomponer
+    inc comp_fase + 1
+    bra recomponer
+l_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq l_mira_a
+    stz comp_col + 1
+    bra recomponer
+l_mira_a:
+    lda pad_a
+    beq espera2
+    lda pad_a_ant
+    bne espera2
+    jsr eq_equipar
+    stz comp_col + 1
+recomponer:
+    jsr eq_componer
+espera2:
+    jmp espera
+.endproc
+
+; --- la tienda -----------------------------------------------------------------
+;
+; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la
+; pantalla bloquea adentro de la página, no cuesta ningún tick, y al salir el
+; mapa vuelve y la página sigue. Es una pantalla de texto —ver "las pantallas
+; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Lo
+; que vende va como `k` en `FAR_TIENDA`; la lista de vender, en
+; `FAR_ITEM_LISTA`.
+;
+; El escritorio, prestado del compositor de mensajes:
+;   ti_modo      es comp_col       ; TI_PRINCIPAL ... TI_VENDIDO
+;   ti_tipo      es comp_col + 1   ; 0 compra y vende, 1 compra, 2 vende
+;   ti_juego     es comp_fase      ; el juego de mensajes, 0 a 2
+;   ti_resaludo  es comp_fase + 1  ; si ya se volvió a la principal
+;   ti_elegido   es comp_base      ; el cursor
+;   ti_arriba    es comp_base + 1  ; el primero que se ve de la lista
+;   ti_n         es comp_mask      ; cuántos hay en la lista del modo
+;   ti_nt        es comp_mask + 1  ; cuántos vende la tienda
+;   ti_cuantos   es comp_color     ; la cantidad que se elige
+;   ti_max       es comp_fila      ; y hasta cuánto
+;   ti_timer     es comp_glifo     ; los cuadros del "listo"
+;   ti_pos       es comp_glifo + 1 ; dos bytes: dónde va la cifra
+;   ti_num       es comp_or01      ; tres bytes: un número de 24 bits
+FAR_TIENDA = $2B00
+TI_PRINCIPAL = 0
+TI_COMPRAR = 1
+TI_CUANTOS_COMPRA = 2
+TI_COMPRADO = 3
+TI_VENDER = 4
+TI_CUANTOS_VENTA = 5
+TI_VENDIDO = 6
+
+; A: un lugar de la lista del modo. Vuelve con A = su `k`.
+.proc ti_k_de
+.a8
+.i16
+    pha
+    lda comp_col
+    cmp #TI_VENDER
+    bcs de_venta
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #FAR_TIENDA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    rts
+de_venta:
+    pla
+    jsl f:ba_t_lista
+    rts
+.endproc
+
+; El ítem que marca el cursor, en `eq_id`, y su `k` en X.
+.proc ti_item
+.a8
+.i16
+    lda comp_base
+    jsr ti_k_de
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    asl a
+    tay
+    lda item_id, y
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El precio del `k` de X, en `ti_num`, a la mitad si se vende.
+.proc ti_precio
+.a8
+.i16
+    rep #$20
+.a16
+    txa
+    asl a
+    tay
+    lda item_precio, y
+    sta comp_or01
+    sep #$20
+.a8
+    stz comp_or01 + 2
+    lda comp_col
+    cmp #TI_VENDER
+    bcc listo
+    rep #$20
+.a16
+    lsr comp_or01
+    sep #$20
+.a8
+listo:
+    rts
+.endproc
+
+; ¿Alcanza el oro para el `k` de X, y tiene menos de 99? Z=0 si se puede
+; comprar. `Window_ShopBuy::CheckEnable`.
+.proc ti_puede
+.a8
+.i16
+    phx
+    jsr ti_precio
+    plx
+    ; oro >= precio, de 24 bits
+    lda oro + 2
+    bne alcanza
+    rep #$20
+.a16
+    lda oro
+    cmp comp_or01
+    sep #$20
+.a8
+    bcc no
+alcanza:
+    rep #$20
+.a16
+    txa
+    asl a
+    tay
+    lda item_id, y
+    sta comp_or23
+    sep #$20
+.a8
+    jsr eq_inv_apuntar
+    lda WMDATA
+    cmp #ITEM_MAX
+    bcs no
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; Un número de 24 bits de `ti_num` —se pierde—, alineado a la derecha con su
+; última cifra en `ti_pos`, en la variante de `temp + 1`. Se divide por diez
+; de a un byte, como el oro del menú.
+.proc pant_numero24
+.a8
+.i16
+cifra:
+    stz temp + 3                ; el resto que se arrastra
+    ldx #2
+dividir:
+    lda comp_or01, x
+    sta WRDIVL
+    lda temp + 3
+    sta WRDIVH
+    lda #10
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    sta comp_or01, x
+    lda RDMPYL
+    sta temp + 3
+    dex
+    bpl dividir
+    rep #$20
+.a16
+    lda comp_glifo + 1
+    sta eleg_tabla
+    dec a
+    dec a
+    sta comp_glifo + 1
+    sep #$20
+.a8
+    lda temp + 3
+    clc
+    adc #$30
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda comp_or01
+    sep #$20
+.a8
+    bne cifra
+    lda comp_or01 + 2
+    bne cifra
+    rts
+.endproc
+
+; Cuántos del ítem `eq_id` lleva puestos el grupo: `GetEquippedItemCount`.
+; Vuelve en `pant_valor`.
+.proc ti_llevados
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or23
+    sta comp_or01                  ; el que se busca
+    stz comp_dup
+    sep #$20
+.a8
+    lda #0
+miembro:
+    cmp grupo_n
+    bcs listo
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda grupo, x
+    sta comp_char
+    lda #0
+ranura:
+    pha
+    jsr eq_leer
+    rep #$20
+.a16
+    lda comp_or23
+    cmp comp_or01
+    bne otra
+    inc comp_dup
+otra:
+    sep #$20
+.a8
+    pla
+    inc a
+    cmp #5
+    bcc ranura
+    pla
+    inc a
+    bra miembro
+listo:
+    rep #$20
+.a16
+    lda comp_or01
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El mensaje A del juego de la tienda, en los dos renglones de arriba.
+.proc ti_mensaje
+.a8
+.i16
+    sta temp + 3
+    lda comp_fase
+    asl a
+    asl a
+    asl a                       ; por 8
+    clc
+    adc comp_fase
+    adc comp_fase
+    adc comp_fase                ; por 11
+    clc
+    adc temp + 3
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos renglones cada uno
+    clc
+    adc #TI_TEXTO
+    pha
+    lda #PANT_DESC_POS
+    sta eleg_tabla
+    plx
+    phx
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rep #$20
+.a16
+    lda #(PANT_DESC_POS + 128)
+    sta eleg_tabla
+    plx
+    inx
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+.endproc
+
+; La moneda en `eleg_tabla`.
+.proc ti_moneda
+.a8
+.i16
+    stz temp + 1
+    ldx #TI_TEXTO_MONEDA
+    jsl f:ba_t_texto
+    rts
+.endproc
+
+; La pantalla entera, en el búfer: `pantallas.pantalla_tienda`.
+.proc ti_componer
+.a8
+.i16
+    lda #255
+    sta comp_dup + 3
+    jsl f:ba_t_limpiar
+    ; --- el mensaje: saludo, resaludo, o el del modo ---
+    lda comp_col
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    ; Con `f:` porque `mensaje_de` es de acá, o sea del banco 1, y el banco de
+    ; datos sigue siendo el 0: sin el largo, el absoluto leería el banco 0.
+    lda f:mensaje_de, x
+    bne con_mensaje
+    lda comp_fase + 1             ; la principal: saludo o resaludo
+con_mensaje:
+    jsr ti_mensaje
+    lda comp_col
+    bne no_principal
+    jmp principal
+no_principal:
+    ; --- el oro, y cuántos tiene y lleva puestos del que marca el cursor ---
+    lda comp_col
+    cmp #TI_VENDER
+    bne cerca_12209
+    jmp sin_oro
+cerca_12209:
+    rep #$20
+.a16
+    lda oro
+    sta comp_or01
+    lda #TI_ORO_POS
+    sta comp_glifo + 1
+    clc
+    adc #2
+    pha
+    sep #$20
+.a8
+    lda oro + 2
+    sta comp_or01 + 2
+    stz temp + 1
+    jsr pant_numero24
+    rep #$20
+.a16
+    pla
+    sta eleg_tabla
+    sep #$20
+.a8
+    jsr ti_moneda
+    lda comp_mask
+    beq sin_oro
+    jsr ti_item
+    rep #$20
+.a16
+    lda #TI_TENGO_POS
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    ldx #TI_TEXTO_TENGO
+    jsl f:ba_t_texto
+    jsr ti_item
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_dup
+    stz comp_dup + 1
+    rep #$20
+.a16
+    lda #TI_TENGO_NUM
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    rep #$20
+.a16
+    lda #TI_LLEVO_POS
+    sta eleg_tabla
+    sep #$20
+.a8
+    ldx #TI_TEXTO_LLEVO
+    jsl f:ba_t_texto
+    jsr ti_item
+    jsr ti_llevados
+    rep #$20
+.a16
+    lda #TI_LLEVO_NUM
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+sin_oro:
+    lda comp_col
+    cmp #TI_CUANTOS_COMPRA
+    beq cuantos
+    cmp #TI_CUANTOS_VENTA
+    beq cuantos
+    jmp lista
+
+    ; --- la cantidad: el ítem, "x" y cuántos, y el total ---
+cuantos:
+    jsr ti_item
+    rep #$20
+.a16
+    lda #(TI_LISTA_POS0 + PANT_NOMBRE)
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #255
+    jsr eq_nombre
+    rep #$20
+.a16
+    lda #(TI_LISTA_POS0 + TI_CUANTOS)
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    lda #$78                    ; 'x'
+    jsl f:ba_t_glifo
+    lda comp_color
+    sta comp_dup
+    stz comp_dup + 1
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    jsr ti_item
+    jsr ti_precio
+    jsr ti_por_cuantos          ; ti_num = precio * cuantos
+    rep #$20
+.a16
+    lda #TI_TOTAL_POS
+    sta comp_glifo + 1
+    sep #$20
+.a8
+    stz temp + 1
+    jsr pant_numero24
+    rep #$20
+.a16
+    lda #(TI_TOTAL_POS + 2)
+    sta eleg_tabla
+    sep #$20
+.a8
+    jmp ti_moneda
+
+    ; --- la principal: las órdenes ---
+principal:
+    lda #0
+orden:
+    pha
+    cmp comp_base
+    bne sin_cursor
+    jsr orden_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    lda #$3E
+    jsl f:ba_t_glifo
+sin_cursor:
+    pla
+    pha
+    jsr orden_pos
+    rep #$20
+.a16
+    clc
+    adc #PANT_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    jsr orden_mensaje           ; qué término: comprar, vender o salir
+    jsr ti_renglon1
+    pla
+    inc a
+    cmp comp_mask
+    bcc orden
+    rts
+
+    ; --- la lista: comprar o vender ---
+lista:
+    lda #0
+lista_fila:
+    pha
+    clc
+    adc comp_base + 1
+    bcc cerca_12378
+    jmp lista_listo
+cerca_12378:
+    cmp comp_mask
+    bcc cerca_12382
+    jmp lista_listo
+cerca_12382:
+    pla
+    pha
+    jsr fila_pos
+    rep #$20
+.a16
+    sta eleg_tabla
+    sta comp_glifo + 1                  ; la fila, para las posiciones de abajo
+    sep #$20
+.a8
+    pla
+    pha
+    clc
+    adc comp_base + 1
+    pha
+    jsr ti_k_de
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    asl a
+    tay
+    lda item_id, y
+    sta comp_or23
+    sep #$20
+.a8
+    phx
+    ; el color: comprando, si alcanza; vendiendo, si vale algo
+    lda comp_col
+    cmp #TI_VENDER
+    bcs color_venta
+    jsr ti_puede
+    bra color
+color_venta:
+    jsr ti_precio
+    rep #$20
+.a16
+    lda comp_or01
+    sep #$20
+.a8
+color:
+    beq gris
+    lda #0
+    bra color_listo
+gris:
+    lda #1
+color_listo:
+    sta temp + 1
+    plx
+    pla                         ; el lugar en la lista
+    cmp comp_base
+    bne sin_cursor_lista
+    lda comp_col
+    cmp #TI_COMPRAR
+    beq con_cursor
+    cmp #TI_VENDER
+    bne sin_cursor_lista
+con_cursor:
+    rep #$20
+.a16
+    lda comp_glifo + 1
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda temp + 1
+    pha
+    stz temp + 1
+    phx                         ; `pant_glifo` se lleva X, que es el `k`
+    lda #$3E
+    jsl f:ba_t_glifo
+    plx
+    pla
+    sta temp + 1
+sin_cursor_lista:
+    rep #$20
+.a16
+    lda comp_glifo + 1
+    clc
+    adc #PANT_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    phx
+    lda temp + 1
+    pha
+    lda #255
+    sta comp_dup + 3
+    jsr eq_k                    ; el nombre, con la variante puesta
+    rep #$20
+.a16
+    txa
+    sta comp_and
+    asl a
+    clc
+    adc comp_and
+    tax
+    sep #$20
+.a8
+    pla
+    sta temp + 1
+    pha
+    jsl f:ba_t_texto
+    pla
+    sta temp + 1
+    plx
+    lda comp_col
+    cmp #TI_VENDER
+    bcs cuenta
+    ; comprando: el precio, alineado a la derecha
+    rep #$20
+.a16
+    lda comp_glifo + 1
+    clc
+    adc #TI_PRECIO
+    pha
+    sep #$20
+.a8
+    jsr ti_precio
+    rep #$20
+.a16
+    pla
+    sta comp_glifo + 1
+    sep #$20
+.a8
+    jsr pant_numero24
+    bra lista_siguiente
+cuenta:
+    ; vendiendo: cuántos tiene
+    rep #$20
+.a16
+    lda comp_glifo + 1
+    clc
+    adc #PANT_DOS_PUNTOS
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #$3A
+    jsl f:ba_t_glifo
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_dup
+    stz comp_dup + 1
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+lista_siguiente:
+    pla
+    inc a
+    cmp #TI_LISTA_FILAS
+    bcs lista_fin
+    jmp lista_fila
+lista_fin:
+    rts
+lista_listo:
+    pla
+    rts
+
+; A: la orden de la principal. A16 = la posición de su fila.
+orden_pos:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a
+    clc
+    adc #TI_ORDEN_POS0
+    rts
+.a8
+
+; A: la fila de la lista. A16 = la posición de su fila.
+fila_pos:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a
+    clc
+    adc #TI_LISTA_POS0
+    rts
+.a8
+
+; A: la orden. A = el número de mensaje: 2 comprar, 3 vender, 4 salir; con
+; una sola orden, la que dice el tipo.
+orden_mensaje:
+    pha
+    lda comp_col + 1
+    beq tres
+    pla
+    lda comp_col + 1                 ; 1 compra: 2; 2 vende: 3
+    inc a
+    rts
+tres:
+    pla
+    clc
+    adc #2
+    rts
+
+; A: el número de mensaje. Su primer renglón, en `eleg_tabla`, en blanco.
+ti_renglon1:
+    sta temp + 3
+    lda comp_fase
+    asl a
+    asl a
+    asl a
+    clc
+    adc comp_fase
+    adc comp_fase
+    adc comp_fase
+    clc
+    adc temp + 3
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    clc
+    adc #TI_TEXTO
+    tax
+    sep #$20
+.a8
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+
+; El mensaje de cada modo: 0 es "el saludo o el resaludo".
+mensaje_de:
+    .byte 0, 5, 6, 7, 8, 9, 10
+.endproc
+
+; `ti_num` por `ti_cuantos`, sumando: son 99 vueltas a lo sumo.
+.proc ti_por_cuantos
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or01
+    sta comp_and
+    stz comp_or01
+    sep #$20
+.a8
+    lda comp_or01 + 2
+    sta comp_and + 2
+    stz comp_or01 + 2
+    lda comp_color
+    beq listo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+otra:
+    rep #$20
+.a16
+    lda comp_or01
+    clc
+    adc comp_and
+    sta comp_or01
+    sep #$20
+.a8
+    lda comp_or01 + 2
+    adc comp_and + 2
+    sta comp_or01 + 2
+    dex
+    bne otra
+listo:
+    rts
+.endproc
+
+; Hasta cuántos se pueden comprar del que marca el cursor: los que faltan para
+; 99, y no más de los que paga el oro. Vendiendo, los que tiene. En `ti_max`.
+.proc ti_maximo
+.a8
+.i16
+    jsr ti_item
+    phx
+    jsr eq_inv_apuntar
+    lda WMDATA
+    plx
+    sta temp + 3                ; cuántos tiene
+    lda comp_col
+    cmp #TI_VENDER
+    bcc comprando
+    lda temp + 3
+    sta comp_fila
+    rts
+comprando:
+    lda #ITEM_MAX
+    sec
+    sbc temp + 3
+    sta temp + 3                ; los que faltan
+    jsr ti_precio
+    rep #$20
+.a16
+    lda oro
+    sta comp_and
+    sep #$20
+.a8
+    lda oro + 2
+    sta comp_and + 2
+    stz comp_fila
+otro:
+    lda comp_fila
+    cmp temp + 3
+    bcs listo
+    ; ¿eq_tmp >= precio? Si el precio es cero, siempre.
+    rep #$20
+.a16
+    lda comp_and
+    sec
+    sbc comp_or01
+    tay
+    sep #$20
+.a8
+    lda comp_and + 2
+    sbc comp_or01 + 2
+    bcc listo
+    sta comp_and + 2
+    rep #$20
+.a16
+    tya
+    sta comp_and
+    sep #$20
+.a8
+    inc comp_fila
+    bra otro
+listo:
+    rts
+.endproc
+
+; Comprar o vender `ti_cuantos` del que marca el cursor: el oro y el
+; inventario, como `UpdateNumberInput`.
+.proc ti_cerrar_trato
+.a8
+.i16
+    jsr ti_item
+    jsr ti_precio
+    jsr ti_por_cuantos
+    lda comp_col
+    cmp #TI_CUANTOS_VENTA
+    beq vender
+    ; --- comprar: el oro baja y los ítems suben ---
+    rep #$20
+.a16
+    lda oro
+    sec
+    sbc comp_or01
+    sta oro
+    sep #$20
+.a8
+    lda oro + 2
+    sbc comp_or01 + 2
+    sta oro + 2
+    lda comp_color
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+suma:
+    phx
+    jsr ti_item
+    lda #1
+    jsr eq_inv_mover
+    plx
+    dex
+    bne suma
+    rts
+vender:
+    ; --- vender: el oro sube, topado en ORO_MAX, y los ítems bajan ---
+    rep #$20
+.a16
+    lda oro
+    clc
+    adc comp_or01
+    sta oro
+    sep #$20
+.a8
+    lda oro + 2
+    adc comp_or01 + 2
+    sta oro + 2
+    cmp #^ORO_MAX
+    bcc resta
+    bne tope
+    rep #$20
+.a16
+    lda oro
+    cmp #.loword(ORO_MAX)
+    sep #$20
+.a8
+    bcc resta
+    beq resta
+tope:
+    rep #$20
+.a16
+    lda #.loword(ORO_MAX)
+    sta oro
+    sep #$20
+.a8
+    lda #^ORO_MAX
+    sta oro + 2
+resta:
+    lda comp_color
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+quita:
+    phx
+    jsr ti_item
+    lda #0
+    jsr eq_inv_mover
+    plx
+    dex
+    bne quita
+    rts
+.endproc
+
+; La lista de vender: el inventario que la ROM conoce, en `FAR_ITEM_LISTA`.
+.proc ti_lista_venta
+.a8
+.i16
+    jsl f:ba_t_armar
+    lda eleg_n
+    sta comp_mask
+    lda comp_base
+    cmp comp_mask
+    bcc listo
+    lda comp_mask                    ; se vendió el último: el cursor sube
+    beq cero
+    dec a
+cero:
+    sta comp_base
+listo:
+    rts
+.endproc
+
+; A: el modo nuevo. Pone lo que hace falta para entrar: la lista, el cursor.
+.proc ti_modo_poner
+.a8
+.i16
+    sta comp_col
+    cmp #TI_PRINCIPAL
+    bne no_principal
+    lda comp_col + 1
+    beq tres
+    lda #1
+    bra n_listo
+tres:
+    lda #3
+n_listo:
+    sta comp_mask
+    rts
+no_principal:
+    cmp #TI_COMPRAR
+    bne no_comprar
+    lda comp_mask + 1
+    sta comp_mask
+    rts
+no_comprar:
+    cmp #TI_VENDER
+    bne listo
+    jmp ti_lista_venta
+listo:
+    rts
+.endproc
+
+; El cursor de la lista, con la vista que lo sigue.
+.proc ti_mover
+.a8
+.i16
+    sta comp_base
+    cmp comp_base + 1
+    bcs no_arriba
+    sta comp_base + 1
+    rts
+no_arriba:
+    sec
+    sbc comp_base + 1
+    cmp #TI_LISTA_FILAS
+    bcc listo
+    lda comp_base
+    sec
+    sbc #(TI_LISTA_FILAS - 1)
+    sta comp_base + 1
+listo:
+    rts
+.endproc
+
+; La tienda: `ti_tipo`, `ti_juego` y `FAR_TIENDA` con `ti_nt` ítems, puestos
+; por `op_shop`. Vuelve cuando el jugador sale.
+.proc tienda_pantalla
+.a8
+.i16
+    stz comp_fase + 1
+    stz comp_base
+    stz comp_base + 1
+    lda comp_col + 1
+    beq a_principal
+    cmp #1
+    beq a_comprar
+    lda #TI_VENDER
+    bra empieza
+a_comprar:
+    lda #TI_COMPRAR
+    bra empieza
+a_principal:
+    lda #TI_PRINCIPAL
+empieza:
+    jsr ti_modo_poner
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM
+    jsl f:items_banco_subir
+    jsr ti_componer
+    jsl f:ba_t_subir
+    jsl f:ba_t_ppu
+    lda #1
+    sta menu_abierto
+espera:
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad                ; el control antes del DMA: ver el equipo
+    jsl f:ba_t_subir
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    ; Según el modo. Sin `jmp (tabla, x)` en el ensamblador, una cadena.
+    lda comp_col
+    bne no_es_principal
+    jmp principal
+no_es_principal:
+    cmp #TI_CUANTOS_COMPRA
+    bne :+
+    jmp cuantos
+:   cmp #TI_CUANTOS_VENTA
+    bne :+
+    jmp cuantos
+:   cmp #TI_COMPRADO
+    bne :+
+    jmp listo_trato
+:   cmp #TI_VENDIDO
+    bne :+
+    jmp listo_trato
+:   jmp comprar                 ; comprar y vender comparten el código
+
+    ; --- la principal ---
+principal:
+    lda titulo_flancos
+    and #PAD_UP
+    beq p_no_arriba
+    lda comp_base
+    beq espera
+    dec comp_base
+    jmp recomponer
+p_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq p_no_abajo
+    lda comp_base
+    inc a
+    cmp comp_mask
+    bcs espera
+    sta comp_base
+    jmp recomponer
+p_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq p_mira_a
+    jmp salir
+p_mira_a:
+    jsr flanco_a
+    beq espera
+    lda comp_base
+    cmp #2
+    bne p_no_salir
+    jmp salir
+p_no_salir:
+    cmp #1
+    beq p_vender
+    lda #TI_COMPRAR
+    bra p_entrar
+p_vender:
+    lda #TI_VENDER
+p_entrar:
+    stz comp_base
+    stz comp_base + 1
+    jsr ti_modo_poner
+    jmp recomponer
+
+    ; --- las listas ---
+comprar:
+vender:
+    lda titulo_flancos
+    and #PAD_UP
+    beq l_no_arriba
+    lda comp_base
+    beq espera2
+    dec a
+    jsr ti_mover
+    jmp recomponer
+l_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq l_no_abajo
+    lda comp_base
+    inc a
+    cmp comp_mask
+    bcs espera2
+    jsr ti_mover
+    jmp recomponer
+l_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq l_mira_a
+    ; B: a la principal, con el resaludo; sin principal, afuera.
+    lda comp_col + 1
+    beq a_la_principal
+    jmp salir
+a_la_principal:
+    lda comp_col
+    cmp #TI_VENDER
+    lda #0
+    bcc cursor_listo
+    lda #1                      ; el cursor sobre la orden de donde se vuelve
+cursor_listo:
+    sta comp_base
+    lda #1
+    sta comp_fase + 1
+    lda #TI_PRINCIPAL
+    jsr ti_modo_poner
+    jmp recomponer
+l_mira_a:
+    jsr flanco_a
+    beq espera2
+    lda comp_mask
+    beq espera2
+    lda comp_col
+    cmp #TI_VENDER
+    bcs l_vender
+    jsr ti_item                 ; X = k
+    jsr ti_puede
+    beq espera2                 ; en gris: suena y no hace nada
+    lda #TI_CUANTOS_COMPRA
+    bra l_cuantos
+l_vender:
+    jsr ti_item
+    jsr ti_precio
+    rep #$20
+.a16
+    lda comp_or01
+    sep #$20
+.a8
+    beq espera2                 ; no vale nada
+    lda #TI_CUANTOS_VENTA
+l_cuantos:
+    pha
+    jsr ti_maximo
+    pla
+    sta comp_col
+    lda #1
+    sta comp_color
+    jmp recomponer
+espera2:
+    jmp espera
+
+    ; --- la cantidad ---
+cuantos:
+    lda titulo_flancos
+    and #PAD_RIGHT
+    beq c_no_derecha
+    lda #1
+    bra c_sumar
+c_no_derecha:
+    lda titulo_flancos
+    and #PAD_LEFT
+    beq c_no_izquierda
+    lda #$FF
+    bra c_sumar
+c_no_izquierda:
+    lda titulo_flancos
+    and #PAD_UP
+    beq c_no_arriba
+    lda #10
+    bra c_sumar
+c_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq c_no_abajo
+    lda #$F6                    ; -10
+c_sumar:
+    ; Con signo, y topado en [1, ti_max].
+    clc
+    adc comp_color
+    bmi c_uno                   ; bajó de cero: son 99 como mucho
+    beq c_uno
+    cmp comp_fila
+    bcc c_poner
+    beq c_poner
+    lda comp_fila
+    bra c_poner
+c_uno:
+    lda #1
+c_poner:
+    sta comp_color
+    jmp recomponer
+c_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq c_mira_a
+    lda comp_col
+    cmp #TI_CUANTOS_VENTA
+    beq c_a_vender
+    lda #TI_COMPRAR
+    sta comp_col
+    jmp recomponer
+c_a_vender:
+    lda #TI_VENDER
+    sta comp_col
+    jmp recomponer
+c_mira_a:
+    jsr flanco_a
+    beq espera2
+    jsr ti_cerrar_trato
+    lda #TI_SEGUNDO
+    sta comp_glifo
+    lda comp_col
+    inc a                       ; CUANTOS_COMPRA -> COMPRADO, y la venta igual
+    sta comp_col
+    cmp #TI_VENDIDO
+    bne recomponer
+    jsr ti_lista_venta          ; lo vendido puede no estar más
+    jmp recomponer
+
+    ; --- el "listo", un segundo ---
+listo_trato:
+    dec comp_glifo
+    bne espera2
+    lda comp_col
+    dec a
+    dec a                       ; COMPRADO -> COMPRAR, VENDIDO -> VENDER
+    sta comp_col
+recomponer:
+    jsr ti_componer
+    jmp espera
+
+salir:
+    rtl
+
+; Z=0 si A se acaba de apretar.
+flanco_a:
+    lda pad_a
+    beq no_a
+    lda pad_a_ant
+    beq si_a
+no_a:
+    lda #0
+    rts
+si_a:
+    lda #1
     rts
 .endproc
 
