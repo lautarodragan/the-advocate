@@ -173,3 +173,65 @@ def test_una_direccion_sola_no_tira_nada(partida, mapa11):
         % (celda_de(p, mapa11, STONE),))
     assert p.palabra("tile_x") == DEBAJO_DE_LA_REJA[0] - 1, (
         "el héroe sí tiene que haber caminado una celda para la izquierda")
+
+
+# Desde acá, tirando hacia arriba, la piedra le pega a la PC de (19,44) —el
+# `LTComputer`, EV35— y su página paralela abre el mensaje del guardia.
+FRENTE_A_LA_PC = (19, 52)
+# Cuántos ticks puede tardar la piedra en llegar y el mensaje en abrirse.
+# Medido: unos noventa.
+TOPE_HASTA_EL_MENSAJE = 300
+
+
+def tirarle_a_la_pc(p):
+    """Tira una piedra hacia arriba desde `FRENTE_A_LA_PC` y vuelve con el
+    mensaje del guardia abierto y el motor de nuevo esperando la A."""
+    p.ir_al_mapa(11, *FRENTE_A_LA_PC)
+    p.correr(10)
+    p.tocar("a")
+    p.correr(4)
+    p.tocar("up")
+    for _ in range(TOPE_HASTA_EL_MENSAJE):
+        if p.byte("msg_abierto"):
+            break
+        p.correr(1)
+    else:
+        raise AssertionError(
+            "la piedra tirada hacia arriba tendría que haber roto la PC y "
+            "abierto el mensaje del guardia")
+    # Que el motor termine su vuelta —la piedra vuela y vuelve a su lugar— y
+    # quede otra vez parado en el `KeyInputProc` de la A, que es donde el
+    # toque que cierra el mensaje lo encontraba.
+    p.correr(90)
+    assert p.byte("msg_abierto"), "el mensaje se cerró sin que nadie tocara A"
+    return p
+
+
+def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
+    """Lo que taro reportó: el A que cierra el mensaje de la PC rota también
+    preparaba la piedra siguiente, así que siempre se perdía una.
+
+    El motor es paralelo y sigue corriendo con el mensaje abierto, como en
+    RM2k; lo que RM2k no hace es dejarle a un `KeyInputProc` que espera leer
+    el pad mientras haya un mensaje activo, de quien sea
+    (`game_interpreter.cpp:470-473` de easyrpg)."""
+    p = tirarle_a_la_pc(hablarle_a_la_reja(partida(caso=MAPAS)))
+    lejos = celda_de(p, mapa11, STONE)
+    assert lejos != FRENTE_A_LA_PC
+
+    p.tocar("a")
+    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
+    p.correr(30)
+    assert p.variable(ranura(5)) == 0, (
+        "el A que cerró el mensaje lo leyó también el motor de las piedras: "
+        "la variable 5 quedó en %d" % p.variable(ranura(5)))
+    assert celda_de(p, mapa11, STONE) != FRENTE_A_LA_PC, (
+        "el A que cerró el mensaje preparó una piedra sobre el héroe")
+
+    # El control: sin mensaje, la A siguiente sí es del motor. Sin esto, un
+    # motor que dejara de leer la A para siempre daría verde arriba.
+    p.tocar("a")
+    assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
+        "con el mensaje cerrado, la A siguiente tendría que preparar la "
+        "piedra, y la variable 5 quedó en %d" % p.variable(ranura(5)))
+    assert celda_de(p, mapa11, STONE) == FRENTE_A_LA_PC

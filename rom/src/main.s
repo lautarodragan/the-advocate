@@ -5775,6 +5775,21 @@ op_key:
     sty ev_cur
     rts
 tecla_mirar:
+    ; La que espera no mira el pad mientras haya un mensaje o una elección en
+    ; pantalla, **de quien sea**: es el `if (Game_Message::IsMessageActive())
+    ; break;` de `Game_Interpreter::Update`, easyrpg `game_interpreter.cpp:
+    ; 470-473`. Importa en los paralelos, que siguen corriendo con el mensaje
+    ; de otro abierto: sin esto, el A que cierra el mensaje de la PC rota del
+    ; mapa 11 lo leía también el motor de las piedras, y se perdía una. Lo
+    ; cobra `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
+    lda temp + 1
+    and #TECLA_ESPERA
+    beq tecla_leer
+    lda msg_abierto
+    ora msg_estado              ; también mientras se compone
+    ora eleg_activo
+    bne tecla_rebobinar
+tecla_leer:
     phy
     jsr tecla_valor
     ply
@@ -5785,6 +5800,7 @@ tecla_mirar:
     beq tecla_guardar           ; sin espera se guarda lo que haya, cero incluido
     lda temp + 2
     bne tecla_guardar
+tecla_rebobinar:
     dey                         ; todavía nada: el cursor vuelve a este opcode
     dey
     dey
