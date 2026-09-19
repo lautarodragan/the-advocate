@@ -2839,6 +2839,25 @@ def fondo_de_encuentro(cmd):
     return cmd.string if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_COMANDO else ""
 
 
+def actor_de_blanco(p, que):
+    """El operando de actor de OP_HEAL, desde el `[tipo, id]` de RM2k.
+
+    Es `GetActors` de easyrpg (`game_interpreter.cpp:1539`): 0 el grupo, 1 un
+    actor fijo, 2 el actor que diga una variable. El operando es el actor, con
+    0 por "todo el grupo": el LDB no tiene actor 0, así que no se confunde con
+    nadie.
+
+    La forma 2 no la usa ningún `FullHeal` ni ningún `ChangeHP` que sume
+    —medido el 2026-09-19 sobre los 328 mapas y los eventos comunes—, así que
+    no compila en vez de resolverse en la ROM sin nada que la ejercite.
+    """
+    if p[0] == 0:
+        return 0
+    if p[0] == 1 and 0 < p[1] <= 0xFF:
+        return p[1]
+    raise NoSePuede("%s con el actor en una variable" % que)
+
+
 def con_destino(pieza, destino):
     """La misma pieza con el destino puesto en sus dos últimos bytes."""
     return pieza[:-2] + bytes([destino & 0xFF, destino >> 8])
@@ -3240,27 +3259,33 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             bytes([i & 0xFF, i >> 8]) for i in vende)
 
     if cmd.code == FULL_HEAL:
-        # [tipo, id]: `GetActors` de easyrpg (`game_interpreter.cpp:1539`),
-        # 0 el grupo, 1 un actor fijo, 2 el actor que diga una variable. El
-        # operando de OP_HEAL es el actor, con 0 por "todo el grupo": el LDB no
-        # tiene actor 0, así que no se confunde con nadie.
-        #
-        # La forma 2 no la usa ningún `FullHeal` del juego —medido el
-        # 2026-09-19 sobre los 328 mapas y los eventos comunes: 23 al grupo y
-        # 50 a un actor fijo—, así que no compila en vez de resolverse en la
-        # ROM sin nada que la ejercite.
+        # La cantidad en 0 es lo que lo distingue de `ChangeHP`, abajo.
         if len(p) < 2:
             raise NoSePuede("FullHeal sin operandos")
-        if p[0] == 0:
-            return bytes([OP_HEAL, 0])
-        if p[0] == 1 and 0 < p[1] <= 0xFF:
-            return bytes([OP_HEAL, p[1]])
-        raise NoSePuede("FullHeal con el actor en una variable")
+        return bytes([OP_HEAL, actor_de_blanco(p, "FullHeal"), 0, 0])
     if cmd.code == CHANGE_HP:
-        if len(p) < 3 or p[2] != 0:
-            raise NoSePuede("ChangeHP que resta: los HP dejarían de estar "
-                            "siempre llenos")
-        return b""
+        # [tipo, id, resta, cantidad por variable, cantidad, letal]. El que
+        # suma comparte OP_HEAL con `FullHeal`, con la cantidad puesta: es
+        # `Game_Battler::ChangeHp` (`game_battler.cpp:480`), que al caído no
+        # lo toca y topa en el máximo —`SetHp`—. No toca los SP.
+        #
+        # Una cantidad en cero no hace nada en RM2k, y acá no se emite: en
+        # OP_HEAL el cero quiere decir `FullHeal`.
+        #
+        # Las 11 que suman fuera de pelea son constantes —siete de a 1 al
+        # grupo, cuatro de 300 y 999 a un actor—, así que la cantidad en una
+        # variable no compila. Las que restan siguen fuera: pueden matar, y
+        # `lethal` pide qué hacer con eso.
+        if len(p) < 5 or p[2] != 0:
+            raise NoSePuede("ChangeHP que resta")
+        if p[3] != 0:
+            raise NoSePuede("ChangeHP con la cantidad en una variable")
+        if not 0 <= p[4] <= 0xFFFF:
+            raise NoSePuede("ChangeHP de %d" % p[4])
+        if p[4] == 0:
+            return b""
+        return bytes([OP_HEAL, actor_de_blanco(p, "ChangeHP"),
+                      p[4] & 0xFF, p[4] >> 8])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")

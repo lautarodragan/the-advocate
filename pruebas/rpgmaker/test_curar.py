@@ -113,3 +113,47 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
     assert una.byte("menu_abierto"), (
         "el encuentro no abrió la pelea: sin eso, que no se reinicie no dice "
         "nada")
+
+
+# --- `ChangeHP` que suma -----------------------------------------------------
+#
+# Comparte OP_HEAL con `FullHeal`, con la cantidad puesta, y hasta el
+# 2026-09-19 compilaba a nada por el mismo motivo. Es `Game_Battler::ChangeHp`:
+# al caído no lo levanta, topa en el máximo y no toca los SP. La página
+# `curar-sumar` espera 18 ticks —los que la prueba usa para poner los HP de
+# partida— y suma 5 al grupo, 3 al actor 11, y 999 al 12 y al 13.
+
+def sumada(partida, hp):
+    una = partida(caso="curar-sumar")
+    for actor, valor in hp.items():
+        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
+                                 [valor & 0xFF, valor >> 8])
+    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * 10, [0, 0])
+    una.correr(DESPUES_DE_PERDER)
+    return una
+
+
+def test_change_hp_suma_al_grupo_y_a_un_actor(partida):
+    una = sumada(partida, {10: 10, 11: 50})
+    assert grupo_de(una) == [10], (
+        "el caso cuenta con el grupo de arranque del cartucho, que es el "
+        "actor 10 solo, y es %s" % grupo_de(una))
+    assert palabra_de(una, "FAR_HP", 10) == 15, (
+        "ChangeHP de 5 al grupo dejó al actor 10 en %d, desde 10"
+        % palabra_de(una, "FAR_HP", 10))
+    assert palabra_de(una, "FAR_HP", 11) == 53, (
+        "ChangeHP de 3 al actor 11 lo dejó en %d, desde 50"
+        % palabra_de(una, "FAR_HP", 11))
+    assert palabra_de(una, "FAR_SP", 10) == 0, (
+        "ChangeHP le tocó los SP al actor 10: los dejó en %d"
+        % palabra_de(una, "FAR_SP", 10))
+
+
+def test_change_hp_topa_en_el_maximo_y_no_levanta_a_un_caido(partida):
+    una = sumada(partida, {12: 1, 13: 0})
+    assert palabra_de(una, "FAR_HP", 12) == maximos()[12][0], (
+        "ChangeHP de 999 al actor 12 lo dejó en %d, y el máximo es %d"
+        % (palabra_de(una, "FAR_HP", 12), maximos()[12][0]))
+    assert palabra_de(una, "FAR_HP", 13) == 0, (
+        "ChangeHP levantó al actor 13, que estaba caído: quedó en %d"
+        % palabra_de(una, "FAR_HP", 13))

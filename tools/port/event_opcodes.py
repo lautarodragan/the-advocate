@@ -87,7 +87,7 @@ OPCODE_SIZE = {
     OP_ACTOR_SPRITE: 3,
     OP_KEY: 3,
     OP_PLACE_VAR: 4,
-    OP_HEAL: 2,
+    OP_HEAL: 4,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -141,7 +141,7 @@ LAYOUT = {
     OP_ACTOR_SPRITE: (("actor", 1, False), ("graphic", 1, False)),
     OP_KEY: (("slot", 1, False), ("flags", 1, False)),
     OP_PLACE_VAR: (("target", 1, False), ("x_slot", 1, False), ("y_slot", 1, False)),
-    OP_HEAL: (("actor", 1, False),),
+    OP_HEAL: (("actor", 1, False), ("amount", 2, False)),
 }
 
 

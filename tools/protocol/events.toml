@@ -378,4 +378,5 @@ name = "OP_HEAL"
 code = 0x28
 args = [
   { name = "actor", type = "byte" },
+  { name = "amount", type = "word" },
 ]

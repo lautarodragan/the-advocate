@@ -5744,8 +5744,9 @@ graf_no_lidera:
     ply
     jmp otro
 
-; `FullHeal`. Acá está sólo la entrada: el cuerpo es `curar`, fuera del banco
-; 0, y lee su operando y avanza el cursor él mismo, con Y en la mano.
+; `FullHeal` y `ChangeHP` que suma. Acá está sólo la entrada: el cuerpo es
+; `curar`, fuera del banco 0, y lee sus operandos y avanza el cursor él mismo,
+; con Y en la mano.
 op_heal:
     jsl f:curar
     jmp otro
@@ -25656,18 +25657,19 @@ cero:
     rtl
 .endproc
 
-; `FullHeal`: los HP y los SP de cada actor del blanco, a sus máximos. Es
-; `Game_Actor::FullHeal` de easyrpg (`game_actor.cpp:391`), que además
-; `RemoveAllStates` y repone los estados del equipo: acá no hay nada de eso
-; que limpiar, porque fuera de pelea los estados no existen —la pelea los
+; `FullHeal`, y `ChangeHP` cuando suma: los dos son OP_HEAL, y los separa la
+; cantidad. En 0 es `FullHeal`: los HP y los SP de cada actor del blanco a sus
+; máximos. Es `Game_Actor::FullHeal` de easyrpg (`game_actor.cpp:391`), que
+; además `RemoveAllStates` y repone los estados del equipo: acá no hay nada de
+; eso que limpiar, porque fuera de pelea los estados no existen —la pelea los
 ; arma y los tira— y un caído es sólo un actor con cero HP, así que llenarlos
-; ya lo levanta.
+; ya lo levanta. Con cantidad es `ChangeHP`; ver `curar_actor`.
 ;
-; Se entra desde `op_heal` con Y en el operando, que es el actor o 0 por todo
-; el grupo —el `GetActors` de `game_interpreter.cpp:1539`, ver FULL_HEAL en
-; eventos.py—, y se vuelve con Y después de él. Vive **fuera del banco 0**
-; por lo mismo que `hp_inicial_poner`, y por eso todo lo que toca va con `f:`
-; o es de la página directa.
+; Se entra desde `op_heal` con Y en el operando: el actor o 0 por todo el grupo
+; —el `GetActors` de `game_interpreter.cpp:1539`, ver `actor_de_blanco` en
+; eventos.py— y la cantidad, de 16 bits. Se vuelve con Y después de ella. Vive
+; **fuera del banco 0** por lo mismo que `hp_inicial_poner`, y por eso todo lo
+; que toca va con `f:` o es de la página directa. Se lleva A, X y `temp`.
 ;
 ; No reusa `hp_inicial_poner` a propósito: aquélla llena a los 61 actores de
 ; una, y `FullHeal [0, 0]` es el grupo y nadie más. Lo cobra
@@ -25675,10 +25677,19 @@ cero:
 .proc curar
 .a8
 .i16
-    lda [cod_ptr], y
+    lda [cod_ptr], y            ; el actor
+    iny
+    sta temp + 2
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; y la cantidad
+    sta temp
+    sep #$20
+.a8
+    iny
     iny
     phy
-    cmp #0
+    lda temp + 2
     bne uno
     ; Hasta `grupo_n` y no las cuatro ranuras: las de más no se limpian al
     ; sacar a alguien, y en la tanda se vio una con 85 —curarlo era escribir
@@ -25702,7 +25713,11 @@ uno:
     rtl
 .endproc
 
-; El actor A, a sus máximos. Se lleva X.
+; El actor A: a sus máximos con `temp` en 0, o `temp` HP más. Se lleva X.
+;
+; Lo segundo es `Game_Battler::ChangeHp` (`game_battler.cpp:480`): a un caído
+; no lo toca —ahí es `IsDead`, acá cero HP, que fuera de pelea es lo mismo— y
+; lo que pase del máximo se topa, que es el `SetHp` de adentro. Los SP no.
 .proc curar_actor
 .a8
 .i16
@@ -25711,10 +25726,26 @@ uno:
     and #$00FF
     asl a
     tax
+    lda temp
+    bne sumar
     lda f:actor_hpmax, x
     sta f:FAR_LARGO + FAR_HP, x
     lda f:actor_spmax, x
     sta f:FAR_LARGO + FAR_SP, x
+    bra listo
+sumar:
+    lda f:FAR_LARGO + FAR_HP, x
+    beq listo                   ; caído: `ChangeHp` no lo levanta
+    clc
+    adc temp
+    bcs topar                   ; dio la vuelta: la cantidad llega a $FFFF
+    cmp f:actor_hpmax, x
+    bcc poner
+topar:
+    lda f:actor_hpmax, x
+poner:
+    sta f:FAR_LARGO + FAR_HP, x
+listo:
     sep #$20
 .a8
     rts
