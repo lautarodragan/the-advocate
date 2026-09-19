@@ -1201,6 +1201,9 @@ class Eventos:
         self.vars_observadas = {pg.condition.ids["variable"]
                                 for ev in game_map.events for pg in ev.pages
                                 if "variable" in pg.condition.active}
+        # De qué mapa es, para saber cuándo una página se va de él: ver
+        # `afuera`.
+        self.map_id = getattr(game_map, "map_id", None)
         self.mio = mio
 
     def comparte_grafico(self, quien):
@@ -1215,6 +1218,21 @@ class Eventos:
         otro.grafico, otro.mio = self.grafico, id_evento
         otro.paginas = self.paginas
         otro.vars_observadas = self.vars_observadas
+        otro.map_id = self.map_id
+        return otro
+
+    def afuera(self):
+        """El mismo, para lo que la página hace **después de saltar a otro
+        mapa**: sigue corriendo allá, y qué variables miran las páginas de
+        allá no se sabe desde acá, así que toda escritura pide refresco. Ver
+        `escritura_pide_refresco`.
+
+        Lo demás no cambia, y no porque esté bien: un evento nombrado por id
+        después del salto se traduce contra este mapa y no contra el destino.
+        Ninguna página del juego que compile hoy lo hace.
+        """
+        otro = self.para(self.mio)
+        otro.vars_observadas = None
         return otro
 
     def blanco(self, quien):
@@ -2379,8 +2397,8 @@ def escritura_pide_refresco(numero, eventos_mapa):
     se pide siempre**, que es lo que hacía el port antes de esto y lo único
     honesto cuando no se sabe quién mira qué: `destraba.py` compila así.
     """
-    if eventos_mapa is None:
-        return VAR_REFRESCO
+    if eventos_mapa is None or eventos_mapa.vars_observadas is None:
+        return VAR_REFRESCO     # sin el mapa, o después de irse de él
     return VAR_REFRESCO if numero in eventos_mapa.vars_observadas else 0
 
 
@@ -3050,6 +3068,11 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             else:
                 pieza = _compilar(cmd, indice_de_mapa, mensajes, extra,
                                   eventos_mapa, temas, graficos, imagenes)
+                # Un salto a otro mapa: la página sigue corriendo allá. Ver
+                # `Eventos.afuera`.
+                if cmd.code == TELEPORT and eventos_mapa is not None \
+                        and cmd.parameters[0] != eventos_mapa.map_id:
+                    eventos_mapa = eventos_mapa.afuera()
             piezas.append(pieza)
             largo += len(pieza)
         if pila:
