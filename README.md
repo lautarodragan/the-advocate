@@ -7,9 +7,9 @@ formato que se pueda mirar, y el port entero con sus trampas y lo que falta.
 Hubo antes un port a Mega Drive. Se sacó de este repo cuando quedó claro que el
 camino era la SNES —el audio del S-DSP convence y el del YM2612 no—, y vive
 aparte en `abl-sega`. Lo que era compartido de verdad se quedó, con nombres que
-no mienten: `tools/rm2k.py` para las reglas de RPG Maker 2000,
-`tools/asignador.py` —que se llamó `pixeles.py`— para decidir qué colores quedan
-y cómo se agrupan, y `tools/musica.py` para pasar de un MIDI a notas y voces.
+no mienten: `tools/rpgmaker/rm2k.py` para las reglas de RPG Maker 2000,
+`tools/port/asignador.py` —que se llamó `pixeles.py`— para decidir qué colores quedan
+y cómo se agrupan, y `tools/audio/musica.py` para pasar de un MIDI a notas y voces.
 
 Lo que **no** está acá: dónde quedamos —eso es `ESTADO.md`— y el relato de cómo
 se llegó, que está en `git log`.
@@ -94,16 +94,19 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
 
 ### Piezas
 
-    tools/lcf.py          el juego, leído del volcado a JSON de data/
-    tools/ditto_schema.py generado: los nombres, defaults y enums de ese JSON
-    tools/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
-    tools/chipset.py      expansión del ChipSet a un atlas de tiles resueltos
-    tools/charset.py      recorte de sprites de personaje
-    tools/render_map.py   las capas de un mapa como imagen, y los CharSets
-    tools/event_codes.py  generado: nombres de los opcodes de evento
-    protocol/               el generador, en Rust: declaración -> constantes
-    tools/event_opcodes.py  generado desde protocol/events.toml
-    tools/music_opcodes.py  generado desde protocol/music.toml
+Cómo está repartido `tools/` en carpetas, y qué puede importar de qué, está en
+`tools/README.md`.
+
+    tools/rpgmaker/lcf.py               el juego, leído del volcado a JSON de data/
+    tools/rpgmaker/ditto_schema.py      generado: los nombres, defaults y enums de ese JSON
+    tools/rpgmaker/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
+    tools/render/chipset.py             expansión del ChipSet a un atlas de tiles resueltos
+    tools/render/charset.py             recorte de sprites de personaje
+    tools/render/render_map.py          las capas de un mapa como imagen, y los CharSets
+    tools/rpgmaker/event_codes.py       generado: nombres de los opcodes de evento
+    tools/protocol/                     el generador, en Rust: declaración -> constantes
+    tools/port/event_opcodes.py         generado desde tools/protocol/events.toml
+    tools/audio/music_opcodes.py        generado desde tools/protocol/music.toml
 
 El formato binario de RM2k ya no lo lee ningún Python de acá: lo lee Ditto, una
 sola vez, y lo deja en `data/`. Ver "Los datos en formato versionable".
@@ -125,7 +128,7 @@ byte. Los campos que quedaron en su valor por defecto no se escriben — por eso
 son autotiles: bloques de bordes que el motor combina según los vecinos. El
 editor guarda en el mapa el ID de la combinación ya calculada, así que para
 renderizar hay que pre-generar las 1419 combinaciones posibles en un atlas de
-32x45 e indexarlo por ID. `tools/chipset.py` es un puerto de
+32x45 e indexarlo por ID. `tools/render/chipset.py` es un puerto de
 `lmu2png/src/chipset.cpp` de EasyRPG Tools, que es donde están todos los
 offsets mágicos.
 
@@ -171,9 +174,9 @@ Se puede apuntar a otra copia con `ABL_RTP_DIR`.
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
-**es de donde el port lee el juego**: `tools/lcf.py` sale de acá, así que el
+**es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así que el
 conversor y las pruebas están mirando estos archivos y no los binarios. Quién lo
-escribe es **Ditto** (`ditto/`), que además sabe volver: `ditto pack` rearma los
+escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto pack` rearma los
 330 archivos byte por byte. El porqué de la decisión está en `DITTO.md` y lo que
 hay adentro, en `data/README.md`.
 
@@ -193,7 +196,7 @@ y la columna en que está en el mapa.
 
 **Se omite lo que está en su valor por defecto**, que es exactamente lo que
 hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
-vale lo que dice el formato. Esa tabla es `tools/ditto_schema.py`, generada
+vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.py`, generada
 desde el esquema de Ditto, que se genera desde liblcf. Es la respuesta al bug
 que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
 dice 10, porque el default estaba escrito a mano y estaba mal.
@@ -205,7 +208,7 @@ de liblcf.
 **Encoding.** El texto es cp1252, porque ABL se hizo con el RM2k de Don Miguel.
 Quedan un par de mensajes del RTP japonés que el autor nunca tocó y siguen en
 Shift-JIS: en el JSON salen como caracteres raros —decodificarlos adivinando le
-costaría a Ditto la vuelta exacta— y el que los interpreta es `tools/lcf.py`,
+costaría a Ditto la vuelta exacta— y el que los interpreta es `tools/rpgmaker/lcf.py`,
 por los bytes que cp1252 no define.
 
 ## El port a Super Nintendo
@@ -822,7 +825,7 @@ y el fondo con los battlers llegó después (ver más abajo).
 
 Lo que sí es de RM2k son las palabras —todas del LDB— y **todas las cuentas**,
 que salen de easyrpg-player y están escritas dos veces: en `main.s` y en
-`tools/batalla.py`. Que las dos den lo mismo es lo que le permite a
+`tools/port/batalla.py`. Que las dos den lo mismo es lo que le permite a
 `pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que cada HP va a tener
 después de cada turno, en vez de conformarse con "bajó".
 
@@ -1080,7 +1083,7 @@ compone el fondo de batalla con los battlers de la
 tropa encima y el cartucho lleva el resultado como una capa de 8bpp de
 256x128, los siete renglones de texto de arriba. La consola no dibuja
 battlers: sube una imagen. El porqué largo, el presupuesto y lo que se pierde
-están en `tools/escena.py`; el titular:
+están en `tools/port/escena.py`; el titular:
 
 * **El fondo sale del propio `EnemyEncounter`**, que trae el nombre en su
   string: `SJBackdropABL04` para el droide del mapa 2 y `ABLBackdropSJ03` para
@@ -1501,7 +1504,7 @@ Cómo funciona, del lado de la ROM:
   El fundido escala contra ese techo y no contra 255, o su primer cuadro
   **subiría** la música antes de bajarla.
 
-Y del lado del cartucho, `tools/msu.py` (receta `msu`): renderiza el MIDI
+Y del lado del cartucho, `tools/audio/msu.py` (receta `msu`): renderiza el MIDI
 con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
@@ -1579,7 +1582,7 @@ el paquete de audio de cada mapa, que los cuenta como uno más.
 ### El dibujo de las animaciones de batalla
 
 También se dibujan. El sistema entero está en
-`tools/animacion.py`, que es el único lugar donde se decide dónde cae y de qué
+`tools/port/animacion.py`, que es el único lugar donde se decide dónde cae y de qué
 color es cada pixel; la ROM no decide nada de eso.
 
 **Una caja de 64x64, la misma para toda la ROM.** Son cuatro objetos de 32x32
@@ -1796,19 +1799,19 @@ estado midiendo dos cosas distintas.
 Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-    protocol/events.toml   lo declara: cada opcode, su número y los bytes que lleva
-    tools/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
-    rom/src/main.s         lo ejecuta: `correr_codigo` y un `op_*` por opcode
+    tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
+    tools/port/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
+    rom/src/main.s              lo ejecuta: `correr_codigo` y un `op_*` por opcode
 
-Hasta el 2026-09-16 `tools/eventos.py` llevaba además un **modelo** del
+Hasta el 2026-09-16 `tools/port/eventos.py` llevaba además un **modelo** del
 intérprete, que corría el mismo bytecode cuadro a cuadro y contra el cual la
 tanda comparaba cada pantalla. Ya no está: el bytecode lo ejecuta sólo la ROM, y
 lo que quedaba del modelo era código que nadie llamaba —documentación con forma
 de código, que envejece sin que ninguna prueba lo note—. De `eventos.py` queda
 lo que el conversor usa al compilar.
 
-De `protocol/events.toml` salen generados `tools/event_opcodes.py` y
-`rom/src/event_opcodes.inc`; ver `protocol/README.md`, que está en inglés porque
+De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
+`rom/src/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
 ahí adentro no se sabe nada de este juego. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
@@ -1829,7 +1832,7 @@ nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
 Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
-ser una puerta —o sea, sin intérprete— sale de `tools/event_codes.py`, que se
+ser una puerta —o sea, sin intérprete— sale de `tools/rpgmaker/event_codes.py`, que se
 genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
 y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
 como puertas eventos que cambian la música y el sprite del héroe. **La
@@ -1904,7 +1907,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 
 | Mecánica | en `rom/src/main.s` | quién la compila, o quién la mide |
 | --- | --- | --- |
-| Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rm2k.py` |
+| Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rpgmaker/rm2k.py` |
 | Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
@@ -1916,12 +1919,12 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos` |
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
-| Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render_map.py` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render/render_map.py` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/ventana.py`, `Mensajes` |
-| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/snes_convert.py` |
+| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/ventana.py`, `Mensajes` |
+| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/port/snes_convert.py` |
 | El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
@@ -2068,7 +2071,7 @@ así que dos no suenan nunca y los seis que quedan son monofónicos.
 #### Cómo se verifica
 
 La ROM la corre un core de libretro manejado desde Python con `ctypes`
-—`tools/retro.py`—, no un emulador con ventana. `retro_run()` avanza **un cuadro
+—`tools/emulador/retro.py`—, no un emulador con ventana. `retro_run()` avanza **un cuadro
 exacto**, la cruceta se contesta cuadro por cuadro y el framebuffer sale del
 callback ya en 256x224. No hay servidor X, ni capturas de pantalla, ni recortes,
 ni un solo `sleep`.
@@ -2103,7 +2106,7 @@ diferencia significa que la ROM depende de memoria que nadie escribió. Los
 tres tardaron en andar por errores del frontend y no de ellos —bsnes ignora los
 datos de la ROM y abre el archivo él mismo, mesen-s quiere los callbacks después
 de `retro_init` y un directorio de sistema—; el detalle de qué pedía cada uno
-está en el docstring de `tools/retro.py`.
+está en el docstring de `tools/emulador/retro.py`.
 
 **Con el brillo maestro a medias dejan de coincidir**, y es el único lugar donde
 pasa: snes9x y bsnes redondean `canal * brillo / 15` y **mesen-s trunca**, o sea
@@ -2459,7 +2462,7 @@ no se fusiona nada.
 
 El NPC que el héroe dispara —con A o por contacto— se da
 vuelta hacia él mientras dura su página, como en RM2k. Las reglas están en
-GIRO, en `tools/eventos.py`, y la ROM las sigue en `giro_disparar`.
+GIRO, en `tools/port/eventos.py`, y la ROM las sigue en `giro_disparar`.
 
 Lo difícil era la VRAM: los quietos comparten ranura por (CharSet, índice,
 pose), así que subirle otra pose a uno giraría a todos sus gemelos. El
@@ -2478,7 +2481,7 @@ quieto con un gemelo al lado.
 
 ### La colisión
 
-Toda la lógica de RM2k vive en `tools/rm2k.py`, fuera del conversor y de esta
+Toda la lógica de RM2k vive en `tools/rpgmaker/rm2k.py`, fuera del conversor y de esta
 consola: que
 cruzar de una celda a la de al lado pide permiso a las dos —la de origen tiene
 que dejar salir por ese lado y la de destino dejar entrar por el opuesto—, que
@@ -2511,7 +2514,7 @@ exactos, el primer `jsr` escribe arriba de `pal_buf`, que es lo último que hay.
 Eso no se ve al armar ni al arrancar sino cuatrocientos cuadros adentro de una
 escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
 
-* **El mapa de memoria reserva la pila.** `PILA`, en `tools/bancos.py`, son
+* **El mapa de memoria reserva la pila.** `PILA`, en `tools/ensamblado/bancos.py`, son
   256 bytes que la BSS no puede tocar: el área `RAM` del `.cfg` termina antes,
   y pasarse es un error de `ld65` al armar. El número está medido: la pila
   más honda de la tanda —`core-puerta`, con el intérprete adentro de una NMI—
@@ -2588,12 +2591,12 @@ Eso deja el mismo reparto que en la Mega Drive: **toda la lógica en Python, y e
 la consola sólo un intérprete de un stream de escrituras.** El driver del SPC700
 son **20 bytes**.
 
-    rom/src/main.s        65816: arranque, carga al SPC700, reproductor
-    tools/spc700.py       ensamblador de SPC700, porque no hay uno empaquetado
-    brr/                  códec BRR y lector de SoundFont, en Rust
-    tools/muestras_brr.py el puente entre el conversor y ese binario
-    tools/sdsp.py         registros del DSP y el banco de timbres
-    tools/snes_music.py   el MIDI del mapa a muestras y stream
+    rom/src/main.s               65816: arranque, carga al SPC700, reproductor
+    tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
+    tools/brr/                   códec BRR y lector de SoundFont, en Rust
+    tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
+    tools/audio/sdsp.py          registros del DSP y el banco de timbres
+    tools/audio/snes_music.py    el MIDI del mapa a muestras y stream
 
 ### El banco de muestras
 
@@ -2708,14 +2711,14 @@ herramientas` y ningún script ni prueba de este juego llama a `cargo`. El
 porqué de eso está en `AGENTS.md`, y cómo se compila `cc65`, que no viene
 empaquetado en Arch, también. Nada de esto pide un contenedor.
 
-La ROM la arma `tools/ensamblar.py`: `ca65`, después `ld65` con el mapa de
-memoria que escribe el conversor —un área por banco, ver `tools/bancos.py`—, y
+La ROM la arma `tools/ensamblado/ensamblar.py`: `ca65`, después `ld65` con el mapa de
+memoria que escribe el conversor —un área por banco, ver `tools/ensamblado/bancos.py`—, y
 encima el checksum de la cabecera y la tabla de símbolos que leen las pruebas.
 
 Hasta el 2026-09-16 hubo un ensamblador propio, `w65/`, escrito por una regla
 —no compilar fuentes de internet en esta caja— que taro dio por caduca. Se
 borró cuando las dos ROMs de referencia salieron byte por byte iguales con las
-dos cadenas. El del SPC700, `tools/spc700.py`, sigue: ése no tiene ensamblador
+dos cadenas. El del SPC700, `tools/audio/spc700.py`, sigue: ése no tiene ensamblador
 empaquetado en ningún lado.
 
 ### Lo que se perdió con el ensamblador propio
@@ -2769,7 +2772,7 @@ pican juntas y en fase y eso no pasa nunca.
 
 ### El parche de bsnes
 
-`tools/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
+`tools/emulador/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
 repo, y **desde que las goldens son capturas de snes9x importa más que antes**:
 sin bsnes no hay con qué contestar "anda en el emulador y no en la consola", que
 es lo único que `pruebas/rpgmaker/test_cores.py` existe para contestar.
@@ -2792,7 +2795,7 @@ tiene `LIBS =` vacío.
 
     git clone https://github.com/libretro/bsnes-libretro
     cd bsnes-libretro
-    git am < .../tools/bsnes-wram.patch
+    git am < .../tools/emulador/bsnes-wram.patch
     make -j$(nproc)
     cp bsnes_libretro.so /usr/lib/libretro/
 
@@ -3046,7 +3049,7 @@ envejecía sin que nadie lo notara. Y lo que se puede preguntar en vez de leer,
 se pregunta:
 
 * qué comandos se aceptan y no se hacen lo dice `ACEPTADOS_SIN_HACER`, en
-  `tools/eventos.py`, que es una lista ejecutable y no puede desincronizarse;
+  `tools/port/eventos.py`, que es una lista ejecutable y no puede desincronizarse;
 * qué órdenes de ruta no sabemos caminar, también.
 
 ## Referencias

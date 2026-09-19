@@ -4,7 +4,7 @@
 Todo lo que está acá **cambia lo que se ve**: fusionar un color con otro,
 decidir qué colores van juntos en una paleta, medir cuánto se mueve una imagen
 si se le saca un color. Es la mitad artística del pipeline de gráficos, y por
-eso no está en `tiles/`, que sólo convierte lo que ya entra y nunca toca un
+eso no está en `tools/tiles/`, que sólo convierte lo que ya entra y nunca toca un
 pixel. Ver "El asignador corre primero" en ESTADO.md.
 
 Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,

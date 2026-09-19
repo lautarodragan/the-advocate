@@ -1,6 +1,6 @@
 """Los nombres, los defaults y los enums del volcado a JSON.
 
-Generado por tools/gen_ditto_schema.py desde ditto/src/schema/mod.rs.
+Generado por tools/rpgmaker/gen_ditto_schema.py desde tools/ditto/src/schema/mod.rs.
 No lo edites a mano.
 
     CAMPOS[struct][campo] = (chunk, default, enum, siempre, anidado)

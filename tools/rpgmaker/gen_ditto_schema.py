@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Genera tools/ditto_schema.py a partir del esquema de Ditto.
+"""Genera tools/rpgmaker/ditto_schema.py a partir del esquema de Ditto.
 
 Desde el 2026-09-14 el juego se lee del volcado a JSON de `data/`, que escribe
 Ditto (ver DITTO.md). Ese JSON **omite todo campo que valga su default**, así
 que para leerlo hay que conocer los defaults; y guarda los enums **por nombre**
 —`"same"`, `"ShowMessage"`— así que para volver al número hay que conocer las
-tablas. Las dos cosas están declaradas en `ditto/src/schema/mod.rs`, que es el
+tablas. Las dos cosas están declaradas en `tools/ditto/src/schema/mod.rs`, que es el
 código que escribió el JSON, y de ahí salen: no se copian a mano.
 
 Es la misma idea con la que se generaba el esquema del lector viejo —leer el
@@ -14,7 +14,7 @@ lugar: liblcf genera el esquema de Ditto y Ditto genera éste. Un nombre o un de
 como un diff que se lee, no como un dato que llega distinto.
 
 Uso:
-    python3 tools/gen_ditto_schema.py [ruta/a/ditto] > tools/ditto_schema.py
+    python3 tools/rpgmaker/gen_ditto_schema.py [ruta/a/ditto] > tools/rpgmaker/ditto_schema.py
 """
 
 import os
@@ -163,7 +163,7 @@ def main():
 
     out = ['"""Los nombres, los defaults y los enums del volcado a JSON.',
            "",
-           "Generado por tools/gen_ditto_schema.py desde ditto/src/schema/mod.rs.",
+           "Generado por tools/rpgmaker/gen_ditto_schema.py desde tools/ditto/src/schema/mod.rs.",
            "No lo edites a mano.",
            "",
            "    CAMPOS[struct][campo] = (chunk, default, enum, siempre, anidado)",

@@ -11,7 +11,7 @@ nada. Ejecutar la mitad de un script sería peor que no ejecutarlo: dejaría al
 juego en un estado que no existe, y la comparación pixel a pixel no lo vería
 porque la referencia haría exactamente lo mismo mal.
 
-Los códigos de comando salen de tools/event_codes.py, que se genera desde
+Los códigos de comando salen de tools/rpgmaker/event_codes.py, que se genera desde
 liblcf. Nunca de memoria: la primera versión del filtro de puertas los puso a
 ojo y tres estaban mal.
 """
@@ -22,8 +22,8 @@ import os
 from rpgmaker import rm2k
 
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
-# salen de `protocol/events.toml`, que es de los dos lados —de esto y del
-# intérprete en main.s— y de ninguno. Ver protocol/README.md.
+# salen de `tools/protocol/events.toml`, que es de los dos lados —de esto y del
+# intérprete en main.s— y de ninguno. Ver tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
@@ -854,7 +854,7 @@ def asociaciones_de(game_maps, extra=()):
 # Uno por comando, con los operandos ya resueltos: la ROM no vuelve a mirar el
 # LCF ni conoce sus números.
 #
-# **Los números y los layouts están en `protocol/events.toml`**, no acá: esto
+# **Los números y los layouts están en `tools/protocol/events.toml`**, no acá: esto
 # es lo que hay que saber de cada uno y que una declaración no puede decir.
 #
 # OP_SWITCH: id (word), valor (byte)
@@ -2570,7 +2570,7 @@ class Tropas:
         # Y con qué fondo pelea cada una, que es el texto del propio
         # `EnemyEncounter` —`SJBackdropABL04` en el mapa 2— y no algo que haya
         # que buscar en el LDB. Va acá y no en un registro aparte porque es un
-        # dato de la pelea, como la tropa. Ver tools/escena.py.
+        # dato de la pelea, como la tropa. Ver tools/port/escena.py.
         self.fondos = {}
 
     def pedir(self, numero, fondo=None):
@@ -4563,7 +4563,7 @@ class Estado:
 
 # Cuánto ocupa cada opcode se deriva de sus argumentos declarados, así que
 # `OPCODE_SIZE` y `opcode_size` vienen de `opcodes.py`, generado desde
-# `protocol/events.toml`. Antes se escribían a mano, y había dos copias —una
+# `tools/protocol/events.toml`. Antes se escribían a mano, y había dos copias —una
 # acá y otra en el conversor—: la de acá se quedó con el OP_ROUTE viejo cuando
 # el nuevo sumó la frecuencia, y fueron doce casos de la tanda en rojo.
 

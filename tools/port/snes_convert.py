@@ -28,13 +28,13 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 255: quedarse abajo evita pisarlos.
 
 Uso:
-    python3 tools/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
+    python3 tools/port/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
 
 Con una página de prueba, que es la lista de comandos de RM2k de un archivo
 de `pruebas/casos/`; varias en un cartucho, cada una detrás de un `--caso`, y
 los flags del cartucho antes del primero. El arnés elige cuál corre con
 `Partida(caso=k)`:
-    python3 tools/snes_convert.py -o … --map-id 6 \
+    python3 tools/port/snes_convert.py -o … --map-id 6 \
         --comandos-de-prueba pruebas/casos/pan.json \
         --caso --comandos-de-prueba pruebas/casos/pan-vuelve.json
 """
@@ -153,11 +153,11 @@ PRIORITY_ABOVE = 1                       # para las celdas de BG2
 # 255 cae el de encima y del 256 al 511 el de la ventana.
 
 # El tamaño de la ventana en celdas. Es fijo: 256x80 pegada al pie de la
-# pantalla, los mismos números que `tools/ventana.py`.
+# pantalla, los mismos números que `tools/port/ventana.py`.
 VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 
 # El glifo, que es lo que la ROM compone. Los mismos números que
-# `tools/fuente.py`, que se genera desde easyrpg-player.
+# `tools/port/fuente.py`, que se genera desde easyrpg-player.
 FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 
 # Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
@@ -1678,7 +1678,7 @@ def convert(grid, palette, variantes, otras, resumen):
 
     # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
     # corrida contigua por familia, después de los quietos: eso lo hace
-    # `tiles`, que es quien numera. Ver "Animations" en tiles/README.md.
+    # `tiles`, que es quien numera. Ver "Animations" en tools/tiles/README.md.
     tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
         imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
         max_tiles=MAX_TILES)
@@ -2092,7 +2092,7 @@ def convert_ventana(sys_img, font_id=None):
 def fuente_bytes(font_id):
     """Los 95 glifos ASCII, doce filas de seis bits cada uno.
 
-    Es la misma tabla que `tools/fuente.py`, que se genera desde
+    Es la misma tabla que `tools/port/fuente.py`, que se genera desde
     easyrpg-player, pero **con los bits dados vuelta**: allá el bit 0 es el
     pixel de la izquierda y en el formato de tiles de la consola el de la
     izquierda es el bit 7. Darlos vuelta acá y no en la ROM sale gratis: es una
@@ -2477,7 +2477,7 @@ def anim_tabla(mapas):
     out = ['.segment "RODATA"',
            "; La animación del ChipSet, una entrada de %d bytes por mapa."
            % ANIM_STRIDE,
-           "; Ver `anim_tabla` en tools/snes_convert.py y `anim_flush` en main.s.",
+           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en main.s.",
            ";",
            "; **Vive en RODATA y se lee con `lda f:anim_tabla + campo, x`**, por",
            "; lo mismo que `mapa_tabla`: son 16 bytes por mapa, y con los mapas",
@@ -2564,7 +2564,7 @@ def animaciones_asm(animaciones, mapas):
         "\n; --- el dibujo de las animaciones de batalla ---",
         ";",
         "; La caja es una sola para toda la ROM y el porqué está en",
-        "; tools/animacion.py: cuatro objetos de 32x32 en una fila de bloques",
+        "; tools/port/animacion.py: cuatro objetos de 32x32 en una fila de bloques",
         "; de la grilla de nombres, que es lo máximo que entra en la VRAM de",
         "; sprites que le queda libre al mapa 2. Lo que cambia por mapa es",
         "; dónde cae esa fila y con qué paleta, y eso va en",
@@ -2637,7 +2637,7 @@ def escenas_asm(escenas, tropas):
     """Las escenas de batalla del cartucho, listas para el `.inc`.
 
     Una escena es **el fondo con los battlers ya encima**, horneada: el porqué
-    y lo que cuesta están en tools/escena.py. Lo que se emite:
+    y lo que cuesta están en tools/port/escena.py. Lo que se emite:
 
       `escena_de`      por índice de tropa —el orden de `tropa_id`—, qué escena
                        le toca, o $FF si esa tropa no tiene fondo.
@@ -2657,7 +2657,7 @@ def escenas_asm(escenas, tropas):
         ";",
         "; Van horneados juntos en una capa de 8bpp de 256x128, que son los",
         "; siete renglones de texto de arriba. El porqué está en",
-        "; tools/escena.py; acá sólo viajan los bytes.",
+        "; tools/port/escena.py; acá sólo viajan los bytes.",
         "ESCENA_N        = %d" % len(escenas),
         "ESCENA_ANCHO    = %d" % E.ANCHO,
         "ESCENA_ALTO     = %d" % E.ALTO,
@@ -3074,7 +3074,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             break
 
     cabecera = (
-        "; Generado por tools/snes_convert.py. No editar.\n"
+        "; Generado por tools/port/snes_convert.py. No editar.\n"
         "; Mapas: %s\n\n"
         "MAPA_COUNT   = %d\n"
         "MAPA_STRIDE  = %d\n"
@@ -3120,7 +3120,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; de la consola y cuántos objetos de 32x32 mide.\n"
         "; Las coordenadas ya vienen escaladas de 320x240 a 256x224 y la X\n"
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
-        "; izquierda, que es lo que RM2k muestra. Ver tools/imagen.py.\n"
+        "; izquierda, que es lo que RM2k muestra. Ver tools/port/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
         "; OP_KEY. Ver `op_key` en main.s.\n"
         "TECLA_ESPERA   = $%02X\n"
@@ -3244,7 +3244,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; vuelta, como RM2k, y de cada 35 la rampa son 24. El mapa se carga\n"
         "; en el primer cuadro negro, que es el %d. Estos números y la tabla\n"
         "; de más abajo salen de las constantes del fundido de\n"
-        "; tools/eventos.py.\n"
+        "; tools/port/eventos.py.\n"
         "FUNDIDO_CUADROS = %d\n"
         "FUNDIDO_TOTAL   = %d\n"
         "FUNDIDO_RAMPA   = %d\n"
@@ -5370,7 +5370,7 @@ def main():
                                                           args.imagenes))
         for codigo_cmd in sorted(deudas):
             print("  mapa %d: AVISO, una página usa %s y la ROM no lo hace; "
-                  "ver ACEPTADOS_SIN_HACER en tools/eventos.py"
+                  "ver ACEPTADOS_SIN_HACER en tools/port/eventos.py"
                   % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
                                                              codigo_cmd)))
 
@@ -5621,7 +5621,7 @@ def main():
     audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
     # La escena de cada tropa que pelea con fondo: el fondo de batalla del
     # `EnemyEncounter` con los battlers de la tropa horneados encima. Ver
-    # tools/escena.py, que es donde está el porqué y el presupuesto.
+    # tools/port/escena.py, que es donde está el porqué y el presupuesto.
     escenas = []
     for numero in tropas.ids:
         fondo = tropas.fondos.get(numero)
@@ -5748,7 +5748,7 @@ def main():
 
     # **Y recién acá se decide el acomodo de bancos**, con los dos archivos ya
     # escritos: depende de todo lo que haya antes en RODATA, y el orden es el
-    # de los `.include` de main.s —la música primero—. Ver `tools/bancos.py`.
+    # de los `.include` de main.s —la música primero—. Ver `tools/ensamblado/bancos.py`.
     resueltos, rellenaron = bancos.resolver([musica, args.output])
     print("acomodo de bancos: %d bloque(s), %d empiezan banco"
           % (resueltos, rellenaron))

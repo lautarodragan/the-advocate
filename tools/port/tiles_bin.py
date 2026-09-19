@@ -20,7 +20,7 @@ import tempfile
 
 FALTA = """falta `tiles`, el conversor de imágenes a tiles.
 
-Es un binario de Rust que vive en `tiles/` y se instala como herramienta del
+Es un binario de Rust que vive en `tools/tiles/` y se instala como herramienta del
 sistema:
 
     just herramientas"""

@@ -43,14 +43,14 @@ inmediatamente, sin gastar muchos tokens y con mínimo espacio para error"**.
 
 De ahí sale el criterio que se le aplica a cada pieza nueva: **`--help` y los
 mensajes de error son features, no prolijidad.** El modelo hecho es
-`protocol/`: argumentos con clap, errores que nombran el archivo y lo que se
+`tools/protocol/`: argumentos con clap, errores que nombran el archivo y lo que se
 esperaba, y dos códigos de salida distintos (1 = algo quedó viejo, 2 = la
 llamada está mal).
 
 Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
-1. **los conversores puros**, un proyecto por responsabilidad: `brr/` (muestras
-   → BRR, con el lector de SoundFont) y `tiles/` (PNG → tiles y paletas). Son
+1. **los conversores puros**, un proyecto por responsabilidad: `tools/brr/` (muestras
+   → BRR, con el lector de SoundFont) y `tools/tiles/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
 2. **el ensamblador**: fue `w65/` y desde el 2026-09-16 es `ca65` + `ld65`,
@@ -58,17 +58,17 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 3. **el asignador** —paletas, ARAM, VRAM— que es lo que queda de
    `snes_convert.py` cuando le sacás los conversores, más el secuenciador de
    MIDI al SPC700, que **no** es un conversor tonto: conoce el driver y usa
-   `protocol/music.toml`;
+   `tools/protocol/music.toml`;
 4. **el compilador de eventos**: JSON → bytecode y tablas. No es Ditto y no
    puede serlo: Ditto es un transcodificador bidireccional y sin pérdida, y
    esto es un compilador unidireccional, con pérdida y atado a un target. Lo
-   que sí sale de acá es `tools/lcf.py` + `tools/ditto_schema.py` (2.793
-   líneas), que en Rust pasan a ser `use ditto`. Y `tools/rm2k.py` —534 líneas
+   que sí sale de acá es `tools/rpgmaker/lcf.py` + `tools/rpgmaker/ditto_schema.py` (2.793
+   líneas), que en Rust pasan a ser `use ditto`. Y `tools/rpgmaker/rm2k.py` —534 líneas
    de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
    donde hay que decidir qué pasa con lo que queda del modelo de
-   `tools/eventos.py`, que es de lo que habla el párrafo siguiente.
+   `tools/port/eventos.py`, que es de lo que habla el párrafo siguiente.
 
 **Y con la referencia se fue su modelo.** Quedaban 51 definiciones que no
 llamaba nadie —las cuentas que replicaban lo que hace la ROM: el brillo de un
@@ -89,8 +89,8 @@ seguía de largo sin que ninguna prueba lo cobrara. Entre devolver el corte y
 borrar lo que ya no tenía usuario, taro eligió lo segundo. `Estado` se queda:
 `snes_convert.py` la usa para saber quién puede liderar el grupo en cada mapa.
 
-Lo que quedó de `tools/eventos.py` es lo que hay que portar en la vuelta del
-compilador de eventos, y cuánto es lo dice `wc -l tools/eventos.py`: acá había
+Lo que quedó de `tools/port/eventos.py` es lo que hay que portar en la vuelta del
+compilador de eventos, y cuánto es lo dice `wc -l tools/port/eventos.py`: acá había
 un número escrito y ya se había quedado viejo dos veces seguidas mientras el
 barrido seguía.
 
@@ -100,7 +100,7 @@ correr las pruebas suma tiempo sin aportar casi nada—. El efecto estructural q
 esto tenía —que mientras el conversor fuera Rust y la referencia Python la
 frontera del lenguaje les hiciera imposible compartir código— **se terminó al
 irse la referencia**: lo que queda del lado de Python son las pruebas y el
-modelo de RM2k de `tools/eventos.py`, que es del mismo lado que el conversor.
+modelo de RM2k de `tools/port/eventos.py`, que es del mismo lado que el conversor.
 
 ### Qué reemplazó a la referencia, que era el paso 6
 
@@ -184,16 +184,16 @@ cada una con su `LEEME.txt` diciendo qué mirar y con qué limitaciones se choc�
 Cuatro proyectos independientes, todos en inglés y sin una mención a este juego.
 Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
-    ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
-    protocol/   declara los dos bytecodes              enchufado: los cuatro generados
-    brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
-    tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
+    tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
+    tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
+    tools/brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
+    tools/tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
 ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
 
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
-byte por byte iguales a las de antes de cada corte. `tiles/` tiene la suya de
+byte por byte iguales a las de antes de cada corte. `tools/tiles/` tiene la suya de
 que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
 frena es el desempate de `try_pack`, acá abajo.
 
@@ -207,16 +207,16 @@ frena es el desempate de `try_pack`, acá abajo.
   hashes de enteros no varían entre corridas, así que no es una ROM que cambie
   sola: es un desempate del que dependemos sin haberlo elegido, y tiene costo
   —en una llamada medida obliga a fusionar dos colores que con un desempate
-  determinista no haría falta fusionar—. El `tiles/` de antes del paso 8
+  determinista no haría falta fusionar—. El `tools/tiles/` de antes del paso 8
   desempataba por los colores mismos: de 32 llamadas, 25 idénticas, 1 con las
   mismas paletas en otro orden, 6 distintas y **ninguna peor**.
 
-  **Desde el paso 8 es una decisión del asignador**, `tools/asignador.py`, y ya
-  no de `tiles/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
+  **Desde el paso 8 es una decisión del asignador**, `tools/port/asignador.py`, y ya
+  no de `tools/tiles/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
   el orden de hash de CPython no existe— o antes, cambiando el desempate en
   Python. Cualquiera de las dos mueve el tilemap de algunos mapas y hay que
   rebendecir esas goldens; el código del desempate determinista está en la
-  historia de `tiles/`, antes de `4953089`.
+  historia de `tools/tiles/`, antes de `4953089`.
 
 * **Que un paralelo espere a su propio mensaje.** Es el tercero de los
   arreglos del A de las piedras, y quedó sin hacer porque **no entra**. En RM2k
@@ -289,7 +289,7 @@ Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
 refactors: **no hay features hasta que cierre**.
 
 **Al 2026-09-16 están hechos el 1, el 3 y el 4, y el 2 a medias.** O sea que lo
-que queda, en orden, es: enchufar `tiles/` —bloqueado por una decisión, no por
+que queda, en orden, es: enchufar `tools/tiles/` —bloqueado por una decisión, no por
 trabajo—, que taro bendiga las goldens, `ca65` con el asignador, agrupar los
 cartuchos, y partir `main.s` al final. Los dos primeros no dependen de nadie y
 se pueden empezar hoy.
@@ -298,9 +298,9 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `brr/` y `tiles/`, y borrar los de Python~~ el 2026-09-16 se
+2. ~~Enchufar `tools/brr/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
    fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
-   snes-validar`; `tiles/` se enchufó en el paso 8, con otro diseño.
+   snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
 
    El argumento que cerró la discusión, y que vale para lo que falta: dejar una
    segunda implementación no se sostiene, porque si el port se equivoca **la ROM
@@ -353,7 +353,7 @@ se pueden empezar hoy.
    el próximo banco si no entra", y existe porque un DMA que cruza de banco lee
    la WRAM en vez de la ROM. `ld65` no sabe acomodar bloques de tamaño
    variable, así que la decisión la toma ahora el conversor —el único que
-   conoce los tamaños— en `tools/bancos.py`, y al ensamblador le llega relleno
+   conoce los tamaños— en `tools/ensamblado/bancos.py`, y al ensamblador le llega relleno
    explícito. La ROM salió byte por byte igual, que era el criterio. Cuántas
    declaraciones hay y cuántas rellenan lo imprime cualquier `just demo`.
 
@@ -370,7 +370,7 @@ se pueden empezar hoy.
    **El layout, decidido por taro el 2026-09-16: un área de memoria por
    banco**, que es la forma estándar de `ld65`. El código a mano de fuera del
    banco 0 va en `FAR`, fijo en el banco 1; lo generado, en un `BANKnn` por
-   banco desde el 2, repartido por `tools/bancos.py`; y el `.cfg` lo escribe
+   banco desde el 2, repartido por `tools/ensamblado/bancos.py`; y el `.cfg` lo escribe
    el conversor para que el banco donde arranca lo generado esté escrito una
    sola vez. Descartada: que lo generado termine pegado a un banco, porque uno
    de los `.bloque` a mano seguía sin resolverse y el código a mano seguía
@@ -397,10 +397,10 @@ se pueden empezar hoy.
    capa de encima con `repartir_encima`, dónde arranca, y la paleta del fondo
    con `build_palette`— y `convert_above` y `convert` sólo emiten.
 
-8. **El asignador corre primero, y `tiles/` convierte lo que ya entra.** ✅ el
+8. **El asignador corre primero, y `tools/tiles/` convierte lo que ya entra.** ✅ el
    2026-09-17, con la ROM byte por byte igual en cada sub-paso.
    Rediseñado por taro el 2026-09-17; lo que sigue reemplaza al "enchufar
-   `tiles/`" que había acá.
+   `tools/tiles/`" que había acá.
 
    **La frontera**: `tiles` no toma decisiones artísticas —dada una imagen que
    el formato puede representar, la representa sin tocar un pixel, y si no
@@ -462,11 +462,11 @@ se pueden empezar hoy.
    no entra es el **banco 0**, por 361 bytes, y la tabla más grande que el
    conversor pone ahí es `anim_tabla`, 16 bytes por mapa. Se reproduce con:
 
-       python3 tools/snes_convert.py --grupo 10 --map-id 4 \
+       python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
            --con-timer --con-titulo -o rom/build/unico/mapdata.inc \
            --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 \
                    29 30 32 33 34 36 52 70 73 74 119 121 133 255 269 348
-       python3 tools/ensamblar.py rom/src/main.s -I rom/build/unico \
+       python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/unico \
            -o rom/build/unico/unico.sfc
 
    **Dos límites que el cartucho único destapa**, y que el juego entero va a
@@ -1325,7 +1325,7 @@ al borrarlo.
 
 Mudado del README el 2026-09-15: es lo que está a medias, o sea de este
 archivo. Lo derivable no está acá y no debería volver: qué comandos se aceptan
-sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/eventos.py`.
+sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/port/eventos.py`.
 
 * **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
   compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
@@ -1585,8 +1585,8 @@ Cada una tiene su receta —`just pruebas-rpgmaker`, `pruebas-abl`,
 `pruebas-herramientas`— y `just pruebas` sigue corriendo todo. Lo que no se
 movió, a propósito: `conftest.py` queda en `pruebas/`, que es donde pytest lo
 carga para las tres carpetas, y `golden/` y `casos/` son de las dos clases;
-moverlos es de cuando existan los dos repos. `tools/retro.py` sigue en
-`tools/`.
+moverlos es de cuando existan los dos repos. `retro.py` sigue en `tools/`, en
+`tools/emulador/`.
 
 Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
 
@@ -1606,12 +1606,34 @@ Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
   el lugar natural es al lado de `tools/`, y eso se decide cuando `tools/`
   se reparta entre los dos repos.
 
+**`tools/` quedó repartido en carpetas por responsabilidad** el 2026-09-19,
+pedido de taro, sin reescribir código: los proyectos de Rust bajaron de la
+raíz, y cada `.py` fue a un paquete de Python de verdad, que se importa por su
+nombre (`from rpgmaker import lcf`). De abajo hacia arriba, y ninguna importa
+de una de más arriba:
+
+    rpgmaker/    lcf, ditto_schema, gen_ditto_schema, event_codes, rm2k
+    comun/       cache_disco
+    ensamblado/  bancos, ensamblar
+    emulador/    retro, bsnes-wram.patch
+    render/      render_map, chipset, charset
+    audio/       snes_music, midi, musica, sdsp, spc700, muestras_brr,
+                 snes_samples, music_opcodes, msu
+    port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
+                 ventana, fuente, escena, animacion, asignador, tiles_bin,
+                 snes_convert
+    ditto/, tiles/, brr/, protocol/   los proyectos de Rust
+
+**`port/` no está partido todavía**: tiene tres ciclos de imports adentro
+—`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
+partirlo es trabajo de criterio. Ver `tools/README.md`.
+
 ## Una mejora de velocidad gratis que apareció midiendo
 
 La capa de encima llama a `tile_colors` **894.000 veces** —medido el
 2026-09-16 sobre `demo-ciudad` con `SIN_CACHE=1`— porque los colores de cada
 tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
-un diccionario de una línea. (El análisis de por qué `tiles/` no entraba, que
+un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
 ## ~~La tanda en paralelo~~ hecho el 2026-09-19
@@ -1679,8 +1701,8 @@ decida taro:
 
 * **`destraba`, `play` y `rom/Containerfile`**: decidido por taro el mismo día,
   se fueron.
-* **`tools/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
-  sale `tools/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
+* **`tools/rpgmaker/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
+  sale `tools/rpgmaker/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
   sin cómo regenerarse. Se quedó; una receta como `protocolo` lo haría visible.
 * **`assets/medir.py`** se fue, y con él la forma de repetir los números de
   `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.

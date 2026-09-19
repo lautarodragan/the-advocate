@@ -13,7 +13,7 @@ Ahora compilan, con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 
 Esto va acá y no en la tanda de pixeles por una razón que conviene tener
 escrita: del lado de la referencia la pelea no se juega —`OP_BATTLE` se va
-siempre por la rama de victoria, ver tools/eventos.py— así que no hay ningún
+siempre por la rama de victoria, ver tools/port/eventos.py— así que no hay ningún
 cuadro que comparar. Sin esta prueba, el `jml reset` sería exactamente lo que
 AGENTS.md llama "un camino que ninguna prueba ejecuta".
 

@@ -1,11 +1,11 @@
 # Ditto en este repo
 
-`ditto/` es una herramienta que lee los archivos de RPG Maker 2000 —`.ldb`,
+`tools/ditto/` es una herramienta que lee los archivos de RPG Maker 2000 —`.ldb`,
 `.lmu`, `.lmt`—, los vuelca a JSON y los **vuelve a escribir desde el JSON**,
 byte por byte. Es un **proyecto independiente**: está escrito en inglés, no
 sabe nada de este port, y sus pruebas corren contra cualquier juego de RM2k que
 se le pase en `DITTO_CORPUS`. Cómo funciona y qué trampas tiene el formato está
-en `ditto/README.md`, también en inglés.
+en `tools/ditto/README.md`, también en inglés.
 
 Este archivo es la otra mitad: **por qué existe acá**, qué decisión de este
 repo implementa, y en qué estado está esa decisión. Si Ditto se mudara a su
@@ -14,7 +14,7 @@ propio repositorio, lo de acá se quedaría y lo de allá se iría con él.
 ## El bug que lo originó
 
 Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,
-con un lector propio en Python —el `tools/lcf.py` de entonces—, y el volcado a
+con un lector propio en Python —el `tools/rpgmaker/lcf.py` de entonces—, y el volcado a
 `data/*.json`
 era un camino paralelo con su propio decodificador. Dos caminos para el mismo
 formato, y los dos con los defaults escritos a mano.
@@ -36,7 +36,7 @@ el resto del toolchain consume. No se lee el binario en cada build ni se
 mantienen dos decodificadores.
 
 **Ya pasó.** Desde el 2026-09-14, `data/` es el volcado de Ditto y
-`tools/lcf.py` lo lee: el conversor, la referencia en Python y las pruebas
+`tools/rpgmaker/lcf.py` lo lee: el conversor, la referencia en Python y las pruebas
 están todas mirando esos archivos, y ningún `.lmu` se abre para armar una ROM.
 Los tres pasos, decididos con taro:
 
@@ -44,10 +44,10 @@ Los tres pasos, decididos con taro:
    `data/`**. Hecho; es la sección de abajo.
 2. **Volcar los JSON una vez y versionarlos.** Hecho: `just datos` escribe
    `data/`, y el volcado que ganó fue el de Ditto —lo eligió taro—.
-3. Que **`tools/lcf.py` los lea**, con sus 51 consumidores intactos. Hecho, y
+3. Que **`tools/rpgmaker/lcf.py` los lea**, con sus 51 consumidores intactos. Hecho, y
    los 51 quedaron intactos.
 
-### Paso 3: cómo quedó `tools/lcf.py`, y qué costó
+### Paso 3: cómo quedó `tools/rpgmaker/lcf.py`, y qué costó
 
 Las clases —`Map`, `Database`, `TreeMap` y todo lo que cuelga— tienen los
 mismos atributos que antes, con los mismos tipos, y siguen recibiendo la ruta a
@@ -58,8 +58,8 @@ queriendo decir de dónde salen los PNG y los MIDI, que no se mudaron.
 
 **Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** El
 JSON omite todo campo que valga el suyo, la misma regla que el binario, así que
-leerlo es saber qué vale un campo ausente. Eso sale de `tools/ditto_schema.py`,
-que **se genera desde el esquema de Ditto** —`tools/gen_ditto_schema.py`— y
+leerlo es saber qué vale un campo ausente. Eso sale de `tools/rpgmaker/ditto_schema.py`,
+que **se genera desde el esquema de Ditto** —`tools/rpgmaker/gen_ditto_schema.py`— y
 trae, por campo: su chunk, su default, su enum si tiene, si el formato lo
 escribe aunque valga el default (`PersistIfDefault`) y qué struct lleva
 adentro. Es la misma idea con la que se generaba el esquema del lector viejo,
@@ -73,7 +73,7 @@ vuelven al número con las tablas de ese mismo archivo.
 cambiaron no llamaban a `lcf.Map`: metían la mano **por debajo** de la capa, a
 los chunks crudos de `db.fields`, que ya no existen porque no hay binario.
 
-* `tools/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
+* `tools/port/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
   el chunk 0x19 de la base y el 0x16 de cada uno; ahora es `db.common_events`,
   que la capa arma.
 * `pruebas/herramientas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
@@ -118,7 +118,7 @@ seis mapas—. La prueba ahora mide eso, que es lo que hay que cuidar.
 vuelve a armar. La estructura es la que pidió taro, que es la que ya tiene
 `data/`: `maps.json` con el árbol, un archivo por mapa en `maps/`, las capas de
 tiles aparte en `maps/Map0001.tiles`, y las 15 secciones de la base en `db/`.
-El porqué de cada decisión está en `ditto/README.md`, en inglés; acá va lo que
+El porqué de cada decisión está en `tools/ditto/README.md`, en inglés; acá va lo que
 es de este repo.
 
 Los pesos, sobre el mismo juego:
@@ -158,7 +158,7 @@ sintético— corren siempre.
 
 ### El corpus que Ditto se escribe solo
 
-`ditto/tests/synthetic.rs` no necesita juego: arma los archivos él mismo. Está
+`tools/ditto/tests/synthetic.rs` no necesita juego: arma los archivos él mismo. Está
 para que un clon sin corpus —el día que Ditto viva en su propio repo— mida algo
 de verdad en vez de saltear todo.
 
@@ -192,14 +192,14 @@ Al 2026-09-14 la vuelta da **330 de 330** archivos idénticos: los 328 `.lmu`,
 el `RPG_RT.ldb` y el `RPG_RT.lmt`. Y desde el volcado por directorios, otros
 **330 de 330**: `unpack` el juego entero, `pack` de vuelta, y los mismos 330
 archivos byte por byte. Ésa es la prueba de que la estructura no perdió nada, y
-está en `ditto/tests/directory_dump.rs`.
+está en `tools/ditto/tests/directory_dump.rs`.
 
 Y el número de la otra mitad, que es el que hace que ese 330 no sea suerte:
 sobre los 328 mapas, RPG Maker 2000 **omitió 8.461 campos** de 10.824 posibles
 por valer su default. Que vuelvan iguales es la prueba de que el editor sigue
 la misma regla que Ditto. El límite conocido —un chunk escrito a mano con su
-valor default se pierde, son 3 bytes— está medido en `ditto/tests/omission.rs`
-y anotado en `ditto/README.md` con la salida barata por si alguna vez aparece
+valor default se pierde, son 3 bytes— está medido en `tools/ditto/tests/omission.rs`
+y anotado en `tools/ditto/README.md` con la salida barata por si alguna vez aparece
 una tercera herramienta que lo dispare. No se implementó: ni RPG Maker ni
 EasyRPG lo disparan.
 
@@ -226,7 +226,7 @@ no sólo como compensación.
 
 Es un sourcemap en el sentido literal: del offset del `.bin` a "el campo
 `trigger` de la página 2 del evento 12 del mapa 8". Con dos saltos y no uno
-—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/ensamblar.py`,
+—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/ensamblado/ensamblar.py`,
 que ya escribe un `.sym` con los símbolos del código: esto es su extensión a
 los datos.
 

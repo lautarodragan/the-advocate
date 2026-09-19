@@ -60,12 +60,13 @@ tiene que decir; lo que el código ya dice, no.
 Todo este repo va en castellano —comentarios, documentación y mensajes de
 commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
 de punta a punta: código, comentarios, nombres de pruebas y README. Al
-2026-09-16 son cuatro:
+2026-09-16 son cuatro, y desde el 2026-09-19 viven adentro de `tools/`, al lado
+de los paquetes de Python del port —ver `tools/README.md`—:
 
-    ditto/      lee y escribe los formatos de RPG Maker 2000
-    protocol/   declara un bytecode y genera las constantes de sus dos lados
-    brr/        códec BRR y lector de SoundFont
-    tiles/      de una imagen a tiles, paletas y tilemap
+    tools/ditto/     lee y escribe los formatos de RPG Maker 2000
+    tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
+    tools/brr/       códec BRR y lector de SoundFont
+    tools/tiles/     de una imagen a tiles, paletas y tilemap
 
 Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -98,14 +99,14 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `protocol/`, `brr/` y `tiles/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/brr/` y `tools/tiles/` no necesitan nada.
 
-### `tiles/` no decide colores, y eso no se arregla
+### `tools/tiles/` no decide colores, y eso no se arregla
 
-`tiles/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
+`tools/tiles/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
-asignador, `tools/asignador.py`, que corre **antes** y deja lo que decidió como
+asignador, `tools/port/asignador.py`, que corre **antes** y deja lo que decidió como
 imágenes en `rom/build/<cartucho>/asignador/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
@@ -115,14 +116,14 @@ sacó para que haya una sola respuesta a "qué color se perdió". Devolverle a
 
 ## El número de un opcode se elige en la declaración
 
-En `protocol/` y en ningún otro lado. Hay dos declaraciones:
-`protocol/events.toml`, el bytecode que interpreta `correr_codigo`, y
-`protocol/music.toml`, el stream que lee `irq_musica`. Los dos caen en el mismo
+En `tools/protocol/` y en ningún otro lado. Hay dos declaraciones:
+`tools/protocol/events.toml`, el bytecode que interpreta `correr_codigo`, y
+`tools/protocol/music.toml`, el stream que lee `irq_musica`. Los dos caen en el mismo
 espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
 pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
 `OP_DONE`: `OP_END` ya era del stream de música—, y eso lo cuida una prueba.
 
-Antes el de eventos lo declaraba `tools/eventos.py` y le llegaba al intérprete
+Antes el de eventos lo declaraba `tools/port/eventos.py` y le llegaba al intérprete
 adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el mismo sin
 que git viera nada; el de música estaba escrito a mano de los dos lados.
 (`mapdata.inc` sigue existiendo y `main.s` lo sigue incluyendo: lo que salió de
@@ -251,7 +252,7 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 `test_cores.py`. Recompilarlos sin mirar deja de ser inocuo.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
-`liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
+`liblcf` es de donde se genera `tools/rpgmaker/event_codes.py`: los códigos de comando
 de RM2k salen de ahí y de ningún otro lado, porque la primera versión del
 filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
 que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
@@ -287,7 +288,7 @@ los `-I`, así que un `mapdata.inc` en `rom/src/` taparía al del cartucho sin
 avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
 `convert` escribía justo ahí —era "estado global", y así se terminó mirando el
 mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
-en su directorio de `rom/build/`, y `tools/ensamblar.py` se niega a armar si
+en su directorio de `rom/build/`, y `tools/ensamblado/ensamblar.py` se niega a armar si
 encuentra uno en `rom/src/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 
@@ -307,10 +308,10 @@ by 136 bytes", y con `N = 200` eso quiere decir que sobraban 64.
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
-byte iguales. Ver `tools/cache_disco.py`.
+byte iguales. Ver `tools/comun/cache_disco.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
-`rom/src/main.s`, los `tools/*.py` y los binarios de `ca65` y `ld65`: tocar
+`rom/src/main.s`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
 cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
 dice nada.
 

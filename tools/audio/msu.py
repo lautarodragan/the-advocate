@@ -16,7 +16,7 @@ el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
 sacar las muestras del SPC700: la idea no es cambiar el arreglo sino dejar de
 sintetizarlo con ocho voces y muestras recortadas.
 
-    python3 tools/msu.py rom/build/demo-ciudad/demo-ciudad.sfc
+    python3 tools/audio/msu.py rom/build/demo-ciudad/demo-ciudad.sfc
 """
 import argparse
 import array

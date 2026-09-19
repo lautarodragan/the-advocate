@@ -1,12 +1,12 @@
 """Las declaraciones del bytecode y sus generados no se pueden ir separando.
 
 Hay dos bytecodes en este port y los dos tenían el mismo problema. El de
-eventos: el número lo decidía `tools/eventos.py` y le llegaba al intérprete de
+eventos: el número lo decidía `tools/port/eventos.py` y le llegaba al intérprete de
 `main.s` **adentro de los datos de un mapa**. El del stream de música, más
 crudo todavía: los tres opcodes estaban escritos a mano de los dos lados, en
-`tools/snes_music.py` y en `main.s`, sin nada que atara las copias.
+`tools/audio/snes_music.py` y en `main.s`, sin nada que atara las copias.
 
-Desde el 2026-09-15 los declara `protocol/`, que no es de ninguno de los dos
+Desde el 2026-09-15 los declara `tools/protocol/`, que no es de ninguno de los dos
 lados, y de ahí salen generados los cuatro archivos de `GENERADOS`. El
 generador es un binario de Rust que se instala con `just herramientas` y se usa
 desde el PATH, así que estos casos lo necesitan instalado; lo generado está
@@ -97,11 +97,11 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     # Y que no haya vuelto a aparecer uno escrito a mano en la propia ROM.
     propios = set(re.findall(r"^(OP_[A-Z_]+)\s*=", fuente, re.M))
     assert not propios, (
-        "main.s declara %s a mano: eso va en protocol/"
+        "main.s declara %s a mano: eso va en tools/protocol/"
         % ", ".join(sorted(propios)))
     sin_declarar = usados - todos
     assert not sin_declarar, (
-        "main.s compara contra %s, que no está declarado en protocol/"
+        "main.s compara contra %s, que no está declarado en tools/protocol/"
         % ", ".join(sorted(sin_declarar)))
 
 

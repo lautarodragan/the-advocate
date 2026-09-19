@@ -2,7 +2,7 @@
 
 Esto es *A Blurred Line* volcado de los formatos binarios de RPG Maker 2000 a
 JSON y a texto plano. Lo escribe **Ditto** (`just datos`), y **es lo que lee el
-port**: `tools/lcf.py` sale de acá y de ningún otro lado, así que el conversor,
+port**: `tools/rpgmaker/lcf.py` sale de acá y de ningún otro lado, así que el conversor,
 la referencia en Python y las pruebas están todos mirando estos archivos y no
 los `.lmu`. El porqué de esa decisión está en `DITTO.md`, en la raíz.
 
@@ -40,12 +40,12 @@ donde el formato dice 10, y el DirtShadow moría de un golpe.
 valga el valor por omisión del formato, y el JSON hace exactamente lo mismo,
 por la misma razón y con la misma tabla. Así que "`max_hp` no aparece" no
 quiere decir 0: quiere decir 10. Los defaults están en
-`tools/ditto_schema.py`, generado desde el esquema de Ditto, que a su vez sale
+`tools/rpgmaker/ditto_schema.py`, generado desde el esquema de Ditto, que a su vez sale
 de liblcf.
 
 **Los enums van por nombre.** `"trigger": "auto_start"`, `"layer": "same"`,
 `"code": "ShowMessage"`. Un número no le dice nada a nadie; el nombre sí, y es
-el de liblcf. `tools/lcf.py` los vuelve al número que espera el port.
+el de liblcf. `tools/rpgmaker/lcf.py` los vuelve al número que espera el port.
 
 **Los tiles van aparte y en texto**, una fila por línea, porque son lo único
 voluminoso: meterlos en el JSON haría los diffs ilegibles justo donde más
@@ -55,12 +55,12 @@ columna de su celda.
 **El texto es cp1252**, y un par de mensajes que el autor nunca tocó siguen en
 Shift-JIS: en el JSON salen como caracteres raros y vuelven al binario
 idénticos. Decodificarlos adivinando le costaría a Ditto la vuelta exacta, que
-es lo único que lo hace útil, así que el que adivina es `tools/lcf.py`.
+es lo único que lo hace útil, así que el que adivina es `tools/rpgmaker/lcf.py`.
 
 ## De dónde salen los nombres
 
 De **liblcf**, que es donde EasyRPG declara el formato en un juego de tablas
-CSV. `ditto/src/schema/` se genera de ahí y está en git; `tools/ditto_schema.py`
+CSV. `tools/ditto/src/schema/` se genera de ahí y está en git; `tools/rpgmaker/ditto_schema.py`
 se genera de eso. Ningún número de este directorio se escribió de memoria: ya
 pasó una vez que tres códigos de comando se pusieron así y estaban mal, y de
 ahí salió la regla.

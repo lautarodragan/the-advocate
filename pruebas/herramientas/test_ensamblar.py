@@ -1,4 +1,4 @@
-"""Las tres cosas que `tools/ensamblar.py` hace además de llamar a `ca65` + `ld65`.
+"""Las tres cosas que `tools/ensamblado/ensamblar.py` hace además de llamar a `ca65` + `ld65`.
 
 Lo grande —que la ROM salga igual que la de antes— lo cobran todas las pruebas
 que arman un cartucho. Esto es lo chico, que un error ahí no rompe ninguna

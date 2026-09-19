@@ -4,11 +4,11 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
 `batalla*` de `test_tanda_pantallas.py` comparan **la pantalla** contra su
 golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
-cuesta ningún tick —ver `OP_BATTLE` en tools/eventos.py—. Lo que pasa adentro
+cuesta ningún tick —ver `OP_BATTLE` en tools/port/eventos.py—. Lo que pasa adentro
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
-modelo de `tools/batalla.py` juega la misma pelea con el mismo azar y las
+modelo de `tools/port/batalla.py` juega la misma pelea con el mismo azar y las
 mismas fórmulas, y la prueba exige que la consola dé **el número exacto** en
 cada HP, turno por turno. Si la ROM y el modelo se separan en un tiro de dado
 o en una división, el primer turno ya no coincide.

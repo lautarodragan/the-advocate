@@ -1,5 +1,5 @@
 # Los opcodes de los eventos: su número y su layout. La declaración está en
-# `protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
+# `tools/protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
 # salen generados los dos módulos de `tools/` y los dos `.inc` de `rom/src/`,
 # todos commiteados. Hay dos declaraciones: el bytecode de los eventos y el
 # stream de música que lee el SPC700.
@@ -24,9 +24,10 @@ protocolo-pruebas:
 brr-pruebas:
   cd tools/brr && cargo test
 
-# El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `tools/lcf.py` ni al
-# conversor: convive con ellos. Ver DITTO.md, que es lo que ata a Ditto con este
-# port; adentro de ditto/ no hay ni una referencia a nosotros, a propósito.
+# El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a
+# `tools/rpgmaker/lcf.py` ni al conversor: convive con ellos. Ver DITTO.md, que
+# es lo que ata a Ditto con este port; adentro de tools/ditto/ no hay ni una
+# referencia a nosotros, a propósito.
 #
 # El juego con el que se mide **se lo pasa el repo**, no lo sabe la herramienta:
 # sin DITTO_CORPUS las pruebas que lo necesitan se saltean con un mensaje.
@@ -42,7 +43,7 @@ ditto-vuelta-entera:
   cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
-# lee `tools/lcf.py` y de ahí el conversor. Es derivado —se puede volver a
+# lee `tools/rpgmaker/lcf.py` y de ahí el conversor. Es derivado —se puede volver a
 # sacar en cualquier momento— y va a git igual, porque es la única forma de
 # *leer* el juego y de que un cambio se vea en un diff.
 #
@@ -71,16 +72,17 @@ tiles-pruebas:
 # Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
 # leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
 # `pruebas/arnes/consola.py`. El mapa de memoria lo escribe el conversor al lado de
-# los `.inc`. Ver tools/ensamblar.py.
+# los `.inc`. Ver tools/ensamblado/ensamblar.py.
 ensamblar := "python3 tools/ensamblado/ensamblar.py"
 
 # Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # --- Las herramientas de Rust ----------------------------------------------
-# `protocol/`, `brr/`, `ditto/` y `tiles/` son proyectos aparte, y el port los
-# consume **desde el PATH**, como consume python3 o un core de libretro: ningún
-# script ni prueba de este juego llama a `cargo`. Se instalan una vez y quedan.
+# `tools/protocol/`, `tools/brr/`, `tools/ditto/` y `tools/tiles/` son
+# proyectos aparte, y el port los consume **desde el PATH**, como consume
+# python3 o un core de libretro: ningún script ni prueba de este juego llama a
+# `cargo`. Se instalan una vez y quedan.
 herramientas:
   cargo install --locked --path tools/protocol --root {{cargo_root}}
   cargo install --locked --path tools/brr --root {{cargo_root}}
@@ -90,7 +92,7 @@ herramientas:
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las
 # herramientas del PATH —`ca65` + `ld65` arman la ROM y `brr` sus muestras—. La
-# ROM se corre desde Python cuadro a cuadro (tools/retro.py), sin emulador con
+# ROM se corre desde Python cuadro a cuadro (tools/emulador/retro.py), sin emulador con
 # ventana ni servidor X.
 #
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;

@@ -92,7 +92,7 @@ tope real dejó de ser la cantidad de paletas.
 **Lo que sigue costando.** El presupuesto de tiles de sprite en VRAM: dibujar
 todo llevó al mapa 8 de 192 a 347 tiles, y hubo que rebalancear los cuatro
 repartos de VRAM para que entren 400 de fondo y 347 de sprite a la vez. Ver
-`LAYOUT_*` en `tools/snes_convert.py`.
+`LAYOUT_*` en `tools/port/snes_convert.py`.
 
 
 ## Un evento de una sola página condicionada no se dibujaba nunca
@@ -116,7 +116,7 @@ destrabó la sección de acá arriba.
 ## El giro hacia vos cuando le hablás: lo que no se modela
 
 **Desde el 2026-09-11 gira**, de los dos lados, con una ranura de VRAM de giro
-por mapa para los quietos: ver GIRO en `tools/eventos.py`. Lo que queda afuera:
+por mapa para los quietos: ver GIRO en `tools/port/eventos.py`. Lo que queda afuera:
 
 * **Los que caminan solos no giran.** Su ruta propia está siempre andando, y
   con una ruta andando adónde mira lo decide ella. Uno al que una escena ya
@@ -336,7 +336,7 @@ dibujo. En RM2k el contador es de treinta y dos bits y eso no pasa.
 
 **Qué se pierde.** Un salto de un dibujo del agua, una vez cada dieciocho
 minutos. La referencia hace la misma vuelta a propósito —`TICK_MASCARA` en
-`tools/rm2k.py`— así que los dos lados siguen dibujando lo mismo y la
+`tools/rpgmaker/rm2k.py`— así que los dos lados siguen dibujando lo mismo y la
 comparación no se vuelve ciega.
 
 **Cuándo deja de alcanzar.** Si algún día `vueltas` pasa a treinta y dos bits

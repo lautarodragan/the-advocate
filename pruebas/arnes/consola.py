@@ -6,7 +6,7 @@ en qué mapa está, qué switch tiene prendido o qué evento está corriendo. So
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `tools/ensamblar.py` deja al lado de la ROM
+Lo que hace posible preguntar es que `tools/ensamblado/ensamblar.py` deja al lado de la ROM
 la tabla de símbolos que sale del `main.s` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
@@ -51,7 +51,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `tools/ensamblar.py`, leída por nombre."""
+    """La tabla que deja `tools/ensamblado/ensamblar.py`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta

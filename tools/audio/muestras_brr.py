@@ -1,6 +1,6 @@
 """De dónde salen las muestras del port, y cómo llegan a BRR.
 
-Acá no hay ni códec ni lector de SoundFont: los dos son `brr/`, el binario de
+Acá no hay ni códec ni lector de SoundFont: los dos son `tools/brr/`, el binario de
 Rust, y este módulo es el puente entre él y el conversor. Lo que sí hay es lo
 que el binario no puede tener, porque no sabe nada de este juego: el caché en
 disco del conversor y la memoria de lo ya pedido.
@@ -15,7 +15,7 @@ temporales y todo— cuestan **1,33 s** de una conversión de 102 s.
 Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
 juntar todas las muestras en una sola invocación ahorraría 0,35 s de esos
-102 s: menos del medio por ciento, a cambio de un modo más en `brr/`. Y encima
+102 s: menos del medio por ciento, a cambio de un modo más en `tools/brr/`. Y encima
 no se pueden juntar del todo: `snes_samples.build_bank` decide el presupuesto
 de la muestra siguiente mirando cuánto ocupó la anterior, así que los trabajos
 no existen todos juntos en ningún momento.
@@ -32,7 +32,7 @@ from comun import cache_disco
 
 FALTA = """falta `brr`, el códec de muestras del SPC700.
 
-Es un binario de Rust que vive en `brr/` y se instala como herramienta del
+Es un binario de Rust que vive en `tools/brr/` y se instala como herramienta del
 sistema, no se compila en cada corrida:
 
     just herramientas
@@ -71,8 +71,8 @@ def binario():
 def _version_del_codec():
     """Qué versión de "el codificador" produjo lo que hay en el caché.
 
-    Van este archivo y **el binario instalado**, no los fuentes de `brr/`: el
-    binario del PATH se instala aparte, así que un árbol con `brr/src` tocado y
+    Van este archivo y **el binario instalado**, no los fuentes de `tools/brr/`: el
+    binario del PATH se instala aparte, así que un árbol con `tools/brr/src` tocado y
     sin `just herramientas` corrido sigue codificando con el de antes. Lo que
     la clave tiene que describir es lo que produjo los bytes.
     """

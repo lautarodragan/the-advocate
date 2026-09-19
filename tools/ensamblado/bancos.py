@@ -228,7 +228,7 @@ def cfg():
     # que es lo que dice la cabecera y lo que esperan los flash carts.
     memoria.append("RESERVADO: start = $%02X8000, size = $%X, fill = yes;"
                    % (BANCOS - BANCOS_RESERVADOS, 0x8000 * BANCOS_RESERVADOS))
-    return ("# Generado por tools/bancos.py: el mapa de memoria de la ROM.\n"
+    return ("# Generado por tools/ensamblado/bancos.py: el mapa de memoria de la ROM.\n"
             "MEMORY {\n%s\n}\nSEGMENTS {\n%s\n}\n"
             % ("\n".join("    " + m for m in memoria),
                "\n".join("    " + s for s in segmentos)))

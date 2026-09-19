@@ -49,7 +49,7 @@ ARAM_LIBRE = 0x10000 - SAMPLES_ADDR
 ARAM_MARGEN = 1024
 
 # Los opcodes del stream **no se declaran acá**: salen de
-# `protocol/music.toml`, que es del que escribe el stream y del que lo lee, y
+# `tools/protocol/music.toml`, que es del que escribe el stream y del que lo lee, y
 # de ninguno. Hasta el 2026-09-15 estaban escritos a mano de los dos lados, en
 # este archivo y en main.s, sin nada que los atara.
 from audio.music_opcodes import *   # noqa: E402,F401,F403
@@ -69,7 +69,7 @@ DRUM_VOICES = 2
 # los efectos siguen sonando en el SPC700, así que la ARAM les queda entera.
 #
 # Es el experimento que pidió taro el 2026-09-11, porque la música
-# sintetizada suena fea. Las pistas las arma `tools/msu.py` desde los mismos
+# sintetizada suena fea. Las pistas las arma `tools/audio/msu.py` desde los mismos
 # MIDI, con el soundfont con que sonaba el juego original en la PC.
 #
 # **Son los 21 temas que suenan hasta salir de Lashe City**, que es el alcance
@@ -943,7 +943,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
 
     with open(path, "w") as handle:
         handle.write(
-            "; Generado por tools/snes_music.py. No editar.\n"
+            "; Generado por tools/audio/snes_music.py. No editar.\n"
             "; Temas: %s\n\n"
             "; Cuántos temas lleva el cartucho y cuál suena desde el arranque.\n"
             "; Los índices son los de `Temas` en eventos.py, o sea los que el\n"

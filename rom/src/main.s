@@ -47,7 +47,7 @@ APUIO2   = $2142
 APUIO3   = $2143
 
 ; El comando del driver del SPC700 que lo manda de vuelta a la ROM del IPL.
-; Ver `DRIVER` en tools/snes_music.py y el lazo de `reset` que lo usa.
+; Ver `DRIVER` en tools/audio/snes_music.py y el lazo de `reset` que lo usa.
 APU_CMD_IPL = 4
 
 ; La consola multiplica y divide por hardware, que es lo único que hace falta
@@ -401,7 +401,7 @@ BAF_DEF   = $01             ; se está defendiendo
 BAF_ACTOR = $02             ; es del grupo
 BAF_HAY   = $04             ; la ranura está ocupada
 
-; Los tres resultados y las tres órdenes, en el orden de `tools/batalla.py`.
+; Los tres resultados y las tres órdenes, en el orden de `tools/port/batalla.py`.
 BA_VICTORIA = 0
 BA_HUIDA_R  = 1
 BA_DERROTA  = 2
@@ -572,7 +572,7 @@ VIEW_ROWS = 29
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
 ; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
-; están en `tools/ventana.py`, que es de donde salen: 80 de alto y pegada al
+; están en `tools/port/ventana.py`, que es de donde salen: 80 de alto y pegada al
 ; pie, como la pone RM2k.
 VENTANA_FILA  = 18
 VENTANA_FILAS = 10
@@ -589,7 +589,7 @@ VENTANA_VOFS = 111
 ; segunda no vive 32 palabras más adelante sino 1024.
 VIEW_COLS_TILEMAP = 32
 
-; Los dos bytecodes que esta ROM lee, generados desde protocol/: el de los
+; Los dos bytecodes que esta ROM lee, generados desde tools/protocol/: el de los
 ; eventos, que interpreta `correr_codigo`, y el del stream de música, que lee
 ; `irq_musica`. Cada uno lo declara un archivo que no es ni del que emite los
 ; bytes ni del que los lee.
@@ -1595,7 +1595,7 @@ anim_continua:
     ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
     ; ocho bytes más adelante, que es donde cada bloque guarda su capa de
     ; encima; sumar ocho no puede desbordar el banco porque el acomodo de
-    ; `tools/bancos.py` garantiza que la tabla entera entra en uno.
+    ; `tools/ensamblado/bancos.py` garantiza que la tabla entera entra en uno.
     lda f:mapa_tabla + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:mapa_tabla + M_PTR_MAP_BLOQUES, x
@@ -5328,7 +5328,7 @@ fundir_nada:
 
 ; `OpenSaveMenu`: la pantalla de ranuras en modo guardar, y la partida a la
 ; que el jugador elija. Sin operandos. La referencia hace lo mismo con el mismo
-; opcode: ver `OP_SAVE` en tools/eventos.py.
+; opcode: ver `OP_SAVE` en tools/port/eventos.py.
 ;
 ; **Bloquea adentro del intérprete y no cuesta ningún tick**, que es lo que hace
 ; RM2k: `OpenSaveMenu` apila `Scene_Save`, el mapa deja de actualizarse hasta
@@ -8664,7 +8664,7 @@ reusada:
     ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
     ; La suma no se lleva nada al byte de banco porque el bloque de código del
     ; mapa entra entero en uno —lo garantiza el acomodo de bancos del
-    ; conversor, `tools/bancos.py`—, que es el mismo argumento que el del bloque de mensajes.
+    ; conversor, `tools/ensamblado/bancos.py`—, que es el mismo argumento que el del bloque de mensajes.
     rep #$20
 .a16
     tya
@@ -14759,7 +14759,7 @@ si_a:
 ; opcode lleva los tres destinos y acá se le asigna al cursor el que toque.
 ;
 ; Las reglas —daño, acierto, crítico, varianza, orden de turnos, huida— salen
-; de easyrpg-player y están escritas dos veces: acá y en `tools/batalla.py`,
+; de easyrpg-player y están escritas dos veces: acá y en `tools/port/batalla.py`,
 ; que es lo que le permite a `pruebas/rpgmaker/test_batalla.py` predecir el número
 ; exacto que cada HP va a tener. La pantalla es de texto, sobre negro.
 ;
@@ -17501,7 +17501,7 @@ listo:
 ; --- el cartel del ShowPicture ----------------------------------------------
 ;
 ; Seis objetos de 32x32 con una paleta de sprite para ellos solos, y un fundido
-; que es un tinte de esos quince colores cuadro a cuadro. Ver `tools/imagen.py`,
+; que es un tinte de esos quince colores cuadro a cuadro. Ver `tools/port/imagen.py`,
 ; que es donde está escrito dónde cae y de qué color es cada pixel, y OP_PICTURE
 ; en eventos.py.
 ;
@@ -17898,7 +17898,7 @@ listo:
 ; propia son los del cartel, y subir dibujos nuevos en el vblank es lo que ya
 ; hacen los tiles animados del ChipSet.
 ;
-; Dónde cae cada pixel y de qué color es está en `tools/animacion.py`, que es
+; Dónde cae cada pixel y de qué color es está en `tools/port/animacion.py`, que es
 ; lo único que las dos puntas comparten; acá no se decide nada de eso. La caja
 ; es una sola para toda la ROM y lo que cambia por mapa —en qué tile queda y
 ; con qué paleta— lo trae `anim_batalla_reparto`, un byte por mapa.
@@ -21000,7 +21000,7 @@ columna:
 MSG_CHARS = 5
 
 ; Dónde empieza el texto adentro de la ventana, en pixeles. Es el `border_x` de
-; `Window`, el mismo que usa `tools/ventana.py`.
+; `Window`, el mismo que usa `tools/port/ventana.py`.
 VENTANA_BORDE = 8
 
 ; La fila del glifo cae dos pixeles abajo del borde de la celda, y eso no
@@ -21844,7 +21844,7 @@ sin_fila:
 ; toca. El conversor deja los que cambian en una corrida contigua al final del
 ; banco del mapa, sin compartir ninguno con las celdas quietas, así que un paso
 ; es un DMA solo: entre 128 y 1664 bytes según el mapa. Ver `convert` en
-; tools/snes_convert.py.
+; tools/port/snes_convert.py.
 ;
 ; **No guarda en qué punto va y no lee nada del cartucho para decidir**, y las
 ; dos cosas eran obligatorias y no elegancia: la BSS estaba en 7680 de 7680 y la
@@ -21863,7 +21863,7 @@ sin_fila:
 ; Tres dibujos en cuatro pasos, con el cuarto repitiendo el segundo. Lo usan
 ; las dos animaciones que hay: el agua del ChipSet —`animation_step_ab` de
 ; easyrpg— y el ciclo de caminata de un personaje, que tiene tres columnas y
-; dibuja la 1 cuando el paso es el 3. Es `CICLO_TRES` en tools/rm2k.py.
+; dibuja la 1 cuando el paso es el 3. Es `CICLO_TRES` en tools/rpgmaker/rm2k.py.
 ciclo_tres:
     .byte 0, 1, 2, 1
 
@@ -21914,7 +21914,7 @@ anim_por_vel:
 ; El tick es `vueltas`, el mismo número que cuenta la referencia. Como es de
 ; dieciséis bits, cada 65536 ticks —dieciocho minutos— da la vuelta y el ciclo
 ; se saltea un dibujo; RM2k cuenta en treinta y dos. La referencia da la misma
-; vuelta —ver `TICK_BITS` en tools/rm2k.py— así que los dos lados siguen
+; vuelta —ver `TICK_BITS` en tools/rpgmaker/rm2k.py— así que los dos lados siguen
 ; diciendo lo mismo, y lo que se pierde está declarado en LIMITACIONES.md.
 .proc anim_paso
 .a8
@@ -22006,7 +22006,7 @@ saltar:
     bra saltar
 puesto:
     ; El bloque vive en el cartucho y su puntero está en el registro del mapa.
-    ; El acomodo de `tools/bancos.py` garantiza que entra entero en un banco,
+    ; El acomodo de `tools/ensamblado/bancos.py` garantiza que entra entero en un banco,
     ; así que la suma de
     ; dieciséis bits no se sale.
     phx
@@ -24900,8 +24900,8 @@ pal_buf:  .res 512
 
 ; --- música ----------------------------------------------------------------
 ; El stream son opcodes: escribir un registro del DSP, esperar cuadros, o fin.
-; Los tres los declara `protocol/music.toml` y el equate sale generado: hasta
-; el 2026-09-15 estaban escritos a mano acá **y** en tools/snes_music.py, que
+; Los tres los declara `tools/protocol/music.toml` y el equate sale generado: hasta
+; el 2026-09-15 estaban escritos a mano acá **y** en tools/audio/snes_music.py, que
 ; es el que escribe el stream, sin nada que atara las dos copias.
 
 ; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
@@ -24974,7 +24974,7 @@ listo:
 ; El cartucho lleva varios temas desde el 2026-09-06 y **todos comparten el
 ; banco de muestras**, que se sube una sola vez al arrancar: cambiar de tema es
 ; cambiar de stream y nada más, o sea que no cuesta ni un cuadro. De ahí que
-; acá no haya nada que subir. Ver `Banco` en tools/snes_music.py.
+; acá no haya nada que subir. Ver `Banco` en tools/audio/snes_music.py.
 ;
 ; Qué índice está sonando queda en `tema_actual`, que es lo que `music_frame`
 ; necesita para volver a empezar cuando el stream termina: sin eso el loop
@@ -25430,7 +25430,7 @@ salto_por_vel:
     clc
     adc temp
     ; La suma puede pasarse de los 16 bits del desplazamiento, así que el banco
-    ; se toma del acarreo: el acomodo de `tools/bancos.py` garantiza que el
+    ; se toma del acarreo: el acomodo de `tools/ensamblado/bancos.py` garantiza que el
     ; bloque no cruce de banco, no en qué banco arranca.
     sta A1T0L
     sep #$20
@@ -26340,7 +26340,7 @@ tropa_lista:
 ;
 ; `Normal::vExecute` de easyrpg: **tres tiros en este orden** —acierto,
 ; crítico y varianza— y el del crítico se hace aunque la chance sea cero. Ese
-; orden es el contrato con `tools/batalla.py`: cambiarlo de un lado desfasa el
+; orden es el contrato con `tools/port/batalla.py`: cambiarlo de un lado desfasa el
 ; azar del otro y no se ve hasta que un golpe da distinto.
 ;
 ; La fuente en `BA_MQUIEN` y el blanco en `BA_MBLA`. Deja el daño en
@@ -26700,7 +26700,7 @@ ordenado:
 ; --- la pantalla ----------------------------------------------------------
 ;
 ; De texto y sobre negro, en la misma grilla de 32 por 28 celdas que el equipo
-; y la tienda. La geometría sale de `tools/pantallas.py` y el conversor emite
+; y la tienda. La geometría sale de `tools/port/pantallas.py` y el conversor emite
 ; las posiciones, así que la escribe **uno solo de los dos lados**. Arriba los enemigos, abajo el grupo, y el último renglón es o el
 ; menú de órdenes o los dos renglones del mensaje.
 
@@ -29019,7 +29019,7 @@ no_huyo:
 ;
 ; El fondo de batalla con los monstruos **ya horneados encima**: una sola capa
 ; de 8bpp de 256x128 en BG1, que son los siete renglones de texto de arriba.
-; El porqué, el presupuesto y lo que cuesta están en tools/escena.py; acá sólo
+; El porqué, el presupuesto y lo que cuesta están en tools/port/escena.py; acá sólo
 ; se sube.
 ;
 ; Corre desde `batalla_correr` con la pantalla apagada y con el banco de datos
@@ -29236,7 +29236,7 @@ listo:
 ; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
 ; tienda: `vueltas` no avanza mientras se ve, así que para la referencia la
 ; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
-; en tools/eventos.py.
+; en tools/port/eventos.py.
 .proc batalla_correr
 .a8
 .i16
@@ -30402,7 +30402,7 @@ afuera:
 .endproc
 
 ; Hasta el próximo banco: los datos generados arrancan pegados a uno, que es lo
-; único que `tools/bancos.py` supone del mapa de memoria.
+; único que `tools/ensamblado/bancos.py` supone del mapa de memoria.
 .align $8000
 
 ; --- cabecera y vectores ---------------------------------------------------

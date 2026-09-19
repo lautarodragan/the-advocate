@@ -465,7 +465,7 @@ TRIGGER_TOCA_HEROE = 1
 # un diálogo, un cambio de música o del gráfico del héroe— hace que el evento
 # haga algo más que mudarte, y ahí la puerta no alcanza.
 #
-# Estos números salen de tools/event_codes.py y hay que sacarlos de ahí. La
+# Estos números salen de tools/rpgmaker/event_codes.py y hay que sacarlos de ahí. La
 # primera versión los puso de memoria y tres estaban mal: dos de los que creía
 # inofensivos eran PlayBGM y ChangeSpriteAssociation, o sea que el filtro
 # aceptaba puertas que cambian la música y el sprite del héroe. Ese error la

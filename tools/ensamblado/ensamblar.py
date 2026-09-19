@@ -1,6 +1,6 @@
 """Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
 
-    python3 tools/ensamblar.py rom/src/main.s -I rom/build/demo-ciudad \\
+    python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/demo-ciudad \\
         -o rom/build/demo-ciudad/demo-ciudad.sfc --simbolos …/demo-ciudad.sfc.sym
 
 Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
@@ -21,7 +21,7 @@ Lo que **no** tiene equivalente es un control que hacía `w65`: que cada salto
 llegue a su etiqueta con los registros al ancho que ella declara.
 
 El mapa de memoria no está acá: lo escribe el conversor, `memoria.cfg`, al lado
-de los `.inc`. Ver `tools/bancos.py`.
+de los `.inc`. Ver `tools/ensamblado/bancos.py`.
 """
 
 import argparse
