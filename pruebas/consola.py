@@ -20,47 +20,20 @@ exactamente lo que se quiere: ruidoso y en el lugar. Una constante copiada a
 mano se desfasaría en silencio y leería la dirección de al lado.
 """
 
-import glob
-import hashlib
 import os
 import re
-import subprocess
 import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 import retro                                            # noqa: E402
-import ensamblar                                        # noqa: E402
-import tiles_bin                                        # noqa: E402
 from snes_correr import RETRASO_DE_PANTALLA             # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.
 NUCLEO = os.environ.get(
     "NUCLEO", "/usr/lib/libretro/snes9x_libretro.so")
-
-# Dónde viven las páginas de prueba: una por caso, con la lista de comandos
-# de RM2k en el JSON de Ditto. Ver `--comandos-de-prueba` en snes_convert.py.
-CASOS = os.path.join("pruebas", "casos")
-
-
-def flags_de_casos(caso):
-    """(los flags del conversor, lo que dicen) para un caso o una tupla de
-    casos, por nombre. `caso` None es ningún caso.
-
-    Lo que dicen va en la clave del cartucho junto con el nombre: el conversor
-    lee el archivo, así que cambiarlo sin cambiar el nombre tiene que rearmar.
-    """
-    casos = () if caso is None else (
-        (caso,) if isinstance(caso, str) else tuple(caso))
-    flags, contenido = [], []
-    for k, nombre in enumerate(casos):
-        ruta = os.path.join(CASOS, nombre + ".json")
-        with open(os.path.join(RAIZ, ruta), encoding="utf-8") as archivo:
-            contenido.append((nombre, archivo.read()))
-        flags += (["--caso"] if k else []) + ["--comandos-de-prueba", ruta]
-    return flags, tuple(contenido)
 
 
 class SimboloDesconocido(KeyError):
@@ -731,111 +704,6 @@ def en_la_rom(direccion):
     Es el mapeo LoROM y nada más: cada banco expone sus 32 KB desde $8000.
     """
     return ((direccion >> 16) * 0x8000) + (direccion & 0x7FFF)
-
-
-def huella():
-    """De qué depende una ROM de prueba, además de sus mapas.
-
-    Todo lo que participa de armarla: el fuente de la ROM, el conversor, el
-    ensamblador y el modelo. Si nada de eso cambió, la ROM que está en disco
-    sigue siendo la que se habría armado, y armarla otra vez son tres segundos
-    tirados en cada corrida.
-
-    Se mira el contenido y no la fecha: `git checkout` de ida y vuelta deja
-    fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
-
-    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan, y
-    `tiles`, que convierte las capas—: si no entraran, reinstalarlos no
-    invalidaría nada y las pruebas correrían contra ROMs armadas con los
-    viejos, en silencio. Los envoltorios que los llaman ya entran con el
-    `tools/*.py`.
-    """
-    h = hashlib.sha256()
-    partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
-              + ensamblar.binarios() + [tiles_bin.binario()])
-    partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
-    for ruta in partes:
-        with open(ruta, "rb") as archivo:
-            h.update(archivo.read())
-    return h.hexdigest()[:16]
-
-
-def armar(map_id, mapas=(), destino=None, titulo=False,
-          tema=None, timer=False, encuentros=0, caso=None):
-    """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
-
-    Los mismos dos comandos que corre el justfile, para que una ROM de prueba
-    no sea nunca una ROM armada a mano: ver "Trampas del entorno" en AGENTS.md.
-
-    `caso` es la página de prueba, por su nombre en `pruebas/casos/`: ver
-    `flags_de_casos`.
-
-    Se saltea si ya está hecha y nada de lo que la arma cambió; ver `huella`.
-    El estado inicial —los switches— ya no se hornea en la ROM sino que se
-    escribe en la RAM, así que dos pruebas que piden los mismos mapas comparten
-    el mismo cartucho.
-    """
-    destino = destino or os.path.join(RAIZ, "rom", "build", "pruebas")
-    os.makedirs(destino, exist_ok=True)
-    inc = os.path.join(destino, "mapdata.inc")
-    sfc = os.path.join(destino, "prueba.sfc")
-    sello = os.path.join(destino, "huella.txt")
-    de_casos, contenido = flags_de_casos(caso)
-
-    # La huella lleva **también los argumentos**, y no sólo los fuentes: dos
-    # llamadas con mapas distintos y el mismo `destino` devolvían el cartucho de
-    # la primera, en silencio. `conftest.partida()` no se lo come porque le da
-    # un destino por combinación, pero llamar a `armar()` a mano sí: el
-    # 2026-09-13 me hizo medir cuatro mapas y estar midiendo siempre el mismo.
-    # Del caso entra lo que dice, no sólo su nombre: ver `flags_de_casos`.
-    actual = huella() + "\n" + repr((
-        map_id, tuple(mapas), titulo, tema, timer, encuentros,
-        contenido))
-    if os.path.exists(sfc) and os.path.exists(inc):
-        try:
-            with open(sello) as archivo:
-                if archivo.read().strip() == actual:
-                    return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
-        except OSError:
-            pass
-
-    convertir = ([sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py")]
-                 + ["--map-id", str(map_id)])
-    if mapas:
-        convertir += ["--mapas"] + [str(m) for m in mapas]
-    if encuentros:
-        # Los encuentros al azar cada `encuentros` pasos, en vez de los del
-        # árbol de mapas: sin esto una prueba tendría que caminar hasta que le
-        # tocara, y en Rat Tracks B1 son ochenta pasos por encuentro.
-        convertir += ["--encuentros-de-prueba", str(encuentros)]
-    if timer:
-        # El cronómetro, que es lo que las demos llevan: se lo pide `--con-timer`
-        # y cuesta la paleta de los dígitos. Lo necesita la prueba de recorrido,
-        # porque la cuenta atrás de diez minutos arranca en la casa de Talan y
-        # sin esto el mapa que la para no tendría qué parar.
-        convertir.append("--con-timer")
-    if tema:
-        # Que la ROM arranque con un tema sonando. Los mapas de estas pruebas
-        # no traen música propia, así que sin esto no hay forma de comprobar
-        # que el tema viaja en la partida guardada: `music_apagada` valdría 1
-        # en los dos lados y la prueba pasaría sin probar nada.
-        convertir += ["--tema-de-arranque", tema]
-    if titulo:
-        # La pantalla de título, que cambia el arranque: la ROM no carga la
-        # partida sola y espera a que el menú lo decida. Va en su propio
-        # cartucho justamente por eso.
-        convertir.append("--con-titulo")
-    # El caso va al final: detrás de un `--caso` todo sería de ese caso.
-    convertir += ["-o", inc] + de_casos
-    subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
-
-    # El mismo envoltorio que usan las recetas: `ca65` + `ld65`.
-    ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
-                        destino, sfc, sfc + ".sym")
-    with open(sello, "w") as archivo:
-        archivo.write(actual)
-
-    return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
 
 
 def mapas_de(inc):
