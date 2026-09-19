@@ -5103,8 +5103,17 @@ def main():
     for caso in args.casos:
         caso.mapa = mapa_del_caso(caso, orden, args.inicial)
     de_archivo = comandos_de_casos(args)
-    args.con_timer = args.con_timer or any(
-        cmd.code == eventos.TIMER_OPERATION for cmd in de_archivo)
+    # Qué mapas llevan los dígitos del cronómetro, que cuestan una paleta de
+    # sprite. Con `--con-timer`, todos: es lo que piden las demos, donde la
+    # cuenta atrás arranca en un mapa y se ve en los que siguen. Sin él, los
+    # mapas donde corre un caso que lo toca: hasta el paso 9e bastaba uno para
+    # que los llevaran todos los del cartucho, y en el cartucho único del 9f
+    # eso le sacaba la paleta a cada mapa —medido, quince goldens se movían—.
+    # Un mapa sin dígitos no los dibuja: `TIMER_BASE` en cero, ver
+    # `timer_oam`.
+    args.timer_en = set(orden) if args.con_timer else {
+        caso.mapa for caso in args.casos
+        if any(cmd.code == eventos.TIMER_OPERATION for cmd in caso.comandos)}
 
     renderer = Renderer(args.game_dir)
 
@@ -6272,7 +6281,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
     timer_colores = ()
-    if args.con_timer:
+    if map_id in args.timer_en:
         import ventana as ventana_mod
         timer_colores = sorted(colores_del_timer(ventana_mod.skin(
             args.game_dir, renderer.database.system_name)))
@@ -6450,7 +6459,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
     # comparten paleta con quien tenga lugar, que casi siempre hay.
     timer_base, timer_pal = 0, None
-    if args.con_timer:
+    if map_id in args.timer_en:
         import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
