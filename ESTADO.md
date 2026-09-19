@@ -1054,14 +1054,48 @@ nombre del bug.
 **El orden, decidido por taro:**
 
 1. ~~**`OP_HEAL`**~~ **hecho.** En el banco 0 costó 14 bytes —la entrada del
-   despacho y el `jsl`; el cuerpo vive afuera—, y lo que sobra ahí quedó en
-   **12 bytes en el cartucho `pruebas` y 387 en `demo-ciudad`**, desde 26 y
-   401. El número se vuelve a medir con un `.res N` en `TABLAS`, como dice
+   despacho y el `jsl`; el cuerpo vive afuera—, y dejó al banco 0 con doce
+   bytes, que es lo que disparó el punto 2. Cuánto sobra hoy se mide como dice
    AGENTS.md.
-2. **Liberar el banco 0**, y ahora es más urgente: quedan 12 bytes en el
-   cartucho de pruebas y la BSS del banco 0 está llena (se pasa por 1 byte con
-   la divergencia 3 de los mensajes). Medir qué hay y mover afuera lo que se
-   pueda, antes de sumar nada más.
+2. ~~**Liberar el banco 0**~~ **la ROM, hecha el 2026-09-19; la BSS, no.**
+
+   **La ROM**: bajaron al banco 1 el equipo y la tienda, 3162 bytes, y el
+   banco 0 pasó de 12 bytes libres a unos tres mil en el cartucho más
+   apretado. Los números se miden, no se copian de acá: ver AGENTS.md, y ojo
+   con que **el que manda ya no es `demo-ciudad` sino `titulo`**.
+
+   Rindieron porque su frontera es mínima: tres entradas y dos puentes nuevos,
+   porque los otros ocho ya estaban de cuando bajó la pelea. La trampa que
+   apareció —y que va a volver a aparecer con cada mudanza— es la simétrica de
+   la de la pelea: **un dato que se va al banco 1 y se lee con
+   direccionamiento absoluto pasa a leer el banco 0**, porque el banco de
+   datos sigue en cero. Era un solo `lda mensaje_de, x` y la tienda abría sin
+   el saludo.
+
+   **Lo que queda sin mover, medido, por si hace falta más ROM** (bytes netos
+   del banco 0, contando puentes y entradas): las ranuras y guardar ~1500 con
+   10 puentes, la pantalla de ítems ~1000 con 10, el menú de pausa y la
+   elección de actor ~970 con 9, la pantalla de título ~350 con 12. Y dos que
+   rinden más pero **son camino caliente y no se tocan sin decidirlo**: el
+   giro hacia el héroe ~1700 y la saturación del tinte ~1560. En el banco 1
+   entran todas: le quedan unos 21 KB.
+
+   **La BSS sigue llena y no tiene ninguna salida barata**, que es el
+   resultado de la medición y no una pausa: lo grande que hay ahí es
+   `texto_buf` (1968 B), `npc_buf` (1664), `oam`, `cgram_sombra` y `pal_buf`
+   (512 cada uno) y el estado de los eventos, y todo eso o se toca por cuadro
+   o es origen de un DMA. La ventana de `$2180` no se indexa, así que ninguno
+   pasa a la RAM lejana sin reescribirlo; el camino que sí existe es el de la
+   pelea —correr con el banco de datos en `$7E`— y para `texto_buf` eso es
+   reescribir el compositor de texto, que es el lazo más interno del repo.
+
+   Lo único barato es **bajar `PILA`**, en `tools/ensamblado/bancos.py`: son
+   256 bytes reservados y la cadena más honda mide 49 —medido el 2026-09-19
+   marcando la pila y corriendo la tanda entera; el 24 que decía era de antes
+   de la pelea—. Un número y nada más, y alcanza de sobra para el byte que
+   pide la divergencia 3. **Espera a taro** porque gasta un margen cuyo modo
+   de falla no lo ve nadie: ni las goldens ni `test_cores.py`, que compararían
+   dos corrupciones iguales.
 3. **Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
    mensajes —un paralelo espera a su propio mensaje—.
 

@@ -179,8 +179,22 @@ BANCOS = 128
 BANCOS_RESERVADOS = 2
 
 # La pila arranca en `$1FFF` y crece hacia abajo, hacia el BSS: los dos
-# comparten los 8 KB bajos. Esto es lo que se le deja a la pila, que medida
-# baja 24 bytes en la cadena de llamadas más honda.
+# comparten los 8 KB bajos. Esto es lo que se le deja.
+#
+# **Medido de nuevo el 2026-09-19: baja 49 bytes, no 24.** El 24 que decía acá
+# era de antes de la pelea. La medición es la buena y conviene saber cómo se
+# hizo, porque la cadena más honda no se adivina leyendo: se marcó `$1F00-$1FFF`
+# con `$A5` en el `reset`, se corrió `just pruebas` entera y se leyó en cada
+# prueba el byte más bajo que dejó de ser `$A5`. Los 49 son de las peleas, que
+# son las que entran al banco 1 con `jsl` y vuelven por los puentes.
+#
+# O sea que sobran 207 bytes de margen, y la BSS está llena. **Bajar esto es la
+# forma más barata que hay de liberar BSS —un número y nada más— pero gasta el
+# margen, y el modo de falla es la pila comiéndose la BSS sin que nada lo vea**:
+# las goldens no lo distinguen y `test_cores.py` tampoco, porque los dos
+# emuladores se corromperían igual. Y 49 es lo que bajan los caminos que la
+# tanda ejecuta, no los que existen. Así que se baja con una decisión tomada,
+# no de paso.
 PILA = 256
 
 

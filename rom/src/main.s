@@ -150,8 +150,9 @@ TMW      = $212E        ; a qué capas de la pantalla principal se les aplica
 ; cualquier otro DMA.
 WMDATA   = $2180
 ; --- la RAM del banco 1 ------------------------------------------------------
-; La BSS del banco 0 está llena —7680 de 7680— y el ZEROPAGE tiene doce bytes
-; libres. La consola tiene 128 KB de WRAM y la ROM usa ocho: al resto se llega
+; La BSS del banco 0 está llena —7680 de 7680— y el ZEROPAGE también, 256 de
+; 256; acá decía que al ZEROPAGE le sobraban doce y hace rato que no.
+; La consola tiene 128 KB de WRAM y la ROM usa ocho: al resto se llega
 ; por esta misma ventana, apuntando WMADD y leyendo o escribiendo $2180 con
 ; auto-incremento. No es direccionamiento normal —no se puede indexar— así que
 ; sirve para lo que se guarda y se recorre de a poco, no para lo que se dibuja.

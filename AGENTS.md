@@ -296,13 +296,29 @@ ROMs salen de una receta, no de un `ca65` suelto.**
 emite el conversor viven ahí, así que el número cambia con la lista de mapas:
 el 2026-09-13 la misma pregunta se contestó **81**, **1** y **85** bytes en la
 misma tarde, y las tres estaban bien —cada una con un `mapdata.inc` distinto—.
-Medido con `demo-ciudad`, que es el cartucho grande, son 85; con
-`demo-carrera`, más de 600. Así que al decir "quedan N bytes" hay que decir con
-cuál, y el que manda es `demo-ciudad`.
+Así que al decir "quedan N bytes" hay que decir con cuál.
 
-Medirlo es meter un `.res N` en `TABLAS` más grande que lo que sobra y leer
-por cuánto se pasa: `ld65` avisa "Segment ‘TABLAS’ overflows memory area ‘ROM’
-by 136 bytes", y con `N = 200` eso quiere decir que sobraban 64.
+**El que manda es el más apretado, y no es `demo-ciudad`**: hasta el
+2026-09-17 sí lo era, pero desde que las pruebas arman un cartucho con los 40
+mapas, el que menos margen tiene es `titulo` —el de pruebas con la pantalla de
+título—, seguido de `pruebas`. `demo-ciudad` sobrepasa a los dos por unos
+cuatrocientos bytes, así que medir sólo en él dice que hay lugar cuando no lo
+hay. Acá había un número escrito y se quedó viejo: **no se escribe, se mide**,
+y hay que medir los seis.
+
+Medirlo no pide tocar ningún fuente: se ensambla un objeto aparte con un
+`.res N` en el segmento que se quiere medir y se lo linkea junto al `.o` que
+la receta ya dejó al lado de la ROM, y `ld65` avisa "Segment ‘TABLAS’
+overflows memory area ‘ROM’ by 136 bytes", o sea que con `N = 200` sobraban
+64. Ojo con dos cosas que hacen que la medición dé "no se pasó" siempre: en un
+segmento `ro` el `.res` tiene que llevar valor de relleno —`.res N, $00`— o no
+ocupa nada, y `ld65` escribe el mensaje con comillas tipográficas, no `'`.
+
+Los tres segmentos que se llenan son **`TABLAS`** —el banco 0, que comparte
+sus 32.704 bytes con `CODE`—, **`BSS`** y **`ZEROPAGE`**. El banco 1 es
+`FAR`, y ahí el `.res` mide siempre 0 porque un `.align $8000` lo cierra hasta
+el final del banco: lo que queda libre se lee mirando hasta dónde llega su
+último símbolo en la tabla de símbolos.
 
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
