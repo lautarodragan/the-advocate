@@ -1036,15 +1036,14 @@ Jugando `pruebas-manuales/2026-09-19-62ef7d4/`. Cada uno se investigó aparte, s
 tocar el repo; los scripts de reproducción están en `/extras/scratchpad/` con el
 nombre del bug.
 
-* **Vuelve al título al entrar a una pelea al azar en los back alleys.** No es
-  un crash: es Game Over. La pelea obligatoria del mapa 9 contra cuatro
-  GangMember se pierde por diseño, y su manejador de derrota llama a
-  `FullHeal`, que **compila a nada** —`eventos.py`, desde `ced9464`, cuando los
-  HP no bajaban nunca fuera de pelea; al día siguiente, `9527063` los hizo
-  estado—. Talan sigue con 0 HP, y el primer encuentro se da por perdido sin
-  abrirse. **La demo no se puede pasar de ahí.** Tampoco curan el Life Bucket
-  del mapa 23 ni `ResetAfterBattles`. Ninguna prueba corría un `FullHeal`
-  después de perder.
+* ~~**Vuelve al título al entrar a una pelea al azar en los back alleys.**~~
+  **Hecho**: era `FullHeal` compilando a nada, y desde el 2026-09-19 es
+  `OP_HEAL`. Lo cubre `pruebas/rpgmaker/test_curar.py`, con el camino entero
+  —perder la pelea del mapa 9 y forzar un encuentro— corrido a mano con
+  `/extras/scratchpad/heal/historia.py` sobre `demo-titulo`. El `ChangeHP` que
+  suma entró en el mismo opcode; el que resta sigue sin compilar, y
+  `ResetAfterBattles` tiene uno, así que **ese evento común sigue sin
+  compilar**.
 * **El bum del mapa 20 no habla**: su página usa `ShowInn`, que el compilador no
   conoce. Hay 18 en el juego; 17 compilarían con él. Necesita curar, así que va
   después de lo de arriba.
@@ -1054,13 +1053,15 @@ nombre del bug.
 
 **El orden, decidido por taro:**
 
-1. **`OP_HEAL`** —`FullHeal` que cura de verdad—, primero: sin él la demo no
-   avanza, y en el banco 0 sólo cuesta la entrada del despacho; la rutina vive
-   afuera, con `jsl`.
-2. **Liberar el banco 0**: al cartucho de pruebas le quedaban 26 bytes y la BSS
-   del banco 0 está llena (se pasa por 1 byte con la divergencia 3 de los
-   mensajes). Medir qué hay y mover afuera lo que se pueda, antes de sumar nada
-   más.
+1. ~~**`OP_HEAL`**~~ **hecho.** En el banco 0 costó 14 bytes —la entrada del
+   despacho y el `jsl`; el cuerpo vive afuera—, y lo que sobra ahí quedó en
+   **12 bytes en el cartucho `pruebas` y 387 en `demo-ciudad`**, desde 26 y
+   401. El número se vuelve a medir con un `.res N` en `TABLAS`, como dice
+   AGENTS.md.
+2. **Liberar el banco 0**, y ahora es más urgente: quedan 12 bytes en el
+   cartucho de pruebas y la BSS del banco 0 está llena (se pasa por 1 byte con
+   la divergencia 3 de los mensajes). Medir qué hay y mover afuera lo que se
+   pueda, antes de sumar nada más.
 3. **Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
    mensajes —un paralelo espera a su propio mensaje—.
 
