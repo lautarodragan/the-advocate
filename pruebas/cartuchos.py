@@ -89,22 +89,27 @@ CARTUCHOS = {
                               "--tema-de-arranque", "escape_newyork"], None),
     # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
     # no una imagen: el actor 21 —con él la pantalla de ranuras junta 462
-    # tiles de 448—, el héroe por encima de la capa, los encuentros cada 8
+    # tiles de 448—, los casos con los actores 12 y 13 en el grupo —pueden
+    # liderar, y sus sprites en todos los mapas le cambiaban los colores al
+    # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
+    # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
     # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
     # puede pedir— y el relleno de textos y el de mensajes. Y las dos
     # lluvias: en el 6 del de pruebas corren casos con cronómetro, las gotas
     # caen en la paleta de los dígitos, y ésa `subir_timer_pal` la sube sin
     # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
-    "chico": (["--map-id", "6", "--mapas", "74", "1", "21", "255",
+    "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--heroe-encima", "--encuentros-de-prueba", "8",
-               "--relleno-de-textos", "200", "--relleno-de-mensajes", "33000"],
+               "--relleno-de-mensajes", "33000"],
               ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
-               "grupo-11-en-255", "batalla", "pan-lluvia", "sacudir-lluvia"]),
+               "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
+               "pelea-82-grupo-11-12", "pan-lluvia", "sacudir-lluvia"]),
     # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
     # del borde de banco. No convive con el del chico: los dos corren el mismo
     # mensaje, cada uno a otro lugar.
-    "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766"],
-              ["grupo-11"]),
+    "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766",
+               "--relleno-de-textos", "200"],
+              ["grupo-11", "batalla"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
     # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
     # sale con otra rampa de fundido y otro tinte— y el cronómetro le saca
@@ -115,7 +120,9 @@ CARTUCHOS = {
 }
 
 # Los casos que no van en el cartucho de pruebas porque viven en otro.
-FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia"}
+FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia",
+         "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
+         "pelea-82-grupo-11-12"}
 
 # El que corre sin que nadie lo pida, que es la página 0: el grupo de la tanda
 # en el mapa de arranque.
