@@ -157,3 +157,29 @@ def test_change_hp_topa_en_el_maximo_y_no_levanta_a_un_caido(partida):
     assert palabra_de(una, "FAR_HP", 13) == 0, (
         "ChangeHP levantó al actor 13, que estaba caído: quedó en %d"
         % palabra_de(una, "FAR_HP", 13))
+
+
+# --- y el `FullHeal` que el jugador usa a propósito --------------------------
+
+def test_el_balde_del_mapa_23_deja_los_hp_llenos(partida):
+    """El Life Bucket, que es el otro `FullHeal` que taro no veía curar.
+
+    El caso `curar-balde` deja al héroe dos celdas debajo del balde; desde ahí
+    la prueba camina hasta chocarlo —así queda mirándolo, que es lo que el
+    trigger de acción pide— y le da A. Visto en rojo con el conversor
+    emitiendo nada para `FullHeal`: el actor 10 se quedaba en 7 HP mientras el
+    cartel decía "HP and SP completely recovered!".
+    """
+    una = partida(caso="curar-balde")
+    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * 10, [7, 0])
+    for _ in range(240):
+        una.consola.apretar("up")
+        una.consola.correr(1)
+    una.consola.apretar()
+    for n in range(120):
+        una.consola.apretar(*(("a",) if n % 8 < 2 else ()))
+        una.consola.correr(1)
+    una.consola.apretar()
+    assert palabra_de(una, "FAR_HP", 10) == maximos()[10][0], (
+        "el balde dejó al actor 10 en %d y su máximo es %d"
+        % (palabra_de(una, "FAR_HP", 10), maximos()[10][0]))
