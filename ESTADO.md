@@ -506,7 +506,7 @@ se pueden empezar hoy.
    | 9c ✅ | el grupo lo arma la página de prueba, y el 261 entra | ninguna golden se movió |
    | 9d ✅ | las páginas de prueba pasan a ser eventos de RM2k —ver "Hacia dónde va"—, en tres cortes: (1) la página se arma con comandos de RM2k y se exige que compile a los mismos bytes; (2) varias páginas en un cartucho, elegidas por una variable; (3) las definiciones salen de los flags a datos | ninguna golden se movió, y los `mapdata.inc` de la tanda salieron idénticos en cada corte |
    | 9e ✅ | lo que queda de flags por cartucho —`--inicio`, `--descartar-eventos`, los datos de prueba— | se regeneraron diez goldens, las diez por fase de animación: esperan que taro las mire |
-   | 9f ✅ | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada; se regeneraron ocho goldens, una de fase y siete del cartucho único: esperan que taro las mire |
+   | 9f ✅ | una receta arma el cartucho de pruebas una vez, y las pruebas reciben su ruta | ninguna prueba arma nada; cambian cinco goldens, una de fase y cuatro de contenido que el cartucho único trae: taro las miró |
 
    **9e, decidido por taro el 2026-09-18**, sobre lo que midió un sub-agente
    (rama `worktree-agent-a0e54b96ce9bbc0ac`, `medicion-9e/`; capturas en
@@ -600,32 +600,47 @@ se pueden empezar hoy.
      es arrancar ahí —la cinemática sale con otra rampa y otro tinte—, y el
      cronómetro en todos los mapas le saca una paleta a cada uno;
    * `chico`, lo que no entra o cuida una disposición del cartucho: el actor
-     21, `--heroe-encima`, los encuentros cada 8 pasos, los dos rellenos que
-     pueden convivir y **las dos lluvias**, por el defecto de abajo;
-   * `cruza`, el relleno de 32766, que pone el mismo mensaje en otro lugar que
-     el de 33000 y no puede convivir con él.
+     21, **los casos con los actores 12 y 13 en el grupo** —decisión de taro:
+     en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
+     `--heroe-encima`, los encuentros cada 8 pasos, el relleno de mensajes de
+     33000 y **las dos lluvias**, por el primer defecto de abajo;
+   * `cruza`, el relleno de mensajes de 32766, que pone el mismo mensaje en
+     otro lugar que el de 33000 y no puede convivir con él, y el relleno de
+     textos de 200, por el segundo defecto de abajo.
 
    `ChangeEncounterSteps` no está implementado, así que los encuentros de
    prueba siguen siendo un flag del cartucho chico.
 
-   **Lo que el cartucho único cambió de las goldens**, ocho, cada causa aislada
-   armando el cartucho viejo con una sola cosa del nuevo: una de fase —la
-   llegada por `Teleport`, como las del 9e— y siete porque ahora están los 40
-   mapas y la unión de los casos —una puerta que ahora lleva a algún lado,
-   páginas que compilan porque su destino está, y los actores 12 y 13, que
-   pueden liderar y le sacan paletas al mapa 13—. Lado a lado en
-   `/extras/capturas/9f/`, y esperan que taro las mire.
+   **Lo que el cartucho único cambió de las goldens**, cinco, cada causa
+   aislada armando el cartucho viejo con una sola cosa del nuevo: `3-down-56`
+   es de fase —la llegada por `Teleport`, como las del 9e— y las otras cuatro
+   son contenido que traen los 40 mapas: `8-right`, una puerta que ahora lleva
+   al 16; `tram-320`, páginas del 9 que compilan porque su destino está; y
+   `tram-900` y `tram-1200`, el viaje del tranvía que sigue hasta el 16. taro
+   las miró. Lado a lado en `/extras/capturas/9f/`.
 
-   **Encontrado midiendo, sin arreglar**:
+   **Dos defectos conocidos**, encontrados armando el cartucho único y sin
+   arreglar a propósito —cero features hasta cerrar la etapa—:
 
    * **las gotas de lluvia en un mapa con cronómetro no se tiñen.** Las gotas
-     buscan la primera paleta de sprite con lugar, y si el mapa lleva los
-     dígitos suele ser la de ellos; `subir_timer_pal` sube esa paleta **sin
-     teñir**, a propósito para los dígitos, y las gotas salen grises en una
-     pantalla azul. Lo destapó juntar `pan-lluvia` con los casos de
-     cronómetro en el 6. Se evita no juntándolos —las lluvias van en el
-     chico—, pero en `demo-ciudad`, que lleva cronómetro en todos los mapas,
-     puede estar pasando: no se miró;
+     buscan la primera paleta de sprite con lugar —`gotas_de_lluvia` en
+     snes_convert.py—, y si el mapa lleva los dígitos suele ser la de ellos;
+     `subir_timer_pal` sube esa paleta **sin teñir**, a propósito para los
+     dígitos, y las gotas salen grises en una pantalla teñida. Lo destapó
+     `pan-lluvia`: en un cartucho con un caso de cronómetro en el mismo mapa
+     —`pan-lluvia` y `timer` en el 6— el cuadro 66 difiere en 584 pixeles, y
+     `sacudir-lluvia-60` en 679. Se evita no juntándolos —las lluvias van en
+     el chico—, pero **puede verse en `demo-ciudad`**, que lleva cronómetro
+     en todos los mapas y llueve en el 1: no se miró;
+   * **la lista "Use Item" de la pelea no dibuja los nombres de los ítems
+     cuyo índice de texto pasa de 255**: quedan el cursor y las cantidades.
+     Es la misma clase que arregló `batalla-textos-lejos` para los renglones
+     del menú, en otra tabla. Se reproduce con el caso `batalla-item` en un
+     cartucho con `--relleno-de-textos 200`: `batalla-item` y
+     `batalla-item-blanco` difieren en 521 pixeles, todos en los nombres.
+     Por eso ese relleno va en `cruza` y no en el chico. **Puede verse en
+     `demo-ciudad`**, cuyos textos de la batalla arrancan pasado el 255: no
+     se miró;
    * **en el cartucho de pruebas la primera vuelta del lazo termina tres
      cuadros más tarde** que en uno de un mapa. `Partida` lo espera antes de
      mirar el `Teleport`, pero lo que cuenta cuadros de hardware desde el
