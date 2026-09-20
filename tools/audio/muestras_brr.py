@@ -2,8 +2,12 @@
 
 Acá no hay ni códec ni lector de SoundFont: los dos son Gunter —`tools/gunter/`,
 el binario de Rust—, y este módulo es el puente entre él y el conversor. Lo que
-sí hay es lo que el binario no puede tener, porque no sabe nada de este juego: el caché en
-disco del conversor y la memoria de lo ya pedido.
+sí hay es lo que el binario no puede tener, porque no sabe nada de este juego:
+el caché en disco del conversor y la memoria de lo ya pedido.
+
+Lo que se cachea acá es **el BRR**. La muestra ya preparada —el remuestreo y la
+normalización que van antes— la cachea `snes_samples`, en otra categoría y con
+otra clave; las dos caducan juntas porque las dos llevan `version()`.
 
 **Las dos memorias son lo que hace viable un proceso por muestra.** Medido el
 2026-09-15 sobre una conversión entera de `demo-ciudad` con `SIN_CACHE=1`: el
@@ -14,11 +18,17 @@ temporales y todo— cuestan **1,33 s** de una conversión de 102 s.
 
 Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
-juntar todas las muestras en una sola invocación ahorraría 0,35 s de esos
-102 s: menos del medio por ciento, a cambio de un modo más en Gunter. Y encima
-no se pueden juntar del todo: `snes_samples.build_bank` decide el presupuesto
-de la muestra siguiente mirando cuánto ocupó la anterior, así que los trabajos
-no existen todos juntos en ningún momento.
+juntar todas las muestras en una sola invocación ahorraría 0,35 s, a cambio de
+un modo más en Gunter. Y encima no se pueden juntar del todo:
+`snes_samples.build_bank` decide el presupuesto de la muestra siguiente mirando
+cuánto ocupó la anterior, así que los trabajos no existen todos juntos en
+ningún momento.
+
+Lo que sí cambió desde aquella medición es contra qué se compara ese 0,35 s: el
+caché de muestras preparadas del 2026-09-20 se llevó la mitad de la conversión,
+así que hoy pesa bastante más de lo que pesaba. Sigue sin alcanzar, pero si
+alguna vez se vuelve a mirar dónde se va el tiempo, éste ya no es un número
+despreciable.
 """
 
 import hashlib

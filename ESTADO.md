@@ -1737,6 +1737,16 @@ tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
+Y la de al lado, que el caché de muestras del 2026-09-20 **tapó en vez de
+arreglar**: el recorte de `snes_music.Banco` pide el banco de percusión,
+pregunta si entra, y si no entra vuelve a pedirlo con el presupuesto bajado un
+10%. Bajar de a un 10% hasta llegar a cero son unas ciento veinte vueltas, y
+por eso `build_drum_bank` se llama **790 veces** en una conversión de
+`demo-ciudad` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
+sigue siendo una búsqueda lineal donde cabe una binaria, y hoy es lo que llena
+el caché de claves. Tocarlo cambia qué muestras salen, así que pide medir la
+ROM byte por byte; no es urgente.
+
 ## ~~La tanda en paralelo~~ hecho el 2026-09-19
 
 Decidido por taro el 2026-09-18: **el build va primero y en serie** —`just
@@ -1768,7 +1778,10 @@ sumado de todos los procesos:
 
 En frío, desde `rom/build/` vacío —sin el caché del conversor—, **7m26s en
 serie y 5m13s en paralelo**: los casi cinco minutos que quedan son armar los
-cinco cartuchos, que siguen en serie. **La memoria no limita**: el
+cinco cartuchos, que siguen en serie. **Ese número es del 2026-09-19 y quedó
+viejo por lo bajo**: al día siguiente el caché de muestras preparadas bajó
+`just cartuchos` de 4m46s a 2m08s, con el resto del caché caliente. Lo que
+tarda hoy lo dice el build. **La memoria no limita**: el
 `MemAvailable` nunca bajó de 44 GB, y ninguna corrida en primer plano la mató
 el reaper.
 
