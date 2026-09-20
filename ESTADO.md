@@ -209,28 +209,9 @@ ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
 byte por byte iguales a las de antes de cada corte. `tools/tiles/` tiene la suya de
 que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
-frena es el desempate de `try_pack`, acá abajo.
+frena es el desempate de `try_pack`: ver `wishlist/desempate-try-pack.md`.
 
 ### Lo que hay que decidir
-
-* **El desempate de `try_pack`.** Reparte los colores recorriendo
-  `sorted(sets, key=-len)` sobre un `set` de `frozenset`, así que los empates
-  —que son el caso normal— los desempata el orden de iteración de una tabla de
-  hash, que no es parte de la entrada. Medido: **156 de 200 barajadas del mismo
-  conjunto dan otro reparto**. La ROM de hoy sale siempre igual porque los
-  hashes de enteros no varían entre corridas, así que no es una ROM que cambie
-  sola: es un desempate del que dependemos sin haberlo elegido, y tiene costo
-  —en una llamada medida obliga a fusionar dos colores que con un desempate
-  determinista no haría falta fusionar—. El `tools/tiles/` de antes del paso 8
-  desempataba por los colores mismos: de 32 llamadas, 25 idénticas, 1 con las
-  mismas paletas en otro orden, 6 distintas y **ninguna peor**.
-
-  **Desde el paso 8 es una decisión del asignador**, `tools/port/asignador.py`, y ya
-  no de `tools/tiles/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
-  el orden de hash de CPython no existe— o antes, cambiando el desempate en
-  Python. Cualquiera de las dos mueve el tilemap de algunos mapas y hay que
-  rebendecir esas goldens; el código del desempate determinista está en la
-  historia de `tools/tiles/`, antes de `4953089`.
 
 * ~~**Que un paralelo espere a su propio mensaje.**~~ **Hecho el 2026-09-20**;
   queda escrito porque es el porqué y porque el costo se midió dos veces. En
