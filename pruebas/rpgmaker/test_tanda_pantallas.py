@@ -29,7 +29,7 @@ docstring es el del caso, que es también el de su golden.
 
 import pytest
 
-from tanda import (cartucho, consola_cruda, correr_hardware, correr_ticks,
+from tanda import (consola_cruda, correr_hardware,
                    encender, golden, partida, ticks_de_avance)
 
 @pytest.mark.parametrize("cuadro", (60, 400))
@@ -352,39 +352,25 @@ def test_titulo(nombre, sosteniendo, toques):
 
     Las cuatro ranuras salen vacías porque la SRAM del emulador arranca virgen.
     """
-    consola = encender("titulo", ARRANQUE_CON_TITULO)
+    consola = encender("juego", ARRANQUE_CON_TITULO)
     correr_hardware(consola, 20, toques=toques, sosteniendo=sosteniendo)
     golden(nombre, consola.imagen())
 
 
-def test_titulo_es_el_mismo_juego():
-    """`titulo`: la ROM con título y la misma sin él, ya adentro del mapa.
-
-    Es el único caso de la tanda que compara **una ROM contra otra** y no
-    contra una referencia: la pregunta es justamente "¿son la misma?". Vale
-    porque la ROM sin título ya está comparada por todos los demás casos.
-
-    Se le da `start` para pasar el título y se corren 300 ticks desde el cuadro
-    **cero**: acá no se puede pasar un arranque fijo, porque la mitad del
-    arranque *es* el título. Por eso `correr_ticks` y no `Partida`.
-
-    Las dos capturas van igual contra su golden, que es lo que cobra que las
-    dos hayan cambiado a la vez; y además se comparan entre sí, que es la
-    pregunta original.
-
-    **Lo que este caso no cubre**, y hay que decirlo: el PPU quedando con los
-    registros del título —lo que taro encontró en Mesen— **no lo ve**.
-    Verificado sacando el `jsr ppu_init` que lo arregla: snes9x sigue dando
-    cero. Lo que sí cobra es el reparto de la VRAM.
-    """
-    imagenes = []
-    for en, nombre in (("titulo", "titulo-juego"),
-                       ("pruebas", "titulo-juego-sin")):
-        consola = encender(en, 0)
-        correr_ticks(consola, cartucho(en).simbolos, 300,
-                     sosteniendo=("start",))
-        imagenes.append(consola.imagen())
-        golden(nombre, imagenes[-1])
-    assert imagenes[0].tobytes() == imagenes[1].tobytes(), (
-        "la ROM con título y la ROM sin título dibujan cosas distintas ya "
-        "adentro del mapa")
+# `test_titulo_es_el_mismo_juego` estuvo acá hasta el 2026-09-20 y se fue con
+# el cartucho `titulo`, que existía para ser su otra mitad: comparaba la ROM
+# con título contra la misma sin él, 300 ticks adentro del mapa, y era el único
+# caso de la tanda que comparaba **una ROM contra otra**.
+#
+# Se fue por dos razones medidas, y la primera sola ya alcanzaba. Sus dos
+# goldens —`titulo-juego` y `titulo-juego-sin`— eran **la pantalla entera en
+# negro**: a los 300 ticks con `start` sostenido no se ve nada, así que la
+# comparación que daba nombre al caso comparaba negro contra negro. Y con el
+# título mudado al cartucho del juego ya no hay dos ROMs que se distingan sólo
+# por la pantalla: la que la lleva arranca en el 4 y con cronómetro.
+#
+# Lo que la pregunta buscaba —¿la ROM con título dibuja lo mismo adentro del
+# mapa?— lo cobran ahora las diecisiete goldens de `cinematica`, `apertura` y
+# `cartel` de `pruebas/abl/test_tanda_escenas.py`: se congelaron cuando el
+# cartucho no llevaba título y hoy se sacan a través de él, byte por byte
+# iguales, en imágenes que no son negras.

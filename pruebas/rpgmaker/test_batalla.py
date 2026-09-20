@@ -236,8 +236,10 @@ def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):
 def en_el_droide(partida, con_tema=False):
     # El mapa del droide no trae tema, y sin uno no se puede comprobar que el
     # del mapa vuelva al terminar la pelea: el cartucho del juego arranca con
-    # uno sonando, `--tema-de-arranque`.
-    una = partida(caso=LINKAGE, en="juego" if con_tema else None)
+    # uno sonando, `--tema-de-arranque`. Y desde el 2026-09-20 es también el
+    # que lleva la pantalla de título, así que se entra por ella.
+    una = partida(caso=LINKAGE, en="juego" if con_tema else None,
+                  titulo=0 if con_tema else None)
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])

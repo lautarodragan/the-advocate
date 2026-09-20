@@ -772,6 +772,33 @@ class Recorrido:
 
     # --- guardar en un save point ------------------------------------------
 
+    def abrir_el_save_point(self, toques=40):
+        """Parado sobre un save point, tocarle A hasta que la pantalla de
+        ranuras esté a la vista, y dejarla ahí.
+
+        Está separado de `guardar_en_el_save_point` porque hay una prueba que
+        mira la pantalla **antes** de elegir: el cursor arranca en la ranura de
+        la que se cargó, y elegir lo movería. Ver
+        `test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso`.
+        """
+        p = self.p
+        for _ in range(toques):
+            if p.byte("menu_abierto"):
+                break
+            p.consola.apretar("a")
+            p.consola.correr(2)
+            p.consola.apretar()
+            p.consola.correr(8)
+        if not p.byte("menu_abierto"):
+            raise Trabado(
+                "el save point no abrió la pantalla de ranuras en %d toques "
+                "de A. %s" % (toques, self.estado()))
+        # El mismo aire que `Partida.guardar_en` le da a la pantalla antes de
+        # tocarle nada: sube su banco con la pantalla apagada y un toque que
+        # caiga ahí se pierde.
+        p.consola.correr(TITULO_AIRE)
+        return self
+
     def guardar_en_el_save_point(self, ranura=0, toques=40):
         """Parado sobre un save point, tocarle A y elegir `ranura`.
 
@@ -791,22 +818,7 @@ class Recorrido:
         Al volver se resincroniza `Partida.cuadro`, que quedó viejo por los
         cuadros que el jugador pasó eligiendo.
         """
-        p = self.p
-        for _ in range(toques):
-            if p.byte("menu_abierto"):
-                break
-            p.consola.apretar("a")
-            p.consola.correr(2)
-            p.consola.apretar()
-            p.consola.correr(8)
-        if not p.byte("menu_abierto"):
-            raise Trabado(
-                "el save point no abrió la pantalla de ranuras en %d toques "
-                "de A. %s" % (toques, self.estado()))
-        # El mismo aire que `Partida.guardar_en` le da a la pantalla antes de
-        # tocarle nada: sube su banco con la pantalla apagada y un toque que
-        # caiga ahí se pierde.
-        p.consola.correr(TITULO_AIRE)
+        p = self.abrir_el_save_point(toques).p
         p._bajar_y_elegir(ranura)
         p.consola.correr(10)
         p._un_cuadro()

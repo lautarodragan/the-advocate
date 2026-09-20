@@ -9,7 +9,9 @@ tiene que seguir siendo jugable de punta a punta.
 Lo que la hace barata es que **la emulación no es el problema**: snes9x corre
 unos 2.900 ticks por segundo, así que los cinco mil ticks de las dos jugadas
 cuestan menos de tres segundos. Corre en el cartucho `juego`, que arranca en
-el 4 como el juego de verdad y lleva el cronómetro en todos los mapas.
+el 4 como el juego de verdad, lleva el cronómetro en todos los mapas y desde el
+2026-09-20 lleva también la pantalla de título: por eso la jugada empieza
+eligiendo "Begin the Story", que es por donde entra el jugador.
 
 **Dos cosas que esta prueba no hace, las dos medidas.**
 
@@ -41,6 +43,11 @@ FOTOS = os.path.join(RAIZ, "rom", "build", "pruebas", "recorrido")
 # mismo que usa el caso `cartel` de la tanda.
 UN_ANO_DESPUES = 21
 
+# "Begin the Story", la primera opción de la pantalla de título, que el
+# cartucho `juego` lleva delante. La jugada empieza por ahí como la empieza
+# cualquiera.
+EMPEZAR = 0
+
 # Adónde entra el juego al mapa 16, y de dónde sale el número: el `Teleport` de
 # los eventos 65 y 66 del mapa 8 y de los 28 y 29 del mapa 9, que son las cuatro
 # celdas por las que se entra a la corrida al trabajo. No es una celda elegida.
@@ -58,7 +65,8 @@ def mundo():
 @pytest.fixture
 def recorrido(partida, mundo):
     def hacer(nombre, switch=()):
-        return Recorrido(partida(switch=switch, caso="nada", en="juego"),
+        return Recorrido(partida(switch=switch, caso="nada", en="juego",
+                                 titulo=EMPEZAR),
                          mundo, fotos=os.path.join(FOTOS, nombre))
     return hacer
 

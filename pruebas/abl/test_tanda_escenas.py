@@ -140,6 +140,13 @@ def test_escena(nombre, cuadros, apretar, toques):
 TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
                    2259, 2380, 2489, 2683, 2743)
 
+# "Begin the Story", que es por donde se entra al cartucho `juego` desde que
+# lleva la pantalla de título. Las seis goldens de `cinematica`, las seis de
+# `apertura` y las cinco de `cartel` se congelaron cuando no la llevaba y salen
+# byte por byte iguales a través de ella: el título no cambia lo que se dibuja
+# adentro del mapa. Ver `pruebas/arnes/cartuchos.py`.
+EMPEZAR = 0
+
 # Las cinemáticas: nombre, los ticks, los toques de A, la página de prueba
 # —la que prende el switch con que arranca, o `nada`— y el cartucho. Las que
 # arrancan en el 4 van en `juego`, que arranca ahí como el juego de verdad:
@@ -215,6 +222,6 @@ def test_cinematica(nombre, cuadros, apretar, caso, en):
       mismo cuadro.
     """
     for cuadro in cuadros:
-        p = partida(caso, en=en)
+        p = partida(caso, en=en, titulo=EMPEZAR if en == "juego" else None)
         p.correr(cuadro, apretar_a=apretar)
         golden("%s-%d" % (nombre, cuadro), p.imagen())

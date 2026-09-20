@@ -7,20 +7,19 @@ mapa y la diferencia está en la RAM.
 
 El reparto es el de siempre: la tanda mira la pantalla y esto mira el estado.
 
-La ROM de estas pruebas lleva `--con-titulo` y por eso es un cartucho propio,
-`titulo`, que es el de pruebas con la pantalla delante: el
-flag cambia el arranque —sin él la partida guardada se carga sola, con él espera
-a que el menú lo decida— y ése es justamente el camino que hay que probar.
+La ROM de estas pruebas lleva `--con-titulo`, y el único cartucho que lo lleva
+es `juego`, el que arranca en el 4 como el juego de verdad: el flag cambia el
+arranque —sin él la partida guardada se carga sola, con él espera a que el menú
+lo decida— y ése es justamente el camino que hay que probar. Desde el
+2026-09-20 no hay un cartucho de título aparte: se fundió con el del juego, así
+que estas pruebas arrancan donde arranca el jugador.
 """
 
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
-from port.eventos import SWITCH_DE_PRUEBA                    # noqa: E402
 
 # Cuántos ticks espera la página de prueba antes de guardar, como en
 # `test_guardar`: alcanzan para irse a otro mapa —el fundido son 90— y sobra.
@@ -28,9 +27,9 @@ ESPERA = 198
 
 EMPEZAR, SEGUIR = 0, 1
 
-# El mapa donde arranca el cartucho `titulo`, que es el de pruebas: el 6 y no
-# el 4 del juego. Ver `pruebas/arnes/cartuchos.py`.
-MAPA_DE_ARRANQUE = 6
+# El mapa donde arranca el cartucho `juego`, que es el que lleva la pantalla de
+# título: el 4, el del juego de verdad. Ver `pruebas/arnes/cartuchos.py`.
+MAPA_DE_ARRANQUE = 4
 
 
 def test_empezar_la_historia_arranca_en_el_mapa_inicial(partida):
@@ -85,38 +84,32 @@ def test_seguir_la_historia_carga_la_partida(partida):
         "'Resume the Story' no cargó la partida: el switch 7 no volvió")
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "la PÁGINA DE PRUEBA de guardado no llega a guardar si se cambia de mapa, "
-    "y sólo con pantalla de título. Medido el 2026-09-10: quedándose en el "
-    "mapa de arranque la SRAM tiene la magia a las ~350 vueltas; con un "
-    "ir_al_mapa(6) en el medio no la tiene ni a las 891 —desde el 9f el "
-    "arranque es el 6 y se va al 5—, o sea que no es "
-    "cuestión de esperar más. Sin pantalla de título el mismo camino guarda a "
-    "las 351. "
-    "Lo que se descartó: no es el bug de página directa de partida_suma "
-    "—sigue pasando con ése arreglado, y con ése arreglado cargar sí anda—. "
-    "**Y desde el 2026-09-13 está medido que es de la página de prueba y no "
-    "del juego**, que es lo que acá faltaba: "
-    "`test_guardar_save_point.py` camina hasta el save point de verdad "
-    "—`SaveByTalansPad0`, el evento de índice 66 del mapa 8, en (9,56); acá "
-    "decía 'el evento 67', que es como lo numera el editor de RM2k, desde "
-    "uno— y guarda con "
-    "pantalla de título después de cambiar de mapa dos veces, y la partida "
-    "vuelve del reset en el mapa 8 y en la misma celda. El mismo camino sin "
-    "título guarda igual, o sea que la pantalla de título tampoco es la "
-    "variable ahí. Así que lo que no llega a guardar es esta página —una "
-    "automática con espera, que el doble cargar_mapa del menú reinicia— y es "
-    "andamio: taro además confirmó ese día que el save point guarda en "
-    "mednafen, en mesen y en la SNES de verdad. Desde el 2026-09-10 el "
-    "síntoma es que la pantalla de ranuras no se abre nunca, que es lo mismo "
-    "dicho por `guardar_en`. Está anotado en ESTADO.md"))
-def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
-    """El segundo defecto, escrito como prueba para que se sepa cuándo se
-    arregló.
+def test_irse_de_mapa_antes_de_guardar_guarda(partida):
+    """Irse de mapa y **después** guardar con la página de prueba: guarda.
 
-    Va con `strict`: el día que alguien toque el doble `cargar_mapa` y esto
-    empiece a pasar, la prueba falla y obliga a sacar el xfail en vez de dejar
-    una deuda que ya no existe.
+    Acá vivía un `xfail(strict=True)` con el segundo defecto del 2026-09-10:
+    con pantalla de título, esta página —una automática con espera— no llegaba
+    a guardar si la partida había cambiado de mapa. Medido entonces:
+    quedándose en el mapa de arranque la SRAM tenía la magia a las ~350
+    vueltas; con un `ir_al_mapa` en el medio no la tenía ni a las 891, así que
+    no era cuestión de esperar más, y sin pantalla de título el mismo camino
+    guardaba a las 351.
+
+    **El 2026-09-20 dejó de reproducirse, y no porque se haya arreglado nada.**
+    Lo que cambió es el mapa de arranque: el cartucho con título era el de
+    pruebas, que arranca en el 6, y desde que se fundió con el del juego
+    arranca en el 4. Con ese arranque el mismo camino guarda. Queda como
+    prueba normal —y no borrada— porque lo que cobra es que este camino
+    guarde: si vuelve a no guardar, se ve acá.
+
+    Lo que ya se sabía del defecto y conviene no volver a averiguar: no era el
+    bug de página directa de `partida_suma` —seguía pasando con ése
+    arreglado—, y desde el 2026-09-13 estaba medido que era de esta página y
+    no del juego, porque `test_guardar_save_point.py` camina hasta el save
+    point de verdad —`SaveByTalansPad0`, el evento de índice 66 del mapa 8, en
+    (9,56)— y guarda con pantalla de título después de cambiar de mapa dos
+    veces. taro además confirmó ese día que el save point guarda en mednafen,
+    en mesen y en la SNES de verdad.
     """
     una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
     una.ir_al_mapa(5, 39, 34)
@@ -262,31 +255,12 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
         "se eligió la ranura 0, que está vacía, y se cargó la partida de otra")
 
 
-def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida):
-    """Con una partida cargada de la ranura 2, la pantalla de guardar abre con
-    el cursor en la 2: es el `latest_slot` de `Scene_File::Start`, sin fechas.
-    Elegir sin mover el cursor vuelve a escribir la misma ranura, que es lo que
-    uno espera de "guardar" después de "continuar".
-
-    Hace falta el título porque es la única forma de llegar con `ranura`
-    puesta: la página de prueba corre una sola vez por partida, así que
-    guardar dos veces seguidas en la misma sesión no se puede. Y después de
-    cargar hay que **apagar `SWITCH_DE_PRUEBA`**: la página lo prende al
-    arrancar, viaja en la partida, y con él puesto gana la página que la apaga.
-    Medido: sin esto `ev_activo` queda en cero para siempre después de "Resume
-    the Story". Es de la página inventada, no del juego.
-    """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
-    una.prender(7)
-    una.guardar_en(2)
-    una.reiniciar(SEGUIR, ranura=2)
-    assert una.byte("ranura") == 2, "no se cargó de la ranura 2"
-    una.apagar(SWITCH_DE_PRUEBA)
-    una.correr(ESPERA - 10)
-    una.esperar_la_pantalla_de_ranuras()
-    assert una.byte("titulo_sel") == 2, (
-        "el cursor arrancó en la ranura %d y la partida vino de la 2"
-        % una.byte("titulo_sel"))
+# `test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso` estuvo acá hasta el
+# 2026-09-20 y vive ahora en `pruebas/abl/test_guardar_save_point.py`: con el
+# título y el juego en un cartucho solo, el mapa de arranque es el 4 —el
+# enrutador—, y al volver de cargar su página automática se lleva la partida
+# antes de que la de prueba abra la pantalla de ranuras. Ahí el cursor se mira
+# en el save point de verdad, que es donde el jugador lo ve.
 
 
 def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):

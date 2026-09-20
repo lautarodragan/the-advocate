@@ -47,15 +47,15 @@ def partida():
     Devuelve la partida arrancada en el caso que se pida —`en-5` si no se
     pide ninguno—. `switch` se escribe en la RAM antes del primer cuadro de
     juego; para ir a otro mapa, `.ir_al_mapa(...)`. Con `titulo` la partida
-    pasa la pantalla de título del cartucho `titulo`, que es el único que
+    pasa la pantalla de título del cartucho `juego`, que es el único que
     la lleva.
     """
     def hacer(switch=(), caso=None, titulo=None, en=None):
         if titulo is not None:
-            # El título va en su propio cartucho, que es el de pruebas con
-            # la pantalla de título delante; ahí el caso que no pide nada es
+            # La pantalla de título la lleva `juego`, el cartucho que arranca
+            # en el 4 como el juego de verdad; ahí el caso que no pide nada es
             # `nada`, que deja el grupo del juego en el mapa de arranque.
-            en = en or "titulo"
+            en = en or "juego"
             caso = caso or "nada"
         return tanda.partida(caso or ARRANQUE, en=en, switches=switch,
                              titulo=titulo)

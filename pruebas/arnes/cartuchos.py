@@ -80,14 +80,6 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, *[
 
 CARTUCHOS = {
     PRUEBAS: (_DE_PRUEBAS, None),
-    # El mismo con la pantalla de título delante. El título cambia el
-    # arranque del cartucho entero —`consola_cruda`, `reiniciar` y los
-    # cuadros de hardware cuentan desde otro lado—, así que no puede ir en el
-    # de pruebas. Lleva los mismos mapas y casos a propósito:
-    # `test_titulo_es_el_mismo_juego` compara uno contra el otro. El tema de
-    # arranque es para las pruebas de música, porque el 6 no trae uno propio.
-    "titulo": (_DE_PRUEBAS + ["--con-titulo",
-                              "--tema-de-arranque", "escape_newyork"], None),
     # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
     # no una imagen: los casos con los actores 12 y 13 en el grupo —pueden
     # liderar, y sus sprites en todos los mapas le cambiaban los colores al
@@ -122,12 +114,28 @@ CARTUCHOS = {
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "empujon"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
-    # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
-    # sale con otra rampa de fundido y otro tinte— y el cronómetro le saca
-    # una paleta a cada mapa, que en el de pruebas movía goldens.
-    "juego": (_con_mapas(4, "--con-timer",
+    # mapas y **con la pantalla de título delante**, que es por donde entra el
+    # jugador y como sale `abl`, la ROM que taro juega. Llegar al 4 con un
+    # `Teleport` no es arrancar ahí —la cinemática sale con otra rampa de
+    # fundido y otro tinte— y el cronómetro le saca una paleta a cada mapa,
+    # que en el de pruebas movía goldens.
+    #
+    # Hasta el 2026-09-20 el título vivía en un cartucho aparte, `titulo`: el
+    # de pruebas con la pantalla delante, con sus mismos cuarenta mapas y sus
+    # cien casos, para que `test_titulo_es_el_mismo_juego` pudiera compararlo
+    # contra el de pruebas. Los dos se fundieron acá, y lo que lo permitió
+    # está medido: **el título no mueve una sola golden**. Las cuatro de la
+    # pantalla misma y las diecisiete de `cinematica`, `apertura` y `cartel`
+    # —congeladas cuando el cartucho no lo llevaba— salen byte por byte
+    # iguales sacadas a través de él. O sea que lo que aquella comparación
+    # buscaba lo cobran ahora ellas, en cada corrida.
+    #
+    # El tema de arranque es para las pruebas de música, porque el 4 no trae
+    # uno propio. Y los casos son pocos a propósito: lo que pedía los cien era
+    # ser el gemelo del de pruebas, y eso ya no hace falta.
+    "juego": (_con_mapas(4, "--con-timer", "--con-titulo",
                          "--tema-de-arranque", "escape_newyork"),
-              ["nada", "cartel", "en-2"]),
+              ["nada", "cartel", "en-2", "guardar-198-titulo"]),
 }
 
 # Los casos que no van en el cartucho de pruebas porque viven en otro.

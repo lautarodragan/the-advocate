@@ -153,7 +153,7 @@ def _ranuras():
 
 def _titulo():
     """El título y su pantalla de ranuras, que es otro arranque entero."""
-    consola = encender("titulo", ARRANQUE_CON_TITULO, pila=True)
+    consola = encender("juego", ARRANQUE_CON_TITULO, pila=True)
     return correr_hardware(consola, 20, toques=A_LAS_RANURAS_DEL_TITULO)
 
 

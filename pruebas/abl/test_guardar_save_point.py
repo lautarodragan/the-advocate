@@ -20,7 +20,13 @@ condición que hace fallar a la página de prueba.
 
 Los dos casos son el mismo camino con y sin pantalla de título, y esa pareja es
 el punto: el defecto del `xfail` sólo aparece con título, así que si el save
-point guardara en un caso y no en el otro, el defecto sería del juego.
+point guardara en un caso y no en el otro, el defecto sería del juego. El de
+con título arranca en el 4 —es el cartucho `juego`, que desde el 2026-09-20
+lleva la pantalla— y el de sin título llega al 4 con el caso `en-4` desde el
+cartucho de pruebas, porque ya no queda ninguna ROM sin título que arranque
+ahí. Para este caso da lo mismo: lo que se mira es el `OpenSaveMenu` del mapa
+8, que está a dos mapas de distancia, y no la rampa del fundido con que se
+entra al 4.
 
 **Nada de lo que espera al menú abierto puede contarse en ticks**, y ésa fue la
 única dificultad: mientras la pantalla de ranuras se ve `vueltas` no avanza
@@ -85,16 +91,17 @@ def guardar(r, ranura=0):
 
 
 def test_el_save_point_guarda_sin_titulo(partida, mundo):
-    """El control: el mismo camino en la ROM sin pantalla de título.
+    """El control: el mismo camino en la ROM **sin** pantalla de título.
 
-    Sale gratis —comparte el cartucho `juego` con `test_recorrido`— y el de
-    abajo corre en `titulo`, que llega al 4 con un `Teleport`. Es lo que hace
-    que el caso de abajo signifique algo: si los dos guardan, la pantalla de
-    título no es la variable, y el defecto del `xfail` es de la página de
-    prueba.
+    Es lo que hace que el caso de abajo signifique algo: si los dos guardan, la
+    pantalla de título no es la variable, y el defecto del `xfail` es de la
+    página de prueba.
+
+    Corre en el cartucho de pruebas, que es el que quedó sin título, y llega al
+    4 con el caso `en-4`.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="nada", en="juego", switch=[UN_ANO_DESPUES]), mundo)
+        partida(caso="en-4", en="pruebas", switch=[UN_ANO_DESPUES]), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
@@ -120,7 +127,7 @@ def test_el_save_point_guarda_con_titulo_y_tras_cambiar_de_mapa(partida,
     lo que se escribió era esta partida y no el estado del arranque.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="en-4", switch=[UN_ANO_DESPUES],
+        partida(caso="nada", switch=[UN_ANO_DESPUES],
                 titulo=EMPEZAR), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (
@@ -139,3 +146,46 @@ def test_el_save_point_guarda_con_titulo_y_tras_cambiar_de_mapa(partida,
     assert p.switch(24), (
         "el switch que prendió el despertador de Talan no sobrevivió a "
         "guardar y cargar")
+
+
+def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
+    """Con una partida cargada de la ranura 2, el save point abre con el cursor
+    en la 2: es el `latest_slot` de `Scene_File::Start`, sin fechas. Elegir sin
+    mover el cursor vuelve a escribir la misma ranura, que es lo que uno espera
+    de "guardar" después de "continuar".
+
+    Hace falta el título porque es la única forma de llegar con `ranura`
+    puesta: cargar es lo que la escribe.
+
+    Hasta el 2026-09-20 esto vivía en `test_titulo.py` y lo hacía con la página
+    de prueba de guardado, que abre la pantalla de ranuras sola a los 198
+    ticks. Ahí no se puede más, y la razón es del mapa y no del título: el
+    cartucho con pantalla arranca ahora en el 4, que es el enrutador del juego,
+    y al volver de cargar su página automática se lleva la partida al mapa 1
+    antes de que la de prueba llegue al `OpenSaveMenu` —medido: `ev_activo` en
+    1, el mapa en 1 y la pantalla sin abrir a las 874 vueltas—. Así que el
+    cursor se mira donde el jugador lo ve, que es el save point de verdad: la
+    partida vuelve de la ranura 2 parada encima de él, y volver a tocarle A
+    abre la pantalla sin caminar un paso.
+    """
+    r = caminar_hasta_el_save_point(
+        partida(caso="nada", switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
+    p = guardar(r, ranura=2)
+    base = p.simbolos["SRAM_MAGIA"] + 2 * p.simbolos["SRAM_STRIDE"]
+    assert p.sram(base, 4) == b"ABLS", (
+        "no quedó nada en la ranura 2. %s" % r.estado())
+
+    p.reiniciar(SEGUIR, ranura=2)
+    assert p.byte("ranura") == 2, "no se cargó de la ranura 2"
+    assert (p.palabra("tile_x"), p.palabra("tile_y")) == CELDA, (
+        "la partida cargada tenía que quedar parada en el save point, en %s, "
+        "y quedó en %s"
+        % (CELDA, (p.palabra("tile_x"), p.palabra("tile_y"))))
+
+    # Y se le toca A otra vez, sin moverse: la pantalla de ranuras del save
+    # point, con el cursor donde lo dejó `cargar_partida`.
+    r.p = p
+    r.abrir_el_save_point()
+    assert p.byte("titulo_sel") == 2, (
+        "el cursor arrancó en la ranura %d y la partida vino de la 2"
+        % p.byte("titulo_sel"))
