@@ -2,7 +2,7 @@
 """Qué significan las cosas en RPG Maker 2000, sin ninguna consola de por medio.
 
 Por dónde se puede caminar, qué capa tapa a cuál, qué gráfico le toca a un
-evento, cuáles de ellos son puertas. Son las reglas del motor original, y valen
+evento, cuáles de ellos se dibujan. Son las reglas del motor original, y valen
 igual para cualquier port —y para cualquier juego de RM2k—.
 
 Salieron de `md_convert.py`, donde estaban mezcladas con el formato del VDP: el

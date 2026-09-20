@@ -52,11 +52,12 @@ que faltan en la CSV son las extensiones, los `EasyRpg_*` y los `Maniac_*`, y
 aunque RPG Maker 2000 no los escriba nunca no cuesta nada tenerlos nombrados.
 
 De dónde salen importa porque ya se pagó: la primera versión del filtro que
-decide qué comandos puede acompañar un teletransporte sin dejar de ser una
-puerta los puso de memoria, y **tres estaban mal** —`PlayBGM` y
-`ChangeSpriteAssociation` entre ellos—. Ninguna comparación puede ver ese
-error, porque una lista equivocada compila una ROM equivocada y la golden es la
-captura de esa ROM.
+decidía qué comandos podía acompañar un teletransporte sin dejar de ser una
+puerta —filtro que ya no existe, porque las puertas cruzan por el intérprete
+como cualquier otro evento— los puso de memoria, y **tres estaban mal**
+—`PlayBGM` y `ChangeSpriteAssociation` entre ellos—. Ninguna comparación puede
+ver ese error, porque una lista equivocada compila una ROM equivocada y la
+golden es la captura de esa ROM.
 
 Se rearma cuando se bumpea liblcf, que hasta hoy pasó cero veces, así que no
 tiene receta: el comando entero es éste, y sale byte por byte igual al

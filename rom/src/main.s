@@ -1795,8 +1795,8 @@ puesto:
 ; cuadro teñido de la mitad para abajo. La vio la sacudida de pantalla, que es
 ; la primera receta que compara cuadro por cuadro.
 ;
-; Apagar la pantalla es lo que ya hacen `cruzar_puerta` y el teletransporte por
-; la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
+; Apagar la pantalla es lo que ya hace el teletransporte —`cargar_lo_pedido`—
+; por la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
 ; motor original funde a negro en las transiciones.
 .proc tinte_de_evento
 .a8
@@ -2260,10 +2260,15 @@ carga:
     rep #$20
 .a16
     lda fundido_mapa            ; el índice va en dieciséis bits
-    jsr cargar_mapa             ; una puerta: además reinicia el tope de saltos
+    jsr cargar_mapa             ; el del arnés: reinicia el tope de saltos
     sep #$20
 .a8
-    stz step_left               ; el paso que se estaba dando quedó allá
+    ; El héroe aparece quieto en la celda de entrada. Esto no le hace falta a
+    ; ningún salto del juego —`advance_step` sólo dispara un teletransporte con
+    ; el paso ya terminado, y `move_hero` recalcula `moving` en el primer cuadro
+    ; vivo— pero acá la partida llega desde afuera, con la RAM en cualquier
+    ; estado, y arrancar a mitad de un paso no es lo que la prueba pidió.
+    stz step_left
     stz moving
     bra hecho
 salto:
@@ -22429,7 +22434,15 @@ fundido_base: .res 1    ; el byte bajo de `vueltas` cuando arrancó
 fundido_que:  .res 1    ; qué hay que hacer en el cuadro negro, y ya no
 fundido_mapa: .res 2    ; a qué mapa, para los dos casos que cargan
 FUNDIDO_NADA   = 0      ; ya se hizo
-FUNDIDO_PUERTA = 1      ; una puerta: `cargar_mapa`, con su tope de saltos
+; `FUNDIDO_PUERTA` es el único que **ninguna ruta de la ROM pide**: lo escribe
+; el arnés desde afuera —`Partida.ir_al_mapa`— para plantar la partida en un
+; mapa cualquiera, y por eso quiere `cargar_mapa` entero, con el presupuesto
+; de saltos repuesto, y no el camino de un salto encadenado. Se llama así
+; porque era lo que pedía una puerta cuando las puertas tenían tabla propia;
+; hoy cruzan por el intérprete y piden `FUNDIDO_SALTO` como cualquier otro
+; teletransporte. Borrarlo es sacarle a las pruebas la manera de arrancar en
+; un mapa que no es el del cartucho.
+FUNDIDO_PUERTA = 1      ; el del arnés: `cargar_mapa`, con su tope de saltos
 FUNDIDO_SALTO  = 2      ; un Teleport a otro mapa
 FUNDIDO_MISMO  = 3      ; un Teleport al mismo: sólo mover al héroe
 

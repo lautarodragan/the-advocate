@@ -5248,8 +5248,9 @@ def main():
     # ella. Con la ventana en la paleta 0 no hay nada que apretar: el fondo de
     # cada mapa arranca en `CGRAM_RESERVADAS` y llega hasta su propia capa de
     # encima, sin depender de lo que necesiten los otros mapas de la ROM.
-    # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
-    # cualquier otro, así que el índice de destino no se sabe hasta el final.
+    # Los teletransportes se resuelven cuando están todos los mapas: uno puede
+    # llevar a cualquier otro, así que el índice de destino no se sabe hasta el
+    # final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
 
     # El bloque de textos es de la ROM entera y se arma mientras se compilan las
@@ -5350,8 +5351,7 @@ def main():
         # que una página se cae, y es la única que se arregla desde afuera
         # —sumando el mapa— y no tocando el compilador. Así se pasó por alto la
         # página del ascensor del mapa 2, que se veía abrirse y no llevaba a
-        # ningún lado porque termina saltando al mapa 3. La lista de puertas ya
-        # avisa lo mismo; esto es su equivalente para las páginas.
+        # ningún lado porque termina saltando al mapa 3.
         afuera_de, cuantas = set(), 0
         for pagina in paginas:
             if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \

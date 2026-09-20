@@ -1005,10 +1005,19 @@ de cada una está en `README.md`.
   el mapa 2 —la celda del medio de la puerta que Core rompe—, y un evento que no
   se dibuja igual ocupa lugar en `npcs_dibujables`.
 
+* **Una puerta no es un caso aparte: es una página de contacto con un
+  `Teleport` adentro**, y cruza por el intérprete como cualquier otro evento.
+  Tuvo tabla propia mientras no hubo intérprete —`collect_doors`,
+  `cruzar_puerta`—; se fue el 2026-09-20 porque la tabla congelaba la página
+  activa al empezar la partida y con eso mentía en las dos puertas del mapa 10
+  que el switch 231 cambia de destino. El único que sobrevive de ese camino es
+  `FUNDIDO_PUERTA`, que hoy sólo escribe el arnés para plantar la partida en un
+  mapa: está explicado en su línea de `main.s`.
+
 * **Una puerta al mismo mapa no recarga el mapa.** Recargar vuelve a leer del
   cartucho las posiciones de los eventos, y con eso se pierde lo que los haya
-  movido aunque el jugador nunca haya salido. Los dos lados comparan contra el
-  mapa anterior, que es el `map_changed` de `Game_Player::PerformTeleport`.
+  movido aunque el jugador nunca haya salido. Es el `map_changed` de
+  `Game_Player::PerformTeleport`, y lo cuida `test_puerta_misma.py`.
 
 * **Atravesar paredes vale también para el salto**, no sólo para la caminata:
   `CheckOrMakeWayEx` corta con `if (self.GetThrough()) return true;` antes de

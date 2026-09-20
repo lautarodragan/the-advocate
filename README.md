@@ -1878,14 +1878,14 @@ emite, y el evento se dibuja, se pisa y no hace nada. Por eso el conversor
 nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
-Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
-ser una puerta —o sea, sin intérprete— sale de
+Los códigos de comando con que el conversor decide todo esto salen de
 `tools/rpgmaker/event_codes.json`, que se saca de liblcf y de ningún otro lado.
-Puestos de memoria, tres estaban mal, y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
-como puertas eventos que cambian la música y el sprite del héroe. **La
-comparación no puede ver ese error**, porque una lista equivocada compila una
-ROM equivocada y la golden es la captura de esa ROM. Esa clase de error se
-revisa leyendo contra liblcf, no corriendo.
+Cuando se pusieron de memoria —en el filtro que reconocía puertas, que ya no
+existe— tres estaban mal, y dos de ésos eran `PlayBGM` y
+`ChangeSpriteAssociation`: el filtro aceptaba como puertas eventos que cambian
+la música y el sprite del héroe. **La comparación no puede ver esa clase de
+error**, porque una lista equivocada compila una ROM equivocada y la golden es
+la captura de esa ROM. Se revisa leyendo contra liblcf, no corriendo.
 
 #### Un opcode por comando
 
@@ -1955,8 +1955,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 
 | Mecánica | en `rom/src/main.s` | quién la compila, o quién la mide |
 | --- | --- | --- |
-| Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rpgmaker/rm2k.py` |
-| Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | — |
+| Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
 | Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
