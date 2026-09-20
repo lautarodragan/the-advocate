@@ -1,6 +1,6 @@
 //! Ditto: `.ldb`/`.lmu`/`.lmt` ⇄ JSON, one file at a time or a whole game.
 
-use ditto::{dump, file};
+use ditto::{describe, dump, file};
 use std::path::Path;
 use std::process::ExitCode;
 
@@ -10,15 +10,29 @@ fn usage() -> ExitCode {
          ditto read   <file.lmu|.ldb|.lmt> [out.json]\n  \
          ditto write  <file.json> [out.lmu]\n  \
          ditto unpack <game dir> <dump dir>\n  \
-         ditto pack   <dump dir> <game dir>\n\n\
+         ditto pack   <dump dir> <game dir>\n  \
+         ditto schema [out.json]\n\n\
          read/write do one file, and with no output file they write to standard\n\
-         output. unpack/pack do a whole game as a tree of JSON: see README.md."
+         output. unpack/pack do a whole game as a tree of JSON: see README.md.\n\
+         schema writes out what a reader of that JSON needs and the JSON does\n\
+         not carry: every field's default —absent means default— and the enum\n\
+         tables the names in it come from."
     );
     ExitCode::from(2)
 }
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // `schema` reads nothing, so it is the one command that takes no input.
+    if args.first().map(String::as_str) == Some("schema") {
+        return match emit(describe::to_json().as_bytes(), args.get(1).map(Path::new)) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("ditto: {e}");
+                ExitCode::FAILURE
+            }
+        };
+    }
     if args.len() < 2 {
         return usage();
     }

@@ -14,6 +14,8 @@
 
 #![allow(dead_code, unused_variables, clippy::all)]
 
+pub mod description;
+
 use crate::lcf::*;
 use serde::{Deserialize, Serialize};
 
