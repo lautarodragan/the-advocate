@@ -23326,8 +23326,7 @@ hdma_mascara:
 ;
 ; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
 ; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
+; la regla de RM2k.
 pass_salir:
     .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
 pass_entrar:

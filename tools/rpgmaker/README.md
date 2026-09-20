@@ -84,3 +84,8 @@ Lo demás de acá lee un archivo; esto decide. La pasabilidad de una celda, cóm
 se expanden los autotiles, cada cuántos cuadros avanza el agua: son las reglas
 del juego original, leídas de EasyRPG, y la ROM las reimplementa en 65816. Si
 las dos se separan, el juego camina distinto.
+
+Por eso **lo que sólo usa una prueba no vive acá**: `puede_pasar` —si desde una
+celda se puede dar un paso a la de al lado— se mudó a
+`pruebas/arnes/recorrido.py` el 2026-09-20, que era su único llamador. El rumbo
+es que en Python quede lo de las pruebas y el resto se vaya a Rust.
