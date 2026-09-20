@@ -8,14 +8,29 @@ a la mitad **en una zona vacía del mapa**, que no es donde se juega.
 
 # Status
 
-**Diagnóstico hecho y medido, sin implementar nada.** Falta que taro elija
-camino: están abajo, con lo que gana y lo que rompe cada uno.
+**Los dos caminos baratos están hechos. Falta el tercero**, que es el único que
+ataca el peor caso: hornear cada posición conocida y prender o apagar el tilemap.
 
-El build con que se midió es descartable y **no va a `main`**: es una variable
-de entorno en `snes_convert.py` que le apaga el dibujo a un grupo de eventos,
-con el mismo mecanismo con que nacen escondidas las filas de los horneados.
-Está en el commit marcado `DESCARTABLE` de la rama `worktree-agent-af33fbcd7a65c7dd1`,
-revertido en el commit siguiente.
+Después de los dos, caminando 1200 cuadros:
+
+    celda     diagnóstico   con los dos
+    (50,50)       231           153
+    (26,47)       625           475
+    (18,50)      1200             9
+    (19,46)      1196          1141
+    ( 5,50)      1200            19
+
+**Tres de las cinco celdas entran en el cuadro**, incluidas dos que estaban en
+30 fps clavados. **La celda donde el minijuego se juega, (19,46), sigue sin
+entrar**: ahí las baldosas están en pantalla, y ni hornear cuatro más ni dejar
+de procesar las de afuera le sacan nada. Es exactamente lo que el diagnóstico
+anticipaba de los dos.
+
+El build con que se midió el diagnóstico es descartable y **no va a `main`**: es
+una variable de entorno en `snes_convert.py` que le apaga el dibujo a un grupo
+de eventos, con el mismo mecanismo con que nacen escondidas las filas de los
+horneados. Está en el commit marcado `DESCARTABLE` de la rama
+`worktree-agent-af33fbcd7a65c7dd1`, revertido en el commit siguiente.
 
 # Lo medido
 
@@ -112,70 +127,83 @@ Las cuatro que sobran son los eventos **31 (`B1`), 32 (`B2`), 33 (`B3`) y 46
 una. Pero **todas sus páginas dibujan el mismo tile 80, en la misma capa, y la
 primera no tiene condición**, así que su dibujo es tan fijo como el de las otras
 18. Lo que cambia entre sus páginas es el script, no el gráfico —de hecho
-`collect_npcs` ya lo sabe: les da `cambia` falso—.
+`collect_npcs` ya lo sabe: les da `cambia` falso—. (Eso es el camino 1, que ya
+está hecho: hoy la regla las hornea y son 22.)
 
 # Los caminos, con lo que cuesta cada uno
 
-## 1. Aflojar la regla del horneado de "una sola página" a "todas sus páginas dibujan lo mismo"
+## 1. Aflojar la regla del horneado — HECHO
 
-**Es chico y es seguro, y es el único de la lista que yo recomendaría hacer sin
-más discusión.** La condición pasa a ser: la primera página sin condición, y
-todas las páginas con el mismo gráfico y la misma capa. El resto de la regla no
-se toca.
+La condición es la primera página sin condición y **todas** las páginas con el
+mismo gráfico, la misma capa y sin animación continua. Está en
+`eventos_horneables`, con el porqué de cada cosa.
 
-Gana **+4 eventos en el mapa 11 y +1 en el mapa 2**: 26 → 31 sobre el juego
-entero, preguntándole a `eventos_horneables` mapa por mapa. (El "32 en 12 mapas"
-de `done/eventos-opacos-al-mapa.md` salió de un script aproximado, no de la
-función; la función contesta 26 en 8 mapas.)
+Lo previsto era **26 → 31** con el mapa 2 sumándose. Lo que salió es **26 → 29
+en 7 mapas**, con el mapa 11 de 18 a 22, porque el mapa 2 **movía una golden** y
+eso obligó a una sexta condición: **hornear no puede abrir la celda**.
 
-No mueve goldens —el tile dibujado es el mismo, en la misma celda y en la misma
-capa— y `test_horneados.py` ya cuida las dos invariantes que ninguna captura ve.
-Lo que hay que mirar: que la pasabilidad sea la misma en **todas** las páginas,
-no sólo en la activa, porque la fila escondida deja de imponerla.
+El `MovinDoor` del mapa 2 está en un rincón, fuera de cualquier cámara, y
+hornearlo movía `puerta-izq-950` en 113 pixeles —una puerta a sesenta celdas de
+ahí, con los mismos switches puestos—. Lo medido antes de decidir: la CGRAM del
+mapa sale idéntica, el fondo dibuja lo mismo salvo la celda horneada, la tabla
+de NPCs cambia **un solo byte** —el "se ve" de esa fila— y las páginas
+compiladas no cambian. Lo único que queda es que **su celda está cerrada en la
+tabla del mapa y su tile se pisa**, así que hornearlo la abría; `pasa_con_evento`
+consulta la fila, pero la tabla la lee más de uno. **El mecanismo completo no se
+desarmó**: si alguien quiere tirar de ese hilo, la comparación está en el commit.
 
-**Lo que no arregla**: nada del lag donde se juega. Esas cuatro baldosas están
-dentro del grupo B, que ya está casi entero horneado.
+Cerrar de más se sigue permitiendo, que es el caso normal. Sale también el
+`EV0004` del mapa 141, que estaba en el mismo caso y no lo corre ninguna prueba.
 
-## 2. No procesar la fila de un evento que cae fuera de pantalla
+**Lo que no arregla**, como estaba previsto: nada del lag donde se juega. Esas
+cuatro baldosas están dentro del grupo B, que ya está casi entero horneado. En
+(26,47) baja de 625 a 527 y en (19,46) de 1196 a 1150.
 
-Un `cmp` contra la cámara en `build_oam`, antes de `place_npc`. Recupera parte
-de los 156 cuadros de (50,50) y de los 52 de (19,46) —no todos: `emit_object`
-ya descarta, así que lo que se ahorra es `place_npc` y la mitad de
-`emit_object`—.
+## 2. No procesar la fila de un evento que cae fuera de pantalla — HECHO
 
-Gana poco pero **gana siempre y en todos los mapas**, no sólo en el 11, y se
-lleva de arriba **todas las baldosas del cono apagado**, que es el estado en que
-el jugador pasa la segunda mitad del minijuego. No mueve goldens: un objeto que
-`emit_object` descarta no está en la captura.
+No quedó como un `cmp` en `build_oam` antes de `place_npc` sino **adentro de
+`place_npc`**, partido en dos: la X apenas está calculada y la Y recién después
+del salto. Sale más barato que el `cmp` de afuera —la mitad de los descartes no
+lee nada más de la fila, y el que se dibuja no paga ninguna cuenta de más— y no
+hay que elegir margen: es la misma comparación de `emit_object`, con el mismo
+corrimiento de 32 y el mismo corte en 224 por abajo, así que descarta objeto por
+objeto lo mismo y la OAM sale idéntica.
 
-Lo que hay que cuidar: el margen de la comparación. Un evento de 32x32 asoma
-32 pixeles antes de entrar, y cortar con el rectángulo justo lo haría aparecer
-de golpe. El rango tiene que ser el mismo que usa `emit_object`.
+**Gana muchísimo más de lo previsto.** La estimación era "parte de los 156
+cuadros de (50,50) y de los 52 de (19,46)"; lo medido es 231 → 153 en (50,50),
+y **1200 → 9 en (18,50) y 1200 → 19 en (5,50)**: dos celdas que estaban en 30
+fps clavados y ahora entran en el cuadro. Estaban justo del otro lado del borde.
 
-**No arregla el caso que importa**: con el cono prendido las baldosas están en
-pantalla y siguen costando.
+Cuesta 21 bytes de banco 0 y **gana en todos los mapas**, no sólo en el 11.
 
-## 3. Hornear cada posición conocida y prender/apagar el tilemap
+**No arregla el caso que importa**, como estaba previsto: con el cono prendido
+las baldosas están en pantalla y siguen costando. En (19,46) baja de 1150 a
+1141.
 
-Es el camino de taro, y es el único que ataca los 1196 cuadros. Una baldosa que
-se mueve **entre dos celdas conocidas** —la suya y una fuera del mapa— se puede
-hornear en la suya, como ya se hornean las 18, y al apagarse el cono, en vez de
-mover una fila de OAM, se cambia el tile del mapa.
+## 3. Hornear cada posición conocida y prender/apagar el tilemap — LO QUE FALTA
+
+Es el camino de taro, y es el único que ataca los 1141 cuadros que quedan. Una
+baldosa que se mueve **entre dos celdas conocidas** —la suya y una fuera del
+mapa— se puede hornear en la suya, como ya se hornean las 22, y al apagarse el
+cono, en vez de mover una fila de OAM, se cambia el tile del mapa.
 
 Gana, en el peor caso medido, **1196 → 23 cuadros perdidos de 1200**: de 30 fps
-clavados a fluido.
+clavados a fluido. El diagnóstico lo midió antes de los caminos 1 y 2, y ésos ya
+se llevaron lo que se podían llevar de esa celda: hoy son 1141, y el techo
+—"sin las baldosas"— sigue siendo el mismo.
 
 Lo que cuesta, y no es poco: hoy **el tilemap se llena desde el cartucho**
 —`fill_window` al entrar y `stream_map` columna por columna al scrollear—, así
 que no hay dónde escribir un cambio. Hace falta una tabla de celdas pisadas en
 RAM que `stream_map` consulte, y volver a llenar la ventana cuando cambia. El
-presupuesto de banco 0 es lo que hay que medir antes de empezar: con
-`demo-ciudad` sobran 85 bytes.
+presupuesto de banco 0 es lo que hay que medir antes de empezar, y en el
+cartucho más apretado de los que arma `cartuchos`: ver "Cuánto le sobra al
+banco 0" en AGENTS.md.
 
 Y hay una decisión de diseño adentro, que es la que taro puso en una línea:
 **que no se dibuje la baldosa, o que no se dibuje el tile que la baldosa tapa,
 pero no los dos**. Hornear la baldosa y dejar el tile del mapa debajo es lo que
-ya se hace con las 18; lo nuevo es poder volver atrás.
+ya se hace con las 22; lo nuevo es poder volver atrás.
 
 Mueve goldens sólo si se equivoca. Si acierta, se ve igual.
 
@@ -204,3 +232,7 @@ clasifica los 84, `porque_no.py` dice por qué la regla rechaza cada baldosa
 quieta, `perdidos_zona.py` mide los cuadros perdidos por celda y `capturar.py`
 saca las capturas. Las capturas y su `LEEME.txt` están en
 `/extras/capturas/mapa11/`.
+
+`perdidos_zona.py` lleva la raíz del worktree escrita adentro: hay que cambiarla
+antes de correrlo, y hay que armar los cartuchos antes. Es el que da la tabla de
+arriba, y tarda cinco segundos.
