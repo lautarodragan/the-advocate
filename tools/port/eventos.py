@@ -2395,10 +2395,10 @@ def indexar_terminos(game_dir):
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     terminos = db.secciones["terms"]
     TERMINOS_POSADA.clear()
-    TERMINOS_POSADA["gold"] = lcf.campo("Terms", terminos, "gold")
+    TERMINOS_POSADA["gold"] = lcf.campo(terminos, "gold")
     for tipo, letra in ((0, "a"), (1, "b")):
         TERMINOS_POSADA[tipo] = tuple(
-            lcf.campo("Terms", terminos, "inn_%s_%s" % (letra, nombre))
+            lcf.campo(terminos, "inn_%s_%s" % (letra, nombre))
             for nombre in _TERMINOS_DE_POSADA)
     return dict(TERMINOS_POSADA)
 

@@ -47,29 +47,29 @@ ditto-vuelta-entera:
 # sacar en cualquier momento— y va a git igual, porque es la única forma de
 # *leer* el juego y de que un cambio se vea en un diff.
 #
+# **`unpack` escribe las dos vistas y no una**, en la misma corrida: `data/` es
+# la *vista resuelta* —todos los campos escritos, los defaults ya aplicados y
+# los enums en número—, y el *volcado exacto* —defaults omitidos, enums por
+# nombre, la forma del binario— sale a `rom/build/ditto-exacto/`, que no se
+# versiona. El exacto es el único que `ditto pack` puede volver a escribir, y
+# es el que hay que mirar para ver el juego con los nombres puestos.
+#
+# Que las dos salgan juntas no es comodidad: generadas por separado, es
+# cuestión de tiempo que una sea de una corrida y la otra de otra, y
+# compararlas deje de significar algo.
+#
 # `unpack` vacía `maps/` y `db/` antes de escribir —si no, un `Map0400.json`
 # que sobró de un volcado viejo volvería a meter un mapa en el juego— y no toca
 # nada más de `data/`, así que el README de ahí sobrevive.
 #
-# Después de correrlo, lo que manda es el `git diff`: si el juego no cambió,
-# tiene que dar vacío.
-datos DIR="data":
-  ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{DIR}}
+# Después de correrlo, lo que manda es el diff: si el juego no cambió, tiene
+# que dar vacío.
+datos DIR="data" EXACTO="rom/build/ditto-exacto":
+  ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{EXACTO}} {{DIR}}
 
 # Lo mismo pero a otro lado, para mirarlo sin tocar el del repo.
 ditto-volcado DIR="/extras/volcado-ditto":
-  just datos {{DIR}}
-
-# **Regenera `tools/rpgmaker/ditto_schema.json`**: los defaults y las tablas de
-# enums del formato, que es lo que hace falta para leer `data/` —el volcado
-# omite todo campo que valga su default y guarda los enums por nombre—.
-#
-# Lo publica Ditto, que es el que lo tiene, en vez de que alguien se lo saque
-# leyéndole el código: es el mismo trato que `just protocolo`. Va a git para
-# que armar una ROM no necesite tener Ditto instalado, y que no haya quedado
-# viejo lo cobra `pruebas/herramientas/test_esquema.py`.
-esquema:
-  ditto schema tools/rpgmaker/ditto_schema.json
+  just datos {{DIR}} "{{DIR}}-exacto"
 
 # De un PNG indexado a tiles, tilemap y CGRAM, en Rust: es el que convierte las
 # capas de los mapas, desde las imágenes que deja el asignador. No decide

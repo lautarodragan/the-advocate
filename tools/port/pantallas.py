@@ -195,18 +195,26 @@ TI_LISTA_FILAS = 8
 TI_PRECIO_COL = 29              # la última cifra del precio
 TI_CUANTOS_COL = 25             # "x" y dos cifras
 TI_TOTAL_FILA = 14
-# Los términos de un juego de mensajes: son trece seguidos desde 0x29.
-TI_TERMINOS = ("saludo", "resaludo", "comprar", "vender", "salir",
-               "que_compra", "cuantos_compra", "comprado", "que_vende",
-               "cuantos_vende", "vendido")
-TI_TERMINO_TENGO, TI_TERMINO_LLEVO = 0x5C, 0x5D
+# Los términos de un juego de mensajes. En el LDB hay tres juegos, y el nombre
+# de cada término termina en cuál es: `shop_greeting1`, `shop_greeting2`.
+# Hasta el 2026-09-20 acá había un número de chunk —trece seguidos desde
+# 0x29—, que andaba porque los tres juegos van uno atrás del otro; ahora es el
+# nombre, que es lo que `db.terminos` tiene.
+TI_TERMINOS = (
+    ("saludo", "shop_greeting"), ("resaludo", "shop_regreeting"),
+    ("comprar", "shop_buy"), ("vender", "shop_sell"),
+    ("salir", "shop_leave"), ("que_compra", "shop_buy_select"),
+    ("cuantos_compra", "shop_buy_number"), ("comprado", "shop_purchased"),
+    ("que_vende", "shop_sell_select"),
+    ("cuantos_vende", "shop_sell_number"), ("vendido", "shop_sold"),
+)
+TI_TERMINO_TENGO, TI_TERMINO_LLEVO = "possessed_items", "equipped_items"
 
 
 def terminos_tienda(db, juego):
     from rpgmaker import lcf
-    base = 0x29 + 13 * juego
-    return {n: lcf.to_string(db.terminos.get(base + k, b""))
-            for k, n in enumerate(TI_TERMINOS)}
+    return {n: lcf.to_string(db.terminos["%s%d" % (t, juego + 1)])
+            for n, t in TI_TERMINOS}
 
 
 def ordenes_tienda(tipo):
@@ -422,36 +430,38 @@ BA_HAB_COSTO_CIFRAS = 2
 BA_ITEM_CUENTA_COL = 18
 
 # Los términos del LDB que la pantalla usa, en el orden en que el conversor los
-# emite. Los códigos salen de `ldb/chunks.h` de liblcf —ChunkTerms— y no de
-# memoria: ver data/README.md.
+# emite. Los nombres son los de liblcf —`fields.csv`, struct `Terms`— y no de
+# memoria: ver data/README.md. Hasta el 2026-09-20 eran los números de chunk
+# de `ldb/chunks.h`, con el nombre al lado en un comentario; hoy el nombre es
+# el dato y el comentario es lo que dice el término en el juego.
 BA_TERMINOS = (
-    ("atacar", 0x68),           # command_attack: "Attack"
-    ("defender", 0x69),         # command_defend: "Defend"
-    ("huir", 0x67),             # battle_escape: "Escape"
-    ("hp", 0x81),               # hp_short: "HP"
-    ("ataca", 0x0B),            # attacking: " attacks the enemy"
-    ("defiende", 0x0E),         # defending
-    ("critico", 0x0D),          # actor_critical
-    ("dano_enemigo", 0x14),     # enemy_damaged: " health lost."
-    ("sin_dano_enemigo", 0x15),  # enemy_undamaged
-    ("dano_actor", 0x16),       # actor_damaged
-    ("sin_dano_actor", 0x17),   # actor_undamaged
-    ("victoria", 0x05),         # victory
-    ("derrota", 0x06),          # defeat
-    ("huyo", 0x03),             # escape_success
-    ("no_huyo", 0x04),          # escape_failure
+    ("atacar", "command_attack"),        # "Attack"
+    ("defender", "command_defend"),      # "Defend"
+    ("huir", "battle_escape"),           # "Escape"
+    ("hp", "hp_short"),                  # "HP"
+    ("ataca", "attacking"),              # " attacks the enemy"
+    ("defiende", "defending"),
+    ("critico", "actor_critical"),
+    ("dano_enemigo", "enemy_damaged"),   # " health lost."
+    ("sin_dano_enemigo", "enemy_undamaged"),
+    ("dano_actor", "actor_damaged"),
+    ("sin_dano_actor", "actor_undamaged"),
+    ("victoria", "victory"),
+    ("derrota", "defeat"),
+    ("huyo", "escape_success"),
+    ("no_huyo", "escape_failure"),
     # Los cuatro del 2026-09-13: las dos órdenes que faltaban y los dos
     # renglones del mensaje de usar un ítem.
-    ("usar", 0x6A),             # command_item: "Use Item"
-    ("habilidad", 0x6B),        # command_skill: "Tech Skill"
-    ("uso", 0x1C),              # use_item: " used."
-    ("recupero", 0x1D),         # hp_recovery: " Recovered"
+    ("usar", "command_item"),            # "Use Item"
+    ("habilidad", "command_skill"),      # "Tech Skill"
+    ("uso", "use_item"),                 # " used."
+    ("recupero", "hp_recovery"),         # " Recovered"
 )
 
 
 def terminos_batalla(db):
     from rpgmaker import lcf
-    return {n: lcf.to_string(db.terminos.get(c, b"")) for n, c in BA_TERMINOS}
+    return {n: lcf.to_string(db.terminos[t]) for n, t in BA_TERMINOS}
 
 
 def texto_de_orden(termino):
@@ -466,6 +476,6 @@ def texto_de_orden(termino):
     return titulo.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
 
 
-def lcf_termino(db, chunk):
+def lcf_termino(db, nombre):
     from rpgmaker import lcf
-    return lcf.to_string(db.terminos.get(chunk, b""))
+    return lcf.to_string(db.terminos[nombre])

@@ -80,8 +80,7 @@ def test_todos_los_terrenos_de_esos_mapas_valen_cien(juego):
     """
     db, tree = juego
     terrenos = db.decode()["terrains"]
-    rate = {i: f.get("encounter_rate", lcf.CAMPOS["Terrain"]["encounter_rate"][1])
-            for i, f in terrenos.items()}
+    rate = {i: f["encounter_rate"] for i, f in terrenos.items()}
     todos, _propias, _areas = mapas_con_encuentros(tree)
     vistos = set()
     for map_id in todos:

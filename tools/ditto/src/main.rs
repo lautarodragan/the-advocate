@@ -9,14 +9,16 @@ fn usage() -> ExitCode {
         "usage:\n  \
          ditto read   <file.lmu|.ldb|.lmt> [out.json]\n  \
          ditto write  <file.json> [out.lmu]\n  \
-         ditto unpack <game dir> <dump dir>\n  \
-         ditto pack   <dump dir> <game dir>\n  \
+         ditto unpack <game dir> <exact dir> <resolved dir>\n  \
+         ditto pack   <exact dir> <game dir>\n  \
          ditto schema [out.json]\n\n\
          read/write do one file, and with no output file they write to standard\n\
-         output. unpack/pack do a whole game as a tree of JSON: see README.md.\n\
-         schema writes out what a reader of that JSON needs and the JSON does\n\
-         not carry: every field's default —absent means default— and the enum\n\
-         tables the names in it come from."
+         output. unpack writes a whole game as a tree of JSON, in its two views\n\
+         and in one run: the exact dump, which is what pack reads back, and the\n\
+         resolved view, where every field is written and every enum is a number,\n\
+         which is the one to read without knowing the format. See README.md.\n\
+         schema writes out the format's own tables —every field's default and\n\
+         the enums—, which is what reading the exact dump takes."
     );
     ExitCode::from(2)
 }
@@ -41,8 +43,15 @@ fn main() -> ExitCode {
     let r = match args[0].as_str() {
         "read" => read(input, output),
         "write" => write(input, output),
-        "unpack" | "pack" => match output {
-            Some(out) => tree(&args[0], input, out),
+        // `unpack` takes the two output directories and not one: the exact
+        // dump and the resolved view are written together on purpose, so that
+        // there is no way to end up with one of each run. See `dump`.
+        "unpack" => match (output, args.get(3).map(Path::new)) {
+            (Some(exact), Some(resolved)) => tree_unpack(input, exact, resolved),
+            _ => return usage(),
+        },
+        "pack" => match output {
+            Some(out) => tree_pack(input, out),
             None => return usage(),
         },
         _ => return usage(),
@@ -66,20 +75,33 @@ fn write(input: &Path, output: Option<&Path>) -> Result<(), Box<dyn std::error::
     emit(&file::write(&doc)?, output)
 }
 
-/// Says how many files it wrote, because the whole point of these two is that
-/// what comes out is a directory and not something one can look at on the
-/// terminal.
-fn tree(command: &str, input: &Path, output: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let files = match command {
-        "unpack" => dump::unpack(input, output)?,
-        _ => dump::pack(input, output)?,
-    };
-    let bytes: u64 = files
+fn tree_unpack(
+    game: &Path,
+    exact: &Path,
+    resolved: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let files = dump::unpack(game, exact, resolved)?;
+    said(&files, exact);
+    said(&files, resolved);
+    Ok(())
+}
+
+fn tree_pack(dump_dir: &Path, out: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let files = dump::pack(dump_dir, out)?;
+    said(&files, out);
+    Ok(())
+}
+
+/// Says how many files went into a directory and what they weigh, because the
+/// whole point of `unpack` and `pack` is that what comes out is a directory
+/// and not something one can look at on the terminal.
+fn said(files: &[std::path::PathBuf], dir: &Path) {
+    let mine: Vec<&std::path::PathBuf> = files.iter().filter(|p| p.starts_with(dir)).collect();
+    let bytes: u64 = mine
         .iter()
         .filter_map(|p| std::fs::metadata(p).ok().map(|m| m.len()))
         .sum();
-    eprintln!("{} files, {bytes} bytes, in {}", files.len(), output.display());
-    Ok(())
+    eprintln!("{} files, {bytes} bytes, in {}", mine.len(), dir.display());
 }
 
 fn emit(d: &[u8], output: Option<&Path>) -> Result<(), Box<dyn std::error::Error>> {

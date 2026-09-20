@@ -6,8 +6,17 @@
 //! every enemy in the game. So `ditto unpack` lays a game out as a tree, and
 //! `ditto pack` builds the binaries back from that tree.
 //!
+//! `unpack` writes that tree **twice**, in one run: the *exact* dump, which is
+//! the binary's own shape —a field holding its default left out, an enum by
+//! its name— and which is what `pack` reads back; and the *resolved* view,
+//! which is the same document with every field written, its default already
+//! filled in, and every enum as the number the file stores. The second one
+//! needs no schema to be read, which is what it is for: a consumer that is not
+//! Ditto gets the data and not the rules. `ditto.json` says which one a
+//! directory is, and `pack` refuses the resolved one.
+//!
 //! ```text
-//! ditto.json            the dump's version, and the header of every file
+//! ditto.json            the dump's version and view, and the header of every file
 //! maps.json             the map tree: the .lmt
 //! maps/Map0001.json     one file per map, without its tile layers
 //! maps/Map0001.tiles    those layers, as a legible grid
@@ -56,7 +65,29 @@ use std::path::{Path, PathBuf};
 
 /// The layout's version. It goes in `ditto.json` so that a dump made by an
 /// older Ditto says so instead of being read wrong.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
+
+/// Which of the two views a dump directory holds. It is written into
+/// `ditto.json`, and it is what lets `pack` refuse a resolved dump instead of
+/// writing a binary with every chunk in it.
+#[derive(Clone, Copy, PartialEq)]
+pub enum View {
+    /// The binary's own shape: defaults omitted, enums by name. The only one
+    /// `pack` reads.
+    Exact,
+    /// Every field written, its default filled in, enums as numbers. Needs no
+    /// schema to be read, and cannot be written back.
+    Resolved,
+}
+
+impl View {
+    fn name(self) -> &'static str {
+        match self {
+            View::Exact => "exact",
+            View::Resolved => "resolved",
+        }
+    }
+}
 
 const MANIFEST: &str = "ditto.json";
 const TREE: &str = "maps.json";
@@ -71,14 +102,17 @@ const UPPER: &str = "upper_layer";
 // --- unpack ----------------------------------------------------------------
 
 /// Reads a game directory —`RPG_RT.ldb`, `RPG_RT.lmt`, `Map*.lmu`— and lays it
-/// out under `out`.
-pub fn unpack(game: &Path, out: &Path) -> Result<Vec<PathBuf>> {
+/// out **twice**: the exact dump under `exact` and the resolved view under
+/// `resolved`.
+///
+/// The two come out of one read of the game and one set of values on purpose.
+/// They are the same document said in two ways, and the only thing that makes
+/// comparing them mean anything is that neither can be made without the other:
+/// generated apart, it is a matter of time before one is from one run and the
+/// other from another.
+pub fn unpack(game: &Path, exact: &Path, resolved: &Path) -> Result<Vec<PathBuf>> {
     let ldb = read_doc(&game.join("RPG_RT.ldb"))?;
     let lmt = read_doc(&game.join("RPG_RT.lmt"))?;
-    let maps = map_files(game)?;
-
-    prepare(out)?;
-    let mut written = Vec::new();
 
     let Document::Ldb { header: db_header, data: db } = ldb else {
         return error("RPG_RT.ldb is not a database");
@@ -86,22 +120,48 @@ pub fn unpack(game: &Path, out: &Path) -> Result<Vec<PathBuf>> {
     let Document::Lmt { header: tree_header, data: tree } = lmt else {
         return error("RPG_RT.lmt is not a map tree");
     };
-
-    for (name, value) in split_database(&db)? {
-        written.push(write_json(&out.join(DB).join(name), &value)?);
-    }
-    written.push(write_json(&out.join(TREE), &serde_json::to_value(&tree)?)?);
-
-    let mut overrides = JsonMap::new();
-    for path in &maps {
-        let stem = stem(path)?;
-        let Document::Lmu { header, data } = read_doc(path)? else {
+    let mut maps = Vec::new();
+    for path in map_files(game)? {
+        let stem = stem(&path)?;
+        let Document::Lmu { header, data } = read_doc(&path)? else {
             return error(format!("{}: not a map", path.display()));
         };
+        maps.push((stem, header, data));
+    }
+    let game = Game { db_header, db, tree_header, tree, maps };
+
+    let mut written = write_view(&game, exact, View::Exact)?;
+    written.extend(crate::lcf::as_resolved(|| {
+        write_view(&game, resolved, View::Resolved)
+    })?);
+    written.sort();
+    Ok(written)
+}
+
+/// A game in memory, read once and written out once per view.
+struct Game {
+    db_header: String,
+    db: Database,
+    tree_header: String,
+    tree: TreeMap,
+    maps: Vec<(String, String, Map)>,
+}
+
+fn write_view(game: &Game, out: &Path, view: View) -> Result<Vec<PathBuf>> {
+    prepare(out)?;
+    let mut written = Vec::new();
+
+    for (name, value) in split_database(&game.db)? {
+        written.push(write_json(&out.join(DB).join(name), &value)?);
+    }
+    written.push(write_json(&out.join(TREE), &serde_json::to_value(&game.tree)?)?);
+
+    let mut overrides = JsonMap::new();
+    for (stem, header, map) in &game.maps {
         if header != "LcfMapUnit" {
-            overrides.insert(stem.clone(), Value::String(header));
+            overrides.insert(stem.clone(), Value::String(header.clone()));
         }
-        let (json, tiles) = split_map(&data)?;
+        let (json, tiles) = split_map(map)?;
         written.push(write_json(&out.join(MAPS).join(format!("{stem}.json")), &json)?);
         if let Some(t) = tiles {
             written.push(write_text(&out.join(MAPS).join(format!("{stem}.tiles")), &t)?);
@@ -109,18 +169,18 @@ pub fn unpack(game: &Path, out: &Path) -> Result<Vec<PathBuf>> {
     }
 
     let mut headers = JsonMap::new();
-    headers.insert("database".into(), Value::String(db_header));
-    headers.insert("tree".into(), Value::String(tree_header));
+    headers.insert("database".into(), Value::String(game.db_header.clone()));
+    headers.insert("tree".into(), Value::String(game.tree_header.clone()));
     headers.insert("map".into(), Value::String("LcfMapUnit".into()));
     if !overrides.is_empty() {
         headers.insert("map_overrides".into(), Value::Object(overrides));
     }
     let mut manifest = JsonMap::new();
     manifest.insert("ditto".into(), Value::from(VERSION));
+    manifest.insert("view".into(), Value::String(view.name().into()));
     manifest.insert("headers".into(), Value::Object(headers));
     written.push(write_json(&out.join(MANIFEST), &Value::Object(manifest))?);
 
-    written.sort();
     Ok(written)
 }
 
@@ -214,6 +274,18 @@ pub fn pack(dump: &Path, out: &Path) -> Result<Vec<PathBuf>> {
         return error(format!(
             "{}: it says it is a dump of version {version} and this Ditto writes {VERSION}",
             dump.join(MANIFEST).display()
+        ));
+    }
+    // The resolved view has every field written, so packing it would write
+    // every chunk and give a binary the editor never wrote. It is refused
+    // rather than left to the person to notice, because what comes out is a
+    // valid file: nothing downstream would complain.
+    let view = manifest.get("view").and_then(Value::as_str).unwrap_or("");
+    if view != View::Exact.name() {
+        return error(format!(
+            "{}: it is the {view} view, and only the {} one can be written back",
+            dump.join(MANIFEST).display(),
+            View::Exact.name()
         ));
     }
     let headers = manifest.get("headers").cloned().unwrap_or(Value::Null);

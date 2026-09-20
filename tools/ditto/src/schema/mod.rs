@@ -36,7 +36,7 @@ pub const kPanYDefault: i32 = 7 * 256;
 pub const kPanSpeedDefault: i32 = 2 << 3;
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum AnimationPosition {
     #[serde(rename = "up")]
     Up,
@@ -65,6 +65,22 @@ impl AnimationPosition {
             v => AnimationPosition::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            AnimationPosition::Up => Some("up"),
+            AnimationPosition::Middle => Some("middle"),
+            AnimationPosition::Down => Some("down"),
+            AnimationPosition::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for AnimationPosition {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("AnimationPosition", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for AnimationPosition {
@@ -72,7 +88,7 @@ impl Default for AnimationPosition {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum AnimationScope {
     #[serde(rename = "target")]
     Target,
@@ -97,6 +113,21 @@ impl AnimationScope {
             v => AnimationScope::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            AnimationScope::Target => Some("target"),
+            AnimationScope::Screen => Some("screen"),
+            AnimationScope::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for AnimationScope {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("AnimationScope", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for AnimationScope {
@@ -104,7 +135,7 @@ impl Default for AnimationScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum AnimationTimingFlashScope {
     #[serde(rename = "nothing")]
     Nothing,
@@ -133,6 +164,22 @@ impl AnimationTimingFlashScope {
             v => AnimationTimingFlashScope::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            AnimationTimingFlashScope::Nothing => Some("nothing"),
+            AnimationTimingFlashScope::Target => Some("target"),
+            AnimationTimingFlashScope::Screen => Some("screen"),
+            AnimationTimingFlashScope::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for AnimationTimingFlashScope {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("AnimationTimingFlashScope", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for AnimationTimingFlashScope {
@@ -140,7 +187,7 @@ impl Default for AnimationTimingFlashScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum AnimationTimingScreenShake {
     #[serde(rename = "nothing")]
     Nothing,
@@ -169,6 +216,22 @@ impl AnimationTimingScreenShake {
             v => AnimationTimingScreenShake::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            AnimationTimingScreenShake::Nothing => Some("nothing"),
+            AnimationTimingScreenShake::Target => Some("target"),
+            AnimationTimingScreenShake::Screen => Some("screen"),
+            AnimationTimingScreenShake::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for AnimationTimingScreenShake {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("AnimationTimingScreenShake", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for AnimationTimingScreenShake {
@@ -176,7 +239,7 @@ impl Default for AnimationTimingScreenShake {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum AttributeType {
     #[serde(rename = "physical")]
     Physical,
@@ -201,6 +264,21 @@ impl AttributeType {
             v => AttributeType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            AttributeType::Physical => Some("physical"),
+            AttributeType::Magical => Some("magical"),
+            AttributeType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for AttributeType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("AttributeType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for AttributeType {
@@ -208,7 +286,7 @@ impl Default for AttributeType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandType {
     #[serde(rename = "attack")]
     Attack,
@@ -253,6 +331,26 @@ impl BattleCommandType {
             v => BattleCommandType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandType::Attack => Some("attack"),
+            BattleCommandType::Skill => Some("skill"),
+            BattleCommandType::Subskill => Some("subskill"),
+            BattleCommandType::Defense => Some("defense"),
+            BattleCommandType::Item => Some("item"),
+            BattleCommandType::Escape => Some("escape"),
+            BattleCommandType::Special => Some("special"),
+            BattleCommandType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandType {
@@ -260,7 +358,7 @@ impl Default for BattleCommandType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsBattleType {
     #[serde(rename = "traditional")]
     Traditional,
@@ -289,6 +387,22 @@ impl BattleCommandsBattleType {
             v => BattleCommandsBattleType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsBattleType::Traditional => Some("traditional"),
+            BattleCommandsBattleType::Alternative => Some("alternative"),
+            BattleCommandsBattleType::Gauge => Some("gauge"),
+            BattleCommandsBattleType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsBattleType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsBattleType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsBattleType {
@@ -296,7 +410,7 @@ impl Default for BattleCommandsBattleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsFacing {
     #[serde(rename = "retain")]
     Retain,
@@ -333,6 +447,24 @@ impl BattleCommandsFacing {
             v => BattleCommandsFacing::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsFacing::Retain => Some("retain"),
+            BattleCommandsFacing::Up => Some("up"),
+            BattleCommandsFacing::Right => Some("right"),
+            BattleCommandsFacing::Down => Some("down"),
+            BattleCommandsFacing::Left => Some("left"),
+            BattleCommandsFacing::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsFacing {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsFacing", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsFacing {
@@ -340,7 +472,7 @@ impl Default for BattleCommandsFacing {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsPlacement {
     #[serde(rename = "manual")]
     Manual,
@@ -365,6 +497,21 @@ impl BattleCommandsPlacement {
             v => BattleCommandsPlacement::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsPlacement::Manual => Some("manual"),
+            BattleCommandsPlacement::Automatic => Some("automatic"),
+            BattleCommandsPlacement::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsPlacement {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsPlacement", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsPlacement {
@@ -372,7 +519,7 @@ impl Default for BattleCommandsPlacement {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsRowShown {
     #[serde(rename = "front")]
     Front,
@@ -397,6 +544,21 @@ impl BattleCommandsRowShown {
             v => BattleCommandsRowShown::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsRowShown::Front => Some("front"),
+            BattleCommandsRowShown::Back => Some("back"),
+            BattleCommandsRowShown::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsRowShown {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsRowShown", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsRowShown {
@@ -404,7 +566,7 @@ impl Default for BattleCommandsRowShown {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsTransparency {
     #[serde(rename = "opaque")]
     Opaque,
@@ -429,6 +591,21 @@ impl BattleCommandsTransparency {
             v => BattleCommandsTransparency::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsTransparency::Opaque => Some("opaque"),
+            BattleCommandsTransparency::Transparent => Some("transparent"),
+            BattleCommandsTransparency::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsTransparency {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsTransparency", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsTransparency {
@@ -436,7 +613,7 @@ impl Default for BattleCommandsTransparency {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattleCommandsWindowSize {
     #[serde(rename = "large")]
     Large,
@@ -461,6 +638,21 @@ impl BattleCommandsWindowSize {
             v => BattleCommandsWindowSize::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattleCommandsWindowSize::Large => Some("large"),
+            BattleCommandsWindowSize::Small => Some("small"),
+            BattleCommandsWindowSize::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattleCommandsWindowSize {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattleCommandsWindowSize", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattleCommandsWindowSize {
@@ -468,7 +660,7 @@ impl Default for BattleCommandsWindowSize {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationItemSkillAfterimage {
     #[serde(rename = "none")]
     None,
@@ -493,6 +685,21 @@ impl BattlerAnimationItemSkillAfterimage {
             v => BattlerAnimationItemSkillAfterimage::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationItemSkillAfterimage::None => Some("none"),
+            BattlerAnimationItemSkillAfterimage::Add => Some("add"),
+            BattlerAnimationItemSkillAfterimage::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationItemSkillAfterimage {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationItemSkillAfterimage", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationItemSkillAfterimage {
@@ -500,7 +707,7 @@ impl Default for BattlerAnimationItemSkillAfterimage {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationItemSkillAnimType {
     #[serde(rename = "weapon")]
     Weapon,
@@ -525,6 +732,21 @@ impl BattlerAnimationItemSkillAnimType {
             v => BattlerAnimationItemSkillAnimType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationItemSkillAnimType::Weapon => Some("weapon"),
+            BattlerAnimationItemSkillAnimType::Battle => Some("battle"),
+            BattlerAnimationItemSkillAnimType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationItemSkillAnimType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationItemSkillAnimType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationItemSkillAnimType {
@@ -532,7 +754,7 @@ impl Default for BattlerAnimationItemSkillAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationItemSkillMovement {
     #[serde(rename = "none")]
     None,
@@ -565,6 +787,23 @@ impl BattlerAnimationItemSkillMovement {
             v => BattlerAnimationItemSkillMovement::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationItemSkillMovement::None => Some("none"),
+            BattlerAnimationItemSkillMovement::Step => Some("step"),
+            BattlerAnimationItemSkillMovement::Jump => Some("jump"),
+            BattlerAnimationItemSkillMovement::Move => Some("move"),
+            BattlerAnimationItemSkillMovement::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationItemSkillMovement {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationItemSkillMovement", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationItemSkillMovement {
@@ -572,7 +811,7 @@ impl Default for BattlerAnimationItemSkillMovement {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationItemSkillSpeed {
     #[serde(rename = "fast")]
     Fast,
@@ -601,6 +840,22 @@ impl BattlerAnimationItemSkillSpeed {
             v => BattlerAnimationItemSkillSpeed::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationItemSkillSpeed::Fast => Some("fast"),
+            BattlerAnimationItemSkillSpeed::Medium => Some("medium"),
+            BattlerAnimationItemSkillSpeed::Slow => Some("slow"),
+            BattlerAnimationItemSkillSpeed::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationItemSkillSpeed {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationItemSkillSpeed", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationItemSkillSpeed {
@@ -608,7 +863,7 @@ impl Default for BattlerAnimationItemSkillSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationPose {
     #[serde(rename = "Idle")]
     Idle,
@@ -673,6 +928,31 @@ impl BattlerAnimationPose {
             v => BattlerAnimationPose::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationPose::Idle => Some("Idle"),
+            BattlerAnimationPose::AttackRight => Some("AttackRight"),
+            BattlerAnimationPose::AttackLeft => Some("AttackLeft"),
+            BattlerAnimationPose::Skill => Some("Skill"),
+            BattlerAnimationPose::Dead => Some("Dead"),
+            BattlerAnimationPose::Damage => Some("Damage"),
+            BattlerAnimationPose::Dazed => Some("Dazed"),
+            BattlerAnimationPose::Defend => Some("Defend"),
+            BattlerAnimationPose::WalkLeft => Some("WalkLeft"),
+            BattlerAnimationPose::WalkRight => Some("WalkRight"),
+            BattlerAnimationPose::Victory => Some("Victory"),
+            BattlerAnimationPose::Item => Some("Item"),
+            BattlerAnimationPose::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationPose {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationPose", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationPose {
@@ -680,7 +960,7 @@ impl Default for BattlerAnimationPose {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationPoseAnimType {
     #[serde(rename = "character")]
     Character,
@@ -705,6 +985,21 @@ impl BattlerAnimationPoseAnimType {
             v => BattlerAnimationPoseAnimType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationPoseAnimType::Character => Some("character"),
+            BattlerAnimationPoseAnimType::Battle => Some("battle"),
+            BattlerAnimationPoseAnimType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationPoseAnimType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationPoseAnimType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationPoseAnimType {
@@ -712,7 +1007,7 @@ impl Default for BattlerAnimationPoseAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum BattlerAnimationSpeed {
     #[serde(rename = "slow")]
     Slow,
@@ -741,6 +1036,22 @@ impl BattlerAnimationSpeed {
             v => BattlerAnimationSpeed::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            BattlerAnimationSpeed::Slow => Some("slow"),
+            BattlerAnimationSpeed::Medium => Some("medium"),
+            BattlerAnimationSpeed::Fast => Some("fast"),
+            BattlerAnimationSpeed::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for BattlerAnimationSpeed {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("BattlerAnimationSpeed", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for BattlerAnimationSpeed {
@@ -748,7 +1059,7 @@ impl Default for BattlerAnimationSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ChipsetAnimType {
     #[serde(rename = "reciprocating")]
     Reciprocating,
@@ -773,6 +1084,21 @@ impl ChipsetAnimType {
             v => ChipsetAnimType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            ChipsetAnimType::Reciprocating => Some("reciprocating"),
+            ChipsetAnimType::Cyclic => Some("cyclic"),
+            ChipsetAnimType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for ChipsetAnimType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("ChipsetAnimType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for ChipsetAnimType {
@@ -780,7 +1106,7 @@ impl Default for ChipsetAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum CommonEventTrigger {
     #[serde(rename = "automatic")]
     Automatic,
@@ -809,6 +1135,22 @@ impl CommonEventTrigger {
             v => CommonEventTrigger::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            CommonEventTrigger::Automatic => Some("automatic"),
+            CommonEventTrigger::Parallel => Some("parallel"),
+            CommonEventTrigger::Call => Some("call"),
+            CommonEventTrigger::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for CommonEventTrigger {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("CommonEventTrigger", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for CommonEventTrigger {
@@ -816,7 +1158,7 @@ impl Default for CommonEventTrigger {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EnemyActionBasic {
     #[serde(rename = "attack")]
     Attack,
@@ -865,6 +1207,27 @@ impl EnemyActionBasic {
             v => EnemyActionBasic::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EnemyActionBasic::Attack => Some("attack"),
+            EnemyActionBasic::DualAttack => Some("dual_attack"),
+            EnemyActionBasic::Defense => Some("defense"),
+            EnemyActionBasic::Observe => Some("observe"),
+            EnemyActionBasic::Charge => Some("charge"),
+            EnemyActionBasic::Autodestruction => Some("autodestruction"),
+            EnemyActionBasic::Escape => Some("escape"),
+            EnemyActionBasic::Nothing => Some("nothing"),
+            EnemyActionBasic::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EnemyActionBasic {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EnemyActionBasic", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EnemyActionBasic {
@@ -872,7 +1235,7 @@ impl Default for EnemyActionBasic {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EnemyActionConditionType {
     #[serde(rename = "always")]
     Always,
@@ -921,6 +1284,27 @@ impl EnemyActionConditionType {
             v => EnemyActionConditionType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EnemyActionConditionType::Always => Some("always"),
+            EnemyActionConditionType::Switch => Some("switch"),
+            EnemyActionConditionType::Turn => Some("turn"),
+            EnemyActionConditionType::Actors => Some("actors"),
+            EnemyActionConditionType::Hp => Some("hp"),
+            EnemyActionConditionType::Sp => Some("sp"),
+            EnemyActionConditionType::PartyLvl => Some("party_lvl"),
+            EnemyActionConditionType::PartyFatigue => Some("party_fatigue"),
+            EnemyActionConditionType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EnemyActionConditionType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EnemyActionConditionType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EnemyActionConditionType {
@@ -928,7 +1312,7 @@ impl Default for EnemyActionConditionType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EnemyActionKind {
     #[serde(rename = "basic")]
     Basic,
@@ -957,6 +1341,22 @@ impl EnemyActionKind {
             v => EnemyActionKind::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EnemyActionKind::Basic => Some("basic"),
+            EnemyActionKind::Skill => Some("skill"),
+            EnemyActionKind::Transformation => Some("transformation"),
+            EnemyActionKind::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EnemyActionKind {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EnemyActionKind", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EnemyActionKind {
@@ -964,7 +1364,7 @@ impl Default for EnemyActionKind {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventCommandCode {
     #[serde(rename = "END")]
     END,
@@ -1493,6 +1893,147 @@ impl EventCommandCode {
             v => EventCommandCode::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventCommandCode::END => Some("END"),
+            EventCommandCode::CallCommonEvent => Some("CallCommonEvent"),
+            EventCommandCode::ForceFlee => Some("ForceFlee"),
+            EventCommandCode::EnableCombo => Some("EnableCombo"),
+            EventCommandCode::ChangeClass => Some("ChangeClass"),
+            EventCommandCode::ChangeBattleCommands => Some("ChangeBattleCommands"),
+            EventCommandCode::OpenLoadMenu => Some("OpenLoadMenu"),
+            EventCommandCode::ExitGame => Some("ExitGame"),
+            EventCommandCode::ToggleAtbMode => Some("ToggleAtbMode"),
+            EventCommandCode::ToggleFullscreen => Some("ToggleFullscreen"),
+            EventCommandCode::OpenVideoOptions => Some("OpenVideoOptions"),
+            EventCommandCode::ShowMessage => Some("ShowMessage"),
+            EventCommandCode::MessageOptions => Some("MessageOptions"),
+            EventCommandCode::ChangeFaceGraphic => Some("ChangeFaceGraphic"),
+            EventCommandCode::ShowChoice => Some("ShowChoice"),
+            EventCommandCode::InputNumber => Some("InputNumber"),
+            EventCommandCode::ControlSwitches => Some("ControlSwitches"),
+            EventCommandCode::ControlVars => Some("ControlVars"),
+            EventCommandCode::TimerOperation => Some("TimerOperation"),
+            EventCommandCode::ChangeGold => Some("ChangeGold"),
+            EventCommandCode::ChangeItems => Some("ChangeItems"),
+            EventCommandCode::ChangePartyMembers => Some("ChangePartyMembers"),
+            EventCommandCode::ChangeExp => Some("ChangeExp"),
+            EventCommandCode::ChangeLevel => Some("ChangeLevel"),
+            EventCommandCode::ChangeParameters => Some("ChangeParameters"),
+            EventCommandCode::ChangeSkills => Some("ChangeSkills"),
+            EventCommandCode::ChangeEquipment => Some("ChangeEquipment"),
+            EventCommandCode::ChangeHP => Some("ChangeHP"),
+            EventCommandCode::ChangeSP => Some("ChangeSP"),
+            EventCommandCode::ChangeCondition => Some("ChangeCondition"),
+            EventCommandCode::FullHeal => Some("FullHeal"),
+            EventCommandCode::SimulatedAttack => Some("SimulatedAttack"),
+            EventCommandCode::ChangeHeroName => Some("ChangeHeroName"),
+            EventCommandCode::ChangeHeroTitle => Some("ChangeHeroTitle"),
+            EventCommandCode::ChangeSpriteAssociation => Some("ChangeSpriteAssociation"),
+            EventCommandCode::ChangeActorFace => Some("ChangeActorFace"),
+            EventCommandCode::ChangeVehicleGraphic => Some("ChangeVehicleGraphic"),
+            EventCommandCode::ChangeSystemBGM => Some("ChangeSystemBGM"),
+            EventCommandCode::ChangeSystemSFX => Some("ChangeSystemSFX"),
+            EventCommandCode::ChangeSystemGraphics => Some("ChangeSystemGraphics"),
+            EventCommandCode::ChangeScreenTransitions => Some("ChangeScreenTransitions"),
+            EventCommandCode::EnemyEncounter => Some("EnemyEncounter"),
+            EventCommandCode::OpenShop => Some("OpenShop"),
+            EventCommandCode::ShowInn => Some("ShowInn"),
+            EventCommandCode::EnterHeroName => Some("EnterHeroName"),
+            EventCommandCode::Teleport => Some("Teleport"),
+            EventCommandCode::MemorizeLocation => Some("MemorizeLocation"),
+            EventCommandCode::RecallToLocation => Some("RecallToLocation"),
+            EventCommandCode::EnterExitVehicle => Some("EnterExitVehicle"),
+            EventCommandCode::SetVehicleLocation => Some("SetVehicleLocation"),
+            EventCommandCode::ChangeEventLocation => Some("ChangeEventLocation"),
+            EventCommandCode::TradeEventLocations => Some("TradeEventLocations"),
+            EventCommandCode::StoreTerrainID => Some("StoreTerrainID"),
+            EventCommandCode::StoreEventID => Some("StoreEventID"),
+            EventCommandCode::EraseScreen => Some("EraseScreen"),
+            EventCommandCode::ShowScreen => Some("ShowScreen"),
+            EventCommandCode::TintScreen => Some("TintScreen"),
+            EventCommandCode::FlashScreen => Some("FlashScreen"),
+            EventCommandCode::ShakeScreen => Some("ShakeScreen"),
+            EventCommandCode::PanScreen => Some("PanScreen"),
+            EventCommandCode::WeatherEffects => Some("WeatherEffects"),
+            EventCommandCode::ShowPicture => Some("ShowPicture"),
+            EventCommandCode::MovePicture => Some("MovePicture"),
+            EventCommandCode::ErasePicture => Some("ErasePicture"),
+            EventCommandCode::ShowBattleAnimation => Some("ShowBattleAnimation"),
+            EventCommandCode::PlayerVisibility => Some("PlayerVisibility"),
+            EventCommandCode::FlashSprite => Some("FlashSprite"),
+            EventCommandCode::MoveEvent => Some("MoveEvent"),
+            EventCommandCode::ProceedWithMovement => Some("ProceedWithMovement"),
+            EventCommandCode::HaltAllMovement => Some("HaltAllMovement"),
+            EventCommandCode::Wait => Some("Wait"),
+            EventCommandCode::PlayBGM => Some("PlayBGM"),
+            EventCommandCode::FadeOutBGM => Some("FadeOutBGM"),
+            EventCommandCode::MemorizeBGM => Some("MemorizeBGM"),
+            EventCommandCode::PlayMemorizedBGM => Some("PlayMemorizedBGM"),
+            EventCommandCode::PlaySound => Some("PlaySound"),
+            EventCommandCode::PlayMovie => Some("PlayMovie"),
+            EventCommandCode::KeyInputProc => Some("KeyInputProc"),
+            EventCommandCode::ChangeMapTileset => Some("ChangeMapTileset"),
+            EventCommandCode::ChangePBG => Some("ChangePBG"),
+            EventCommandCode::ChangeEncounterSteps => Some("ChangeEncounterSteps"),
+            EventCommandCode::TileSubstitution => Some("TileSubstitution"),
+            EventCommandCode::TeleportTargets => Some("TeleportTargets"),
+            EventCommandCode::ChangeTeleportAccess => Some("ChangeTeleportAccess"),
+            EventCommandCode::EscapeTarget => Some("EscapeTarget"),
+            EventCommandCode::ChangeEscapeAccess => Some("ChangeEscapeAccess"),
+            EventCommandCode::OpenSaveMenu => Some("OpenSaveMenu"),
+            EventCommandCode::ChangeSaveAccess => Some("ChangeSaveAccess"),
+            EventCommandCode::OpenMainMenu => Some("OpenMainMenu"),
+            EventCommandCode::ChangeMainMenuAccess => Some("ChangeMainMenuAccess"),
+            EventCommandCode::ConditionalBranch => Some("ConditionalBranch"),
+            EventCommandCode::Label => Some("Label"),
+            EventCommandCode::JumpToLabel => Some("JumpToLabel"),
+            EventCommandCode::Loop => Some("Loop"),
+            EventCommandCode::BreakLoop => Some("BreakLoop"),
+            EventCommandCode::EndEventProcessing => Some("EndEventProcessing"),
+            EventCommandCode::EraseEvent => Some("EraseEvent"),
+            EventCommandCode::CallEvent => Some("CallEvent"),
+            EventCommandCode::Comment => Some("Comment"),
+            EventCommandCode::GameOver => Some("GameOver"),
+            EventCommandCode::ReturntoTitleScreen => Some("ReturntoTitleScreen"),
+            EventCommandCode::ChangeMonsterHP => Some("ChangeMonsterHP"),
+            EventCommandCode::ChangeMonsterMP => Some("ChangeMonsterMP"),
+            EventCommandCode::ChangeMonsterCondition => Some("ChangeMonsterCondition"),
+            EventCommandCode::ShowHiddenMonster => Some("ShowHiddenMonster"),
+            EventCommandCode::ChangeBattleBG => Some("ChangeBattleBG"),
+            EventCommandCode::ShowBattleAnimationB => Some("ShowBattleAnimation_B"),
+            EventCommandCode::ConditionalBranchB => Some("ConditionalBranch_B"),
+            EventCommandCode::TerminateBattle => Some("TerminateBattle"),
+            EventCommandCode::ShowMessage2 => Some("ShowMessage_2"),
+            EventCommandCode::ShowChoiceOption => Some("ShowChoiceOption"),
+            EventCommandCode::ShowChoiceEnd => Some("ShowChoiceEnd"),
+            EventCommandCode::VictoryHandler => Some("VictoryHandler"),
+            EventCommandCode::EscapeHandler => Some("EscapeHandler"),
+            EventCommandCode::DefeatHandler => Some("DefeatHandler"),
+            EventCommandCode::EndBattle => Some("EndBattle"),
+            EventCommandCode::Transaction => Some("Transaction"),
+            EventCommandCode::NoTransaction => Some("NoTransaction"),
+            EventCommandCode::EndShop => Some("EndShop"),
+            EventCommandCode::Stay => Some("Stay"),
+            EventCommandCode::NoStay => Some("NoStay"),
+            EventCommandCode::EndInn => Some("EndInn"),
+            EventCommandCode::ElseBranch => Some("ElseBranch"),
+            EventCommandCode::EndBranch => Some("EndBranch"),
+            EventCommandCode::EndLoop => Some("EndLoop"),
+            EventCommandCode::Comment2 => Some("Comment_2"),
+            EventCommandCode::ElseBranchB => Some("ElseBranch_B"),
+            EventCommandCode::EndBranchB => Some("EndBranch_B"),
+            EventCommandCode::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventCommandCode {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventCommandCode", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventCommandCode {
@@ -1500,7 +2041,7 @@ impl Default for EventCommandCode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageAnimType {
     #[serde(rename = "non_continuous")]
     NonContinuous,
@@ -1545,6 +2086,26 @@ impl EventPageAnimType {
             v => EventPageAnimType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageAnimType::NonContinuous => Some("non_continuous"),
+            EventPageAnimType::Continuous => Some("continuous"),
+            EventPageAnimType::FixedNonContinuous => Some("fixed_non_continuous"),
+            EventPageAnimType::FixedContinuous => Some("fixed_continuous"),
+            EventPageAnimType::FixedGraphic => Some("fixed_graphic"),
+            EventPageAnimType::Spin => Some("spin"),
+            EventPageAnimType::StepFrameFix => Some("step_frame_fix"),
+            EventPageAnimType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageAnimType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageAnimType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageAnimType {
@@ -1552,7 +2113,7 @@ impl Default for EventPageAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageConditionComparison {
     #[serde(rename = "equal")]
     Equal,
@@ -1593,6 +2154,25 @@ impl EventPageConditionComparison {
             v => EventPageConditionComparison::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageConditionComparison::Equal => Some("equal"),
+            EventPageConditionComparison::GreaterEqual => Some("greater_equal"),
+            EventPageConditionComparison::LessEqual => Some("less_equal"),
+            EventPageConditionComparison::Greater => Some("greater"),
+            EventPageConditionComparison::Less => Some("less"),
+            EventPageConditionComparison::NotEqual => Some("not_equal"),
+            EventPageConditionComparison::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageConditionComparison {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageConditionComparison", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageConditionComparison {
@@ -1600,7 +2180,7 @@ impl Default for EventPageConditionComparison {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageDirection {
     #[serde(rename = "up")]
     Up,
@@ -1633,6 +2213,23 @@ impl EventPageDirection {
             v => EventPageDirection::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageDirection::Up => Some("up"),
+            EventPageDirection::Right => Some("right"),
+            EventPageDirection::Down => Some("down"),
+            EventPageDirection::Left => Some("left"),
+            EventPageDirection::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageDirection {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageDirection", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageDirection {
@@ -1640,7 +2237,7 @@ impl Default for EventPageDirection {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageFrame {
     #[serde(rename = "left")]
     Left,
@@ -1673,6 +2270,23 @@ impl EventPageFrame {
             v => EventPageFrame::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageFrame::Left => Some("left"),
+            EventPageFrame::Middle => Some("middle"),
+            EventPageFrame::Right => Some("right"),
+            EventPageFrame::Middle2 => Some("middle2"),
+            EventPageFrame::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageFrame {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageFrame", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageFrame {
@@ -1680,7 +2294,7 @@ impl Default for EventPageFrame {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageLayers {
     #[serde(rename = "below")]
     Below,
@@ -1709,6 +2323,22 @@ impl EventPageLayers {
             v => EventPageLayers::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageLayers::Below => Some("below"),
+            EventPageLayers::Same => Some("same"),
+            EventPageLayers::Above => Some("above"),
+            EventPageLayers::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageLayers {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageLayers", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageLayers {
@@ -1716,7 +2346,7 @@ impl Default for EventPageLayers {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageMoveSpeed {
     #[serde(rename = "eighth")]
     Eighth,
@@ -1757,6 +2387,25 @@ impl EventPageMoveSpeed {
             v => EventPageMoveSpeed::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageMoveSpeed::Eighth => Some("eighth"),
+            EventPageMoveSpeed::Quarter => Some("quarter"),
+            EventPageMoveSpeed::Half => Some("half"),
+            EventPageMoveSpeed::Normal => Some("normal"),
+            EventPageMoveSpeed::Double => Some("double"),
+            EventPageMoveSpeed::Fourfold => Some("fourfold"),
+            EventPageMoveSpeed::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageMoveSpeed {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageMoveSpeed", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageMoveSpeed {
@@ -1764,7 +2413,7 @@ impl Default for EventPageMoveSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageMoveType {
     #[serde(rename = "stationary")]
     Stationary,
@@ -1809,6 +2458,26 @@ impl EventPageMoveType {
             v => EventPageMoveType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageMoveType::Stationary => Some("stationary"),
+            EventPageMoveType::Random => Some("random"),
+            EventPageMoveType::Vertical => Some("vertical"),
+            EventPageMoveType::Horizontal => Some("horizontal"),
+            EventPageMoveType::Toward => Some("toward"),
+            EventPageMoveType::Away => Some("away"),
+            EventPageMoveType::Custom => Some("custom"),
+            EventPageMoveType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageMoveType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageMoveType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageMoveType {
@@ -1816,7 +2485,7 @@ impl Default for EventPageMoveType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum EventPageTrigger {
     #[serde(rename = "action")]
     Action,
@@ -1853,6 +2522,24 @@ impl EventPageTrigger {
             v => EventPageTrigger::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            EventPageTrigger::Action => Some("action"),
+            EventPageTrigger::Touched => Some("touched"),
+            EventPageTrigger::Collision => Some("collision"),
+            EventPageTrigger::AutoStart => Some("auto_start"),
+            EventPageTrigger::Parallel => Some("parallel"),
+            EventPageTrigger::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for EventPageTrigger {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("EventPageTrigger", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for EventPageTrigger {
@@ -1860,7 +2547,7 @@ impl Default for EventPageTrigger {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ItemTarget {
     #[serde(rename = "single")]
     Single,
@@ -1893,6 +2580,23 @@ impl ItemTarget {
             v => ItemTarget::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            ItemTarget::Single => Some("single"),
+            ItemTarget::Center => Some("center"),
+            ItemTarget::Simultaneous => Some("simultaneous"),
+            ItemTarget::Sequential => Some("sequential"),
+            ItemTarget::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for ItemTarget {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("ItemTarget", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for ItemTarget {
@@ -1900,7 +2604,7 @@ impl Default for ItemTarget {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ItemTrajectory {
     #[serde(rename = "straight")]
     Straight,
@@ -1925,6 +2629,21 @@ impl ItemTrajectory {
             v => ItemTrajectory::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            ItemTrajectory::Straight => Some("straight"),
+            ItemTrajectory::Return => Some("return"),
+            ItemTrajectory::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for ItemTrajectory {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("ItemTrajectory", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for ItemTrajectory {
@@ -1932,7 +2651,7 @@ impl Default for ItemTrajectory {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ItemType {
     #[serde(rename = "normal")]
     Normal,
@@ -1993,6 +2712,30 @@ impl ItemType {
             v => ItemType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            ItemType::Normal => Some("normal"),
+            ItemType::Weapon => Some("weapon"),
+            ItemType::Shield => Some("shield"),
+            ItemType::Armor => Some("armor"),
+            ItemType::Helmet => Some("helmet"),
+            ItemType::Accessory => Some("accessory"),
+            ItemType::Medicine => Some("medicine"),
+            ItemType::Book => Some("book"),
+            ItemType::Material => Some("material"),
+            ItemType::Special => Some("special"),
+            ItemType::Switch => Some("switch"),
+            ItemType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for ItemType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("ItemType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for ItemType {
@@ -2000,7 +2743,7 @@ impl Default for ItemType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapGeneratorMode {
     #[serde(rename = "single_passage")]
     SinglePassage,
@@ -2033,6 +2776,23 @@ impl MapGeneratorMode {
             v => MapGeneratorMode::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapGeneratorMode::SinglePassage => Some("single_passage"),
+            MapGeneratorMode::LinkedRooms => Some("linked_rooms"),
+            MapGeneratorMode::MazePassage => Some("maze_passage"),
+            MapGeneratorMode::OpenRoom => Some("open_room"),
+            MapGeneratorMode::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapGeneratorMode {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapGeneratorMode", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapGeneratorMode {
@@ -2040,7 +2800,7 @@ impl Default for MapGeneratorMode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapGeneratorTiles {
     #[serde(rename = "one")]
     One,
@@ -2065,6 +2825,21 @@ impl MapGeneratorTiles {
             v => MapGeneratorTiles::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapGeneratorTiles::One => Some("one"),
+            MapGeneratorTiles::Two => Some("two"),
+            MapGeneratorTiles::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapGeneratorTiles {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapGeneratorTiles", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapGeneratorTiles {
@@ -2072,7 +2847,7 @@ impl Default for MapGeneratorTiles {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapInfoBGMType {
     #[serde(rename = "parent")]
     Parent,
@@ -2101,6 +2876,22 @@ impl MapInfoBGMType {
             v => MapInfoBGMType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapInfoBGMType::Parent => Some("parent"),
+            MapInfoBGMType::Terrain => Some("terrain"),
+            MapInfoBGMType::Specific => Some("specific"),
+            MapInfoBGMType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapInfoBGMType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapInfoBGMType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapInfoBGMType {
@@ -2108,7 +2899,7 @@ impl Default for MapInfoBGMType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapInfoMusicType {
     #[serde(rename = "parent")]
     Parent,
@@ -2137,6 +2928,22 @@ impl MapInfoMusicType {
             v => MapInfoMusicType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapInfoMusicType::Parent => Some("parent"),
+            MapInfoMusicType::Event => Some("event"),
+            MapInfoMusicType::Specific => Some("specific"),
+            MapInfoMusicType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapInfoMusicType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapInfoMusicType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapInfoMusicType {
@@ -2144,7 +2951,7 @@ impl Default for MapInfoMusicType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapInfoTriState {
     #[serde(rename = "parent")]
     Parent,
@@ -2173,6 +2980,22 @@ impl MapInfoTriState {
             v => MapInfoTriState::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapInfoTriState::Parent => Some("parent"),
+            MapInfoTriState::Allow => Some("allow"),
+            MapInfoTriState::Forbid => Some("forbid"),
+            MapInfoTriState::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapInfoTriState {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapInfoTriState", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapInfoTriState {
@@ -2180,7 +3003,7 @@ impl Default for MapInfoTriState {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MapScrollType {
     #[serde(rename = "none")]
     None,
@@ -2213,6 +3036,23 @@ impl MapScrollType {
             v => MapScrollType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MapScrollType::None => Some("none"),
+            MapScrollType::Vertical => Some("vertical"),
+            MapScrollType::Horizontal => Some("horizontal"),
+            MapScrollType::Both => Some("both"),
+            MapScrollType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MapScrollType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MapScrollType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MapScrollType {
@@ -2220,7 +3060,7 @@ impl Default for MapScrollType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum MoveCommandCode {
     #[serde(rename = "move_up")]
     MoveUp,
@@ -2405,6 +3245,61 @@ impl MoveCommandCode {
             v => MoveCommandCode::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            MoveCommandCode::MoveUp => Some("move_up"),
+            MoveCommandCode::MoveRight => Some("move_right"),
+            MoveCommandCode::MoveDown => Some("move_down"),
+            MoveCommandCode::MoveLeft => Some("move_left"),
+            MoveCommandCode::MoveUpright => Some("move_upright"),
+            MoveCommandCode::MoveDownright => Some("move_downright"),
+            MoveCommandCode::MoveDownleft => Some("move_downleft"),
+            MoveCommandCode::MoveUpleft => Some("move_upleft"),
+            MoveCommandCode::MoveRandom => Some("move_random"),
+            MoveCommandCode::MoveTowardsHero => Some("move_towards_hero"),
+            MoveCommandCode::MoveAwayFromHero => Some("move_away_from_hero"),
+            MoveCommandCode::MoveForward => Some("move_forward"),
+            MoveCommandCode::FaceUp => Some("face_up"),
+            MoveCommandCode::FaceRight => Some("face_right"),
+            MoveCommandCode::FaceDown => Some("face_down"),
+            MoveCommandCode::FaceLeft => Some("face_left"),
+            MoveCommandCode::Turn90DegreeRight => Some("turn_90_degree_right"),
+            MoveCommandCode::Turn90DegreeLeft => Some("turn_90_degree_left"),
+            MoveCommandCode::Turn180Degree => Some("turn_180_degree"),
+            MoveCommandCode::Turn90DegreeRandom => Some("turn_90_degree_random"),
+            MoveCommandCode::FaceRandomDirection => Some("face_random_direction"),
+            MoveCommandCode::FaceHero => Some("face_hero"),
+            MoveCommandCode::FaceAwayFromHero => Some("face_away_from_hero"),
+            MoveCommandCode::Wait => Some("wait"),
+            MoveCommandCode::BeginJump => Some("begin_jump"),
+            MoveCommandCode::EndJump => Some("end_jump"),
+            MoveCommandCode::LockFacing => Some("lock_facing"),
+            MoveCommandCode::UnlockFacing => Some("unlock_facing"),
+            MoveCommandCode::IncreaseMovementSpeed => Some("increase_movement_speed"),
+            MoveCommandCode::DecreaseMovementSpeed => Some("decrease_movement_speed"),
+            MoveCommandCode::IncreaseMovementFrequence => Some("increase_movement_frequence"),
+            MoveCommandCode::DecreaseMovementFrequence => Some("decrease_movement_frequence"),
+            MoveCommandCode::SwitchOn => Some("switch_on"),
+            MoveCommandCode::SwitchOff => Some("switch_off"),
+            MoveCommandCode::ChangeGraphic => Some("change_graphic"),
+            MoveCommandCode::PlaySoundEffect => Some("play_sound_effect"),
+            MoveCommandCode::WalkEverywhereOn => Some("walk_everywhere_on"),
+            MoveCommandCode::WalkEverywhereOff => Some("walk_everywhere_off"),
+            MoveCommandCode::StopAnimation => Some("stop_animation"),
+            MoveCommandCode::StartAnimation => Some("start_animation"),
+            MoveCommandCode::IncreaseTransp => Some("increase_transp"),
+            MoveCommandCode::DecreaseTransp => Some("decrease_transp"),
+            MoveCommandCode::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for MoveCommandCode {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("MoveCommandCode", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for MoveCommandCode {
@@ -2412,7 +3307,7 @@ impl Default for MoveCommandCode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SaveActorRowType {
     #[serde(rename = "front")]
     Front,
@@ -2437,6 +3332,21 @@ impl SaveActorRowType {
             v => SaveActorRowType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SaveActorRowType::Front => Some("front"),
+            SaveActorRowType::Back => Some("back"),
+            SaveActorRowType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SaveActorRowType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SaveActorRowType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SaveActorRowType {
@@ -2444,7 +3354,7 @@ impl Default for SaveActorRowType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SavePartyLocationPanState {
     #[serde(rename = "fixed")]
     Fixed,
@@ -2469,6 +3379,21 @@ impl SavePartyLocationPanState {
             v => SavePartyLocationPanState::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SavePartyLocationPanState::Fixed => Some("fixed"),
+            SavePartyLocationPanState::Follow => Some("follow"),
+            SavePartyLocationPanState::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SavePartyLocationPanState {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SavePartyLocationPanState", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SavePartyLocationPanState {
@@ -2476,7 +3401,7 @@ impl Default for SavePartyLocationPanState {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SavePartyLocationVehicleType {
     #[serde(rename = "none")]
     None,
@@ -2509,6 +3434,23 @@ impl SavePartyLocationVehicleType {
             v => SavePartyLocationVehicleType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SavePartyLocationVehicleType::None => Some("none"),
+            SavePartyLocationVehicleType::Skiff => Some("skiff"),
+            SavePartyLocationVehicleType::Ship => Some("ship"),
+            SavePartyLocationVehicleType::Airship => Some("airship"),
+            SavePartyLocationVehicleType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SavePartyLocationVehicleType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SavePartyLocationVehicleType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SavePartyLocationVehicleType {
@@ -2516,7 +3458,7 @@ impl Default for SavePartyLocationVehicleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SavePictureBattleLayer {
     #[serde(rename = "none")]
     None,
@@ -2557,6 +3499,25 @@ impl SavePictureBattleLayer {
             v => SavePictureBattleLayer::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SavePictureBattleLayer::None => Some("none"),
+            SavePictureBattleLayer::Background => Some("background"),
+            SavePictureBattleLayer::BattlersAndAnimations => Some("battlers_and_animations"),
+            SavePictureBattleLayer::Weather => Some("weather"),
+            SavePictureBattleLayer::WindowsAndStatus => Some("windows_and_status"),
+            SavePictureBattleLayer::Timers => Some("timers"),
+            SavePictureBattleLayer::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SavePictureBattleLayer {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SavePictureBattleLayer", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SavePictureBattleLayer {
@@ -2564,7 +3525,7 @@ impl Default for SavePictureBattleLayer {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SavePictureEffect {
     #[serde(rename = "none")]
     None,
@@ -2597,6 +3558,23 @@ impl SavePictureEffect {
             v => SavePictureEffect::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SavePictureEffect::None => Some("none"),
+            SavePictureEffect::Rotation => Some("rotation"),
+            SavePictureEffect::Wave => Some("wave"),
+            SavePictureEffect::ManiacFixedAngle => Some("maniac_fixed_angle"),
+            SavePictureEffect::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SavePictureEffect {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SavePictureEffect", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SavePictureEffect {
@@ -2604,7 +3582,7 @@ impl Default for SavePictureEffect {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SavePictureMapLayer {
     #[serde(rename = "none")]
     None,
@@ -2665,6 +3643,30 @@ impl SavePictureMapLayer {
             v => SavePictureMapLayer::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SavePictureMapLayer::None => Some("none"),
+            SavePictureMapLayer::Parallax => Some("parallax"),
+            SavePictureMapLayer::TilemapBelow => Some("tilemap_below"),
+            SavePictureMapLayer::EventsBelow => Some("events_below"),
+            SavePictureMapLayer::EventsSameAsPlayer => Some("events_same_as_player"),
+            SavePictureMapLayer::TilemapAbove => Some("tilemap_above"),
+            SavePictureMapLayer::EventsAbove => Some("events_above"),
+            SavePictureMapLayer::Weather => Some("weather"),
+            SavePictureMapLayer::Animations => Some("animations"),
+            SavePictureMapLayer::Windows => Some("windows"),
+            SavePictureMapLayer::Timers => Some("timers"),
+            SavePictureMapLayer::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SavePictureMapLayer {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SavePictureMapLayer", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SavePictureMapLayer {
@@ -2672,7 +3674,7 @@ impl Default for SavePictureMapLayer {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SaveSystemAtbMode {
     #[serde(rename = "atb_active")]
     AtbActive,
@@ -2697,6 +3699,21 @@ impl SaveSystemAtbMode {
             v => SaveSystemAtbMode::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SaveSystemAtbMode::AtbActive => Some("atb_active"),
+            SaveSystemAtbMode::AtbWait => Some("atb_wait"),
+            SaveSystemAtbMode::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SaveSystemAtbMode {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SaveSystemAtbMode", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SaveSystemAtbMode {
@@ -2704,7 +3721,7 @@ impl Default for SaveSystemAtbMode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SaveSystemScene {
     #[serde(rename = "map")]
     Map,
@@ -2757,6 +3774,28 @@ impl SaveSystemScene {
             v => SaveSystemScene::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SaveSystemScene::Map => Some("map"),
+            SaveSystemScene::Menu => Some("menu"),
+            SaveSystemScene::Battle => Some("battle"),
+            SaveSystemScene::Shop => Some("shop"),
+            SaveSystemScene::Name => Some("name"),
+            SaveSystemScene::File => Some("file"),
+            SaveSystemScene::Title => Some("title"),
+            SaveSystemScene::GameOver => Some("game_over"),
+            SaveSystemScene::Debug => Some("debug"),
+            SaveSystemScene::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SaveSystemScene {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SaveSystemScene", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SaveSystemScene {
@@ -2764,7 +3803,7 @@ impl Default for SaveSystemScene {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SaveVehicleLocationVehicleType {
     #[serde(rename = "none")]
     None,
@@ -2797,6 +3836,23 @@ impl SaveVehicleLocationVehicleType {
             v => SaveVehicleLocationVehicleType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SaveVehicleLocationVehicleType::None => Some("none"),
+            SaveVehicleLocationVehicleType::Skiff => Some("skiff"),
+            SaveVehicleLocationVehicleType::Ship => Some("ship"),
+            SaveVehicleLocationVehicleType::Airship => Some("airship"),
+            SaveVehicleLocationVehicleType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SaveVehicleLocationVehicleType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SaveVehicleLocationVehicleType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SaveVehicleLocationVehicleType {
@@ -2804,7 +3860,7 @@ impl Default for SaveVehicleLocationVehicleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SkillScope {
     #[serde(rename = "enemy")]
     Enemy,
@@ -2841,6 +3897,24 @@ impl SkillScope {
             v => SkillScope::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SkillScope::Enemy => Some("enemy"),
+            SkillScope::Enemies => Some("enemies"),
+            SkillScope::Self_ => Some("self"),
+            SkillScope::Ally => Some("ally"),
+            SkillScope::Party => Some("party"),
+            SkillScope::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SkillScope {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SkillScope", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SkillScope {
@@ -2848,7 +3922,7 @@ impl Default for SkillScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SkillSpType {
     #[serde(rename = "cost")]
     Cost,
@@ -2873,6 +3947,21 @@ impl SkillSpType {
             v => SkillSpType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SkillSpType::Cost => Some("cost"),
+            SkillSpType::Percent => Some("percent"),
+            SkillSpType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SkillSpType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SkillSpType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SkillSpType {
@@ -2880,7 +3969,7 @@ impl Default for SkillSpType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SkillType {
     #[serde(rename = "normal")]
     Normal,
@@ -2917,6 +4006,24 @@ impl SkillType {
             v => SkillType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SkillType::Normal => Some("normal"),
+            SkillType::Teleport => Some("teleport"),
+            SkillType::Escape => Some("escape"),
+            SkillType::Switch => Some("switch"),
+            SkillType::Subskill => Some("subskill"),
+            SkillType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SkillType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SkillType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SkillType {
@@ -2924,7 +4031,7 @@ impl Default for SkillType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum StateAffectType {
     #[serde(rename = "half")]
     Half,
@@ -2953,6 +4060,22 @@ impl StateAffectType {
             v => StateAffectType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            StateAffectType::Half => Some("half"),
+            StateAffectType::Double => Some("double"),
+            StateAffectType::Nothing => Some("nothing"),
+            StateAffectType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for StateAffectType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("StateAffectType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for StateAffectType {
@@ -2960,7 +4083,7 @@ impl Default for StateAffectType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum StateChangeType {
     #[serde(rename = "lose")]
     Lose,
@@ -2989,6 +4112,22 @@ impl StateChangeType {
             v => StateChangeType::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            StateChangeType::Lose => Some("lose"),
+            StateChangeType::Gain => Some("gain"),
+            StateChangeType::Nothing => Some("nothing"),
+            StateChangeType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for StateChangeType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("StateChangeType", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for StateChangeType {
@@ -2996,7 +4135,7 @@ impl Default for StateChangeType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum StatePersistence {
     #[serde(rename = "ends")]
     Ends,
@@ -3021,6 +4160,21 @@ impl StatePersistence {
             v => StatePersistence::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            StatePersistence::Ends => Some("ends"),
+            StatePersistence::Persists => Some("persists"),
+            StatePersistence::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for StatePersistence {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("StatePersistence", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for StatePersistence {
@@ -3028,7 +4182,7 @@ impl Default for StatePersistence {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum StateRestriction {
     #[serde(rename = "normal")]
     Normal,
@@ -3061,6 +4215,23 @@ impl StateRestriction {
             v => StateRestriction::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            StateRestriction::Normal => Some("normal"),
+            StateRestriction::DoNothing => Some("do_nothing"),
+            StateRestriction::AttackEnemy => Some("attack_enemy"),
+            StateRestriction::AttackAlly => Some("attack_ally"),
+            StateRestriction::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for StateRestriction {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("StateRestriction", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for StateRestriction {
@@ -3068,7 +4239,7 @@ impl Default for StateRestriction {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemBattleCondition {
     #[serde(rename = "none")]
     None,
@@ -3105,6 +4276,24 @@ impl SystemBattleCondition {
             v => SystemBattleCondition::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemBattleCondition::None => Some("none"),
+            SystemBattleCondition::Initiative => Some("initiative"),
+            SystemBattleCondition::Back => Some("back"),
+            SystemBattleCondition::Surround => Some("surround"),
+            SystemBattleCondition::Pincers => Some("pincers"),
+            SystemBattleCondition::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemBattleCondition {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemBattleCondition", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemBattleCondition {
@@ -3112,7 +4301,7 @@ impl Default for SystemBattleCondition {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemBattleFormation {
     #[serde(rename = "terrain")]
     Terrain,
@@ -3141,6 +4330,22 @@ impl SystemBattleFormation {
             v => SystemBattleFormation::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemBattleFormation::Terrain => Some("terrain"),
+            SystemBattleFormation::Loose => Some("loose"),
+            SystemBattleFormation::Tight => Some("tight"),
+            SystemBattleFormation::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemBattleFormation {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemBattleFormation", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemBattleFormation {
@@ -3148,7 +4353,7 @@ impl Default for SystemBattleFormation {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemEquipmentSetting {
     #[serde(rename = "actor")]
     Actor,
@@ -3173,6 +4378,21 @@ impl SystemEquipmentSetting {
             v => SystemEquipmentSetting::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemEquipmentSetting::Actor => Some("actor"),
+            SystemEquipmentSetting::Class => Some("class"),
+            SystemEquipmentSetting::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemEquipmentSetting {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemEquipmentSetting", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemEquipmentSetting {
@@ -3180,7 +4400,7 @@ impl Default for SystemEquipmentSetting {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemFadeIn {
     #[serde(rename = "default")]
     Default,
@@ -3285,6 +4505,41 @@ impl SystemFadeIn {
             v => SystemFadeIn::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemFadeIn::Default => Some("default"),
+            SystemFadeIn::FadeIn => Some("fade_in"),
+            SystemFadeIn::ReconstituteBlocks => Some("reconstitute_blocks"),
+            SystemFadeIn::UnwipeDownward => Some("unwipe_downward"),
+            SystemFadeIn::UnwipeUpward => Some("unwipe_upward"),
+            SystemFadeIn::VenetianBlinds => Some("venetian_blinds"),
+            SystemFadeIn::VerticalBlinds => Some("vertical_blinds"),
+            SystemFadeIn::HorizontalBlinds => Some("horizontal_blinds"),
+            SystemFadeIn::RecedingSquare => Some("receding_square"),
+            SystemFadeIn::ExpandingSquare => Some("expanding_square"),
+            SystemFadeIn::ScreenMovesDown => Some("screen_moves_down"),
+            SystemFadeIn::ScreenMovesUp => Some("screen_moves_up"),
+            SystemFadeIn::ScreenMovesRight => Some("screen_moves_right"),
+            SystemFadeIn::ScreenMovesLeft => Some("screen_moves_left"),
+            SystemFadeIn::VerticalUnify => Some("vertical_unify"),
+            SystemFadeIn::HorizontalUnify => Some("horizontal_unify"),
+            SystemFadeIn::UnifyQuadrants => Some("unify_quadrants"),
+            SystemFadeIn::ZoomOut => Some("zoom_out"),
+            SystemFadeIn::Mosaic => Some("mosaic"),
+            SystemFadeIn::WaverScreen => Some("waver_screen"),
+            SystemFadeIn::Instantaneous => Some("instantaneous"),
+            SystemFadeIn::None => Some("none"),
+            SystemFadeIn::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemFadeIn {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemFadeIn", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemFadeIn {
@@ -3292,7 +4547,7 @@ impl Default for SystemFadeIn {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemFadeOut {
     #[serde(rename = "default")]
     Default,
@@ -3397,6 +4652,41 @@ impl SystemFadeOut {
             v => SystemFadeOut::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemFadeOut::Default => Some("default"),
+            SystemFadeOut::FadeOut => Some("fade_out"),
+            SystemFadeOut::RemoveBlocks => Some("remove_blocks"),
+            SystemFadeOut::WipeDownward => Some("wipe_downward"),
+            SystemFadeOut::WipeUpward => Some("wipe_upward"),
+            SystemFadeOut::VenetianBlinds => Some("venetian_blinds"),
+            SystemFadeOut::VerticalBlinds => Some("vertical_blinds"),
+            SystemFadeOut::HorizontalBlinds => Some("horizontal_blinds"),
+            SystemFadeOut::RecedingSquare => Some("receding_square"),
+            SystemFadeOut::ExpandingSquare => Some("expanding_square"),
+            SystemFadeOut::ScreenMovesUp => Some("screen_moves_up"),
+            SystemFadeOut::ScreenMovesDown => Some("screen_moves_down"),
+            SystemFadeOut::ScreenMovesLeft => Some("screen_moves_left"),
+            SystemFadeOut::ScreenMovesRight => Some("screen_moves_right"),
+            SystemFadeOut::VerticalDiv => Some("vertical_div"),
+            SystemFadeOut::HorizontalDiv => Some("horizontal_div"),
+            SystemFadeOut::Quadrasection => Some("quadrasection"),
+            SystemFadeOut::ZoomIn => Some("zoom_in"),
+            SystemFadeOut::Mosaic => Some("mosaic"),
+            SystemFadeOut::WaverScreen => Some("waver_screen"),
+            SystemFadeOut::Instantaneous => Some("instantaneous"),
+            SystemFadeOut::None => Some("none"),
+            SystemFadeOut::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemFadeOut {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemFadeOut", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemFadeOut {
@@ -3404,7 +4694,7 @@ impl Default for SystemFadeOut {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemFont {
     #[serde(rename = "gothic")]
     Gothic,
@@ -3429,6 +4719,21 @@ impl SystemFont {
             v => SystemFont::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemFont::Gothic => Some("gothic"),
+            SystemFont::Mincho => Some("mincho"),
+            SystemFont::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemFont {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemFont", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemFont {
@@ -3436,7 +4741,7 @@ impl Default for SystemFont {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum SystemStretch {
     #[serde(rename = "stretch")]
     Stretch,
@@ -3465,6 +4770,22 @@ impl SystemStretch {
             v => SystemStretch::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            SystemStretch::Stretch => Some("stretch"),
+            SystemStretch::Tiled => Some("tiled"),
+            SystemStretch::EasyrpgNone => Some("easyrpg_none"),
+            SystemStretch::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for SystemStretch {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("SystemStretch", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for SystemStretch {
@@ -3472,7 +4793,7 @@ impl Default for SystemStretch {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum TerrainBGAssociation {
     #[serde(rename = "background")]
     Background,
@@ -3497,6 +4818,21 @@ impl TerrainBGAssociation {
             v => TerrainBGAssociation::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            TerrainBGAssociation::Background => Some("background"),
+            TerrainBGAssociation::Frame => Some("frame"),
+            TerrainBGAssociation::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for TerrainBGAssociation {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("TerrainBGAssociation", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for TerrainBGAssociation {
@@ -3504,7 +4840,7 @@ impl Default for TerrainBGAssociation {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum TerrainBushDepth {
     #[serde(rename = "normal")]
     Normal,
@@ -3537,6 +4873,23 @@ impl TerrainBushDepth {
             v => TerrainBushDepth::Other(v),
         }
     }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            TerrainBushDepth::Normal => Some("normal"),
+            TerrainBushDepth::Third => Some("third"),
+            TerrainBushDepth::Half => Some("half"),
+            TerrainBushDepth::Full => Some("full"),
+            TerrainBushDepth::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for TerrainBushDepth {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("TerrainBushDepth", self.json_name(), self.to_i32(), s)
+    }
 }
 
 impl Default for TerrainBushDepth {
@@ -3544,7 +4897,7 @@ impl Default for TerrainBushDepth {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum TreeMapMapType {
     #[serde(rename = "root")]
     Root,
@@ -3572,6 +4925,22 @@ impl TreeMapMapType {
             2 => TreeMapMapType::Area,
             v => TreeMapMapType::Other(v),
         }
+    }
+    /// The name `enums.csv` gives this value, and `None` for one it
+    /// does not name.
+    pub fn json_name(self) -> Option<&'static str> {
+        match self {
+            TreeMapMapType::Root => Some("root"),
+            TreeMapMapType::Map => Some("map"),
+            TreeMapMapType::Area => Some("area"),
+            TreeMapMapType::Other(_) => None,
+        }
+    }
+}
+
+impl serde::Serialize for TreeMapMapType {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serialize_enum("TreeMapMapType", self.json_name(), self.to_i32(), s)
     }
 }
 

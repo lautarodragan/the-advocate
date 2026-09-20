@@ -461,9 +461,13 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
     // `Other` is what keeps the round trip from depending on liblcf knowing
     // every value: a number the table does not name is stored as a number and
     // comes back the same.
+    // `Serialize` is **not** in the derive list: an enum goes into the JSON as
+    // its name in the exact dump and as its number in the resolved view, and
+    // that choice is `lcf::serialize_enum`'s. `Deserialize` is derived, and it
+    // is the `#[serde(rename)]` below that it reads.
     out.push_str(&format!(
         "/// Generated from `enums.csv`.\n\
-         #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]\n\
+         #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]\n\
          pub enum {name} {{\n"
     ));
     let mut seen = BTreeSet::new();
@@ -500,7 +504,27 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
         out.push_str(&format!("            {value} => {name}::{id},\n"));
     }
     out.push_str(&format!(
-        "            v => {name}::Other(v),\n        }}\n    }}\n}}\n\n"
+        "            v => {name}::Other(v),\n        }}\n    }}\n"
+    ));
+    out.push_str(
+        "    /// The name `enums.csv` gives this value, and `None` for one it\n\
+         \x20   /// does not name.\n\
+         \x20   pub fn json_name(self) -> Option<&'static str> {\n        match self {\n",
+    );
+    for ((id, _), (variant, _)) in usable.iter().zip(json_names.iter()) {
+        out.push_str(&format!(
+            "            {name}::{id} => Some(\"{variant}\"),\n"
+        ));
+    }
+    out.push_str(&format!(
+        "            {name}::Other(_) => None,\n        }}\n    }}\n}}\n\n"
+    ));
+
+    out.push_str(&format!(
+        "impl serde::Serialize for {name} {{\n    \
+         fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {{\n        \
+         serialize_enum(\"{name}\", self.json_name(), self.to_i32(), s)\n    \
+         }}\n}}\n\n"
     ));
 
     if let Some((first, _)) = usable.first() {

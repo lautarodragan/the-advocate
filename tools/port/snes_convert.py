@@ -3828,7 +3828,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_tienda = None
         for juego in range(3):
             term = P.terminos_tienda(db, juego)
-            for nombre in P.TI_TERMINOS:
+            for nombre, _termino in P.TI_TERMINOS:
                 for renglon in titulo_mod.partir_descripcion(term[nombre]):
                     t = texto_nuevo(renglon)
                     if texto_tienda is None:
@@ -3844,7 +3844,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # eso correría el texto de su columna.
         term_batalla = P.terminos_batalla(db)
         texto_batalla = None
-        for nombre, _chunk in P.BA_TERMINOS:
+        for nombre, _termino in P.BA_TERMINOS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
                 texto = P.texto_de_orden(texto)
@@ -4469,7 +4469,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%-18s= $%04X\n"
                          % (constante, audio.get(nombre, 0xFFFF)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
-        for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
+        for k, (nombre, _termino) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
         # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
@@ -6108,7 +6108,7 @@ def casos_de_prueba(parser, args, tramos):
         casos.append(caso)
     for caso in casos:
         with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-            caso.comandos = lcf.comandos(json.load(archivo))
+            caso.comandos = lcf.comandos_escritos(json.load(archivo))
     return casos
 
 
