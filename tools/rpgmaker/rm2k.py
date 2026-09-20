@@ -48,6 +48,19 @@ def lower_passable(flags, raw, bit):
     return bool(flags[raw] & bit)
 
 
+def pasa_de_celda(flags, lower, upper):
+    """Los cuatro bits de dirección de una celda, dados sus dos tiles."""
+    byte = 0
+    for bit in (PASS_DOWN, PASS_LEFT, PASS_RIGHT, PASS_UP):
+        if not (flags[upper] & bit):
+            continue                       # la capa alta bloquea
+        if not (flags[upper] & PASS_ABOVE):
+            byte |= bit                    # la capa alta manda, y deja
+        elif lower_passable(flags, lower, bit):
+            byte |= bit                    # es decorado: manda la baja
+    return byte
+
+
 def passability_map(game_map, flags):
     """Un byte por tile del mapa con los cuatro bits de dirección ya resueltos.
 
@@ -55,17 +68,8 @@ def passability_map(game_map, flags):
     """
     result = bytearray(game_map.width * game_map.height)
     for i in range(len(result)):
-        lower = game_map.lower_layer[i]
-        upper = game_map.upper_layer[i]
-        byte = 0
-        for bit in (PASS_DOWN, PASS_LEFT, PASS_RIGHT, PASS_UP):
-            if not (flags[upper] & bit):
-                continue                       # la capa alta bloquea
-            if not (flags[upper] & PASS_ABOVE):
-                byte |= bit                    # la capa alta manda, y deja
-            elif lower_passable(flags, lower, bit):
-                byte |= bit                    # es decorado: manda la baja
-        result[i] = byte
+        result[i] = pasa_de_celda(flags, game_map.lower_layer[i],
+                                  game_map.upper_layer[i])
     return bytes(result)
 
 
@@ -357,6 +361,10 @@ def pasabilidad_del_tile(game_map, charset, layer):
 
 UPPER_BASE = 10000      # el primer tile de la capa alta, en el mapa y en la tabla
 
+# Los `animation_type` que piden animación continua: "Continuous" y "Fixed
+# Dir/Continuous". El save point de Lashe City es del segundo tipo.
+ANIMA_CONTINUO = (1, 3)
+
 
 def collect_npcs(game_map):
     """Los eventos que se dibujan, con su pose y si bloquean el paso.
@@ -414,11 +422,9 @@ def collect_npcs(game_map):
             # sobre él: RM2k la pone en `SetupFromPage` y `ForceMoveRoute` no
             # la toca. Por defecto es 3, dieciséis cuadros por celda.
             "velocidad": page.move_speed,
-            # Si su página pide animación continua —`animation_type` 1 y 3, o
-            # sea "Continuous" y "Fixed Dir/Continuous"—: el save point de
-            # Lashe City es del segundo tipo. Los que además caminan la llevan
-            # adentro de su ranura de ruta; esto es para los quietos.
-            "anima": page.animation_type in (1, 3),
+            # Si su página pide animación continua. Los que además caminan la
+            # llevan adentro de su ranura de ruta; esto es para los quietos.
+            "anima": page.animation_type in ANIMA_CONTINUO,
             "visible": visible,
             "cambia": cambia,
             "graficos": graficos,

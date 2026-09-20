@@ -704,20 +704,26 @@ def eventos_horneables(renderer, game_map):
 
     * **se dibuja con un tile de la capa alta del ChipSet** —no con un CharSet—,
       con el tile 0 afuera porque en RM2k es "sin gráfico";
-    * **el dibujo es fijo**: una sola página, sin condición, y su gráfico no
-      sigue a la página. Una puerta que se abre con un switch cambia de tile, así
-      que no entra;
+    * **el dibujo es fijo**: la primera página sin condición y **todas** las
+      páginas dibujando el mismo tile en la misma capa. Una puerta que se abre
+      con un switch cambia de tile, así que no entra; una que sólo cambia de
+      script, sí. Hasta el 2026-09-20 se pedía **una sola página**, y eso
+      dejaba afuera cuatro baldosas de luz del mapa 11 que dibujan las dos o
+      tres lo mismo;
     * **el evento no se mueve ni cambia**: sin `move_type`, sin ruta propia en
-      ninguna página, sin animación continua, y ninguna página del mapa lo corre
-      de lugar ni lo hace destellar (ver `COMANDOS_QUE_MUEVEN`);
+      ninguna página, sin animación continua en ninguna, y ninguna página del
+      mapa lo corre de lugar ni lo hace destellar (ver `COMANDOS_QUE_MUEVEN`);
     * **el tile tapa la celda entera**: opaco en las 16x16, y sin el bit de "por
       encima del héroe" —con él, metido en la capa alta se dibujaría por encima
       del héroe y no por debajo, que es donde está el sprite de un evento de la
       capa de abajo—;
-    * **la celda tiene lugar**: el evento es de la capa de abajo y la capa alta
-      del mapa está vacía ahí. Si ya hay un tile dibujado, hornear lo taparía, y
-      si el evento es de la capa del héroe o de la de encima su sprite no va en
-      la capa alta del mapa sin cambiar qué tapa a qué.
+    * **la celda tiene lugar y no se abre**: el evento es de la capa de abajo,
+      la capa alta del mapa está vacía ahí, y el tile no agrega ningún bit de
+      paso que la tabla del mapa no tuviera. Si ya hay un tile dibujado,
+      hornear lo taparía; si el evento es de la capa del héroe o de la de
+      encima su sprite no va en la capa alta del mapa sin cambiar qué tapa a
+      qué; y si el tile abriera la celda, hornear dejaría un agujero que hasta
+      ahí sólo existía mientras la fila estaba a la vista.
 
     Que el tile de abajo esté animado **no lo saca**: la celda se hornea en
     todos los dibujos de la animación, porque lo que se toca es la capa del mapa
@@ -758,13 +764,24 @@ def eventos_horneables(renderer, game_map):
         base = rm2k.sin_horneado(npc["charset"])
         if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
             continue
-        if npc["cambia"] or npc["anima"] or numero in caminan \
-                or numero in tocados:
+        if npc["cambia"] or numero in caminan or numero in tocados:
             continue
         paginas = game_map.events[numero].pages
-        if len(paginas) != 1 or paginas[0].condition.active:
+        if paginas[0].condition.active:
             continue
-        if npc["layer"] != rm2k.LAYER_BELOW:
+        # Todas sus páginas tienen que dibujar lo mismo, en la misma capa y sin
+        # animación continua, y no sólo la activa: la fila se esconde para toda
+        # la partida, así que lo que decide es lo que el evento **puede llegar
+        # a** dibujar. De acá sale gratis la mitad de
+        # `test_hornear_no_cambia_la_pasabilidad_de_la_celda`: con el mismo
+        # gráfico y la misma capa en todas, `pasabilidad_del_tile` da lo mismo
+        # en todas.
+        if set(npc["graficos"]) != {npc["graficos"][0]} \
+                or npc["graficos"][0] is None:
+            continue
+        if set(npc["capas"]) != {rm2k.LAYER_BELOW}:
+            continue
+        if any(p.animation_type in rm2k.ANIMA_CONTINUO for p in paginas):
             continue
         indice = int(base.rsplit(":", 1)[1])
         if not indice:
@@ -775,6 +792,24 @@ def eventos_horneables(renderer, game_map):
         celda = npc["y"] * game_map.width + npc["x"]
         if game_map.upper_layer[celda] != rm2k.UPPER_BASE:
             continue                    # la capa alta de la celda está ocupada
+        # **Y hornear no puede abrir la celda.** Hornear mete el tile en la
+        # capa alta, así que la tabla del mapa pasa a declarar los bits del
+        # tile donde antes declaraba los suyos. Cerrar de más no pasa —un
+        # evento sólido sobre piso libre es el caso normal, y la fila ya
+        # cerraba esa celda para todos—, pero **abrir** sí: un tile que se pisa
+        # sobre una celda que el mapa tiene cerrada es un agujero que hasta
+        # ahora sólo existía mientras la fila estaba a la vista.
+        #
+        # El caso que lo trajo es el `MovinDoor` del mapa 2, que la regla
+        # aflojada alcanza: está en un rincón del mapa, fuera de cualquier
+        # cámara, y hornearlo movía la golden `puerta-izq-950` —113 pixeles, en
+        # una puerta a sesenta celdas de ahí, con los mismos switches puestos—.
+        # El mecanismo completo no se llegó a desarmar; lo que sí está medido
+        # es que ese horneado es lo único que cambia entre las dos ROMs.
+        if npc["tile_pasa"] & ~rm2k.pasa_de_celda(
+                flags, game_map.lower_layer[celda],
+                game_map.upper_layer[celda]):
+            continue
         if indice not in opacos:
             opacos[indice] = all(a == 255 for a in _alfas_del_tile(atlas, indice))
         if not opacos[indice]:
