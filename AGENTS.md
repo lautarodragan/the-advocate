@@ -252,10 +252,12 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 `test_cores.py`. Recompilarlos sin mirar deja de ser inocuo.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
-`liblcf` es de donde se genera `tools/rpgmaker/event_codes.py`: los códigos de comando
-de RM2k salen de ahí y de ningún otro lado, porque la primera versión del
-filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
-que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
+`liblcf` es de donde salen el esquema de Ditto —y de ahí
+`tools/rpgmaker/ditto_schema.json`— y los códigos de comando de RM2k
+(`tools/rpgmaker/event_codes.json`): salen de ahí y de ningún otro lado, porque la primera
+versión del filtro de puertas los puso de memoria y tres estaban mal. Si hace
+falta algo que no se consigue desde acá, se le pide a taro que lo copie a
+`/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
 que se le pida a taro —`mednafen rom/build/abl/abl.sfc`, una

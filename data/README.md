@@ -40,8 +40,8 @@ donde el formato dice 10, y el DirtShadow moría de un golpe.
 valga el valor por omisión del formato, y el JSON hace exactamente lo mismo,
 por la misma razón y con la misma tabla. Así que "`max_hp` no aparece" no
 quiere decir 0: quiere decir 10. Los defaults están en
-`tools/rpgmaker/ditto_schema.py`, generado desde el esquema de Ditto, que a su vez sale
-de liblcf.
+`tools/rpgmaker/ditto_schema.json`, que publica Ditto —`just esquema`— y que a
+su vez sale de liblcf.
 
 **Los enums van por nombre.** `"trigger": "auto_start"`, `"layer": "same"`,
 `"code": "ShowMessage"`. Un número no le dice nada a nadie; el nombre sí, y es
@@ -60,8 +60,9 @@ es lo único que lo hace útil, así que el que adivina es `tools/rpgmaker/lcf.p
 ## De dónde salen los nombres
 
 De **liblcf**, que es donde EasyRPG declara el formato en un juego de tablas
-CSV. `tools/ditto/src/schema/` se genera de ahí y está en git; `tools/rpgmaker/ditto_schema.py`
-se genera de eso. Ningún número de este directorio se escribió de memoria: ya
+CSV. `tools/ditto/src/schema/` se genera de ahí y está versionado, y en la
+misma corrida sale `tools/rpgmaker/ditto_schema.json`, que es lo que Python
+lee. Ningún número de este directorio se escribió de memoria: ya
 pasó una vez que tres códigos de comando se pusieron así y estaban mal, y de
 ahí salió la regla.
 

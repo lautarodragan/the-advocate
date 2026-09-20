@@ -60,6 +60,17 @@ datos DIR="data":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}}
 
+# **Regenera `tools/rpgmaker/ditto_schema.json`**: los defaults y las tablas de
+# enums del formato, que es lo que hace falta para leer `data/` —el volcado
+# omite todo campo que valga su default y guarda los enums por nombre—.
+#
+# Lo publica Ditto, que es el que lo tiene, en vez de que alguien se lo saque
+# leyéndole el código: es el mismo trato que `just protocolo`. Va a git para
+# que armar una ROM no necesite tener Ditto instalado, y que no haya quedado
+# viejo lo cobra `pruebas/herramientas/test_esquema.py`.
+esquema:
+  ditto schema tools/rpgmaker/ditto_schema.json
+
 # De un PNG indexado a tiles, tilemap y CGRAM, en Rust: es el que convierte las
 # capas de los mapas, desde las imágenes que deja el asignador. No decide
 # colores; ver AGENTS.md.

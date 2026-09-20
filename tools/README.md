@@ -9,9 +9,10 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
-    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf,
-                 ditto_schema y su generador), los códigos de comando de
-                 RM2k (event_codes) y sus reglas (rm2k)
+    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf y
+                 ditto_schema, que lee el esquema que publica Ditto), los
+                 códigos de comando de RM2k (event_codes) y sus reglas
+                 (rm2k). Tiene su propio README
     comun/       el caché en disco del conversor (cache_disco)
     ensamblado/  el mapa de memoria (bancos) y el que arma la ROM (ensamblar)
     emulador/    el core de libretro desde Python (retro), y el parche de
