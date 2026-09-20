@@ -171,6 +171,72 @@ pub fn enc_ber(v: i32) -> Vec<u8> {
     out
 }
 
+// --- The two views of a document -------------------------------------------
+
+// Which view is being serialized.
+//
+// **The exact dump** has the binary's own shape: a field holding its default
+// is left out, and an enum travels as the name `enums.csv` gives it. It is
+// the only one `Deserialize` reads back and therefore the only one a binary
+// can be rebuilt from.
+//
+// **The resolved view** is the same document with nothing left to know:
+// every field written, its default already filled in, and every enum as the
+// number the file stores. A reader of it needs no schema, which is the whole
+// point — whoever has the format keeps it instead of publishing it.
+//
+// It is a thread-local because serde carries no context of its own: a
+// `Serializer` cannot be asked which view it is in, and the alternative
+// —a parallel set of types— would be the same schema written twice. It is
+// set around a whole document by `as_resolved` and read in exactly two
+// places: the `Serialize` that `schema_struct!` writes and the one the
+// generator writes for each enum.
+thread_local! {
+    static RESOLVED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Whether the thread is serializing the resolved view.
+pub fn resolved() -> bool {
+    RESOLVED.with(std::cell::Cell::get)
+}
+
+/// Runs `f` with the resolved view on, and puts back whatever was there
+/// before —not `false`— so that a nested call cannot switch it off. The guard
+/// is a `Drop` so that a panic in the middle does not leave the thread stuck
+/// in the wrong view.
+pub fn as_resolved<T>(f: impl FnOnce() -> T) -> T {
+    struct Guard(bool);
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            RESOLVED.with(|r| r.set(self.0));
+        }
+    }
+    let _g = Guard(RESOLVED.with(|r| r.replace(true)));
+    f()
+}
+
+/// How an enum value goes into the JSON.
+///
+/// In the resolved view, the number the binary stores. In the exact dump, the
+/// name `enums.csv` gives it, or `{"Other": n}` for a value the table does not
+/// name — which is how a number liblcf never heard of survives the round trip.
+pub fn serialize_enum<S: serde::Serializer>(
+    enumeration: &'static str,
+    variant: Option<&'static str>,
+    value: i32,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    if resolved() {
+        return s.serialize_i32(value);
+    }
+    match variant {
+        Some(n) => s.serialize_str(n),
+        // The index is what an externally tagged format would use to pick the
+        // variant; JSON writes the name, so it is not read.
+        None => s.serialize_newtype_variant(enumeration, 0, "Other", &value),
+    }
+}
+
 // --- The default, written once ---------------------------------------------
 
 /// The name a field goes by in the JSON.
@@ -214,6 +280,11 @@ pub fn json_name(s: &'static str) -> &'static str {
 /// 10,824 possible— and it costs nothing to read back, because
 /// `#[serde(default)]` puts it in again.
 ///
+/// That is the **exact dump**. The **resolved view** —see `as_resolved`— goes
+/// through this same impl with every field written instead, which is what
+/// makes the two come out of the same types and the same defaults: if they
+/// were two serializers they could say different things about the same field.
+///
 /// It is done by hand and not with `#[serde(skip_serializing_if = "...")]`
 /// because that attribute takes the *path of a function*, and a field's default
 /// here is an arbitrary expression: naming one function per field would mean
@@ -249,10 +320,20 @@ macro_rules! schema_struct {
             fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
                 use serde::ser::SerializeStruct;
                 let d = <Self as Default>::default();
-                let n = 0usize $(+ (self.$field != d.$field) as usize)*;
+                let all = crate::lcf::resolved();
+                // In the resolved view every field is written, except
+                // `unknown`: that one is the round trip's own —the chunks the
+                // schema does not name— and it says nothing to a reader that
+                // is not going to write the binary back. No field of the
+                // format is called that; `fields.csv` has no such name.
+                let keep = |name: &str, differs: bool| {
+                    if all { name != "unknown" } else { differs }
+                };
+                let n = 0usize
+                    $(+ keep(json_name(stringify!($field)), self.$field != d.$field) as usize)*;
                 let mut m = s.serialize_struct(stringify!($name), n)?;
                 $(
-                    if self.$field != d.$field {
+                    if keep(json_name(stringify!($field)), self.$field != d.$field) {
                         m.serialize_field(json_name(stringify!($field)), &self.$field)?;
                     }
                 )*

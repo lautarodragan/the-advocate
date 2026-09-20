@@ -6,11 +6,38 @@
       "name": "Kersh",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -21,21 +48,55 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Wind5"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Holy8"},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "Teleport", "parameters": [212, 8, 10]},
-            {"code": "ControlSwitches", "parameters": [0, 632, 632, 0]}
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 0, 0], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Wind5"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Holy8"},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [212, 8, 10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 632, 632, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -44,117 +105,277 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 632
+            "item_id": 1,
+            "switch_a_id": 632,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Dark5"},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "ControlSwitches", "parameters": [0, 634, 634, 0]},
-            {"code": "ErasePicture", "parameters": [20]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "SOFT VOICE"},
-            {"code": "ShowMessage_2", "string": "He's not moving..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "This isn't like last time - he did more than"},
-            {"code": "ShowMessage_2", "string": "just glimpse my memories... I actively"},
-            {"code": "ShowMessage_2", "string": "transferred them into his mind."},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "SOFT VOICE"},
-            {"code": "ShowMessage_2", "string": "But... does that mean...?"},
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "He is the new Keeper of Memories..."},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "He brought about the destruction of an"},
-            {"code": "ShowMessage_2", "string": "innocent kingdom."},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "Let HIM deal with the despair, the hatred,"},
-            {"code": "ShowMessage_2", "string": "the regret - let Surl haunt him for the rest"},
-            {"code": "ShowMessage_2", "string": "of his days."},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "I can't think of a more fitting"},
-            {"code": "ShowMessage_2", "string": "punishment."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "SOFT VOICE"},
-            {"code": "ShowMessage_2", "string": "It seems so cruel."},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "ANGRY VOICE"},
-            {"code": "ShowMessage_2", "string": "What's with you, Emily? This is the man"},
-            {"code": "ShowMessage_2", "string": "who probably killed your father, burned"},
-            {"code": "ShowMessage_2", "string": "down your town, chased me all over the -"},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "CAPTAIN'S SHATTERED MIND"},
-            {"code": "ShowMessage_2", "string": "Emily?"},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "SOFT \"EMILY\" VOICE"},
-            {"code": "ShowMessage_2", "string": "But... I'm sure he was just following"},
-            {"code": "ShowMessage_2", "string": "orders. The real culprit is whoever"},
-            {"code": "ShowMessage_2", "string": "GAVE him those orders!"},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "CAPTAIN'S SHATTERED MIND"},
-            {"code": "ShowMessage_2", "string": "Emily... a nice name..."},
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "COLD VOICE"},
-            {"code": "ShowMessage_2", "string": "It doesn't matter anyway. He probably"},
-            {"code": "ShowMessage_2", "string": "won't survive the transfer, and if he does,"},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Dark5"},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 634, 634, 0], "string": ""},
+            {"code": 11130, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT VOICE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "He's not moving..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This isn't like last time - he did more than"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "just glimpse my memories... I actively"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "transferred them into his mind."
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But... does that mean...?"
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He is the new Keeper of Memories..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He brought about the destruction of an"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "innocent kingdom."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let HIM deal with the despair, the hatred,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the regret - let Surl haunt him for the rest"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "of his days."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't think of a more fitting"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "punishment."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT VOICE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It seems so cruel."},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ANGRY VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's with you, Emily? This is the man"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "who probably killed your father, burned"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "down your town, chased me all over the -"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "CAPTAIN'S SHATTERED MIND"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Emily?"},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT \"EMILY\" VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But... I'm sure he was just following"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "orders. The real culprit is whoever"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "GAVE him those orders!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "CAPTAIN'S SHATTERED MIND"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Emily... a nice name..."},
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "COLD VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It doesn't matter anyway. He probably"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "won't survive the transfer, and if he does,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "he won't remember anything of his life before."
             },
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "ANGRY VOICE"},
-            {"code": "ShowMessage_2", "string": "Good! I say we leave him somewhere"},
-            {"code": "ShowMessage_2", "string": "in the mountains, and let him start a"},
-            {"code": "ShowMessage_2", "string": "new life. Even that's too good for him!"},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "SOFT \"EMILY\" VOICE"},
-            {"code": "ShowMessage_2", "string": "Talan, what are you saying? We can't"},
-            {"code": "ShowMessage_2", "string": "just leave him here! He was so proud,"},
-            {"code": "ShowMessage_2", "string": "so..."},
-            {"code": "ShowMessage", "string": "SOFT \"EMILY\" VOICE"},
-            {"code": "ShowMessage_2", "string": "Look at him now - he's been reduced to"},
-            {"code": "ShowMessage_2", "string": "just an empty shell of what he once was..."},
-            {"code": "ShowMessage", "string": "SOFT \"EMILY\" VOICE"},
-            {"code": "ShowMessage_2", "string": "And all because he was doing what"},
-            {"code": "ShowMessage_2", "string": "he thought was right."},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "CAPTAIN'S SHATTERED MIND"},
-            {"code": "ShowMessage_2", "string": "Emily. Protect me from..."},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "ANGRY \"TALAN\" VOICE"},
-            {"code": "ShowMessage_2", "string": "What's gotten into you? This is the"},
-            {"code": "ShowMessage_2", "string": "enemy, right here on the ground before"},
-            {"code": "ShowMessage_2", "string": "us! He was going to kill us all!"},
-            {"code": "ShowMessage", "string": "ANGRY \"TALAN\" VOICE"},
-            {"code": "ShowMessage_2", "string": "The enemy!"},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "CAPTAIN'S SHATTERED MIND"},
-            {"code": "ShowMessage_2", "string": "The enemy."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
-            {"code": "Teleport", "parameters": [207, 12, 15]},
-            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 663, 663, 0]}
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ANGRY VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Good! I say we leave him somewhere"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in the mountains, and let him start a"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "new life. Even that's too good for him!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT \"EMILY\" VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, what are you saying? We can't"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "just leave him here! He was so proud,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "so..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT \"EMILY\" VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Look at him now - he's been reduced to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "just an empty shell of what he once was..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SOFT \"EMILY\" VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "And all because he was doing what"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "he thought was right."},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "CAPTAIN'S SHATTERED MIND"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Emily. Protect me from..."
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ANGRY \"TALAN\" VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's gotten into you? This is the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "enemy, right here on the ground before"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "us! He was going to kill us all!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ANGRY \"TALAN\" VOICE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The enemy!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "CAPTAIN'S SHATTERED MIND"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The enemy."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 14], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [207, 12, 15], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 663, 663, 0], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
-      "x": 1
+      "x": 1,
+      "y": 0
     },
     {
       "id": 3,
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -163,47 +384,63 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 633
+            "item_id": 1,
+            "switch_a_id": 633,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "brcklayr"},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "What..... is.....?"},
-            {"code": "ShowMessage_2", "string": "\\|\\|\\^"},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "...happening... to..."},
-            {"code": "ShowMessage_2", "string": "\\|\\|\\^"},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "It burns! Make it - "},
-            {"code": "ShowMessage_2", "string": "\\|\\|\\^"},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "It's the... same..."},
-            {"code": "ShowMessage_2", "string": "\\|\\^"},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Guilty! Guilty! Guilty! Guilty!"},
-            {"code": "ShowMessage_2", "string": "\\|\\^"},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "AAAAAAAAGGGGHHHHHH!!!!"},
-            {"code": "ShowMessage_2", "string": "\\|\\^"},
-            {"code": "ShowBattleAnimation", "parameters": [124, 1, 0, 0]},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Breast"},
-            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 0, 0]},
-            {"code": "Wait", "parameters": [30]}
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "brcklayr"},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What..... is.....?"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\|\\^"},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "...happening... to..."},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\|\\^"},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It burns! Make it - "},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\|\\^"},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It's the... same..."},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\^"},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Guilty! Guilty! Guilty! Guilty!"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\^"},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "AAAAAAAAGGGGHHHHHH!!!!"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "\\|\\^"},
+            {"code": 11210, "indent": 0, "parameters": [124, 1, 0, 0], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Breast"},
+            {"code": 11030, "indent": 0, "parameters": [200, 200, 200, 100, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
@@ -214,39 +451,77 @@
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "FlashSprite", "parameters": [1, 31, 31, 31, 31, 2, 0]},
+            {"code": 11320, "indent": 0, "parameters": [1, 31, 31, 31, 31, 2, 0], "string": ""},
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60],
               "string": "PhoneCallDiff"
             },
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 1, 1]},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 1, 1], "string": ""},
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60],
               "string": "SurlBroDiff"
             },
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 1, 1]},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 1, 1], "string": ""},
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60],
               "string": "SurlGravesDiff"
             },
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 1, 1]},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 1, 1], "string": ""},
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60],
               "string": "ThreeRubbleDiff"
             },
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 1, 1]}
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 1, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -255,13 +530,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 634
+            "item_id": 1,
+            "switch_a_id": 634,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 52
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 52,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

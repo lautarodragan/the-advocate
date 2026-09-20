@@ -80,8 +80,7 @@ def test_todos_los_terrenos_de_esos_mapas_valen_cien(juego):
     """
     db, tree = juego
     terrenos = db.decode()["terrains"]
-    rate = {i: f.get("encounter_rate", lcf.CAMPOS["Terrain"]["encounter_rate"][1])
-            for i, f in terrenos.items()}
+    rate = {i: f["encounter_rate"] for i, f in terrenos.items()}
     todos, _propias, _areas = mapas_con_encuentros(tree)
     vistos = set()
     for map_id in todos:
@@ -165,7 +164,7 @@ def test_cuantos_mapas(juego):
     """Los números del juego, clavados: si cambian, cambió el volcado.
 
     Están acá y no en un comentario porque son los que deciden el alcance: 53
-    mapas de 328 pueden tener un encuentro, y de los 29 de `demo-ciudad` son
+    mapas de 328 pueden tener un encuentro, y de los 29 de `abl` son
     cinco.
     """
     _db, tree = juego

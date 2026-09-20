@@ -6,49 +6,163 @@
       "name": "RunArdenTutorial",
       "pages": [
         {
-          "character_direction": "right",
-          "event_commands": [
-            {"code": "MemorizeBGM"},
-            {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "ShowMessage", "string": "Arden is a member of the Neon Vipers"},
-            {"code": "ShowMessage_2", "string": "street gang."},
-            {"code": "ShowMessage", "string": "Her weapon of choice is the Dagger, and"},
-            {"code": "ShowMessage_2", "string": "she is also skilled with specially-weighted"},
-            {"code": "ShowMessage_2", "string": "throwing knives."},
-            {"code": "ShowMessage", "string": "Arden learns her Streetwise skills at"},
-            {"code": "ShowMessage_2", "string": "set increments while gaining levels."},
-            {"code": "ShowMessage_2", "string": "She can learn additional skills by taking"},
-            {"code": "ShowMessage_2", "string": "certain actions."},
-            {"code": "PlayMemorizedBGM"},
-            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
-            {"code": "RecallToLocation", "parameters": [127, 128, 129]}
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 11530, "indent": 0, "parameters": [], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3],
+              "string": ""
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Arden is a member of the Neon Vipers"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "street gang."},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Her weapon of choice is the Dagger, and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "she is also skilled with specially-weighted"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "throwing knives."},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Arden learns her Streetwise skills at"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "set increments while gaining levels."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "She can learn additional skills by taking"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "certain actions."},
+            {"code": 11540, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 10830, "indent": 0, "parameters": [127, 128, 129], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 2,
       "name": "EV0002",
       "pages": [
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
       "y": 7
     }
   ],
-  "save_count": 30
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 30,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

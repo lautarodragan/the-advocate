@@ -6,12 +6,38 @@
       "name": "Max Powertrain",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 4,
           "character_name": "RTPmodchar4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 17,
@@ -22,150 +48,450 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [40, 50, 50, 10, 1, 0]},
-            {"code": "WeatherEffects", "parameters": [1, 2]},
-            {"code": "PlayBGM", "parameters": [0, 70, 100, 50], "string": "viperedit"},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Max Powertrain was... well, I guess you"},
-            {"code": "ShowMessage_2", "string": "could call him the \"best.\""},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "He was the best fighter, the best thinker..."},
-            {"code": "ShowMessage_2", "string": "Basically, he was the best detective that"},
-            {"code": "ShowMessage_2", "string": "the force had ever had."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 3, 3, 3, 3, 23, 23, 12]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Whenever a mystery needed to be solved,"},
-            {"code": "ShowMessage_2", "string": "they called Max. And although he was a"},
-            {"code": "ShowMessage_2", "string": "little too fond of his wine and his women..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... he always answered the call and caught"},
-            {"code": "ShowMessage_2", "string": "the criminals before it was too late."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 28, 0, 3, 14, 29]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13, 23, 23, 23, 15]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Flashbang was my favorite vidcast."},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "How come, Talan?"},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "Wait", "parameters": [12]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't know... I guess I just liked how"},
-            {"code": "ShowMessage_2", "string": "Max always had the answers - he was never"},
-            {"code": "ShowMessage_2", "string": "scared, and he never doubted his abilities."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Week after week, Max Powertrain"},
-            {"code": "ShowMessage_2", "string": "proved that the good guys always win"},
-            {"code": "ShowMessage_2", "string": "in the end..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "That's an assurance that wasn't very"},
-            {"code": "ShowMessage_2", "string": "easy to come by, living in Lashe City."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "But Paradise, on the other hand - you can't"},
-            {"code": "ShowMessage_2", "string": "imagine the difference! The fresh air, the"},
-            {"code": "ShowMessage_2", "string": "people -"},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Sorry..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm sure... I'm sure your father made it"},
-            {"code": "ShowMessage_2", "string": "out..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Tell me more about Max Powertrain,"},
-            {"code": "ShowMessage_2", "string": "Talan. Please? Just keep talking... I need"},
-            {"code": "ShowMessage_2", "string": "something else to think about..."},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "In the fourth season of Flashbang, they"},
-            {"code": "ShowMessage_2", "string": "did something I couldn't believe."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13, 23, 23, 23, 15]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 605, 605, 0]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 3, 3, 3, 3]},
+            {"code": 11030, "indent": 0, "parameters": [40, 50, 50, 10, 1, 0], "string": ""},
+            {"code": 11070, "indent": 0, "parameters": [1, 2], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 70, 100, 50], "string": "viperedit"},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Max Powertrain was... well, I guess you"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "could call him the \"best.\""
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He was the best fighter, the best thinker..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Basically, he was the best detective that"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the force had ever had."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 3, 3, 3, 3, 23, 23, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Whenever a mystery needed to be solved,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "they called Max. And although he was a"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "little too fond of his wine and his women..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "... he always answered the call and caught"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the criminals before it was too late."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 28, 0, 3, 14, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 13, 23, 23, 23, 15],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Flashbang was my favorite vidcast."
+            },
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "How come, Talan?"},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't know... I guess I just liked how"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Max always had the answers - he was never"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "scared, and he never doubted his abilities."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Week after week, Max Powertrain"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "proved that the good guys always win"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "in the end..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's an assurance that wasn't very"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "easy to come by, living in Lashe City."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But Paradise, on the other hand - you can't"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "imagine the difference! The fresh air, the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "people -"},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sorry..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm sure... I'm sure your father made it"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "out..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Tell me more about Max Powertrain,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan. Please? Just keep talking... I need"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "something else to think about..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "In the fourth season of Flashbang, they"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "did something I couldn't believe."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 13, 23, 23, 23, 15],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 605, 605, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 3, 3, 3, 3], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 3, 8, 0, 0, 34, 11, 82, 84, 80, 109, 111, 100, 99, 104, 97, 114, 52, 0, 28, 36,
                 38, 2, 2, 2, 2, 2, 2, 39, 37, 29, 15
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "In the fourth season, Max had just finished"},
-            {"code": "ShowMessage_2", "string": "working on a case when he was surprised"},
-            {"code": "ShowMessage_2", "string": "by one of the thugs he had put behind bars."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "This thug had broken out of prison and"},
-            {"code": "ShowMessage_2", "string": "robbed an armory with the sole purpose"},
-            {"code": "ShowMessage_2", "string": "of getting revenge on Max."},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Blow3"},
-            {"code": "FlashSprite", "parameters": [3, 31, 0, 0, 31, 10, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Max managed to shoot him dead - but"},
-            {"code": "ShowMessage_2", "string": "the thug had already pulled the pin on"},
-            {"code": "ShowMessage_2", "string": "an antique flash grenade, which exploded."},
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "ShowBattleAnimation", "parameters": [91, 3, 0, 0]},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 1, 0]},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Max was blinded for life. He had"},
-            {"code": "ShowMessage_2", "string": "dedicated his whole life to stamping out"},
-            {"code": "ShowMessage_2", "string": "crime, but without his eyes, what was left?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "He went from being the best at everything"},
-            {"code": "ShowMessage_2", "string": "to little more than a memory. Soon,"},
-            {"code": "ShowMessage_2", "string": "even his friends on the force..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... forgot him."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "That's terrible! What happened then?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 607, 607, 0]},
-            {"code": "PlayBGM", "parameters": [0, 70, 100, 50], "string": "ocean"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "WeatherEffects", "parameters": [0, 1]},
-            {"code": "Teleport", "parameters": [205, 8, 22]},
-            {"code": "TintScreen", "parameters": [30, 20, 60, 100, 1, 0]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't know. I stopped watching."},
-            {"code": "ShowMessage_2", "string": "It just wasn't the same."},
-            {"code": "Wait", "parameters": [55]},
-            {"code": "ControlSwitches", "parameters": [0, 606, 606, 0]}
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "In the fourth season, Max had just finished"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "working on a case when he was surprised"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "by one of the thugs he had put behind bars."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This thug had broken out of prison and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "robbed an armory with the sole purpose"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of getting revenge on Max."
+            },
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Blow3"},
+            {"code": 11320, "indent": 0, "parameters": [3, 31, 0, 0, 31, 10, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Max managed to shoot him dead - but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the thug had already pulled the pin on"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "an antique flash grenade, which exploded."
+            },
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [91, 3, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [200, 200, 200, 100, 1, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Max was blinded for life. He had"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "dedicated his whole life to stamping out"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "crime, but without his eyes, what was left?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He went from being the best at everything"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to little more than a memory. Soon,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "even his friends on the force..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... forgot him."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's terrible! What happened then?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 607, 607, 0], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 70, 100, 50], "string": "ocean"},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 11070, "indent": 0, "parameters": [0, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [205, 8, 22], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [30, 20, 60, 100, 1, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't know. I stopped watching."
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It just wasn't the same."},
+            {"code": 11410, "indent": 0, "parameters": [55], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 606, 606, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 3,
       "name": "Criminal",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_name": "RTPmodchar4",
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "RTPmodchar4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -174,15 +500,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 605
+            "item_id": 1,
+            "switch_a_id": 605,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 13
+      "x": 13,
+      "y": 0
     }
   ],
-  "save_count": 30
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 30,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

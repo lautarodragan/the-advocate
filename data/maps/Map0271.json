@@ -6,27 +6,84 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [258, 8, 58]}
+            {"code": 10810, "indent": 0, "parameters": [258, 8, 58], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
-      "x": 13
+      "x": 13,
+      "y": 0
     },
     {
       "id": 2,
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [272, 41, 1]}
+            {"code": 10810, "indent": 0, "parameters": [272, 41, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 40,
@@ -37,12 +94,40 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [272, 4, 1]}
+            {"code": 10810, "indent": 0, "parameters": [272, 4, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 1,
@@ -53,27 +138,53 @@
       "name": "Ruin2.10",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 792, 792, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 347, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Charred Helmet-H"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 792, 792, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 347, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Charred Helmet-H"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -82,15 +193,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 792
+            "item_id": 1,
+            "switch_a_id": 792,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -101,27 +228,53 @@
       "name": "Ruin2.11",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 793, 793, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 330, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Water Battery"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 793, 793, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 330, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Water Battery"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -130,15 +283,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 793
+            "item_id": 1,
+            "switch_a_id": 793,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -149,27 +318,53 @@
       "name": "Ruin2.12",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 794, 794, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 107, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Bottle of Health"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 794, 794, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 107, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Bottle of Health"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -178,15 +373,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 794
+            "item_id": 1,
+            "switch_a_id": 794,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 48,
@@ -197,27 +408,53 @@
       "name": "Ruin2.13",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 795, 795, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 134, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Vitality Pill-MHP"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 795, 795, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 134, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Vitality Pill-MHP"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -226,15 +463,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 795
+            "item_id": 1,
+            "switch_a_id": 795,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -245,18 +498,42 @@
       "name": "SaveSurlRuins2",
       "pages": [
         {
-          "animation_type": "fixed_continuous",
-          "character_direction": "up",
+          "animation_type": 3,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "savept",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
-            {"code": "OpenSaveMenu"},
-            {"code": "ChangeSaveAccess", "parameters": [0]}
+            {"code": 11550, "indent": 0, "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": 11910, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11930, "indent": 0, "parameters": [0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "translucent": true
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": true,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -267,29 +544,64 @@
       "name": "EV0009",
       "pages": [
         {
-          "character_direction": "up",
-          "character_pattern": "left",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
-            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
-            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 8, 1]},
-            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 8, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
-            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 39, 39, 0, 6, 10001, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 40, 40, 0, 6, 10001, 2],
+              "string": ""
+            },
+            {"code": 10220, "indent": 0, "parameters": [0, 41, 41, 0, 6, 8, 1], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 42, 42, 0, 6, 8, 2], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 39, 1, 41, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 40, 1, 42, 0, 1], "string": ""},
+            {"code": 11930, "indent": 2, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
           "translucent": true,
-          "trigger": "parallel"
+          "trigger": 4
         }
       ],
       "x": 22,
@@ -300,7 +612,13 @@
       "name": "AfterBattleMint",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -309,49 +627,92 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 498
+            "item_id": 1,
+            "switch_a_id": 498,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 35, 0]}
+            {"code": 12330, "indent": 0, "parameters": [0, 35, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
-      "x": 49
+      "x": 49,
+      "y": 0
     },
     {
       "id": 11,
       "name": "Ruin2.KM3",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 926, 926, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 337, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Headless Toy Horse"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Dark5"},
-            {"code": "ChangeSkills", "parameters": [1, 32, 0, 0, 291]},
-            {"code": "ShowMessage", "string": "KERSH has been subjected"},
-            {"code": "ShowMessage_2", "string": "to MEMORIES OF PAIN!"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 926, 926, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 337, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "       Headless Toy Horse"
+            },
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Dark5"},
+            {"code": 10440, "indent": 0, "parameters": [1, 32, 0, 0, 291], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH has been subjected"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to MEMORIES OF PAIN!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -360,15 +721,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 926
+            "item_id": 1,
+            "switch_a_id": 926,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 48,
@@ -379,32 +756,58 @@
       "name": "Ruin2.KM4",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 927, 927, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 338, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Deflated Ball"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Dark5"},
-            {"code": "ChangeSkills", "parameters": [1, 32, 0, 0, 293]},
-            {"code": "ShowMessage", "string": "KERSH has been subjected"},
-            {"code": "ShowMessage_2", "string": "to MEMORIES OF FEAR!"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 927, 927, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 338, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Deflated Ball"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Dark5"},
+            {"code": 10440, "indent": 0, "parameters": [1, 32, 0, 0, 293], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH has been subjected"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to MEMORIES OF FEAR!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -413,15 +816,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 927
+            "item_id": 1,
+            "switch_a_id": 927,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -432,7 +851,13 @@
       "name": "EV0013",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -441,22 +866,57 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 47, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 12330, "indent": 0, "parameters": [0, 47, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 49,
       "y": 19
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 20,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 36,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 50
 }

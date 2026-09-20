@@ -703,7 +703,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     `tope` es contra cuánto se mide el banco. Con `ARAM_LIBRE`, que es lo de
     siempre, entran los primeros y los últimos quedan mutilados: una nota cuyo
     programa no está en el banco **se cae del stream** —ver el `continue` de
-    `build_events`—, y en `demo-ciudad` eso son nueve temas a los que les
+    `build_events`—, y en `abl` eso son nueve temas a los que les
     sobrevive entre el 12% y el 72% de las notas. Con un tope más alto aportan
     todos y lo que se paga es resolución para todos, porque los mismos 40 KB
     melódicos se reparten entre más programas. **Cuál de las dos suena peor lo

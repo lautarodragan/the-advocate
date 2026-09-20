@@ -6,15 +6,49 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [245, 18, 68]}
+            {"code": 10810, "indent": 0, "parameters": [245, 18, 68], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -23,36 +57,92 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 662
+            "item_id": 1,
+            "switch_a_id": 662,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "We don't have a choice. The only path we"},
-            {"code": "ShowMessage_2", "string": "can take lies through Surl, now."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "ProceedWithMovement"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We don't have a choice. The only path we"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "can take lies through Surl, now."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
-      "x": 11
+      "x": 11,
+      "y": 0
     },
     {
       "id": 2,
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [247, 1, 12]}
+            {"code": 10810, "indent": 0, "parameters": [247, 1, 12], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -61,19 +151,45 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 662
+            "item_id": 1,
+            "switch_a_id": 662,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Memnosyne was a great help, but we"},
-            {"code": "ShowMessage_2", "string": "shouldn't bring our troubles to her"},
-            {"code": "ShowMessage_2", "string": "any longer. She's done enough for us."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
-            {"code": "ProceedWithMovement"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Memnosyne was a great help, but we"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "shouldn't bring our troubles to her"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "any longer. She's done enough for us."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 3], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 19,
@@ -84,24 +200,73 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We should see where that smoke is coming"},
-            {"code": "ShowMessage_2", "string": "from, first. It might be someone who can"},
-            {"code": "ShowMessage_2", "string": "give us shelter!"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Or, it might be some new threat."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
-            {"code": "ProceedWithMovement"}
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We should see where that smoke is coming"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from, first. It might be someone who can"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "give us shelter!"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Or, it might be some new threat."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -110,24 +275,48 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 635
+            "item_id": 1,
+            "switch_a_id": 635,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "We need to see if there are any survivors"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We need to see if there are any survivors"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "left at Paradise - we owe them that, at least."
             },
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
-            {"code": "ProceedWithMovement"}
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -136,19 +325,36 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 655
+            "item_id": 1,
+            "switch_a_id": 655,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Teleport", "parameters": [210, 11, 4]}
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [210, 11, 4], "string": ""}
           ],
           "id": 3,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -157,15 +363,26 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 662
+            "item_id": 1,
+            "switch_a_id": 662,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ControlSwitches", "parameters": [0, 236, 236, 1]},
-            {"code": "Teleport", "parameters": [210, 11, 4]}
+            {"code": 10210, "indent": 0, "parameters": [0, 236, 236, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [210, 11, 4], "string": ""}
           ],
           "id": 4,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 7,
@@ -176,7 +393,13 @@
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -185,462 +408,614 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 634
+            "item_id": 1,
+            "switch_a_id": 634,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "What's wrong with her?!"},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ChangeEventLocation", "parameters": [5, 0, 14, 12]},
-            {"code": "ConditionalBranch", "parameters": [5, 27, 0, 0, 0, 1]},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What's wrong with her?!"},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [5, 0, 14, 12], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 27, 0, 0, 0, 1], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [5, 8, 0, 0, 15, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 0, 3, 23, 13]
+              "parameters": [5, 8, 0, 0, 15, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 0, 3, 23, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "She's just had it rough lately."},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "She's just had it rough lately."
+            },
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "And I haven't? This is just not what"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "we NEED right now! That Captain is"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "dangerous!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "Wait", "indent": 1, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I wonder..."},
-            {"code": "Wait", "indent": 1, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "What's that supposed to mean?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "The Agency destroyed our home."},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "dangerous!"},
+            {"code": 11330, "indent": 1, "parameters": [5, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "I wonder..."},
+            {"code": 11410, "indent": 1, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "What's that supposed to mean?"
+            },
+            {"code": 11330, "indent": 1, "parameters": [5, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "The Agency destroyed our home."
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "But now we have one of their highest"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "ranking officials."},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "ranking officials."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "He's in no shape to cause us any more"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "trouble; but if he survives Memnosyne's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "transfer - we could have a powerful ally."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I hadn't thought of that."},
-            {"code": "Wait", "indent": 1, "parameters": [4]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I hadn't thought of that."
+            },
+            {"code": 11410, "indent": 1, "parameters": [4], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [5, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Memnosyne said this transfer process"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "erases all of the subject's own memories."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Who says we need to tell him he's our enemy?"
             },
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "He probably has access to most of the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Agency's facilities - I bet he can get us"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "wherever we might want to go!"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "wherever we might want to go!"
+            },
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "This might be just what we need to"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "repay the Agency for all they've done"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "to us!"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Feel better now?"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "to us!"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Feel better now?"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yeah. Let's go see what the Agency is"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "up to back at Paradise... and if there are"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "any survivors."},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "any survivors."},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
               "parameters": [
                 5, 8, 0, 0, 36, 1, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ChangeEventLocation", "indent": 1, "parameters": [5, 0, 19, 0]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 654, 654, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 26, 0, 0, 0, 1]},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10860, "indent": 1, "parameters": [5, 0, 19, 0], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 654, 654, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 26, 0, 0, 0, 1], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
-              "parameters": [5, 8, 0, 0, 15, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 3, 23, 13]
+              "parameters": [5, 8, 0, 0, 15, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 3, 23, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "She's had a tough time lately, Talan."
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "Give her a break."},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Give her a break."},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "This is just not what we NEED right"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "now, Lerle! That Captain is dangerous!"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't care whether he remembers or not!"
             },
-            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "Wait", "indent": 2, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "I wonder..."},
-            {"code": "Wait", "indent": 2, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "What's that supposed to mean?"},
-            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "Wait", "indent": 2, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "The Agency destroyed our home."},
+            {"code": 11330, "indent": 2, "parameters": [5, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "I wonder..."},
+            {"code": 11410, "indent": 2, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
+              "string": "What's that supposed to mean?"
+            },
+            {"code": 11330, "indent": 2, "parameters": [5, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "The Agency destroyed our home."
+            },
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "But now we have one of their highest"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "ranking officials."},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "ranking officials."},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "He's in no shape to cause us any more"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "trouble; but if he survives Memnosyne's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "transfer - we could have a powerful ally."
             },
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "I hadn't thought of that."},
-            {"code": "Wait", "indent": 2, "parameters": [4]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": 11330, "indent": 2, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
+              "string": "I hadn't thought of that."
+            },
+            {"code": 11410, "indent": 2, "parameters": [4], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [5, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "Memnosyne said this transfer process"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "erases all of the subject's own memories."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Who says we need to tell him he's our enemy?"
             },
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "He probably has access to most of the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Agency's facilities - I bet he can get us"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "wherever we might want to go!"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
+              "string": "wherever we might want to go!"
+            },
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "This might be just what we need to"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "repay the Agency for all they've done"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "to us!"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "LERLE"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Feel better now?"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "to us!"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "LERLE"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Feel better now?"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Yeah. Let's go see what the Agency is"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "up to back at Paradise... and if there are"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "any survivors."},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "any survivors."},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
               "parameters": [
                 5, 8, 0, 0, 36, 1, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [5, 0, 19, 0]},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 654, 654, 0]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 28, 0, 0, 0, 1]},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [5, 0, 19, 0], "string": ""},
+            {"code": 10210, "indent": 2, "parameters": [0, 654, 654, 0], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 28, 0, 0, 0, 1], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 3,
-              "parameters": [5, 8, 0, 0, 15, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 3, 23, 13]
+              "parameters": [5, 8, 0, 0, 15, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 3, 23, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Beats the piss outta me, boy."},
-            {"code": "ShowMessage_2", "indent": 3, "string": "She's off her rocker."},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "Beats the piss outta me, boy."
+            },
+            {"code": 20110, "indent": 3, "parameters": [], "string": "She's off her rocker."},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "This is just not what we NEED right now!"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "That Captain is dangerous! I don't care if"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "he doesn't remember it!"},
-            {"code": "MoveEvent", "indent": 3, "parameters": [5, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "Wait", "indent": 3, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Hmmm... still..."},
-            {"code": "Wait", "indent": 3, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "What's that supposed to mean?"},
-            {"code": "MoveEvent", "indent": 3, "parameters": [5, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "Wait", "indent": 3, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "The Agency mauled our home."},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "he doesn't remember it!"},
+            {"code": 11330, "indent": 3, "parameters": [5, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "Hmmm... still..."},
+            {"code": 11410, "indent": 3, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "What's that supposed to mean?"
+            },
+            {"code": 11330, "indent": 3, "parameters": [5, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "The Agency mauled our home."
+            },
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "But now we have one of their highest"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "ranking officials at our mercy."},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "ranking officials at our mercy."
+            },
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "He's in no shape to cause us any more"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "trouble; but if he survives Memnosyne's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "transfer - we could have a powerful ally."
             },
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "I hadn't thought of that."},
-            {"code": "Wait", "indent": 3, "parameters": [4]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [5, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {"code": 11330, "indent": 3, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "I hadn't thought of that."
+            },
+            {"code": 11410, "indent": 3, "parameters": [4], "string": ""},
+            {"code": 11330, "indent": 3, "parameters": [5, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "That crazy old lady said this transfer process"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "erases all of the subject's own memories."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Who says we need to tell him he's our enemy?"
             },
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "He'll have access to the Agency's top"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "facilities: passcards, \"open on sight,\""
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "and high-clearance, I'd wager."},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "and high-clearance, I'd wager."
+            },
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "Having that bastard with us might just"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "get us wherever we need to go."},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "get us wherever we need to go."
+            },
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 3, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "This might be just what we need to"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "repay the Agency for all they've done"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "to us!"},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "SERN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "to us!"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "All right - no more sulking like a pansy."
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "We've got work to do."},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "We've got work to do."},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Yeah. Let's go see what the Agency is"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "up to back at Paradise... and if there are"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "any survivors."},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "any survivors."},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 3,
               "parameters": [
                 5, 8, 0, 0, 36, 1, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [5, 0, 19, 0]},
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 654, 654, 0]},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [5, 0, 19, 0], "string": ""},
+            {"code": 10210, "indent": 3, "parameters": [0, 654, 654, 0], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -649,11 +1024,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 654
+            "item_id": 1,
+            "switch_a_id": 654,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 14,
@@ -663,15 +1050,82 @@
       "id": 5,
       "name": "ParadiseChar",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 6,
       "name": "Emily",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 19,
       "y": 1
@@ -681,189 +1135,270 @@
       "name": "See Smoke Scene",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
-            {"code": "ChangeEventLocation", "parameters": [6, 0, 11, 5]},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [6, 0, 11, 5], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [6, 8, 0, 0, 13, 34, 5, 101, 109, 105, 108, 121, 4, 1, 13]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [6, 8, 0, 0, 13, 34, 5, 101, 109, 105, 108, 121, 4, 1, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Is that... smoke?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "I think it's coming from a chimney."},
-            {"code": "ShowMessage_2", "string": "There must be a house at the top of"},
-            {"code": "ShowMessage_2", "string": "that rise!"},
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ChangeEventLocation", "indent": 1, "parameters": [5, 0, 11, 5]},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Is that... smoke?"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
             {
-              "code": "MoveEvent",
-              "indent": 1,
-              "parameters": [5, 8, 0, 0, 14, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 36, 2, 37, 13]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I think it's coming from a chimney."
             },
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "Wait", "indent": 1, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There must be a house at the top of"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "that rise!"},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10860, "indent": 1, "parameters": [5, 0, 11, 5], "string": ""},
+            {
+              "code": 11330,
               "indent": 1,
+              "parameters": [5, 8, 0, 0, 14, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 36, 2, 37, 13],
+              "string": ""
+            },
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "We should investigate. If the source of"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "that smoke is hostile, I want to know"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "about it."},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "about it."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We don't need two hostile forces at our"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "backs."},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [6, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "backs."},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [6, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Whoever it is... they might be friendly."
             },
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Let's be careful, just in case."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [5, 0, 11, 5]},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
-              "indent": 2,
-              "parameters": [5, 8, 0, 0, 14, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 0, 2, 13]
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Let's be careful, just in case."
             },
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "Wait", "indent": 2, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [5, 0, 11, 5], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
               "indent": 2,
+              "parameters": [5, 8, 0, 0, 14, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 0, 2, 13],
+              "string": ""
+            },
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "We should see where that smoke is"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "coming from; the possibility of two"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "enemies behind us is not a pleasant one."
             },
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I'd rather have enemies behind us than"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "in front of us."},
-            {"code": "MoveEvent", "indent": 2, "parameters": [6, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "in front of us."},
+            {"code": 11330, "indent": 2, "parameters": [6, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Whoever it is... they might be friendly."
             },
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Let's be careful, just in case."},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [5, 0, 11, 5]},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
-              "indent": 3,
-              "parameters": [5, 8, 0, 0, 14, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 2, 13]
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "Let's be careful, just in case."
             },
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "Wait", "indent": 3, "parameters": [8]},
-            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 388, 0, 0, 0, 1], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [5, 0, 11, 5], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
               "indent": 3,
+              "parameters": [5, 8, 0, 0, 14, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 2, 13],
+              "string": ""
+            },
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "We should investigate the source of"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "that smoke. We don't need any more"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "enemies behind us."},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "enemies behind us."},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I'd rather have enemies behind us than"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "in front of  us."},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [6, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "in front of  us."},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 3, "parameters": [6, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Whoever it is... they might be friendly."
             },
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Let's be careful, just in case."},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "Let's be careful, just in case."
+            },
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 6, 8, 0, 0, 36, 3, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 5, 8, 0, 0, 36, 0, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "ChangeEventLocation", "parameters": [5, 0, 19, 0]},
-            {"code": "ChangeEventLocation", "parameters": [6, 0, 19, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 661, 661, 0]}
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [5, 0, 19, 0], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [6, 0, 19, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 661, 661, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -872,10 +1407,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 661
+            "item_id": 1,
+            "switch_a_id": 661,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -886,7 +1434,13 @@
       "name": "AfterBattleMint",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -895,24 +1449,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 498
+            "item_id": 1,
+            "switch_a_id": 498,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 35, 0]}
+            {"code": 12330, "indent": 0, "parameters": [0, 35, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 9,
       "name": "Life Bucket",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 47,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -921,27 +1493,58 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 662
+            "item_id": 1,
+            "switch_a_id": 662,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "FullHeal", "parameters": [0, 0]},
-            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
-            {"code": "ShowMessage_2", "string": "I wonder if I could bring some of it"},
-            {"code": "ShowMessage_2", "string": "with me?"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10490, "indent": 0, "parameters": [0, 0], "string": ""},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "HP and SP completely recovered!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The water in this bucket is amazing!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I wonder if I could bring some of it"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "with me?"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 47,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": true,
@@ -951,42 +1554,73 @@
               "variable": false
             },
             "item_id": 106,
-            "switch_a_id": 662
+            "switch_a_id": 662,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Recovery4"},
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "FullHeal", "parameters": [0, 0]},
-            {"code": "ShowMessage", "string": "HP and SP completely recovered!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The water in this bucket is amazing!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Should I fill up an empty bottle?"},
-            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
-            {"code": "ChangeItems", "indent": 1, "parameters": [1, 0, 106, 0, 1]},
-            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 107, 0, 1]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "PlaySound", "indent": 1, "parameters": [100, 100, 50], "string": "Water3"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN filled an empty bottle with"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "the healing liquid."},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 1, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Recovery4"},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10490, "indent": 0, "parameters": [0, 0], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "HP and SP completely recovered!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The water in this bucket is amazing!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Should I fill up an empty bottle?"
+            },
+            {"code": 10140, "indent": 0, "parameters": [2], "string": "Yes/No"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "Yes"},
+            {"code": 10320, "indent": 1, "parameters": [1, 0, 106, 0, 1], "string": ""},
+            {"code": 10320, "indent": 1, "parameters": [0, 0, 107, 0, 1], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 11550, "indent": 1, "parameters": [100, 100, 50], "string": "Water3"},
+            {
+              "code": 10110,
               "indent": 1,
+              "parameters": [],
+              "string": "TALAN filled an empty bottle with"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "the healing liquid."},
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 0, "parameters": [1], "string": "No"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I think I'll hold onto my empty bottle."
             },
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -997,27 +1631,53 @@
       "name": "NorthernCamp.1",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 7,
           "character_name": "Object1",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 759, 759, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 312, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Spense Weed"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 759, 759, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 312, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Spense Weed"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "Object1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1026,15 +1686,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 759
+            "item_id": 1,
+            "switch_a_id": 759,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -1045,18 +1721,42 @@
       "name": "SaveSurlCamp",
       "pages": [
         {
-          "animation_type": "fixed_continuous",
-          "character_direction": "up",
+          "animation_type": 3,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "savept",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
-            {"code": "OpenSaveMenu"},
-            {"code": "ChangeSaveAccess", "parameters": [0]}
+            {"code": 11550, "indent": 0, "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": 11910, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11930, "indent": 0, "parameters": [0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "translucent": true
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": true,
+          "trigger": 0
         }
       ],
       "x": 6,
@@ -1067,29 +1767,64 @@
       "name": "EV0012",
       "pages": [
         {
-          "character_direction": "up",
-          "character_pattern": "left",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
-            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
-            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 11, 1]},
-            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 11, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
-            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 39, 39, 0, 6, 10001, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 40, 40, 0, 6, 10001, 2],
+              "string": ""
+            },
+            {"code": 10220, "indent": 0, "parameters": [0, 41, 41, 0, 6, 11, 1], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 42, 42, 0, 6, 11, 2], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 39, 1, 41, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 40, 1, 42, 0, 1], "string": ""},
+            {"code": 11930, "indent": 2, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
           "translucent": true,
-          "trigger": "parallel"
+          "trigger": 4
         }
       ],
       "x": 5,
@@ -1100,7 +1835,13 @@
       "name": "EV0013",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1109,18 +1850,39 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "RADIN"},
-            {"code": "ShowMessage_2", "string": "The soil here is not very good for"},
-            {"code": "ShowMessage_2", "string": "finding ingredients. I should try"},
-            {"code": "ShowMessage_2", "string": "elsewhere."},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The soil here is not very good for"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "finding ingredients. I should try"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "elsewhere."},
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
@@ -1131,11 +1893,13 @@
       "name": "DroidMerchant",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "right",
+          "animation_type": 4,
+          "character_direction": 1,
           "character_index": 4,
           "character_name": "Crown5",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1144,47 +1908,103 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 635
+            "item_id": 1,
+            "switch_a_id": 635,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "SHOPPING DROID"},
-            {"code": "ShowMessage_2", "string": "Welcome to.... <whir>.... <click>"},
-            {"code": "ShowMessage_2", "string": "Emporium of... <snap> Goods!"},
-            {"code": "ShowMessage", "string": "SHOPPING DROID"},
-            {"code": "ShowMessage_2", "string": "What would... you... <whirrr> like?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SHOPPING DROID"},
             {
-              "code": "ShowChoice",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Welcome to.... <whir>.... <click>"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Emporium of... <snap> Goods!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SHOPPING DROID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What would... you... <whirrr> like?"
+            },
+            {
+              "code": 10140,
+              "indent": 0,
               "parameters": [0],
               "string": "Weapons... and armor?/Other... <click> useful goods?"
             },
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "Weapons... and armor?"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "Weapons... and armor?"},
             {
-              "code": "OpenShop",
+              "code": 10720,
               "indent": 1,
-              "parameters": [0, 1, 0, 0, 140, 203, 194, 390, 241, 248]
+              "parameters": [0, 1, 0, 0, 140, 203, 194, 390, 241, 248],
+              "string": ""
             },
-            {"code": "END", "indent": 1},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
             {
-              "code": "ShowChoiceOption",
+              "code": 20140,
+              "indent": 0,
               "parameters": [1],
               "string": "Other... <click> useful goods?"
             },
             {
-              "code": "OpenShop",
+              "code": 10720,
               "indent": 1,
-              "parameters": [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 130, 115]
+              "parameters": [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 130, 115],
+              "string": ""
             },
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
       "y": 6
     }
   ],
-  "save_count": 89
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 89,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

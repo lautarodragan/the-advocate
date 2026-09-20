@@ -6,7 +6,8 @@ port**: `tools/rpgmaker/lcf.py` sale de acá y de ningún otro lado, así que el
 la referencia en Python y las pruebas están todos mirando estos archivos y no
 los `.lmu`. El porqué de esa decisión está en `DITTO.md`, en la raíz.
 
-    ditto.json           la versión del formato del volcado y el header de cada archivo
+    ditto.json           la versión del volcado, cuál de las dos vistas es, y
+                         el header de cada archivo
     maps.json            el árbol de mapas, los encuentros y dónde arranca la partida
     maps/Map0001.json    el mapa: chipset, parallax y los eventos con sus scripts
     maps/Map0001.tiles   sus dos capas de tiles, una fila por línea
@@ -17,6 +18,34 @@ Se regenera entero en cualquier momento con `just datos`, que vacía `maps/` y
 `db/` y los vuelve a escribir. **Es derivado**: si algo de acá no coincide con
 los `.lmu`, el que está mal es esto. Y el que manda después de regenerar es el
 `git diff`: si el juego no cambió, tiene que dar vacío.
+
+## Esto es la vista resuelta, y hay otra
+
+`just datos` escribe **dos** árboles con la misma forma, en la misma corrida.
+Éste es la **vista resuelta**, y el otro —`rom/build/ditto-exacto/`, que no se
+versiona— es el **volcado exacto**. Cuál es cuál lo dice `ditto.json`.
+
+La diferencia es qué tanto hay que saber para leerlo:
+
+* acá **están todos los campos**, con su default ya aplicado, y **los enums son
+  números**. Leer es leer: `datos["max_hp"]` y listo.
+* el exacto tiene la forma del binario —un campo que vale su default no se
+  escribe, y un enum va por su nombre: `"auto_start"`, `"same"`,
+  `"ShowMessage"`—. Es un 37% más chico, es el único que `ditto pack` puede
+  volver a escribir, y es el que hay que mirar para ver el juego **con los
+  nombres puestos**. Leerlo pide el esquema del formato, que publica
+  `ditto schema`.
+
+Hasta el 2026-09-20 el versionado era el exacto, y `tools/rpgmaker/lcf.py`
+llevaba el esquema al lado para poder entenderlo. Eso era el formato viviendo
+del lado del que lee; hoy lo resuelve el que lo tiene. Perder los nombres de acá
+es aceptado a propósito y el camino de vuelta está pensado: si el proceso entero
+termina en Rust, Ditto pasa a ser una lib que exporta sus structs con sus
+definiciones de serde y los nombres vuelven sin código ni JSON de más.
+
+Que las dos vistas salgan de la misma corrida no es comodidad: generadas por
+separado, es cuestión de tiempo que una sea de una corrida y la otra de otra, y
+compararlas deje de significar algo.
 
 ## Por qué está en el repo si es derivado
 
@@ -36,16 +65,15 @@ donde el formato dice 10, y el DirtShadow moría de un golpe.
 
 ## Lo que hay que saber para leerlo
 
-**Un campo que no está vale su default.** El binario no guarda un campo que
-valga el valor por omisión del formato, y el JSON hace exactamente lo mismo,
-por la misma razón y con la misma tabla. Así que "`max_hp` no aparece" no
-quiere decir 0: quiere decir 10. Los defaults están en
-`tools/rpgmaker/ditto_schema.py`, generado desde el esquema de Ditto, que a su vez sale
-de liblcf.
+**No hay nada que saber: están todos los campos.** Un `max_hp` que el binario
+no guardaba porque valía el default del formato acá está escrito en 10, que es
+lo que vale. Ése fue el bug que originó a Ditto —llegaba 1, y el DirtShadow
+moría de un golpe—, y hoy no hay tabla que consultar ni default que aplicar:
+quien lee, lee.
 
-**Los enums van por nombre.** `"trigger": "auto_start"`, `"layer": "same"`,
-`"code": "ShowMessage"`. Un número no le dice nada a nadie; el nombre sí, y es
-el de liblcf. `tools/rpgmaker/lcf.py` los vuelve al número que espera el port.
+**Los enums son números**, que es lo que el port quiere. El nombre —`"same"`,
+`"auto_start"`, `"ShowMessage"`— está en el volcado exacto, que es donde uno va
+a mirar el juego.
 
 **Los tiles van aparte y en texto**, una fila por línea, porque son lo único
 voluminoso: meterlos en el JSON haría los diffs ilegibles justo donde más
@@ -60,8 +88,9 @@ es lo único que lo hace útil, así que el que adivina es `tools/rpgmaker/lcf.p
 ## De dónde salen los nombres
 
 De **liblcf**, que es donde EasyRPG declara el formato en un juego de tablas
-CSV. `tools/ditto/src/schema/` se genera de ahí y está en git; `tools/rpgmaker/ditto_schema.py`
-se genera de eso. Ningún número de este directorio se escribió de memoria: ya
+CSV. `tools/ditto/src/schema/` se genera de ahí y está versionado, y de ahí
+salen tanto los nombres del volcado exacto como los defaults y los números que
+están escritos acá. Ningún número de este directorio se escribió de memoria: ya
 pasó una vez que tres códigos de comando se pusieron así y estaban mal, y de
 ahí salió la regla.
 

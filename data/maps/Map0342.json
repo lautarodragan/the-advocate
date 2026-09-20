@@ -6,22 +6,55 @@
       "name": "EV0001",
       "pages": [
         {
-          "condition": {"switch_a_id": 874},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 874,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "KeyInputProc", "parameters": [176, 1, 0, 1, 0]},
-            {"code": "ConditionalBranch", "parameters": [1, 176, 0, 0, 1, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 863, 863, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 11610, "indent": 0, "parameters": [176, 1, 0, 1, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 176, 0, 0, 1, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 863, 863, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -30,40 +63,95 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 874
+            "item_id": 1,
+            "switch_a_id": 874,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 2,
       "name": "Blast",
       "pages": [
         {
-          "animation_type": "fixed_continuous",
+          "animation_type": 3,
+          "character_direction": 2,
           "character_index": 3,
           "character_name": "Crown7",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 179, 179, 0, 6, 10005, 1]},
-            {"code": "ControlVars", "parameters": [0, 180, 180, 0, 6, 10005, 2]}
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 179, 179, 0, 6, 10005, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 180, 180, 0, 6, 10005, 2],
+              "string": ""
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
-      "x": 29
+      "x": 29,
+      "y": 0
     },
     {
       "id": 3,
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -72,73 +160,103 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 863
+            "item_id": 1,
+            "switch_a_id": 863,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [1, 176, 0, 5, 0, 1]},
-            {"code": "ControlVars", "indent": 1, "parameters": [0, 177, 177, 0, 6, 10001, 1]},
-            {"code": "ControlVars", "indent": 1, "parameters": [0, 178, 178, 0, 6, 10001, 2]},
-            {"code": "PlaySound", "indent": 1, "parameters": [80, 130, 50], "string": "Flame1"},
+            {"code": 12010, "indent": 0, "parameters": [1, 176, 0, 5, 0, 1], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 10220,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 34, 10, 82, 111, 121, 97, 108, 68, 97, 108, 105, 97, 3]
+              "parameters": [0, 177, 177, 0, 6, 10001, 1],
+              "string": ""
             },
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [6, 10001, 1, 0, 0, 1]},
-            {"code": "ControlVars", "indent": 2, "parameters": [0, 177, 177, 1, 0, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [2, 1, 177, 178]},
-            {"code": "Wait", "indent": 2, "parameters": [2]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [2, 0, 29, 0]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [6, 10001, 3, 0, 0, 1]},
-            {"code": "ControlVars", "indent": 3, "parameters": [0, 177, 177, 2, 0, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 1, 177, 178]},
-            {"code": "Wait", "indent": 3, "parameters": [2]},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 0, 29, 0]},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ConditionalBranch", "indent": 3, "parameters": [6, 10001, 2, 0, 0, 1]},
-            {"code": "ControlVars", "indent": 4, "parameters": [0, 178, 178, 1, 0, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 4, "parameters": [2, 1, 177, 178]},
-            {"code": "Wait", "indent": 4, "parameters": [2]},
-            {"code": "ChangeEventLocation", "indent": 4, "parameters": [2, 0, 29, 0]},
-            {"code": "END", "indent": 4},
-            {"code": "ElseBranch", "indent": 3},
-            {"code": "ConditionalBranch", "indent": 4, "parameters": [6, 10001, 0, 0, 0, 1]},
-            {"code": "ControlVars", "indent": 5, "parameters": [0, 178, 178, 2, 0, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 5, "parameters": [2, 1, 177, 178]},
-            {"code": "Wait", "indent": 5, "parameters": [2]},
-            {"code": "ChangeEventLocation", "indent": 5, "parameters": [2, 0, 29, 0]},
-            {"code": "END", "indent": 5},
-            {"code": "ElseBranch", "indent": 4},
-            {"code": "END", "indent": 5},
-            {"code": "EndBranch", "indent": 4},
-            {"code": "END", "indent": 4},
-            {"code": "EndBranch", "indent": 3},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 3]
+              "code": 10220,
+              "indent": 1,
+              "parameters": [0, 178, 178, 0, 6, 10001, 2],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "ControlVars", "parameters": [0, 176, 176, 0, 0, 0, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 863, 863, 1]}
+            {"code": 11550, "indent": 1, "parameters": [80, 130, 50], "string": "Flame1"},
+            {
+              "code": 11330,
+              "indent": 1,
+              "parameters": [10001, 8, 0, 0, 34, 10, 82, 111, 121, 97, 108, 68, 97, 108, 105, 97, 3],
+              "string": ""
+            },
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [6, 10001, 1, 0, 0, 1], "string": ""},
+            {"code": 10220, "indent": 2, "parameters": [0, 177, 177, 1, 0, 1, 0], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [2, 1, 177, 178], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [2], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [2, 0, 29, 0], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [6, 10001, 3, 0, 0, 1], "string": ""},
+            {"code": 10220, "indent": 3, "parameters": [0, 177, 177, 2, 0, 1, 0], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [2, 1, 177, 178], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [2], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [2, 0, 29, 0], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 3, "parameters": [6, 10001, 2, 0, 0, 1], "string": ""},
+            {"code": 10220, "indent": 4, "parameters": [0, 178, 178, 1, 0, 1, 0], "string": ""},
+            {"code": 10860, "indent": 4, "parameters": [2, 1, 177, 178], "string": ""},
+            {"code": 11410, "indent": 4, "parameters": [2], "string": ""},
+            {"code": 10860, "indent": 4, "parameters": [2, 0, 29, 0], "string": ""},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 3, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 4, "parameters": [6, 10001, 0, 0, 0, 1], "string": ""},
+            {"code": 10220, "indent": 5, "parameters": [0, 178, 178, 2, 0, 1, 0], "string": ""},
+            {"code": 10860, "indent": 5, "parameters": [2, 1, 177, 178], "string": ""},
+            {"code": 11410, "indent": 5, "parameters": [2], "string": ""},
+            {"code": 10860, "indent": 5, "parameters": [2, 0, 29, 0], "string": ""},
+            {"code": 10, "indent": 5, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 4, "parameters": [], "string": ""},
+            {"code": 10, "indent": 5, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 4, "parameters": [], "string": ""},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 3],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 176, 176, 0, 0, 0, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 863, 863, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -147,18 +265,35 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 865
+            "item_id": 1,
+            "switch_a_id": 865,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "FlashSprite", "parameters": [10001, 31, 31, 31, 31, 4, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "Teleport", "parameters": [323, 7, 7]}
+            {
+              "code": 11320,
+              "indent": 0,
+              "parameters": [10001, 31, 31, 31, 31, 4, 1],
+              "string": ""
+            },
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [323, 7, 7], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
+      "x": 0,
       "y": 24
     },
     {
@@ -166,40 +301,79 @@
       "name": "Monster1",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 4,
           "character_name": "Monster1",
-          "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 181, 181, 0, 6, 10005, 1]},
-            {"code": "ControlVars", "parameters": [0, 182, 182, 0, 6, 10005, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 181, 1, 179, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 182, 1, 180, 0, 1]},
-            {"code": "ControlVars", "indent": 2, "parameters": [0, 181, 181, 0, 0, 0, 0]},
-            {"code": "ControlVars", "indent": 2, "parameters": [0, 182, 182, 0, 0, 0, 0]},
-            {"code": "PlaySound", "indent": 2, "parameters": [80, 100, 50], "string": "Kill6"},
-            {"code": "FlashSprite", "indent": 2, "parameters": [10005, 31, 31, 31, 31, 4, 1]},
-            {
-              "code": "MoveEvent",
-              "indent": 2,
-              "parameters": [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [168, 10005, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [10005, 0, 29, 24]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 181, 181, 0, 6, 10005, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 182, 182, 0, 6, 10005, 2],
+              "string": ""
+            },
+            {"code": 12010, "indent": 0, "parameters": [1, 181, 1, 179, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 182, 1, 180, 0, 1], "string": ""},
+            {"code": 10220, "indent": 2, "parameters": [0, 181, 181, 0, 0, 0, 0], "string": ""},
+            {"code": 10220, "indent": 2, "parameters": [0, 182, 182, 0, 0, 0, 0], "string": ""},
+            {"code": 11550, "indent": 2, "parameters": [80, 100, 50], "string": "Kill6"},
+            {
+              "code": 11320,
+              "indent": 2,
+              "parameters": [10005, 31, 31, 31, 31, 4, 1],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 2,
+              "parameters": [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11210, "indent": 2, "parameters": [168, 10005, 1, 0], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [10005, 0, 29, 24], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
+          "layer": 0,
           "move_frequency": 5,
-          "move_speed": "normal",
-          "move_type": "toward",
-          "trigger": "parallel"
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 4,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
       "x": 17,
@@ -210,78 +384,156 @@
       "name": "EV0005",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 183, 183, 0, 6, 10001, 1]},
-            {"code": "ControlVars", "parameters": [0, 184, 184, 0, 6, 10001, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 181, 1, 183, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 182, 1, 184, 0, 1]},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 865, 865, 0]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [1, 185, 1, 183, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 186, 1, 184, 0, 1]},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 865, 865, 0]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 183, 183, 0, 6, 10001, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 184, 184, 0, 6, 10001, 2],
+              "string": ""
+            },
+            {"code": 12010, "indent": 0, "parameters": [1, 181, 1, 183, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 182, 1, 184, 0, 1], "string": ""},
+            {"code": 10210, "indent": 2, "parameters": [0, 865, 865, 0], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 185, 1, 183, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 186, 1, 184, 0, 1], "string": ""},
+            {"code": 10210, "indent": 2, "parameters": [0, 865, 865, 0], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_speed": "normal",
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
-      "x": 1
+      "x": 1,
+      "y": 0
     },
     {
       "id": 6,
       "name": "Monster2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "Monster1",
-          "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 185, 185, 0, 6, 10005, 1]},
-            {"code": "ControlVars", "parameters": [0, 186, 186, 0, 6, 10005, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 185, 1, 179, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 186, 1, 180, 0, 1]},
-            {"code": "ControlVars", "indent": 2, "parameters": [0, 185, 185, 0, 0, 0, 0]},
-            {"code": "ControlVars", "indent": 2, "parameters": [0, 186, 186, 0, 0, 0, 0]},
-            {"code": "PlaySound", "indent": 2, "parameters": [80, 100, 50], "string": "Kill6"},
-            {"code": "FlashSprite", "indent": 2, "parameters": [10005, 31, 31, 31, 31, 4, 1]},
-            {
-              "code": "MoveEvent",
-              "indent": 2,
-              "parameters": [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowBattleAnimation", "indent": 2, "parameters": [168, 10005, 1, 0]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [10005, 0, 29, 24]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 185, 185, 0, 6, 10005, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 186, 186, 0, 6, 10005, 2],
+              "string": ""
+            },
+            {"code": 12010, "indent": 0, "parameters": [1, 185, 1, 179, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 186, 1, 180, 0, 1], "string": ""},
+            {"code": 10220, "indent": 2, "parameters": [0, 185, 185, 0, 0, 0, 0], "string": ""},
+            {"code": 10220, "indent": 2, "parameters": [0, 186, 186, 0, 0, 0, 0], "string": ""},
+            {"code": 11550, "indent": 2, "parameters": [80, 100, 50], "string": "Kill6"},
+            {
+              "code": 11320,
+              "indent": 2,
+              "parameters": [10005, 31, 31, 31, 31, 4, 1],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 2,
+              "parameters": [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 11210, "indent": 2, "parameters": [168, 10005, 1, 0], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [10005, 0, 29, 24], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
+          "layer": 0,
           "move_frequency": 5,
-          "move_speed": "normal",
-          "move_type": "toward",
-          "trigger": "parallel"
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 4,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
       "x": 17,
@@ -292,21 +544,54 @@
       "name": "EV0007",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "CallEvent", "parameters": [0, 45, 0]},
-            {"code": "ShowMessage", "string": "DALIA has left the AQUEDUCT."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MessageOptions", "parameters": [0, 2, 1, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 874, 874, 1]},
-            {"code": "Teleport", "parameters": [279, 48, 4]},
-            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 5, 1]}
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 45, 0], "string": ""},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DALIA has left the AQUEDUCT."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 874, 874, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [279, 48, 4], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [70, 70, 70, 100, 5, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 6,
@@ -317,15 +602,43 @@
       "name": "EV0008",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "CallEvent", "parameters": [0, 45, 0]},
-            {"code": "Teleport", "parameters": [343, 7, 12]},
-            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 0, 0]}
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 45, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [343, 7, 12], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [70, 70, 70, 100, 0, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 22,
@@ -336,13 +649,38 @@
       "name": "EV0012",
       "pages": [
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "FallsCharaset",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_speed": "normal",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -353,13 +691,38 @@
       "name": "EV0013",
       "pages": [
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "FallsCharaset",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_speed": "normal",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 13,
@@ -370,13 +733,38 @@
       "name": "EV0014",
       "pages": [
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "FallsCharaset",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_speed": "normal",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -387,20 +775,69 @@
       "name": "EV0015",
       "pages": [
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "FallsCharaset",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_speed": "normal",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 4,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 19,
       "y": 7
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 25,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 79,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 30
 }

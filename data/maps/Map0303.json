@@ -6,49 +6,144 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 1, 23, 12, 23]},
-            {"code": "ProceedWithMovement"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE"},
-            {"code": "ShowMessage_2", "string": "Then what is it you want?!\\|\\^"},
-            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Holy9"},
-            {"code": "Teleport", "parameters": [302, 4, 9]}
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 0, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 1, 1, 1, 23, 12, 23],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Then what is it you want?!\\|\\^"
+            },
+            {"code": 11550, "indent": 0, "parameters": [100, 70, 50], "string": "Holy9"},
+            {"code": 10810, "indent": 0, "parameters": [302, 4, 9], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 2,
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShakeScreen", "parameters": [5, 5, 10, 0]}
+            {"code": 11050, "indent": 0, "parameters": [5, 5, 10, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
-      "x": 1
+      "x": 1,
+      "y": 0
     },
     {
       "id": 3,
       "name": "Kersh",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -59,22 +154,69 @@
       "name": "Emily",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 6,
           "character_name": "emily",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
       "y": 6
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
   "parallax_auto_loop_x": true,
+  "parallax_auto_loop_y": false,
   "parallax_flag": true,
   "parallax_loop_x": true,
+  "parallax_loop_y": false,
   "parallax_name": "PrimaTunnel2",
   "parallax_sx": -7,
-  "save_count": 31
+  "parallax_sy": 0,
+  "save_count": 31,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

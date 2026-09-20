@@ -1,11 +1,11 @@
 [package]
-name = "brr"
+name = "gunter"
 version = "0.1.0"
 edition = "2021"
 description = "Encodes PCM into the SPC700's BRR blocks, and pulls samples out of SoundFonts"
 
 [[bin]]
-name = "brr"
+name = "gunter"
 path = "src/main.rs"
 
 [dependencies]

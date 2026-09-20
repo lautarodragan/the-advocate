@@ -10946,8 +10946,8 @@ cargar_el_mapa:
     ; `BG1SC`, `BG2SC`, los scrolls y `TM` los escribe `ppu_init`, que hasta
     ; ahora corría una sola vez en el arranque porque nadie los tocaba después.
     ; Sin volver a llamarlo el juego arranca con el tilemap de BG1 apuntando al
-    ; del título —o sea todos los tiles corridos, que es lo que taro vio en
-    ; `demo-titulo`— y con `TM` en cero, que es la pantalla en negro con la
+    ; del título —o sea todos los tiles corridos, que es lo que taro vio
+    ; jugando la demo— y con `TM` en cero, que es la pantalla en negro con la
     ; lógica y la música corriendo detrás.
     ;
     ; **snes9x y la comparación de pixeles no lo vieron**, y por una razón que
@@ -13480,7 +13480,8 @@ listo:
     ; break;`—, así que un `PlayBGM` que llega mientras la pista anterior
     ; todavía se está abriendo se pierde entero. Acá pasa de verdad: con
     ; pantalla de título hay dos pistas pedidas con 1,8 s de diferencia —la del
-    ; título y la de la apertura—, y en `demo-ciudad` la primera es la única.
+    ; título y la de la apertura—, y sin pantalla de título la primera es la
+    ; única.
     ;
     ; La pista se guarda en Y mientras tanto: la espera usa X.
     tay
@@ -19074,7 +19075,7 @@ TEXTO_OFS_Y = 2
 ; que es lo que ya sabían `ptr_mas` y `msg_empezar`.
 ;
 ; No es teórico y no bastaba con arreglar `msg_empezar`: el bloque de textos de
-; `demo-ciudad` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
+; `abl` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
 ; encima del borde** empieza bien y sigue leyendo basura. Es la cinemática de
 ; los Neon Vipers del mapa 14: de la basura salía un largo de renglón de 76
 ; caracteres y con él la pantalla hecha basura, por el camino que el tope de
@@ -19106,7 +19107,7 @@ listo:
 .i16
     ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
     ; hasta 64 KB, o sea **más que la ventana de un banco de LoROM**: con los
-    ; 29 mapas de `demo-ciudad` son 48972 bytes y arranca en $46:8000, así que
+    ; 29 mapas de `abl` son 48972 bytes y arranca en $46:8000, así que
     ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
     ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
     ; que ya sabía `ptr_mas` para la grilla del mapa; acá se sumaba de a
@@ -23533,8 +23534,7 @@ hdma_mascara:
 ;
 ; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
 ; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
+; la regla de RM2k.
 pass_salir:
     .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
 pass_entrar:
@@ -26342,7 +26342,7 @@ sin_cursor_orden:
     cmp #BA_ORDEN_HABILIDAD
     beq texto_de_la_habilidad
     ; **De dos bytes**, como `actor_hab_txt` y `enemigo_txt`: el índice de un
-    ; texto no entra en uno. Con los 29 mapas de `demo-ciudad` los textos de la
+    ; texto no entra en uno. Con los 29 mapas de `abl` los textos de la
     ; batalla arrancan en el 273, así que la tabla de un byte que estaba acá
     ; hasta el 2026-09-14 los truncaba a 17, 18, 19 y 32, que son renglones de
     ; la descripción de un ítem: el menú dibujaba cuatro textos largos, uno
@@ -28013,7 +28013,7 @@ nada:
 ; --- el banco de la pantalla, también fuera del banco 0 ---------------------
 ;
 ; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis
-; bytes que el banco 0 ya no tenía: `demo-ciudad` quedaba en 32748 de 32704, y
+; bytes que el banco 0 ya no tenía: `abl` quedaba en 32748 de 32704, y
 ; antes de eso le sobraban **dos**. Ésta es la que sale más barata de mudar de
 ; todo lo que mide más de cien bytes: no llama a nadie —son escrituras de
 ; registro y cuatro DMA— así que no hace falta ningún puente, y no corre por

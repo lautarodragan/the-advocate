@@ -35,7 +35,7 @@ const DEFAULT_RATE: u32 = 32000;
 
 #[derive(Parser)]
 #[command(
-    name = "brr",
+    name = "gunter",
     about = "Encode PCM into SPC700 BRR blocks, and pull samples out of SoundFonts",
     after_help = "Exit codes: 1 the answer is no (nothing matched, quality bar missed), \
                   2 bad usage.",
@@ -156,7 +156,7 @@ struct Sf2 {
 
 /// `println!` that does not panic when the reader goes away.
 ///
-/// `brr sf2 huge.sf2 --list | head` closes the pipe halfway through, and a
+/// `gunter sf2 huge.sf2 --list | head` closes the pipe halfway through, and a
 /// listing command that dies with a Rust backtrace on the most ordinary thing
 /// anyone does with a listing is not usable.
 macro_rules! say {
@@ -660,7 +660,7 @@ mod tests {
 
     #[test]
     fn a_loop_point_off_a_block_boundary_names_the_two_that_would_work() {
-        let dir = std::env::temp_dir().join(format!("brr-cli-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("gunter-cli-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let input = dir.join("ramp.wav");
         let samples: Vec<i16> = (0..64).map(|i| i * 100).collect();
@@ -682,7 +682,7 @@ mod tests {
 
     #[test]
     fn a_quality_bar_that_is_missed_is_an_answer_and_not_an_error() {
-        let dir = std::env::temp_dir().join(format!("brr-cli-bar-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("gunter-cli-bar-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let input = dir.join("noise.wav");
         // Sample-to-sample noise at full scale is the worst case there is: no
@@ -708,7 +708,7 @@ mod tests {
 
     #[test]
     fn a_file_that_is_not_a_whole_number_of_blocks_is_refused() {
-        let dir = std::env::temp_dir().join(format!("brr-cli-blocks-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("gunter-cli-blocks-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("half.brr");
         std::fs::write(&path, [0u8; 10]).unwrap();

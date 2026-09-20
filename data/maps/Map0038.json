@@ -6,11 +6,13 @@
       "name": "EV0001",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "right",
+          "animation_type": 4,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -19,22 +21,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 130,
-            "switch_b_id": 148
+            "switch_b_id": 148,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ControlSwitches", "parameters": [0, 148, 148, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 149, 149, 0]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "Teleport", "parameters": [36, 10, 9]}
+            {"code": 10210, "indent": 0, "parameters": [0, 148, 148, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 149, 149, 0], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 18], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 17], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [36, 10, 9], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 49,
@@ -45,10 +57,13 @@
       "name": "EV0002",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -57,22 +72,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 131,
-            "switch_b_id": 148
+            "switch_b_id": 148,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ControlSwitches", "parameters": [0, 148, 148, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 149, 149, 0]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 18]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 17]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "Teleport", "parameters": [36, 10, 9]}
+            {"code": 10210, "indent": 0, "parameters": [0, 148, 148, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 149, 149, 0], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 18], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 17], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [36, 10, 9], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 50,
@@ -83,16 +108,54 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 34,
@@ -103,16 +166,54 @@
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 34,
@@ -123,16 +224,54 @@
       "name": "EV0005",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 74,
@@ -143,16 +282,54 @@
       "name": "EV0006",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 74,
@@ -163,16 +340,54 @@
       "name": "EV0007",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 22,
@@ -183,16 +398,54 @@
       "name": "EV0008",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... I might need to leave in a hurry."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... I might need to leave in a hurry."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 22,
@@ -203,11 +456,38 @@
       "name": "EV0009",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 5,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -218,12 +498,38 @@
       "name": "EV0010",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 5,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -234,15 +540,48 @@
       "name": "EV0011",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "SECTOR 34 DEFENSE"},
-            {"code": "ShowMessage_2", "string": "  \"All sales are final! NO credits back!\""},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SECTOR 34 DEFENSE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "  \"All sales are final! NO credits back!\""
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 31,
@@ -253,14 +592,42 @@
       "name": "EV0012",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "SECTOR 34 WEAPONS"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SECTOR 34 WEAPONS"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 50,
@@ -271,13 +638,46 @@
       "name": "EV0013",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "There's nothing in the grate."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There's nothing in the grate."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 41,
@@ -288,17 +688,55 @@
       "name": "EV0014",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get too far away from"},
-            {"code": "ShowMessage_2", "string": "the car... plus, the bar draws crowds, and"},
-            {"code": "ShowMessage_2", "string": "that could be dangerous."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get too far away from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the car... plus, the bar draws crowds, and"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "that could be dangerous."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 25,
@@ -309,7 +747,13 @@
       "name": "EV0015",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -318,20 +762,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 206
+            "item_id": 1,
+            "switch_a_id": 206,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Looks like the detour has been taken"},
-            {"code": "ShowMessage_2", "string": "down."},
-            {"code": "ControlSwitches", "parameters": [0, 166, 166, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Looks like the detour has been taken"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "down."},
+            {"code": 10210, "indent": 0, "parameters": [0, 166, 166, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -340,11 +806,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 166
+            "item_id": 1,
+            "switch_a_id": 166,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 64,
@@ -355,7 +833,13 @@
       "name": "EV0016",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -364,20 +848,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 206
+            "item_id": 1,
+            "switch_a_id": 206,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Looks like the detour has been taken"},
-            {"code": "ShowMessage_2", "string": "down."},
-            {"code": "ControlSwitches", "parameters": [0, 166, 166, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Looks like the detour has been taken"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "down."},
+            {"code": 10210, "indent": 0, "parameters": [0, 166, 166, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -386,11 +892,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 166
+            "item_id": 1,
+            "switch_a_id": 166,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 64,
@@ -401,12 +919,40 @@
       "name": "EV0017",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [10, 42, 14]}
+            {"code": 10810, "indent": 0, "parameters": [10, 42, 14], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 48,
@@ -417,12 +963,40 @@
       "name": "EV0018",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [10, 42, 45]}
+            {"code": 10810, "indent": 0, "parameters": [10, 42, 45], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 29,
@@ -433,54 +1007,132 @@
       "name": "Arden",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Arden... I'm sure everyone's fine."},
-            {"code": "ShowMessage_2", "string": "They've just been brought into custody,"},
-            {"code": "ShowMessage_2", "string": "that's all."},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The Vipers will be OK."},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "It's just... I can't shake the feeling that"},
-            {"code": "ShowMessage_2", "string": "this is all my fault."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "No... it isn't. I mean, if it's anyone's"},
-            {"code": "ShowMessage_2", "string": "fault -"},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "No, Talan. You didn't want me to come"},
-            {"code": "ShowMessage_2", "string": "with you."},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "But I did - and by doing so, I endangered"},
-            {"code": "ShowMessage_2", "string": "the Vipers. They're my only family, and it's"},
-            {"code": "ShowMessage_2", "string": "my fault that they're... that they've..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "Let's go, Talan. I'm going to make the"},
-            {"code": "ShowMessage_2", "string": "Agency pay for this."},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 15]},
-            {"code": "MoveEvent", "parameters": [19, 8, 0, 0, 36, 9]},
-            {"code": "Wait", "parameters": [4]},
-            {"code": "ChangeEventLocation", "parameters": [19, 0, 74, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Arden... I'm sure everyone's fine."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "They've just been brought into custody,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "that's all."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The Vipers will be OK."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's just... I can't shake the feeling that"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "this is all my fault."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No... it isn't. I mean, if it's anyone's"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "fault -"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No, Talan. You didn't want me to come"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "with you."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But I did - and by doing so, I endangered"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Vipers. They're my only family, and it's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "my fault that they're... that they've..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's go, Talan. I'm going to make the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Agency pay for this."},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [19, 8, 0, 0, 36, 9], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [4], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [19, 0, 74, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 73
+      "x": 73,
+      "y": 0
     },
     {
       "id": 20,
       "name": "EV0020",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -489,41 +1141,65 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ChangeEventLocation", "parameters": [19, 0, 57, 56]},
-            {"code": "MoveEvent", "parameters": [19, 8, 0, 0, 36, 3, 13]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "Let's take the shortcut!"},
+            {"code": 10860, "indent": 0, "parameters": [19, 0, 57, 56], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [19, 8, 0, 0, 36, 3, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Let's take the shortcut!"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 19, 8, 0, 0, 28, 3, 3, 3, 3, 12, 24, 25, 0, 0, 0, 0, 0, 13, 24, 1, 1, 25, 0, 1,
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [30]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Arden, wait!"},
-            {"code": "ChangeEventLocation", "parameters": [19, 0, 19, 21]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 12]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [38, 2, 10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2]},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "She must be just ahead."},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
-            {"code": "ControlSwitches", "parameters": [0, 167, 167, 0]}
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Arden, wait!"},
+            {"code": 10860, "indent": 0, "parameters": [19, 0, 19, 21], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [38, 2, 10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2, 2, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "She must be just ahead."},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 167, 167, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -532,11 +1208,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 167
+            "item_id": 1,
+            "switch_a_id": 167,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 57,
@@ -547,7 +1235,13 @@
       "name": "EV0021",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -556,41 +1250,65 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ChangeEventLocation", "parameters": [19, 0, 57, 57]},
-            {"code": "MoveEvent", "parameters": [19, 8, 0, 0, 36, 3, 13]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "Let's take the shortcut!"},
+            {"code": 10860, "indent": 0, "parameters": [19, 0, 57, 57], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [19, 8, 0, 0, 36, 3, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Let's take the shortcut!"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 19, 8, 0, 0, 28, 3, 3, 3, 3, 0, 24, 25, 0, 0, 0, 0, 0, 13, 24, 1, 1, 25, 0, 1,
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [30]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Arden, wait!"},
-            {"code": "ChangeEventLocation", "parameters": [19, 0, 19, 21]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 0]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [38, 2, 10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2]},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "She must be just ahead."},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 15]},
-            {"code": "ControlSwitches", "parameters": [0, 167, 167, 0]}
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Arden, wait!"},
+            {"code": 10860, "indent": 0, "parameters": [19, 0, 19, 21], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [38, 2, 10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2, 2, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "She must be just ahead."},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 167, 167, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -599,11 +1317,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 167
+            "item_id": 1,
+            "switch_a_id": 167,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 57,
@@ -614,17 +1344,55 @@
       "name": "EV0022",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I can't leave without Arden!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't leave without Arden!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 15,
             "flags": {
@@ -634,38 +1402,99 @@
               "switch_b": false,
               "timer": false,
               "variable": false
-            }
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "We can't leave this way - neither of us"},
-            {"code": "ShowMessage_2", "string": "will be able to reach the plank."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We can't leave this way - neither of us"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "will be able to reach the plank."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
-      "x": 6
+      "x": 6,
+      "y": 0
     },
     {
       "id": 23,
       "name": "EV0023",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I can't leave without Arden!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't leave without Arden!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 15,
             "flags": {
@@ -675,38 +1504,99 @@
               "switch_b": false,
               "timer": false,
               "variable": false
-            }
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "We can't leave this way - neither of us"},
-            {"code": "ShowMessage_2", "string": "will be able to reach the plank."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We can't leave this way - neither of us"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "will be able to reach the plank."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
-      "x": 7
+      "x": 7,
+      "y": 0
     },
     {
       "id": 24,
       "name": "EV0024",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I can't leave without Arden!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't leave without Arden!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 15,
             "flags": {
@@ -716,56 +1606,138 @@
               "switch_b": false,
               "timer": false,
               "variable": false
-            }
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "We can't leave this way - neither of us"},
-            {"code": "ShowMessage_2", "string": "will be able to reach the plank."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We can't leave this way - neither of us"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "will be able to reach the plank."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
-      "x": 8
+      "x": 8,
+      "y": 0
     },
     {
       "id": 25,
       "name": "EV0025",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [19, 8, 0, 0, 37]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1]},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "vswar"},
-            {"code": "PanScreen", "parameters": [2, 1, 10, 4, 1]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "They're gone..."},
-            {"code": "Wait", "parameters": [12]},
-            {"code": "MoveEvent", "parameters": [19, 8, 0, 0, 12, 23, 14, 23, 23, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "The Agency has been here."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm sure the Vipers got out first."},
-            {"code": "ShowMessage_2", "string": "Look, there's no sign of a battle..."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "PanScreen", "parameters": [2, 3, 10, 4, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 168, 168, 0]}
+            {"code": 11330, "indent": 0, "parameters": [19, 8, 0, 0, 37], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "vswar"},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 10, 4, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "They're gone..."},
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [19, 8, 0, 0, 12, 23, 14, 23, 23, 13],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Agency has been here."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm sure the Vipers got out first."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Look, there's no sign of a battle..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11060, "indent": 0, "parameters": [2, 3, 10, 4, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 168, 168, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -774,35 +1746,53 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 168
+            "item_id": 1,
+            "switch_a_id": 168,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ChangeEventLocation", "indent": 1, "parameters": [19, 0, 6, 18]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [19, 8, 0, 0, 2, 13]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN, whispering"},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 10860, "indent": 1, "parameters": [19, 0, 6, 18], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [19, 8, 0, 0, 2, 13], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN, whispering"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "... snake in the dark... poised to strike..."
             },
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [19, 8, 0, 0, 36, 0, 37]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ChangeEventLocation", "indent": 1, "parameters": [19, 0, 74, 0]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 169, 169, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [19, 8, 0, 0, 36, 0, 37], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10860, "indent": 1, "parameters": [19, 0, 74, 0], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 169, 169, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -811,11 +1801,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 169
+            "item_id": 1,
+            "switch_a_id": 169,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 6,
@@ -826,17 +1828,55 @@
       "name": "EV0026",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I can't leave without Arden!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't leave without Arden!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 15,
             "flags": {
@@ -846,32 +1886,65 @@
               "switch_b": false,
               "timer": false,
               "variable": false
-            }
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "OK, let's get back to the car!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Are you sure you're OK...?"},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "I'm fine! Worry about yourself... leave"},
-            {"code": "ShowMessage_2", "string": "the Vipers to me..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
             {
-              "code": "PlayBGM",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "OK, let's get back to the car!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Are you sure you're OK...?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm fine! Worry about yourself... leave"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the Vipers to me..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {
+              "code": 11510,
+              "indent": 0,
               "parameters": [0, 80, 100, 50],
               "string": "golden_axe-turtlevillage2"
             },
-            {"code": "Teleport", "parameters": [38, 73, 65]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3]},
-            {"code": "Wait", "parameters": [20]}
+            {"code": 10810, "indent": 0, "parameters": [38, 73, 65], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 1,
@@ -882,18 +1955,61 @@
       "name": "EV0027",
       "pages": [
         {
-          "condition": {"switch_a_id": 54},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm not climbing up there - I've got"},
-            {"code": "ShowMessage_2", "string": "more important things to worry about!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm not climbing up there - I've got"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "more important things to worry about!"
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -902,19 +2018,46 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 56
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm not climbing up there - I've got"},
-            {"code": "ShowMessage_2", "string": "more important things to worry about!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm not climbing up there - I've got"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "more important things to worry about!"
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -923,18 +2066,39 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't think we should go back. We"},
-            {"code": "ShowMessage_2", "string": "need to focus on the future."},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "Yes. That's right."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't think we should go back. We"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "need to focus on the future."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yes. That's right."}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 52,
@@ -945,18 +2109,61 @@
       "name": "EV0028",
       "pages": [
         {
-          "condition": {"switch_a_id": 54},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm not climbing up there - I've got"},
-            {"code": "ShowMessage_2", "string": "more important things to worry about!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm not climbing up there - I've got"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "more important things to worry about!"
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -965,19 +2172,46 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 56
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm not climbing up there - I've got"},
-            {"code": "ShowMessage_2", "string": "more important things to worry about!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm not climbing up there - I've got"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "more important things to worry about!"
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -986,18 +2220,39 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't think we should go back. We"},
-            {"code": "ShowMessage_2", "string": "need to focus on the future."},
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "Yes. That's right."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't think we should go back. We"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "need to focus on the future."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yes. That's right."}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 52,
@@ -1008,94 +2263,131 @@
       "name": "EV0029",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The door is locked."},
-            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The door is locked."},
+            {"code": 12010, "indent": 0, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 17, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "OK, let's see if I can pick the lock on"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "this door... just give me a minute..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it'll do me no good, man."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't know how to pick locks, man."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 15, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 15, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Let me try to pick the lock, Talan..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it doesn't matter."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't really know how to pick locks."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 41,
@@ -1106,94 +2398,131 @@
       "name": "EV0030",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The door is locked."},
-            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The door is locked."},
+            {"code": 12010, "indent": 0, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 17, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "OK, let's see if I can pick the lock on"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "this door... just give me a minute..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it'll do me no good, man."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't know how to pick locks, man."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 15, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 15, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Let me try to pick the lock, Talan..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it doesn't matter."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't really know how to pick locks."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 72,
@@ -1204,94 +2533,131 @@
       "name": "EV0031",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The door is locked."},
-            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The door is locked."},
+            {"code": 12010, "indent": 0, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 17, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "OK, let's see if I can pick the lock on"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "this door... just give me a minute..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it'll do me no good, man."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't know how to pick locks, man."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 15, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 15, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Let me try to pick the lock, Talan..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it doesn't matter."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't really know how to pick locks."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 66,
@@ -1302,94 +2668,131 @@
       "name": "EV0032",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The door is locked."},
-            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The door is locked."},
+            {"code": 12010, "indent": 0, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 17, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "OK, let's see if I can pick the lock on"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "this door... just give me a minute..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it'll do me no good, man."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't know how to pick locks, man."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 15, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 15, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Let me try to pick the lock, Talan..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it doesn't matter."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't really know how to pick locks."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 55,
@@ -1400,94 +2803,131 @@
       "name": "EV0033",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The door is locked."},
-            {"code": "ConditionalBranch", "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 17, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The door is locked."},
+            {"code": 12010, "indent": 0, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 17, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "OK, let's see if I can pick the lock on"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "this door... just give me a minute..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it'll do me no good, man."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't know how to pick locks, man."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 15, 4, 152, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [5, 15, 5, 139, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 15, 4, 152, 0, 1], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [5, 15, 5, 139, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Let me try to pick the lock, Talan..."
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ShowMessage", "indent": 3, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I know how to pick locks, but without"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "a set of lockpicks it doesn't matter."
             },
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "ARDEN"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I don't really know how to pick locks."
             },
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 38,
@@ -1498,12 +2938,40 @@
       "name": "EV0034",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlSwitches", "parameters": [0, 231, 231, 0]}
+            {"code": 10210, "indent": 0, "parameters": [0, 231, 231, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 69,
@@ -1514,32 +2982,63 @@
       "name": "EV0035",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "up",
+          "animation_type": 4,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ShowMessage", "string": "MAN"},
-            {"code": "ShowMessage_2", "string": "I locked myself out of my apartment!"},
-            {"code": "ShowMessage_2", "string": "I don't believe this!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I'm sorry."},
-            {"code": "ShowMessage", "string": "MAN"},
-            {"code": "ShowMessage_2", "string": "This sucks!"},
-            {"code": "ControlSwitches", "parameters": [0, 232, 232, 0]}
+            {"code": 11330, "indent": 0, "parameters": [10005, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I locked myself out of my apartment!"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I don't believe this!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I'm sorry."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "This sucks!"},
+            {"code": 10210, "indent": 0, "parameters": [0, 232, 232, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "up",
+          "animation_type": 4,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1548,15 +3047,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 232
+            "item_id": 1,
+            "switch_a_id": 232,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "MAN"},
-            {"code": "ShowMessage_2", "string": "Where could I have left my keys?"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where could I have left my keys?"
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 41,
@@ -1567,15 +3082,38 @@
       "name": "EV0036",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "right",
+          "animation_type": 1,
+          "character_direction": 1,
           "character_index": 4,
           "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
           "move_frequency": 5,
-          "move_speed": "double",
-          "move_type": "horizontal"
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 5,
+          "move_type": 3,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -1586,14 +3124,38 @@
       "name": "EV0037",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "left",
+          "animation_type": 1,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
           "move_frequency": 6,
-          "move_type": "horizontal"
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 3,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 40,
@@ -1604,28 +3166,90 @@
       "name": "KidB",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "The mean man in the Weapon Shop"},
-            {"code": "ShowMessage_2", "string": "always yells at us. He turns all red - it's"},
-            {"code": "ShowMessage_2", "string": "funny!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "What are you kids doing here, anyway?"},
-            {"code": "ShowMessage_2", "string": "This sector is pretty rough."},
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "We're tough too! I'm a warrior!"},
-            {"code": "ShowMessage", "string": "OTHER KID"},
-            {"code": "ShowMessage_2", "string": "Yeah! You'd better watch out!"},
-            {"code": "ControlSwitches", "parameters": [0, 233, 233, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The mean man in the Weapon Shop"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "always yells at us. He turns all red - it's"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "funny!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What are you kids doing here, anyway?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This sector is pretty rough."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We're tough too! I'm a warrior!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "OTHER KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Yeah! You'd better watch out!"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 233, 233, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1634,81 +3258,132 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 233
+            "item_id": 1,
+            "switch_a_id": 233,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "We always play around here. The"},
-            {"code": "ShowMessage_2", "string": "gangs sometimes give us candy."},
-            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I remember you kids now! You"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "sold us information on the Lazer"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Teeth once, for two candy pills!"},
-            {"code": "ShowMessage", "indent": 1, "string": "OTHER KID"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We always play around here. The"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "gangs sometimes give us candy."
+            },
+            {"code": 12010, "indent": 0, "parameters": [0, 54, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I remember you kids now! You"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "sold us information on the Lazer"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Teeth once, for two candy pills!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "OTHER KID"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I told you we're warriors! And spies,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "too!"},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah!"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I remember you kids now! You"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "too!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Yeah!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 56, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I remember you kids now! You"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "sold us information on the Vipers"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "once, for two vials of sugar water!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "OTHER KID"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "OTHER KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I told you we're warriors! And spies,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "too!"},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah!"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "too!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Yeah!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 150, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "That's a funny looking robot. Can I"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "touch it?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "No."},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Awwwwww..."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ControlSwitches", "parameters": [0, 234, 234, 0]}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "touch it?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "No."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Awwwwww..."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 234, 234, 0], "string": ""}
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1717,17 +3392,28 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 234
+            "item_id": 1,
+            "switch_a_id": 234,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "I'm bored!"},
-            {"code": "ShowMessage", "string": "OTHER KID"},
-            {"code": "ShowMessage_2", "string": "Me too."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I'm bored!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "OTHER KID"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Me too."}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 44,
@@ -1738,28 +3424,90 @@
       "name": "KidB",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "The mean man in the Weapon Shop"},
-            {"code": "ShowMessage_2", "string": "always yells at us. He turns all red - it's"},
-            {"code": "ShowMessage_2", "string": "funny!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "What are you kids doing here, anyway?"},
-            {"code": "ShowMessage_2", "string": "This sector is pretty rough."},
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "We're tough too! I'm a warrior!"},
-            {"code": "ShowMessage", "string": "OTHER KID"},
-            {"code": "ShowMessage_2", "string": "Yeah! You'd better watch out!"},
-            {"code": "ControlSwitches", "parameters": [0, 233, 233, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The mean man in the Weapon Shop"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "always yells at us. He turns all red - it's"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "funny!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What are you kids doing here, anyway?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This sector is pretty rough."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We're tough too! I'm a warrior!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "OTHER KID"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Yeah! You'd better watch out!"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 233, 233, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1768,81 +3516,132 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 233
+            "item_id": 1,
+            "switch_a_id": 233,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "We always play around here. The"},
-            {"code": "ShowMessage_2", "string": "gangs sometimes give us candy."},
-            {"code": "ConditionalBranch", "parameters": [0, 54, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I remember you kids now! You"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "sold us information on the Lazer"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Teeth once, for two candy pills!"},
-            {"code": "ShowMessage", "indent": 1, "string": "OTHER KID"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We always play around here. The"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "gangs sometimes give us candy."
+            },
+            {"code": 12010, "indent": 0, "parameters": [0, 54, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I remember you kids now! You"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "sold us information on the Lazer"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Teeth once, for two candy pills!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "OTHER KID"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I told you we're warriors! And spies,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "too!"},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah!"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 56, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I remember you kids now! You"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "too!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Yeah!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 56, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SALDRA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I remember you kids now! You"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "sold us information on the Vipers"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "once, for two vials of sugar water!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "OTHER KID"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "OTHER KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I told you we're warriors! And spies,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "too!"},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah!"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 150, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "too!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Yeah!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 150, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "That's a funny looking robot. Can I"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "touch it?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "No."},
-            {"code": "ShowMessage", "indent": 1, "string": "KID"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Awwwwww..."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ControlSwitches", "parameters": [0, 234, 234, 0]}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "touch it?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "No."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Awwwwww..."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 234, 234, 0], "string": ""}
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1851,17 +3650,28 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 234
+            "item_id": 1,
+            "switch_a_id": 234,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "KID"},
-            {"code": "ShowMessage_2", "string": "I'm bored!"},
-            {"code": "ShowMessage", "string": "OTHER KID"},
-            {"code": "ShowMessage_2", "string": "Me too."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KID"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I'm bored!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "OTHER KID"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Me too."}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 45,
@@ -1872,11 +3682,38 @@
       "name": "EV0040",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -1887,12 +3724,38 @@
       "name": "EV0041",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 19,
@@ -1903,13 +3766,38 @@
       "name": "EV0042",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara2",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -1920,13 +3808,38 @@
       "name": "EV0043",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
-          "condition": {"switch_a_id": 24, "switch_b_id": 30},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 30,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -1937,12 +3850,38 @@
       "name": "EV0044",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 5,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 13,
@@ -1953,28 +3892,53 @@
       "name": "TrashDumpChest.1",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 544, 544, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 157, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Sharp Knife-R"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 544, 544, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 157, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Sharp Knife-R"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1983,15 +3947,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 544
+            "item_id": 1,
+            "switch_a_id": 544,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 35,
@@ -2002,28 +3982,53 @@
       "name": "TrashDumpChest.2",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 545, 545, 0]},
-            {"code": "ChangeItems", "parameters": [0, 0, 124, 0, 1]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       Bag of Chips-HP"}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 545, 545, 0], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 124, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       Bag of Chips-HP"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -2032,15 +4037,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 545
+            "item_id": 1,
+            "switch_a_id": 545,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 13,
@@ -2051,28 +4072,53 @@
       "name": "TrashDumpChest.3",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Bow2"},
-            {"code": "ControlSwitches", "parameters": [0, 546, 546, 0]},
-            {"code": "ChangeGold", "parameters": [0, 0, 250]},
-            {"code": "ShowMessage", "string": "You found:"},
-            {"code": "ShowMessage_2", "string": "       250 credits."}
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Bow2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 546, 546, 0], "string": ""},
+            {"code": 10310, "indent": 0, "parameters": [0, 0, 250], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "You found:"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "       250 credits."}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "fixed_graphic",
-          "character_direction": "left",
+          "animation_type": 4,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "BLObjs",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -2081,22 +4127,62 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 546
+            "item_id": 1,
+            "switch_a_id": 546,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's empty. That figures."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's empty. That figures."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
       "y": 25
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 75,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 60,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 75
 }

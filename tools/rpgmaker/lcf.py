@@ -14,21 +14,28 @@ esa ruta sólo se usa **el nombre**, para saber qué mapa es, y el directorio
 sólo si tiene adentro un volcado propio (un `ditto.json`). Los gráficos y el
 audio siguen saliendo del juego de verdad, que es lo que `--game-dir` nombra.
 
-Lo que cambia de fondo: **los defaults ya no se escriben acá**. El JSON omite
-todo campo que valga el suyo —la misma regla que el binario—, así que leerlo es
-saber qué vale un campo ausente, y eso sale de `ditto_schema.py`, generado
-desde el esquema de Ditto, que sale de liblcf. Un `max_hp` que vale 10 y no 1
-no es más una opinión de este archivo: es el dato del formato. Ese error ya se
-pagó una vez —el DirtShadow moría de un golpe— y es el que originó a Ditto.
+**Y de este archivo no sale ninguna regla del formato.** Lo que hay en `data/`
+es la *vista resuelta* que emite Ditto: **todos los campos escritos**, con su
+default ya aplicado, y los enums como el número que guarda el binario. Así que
+leer es leer: `datos["max_hp"]` y listo. Un campo que falte es un `KeyError`, y
+eso es lo que se quiere —quiere decir que `data/` quedó viejo, no que valga
+cero—.
 
-Y los enums vienen **por nombre**: `"same"`, `"auto_start"`, `"ShowMessage"`.
-Acá se vuelven al número que espera el port, con las tablas del mismo esquema.
+Hasta el 2026-09-20 acá se leía el *volcado exacto* —defaults omitidos, enums
+por nombre— y hacía falta el esquema del formato para entenderlo:
+`ditto_schema.py` y su JSON, que publicaba `ditto schema`. Los dos se fueron
+con este cambio. El volcado exacto se sigue generando, en la misma corrida,
+porque es de donde Ditto rearma el binario; lo que no se versiona más es él.
+
+Lo que sí sigue siendo de acá es **adivinar la codificación de un texto**: ver
+`texto`. Eso no es una regla del formato, es lo contrario —el formato no dice
+en qué juego de caracteres está una cadena—.
 """
 
 import json
 import os
 
-from rpgmaker.ditto_schema import CAMPOS, ENUMS
+from rpgmaker.event_codes import EVENT_CODES
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATOS = os.path.join(REPO, "data")
@@ -54,46 +61,33 @@ def leer(*partes):
         return json.load(handle)
 
 
-# --- Acceso a un campo, con el default y el enum del esquema ----------------
+# --- Acceso a un campo ------------------------------------------------------
+#
+# Tres líneas, y ésa es la idea: la vista resuelta trae todos los campos, así
+# que no hay default que aplicar ni enum que traducir. Lo único que queda es el
+# texto, que no es del formato.
 
-def valor_enum(enum, valor):
-    """El número de un enum que el JSON trae por nombre.
-
-    Un valor que `enums.csv` no nombra viaja como `{"Other": n}`: Ditto lo
-    guarda como número para no perderlo, y acá vale ese número.
-    """
-    if isinstance(valor, dict):
-        return valor["Other"]
-    return ENUMS[enum][valor]
-
-
-def campo(struct, datos, nombre):
-    """Un campo, o su default si el JSON lo omitió por valer exactamente eso."""
-    _chunk, default, enum, _siempre, _anidado = CAMPOS[struct][nombre]
-    if nombre not in datos:
-        return default
+def campo(datos, nombre):
+    """Un campo. Que no esté es un error, no un default."""
     valor = datos[nombre]
-    if enum:
-        return valor_enum(enum, valor)
     return texto(valor) if isinstance(valor, str) else valor
 
 
 def lista(datos, nombre):
-    return datos.get(nombre) or []
+    return datos[nombre]
 
 
 def sub(datos, nombre):
-    return datos.get(nombre) or {}
+    return datos[nombre]
 
 
 def por_id(elementos):
     """Un array de structs como `{id: elemento}`, que es como se lo indexa.
 
     En el binario el id es la etiqueta con la que el array nombra a cada
-    elemento; en el JSON es un campo más del objeto, y vale 0 si falta —que es
-    lo que le pasa a la raíz del árbol de mapas—.
+    elemento; en el JSON es un campo más del objeto.
     """
-    return {elemento.get("id", 0): elemento for elemento in elementos}
+    return {elemento["id"]: elemento for elemento in elementos}
 
 
 # Los cinco bytes que cp1252 no define. Ditto los escribe como su control C1
@@ -137,9 +131,10 @@ def to_string(payload):
 
 # --- Enums, para nombrarlos en un volcado o en un mensaje -------------------
 #
-# Los nombres son los de liblcf y el orden es el de sus números; las tablas de
-# `ditto_schema.ENUMS` dicen lo mismo y son las que se usan para leer. Éstas
-# quedan porque hay quien las recorre por índice.
+# Los nombres son los de liblcf y el orden es el de sus números. **No se usan
+# para leer nada**: `data/` trae los enums en número, que es lo que el port
+# quiere. Éstas están para nombrarlos —un volcado, un mensaje de error— y para
+# los que hay que recorrer por índice.
 
 DIRECTIONS = ("up", "right", "down", "left")
 PATTERNS = ("left", "middle", "right", "middle2")
@@ -190,11 +185,33 @@ class EventCommand:
 
 def comandos(datos):
     """La lista de comandos de una página o de un evento común."""
-    return [EventCommand(campo("EventCommand", c, "code"),
-                         campo("EventCommand", c, "indent"),
-                         campo("EventCommand", c, "string"),
-                         campo("EventCommand", c, "parameters") or [])
+    return [EventCommand(campo(c, "code"),
+                         campo(c, "indent"),
+                         campo(c, "string"),
+                         campo(c, "parameters") or [])
             for c in lista(datos, "event_commands")]
+
+
+def comandos_escritos(datos):
+    """Lo mismo, pero de una lista **escrita a mano**: `pruebas/casos/*.json`.
+
+    Esos archivos no salen de `data/`: los escribimos nosotros, y por eso
+    están en la taquigrafía que se puede escribir —el comando por su nombre,
+    `ShowMessage`, y sólo los campos que dicen algo—. Un caso convertido a la
+    vista resuelta sería ilegible y nadie lo editaría, así que la taquigrafía
+    se queda y lo que se le pone al lado es este lector, que son seis líneas.
+
+    Los tres campos que faltan valen lo obvio —sangría 0, sin texto, sin
+    parámetros— y no hay esquema que consultar: el único dato de afuera es el
+    número de cada nombre, que sale de `event_codes.json`, la tabla de liblcf
+    que se queda justamente para esto y para los mensajes de error.
+    """
+    numero = {nombre: codigo for codigo, nombre in EVENT_CODES.items()}
+    return [EventCommand(numero[c["code"]] if isinstance(c["code"], str)
+                         else c["code"],
+                         c.get("indent", 0), texto(c.get("string", "")),
+                         c.get("parameters") or [])
+            for c in datos["event_commands"]]
 
 
 # Si no es None, el nombre del CharSet de una página translúcida pasa por acá
@@ -214,11 +231,10 @@ class EventPageCondition:
     def __init__(self, datos):
         flags = sub(datos, "flags")
         self.active = [n for n in CONDITION_NAMES if flags.get(n)]
-        self.ids = {n: campo("EventPageCondition", datos, c)
+        self.ids = {n: campo(datos, c)
                     for n, c in CONDITION_CAMPOS.items()}
         self.ids["timer2"] = 0
-        self.variable_value = campo("EventPageCondition", datos,
-                                    "variable_value")
+        self.variable_value = campo(datos, "variable_value")
         self.operator = CONDITION_OPERATOR_DEFAULT
 
     def __bool__(self):
@@ -234,9 +250,9 @@ class MoveRoute:
     """
 
     def __init__(self, datos):
-        self.repeat = campo("MoveRoute", datos, "repeat")
-        self.skippable = campo("MoveRoute", datos, "skippable")
-        self.commands = [campo("MoveCommand", c, "command_id")
+        self.repeat = campo(datos, "repeat")
+        self.skippable = campo(datos, "skippable")
+        self.commands = [campo(c, "command_id")
                          for c in lista(datos, "move_commands")]
 
 
@@ -244,19 +260,18 @@ class EventPage:
     """Una de las versiones que puede adoptar un evento."""
 
     def __init__(self, datos):
-        self.character_name = campo("EventPage", datos, "character_name")
-        self.translucent = campo("EventPage", datos, "translucent")
-        self.character_index = campo("EventPage", datos, "character_index")
-        self.character_direction = campo("EventPage", datos,
-                                         "character_direction")
-        self.character_pattern = campo("EventPage", datos, "character_pattern")
-        self.move_type = campo("EventPage", datos, "move_type")
-        self.move_frequency = campo("EventPage", datos, "move_frequency")
-        self.move_speed = campo("EventPage", datos, "move_speed")
-        self.trigger = campo("EventPage", datos, "trigger")
-        self.layer = campo("EventPage", datos, "layer")
-        self.overlap_forbidden = campo("EventPage", datos, "overlap_forbidden")
-        self.animation_type = campo("EventPage", datos, "animation_type")
+        self.character_name = campo(datos, "character_name")
+        self.translucent = campo(datos, "translucent")
+        self.character_index = campo(datos, "character_index")
+        self.character_direction = campo(datos, "character_direction")
+        self.character_pattern = campo(datos, "character_pattern")
+        self.move_type = campo(datos, "move_type")
+        self.move_frequency = campo(datos, "move_frequency")
+        self.move_speed = campo(datos, "move_speed")
+        self.trigger = campo(datos, "trigger")
+        self.layer = campo(datos, "layer")
+        self.overlap_forbidden = campo(datos, "overlap_forbidden")
+        self.animation_type = campo(datos, "animation_type")
         self.commands = comandos(datos)
         self.move_route = MoveRoute(sub(datos, "move_route"))
         self.condition = EventPageCondition(sub(datos, "condition"))
@@ -265,10 +280,10 @@ class EventPage:
 
 class Event:
     def __init__(self, datos, map_id=0):
-        self.id = campo("Event", datos, "id")
-        self.name = campo("Event", datos, "name")
-        self.x = campo("Event", datos, "x")
-        self.y = campo("Event", datos, "y")
+        self.id = campo(datos, "id")
+        self.name = campo(datos, "name")
+        self.x = campo(datos, "x")
+        self.y = campo(datos, "y")
         self.pages = [EventPage(p) for _, p
                       in sorted(por_id(lista(datos, "pages")).items())]
         if DECORAR_TRANSLUCIDO:
@@ -301,8 +316,8 @@ def capas(path, datos, ancho, alto):
     adentro del JSON, así que hay que mirar los dos lados.
     """
     if not os.path.isfile(path):
-        return (campo("Map", datos, "lower_layer") or [],
-                campo("Map", datos, "upper_layer") or [])
+        return (campo(datos, "lower_layer") or [],
+                campo(datos, "upper_layer") or [])
 
     todas = [[]]
     with open(path, encoding="utf-8") as handle:
@@ -330,18 +345,18 @@ class Map:
         raiz = os.path.join(volcado(path), "maps")
         datos = leer(raiz, "Map%04d.json" % self.map_id)
 
-        self.chipset_id = campo("Map", datos, "chipset_id")
-        self.width = campo("Map", datos, "width")
-        self.height = campo("Map", datos, "height")
-        self.scroll_type = campo("Map", datos, "scroll_type")
-        self.parallax_flag = campo("Map", datos, "parallax_flag")
-        self.parallax_name = campo("Map", datos, "parallax_name")
-        self.parallax_loop_x = campo("Map", datos, "parallax_loop_x")
-        self.parallax_loop_y = campo("Map", datos, "parallax_loop_y")
-        self.parallax_auto_loop_x = campo("Map", datos, "parallax_auto_loop_x")
-        self.parallax_auto_loop_y = campo("Map", datos, "parallax_auto_loop_y")
-        self.parallax_sx = campo("Map", datos, "parallax_sx")
-        self.parallax_sy = campo("Map", datos, "parallax_sy")
+        self.chipset_id = campo(datos, "chipset_id")
+        self.width = campo(datos, "width")
+        self.height = campo(datos, "height")
+        self.scroll_type = campo(datos, "scroll_type")
+        self.parallax_flag = campo(datos, "parallax_flag")
+        self.parallax_name = campo(datos, "parallax_name")
+        self.parallax_loop_x = campo(datos, "parallax_loop_x")
+        self.parallax_loop_y = campo(datos, "parallax_loop_y")
+        self.parallax_auto_loop_x = campo(datos, "parallax_auto_loop_x")
+        self.parallax_auto_loop_y = campo(datos, "parallax_auto_loop_y")
+        self.parallax_sx = campo(datos, "parallax_sx")
+        self.parallax_sy = campo(datos, "parallax_sy")
         self.lower_layer, self.upper_layer = capas(
             os.path.join(raiz, "Map%04d.tiles" % self.map_id),
             datos, self.width, self.height)
@@ -350,27 +365,24 @@ class Map:
 
 
 def passability(datos, nombre):
-    """La transitabilidad de un chipset, completada con los defaults.
+    """La transitabilidad de un chipset: un byte por tile.
 
-    Un chipset puede traer la lista más corta que los 162 o 144 tiles que
-    describe, y lo que falta vale lo que dice el formato: 15 es transitable por
-    los cuatro lados y por debajo del héroe, y el 31 del primer tile alto lo
-    pone por encima.
+    El chipset que no la trae la tiene igual —15 es transitable por los cuatro
+    lados y por debajo del héroe, y el 31 del primer tile alto lo pone por
+    encima—, y eso ya viene resuelto de `data/`: acá no hay nada que completar.
     """
-    valores = campo("Chipset", datos, nombre)
-    _chunk, default, _enum, _siempre, _anidado = CAMPOS["Chipset"][nombre]
-    return bytes(valores + default[len(valores):])
+    return bytes(campo(datos, nombre))
 
 
 class Chipset:
     def __init__(self, datos):
-        self.name = campo("Chipset", datos, "name")
-        self.filename = campo("Chipset", datos, "chipset_name")
+        self.name = campo(datos, "name")
+        self.filename = campo(datos, "chipset_name")
         self.passable_lower = passability(datos, "passable_data_lower")
         self.passable_upper = passability(datos, "passable_data_upper")
-        self.terrain = campo("Chipset", datos, "terrain_data")
-        self.animation_type = campo("Chipset", datos, "animation_type")
-        self.animation_speed = campo("Chipset", datos, "animation_speed")
+        self.terrain = campo(datos, "terrain_data")
+        self.animation_type = campo(datos, "animation_type")
+        self.animation_speed = campo(datos, "animation_speed")
 
 
 # Las cinco ranuras de equipo, en el orden en que las numera el port.
@@ -384,15 +396,15 @@ class Actor:
     """Un personaje de la base: de acá sale con qué gráfico se lo dibuja."""
 
     def __init__(self, datos):
-        self.name = campo("Actor", datos, "name")
-        self.charset = campo("Actor", datos, "character_name")
-        self.charset_index = campo("Actor", datos, "character_index")
-        self.face_name = campo("Actor", datos, "face_name")
-        self.face_index = campo("Actor", datos, "face_index")
+        self.name = campo(datos, "name")
+        self.charset = campo(datos, "character_name")
+        self.charset_index = campo(datos, "character_index")
+        self.face_name = campo(datos, "face_name")
+        self.face_index = campo(datos, "face_index")
         # Los parámetros por nivel, desde el 1: `maxhp`, `attack`, `defense`,
         # `spirit`, `agility`, cada uno una lista.
         parametros = sub(datos, "parameters")
-        self.params = {c: campo("Parameters", parametros, c) or []
+        self.params = {c: campo(parametros, c) or []
                        for c in CURVAS}
         self.hp_max = self.params.get("maxhp", [])
         self.sp_max = self.params.get("maxsp", [])
@@ -401,7 +413,7 @@ class Actor:
         # tenía a todos en 1 —una constante `titulo.NIVEL`— y de ahí salían los
         # HP, los parámetros y la conclusión de que nadie sabía ninguna
         # habilidad.
-        self.initial_level = campo("Actor", datos, "initial_level") or 1
+        self.initial_level = campo(datos, "initial_level") or 1
         # Qué habilidad aprende en cada nivel, en el orden del LDB:
         # `Game_Actor::LearnLevelSkills` las recorre así.
         # `skill_id` vale **1** cuando el archivo no lo trae, que es lo que
@@ -409,20 +421,20 @@ class Actor:
         # Ditto. Alex —el actor 1, del RTP, que este juego no usa— aprende la
         # habilidad 1 en el nivel 1, y antes eso llegaba como la 0 y se caía.
         # Son dos bytes en `sabe_hab`; sin eso el `mapdata.inc` es idéntico.
-        self.skills = [(campo("Learning", l, "level"),
-                        campo("Learning", l, "skill_id"))
+        self.skills = [(campo(l, "level"),
+                        campo(l, "skill_id"))
                        for _, l in sorted(por_id(lista(datos, "skills")).items())]
         # Cómo se llama su orden de habilidades en el menú de batalla:
         # `Game_Actor::GetSkillName` devuelve `skill_name` si `rename_skill`
         # está puesto y si no el `command_skill` del LDB. Los cuatro actores de
         # la intro lo tienen puesto: "AgentTrain", "Telepathy", "Slicing" y
         # "Special".
-        self.rename_skill = campo("Actor", datos, "rename_skill")
-        self.skill_name = campo("Actor", datos, "skill_name")
+        self.rename_skill = campo(datos, "rename_skill")
+        self.skill_name = campo(datos, "skill_name")
         # El equipo con el que arranca: arma, escudo, armadura, casco y
         # accesorio, por número de ítem, 0 si nada.
         equipo = sub(datos, "initial_equipment")
-        self.initial_equipment = [campo("Equipment", equipo, r)
+        self.initial_equipment = [campo(equipo, r)
                                   for r in RANURAS_EQUIPO]
 
 
@@ -452,7 +464,7 @@ class Skill:
 
     def __init__(self, datos):
         for nombre in SKILL_CAMPOS:
-            setattr(self, nombre, campo("Skill", datos, nombre))
+            setattr(self, nombre, campo(datos, nombre))
 
     @property
     def apunta_a_enemigos(self):
@@ -483,9 +495,9 @@ class Item:
 
     def __init__(self, datos):
         for nombre in ITEM_CAMPOS:
-            setattr(self, nombre, campo("Item", datos, nombre))
-        self.puntos = [campo("Item", datos, p) for p in ITEM_PUNTOS]
-        self.actor_set = campo("Item", datos, "actor_set") or []
+            setattr(self, nombre, campo(datos, nombre))
+        self.puntos = [campo(datos, p) for p in ITEM_PUNTOS]
+        self.actor_set = campo(datos, "actor_set") or []
 
     def equipable_por(self, actor):
         """`actor_set`, con los que no alcanza la lista en sí: es lo que
@@ -516,9 +528,8 @@ class Enemy:
 
     def __init__(self, datos):
         for nombre in ENEMY_CAMPOS:
-            setattr(self, nombre, campo("Enemy", datos, nombre))
-        self.critical_hit_chance = campo(
-            "Enemy", datos, "critical_hit_chance") or 30
+            setattr(self, nombre, campo(datos, nombre))
+        self.critical_hit_chance = campo(datos, "critical_hit_chance") or 30
 
     @property
     def hit(self):
@@ -536,11 +547,11 @@ class Troop:
 
     def __init__(self, datos):
         miembros = sorted(por_id(lista(datos, "members")).items())
-        self.name = campo("Troop", datos, "name")
-        self.members = [campo("TroopMember", m, "enemy_id")
+        self.name = campo(datos, "name")
+        self.members = [campo(m, "enemy_id")
                         for _, m in miembros]
-        self.posiciones = [(campo("TroopMember", m, "x"),
-                            campo("TroopMember", m, "y"))
+        self.posiciones = [(campo(m, "x"),
+                            campo(m, "y"))
                            for _, m in miembros]
 
 
@@ -573,10 +584,10 @@ TERM_SUELTOS = {
 }
 
 
-def sonido(datos, struct="Sound"):
+def sonido(datos):
     """Un `Music` o un `Sound` como la tupla que espera el port."""
-    return (campo(struct, datos, "name"), campo(struct, datos, "volume"),
-            campo(struct, datos, "tempo"), campo(struct, datos, "balance"))
+    return (campo(datos, "name"), campo(datos, "volume"),
+            campo(datos, "tempo"), campo(datos, "balance"))
 
 
 class Database:
@@ -611,27 +622,26 @@ class Database:
         # es el del primero de la lista, así que este dato es el que decide con
         # qué sprite se dibuja.
         sistema = self.secciones["system"]
-        self.party = campo("System", sistema, "party") or []
+        self.party = campo(sistema, "party") or []
         # El System del juego: el PNG con el marco de la ventana, los colores
         # de texto y la sombra. Este juego usa `ablskin`.
-        self.system_name = campo("System", sistema, "system_name")
+        self.system_name = campo(sistema, "system_name")
         # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige
         # ttyp0 o rmg2000 con esto, y las letras salen distintas. Este juego
         # pide Mincho.
-        self.font_id = campo("System", sistema, "font_id")
+        self.font_id = campo(sistema, "font_id")
         # La imagen de la pantalla de título y su tema. En el ABL son
         # 'ABL20Title' y 'Fantasia_Of_The_Wind'; el otro PNG que hay en Title/
         # —'LineTitle'— es de una versión anterior y el juego no lo usa.
-        self.title_name = campo("System", sistema, "title_name")
-        self.title_music = campo("Music", sub(sistema, "title_music"), "name")
+        self.title_name = campo(sistema, "title_name")
+        self.title_music = campo(sub(sistema, "title_music"), "name")
         # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
         # mismo que los términos: es un dato del juego. En el ABL el tema de
         # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y
         # `battle_se` está en "(OFF)", que es un nombre que no resuelve a
         # ningún archivo y sale mudo sin que haya que tratarlo aparte.
-        self.battle_music = campo("Music", sub(sistema, "battle_music"), "name")
-        self.battle_end_music = campo(
-            "Music", sub(sistema, "battle_end_music"), "name")
+        self.battle_music = campo(sub(sistema, "battle_music"), "name")
+        self.battle_end_music = campo(sub(sistema, "battle_end_music"), "name")
         self.system_se = {n: sonido(sub(sistema, n)) for n in SYSTEM_SE}
 
         # Los términos de la pantalla de título. En el ABL no son los de
@@ -639,15 +649,19 @@ class Database:
         # el juego eligió y por eso salen de acá y no de un literal nuestro.
         terminos = self.secciones["terms"]
         for atributo, nombre in TERM_SUELTOS.items():
-            setattr(self, atributo, campo("Terms", terminos, nombre))
-        self.term_menu = [campo("Terms", terminos, t) for t in TERM_MENU]
-        self.term_params = [campo("Terms", terminos, t) for t in TERM_PARAMS]
-        self.term_equipo = [campo("Terms", terminos, t) for t in TERM_EQUIPO]
-        # Y los crudos, por chunk, que es como los pide la tienda: ahí los
-        # nombres se arman sumando el número de la tienda al chunk base.
+            setattr(self, atributo, campo(terminos, nombre))
+        self.term_menu = [campo(terminos, t) for t in TERM_MENU]
+        self.term_params = [campo(terminos, t) for t in TERM_PARAMS]
+        self.term_equipo = [campo(terminos, t) for t in TERM_EQUIPO]
+        # Y todos los términos, por su nombre, que es lo que pide la tienda:
+        # ahí no se los nombra de a uno sino por bloques —los trece de cada
+        # juego de mensajes—. Hasta el 2026-09-20 la clave era el número de
+        # chunk, y eso pedía saber en qué chunk cae cada término, que es dato
+        # del formato: lo único que lo sabía era el esquema que Python ya no
+        # tiene.
         self.terminos = {
-            chunk: campo("Terms", terminos, nombre).encode("cp1252", "replace")
-            for nombre, (chunk, *_r) in CAMPOS["Terms"].items()}
+            nombre: campo(terminos, nombre).encode("cp1252", "replace")
+            for nombre in terminos}
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).
@@ -663,67 +677,36 @@ class Database:
         return actor.charset, actor.charset_index
 
     def decode(self, unknown=None):
-        """La base entera como dicts, tal como está en el JSON.
+        """La base entera como dicts, para el que la quiere campo por campo.
 
-        Los arrays vienen indexados por id y los enums, en número. **No se
-        rellenan los defaults** salvo los que el binario escribe igual
-        —`PersistIfDefault`—, y ésos porque un lector del `.ldb` siempre los
-        veía: rellenar el resto cambiaría lo que contesta un `.get(campo, x)`
-        de quien lee esto.
+        Es `data/` tal cual, con dos retoques que no son del formato: los
+        arrays de structs pasan a estar indexados por id, que es como se los
+        busca, y los textos pasan por `texto`. Todo lo demás —los defaults
+        aplicados, los enums en número— ya viene así.
         """
-        return {seccion: normalizar(self.secciones[seccion],
-                                    ESTRUCTURA[seccion])
+        return {seccion: normalizar(self.secciones[seccion])
                 for seccion in SECCIONES}
 
 
-# Qué struct es cada sección del LDB. El resto de los nombres —qué struct hay
-# adentro de cada campo— lo sabe el esquema.
-ESTRUCTURA = {
-    "actors": "Actor", "skills": "Skill", "items": "Item", "enemies": "Enemy",
-    "troops": "Troop", "terrains": "Terrain", "attributes": "Attribute",
-    "states": "State", "animations": "Animation", "chipsets": "Chipset",
-    "switches": "Switch", "variables": "Variable", "system": "System",
-    "terms": "Terms", "commonevents": "CommonEvent",
-}
+def normalizar(datos):
+    """Un pedazo de `data/` indexado por id y con los textos adivinados.
 
-
-def normalizar(datos, struct):
-    """El JSON como lo espera quien leía chunks: por id y con los enums en número.
-
-    Un array de structs vuelve a ser `{id: elemento}`, que es como lo daba el
-    lector del binario; los que no tienen id —los comandos de un evento, que en
-    el formato van uno atrás del otro y sin numerar— se quedan como lista.
-
-    Los campos que el formato escribe **siempre** —`PersistIfDefault`— se
-    rellenan con su default, porque el binario los traía y el JSON los omite:
-    es la única diferencia de presencia entre los dos, y la que haría que un
-    `.get(campo, otra_cosa)` de quien lee esto contestara distinto.
+    Un array de structs vuelve a ser `{id: elemento}`, que es como se lo busca;
+    los que no tienen id —los comandos de un evento, que en el formato van uno
+    atrás del otro y sin numerar— se quedan como lista. La vista resuelta
+    escribe todos los campos, así que el `id` está siempre y no hay que saber
+    de antemano qué struct es cada cosa: se ve.
     """
     if isinstance(datos, list):
-        if "id" not in CAMPOS[struct]:
-            return [normalizar(e, struct) for e in datos]
-        return {e.get("id", i): normalizar(e, struct)
-                for i, e in enumerate(datos)}
-
-    salida = {}
-    for nombre, (_chunk, default, enum, siempre, anidado) in \
-            CAMPOS[struct].items():
-        if nombre == "id":
-            continue            # es la clave, no un campo
-        if nombre not in datos:
-            if siempre and default is not None:
-                salida[nombre] = default
-            continue
-        valor = datos[nombre]
-        if anidado:
-            salida[nombre] = normalizar(valor, anidado)
-        elif enum:
-            salida[nombre] = valor_enum(enum, valor)
-        elif isinstance(valor, str):
-            salida[nombre] = texto(valor)
-        else:
-            salida[nombre] = valor
-    return salida
+        if not datos or not isinstance(datos[0], dict):
+            return datos        # una lista de números: los tiles, una curva
+        if "id" in datos[0]:
+            return {e["id"]: normalizar(e) for e in datos}
+        return [normalizar(e) for e in datos]
+    if not isinstance(datos, dict):
+        return texto(datos) if isinstance(datos, str) else datos
+    return {nombre: normalizar(valor) for nombre, valor in datos.items()
+            if nombre != "id"}  # el id es la clave, no un campo
 
 
 class TreeMap:
@@ -733,15 +716,15 @@ class TreeMap:
         datos = leer(volcado(path), "maps.json")
         infos = por_id(lista(datos, "maps"))
 
-        self.map_names = {i: campo("MapInfo", f, "name")
+        self.map_names = {i: campo(f, "name")
                           for i, f in infos.items()}
-        self.map_parents = {i: campo("MapInfo", f, "parent_map")
+        self.map_parents = {i: campo(f, "parent_map")
                             for i, f in infos.items()}
         # Tipo 0 = raíz del árbol, 1 = mapa de verdad, 2 = **área**. Un área es
         # un nodo sin `.lmu` que cuelga de un mapa y le tapa un rectángulo.
         # Acá se usan para los encuentros al azar, que es lo único que ABL les
         # pone.
-        self.map_types = {i: campo("MapInfo", f, "type")
+        self.map_types = {i: campo(f, "type")
                           for i, f in infos.items()}
 
         # Los encuentros al azar, que viven en el árbol y no en el `.lmu`:
@@ -752,27 +735,27 @@ class TreeMap:
         self.area_rect = {}
         for i, f in infos.items():
             self.encounters[i] = [
-                campo("Encounter", e, "troop_id")
+                campo(e, "troop_id")
                 for _, e in sorted(por_id(lista(f, "encounters")).items())]
             # El default de RM2k son 25 pasos; 0 es "sin encuentros".
-            self.encounter_steps[i] = campo("MapInfo", f, "encounter_steps")
+            self.encounter_steps[i] = campo(f, "encounter_steps")
             rect = sub(f, "area_rect")
-            self.area_rect[i] = tuple(campo("Rect", rect, c) for c in "ltrb")
+            self.area_rect[i] = tuple(campo(rect, c) for c in "ltrb")
 
         self.music = {}
         for i, f in infos.items():
             musica = sub(f, "music")
-            self.music[i] = (campo("MapInfo", f, "music_type"), {
-                "name": campo("Music", musica, "name"),
-                "volume": campo("Music", musica, "volume"),
-                "tempo": campo("Music", musica, "tempo"),
+            self.music[i] = (campo(f, "music_type"), {
+                "name": campo(musica, "name"),
+                "volume": campo(musica, "volume"),
+                "tempo": campo(musica, "tempo"),
             })
 
-        self.tree_order = campo("TreeMap", datos, "tree_order") or []
+        self.tree_order = campo(datos, "tree_order") or []
         start = sub(datos, "start")
-        self.start_map_id = campo("Start", start, "party_map_id")
-        self.start_x = campo("Start", start, "party_x")
-        self.start_y = campo("Start", start, "party_y")
+        self.start_map_id = campo(start, "party_map_id")
+        self.start_x = campo(start, "party_x")
+        self.start_y = campo(start, "party_y")
 
     def map_music(self, map_id):
         """El tema de un mapa, siguiendo la herencia hacia el padre.

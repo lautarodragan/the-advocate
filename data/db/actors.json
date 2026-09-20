@@ -1,12 +1,21 @@
 [
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "Chara1",
     "critical_hit": false,
+    "critical_hit_chance": 30,
     "exp_base": 33,
+    "exp_correction": 0,
     "exp_inflation": 29,
+    "face_index": 0,
     "face_name": "chara1",
+    "final_level": 50,
     "id": 1,
-    "initial_equipment": {"armor_id": 54, "weapon_id": 18},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 54, "helmet_id": 0, "shield_id": 0, "weapon_id": 18},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Alex",
     "parameters": {
       "agility": [
@@ -43,19 +52,33 @@
     "rename_skill": true,
     "skill_name": "sorcery",
     "skills": [
-      {"id": 1},
-      {"id": 2, "skill_id": 4}
+      {"id": 1, "level": 1, "skill_id": 1},
+      {"id": 2, "level": 1, "skill_id": 4}
     ],
-    "title": "Soldier"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Soldier",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "chara4",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
     "exp_base": 32,
+    "exp_correction": 0,
     "exp_inflation": 29,
     "face_index": 8,
     "face_name": "chara2",
+    "final_level": 50,
     "id": 2,
-    "initial_equipment": {"armor_id": 54, "weapon_id": 18},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 54, "helmet_id": 0, "shield_id": 0, "weapon_id": 18},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Brian",
     "parameters": {
       "agility": [
@@ -88,18 +111,33 @@
         105, 109, 113, 118, 122, 128
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
     "state_ranks": [2, 2, 2, 4],
-    "title": "Soldier"
+    "super_guard": false,
+    "title": "Soldier",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "chara1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
     "exp_base": 31,
+    "exp_correction": 0,
     "exp_inflation": 29,
     "face_index": 5,
     "face_name": "chara1",
+    "final_level": 50,
     "id": 3,
-    "initial_equipment": {"armor_id": 53, "weapon_id": 17},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 53, "helmet_id": 0, "shield_id": 0, "weapon_id": 17},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Carol",
     "parameters": {
       "agility": [
@@ -133,8 +171,10 @@
         269, 280, 290, 302, 314, 326, 339, 351, 365, 379, 393, 415
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
     "skills": [
-      {"id": 1, "skill_id": 74},
+      {"id": 1, "level": 1, "skill_id": 74},
       {"id": 2, "level": 2, "skill_id": 80},
       {"id": 3, "level": 4, "skill_id": 55},
       {"id": 4, "level": 6, "skill_id": 77},
@@ -151,15 +191,30 @@
       {"id": 15, "level": 26, "skill_id": 79},
       {"id": 16, "level": 27, "skill_id": 85}
     ],
-    "title": "Magician"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Magician",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "People7",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
     "exp_inflation": 29,
     "face_index": 8,
     "face_name": "people1",
+    "final_level": 50,
     "id": 4,
-    "initial_equipment": {"armor_id": 53, "weapon_id": 17},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 53, "helmet_id": 0, "shield_id": 0, "weapon_id": 17},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Deiji",
     "parameters": {
       "agility": [
@@ -193,8 +248,10 @@
         277, 288, 300, 312, 324, 337, 350, 363, 378, 392, 407, 430
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
     "skills": [
-      {"id": 1, "skill_id": 36},
+      {"id": 1, "level": 1, "skill_id": 36},
       {"id": 2, "level": 2, "skill_id": 42},
       {"id": 3, "level": 3, "skill_id": 64},
       {"id": 4, "level": 5, "skill_id": 39},
@@ -211,17 +268,30 @@
       {"id": 15, "level": 25, "skill_id": 41},
       {"id": 16, "level": 26, "skill_id": 47}
     ],
-    "title": "Priest"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Priest",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "chara4",
+    "critical_hit": true,
     "critical_hit_chance": 10,
     "exp_base": 29,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 10,
     "face_name": "chara2",
+    "final_level": 50,
     "id": 5,
-    "initial_equipment": {"armor_id": 53},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 53, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Enrike",
     "parameters": {
       "agility": [
@@ -254,18 +324,33 @@
         170, 177, 184, 191, 199, 206, 214, 223, 231, 243
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
     "state_ranks": [2, 2, 2, 4, 3, 3, 3],
     "super_guard": true,
-    "title": "Hand Fighter"
+    "title": "Hand Fighter",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 6,
     "character_name": "Chara3",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
     "exp_base": 28,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 6,
     "face_name": "Chara2",
+    "final_level": 50,
     "id": 6,
-    "initial_equipment": {"armor_id": 54, "weapon_id": 17},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 54, "helmet_id": 0, "shield_id": 0, "weapon_id": 17},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Arkon",
     "parameters": {
       "agility": [
@@ -298,17 +383,33 @@
         128, 133, 138, 143, 149, 154, 160, 168
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
     "state_ranks": [2, 3, 3, 4],
-    "title": "Thief"
+    "super_guard": false,
+    "title": "Thief",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 4,
     "character_name": "chara2",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
     "exp_base": 27,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 12,
     "face_name": "chara1",
+    "final_level": 50,
     "id": 7,
-    "initial_equipment": {"armor_id": 54, "weapon_id": 18},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 54, "helmet_id": 0, "shield_id": 0, "weapon_id": 18},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Homes",
     "parameters": {
       "agility": [
@@ -342,6 +443,8 @@
         143, 149, 154, 160, 166, 173, 180, 186, 196
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
     "skills": [
       {"id": 1, "level": 2, "skill_id": 92},
       {"id": 2, "level": 3, "skill_id": 104},
@@ -356,16 +459,30 @@
       {"id": 11, "level": 26, "skill_id": 97},
       {"id": 12, "level": 27, "skill_id": 109}
     ],
-    "title": "Pirate"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Pirate",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 7,
     "character_name": "chara2",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
     "exp_base": 26,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 15,
     "face_name": "chara1",
+    "final_level": 50,
     "id": 8,
-    "initial_equipment": {"armor_id": 53, "weapon_id": 17},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 53, "helmet_id": 0, "shield_id": 0, "weapon_id": 17},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Helen",
     "parameters": {
       "agility": [
@@ -399,8 +516,10 @@
         267, 278, 289, 300, 312, 324, 336, 349, 363, 376, 391, 412
       ]
     },
+    "rename_skill": false,
+    "skill_name": "",
     "skills": [
-      {"id": 1, "skill_id": 36},
+      {"id": 1, "level": 1, "skill_id": 36},
       {"id": 2, "level": 2, "skill_id": 42},
       {"id": 3, "level": 3, "skill_id": 86},
       {"id": 4, "level": 5, "skill_id": 55},
@@ -417,10 +536,31 @@
       {"id": 15, "level": 25, "skill_id": 58},
       {"id": 16, "level": 27, "skill_id": 91}
     ],
-    "title": "Elf"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Elf",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 9,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -452,12 +592,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "Chubby2",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 10,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "DummyHero",
     "parameters": {
       "agility": [
@@ -491,16 +653,33 @@
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
     },
-    "title": "UsedForCuts"
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "UsedForCuts",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "Future1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 3,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 11,
-    "initial_equipment": {"armor_id": 85, "weapon_id": 82},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 85, "helmet_id": 0, "shield_id": 0, "weapon_id": 82},
     "initial_level": 20,
+    "lock_equipment": false,
     "name": "Kersh",
     "parameters": {
       "agility": [
@@ -540,16 +719,30 @@
       {"id": 1, "level": 3, "skill_id": 131},
       {"id": 2, "level": 7, "skill_id": 146}
     ],
-    "title": "Agency Capt."
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Agency Capt.",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 1,
     "character_name": "Future1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 7,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 12,
-    "initial_equipment": {"helmet_id": 86, "weapon_id": 84},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 86, "shield_id": 0, "weapon_id": 84},
     "initial_level": 15,
+    "lock_equipment": false,
     "name": "Core",
     "parameters": {
       "agility": [
@@ -589,17 +782,30 @@
       {"id": 1, "level": 3, "skill_id": 129},
       {"id": 2, "level": 15, "skill_id": 150}
     ],
+    "state_ranks": [],
+    "super_guard": false,
     "title": "Telepath",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 2
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 4,
     "character_name": "Future1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 6,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 13,
-    "initial_equipment": {"helmet_id": 87, "weapon_id": 83},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 87, "shield_id": 0, "weapon_id": 83},
     "initial_level": 15,
+    "lock_equipment": false,
     "name": "Manta",
     "parameters": {
       "agility": [
@@ -641,14 +847,30 @@
       {"id": 3, "level": 8, "skill_id": 150},
       {"id": 4, "level": 10, "skill_id": 144}
     ],
-    "title": "Slicer"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Slicer",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "Future1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 2,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 14,
-    "initial_equipment": {"armor_id": 89},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 89, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Talan",
     "parameters": {
       "agility": [
@@ -684,15 +906,31 @@
     },
     "rename_skill": true,
     "skill_name": "Special",
-    "title": "Worker"
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Worker",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "Chara2",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 11,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 15,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 266, "weapon_id": 96},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 266, "helmet_id": 0, "shield_id": 0, "weapon_id": 96},
     "initial_level": 3,
+    "lock_equipment": false,
     "name": "Arden",
     "parameters": {
       "agility": [
@@ -737,17 +975,30 @@
       {"id": 6, "level": 8, "skill_id": 256},
       {"id": 7, "level": 9, "skill_id": 257}
     ],
-    "title": "Neon Viper"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Neon Viper",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
     "auto_battle": true,
     "character_index": 6,
     "character_name": "Chara3",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 10,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 16,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 265, "weapon_id": 383},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 265, "helmet_id": 0, "shield_id": 0, "weapon_id": 383},
     "initial_level": 4,
+    "lock_equipment": false,
     "name": "Gang Member",
     "parameters": {
       "agility": [
@@ -783,18 +1034,31 @@
     },
     "rename_skill": true,
     "skill_name": "FightDirty",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
     "title": "Lazer Teeth",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 160
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 6,
     "character_name": "Chara3",
+    "critical_hit": true,
     "critical_hit_chance": 10,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 10,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 17,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 265, "weapon_id": 267},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 265, "helmet_id": 0, "shield_id": 0, "weapon_id": 267},
     "initial_level": 4,
+    "lock_equipment": false,
     "name": "Saldra",
     "parameters": {
       "agility": [
@@ -830,17 +1094,31 @@
     },
     "rename_skill": true,
     "skill_name": "FightDirty",
-    "title": "Lazer Teeth"
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Lazer Teeth",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
     "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
+    "auto_battle": false,
     "character_index": 4,
     "character_name": "AG717",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 15,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 18,
-    "initial_equipment": {"armor_id": 282, "weapon_id": 269},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 282, "helmet_id": 0, "shield_id": 0, "weapon_id": 269},
     "initial_level": 6,
+    "lock_equipment": false,
     "name": "AG7-17",
     "parameters": {
       "agility": [
@@ -876,14 +1154,31 @@
     },
     "rename_skill": true,
     "skill_name": "Components",
+    "skills": [],
     "state_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 2, 2, 2, 4, 4, 4],
+    "super_guard": false,
     "title": "Battle Droid",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 3
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "BLVehicles",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 19,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "CarRED",
     "parameters": {
       "agility": [
@@ -916,12 +1211,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "BLVehicles",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 20,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "CarBLUE",
     "parameters": {
       "agility": [
@@ -954,16 +1271,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 1,
     "character_name": "BLDalia",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 14,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 21,
-    "initial_equipment": {"armor_id": 297},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 297, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 8,
+    "lock_equipment": false,
     "name": "Dalia",
     "parameters": {
       "agility": [
@@ -997,12 +1332,33 @@
         182, 190, 198, 205, 213, 221, 229, 237, 245, 257
       ]
     },
-    "title": "Agency Guard"
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Agency Guard",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "BLVehicles",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 22,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "MobilizedCar",
     "parameters": {
       "agility": [
@@ -1035,14 +1391,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "Eisen",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 23,
-    "initial_equipment": {"armor_id": 298},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 298, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 2,
+    "lock_equipment": false,
     "name": "Eisen",
     "parameters": {
       "agility": [
@@ -1076,12 +1452,33 @@
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
     },
-    "title": "Professor"
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Professor",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "Chara1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 24,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "MenuTester",
     "parameters": {
       "agility": [
@@ -1115,16 +1512,33 @@
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
     },
-    "title": "DummyPlugSys"
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "DummyPlugSys",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 4,
     "character_name": "emily",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 4,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 25,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 223, "weapon_id": 95},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 223, "helmet_id": 0, "shield_id": 0, "weapon_id": 95},
     "initial_level": 9,
+    "lock_equipment": false,
     "name": "Emily",
     "parameters": {
       "agility": [
@@ -1161,19 +1575,33 @@
     "rename_skill": true,
     "skill_name": "Music",
     "skills": [
-      {"id": 1, "skill_id": 261},
-      {"id": 2, "skill_id": 262}
+      {"id": 1, "level": 1, "skill_id": 261},
+      {"id": 2, "level": 1, "skill_id": 262}
     ],
-    "title": "Actress"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Actress",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "People3",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 13,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 26,
     "initial_equipment": {"accessory_id": 262, "armor_id": 264, "helmet_id": 263, "shield_id": 232, "weapon_id": 200},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Lerle",
     "parameters": {
       "agility": [
@@ -1210,17 +1638,32 @@
     "rename_skill": true,
     "skill_name": "Acting",
     "skills": [
-      {"id": 1, "skill_id": 265}
+      {"id": 1, "level": 1, "skill_id": 265}
     ],
-    "title": "Actor"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Actor",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
     "character_name": "extra2(1)",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 9,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 27,
-    "initial_equipment": {"accessory_id": 255, "armor_id": 224, "helmet_id": 228, "weapon_id": 95},
+    "initial_equipment": {"accessory_id": 255, "armor_id": 224, "helmet_id": 228, "shield_id": 0, "weapon_id": 95},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Radin",
     "parameters": {
       "agility": [
@@ -1257,20 +1700,34 @@
     "rename_skill": true,
     "skill_name": "Chemistry",
     "skills": [
-      {"id": 1, "skill_id": 260},
-      {"id": 2, "skill_id": 264},
-      {"id": 3, "skill_id": 289}
+      {"id": 1, "level": 1, "skill_id": 260},
+      {"id": 2, "level": 1, "skill_id": 264},
+      {"id": 3, "level": 1, "skill_id": 289}
     ],
-    "title": "Farmer"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Farmer",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 2,
     "character_name": "extra2(1)",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 1,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 28,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 261, "helmet_id": 263, "weapon_id": 194},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 261, "helmet_id": 263, "shield_id": 0, "weapon_id": 194},
     "initial_level": 11,
+    "lock_equipment": false,
     "name": "Sern",
     "parameters": {
       "agility": [
@@ -1307,20 +1764,33 @@
     "rename_skill": true,
     "skill_name": "Forging",
     "skills": [
-      {"id": 1, "skill_id": 266},
-      {"id": 2, "skill_id": 287}
+      {"id": 1, "level": 1, "skill_id": 266},
+      {"id": 2, "level": 1, "skill_id": 287}
     ],
-    "title": "Defender"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Defender",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 1,
     "character_name": "extra2(1)",
+    "critical_hit": true,
     "critical_hit_chance": 80,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 5,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 29,
-    "initial_equipment": {"accessory_id": 262, "armor_id": 261, "helmet_id": 263, "weapon_id": 359},
+    "initial_equipment": {"accessory_id": 262, "armor_id": 261, "helmet_id": 263, "shield_id": 0, "weapon_id": 359},
     "initial_level": 14,
+    "lock_equipment": false,
     "name": "Drago",
     "parameters": {
       "agility": [
@@ -1357,22 +1827,37 @@
     "rename_skill": true,
     "skill_name": "SwdTechs",
     "skills": [
-      {"id": 1, "skill_id": 228},
-      {"id": 2, "skill_id": 229},
-      {"id": 3, "skill_id": 230},
-      {"id": 4, "skill_id": 231},
-      {"id": 5, "skill_id": 233},
-      {"id": 6, "skill_id": 234}
+      {"id": 1, "level": 1, "skill_id": 228},
+      {"id": 2, "level": 1, "skill_id": 229},
+      {"id": 3, "level": 1, "skill_id": 230},
+      {"id": 4, "level": 1, "skill_id": 231},
+      {"id": 5, "level": 1, "skill_id": 233},
+      {"id": 6, "level": 1, "skill_id": 234}
     ],
-    "title": "Defender"
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Defender",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 3,
     "character_name": "People3",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 8,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 30,
-    "initial_equipment": {"armor_id": 376, "helmet_id": 380},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 376, "helmet_id": 380, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Royal Dalia",
     "parameters": {
       "agility": [
@@ -1406,12 +1891,33 @@
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
     },
-    "title": "Very Angry"
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Very Angry",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "Men1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 31,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "Advocate",
     "parameters": {
       "agility": [
@@ -1445,16 +1951,33 @@
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
     },
-    "title": "A.I."
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "A.I.",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
     "character_index": 5,
     "character_name": "Future1",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
     "face_index": 3,
     "face_name": "ABLFaces",
+    "final_level": 50,
     "id": 32,
-    "initial_equipment": {"armor_id": 111},
+    "initial_equipment": {"accessory_id": 0, "armor_id": 111, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Kersh",
     "parameters": {
       "agility": [
@@ -1490,10 +2013,32 @@
     },
     "rename_skill": true,
     "skill_name": "Memories",
-    "title": "Agency Capt."
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "Agency Capt.",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 33,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -1525,10 +2070,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 34,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
     "name": "ABL 2.0 Save",
     "parameters": {
       "agility": [
@@ -1561,10 +2130,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 35,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -1596,13 +2190,34 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
     "critical_hit": false,
     "critical_hit_chance": 1,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 36,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 11,
+    "lock_equipment": false,
     "name": "Droid",
     "parameters": {
       "agility": [
@@ -1639,16 +2254,34 @@
     "rename_skill": true,
     "skill_name": "Droid",
     "skills": [
-      {"id": 1, "skill_id": 321},
-      {"id": 2, "skill_id": 322},
-      {"id": 3, "skill_id": 323}
+      {"id": 1, "level": 1, "skill_id": 321},
+      {"id": 2, "level": 1, "skill_id": 322},
+      {"id": 3, "level": 1, "skill_id": 323}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 90
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 35,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 37,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Wolf",
     "parameters": {
       "agility": [
@@ -1685,16 +2318,34 @@
     "rename_skill": true,
     "skill_name": "Wolf",
     "skills": [
-      {"id": 1, "skill_id": 324},
-      {"id": 2, "skill_id": 325},
-      {"id": 3, "skill_id": 326}
+      {"id": 1, "level": 1, "skill_id": 324},
+      {"id": 2, "level": 1, "skill_id": 325},
+      {"id": 3, "level": 1, "skill_id": 326}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 38
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 40,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 38,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Gogre",
     "parameters": {
       "agility": [
@@ -1731,16 +2382,34 @@
     "rename_skill": true,
     "skill_name": "Gogre",
     "skills": [
-      {"id": 1, "skill_id": 327},
-      {"id": 2, "skill_id": 328},
-      {"id": 3, "skill_id": 329}
+      {"id": 1, "level": 1, "skill_id": 327},
+      {"id": 2, "level": 1, "skill_id": 328},
+      {"id": 3, "level": 1, "skill_id": 329}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 11
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 20,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 39,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Dirt Dweller",
     "parameters": {
       "agility": [
@@ -1777,16 +2446,34 @@
     "rename_skill": true,
     "skill_name": "DirtDwellr",
     "skills": [
-      {"id": 1, "skill_id": 330},
-      {"id": 2, "skill_id": 331},
-      {"id": 3, "skill_id": 332}
+      {"id": 1, "level": 1, "skill_id": 330},
+      {"id": 2, "level": 1, "skill_id": 331},
+      {"id": 3, "level": 1, "skill_id": 332}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 102
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 25,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 40,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 14,
+    "lock_equipment": false,
     "name": "Bandit",
     "parameters": {
       "agility": [
@@ -1823,16 +2510,34 @@
     "rename_skill": true,
     "skill_name": "Bandit",
     "skills": [
-      {"id": 1, "skill_id": 333},
-      {"id": 2, "skill_id": 334},
-      {"id": 3, "skill_id": 335}
+      {"id": 1, "level": 1, "skill_id": 333},
+      {"id": 2, "level": 1, "skill_id": 334},
+      {"id": 3, "level": 1, "skill_id": 335}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 5
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 1,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 41,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 12,
+    "lock_equipment": false,
     "name": "Clinger",
     "parameters": {
       "agility": [
@@ -1869,16 +2574,34 @@
     "rename_skill": true,
     "skill_name": "Clinger",
     "skills": [
-      {"id": 1, "skill_id": 336},
-      {"id": 2, "skill_id": 337},
-      {"id": 3, "skill_id": 338}
+      {"id": 1, "level": 1, "skill_id": 336},
+      {"id": 2, "level": 1, "skill_id": 337},
+      {"id": 3, "level": 1, "skill_id": 338}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 37
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
     "critical_hit_chance": 45,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 42,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 18,
+    "lock_equipment": false,
     "name": "Giant",
     "parameters": {
       "agility": [
@@ -1915,15 +2638,34 @@
     "rename_skill": true,
     "skill_name": "Giant",
     "skills": [
-      {"id": 1, "skill_id": 339},
-      {"id": 2, "skill_id": 340},
-      {"id": 3, "skill_id": 341}
+      {"id": 1, "level": 1, "skill_id": 339},
+      {"id": 2, "level": 1, "skill_id": 340},
+      {"id": 3, "level": 1, "skill_id": 341}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 4
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 43,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 12,
+    "lock_equipment": false,
     "name": "Wylden",
     "parameters": {
       "agility": [
@@ -1960,15 +2702,34 @@
     "rename_skill": true,
     "skill_name": "Wylden",
     "skills": [
-      {"id": 1, "skill_id": 342},
-      {"id": 2, "skill_id": 343},
-      {"id": 3, "skill_id": 344}
+      {"id": 1, "level": 1, "skill_id": 342},
+      {"id": 2, "level": 1, "skill_id": 343},
+      {"id": 3, "level": 1, "skill_id": 344}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 6
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 44,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 9,
+    "lock_equipment": false,
     "name": "Obling",
     "parameters": {
       "agility": [
@@ -2005,15 +2766,34 @@
     "rename_skill": true,
     "skill_name": "Obling",
     "skills": [
-      {"id": 1, "skill_id": 345},
-      {"id": 2, "skill_id": 346},
-      {"id": 3, "skill_id": 347}
+      {"id": 1, "level": 1, "skill_id": 345},
+      {"id": 2, "level": 1, "skill_id": 346},
+      {"id": 3, "level": 1, "skill_id": 347}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 7
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 45,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Slime Coater",
     "parameters": {
       "agility": [
@@ -2050,15 +2830,34 @@
     "rename_skill": true,
     "skill_name": "SlimeCoatr",
     "skills": [
-      {"id": 1, "skill_id": 348},
-      {"id": 2, "skill_id": 349},
-      {"id": 3, "skill_id": 350}
+      {"id": 1, "level": 1, "skill_id": 348},
+      {"id": 2, "level": 1, "skill_id": 349},
+      {"id": 3, "level": 1, "skill_id": 350}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 95
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 46,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Snake",
     "parameters": {
       "agility": [
@@ -2095,15 +2894,34 @@
     "rename_skill": true,
     "skill_name": "Snake",
     "skills": [
-      {"id": 1, "skill_id": 351},
-      {"id": 2, "skill_id": 352},
-      {"id": 3, "skill_id": 353}
+      {"id": 1, "level": 1, "skill_id": 351},
+      {"id": 2, "level": 1, "skill_id": 352},
+      {"id": 3, "level": 1, "skill_id": 353}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 6
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 47,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Marshile",
     "parameters": {
       "agility": [
@@ -2140,15 +2958,34 @@
     "rename_skill": true,
     "skill_name": "Marshile",
     "skills": [
-      {"id": 1, "skill_id": 354},
-      {"id": 2, "skill_id": 355},
-      {"id": 3, "skill_id": 356}
+      {"id": 1, "level": 1, "skill_id": 354},
+      {"id": 2, "level": 1, "skill_id": 355},
+      {"id": 3, "level": 1, "skill_id": 356}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 5
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 48,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Toad",
     "parameters": {
       "agility": [
@@ -2185,15 +3022,34 @@
     "rename_skill": true,
     "skill_name": "Toad",
     "skills": [
-      {"id": 1, "skill_id": 357},
-      {"id": 2, "skill_id": 358},
-      {"id": 3, "skill_id": 359}
+      {"id": 1, "level": 1, "skill_id": 357},
+      {"id": 2, "level": 1, "skill_id": 358},
+      {"id": 3, "level": 1, "skill_id": 359}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 2
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 49,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 14,
+    "lock_equipment": false,
     "name": "Mantis",
     "parameters": {
       "agility": [
@@ -2230,15 +3086,34 @@
     "rename_skill": true,
     "skill_name": "Mantis",
     "skills": [
-      {"id": 1, "skill_id": 360},
-      {"id": 2, "skill_id": 361},
-      {"id": 3, "skill_id": 362}
+      {"id": 1, "level": 1, "skill_id": 360},
+      {"id": 2, "level": 1, "skill_id": 361},
+      {"id": 3, "level": 1, "skill_id": 362}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 17
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 50,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 12,
+    "lock_equipment": false,
     "name": "Skeleton",
     "parameters": {
       "agility": [
@@ -2275,15 +3150,34 @@
     "rename_skill": true,
     "skill_name": "Skeleton",
     "skills": [
-      {"id": 1, "skill_id": 363},
-      {"id": 2, "skill_id": 364},
-      {"id": 3, "skill_id": 365}
+      {"id": 1, "level": 1, "skill_id": 363},
+      {"id": 2, "level": 1, "skill_id": 364},
+      {"id": 3, "level": 1, "skill_id": 365}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 8
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 51,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Ghost",
     "parameters": {
       "agility": [
@@ -2320,15 +3214,34 @@
     "rename_skill": true,
     "skill_name": "Ghost",
     "skills": [
-      {"id": 1, "skill_id": 366},
-      {"id": 2, "skill_id": 367},
-      {"id": 3, "skill_id": 368}
+      {"id": 1, "level": 1, "skill_id": 366},
+      {"id": 2, "level": 1, "skill_id": 367},
+      {"id": 3, "level": 1, "skill_id": 368}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 119
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 52,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 10,
+    "lock_equipment": false,
     "name": "Beast",
     "parameters": {
       "agility": [
@@ -2365,15 +3278,34 @@
     "rename_skill": true,
     "skill_name": "Beast",
     "skills": [
-      {"id": 1, "skill_id": 369},
-      {"id": 2, "skill_id": 370},
-      {"id": 3, "skill_id": 371}
+      {"id": 1, "level": 1, "skill_id": 369},
+      {"id": 2, "level": 1, "skill_id": 370},
+      {"id": 3, "level": 1, "skill_id": 371}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 11
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 53,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
     "initial_level": 13,
+    "lock_equipment": false,
     "name": "Bear",
     "parameters": {
       "agility": [
@@ -2410,14 +3342,35 @@
     "rename_skill": true,
     "skill_name": "Bear",
     "skills": [
-      {"id": 1, "skill_id": 372},
-      {"id": 2, "skill_id": 373},
-      {"id": 3, "skill_id": 374}
+      {"id": 1, "level": 1, "skill_id": 372},
+      {"id": 2, "level": 1, "skill_id": 373},
+      {"id": 3, "level": 1, "skill_id": 374}
     ],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
     "unarmed_animation": 20
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 54,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2449,10 +3402,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 55,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2484,10 +3462,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 56,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2519,10 +3522,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 57,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2554,10 +3582,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 58,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2589,10 +3642,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 59,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2624,10 +3702,35 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   },
   {
+    "attribute_ranks": [],
+    "auto_battle": false,
+    "character_index": 0,
+    "character_name": "",
+    "critical_hit": true,
+    "critical_hit_chance": 30,
+    "exp_base": 30,
+    "exp_correction": 0,
+    "exp_inflation": 30,
+    "face_index": 0,
+    "face_name": "",
+    "final_level": 50,
     "id": 60,
+    "initial_equipment": {"accessory_id": 0, "armor_id": 0, "helmet_id": 0, "shield_id": 0, "weapon_id": 0},
+    "initial_level": 1,
+    "lock_equipment": false,
+    "name": "",
     "parameters": {
       "agility": [
         20, 22, 25, 28, 31, 34, 37, 40, 43, 46, 50, 53, 57, 61, 64, 68, 72, 76, 81, 85, 89, 94,
@@ -2659,6 +3762,15 @@
         98, 103, 108, 113, 119, 124, 129, 135, 141, 147, 153, 160, 166, 173, 180, 187, 194, 202,
         210, 218, 227, 236, 245, 254, 264, 274, 284, 300
       ]
-    }
+    },
+    "rename_skill": false,
+    "skill_name": "",
+    "skills": [],
+    "state_ranks": [],
+    "super_guard": false,
+    "title": "",
+    "transparent": false,
+    "two_weapon": false,
+    "unarmed_animation": 1
   }
 ]

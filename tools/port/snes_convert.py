@@ -1469,7 +1469,7 @@ def convert_layers(base, above_img, variantes=None):
     """`_convert_layers`, recordado en disco.
 
     Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
-    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `demo-ciudad`,
+    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `abl`,
     medido el 2026-09-10— y es una función pura de sus argumentos. La clave son
     **los pixeles de las imágenes** y no el `.lmu` ni el ChipSet: así entra
     todo lo que las produce, el renderer incluido, sin tener que enumerarlo. Y
@@ -3816,7 +3816,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Textos muertos delante de todos los demás, para que los índices de
         # la batalla pasen de 255 en un cartucho de un mapa. Es el hermano de
         # `--relleno-de-mensajes`: reproducirlo de verdad pide los cincuenta y
-        # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
+        # siete ítems de `abl`, o sea sus veintinueve mapas y dos
         # minutos y medio de conversor por caso. **No cambia un pixel**: son
         # textos de largo cero que nadie dibuja, y el índice de un texto no lo
         # modela la referencia —ella escribe caracteres—, así que el flag es de
@@ -3854,7 +3854,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_tienda = None
         for juego in range(3):
             term = P.terminos_tienda(db, juego)
-            for nombre in P.TI_TERMINOS:
+            for nombre, _termino in P.TI_TERMINOS:
                 for renglon in titulo_mod.partir_descripcion(term[nombre]):
                     t = texto_nuevo(renglon)
                     if texto_tienda is None:
@@ -3870,7 +3870,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # eso correría el texto de su columna.
         term_batalla = P.terminos_batalla(db)
         texto_batalla = None
-        for nombre, _chunk in P.BA_TERMINOS:
+        for nombre, _termino in P.BA_TERMINOS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
                 texto = P.texto_de_orden(texto)
@@ -4143,7 +4143,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # con la pelea abierta más lo que este port sabe hacer; la cuenta de
         # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
         # **Fuera del banco 0**, como `item_k` y por lo mismo: con los mapas de
-        # `demo-ciudad` el área de código quedó en 32775 de 32704 al ponerlas
+        # `abl` el área de código quedó en 32775 de 32704 al ponerlas
         # acá. La pelea las lee con `lda f:item_batalla, x`.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
@@ -4155,7 +4155,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                    for n in items], declarar=True)
         handle.write('.segment "TABLAS"\n')
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
-        # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
+        # por lo mismo: ahí no entran. Con los diez mapas de `abl` el
         # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
         # libres— y el cartel del `ShowPicture` no entraba. Se leen con
         # `lda f:item_txt_lo, x`, que cuesta un byte y un ciclo por lectura en
@@ -4194,7 +4194,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `item_actores` va también fuera del banco 0 —se lee con
         # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
         # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
-        # 2026-09-13 `just demo demo-ciudad` cortaba con "el área no
+        # 2026-09-13 `just demo` cortaba con "el área no
         # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
         # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
         # así que el ciclo de más del direccionamiento largo no se nota.
@@ -4542,7 +4542,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%-18s= $%04X\n"
                          % (constante, audio.get(nombre, 0xFFFF)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
-        for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
+        for k, (nombre, _termino) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
         # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
@@ -4584,7 +4584,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for _n, f, _c in P.BA_ORDENES])
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
         # **De dos bytes.** Un índice de texto no entra en uno: con los 29
-        # mapas de `demo-ciudad` los de la batalla arrancan en el 273, y la
+        # mapas de `abl` los de la batalla arrancan en el 273, y la
         # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
         # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
         words_asm("ba_orden_txt", [
@@ -5085,7 +5085,7 @@ def parser_de_flags():
                         help="que **todos** los temas aporten muestras al "
                              "banco compartido, en vez de recortar los "
                              "últimos hasta que el banco entre en la ARAM. "
-                             "El recorte es lo que hace que en `demo-ciudad` "
+                             "El recorte es lo que hace que en `abl` "
                              "a los nueve temas del final les falten entre el "
                              "28%% y el 88%% de las notas —las que piden un "
                              "programa que no está—; con esto no falta "
@@ -5093,15 +5093,6 @@ def parser_de_flags():
                              "todas. El banco pasa a no entrar entero en la "
                              "ARAM, que no es un problema: ahí vive un "
                              "paquete de mapa por vez")
-    parser.add_argument("--banco-sin-prioridad", action="store_true",
-                        help="que el tema del mapa de arranque **no** tenga "
-                             "prioridad para aportar muestras al banco. Es "
-                             "para las ROMs de escuchar: arrancar en el mapa "
-                             "20 le da prioridad a su tema y entonces suena "
-                             "entero, que es justo lo contrario de lo que se "
-                             "quiere reproducir. Con esto el reparto del "
-                             "banco es el mismo que el de `demo-ciudad`, que "
-                             "arranca en un mapa sin música")
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
@@ -5776,8 +5767,7 @@ def main():
     # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se,
-        prioridad=([] if args.banco_sin_prioridad
-                   else [t for t in (tema_titulo, arranque) if t != 0xFF]),
+        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF],
         tope=(1 << 30) if args.banco_entero else None)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
@@ -6191,7 +6181,7 @@ def casos_de_prueba(parser, args, tramos):
         casos.append(caso)
     for caso in casos:
         with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-            caso.comandos = lcf.comandos(json.load(archivo))
+            caso.comandos = lcf.comandos_escritos(json.load(archivo))
     return casos
 
 
