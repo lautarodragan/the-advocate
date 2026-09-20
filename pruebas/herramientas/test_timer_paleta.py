@@ -132,3 +132,26 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     assert cual == 1, \
         "el cronómetro se metió en la paleta %d, que es de un líder: la ROM " \
         "se la pisa al subir los colores del que lidera" % cual
+
+
+def test_las_gotas_no_caen_en_la_paleta_del_cronometro():
+    """La otra ranura que la ROM pisa: la del cronómetro, y sin teñir.
+
+    `subir_timer_pal` vuelve a subir esos dieciséis colores tal cual están en
+    la ROM, a propósito —en RM2k los dígitos van **encima** del tinte de
+    pantalla: `Priority_Timer` es 140 y `Priority_Screen` 90—. La lluvia va
+    debajo —`Priority_Weather`, 80—, así que una gota metida en esa paleta se
+    queda gris mientras todo lo demás se tiñe. Lo destapó juntar `pan-lluvia`
+    con un caso de cronómetro en el mapa 6: 584 pixeles de diferencia en el
+    cuadro 66 y 679 en `sacudir-lluvia-60`.
+
+    Va con paletas inventadas y no con un mapa, por lo mismo que la de arriba:
+    lo que se prueba es el mecanismo.
+    """
+    palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
+    _tiles, base, cual = snes_convert.gotas_de_lluvia(
+        bytes(32 * 64), palettes, timer_base=64, timer_pal=0)
+    assert base, "las gotas no entraron en ninguna paleta"
+    assert cual != 0, \
+        "las gotas cayeron en la paleta del cronómetro, que la ROM vuelve " \
+        "a subir sin teñir: se quedarían grises en una pantalla teñida"

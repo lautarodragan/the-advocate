@@ -1161,7 +1161,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
 
 
 def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
-                   tope=OBJ_PALETTES):
+                   tope=OBJ_PALETTES, timer_pal=None):
     """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
     grises— y la paleta donde entran sus colores. Ver OP_WEATHER en eventos.py.
 
@@ -1171,9 +1171,19 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     cinco lugares; si no, en una fila de bloques propia. El tono `t` arriba es
     el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
     número de paleta).
+
+    **Y tampoco en la del cronómetro**, por la misma clase de razón que las
+    ranuras de líder: ésa la vuelve a subir `subir_timer_pal` **sin teñir**
+    —los dígitos van encima del tinte, `Priority_Timer` es 140 y
+    `Priority_Screen` 90—, así que una gota metida ahí se queda gris en una
+    pantalla teñida. La lluvia sí se tiñe en RM2k: `Priority_Weather` es 80,
+    o sea debajo del tinte.
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
-    cual = _primer_lugar(palettes, de_lider, quiere, tope)
+    evitar = set(de_lider)
+    if timer_pal is not None:
+        evitar.add(timer_pal)
+    cual = _primer_lugar(palettes, evitar, quiere, tope)
     if cual is None:
         # No hay lugar: este mapa no dibuja lluvia. No se le baja un color a
         # nadie para hacerle lugar, como al cronómetro: eso cambiaría el
@@ -6476,7 +6486,7 @@ def convertir(renderer, map_id, args, inicio=None):
     if args.con_lluvia:
         tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
             tiles, palettes, reparto[3],
-            timer_base, tope_de_paletas)
+            timer_base, tope_de_paletas, timer_pal)
         if not lluvia_base:
             print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
                   "paletas de sprite y acá no llueve" % map_id)

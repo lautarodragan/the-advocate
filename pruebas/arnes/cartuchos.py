@@ -103,7 +103,7 @@ CARTUCHOS = {
                "--relleno-de-mensajes", "33000"],
               ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
-               "pelea-82-grupo-11-12", "pan-lluvia", "sacudir-lluvia"]),
+               "pelea-82-grupo-11-12"]),
     # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
     # del borde de banco. No convive con el del chico: los dos corren el mismo
     # mensaje, cada uno a otro lugar. Y el relleno de textos, que en el chico
@@ -123,7 +123,7 @@ CARTUCHOS = {
 }
 
 # Los casos que no van en el cartucho de pruebas porque viven en otro.
-FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia",
+FUERA = {"grupo-21-en-74", "cartel",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12"}
 
