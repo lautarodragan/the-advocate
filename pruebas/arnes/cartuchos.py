@@ -88,8 +88,7 @@ CARTUCHOS = {
     "titulo": (_DE_PRUEBAS + ["--con-titulo",
                               "--tema-de-arranque", "escape_newyork"], None),
     # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
-    # no una imagen: el actor 21 —con él la pantalla de ranuras junta 462
-    # tiles de 448—, los casos con los actores 12 y 13 en el grupo —pueden
+    # no una imagen: los casos con los actores 12 y 13 en el grupo —pueden
     # liderar, y sus sprites en todos los mapas le cambiaban los colores al
     # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
     # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
@@ -101,7 +100,7 @@ CARTUCHOS = {
     "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--heroe-encima", "--encuentros-de-prueba", "8",
                "--relleno-de-mensajes", "33000"],
-              ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
+              ["parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "pan-lluvia", "sacudir-lluvia"]),
     # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
@@ -123,7 +122,7 @@ CARTUCHOS = {
 }
 
 # Los casos que no van en el cartucho de pruebas porque viven en otro.
-FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia",
+FUERA = {"cartel", "pan-lluvia", "sacudir-lluvia",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12"}
 
