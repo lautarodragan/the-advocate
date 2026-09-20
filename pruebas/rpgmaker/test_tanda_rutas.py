@@ -15,7 +15,8 @@ sería una segunda fuente de movimiento.
 Y una advertencia que no es del arnés pero decide los cuadros de varios: en el
 mapa 6, del tick 47 en adelante, una ruta que baja cuatro celdas desde (22,12)
 diverge en **diez pixeles** de dos tiles animados del chipset, con la orden 34
-puesta y sin ella. Está anotado en ESTADO.md y es anterior a estos casos; por
+puesta y sin ella. Está anotado en
+`divergencias/fase-de-los-tiles-animados.md` y es anterior a estos casos; por
 eso varios miran hasta el 40 y no más lejos.
 
 Ninguna de las recetas de este archivo existe ya: el nombre que abre cada

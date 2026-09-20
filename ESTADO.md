@@ -13,7 +13,8 @@ Se escribe **mientras se trabaja**, no al final.
 
 **Lo que no se está trabajando activamente tampoco va acá, y desde el
 2026-09-20 tiene dónde ir**: `wishlist/` es lo que nos gustaría hacer y nadie
-está haciendo, un archivo por idea.
+está haciendo, un archivo por idea, y `divergencias/` es dónde la ROM no hace
+lo que RM2k hace, con lo medido y cómo reproducirlo.
 
 El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treinta
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
@@ -1079,67 +1080,9 @@ tanda; el `.msu` no está en ningún build de las pruebas, así que no las afect
 
 ## Lo que la tanda no cubre
 
-### Tres divergencias medidas contra la referencia, y sin arreglar
-
-**Ojo con cómo se leen desde el 2026-09-16.** Eran diferencias entre la ROM y la
-referencia en Python, y la referencia ya no está: hoy **ninguna de las tres da
-rojo**, porque la golden es la captura de la propia ROM y hornea adentro el
-comportamiento que la referencia discutía. O sea que no son rojos abiertos sino
-**lugares donde sabemos que la ROM no hace lo que RM2k hace, y nada lo cobra**.
-Quedan escritas por eso, y porque si alguna vez se arreglan hay goldens que se
-van a mover.
-
-* **Cuadro 500 de la escena del mapa 16: 43,86%** (25.153 de 57.344), en los
-  dos cartuchos. Leyendo la WRAM, en el tick 490 la ROM tiene al héroe en 368 y
-  la cámara en 248, y la referencia 378 y 258: **la ROM arranca el `MoveEvent`
-  que sigue al tercer teletransporte interno cuatro ticks antes**, y la pantalla
-  queda corrida ocho pixeles hasta que el teletransporte siguiente las vuelve a
-  sincronizar. Se coló porque ningún caso de la tanda corre una página con un
-  `Teleport` al mismo mapa.
-* **El cronómetro llegando a cero**: el cuadro 60 da 252 pixeles (0,44%), todos
-  en los dígitos, y da los mismos 252 sin el pan. Es una divergencia de un tick
-  en el cuadro en que el cronómetro se apaga; `timer-cero` no la ve porque mira
-  los cuadros 2, 40, 59 y 61 y **se saltea justo el 60**. Es cosmética.
-
-* **La escena del Tram Officer divergía con la llamada salteada.** Medido el
-  2026-09-12 al verificar `tram` en rojo: con `CallEvent` sin hacer **de los
-  dos lados** —que es como estuvo hasta ese día— el cuadro 620 de esa escena
-  daba 34,64% de pixeles distintos entre la ROM y la referencia. Con la llamada
-  hecha daba cero, así que la página que lo destapaba ya no pasa por ahí, pero
-  **el camino sigue existiendo** para las 216 llamadas que se siguen salteando.
-  El sospechoso es el cronómetro, que esa rama arranca. No se investigó.
-
-* **Diez pixeles después del cuadro 47 en una ruta forzada del héroe en el
-  mapa 6.** Encontrado de paso el 2026-09-12 armando los casos de la orden 34:
-  el héroe baja cuatro celdas desde (22,12), la ruta termina en el cuadro 32, y
-  del 47 en adelante hay **diez pixeles** de diferencia en dos tiles animados
-  del chipset, como si uno de los dos lados cambiara de paso un cuadro antes.
-  **No es de esa vuelta**: el control sin la orden 34 —la ruta `2 2 2 2` pelada—
-  da exactamente lo mismo. El sospechoso era la fase de los tiles animados, que
-  los dos lados contaban con relojes distintos. **Eso dejó de poder
-  investigarse así**: la referencia se borró el 2026-09-16 y con ella sus dos
-  contadores, y hoy la golden hornea lo que hace la ROM, así que la divergencia
-  no existe como rojo. Si el paso de los tiles animados llegara a estar mal, lo
-  dice el ojo y no la tanda. Los casos siguen mirando hasta el cuadro 40.
-
-* **Los ticks de pantalla corren después del intérprete y en RM2k corren
-  antes.** Al ordenar el cuadro como `Game_Map::Update` el 2026-09-20 —ver el
-  comentario del lazo en `main.s`— quedó afuera esto: el destello, la sacudida,
-  la cámara corrida, el cartel y la lluvia son `game_screen->Update()` y
-  `game_pictures->Update()`, que van en `game_map.cpp:1305`, o sea **antes** de
-  `UpdateForegroundEvents`, y acá van después. Ninguno decide si algo se mueve
-  ni cuándo, así que la diferencia es de un cuadro en lo que se ve; moverlos es
-  otro cambio y mueve sus goldens.
-
-* **Un movimiento bloqueado de una ruta forzada se saltea, y ahora hay una
-  golden que depende de eso.** Es una decisión de modelo vieja y declarada
-  —`tools/port/eventos.py`: RM2k reintentaría para siempre y una prueba colgada
-  no dice nada—, pero hasta el 2026-09-20 ninguna golden la ejercitaba. Con el
-  cuadro reordenado, la ruta del héroe de `droide-tapado` arranca un cuadro más
-  tarde, el paso hacia arriba cae justo cuando el droide ocupa la celda, y el
-  paso se pierde: el héroe termina una celda más abajo que antes y no hay tick
-  que empareje la captura —probado de -12 a +12—. La golden nueva congela eso.
-  Si algún día el bloqueo pasa a reintentarse, esas cinco se mueven.
+**Dónde la ROM no hace lo que RM2k hace está en `divergencias/`**, un archivo
+por divergencia, con su medición y cómo reproducirla. Acá queda lo otro: lo que
+ninguna prueba mira, aunque nadie diga que esté mal.
 
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
   arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la
@@ -1159,17 +1102,6 @@ van a mover.
   tema que dice estar tocando están de verdad en la ARAM (`FAR_ARAM_DE` contra
   `tema_muestras`). Lo que **sigue** sin mirar nadie es que lo que sale del DSP
   suene a lo que tiene que sonar: eso es oído, y es de taro.
-
-* **El destello de un evento sobre la paleta de otro.** En la consola
-  `FlashSprite` es un tinte de CGRAM: `pintar_flash` sube la paleta entera del
-  personaje, así que tiñe todo lo que la comparta. RM2k lo aplica sobre la
-  **imagen** del sprite. Son dos cosas distintas y
-  ningún caso de la tanda lo ve, porque ninguno tiene un segundo sprite visible
-  compartiendo la paleta del que destella. Lo cuida `test_destello_paleta.py`,
-  que exige que nadie comparta la paleta de un líder posible. **Protege al líder
-  y no al que destella**: el blanco se decide corriendo y el héroe es el único
-  que se puede saber al convertir, así que un destello sobre otro evento
-  filtraría igual.
 
 * **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
   y B no los toca ningún caso de ella. Los cubre `pruebas/rpgmaker/test_elegir.py`.
@@ -1214,17 +1146,6 @@ entera del Emitter Room. Lo que la tanda no mira:
   una lista de toques hay que dejar treinta cuadros desde que el mensaje se
   abre, no veinte: con veinte, el toque del cuadro 1976 llegó **uno** antes de
   tiempo.
-
-* **Los ocho cuadros de después de cerrar un mensaje.** En RM2k el mensaje
-  sigue "activo" mientras se anima el cierre —unos ocho cuadros, easyrpg
-  `window_message.cpp:379-403` y `window_message.h:216-218`— y en ese rato el
-  héroe no busca eventos, un `KeyInputProc` que espera no mira el pad, y el
-  paralelo que lo abrió sigue parado. Acá la ventana se apaga de golpe: lo que
-  se copió es que **el A que cierra** no lo vea nadie más (lo consume
-  `espera_boton`, y lo cobran las pruebas de `pruebas/abl/test_piedras.py`),
-  pero **un A nuevo** apretado dentro de esos ocho cuadros acá sí cuenta —le
-  habla al de enfrente, o saca una piedra— y en RM2k no. Para una persona son
-  dos toques en 130 ms, así que no se nota jugando; no lo prueba nada.
 
 * **El Dalia's Blast de las catacumbas**, el `EV0001` paralelo que espera la
   A con `KeyInputProc [176,1,0,1,0]`, tiene el mismo patrón que el motor de las
