@@ -6,6 +6,8 @@ encima. Es lo que el conversor corta en tiles: ver `Renderer.capas_animadas`.
 Sin panorama y sin eventos: de los eventos se ocupa el conversor.
 """
 
+import array
+import hashlib
 import os
 
 from PIL import Image
@@ -57,6 +59,15 @@ def load_image(path):
         # En RM2k el color 0 de la paleta es el color key.
         image.info["transparency"] = 0
     return image.convert("RGBA")
+
+
+def _capa(tiles):
+    """Una capa de tiles como bytes, para meterla en una clave de caché.
+
+    Cuatro bytes por tile y no uno: un ID de tile llega a 10143, así que
+    `bytes()` no sirve.
+    """
+    return array.array("i", tiles).tobytes()
 
 
 def build_passability(chipset):
@@ -231,6 +242,7 @@ class Renderer:
                                  self.fondo_de_mapa)
         self.atlases = {}
         self.fondos = {}
+        self.huellas = {}
         self.missing_chipsets = set()
 
     def fondo_de_mapa(self, map_id):
@@ -256,6 +268,54 @@ class Renderer:
                 self.missing_chipsets.add(filename)
             self.atlases[filename] = ChipsetAtlas(load_image(path)) if path else None
         return self.atlases[filename]
+
+    def insumos_de_capas(self, game_map):
+        """Todo lo que entra en las capas dibujadas de un mapa, sin dibujarlas.
+
+        Es una lista de partes para una clave de caché, y existe para que quien
+        cachea lo que sale de `capas_animadas` pueda preguntar **antes** de
+        pagar el dibujo. Devuelve `None` cuando el ChipSet no está: ahí no hay
+        insumo que valga y el que llama tiene que ir por el camino de siempre,
+        que es el que sabe fallar.
+
+        Vive acá y no en el conversor porque es este archivo el que sabe qué
+        lee `render_layers`: las dos capas del mapa, su tamaño, y del ChipSet
+        la pasabilidad —que decide qué tile va en cuál capa— y la imagen. Nada
+        más del `.lmu` llega al dibujo. Si algún día `render_layers` mira algo
+        que no está en esta lista, el caché se queda viejo sin avisar, y el
+        único lugar donde eso se puede ver es acá al lado.
+
+        Lo que **no** está, a propósito: el código que dibuja y la versión de
+        Pillow. No son del mapa sino de la corrida, y los pone quien arma la
+        clave.
+        """
+        chipset = self.database.chipsets[game_map.chipset_id]
+        imagen = self.huella_de_chipset(chipset.filename)
+        if imagen is None:
+            return None
+        return [b"mapa %dx%d" % (game_map.width, game_map.height),
+                _capa(game_map.lower_layer), _capa(game_map.upper_layer),
+                bytes(chipset.passable_lower), bytes(chipset.passable_upper),
+                imagen]
+
+    def huella_de_chipset(self, filename):
+        """El sha256 del archivo de ChipSet que gana la búsqueda, o `None`.
+
+        Los bytes y no la ruta: que el archivo salga del juego o del RTP no
+        cambia un pixel si es el mismo archivo, y que salga del mismo lado no
+        garantiza que no lo hayan tocado.
+
+        Se recuerda por nombre porque los mapas comparten ChipSet —29 mapas con
+        muchos menos ChipSets— y leerlo una vez por mapa no aportaría nada.
+        """
+        if filename not in self.huellas:
+            path = find_resource(self.search_dirs, "ChipSet", filename)
+            if path is None:
+                self.huellas[filename] = None
+            else:
+                with open(path, "rb") as f:
+                    self.huellas[filename] = hashlib.sha256(f.read()).digest()
+        return self.huellas[filename]
 
     def cargar_mapa(self, path):
         """El mapa, con el nombre de su chipset puesto: `collect_npcs` lo
@@ -294,7 +354,7 @@ class Renderer:
         """Las capas del mapa y los otros dibujos de la animación del ChipSet.
 
         Devuelve `(base, encima, variantes)`, con `variantes` en la forma que
-        pide `snes_convert.convert_layers`: por familia, los dibujos que **no**
+        pide `snes_convert._convert_layers`: por familia, los dibujos que **no**
         son el 0, que es `base`.
 
         Es el único lugar donde se decide qué dibujos hay, y lo usan las dos
