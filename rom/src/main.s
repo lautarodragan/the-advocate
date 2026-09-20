@@ -21934,6 +21934,18 @@ no:
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
+    ; Lo que `emit_object` iba a descartar se descarta **acá**, con la misma
+    ; comparación y antes de armar el resto de la fila. Descarta lo mismo que
+    ; antes, objeto por objeto, así que la OAM sale idéntica; lo que cambia es
+    ; cuánto cuesta un NPC que no se ve. Un mapa como el 11 tiene cincuenta
+    ; filas dibujadas y treinta en pantalla, y las veinte de afuera pagaban la
+    ; Y, el salto y los dos bytes del tile para que `emit_object` las tirara.
+    ; Va partido en dos —primero la X, después la Y— porque la mitad sale por
+    ; la primera y ésa no necesita leer nada más de la fila.
+    clc
+    adc #32
+    cmp #(256 + 32)
+    bcs fuera
     lda npc_buf + 2, x
     sec
     sbc camara_y
@@ -21954,6 +21966,12 @@ no:
     sec
     sbc temp
     sta obj_y
+    ; La otra mitad del descarte, ya con el salto sumado: el mismo corte en 224
+    ; de `emit_object`, con el mismo porqué.
+    clc
+    adc #32
+    cmp #(224 + 32)
+    bcs fuera
     sep #$20
 .a8
     lda npc_buf + 6, x
@@ -21961,6 +21979,11 @@ no:
     lda npc_buf + 7, x
     sta obj_attr
     jsr emit_object
+    rts
+.a16
+fuera:
+    sep #$20
+.a8
     rts
 .endproc
 
