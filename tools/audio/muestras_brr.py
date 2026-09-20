@@ -68,7 +68,7 @@ def binario():
     return ruta
 
 
-def _version_del_codec():
+def version():
     """Qué versión de "el codificador" produjo lo que hay en el caché.
 
     Van este archivo y **el binario instalado**, no los fuentes de
@@ -76,12 +76,19 @@ def _version_del_codec():
     `tools/gunter/src` tocado y sin `just herramientas` corrido sigue
     codificando con el de antes. Lo que la clave tiene que describir es lo que
     produjo los bytes.
+
+    Es pública porque `snes_samples` cachea **la muestra ya preparada** —el
+    resampleo y la normalización que van antes de codificar— y eso también sale
+    de este binario: su clave tiene que caducar cuando caduca la de acá.
     """
-    h = hashlib.sha256()
-    for ruta in (os.path.abspath(__file__), binario()):
-        with open(ruta, "rb") as f:
-            h.update(f.read())
-    return h.hexdigest()
+    global _version
+    if _version is None:
+        h = hashlib.sha256()
+        for ruta in (os.path.abspath(__file__), binario()):
+            with open(ruta, "rb") as f:
+                h.update(f.read())
+        _version = h.hexdigest()
+    return _version
 
 
 def _correr(args):
@@ -128,15 +135,12 @@ def codificar(muestras, loop_block=None):
         # archivo.
         return b""
 
-    global _version
     clave = (tuple(muestras), loop_block)
     hecha = _codificadas.get(clave)
     if hecha is not None:
         return hecha
 
-    if _version is None:
-        _version = _version_del_codec()
-    en_disco = cache_disco.clave(_version, str(loop_block),
+    en_disco = cache_disco.clave(version(), str(loop_block),
                                  " ".join(str(x) for x in clave[0]))
     hecha = cache_disco.leer("brr", en_disco)
     if hecha is None:
