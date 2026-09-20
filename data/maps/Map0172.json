@@ -1,16 +1,43 @@
 {
+  "chipset_id": 1,
   "events": [
     {
       "id": 1,
       "name": "EV0001",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -21,12 +48,38 @@
       "name": "StopGuard",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -37,12 +90,38 @@
       "name": "EV0003",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -53,12 +132,38 @@
       "name": "EV0004",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -69,12 +174,38 @@
       "name": "EV0005",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -85,12 +216,38 @@
       "name": "EV0006",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 7,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -101,11 +258,38 @@
       "name": "Dalia",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 3,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -115,12 +299,48 @@
       "id": 8,
       "name": "Manta",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 4,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -129,11 +349,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 479
+            "item_id": 1,
+            "switch_a_id": 479,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -144,48 +376,144 @@
       "name": "EV0009",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowBattleAnimation", "parameters": [72, 8, 1, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 479, 479, 0]},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Who... who are you? You're not part of"},
-            {"code": "ShowMessage_2", "string": "the simulation, are you?"},
-            {"code": "ShowMessage", "string": "?????"},
-            {"code": "ShowMessage_2", "string": "You never completed your mission. I've"},
-            {"code": "ShowMessage_2", "string": "been hired to rescue you and finish what"},
-            {"code": "ShowMessage_2", "string": "you started."},
-            {"code": "ShowMessage", "string": "?????"},
-            {"code": "ShowMessage_2", "string": "The old man's putting up a good fight, but"},
-            {"code": "ShowMessage_2", "string": "my rerouting scanner program should"},
-            {"code": "ShowMessage_2", "string": "have broken his temporary blocks by now."},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "You're a Slicer, aren't you?"},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "?????"},
-            {"code": "ShowMessage_2", "string": "The best of the best."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "?????"},
-            {"code": "ShowMessage_2", "string": "My name's Manta."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "Teleport", "parameters": [173, 17, 8]}
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [72, 8, 1, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 479, 479, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Who... who are you? You're not part of"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the simulation, are you?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "?????"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You never completed your mission. I've"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "been hired to rescue you and finish what"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "you started."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "?????"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The old man's putting up a good fight, but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "my rerouting scanner program should"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have broken his temporary blocks by now."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [7, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're a Slicer, aren't you?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "?????"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The best of the best."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "?????"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "My name's Manta."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [173, 17, 8], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 27
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 27,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

@@ -6,7 +6,7 @@ capa de 4bpp, `índice >> 4` es la paleta— y devuelve tiles, tilemap y CGRAM.
 celda lo decidió el asignador antes de escribir la imagen. Ver "El asignador
 corre primero" en ESTADO.md.
 
-Se consume desde el PATH, como `brr` y `ca65`: se instala con `just
+Se consume desde el PATH, como `gunter` y `ca65`: se instala con `just
 herramientas` y ningún script llama a `cargo`.
 """
 

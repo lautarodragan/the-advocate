@@ -6,12 +6,40 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [130, 4, 10]}
+            {"code": 10810, "indent": 0, "parameters": [130, 4, 10], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 14,
@@ -22,12 +50,40 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [130, 4, 10]}
+            {"code": 10810, "indent": 0, "parameters": [130, 4, 10], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 15,
@@ -38,12 +94,40 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [130, 4, 10]}
+            {"code": 10810, "indent": 0, "parameters": [130, 4, 10], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 16,
@@ -54,16 +138,47 @@
       "name": "Lerle",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -72,10 +187,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 493
+            "item_id": 1,
+            "switch_a_id": 493,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -86,85 +214,155 @@
       "name": "EV0005",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PanScreen", "parameters": [2, 0, 10, 5, 1]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "That looks like it could be a script!"},
-            {"code": "ShowMessage", "string": "LERLE"},
-            {"code": "ShowMessage_2", "string": "Let's go grab it!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "PanScreen", "parameters": [2, 2, 10, 5, 1]},
+            {"code": 11060, "indent": 0, "parameters": [2, 0, 10, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 29, 0, 0, 0, 0, 24, 0, 0, 25, 28]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That looks like it could be a script!"
             },
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 0, 0, 0, 0, 24, 0, 0, 25]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 29, 0, 0, 24, 0, 0, 0, 25, 28]},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LERLE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Let's go grab it!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 10, 5, 1], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 28, 0, 0, 24, 0, 0, 0, 25, 23, 15, 29]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 29, 0, 0, 0, 0, 24, 0, 0, 25, 28],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 3, 3, 12]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 0, 0, 0, 0, 24, 0, 0, 25],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 29, 0, 0, 24, 0, 0, 0, 25, 28],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 28, 0, 0, 24, 0, 0, 0, 25, 23, 15, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 3, 3, 3, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Let's see... \"The Tragedy of Captain Ellis\"..."
             },
-            {"code": "ShowMessage_2", "string": "That sounds good!"},
-            {"code": "ShowMessage", "string": "LERLE"},
-            {"code": "ShowMessage_2", "string": "Let's take it and get out of here!"},
-            {"code": "ChangeItems", "parameters": [0, 0, 152, 0, 1]},
-            {"code": "PlaySound", "parameters": [90, 100, 50], "string": "Item1"},
-            {"code": "ControlSwitches", "parameters": [0, 421, 421, 0]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14, 24, 2, 2, 2, 25, 2, 2]},
-            {"code": "FadeOutBGM", "parameters": [2000]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "PlaySound", "parameters": [90, 60, 50], "string": "Dark5"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Lerle, help!"},
-            {"code": "ControlSwitches", "parameters": [0, 493, 493, 0]},
-            {"code": "ChangeEscapeAccess", "parameters": [0]},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "That sounds good!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LERLE"},
             {
-              "code": "ChangeSystemBGM",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's take it and get out of here!"
+            },
+            {"code": 10320, "indent": 0, "parameters": [0, 0, 152, 0, 1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [90, 100, 50], "string": "Item1"},
+            {"code": 10210, "indent": 0, "parameters": [0, 421, 421, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 14, 24, 2, 2, 2, 25, 2, 2],
+              "string": ""
+            },
+            {"code": 11520, "indent": 0, "parameters": [2000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [90, 60, 50], "string": "Dark5"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Lerle, help!"},
+            {"code": 10210, "indent": 0, "parameters": [0, 493, 493, 0], "string": ""},
+            {"code": 11840, "indent": 0, "parameters": [0], "string": ""},
+            {
+              "code": 10660,
+              "indent": 0,
               "parameters": [0, 0, 100, 100, 50],
               "string": "KW-robot"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
+              "indent": 0,
               "parameters": [1, 0, 100, 100, 50],
               "string": "KW-robot"
             },
             {
-              "code": "EnemyEncounter",
+              "code": 10710,
+              "indent": 0,
               "parameters": [0, 181, 1, 0, 0, 0],
               "string": "ABLBackdropSJ07"
             },
-            {"code": "CallEvent", "parameters": [0, 35, 0]},
+            {"code": 12330, "indent": 0, "parameters": [0, 35, 0], "string": ""},
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
+              "indent": 0,
               "parameters": [0, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
+              "indent": 0,
               "parameters": [1, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
-            {"code": "ChangeEscapeAccess", "parameters": [1]},
-            {"code": "ControlSwitches", "parameters": [0, 422, 422, 0]}
+            {"code": 11840, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 422, 422, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -173,19 +371,45 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 422
+            "item_id": 1,
+            "switch_a_id": 422,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Well, you certainly took your time, Lerle."},
-            {"code": "ShowMessage", "string": "LERLE"},
-            {"code": "ShowMessage_2", "string": "Ah, you're fine. Let's go show everyone"},
-            {"code": "ShowMessage_2", "string": "this great script we found!"},
-            {"code": "Teleport", "parameters": [130, 4, 10]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well, you certainly took your time, Lerle."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Ah, you're fine. Let's go show everyone"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "this great script we found!"
+            },
+            {"code": 10810, "indent": 0, "parameters": [130, 4, 10], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 11,
@@ -196,13 +420,47 @@
       "name": "Script",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 71,
-          "condition": {"switch_a_id": 421},
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 421,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -211,10 +469,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 421
+            "item_id": 1,
+            "switch_a_id": 421,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -224,13 +495,70 @@
       "id": 7,
       "name": "EV0007",
       "pages": [
-        {"id": 1, "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 14,
       "y": 17
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 30,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 36,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 30
 }

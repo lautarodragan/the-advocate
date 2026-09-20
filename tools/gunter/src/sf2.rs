@@ -484,7 +484,7 @@ mod tests {
 
     fn write_temp(name: &str, bytes: &[u8]) -> PathBuf {
         let path = std::env::temp_dir().join(format!(
-            "brr-test-{}-{:?}-{name}",
+            "gunter-test-{}-{:?}-{name}",
             std::process::id(),
             std::thread::current().id()
         ));

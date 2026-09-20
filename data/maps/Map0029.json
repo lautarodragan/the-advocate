@@ -6,11 +6,38 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -21,22 +48,67 @@
       "name": "EV0002",
       "pages": [
         {
-          "event_commands": [
-            {"code": "ShowMessage", "string": "SHOPKEEPER"},
-            {"code": "ShowMessage_2", "string": "I have a wide range of useful items."},
-            {"code": "ShowMessage_2", "string": "But most of my customers just want"},
-            {"code": "ShowMessage_2", "string": "Cheap Wine.... <sigh>"},
-            {
-              "code": "OpenShop",
-              "parameters": [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115]
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "ShowMessage", "string": "SHOPKEEPER"},
-            {"code": "ShowMessage_2", "string": "Come again, if you have the ill fortune"},
-            {"code": "ShowMessage_2", "string": "to return to Sector 27."}
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SHOPKEEPER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I have a wide range of useful items."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But most of my customers just want"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Cheap Wine.... <sigh>"},
+            {
+              "code": 10720,
+              "indent": 0,
+              "parameters": [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115],
+              "string": ""
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SHOPKEEPER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Come again, if you have the ill fortune"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to return to Sector 27."}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -47,17 +119,71 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [28, 19, 28]}
+            {"code": 10810, "indent": 0, "parameters": [28, 19, 28], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 9,
       "y": 14
     }
   ],
-  "save_count": 11
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 11,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

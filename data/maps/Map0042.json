@@ -6,11 +6,38 @@
       "name": "Reporter",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "Future3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -21,29 +48,83 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 100, 40, 0, 0]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "REPORTER"},
-            {"code": "ShowMessage_2", "string": "... a terrible tragedy, that would shake"},
-            {"code": "ShowMessage_2", "string": "the very foundation of our faith in human"},
-            {"code": "ShowMessage_2", "string": "nature."},
-            {"code": "ShowMessage", "string": "REPORTER"},
-            {"code": "ShowMessage_2", "string": "It took place here, at the Delcentric"},
-            {"code": "ShowMessage_2", "string": "factory in Sector 30, mere hours ago."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "REPORTER"},
-            {"code": "ShowMessage_2", "string": "Zed, are you there?"},
-            {"code": "ChangeScreenTransitions", "parameters": [0, 17]},
-            {"code": "ChangeScreenTransitions", "parameters": [1, 17]},
-            {"code": "Teleport", "parameters": [43, 10, 8]}
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 40, 0, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "REPORTER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "... a terrible tragedy, that would shake"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the very foundation of our faith in human"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "nature."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "REPORTER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It took place here, at the Delcentric"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "factory in Sector 30, mere hours ago."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "REPORTER"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Zed, are you there?"},
+            {"code": 10690, "indent": 0, "parameters": [0, 17], "string": ""},
+            {"code": 10690, "indent": 0, "parameters": [1, 17], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [43, 10, 8], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -52,117 +133,210 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 160
+            "item_id": 1,
+            "switch_a_id": 160,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "TIA"},
-            {"code": "ShowMessage_2", "string": "I understand you worked at Delcentric"},
-            {"code": "ShowMessage_2", "string": "with Talan? Did you see him today?"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "That's Dess!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": "Yes, Tia, I did."},
-            {"code": "ConditionalBranch", "parameters": [0, 68, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "DESSEN"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TIA"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I understand you worked at Delcentric"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with Talan? Did you see him today?"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "That's Dess!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yes, Tia, I did."},
+            {"code": 12010, "indent": 0, "parameters": [0, 68, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DESSEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "He barged in late to work today, and"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "interrupted the Director's (may he rest"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "in peace) speech."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ShowMessage", "indent": 1, "string": "DESSEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "in peace) speech."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DESSEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "He seemed really low-key about the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Director's speech - he wasn't excited"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "at all! On the outside, anyway..."
             },
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 25, 1, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "DESSEN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 25, 1, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DESSEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I don't think he shaved this morning."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "He looked really haggard, as if something"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "big was troubling him."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ShowMessage", "string": "TIA"},
-            {"code": "ShowMessage_2", "string": "I see... I understand you have some"},
-            {"code": "ShowMessage_2", "string": "information about his whereabouts?"},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": "Yes... yes, I do."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": "Talan's place of residence is"},
-            {"code": "ShowMessage_2", "string": "listed as Sector 15..."},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Dess... no! Don't -"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": " - but he really lives in an apartment in"},
-            {"code": "ShowMessage_2", "string": "Sector 35."},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "TIA"},
-            {"code": "ShowMessage_2", "string": "He really lives in Sector 35? Do you"},
-            {"code": "ShowMessage_2", "string": "have any idea why he would list his"},
-            {"code": "ShowMessage_2", "string": "place of residence incorrectly?"},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": "I had never really thought about it before."},
-            {"code": "ShowMessage_2", "string": "Well, not before today, anyway..."},
-            {"code": "ShowMessage", "string": "TIA"},
-            {"code": "ShowMessage_2", "string": "You heard it here first, folks. I'm sure the"},
-            {"code": "ShowMessage_2", "string": "Agency will find this information most"},
-            {"code": "ShowMessage_2", "string": "helpful, Mr. Dessen."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "DESSEN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "TIA"},
-            {"code": "ShowMessage_2", "string": "We'll be covering this story throughout the"},
-            {"code": "ShowMessage_2", "string": "day, so stay tuned for further developments!"},
-            {"code": "ControlSwitches", "parameters": [0, 161, 161, 0]},
-            {"code": "TintScreen", "parameters": [40, 40, 30, 70, 0, 0]},
-            {"code": "Teleport", "parameters": [40, 19, 32]}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "big was troubling him."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I see... I understand you have some"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "information about his whereabouts?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yes... yes, I do."},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan's place of residence is"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "listed as Sector 15..."},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Dess... no! Don't -"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": " - but he really lives in an apartment in"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sector 35."},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He really lives in Sector 35? Do you"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have any idea why he would list his"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "place of residence incorrectly?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I had never really thought about it before."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well, not before today, anyway..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You heard it here first, folks. I'm sure the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Agency will find this information most"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "helpful, Mr. Dessen."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DESSEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We'll be covering this story throughout the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "day, so stay tuned for further developments!"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 161, 161, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [40, 40, 30, 70, 0, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [40, 19, 32], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
@@ -173,10 +347,13 @@
       "name": "Dessen",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 6,
           "character_name": "Future2",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -185,16 +362,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 160
+            "item_id": 1,
+            "switch_a_id": 160,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
       "y": 12
     }
   ],
-  "save_count": 20
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 20,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

@@ -6,9 +6,13 @@
       "name": "ParadiseCharacter",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -17,18 +21,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 617,
-            "switch_b_id": 386
+            "switch_b_id": 386,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -37,18 +55,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 617,
-            "switch_b_id": 388
+            "switch_b_id": 388,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -57,12 +89,23 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 617,
-            "switch_b_id": 385
+            "switch_b_id": 385,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -73,12 +116,38 @@
       "name": "Memnosyne",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 3,
           "character_name": "memnosyne",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -89,12 +158,38 @@
       "name": "Emily",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -105,218 +200,688 @@
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 10, 1]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Are you feeling better?"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Yeah... yeah, I'm all right. Just a little"},
-            {"code": "ShowMessage_2", "string": "dazed, I guess. Kind of dizzy..."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "What's going on? What did you do"},
-            {"code": "ShowMessage_2", "string": "to Talan?!"},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "elf2"},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Many, many years ago, I came across"},
-            {"code": "ShowMessage_2", "string": "a band of survivors from the ruins of the"},
-            {"code": "ShowMessage_2", "string": "Kingdom of Surl."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "They were half-starved and close to"},
-            {"code": "ShowMessage_2", "string": "death. They had struggled to survive"},
-            {"code": "ShowMessage_2", "string": "in the wilderness during the years"},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "following the destruction of Surl, but"},
-            {"code": "ShowMessage_2", "string": "had descended almost to the level of"},
-            {"code": "ShowMessage_2", "string": "beasts."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "They were terribly sick, from all sorts of"},
-            {"code": "ShowMessage_2", "string": "diseases, and many had severe cases"},
-            {"code": "ShowMessage_2", "string": "of radiation poisoning."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "But there was one man who had"},
-            {"code": "ShowMessage_2", "string": "retained his sanity. He called himself"},
-            {"code": "ShowMessage_2", "string": "the Keeper of Memories."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Somehow, the Keeper had the power"},
-            {"code": "ShowMessage_2", "string": "to take the memories of others for his"},
-            {"code": "ShowMessage_2", "string": "own."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "He had wandered all throughout the"},
-            {"code": "ShowMessage_2", "string": "ruins of Surl, finding the survivors and"},
-            {"code": "ShowMessage_2", "string": "absorbing their memories."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Within his mind, the Keeper stored"},
-            {"code": "ShowMessage_2", "string": "all of the memories of Surl, so that when"},
-            {"code": "ShowMessage_2", "string": "the final survivor died, the memory of"},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "the kingdom would live on within"},
-            {"code": "ShowMessage_2", "string": "the Keeper's mind."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 2, 2]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "But the Keeper was dying. He had"},
-            {"code": "ShowMessage_2", "string": "been present at the time Surl was"},
-            {"code": "ShowMessage_2", "string": "destroyed, and although his sickness"},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "was slower than it was for most,"},
-            {"code": "ShowMessage_2", "string": "he did not have long to live, and"},
-            {"code": "ShowMessage_2", "string": "Surl would die with him."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "He chose... no... I volunteered..."},
-            {"code": "ShowMessage_2", "string": "to receive the memories he had absorbed."},
-            {"code": "ShowMessage_2", "string": "The memories of an entire kingdom."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "He placed his fingertips on my forehead,"},
-            {"code": "ShowMessage_2", "string": "and I collapsed. I awoke sometime later,"},
-            {"code": "ShowMessage_2", "string": "with the Keeper dead beside me."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "I had become the new Keeper of"},
-            {"code": "ShowMessage_2", "string": "Memories, and by doing so, all memory"},
-            {"code": "ShowMessage_2", "string": "of who I was before... vanished."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "I lost my own history, but gained that"},
-            {"code": "ShowMessage_2", "string": "of a doomed nation. The survivors brought"},
-            {"code": "ShowMessage_2", "string": "me, still swooning, back to this place."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "But what does this have to do with -"},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "It's so lonely here - I wanted to see the"},
-            {"code": "ShowMessage_2", "string": "things you've all seen, experience your"},
-            {"code": "ShowMessage_2", "string": "experiences. I wanted to feel Hope."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Hope is something no one in Surl"},
-            {"code": "ShowMessage_2", "string": "possessed: only despair, fear, sadness,"},
-            {"code": "ShowMessage_2", "string": "and hatred. It is a heavy burden I bear."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "I opened a Memory Pathway to Talan's"},
-            {"code": "ShowMessage_2", "string": "mind, but he followed it BACK, to me..."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "And in the split second before I was"},
-            {"code": "ShowMessage_2", "string": "able to shut down the Pathway, he"},
-            {"code": "ShowMessage_2", "string": "glimpsed the entirety of my memory..."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 1, 1]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "You're lucky, Talan - if the Pathway"},
-            {"code": "ShowMessage_2", "string": "had remained open for any longer, your"},
-            {"code": "ShowMessage_2", "string": "body might not have recovered as quickly."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It was... overwhelming - so many voices!"},
-            {"code": "ShowMessage_2", "string": "Each one had its story to tell, and each"},
-            {"code": "ShowMessage_2", "string": "story was one of despair... it was horrible."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I can't remember any specifics, though."},
-            {"code": "ShowMessage_2", "string": "Just terrible, terrible pain and anger."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't know how you can live with it."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "Oh, I think you do, dearie. We all have"},
-            {"code": "ShowMessage_2", "string": "our own ways of dealing with our dark"},
-            {"code": "ShowMessage_2", "string": "little secrets."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "But what do we do now?"},
-            {"code": "ShowMessage_2", "string": "Where should we go?"},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "I know where you should not go:"},
-            {"code": "ShowMessage_2", "string": "the ruins of Surl are not for the"},
-            {"code": "ShowMessage_2", "string": "faint-hearted."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We can't just go back north! The Agency"},
             {
-              "code": "ShowMessage_2",
+              "code": 11030,
+              "indent": 0,
+              "parameters": [100, 100, 100, 100, 10, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Are you feeling better?"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Yeah... yeah, I'm all right. Just a little"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "dazed, I guess. Kind of dizzy..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's going on? What did you do"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to Talan?!"},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "elf2"},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Many, many years ago, I came across"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a band of survivors from the ruins of the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Kingdom of Surl."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "They were half-starved and close to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "death. They had struggled to survive"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in the wilderness during the years"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "following the destruction of Surl, but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "had descended almost to the level of"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "beasts."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "They were terribly sick, from all sorts of"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "diseases, and many had severe cases"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "of radiation poisoning."},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But there was one man who had"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "retained his sanity. He called himself"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the Keeper of Memories."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Somehow, the Keeper had the power"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to take the memories of others for his"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "own."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He had wandered all throughout the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "ruins of Surl, finding the survivors and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "absorbing their memories."
+            },
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 3, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Within his mind, the Keeper stored"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "all of the memories of Surl, so that when"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the final survivor died, the memory of"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the kingdom would live on within"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the Keeper's mind."},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But the Keeper was dying. He had"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "been present at the time Surl was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "destroyed, and although his sickness"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "was slower than it was for most,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "he did not have long to live, and"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Surl would die with him."},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He chose... no... I volunteered..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to receive the memories he had absorbed."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The memories of an entire kingdom."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He placed his fingertips on my forehead,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and I collapsed. I awoke sometime later,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with the Keeper dead beside me."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I had become the new Keeper of"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Memories, and by doing so, all memory"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of who I was before... vanished."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I lost my own history, but gained that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of a doomed nation. The survivors brought"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "me, still swooning, back to this place."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But what does this have to do with -"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's so lonely here - I wanted to see the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "things you've all seen, experience your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "experiences. I wanted to feel Hope."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Hope is something no one in Surl"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "possessed: only despair, fear, sadness,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and hatred. It is a heavy burden I bear."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I opened a Memory Pathway to Talan's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "mind, but he followed it BACK, to me..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "And in the split second before I was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "able to shut down the Pathway, he"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "glimpsed the entirety of my memory..."
+            },
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 0, 0, 1, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're lucky, Talan - if the Pathway"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "had remained open for any longer, your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "body might not have recovered as quickly."
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It was... overwhelming - so many voices!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Each one had its story to tell, and each"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "story was one of despair... it was horrible."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't remember any specifics, though."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Just terrible, terrible pain and anger."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't know how you can live with it."
+            },
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Oh, I think you do, dearie. We all have"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "our own ways of dealing with our dark"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "little secrets."},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "But what do we do now?"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Where should we go?"},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I know where you should not go:"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the ruins of Surl are not for the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "faint-hearted."},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We can't just go back north! The Agency"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "is probably still at... well, still on our trail..."
             },
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I think we should go west. The Agency"},
-            {"code": "ShowMessage_2", "string": "probably expects us to try and escape"},
-            {"code": "ShowMessage_2", "string": "through Surl to the south, and if we"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "go east, we're heading straight for"},
-            {"code": "ShowMessage_2", "string": "Prima City and the heart of the"},
-            {"code": "ShowMessage_2", "string": "Agency's power structure."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "There is a set of tunnels nearby that"},
-            {"code": "ShowMessage_2", "string": "may get you beyond the western"},
-            {"code": "ShowMessage_2", "string": "mountains."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "I'll show you the way first thing in"},
-            {"code": "ShowMessage_2", "string": "the morning. And Talan... I'm sorry"},
-            {"code": "ShowMessage_2", "string": "for intruding on your own memories."},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "It was good to share my story with"},
-            {"code": "ShowMessage_2", "string": "you all, though. I'm glad you came."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "(Crazy old woman.)"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I think we should go west. The Agency"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "probably expects us to try and escape"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "through Surl to the south, and if we"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "go east, we're heading straight for"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Prima City and the heart of the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Agency's power structure."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There is a set of tunnels nearby that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "may get you beyond the western"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "mountains."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll show you the way first thing in"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the morning. And Talan... I'm sorry"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for intruding on your own memories."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It was good to share my story with"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you all, though. I'm glad you came."
+            },
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 10, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "(Crazy old woman.)"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "(Well, she's certainly... eccentric...)"
             },
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "(That speech seemed prepared..."},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 388, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "(That speech seemed prepared..."
+            },
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "almost as if she was reading it off"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "the inside of her eyelids...)"},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ControlSwitches", "parameters": [0, 624, 624, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Teleport", "parameters": [235, 9, 13]}
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "the inside of her eyelids...)"
+            },
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 624, 624, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [235, 9, 13], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 82
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 82,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

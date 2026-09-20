@@ -49,7 +49,7 @@ llamada está mal).
 
 Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
-1. **los conversores puros**, un proyecto por responsabilidad: `tools/brr/` (muestras
+1. **los conversores puros**, un proyecto por responsabilidad: `tools/gunter/` (muestras
    → BRR, con el lector de SoundFont) y `tools/tiles/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
@@ -62,8 +62,9 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 4. **el compilador de eventos**: JSON → bytecode y tablas. No es Ditto y no
    puede serlo: Ditto es un transcodificador bidireccional y sin pérdida, y
    esto es un compilador unidireccional, con pérdida y atado a un target. Lo
-   que sí sale de acá es `tools/rpgmaker/lcf.py` + `tools/rpgmaker/ditto_schema.py` (2.793
-   líneas), que en Rust pasan a ser `use ditto`. Y `tools/rpgmaker/rm2k.py` —534 líneas
+   que sí sale de acá es `tools/rpgmaker/lcf.py`, que en Rust pasa a ser
+   `use ditto` —y ahí vuelven los nombres de los enums, que hoy `data/` no
+   trae—. Y `tools/rpgmaker/rm2k.py` —534 líneas
    de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
@@ -142,10 +143,19 @@ Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —
 un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
 en "Lo que la tanda no cubre".
 
-Los cuatro proyectos en Rust tienen sus propias tandas: `just brr-pruebas`,
+Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
 `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
-`demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
+**El justfile tiene una sola demo desde el 2026-09-20**: `just demo` arma
+`rom/build/abl/abl.sfc`, la cadena entera con pantalla de título, que es lo que
+taro juega. Con ella se fueron las cinco recetas que armaban ROMs para mirar
+algo a mano —`demo-vipers`, `demo-cofres`, `demo-trampa`, `demo-piedras` y
+`musica`—: lo que probaban ya lo cobra la tanda, y la regla es la misma que se
+llevó a `destraba` —lo que no es ni pipeline ni prueba no vive en el justfile—.
+Quedan `demo`, `demo-carrera` —que no comparte un solo mapa con la otra— y
+`msu`, que desde ese día no vuelve a renderizar la pista que no cambió.
+
+`abl` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
 point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
@@ -186,7 +196,7 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
     tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
-    tools/brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
+    tools/gunter/     Gunter: BRR y lector de SoundFont       enchufado: las muestras salen de acá
     tools/tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
@@ -298,7 +308,7 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `tools/brr/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
+2. ~~Enchufar `tools/gunter/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
    fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
    snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
 
@@ -457,7 +467,7 @@ se pueden empezar hoy.
    test no sepa armar nada.
 
    **Medido el 2026-09-17: la compresión no es lo que frena.** La unión que
-   pide la regla —los mapas de las pruebas más los de `demo-ciudad`— son 41.
+   pide la regla —los mapas de las pruebas más los de `abl`— son 41.
    Sin el 66 y el 261 (ver abajo), **los datos de los otros 39 entran**; lo que
    no entra es el **banco 0**, por 361 bytes, y la tabla más grande que el
    conversor pone ahí es `anim_tabla`, 16 bytes por mapa. Se reproduce con:
@@ -469,11 +479,13 @@ se pueden empezar hoy.
        python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/unico \
            -o rom/build/unico/unico.sfc
 
-   **Dos límites que el cartucho único destapa**, y que el juego entero va a
+   **Dos límites que el cartucho único destapó**, y que el juego entero va a
    pedir resolver igual: la ventana no entra en la VRAM de un mapa grande como
    el 66, y **la pantalla de ranuras junta las caras de todos los actores que
-   pueden estar en el grupo** —con el 66 se pasa por 28 tiles de 448—. Las dos
-   se arreglan subiendo cosas cuando hacen falta, no teniéndolas siempre.
+   pueden estar en el grupo** —con el 66 se pasaba por 28 tiles de 448—. El
+   segundo se destrabó el 2026-09-20 componiendo el texto del actor con
+   glifos: lo que crece por actor es la cara y nada más. El de la ventana
+   sigue, y se arregla subiendo cosas cuando hacen falta.
 
    Lo que sí frena, y es de diseño, son las opciones que hoy son **del
    cartucho entero** y las pruebas usan distintas:
@@ -483,7 +495,7 @@ se pueden empezar hoy.
      (`SIN_VENTANA` en `pruebas/conftest.py`). Con la ventana en todo el
      cartucho, el 66 no convierte.
    * **El grupo.** El mapa 261 se prueba con `--grupo 11`; con el de
-     `demo-ciudad` el actor 11 puede liderar, comparte paleta con un NPC del
+     `abl` el actor 11 puede liderar, comparte paleta con un NPC del
      mapa, y el conversor corta porque un destello los haría brillar a los
      dos. `--descartar-eventos` no lo cubre.
    * **Las páginas de prueba**: unos veinte flags del conversor —de
@@ -552,9 +564,10 @@ se pueden empezar hoy.
      teletransporte.
    * **`--descartar-eventos` se va**: los 14 cartuchos que lo usan salen byte
      por byte iguales sin él.
-   * **Lo que no entra en el cartucho único va en uno aparte**, chico: los
-     casos del actor 21 —con ellos la pantalla de ranuras junta 462 tiles de
-     448—, `--heroe-encima` y los dos rellenos de mensajes, que cuidan una
+   * **Lo que no entra en el cartucho único va en uno aparte**, chico:
+     entonces los casos del actor 21 —con ellos la pantalla de ranuras juntaba
+     462 tiles de 448; desde el 2026-09-20 entran y volvieron al de
+     pruebas—, `--heroe-encima` y los dos rellenos de mensajes, que cuidan una
      disposición del cartucho y no una imagen.
    * Encontrado midiendo, sin causa aislada: **después de un `Teleport` desde
      otro mapa, el cofre del caso `cofre` no aparece aunque la variable 123
@@ -626,8 +639,8 @@ se pueden empezar hoy.
      el save point, la apertura y el cartel. Llegar al 4 con un `Teleport` no
      es arrancar ahí —la cinemática sale con otra rampa y otro tinte—, y el
      cronómetro en todos los mapas le saca una paleta a cada uno;
-   * `chico`, lo que no entra o cuida una disposición del cartucho: el actor
-     21, **los casos con los actores 12 y 13 en el grupo** —decisión de taro:
+   * `chico`, lo que no entra o cuida una disposición del cartucho: **los
+     casos con los actores 12 y 13 en el grupo** —decisión de taro:
      en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
      `--heroe-encima`, los encuentros cada 8 pasos, el relleno de mensajes de
      33000 y el de textos de 200. **Las dos lluvias volvieron al de pruebas**
@@ -657,10 +670,10 @@ se pueden empezar hoy.
      eso es correcto —en RM2k el cronómetro va encima del tinte,
      `Priority_Timer` 140 contra `Priority_Screen` 90—; la lluvia va debajo
      —`Priority_Weather`, 80— así que no puede compartirla. `gotas_de_lluvia`
-     la saltea, como ya salteaba las ranuras de líder. **En `demo-ciudad` no
+     la saltea, como ya salteaba las ranuras de líder. **En `abl` no
      se veía**: los dígitos y las gotas comparten paleta en catorce de sus
      veintinueve mapas, pero no en el 1, que es donde llueve. Lo que cuesta,
-     medido: el mapa 18 de `demo-ciudad` se queda sin gotas por falta de
+     medido: el mapa 18 de `abl` se queda sin gotas por falta de
      paleta, y en el cartucho de pruebas no se pierde ninguno;
    * ~~**la lista "Use Item" de la pelea no dibuja los nombres**~~, y **no
      era de la ROM ni tenía que ver con el 255**: el índice se arma y se lee
@@ -668,7 +681,7 @@ se pueden empezar hoy.
      metía sus textos muertos delante de todos, y el nombre de un ítem no
      sale de una tabla sino de la cuenta `3k`. Descartado el 255 midiendo:
      con relleno 100 —nombres del 100 al 168— desaparecen los mismos 521
-     pixeles. En `demo-ciudad` tampoco se veía: 62 ítems son los textos 0 a
+     pixeles. En `abl` tampoco se veía: 62 ítems son los textos 0 a
      183, y lo que pasa del 255 son los términos de la batalla, que
      `ba_orden_txt` ya nombra con dos bytes;
    * **en el cartucho de pruebas la primera vuelta del lazo termina tres
@@ -732,7 +745,7 @@ se pueden empezar hoy.
    Mudarlos al juego golden es mover archivos y ponerles la condición.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
-   `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
+   `abl` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
    cartucho son gráficos, que es lo compresible, y descomprimir al cargar un
    mapa es la técnica de la consola. Ojo con medirlo mal: el `.sfc` entero da
    97% porque el millón de ceros de relleno comprime a nada, y el `mapdata.inc`
@@ -761,11 +774,13 @@ se pueden empezar hoy.
 **Las dos cadenas son independientes**: 5 → 6 es el acomodo de bancos, 7 → 8 es
 el reparto de paletas. Se pueden hacer en paralelo.
 
-**Lo que se decidió no hacer:** dejar de armar `demo-ciudad`. Es la misma
-receta que `demo-titulo` con `--con-titulo` de más, o sea un subconjunto, pero
-esta semana difirieron de verdad —el reporte del MSU-1 fue "la que tiene título
-no carga la música de alta calidad, la otra sí"— y `demo-ciudad` fue el control
-que permitió aislar que era el arranque con título. Cuesta un minuto.
+**Hecho el 2026-09-20, y al revés de lo que acá decía:** las dos demos son
+una sola, `abl`, siempre con pantalla de título. Lo que decía era que la ROM
+sin título valía como control, porque el reporte del MSU-1 fue "la que tiene
+título no carga la música de alta calidad, la otra sí" y ella permitió aislar
+que era el arranque con título. Sigue siendo cierto, y por eso el control se
+arma cuando hace falta —`--con-titulo` de menos en la receta— en vez de vivir
+en el justfile: taro juega una sola ROM, la completa.
 
 **Y un número que cierra una pregunta vieja:** un cartucho con todos los mapas
 es imposible. **29 mapas ocupan el 74,4% de los 4 MB** y el juego tiene 328.
@@ -790,6 +805,15 @@ para no volver a pensarlo:
 
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
 de cada una está en `README.md`.
+
+* **`data/` es la vista resuelta, y el volcado exacto no se versiona.** Del
+  2026-09-20: `ditto unpack` emite las dos en la misma corrida —`data/` con
+  todos los campos escritos y los enums en número, y `rom/build/ditto-exacto/`
+  con la forma del binario—, y `tools/rpgmaker/lcf.py` no sabe ninguna regla
+  del formato. Perder los nombres de `data/` es aceptado: vuelven el día que el
+  pipeline sea Rust y Ditto sea una lib. El porqué entero está en `DITTO.md`;
+  no versionar el exacto es lo que hace que la única fuente del binario sea el
+  juego, que es lo que `ditto pack` ya necesitaba tener al lado para comparar.
 
 * **Un caso largo en cero no prueba nada por sí solo.** El caso `talan` estuvo
   una vez en verde sin ejercitar nada —la página no compilaba, los dos lados no
@@ -934,7 +958,7 @@ de cada una está en `README.md`.
     el gráfico del héroe y después salta lo vuelve a poner en el comando
     siguiente al teletransporte.
 
-  Y lo que cuesta en el cartucho, medido sobre `demo-ciudad`: el gráfico al que
+  Y lo que cuesta en el cartucho, medido sobre `abl`: el gráfico al que
   una ruta cambia al héroe entra al **banco de sprites del mapa**, como el de
   cualquier evento. En el mapa 9 son dos más —`Future2:7` y `Future1:0`— y con
   ellos un evento dibujado con un tile del chipset pasa a colgarse de una
@@ -1044,7 +1068,7 @@ nombre del bug.
   **Hecho**: era `FullHeal` compilando a nada, y desde el 2026-09-19 es
   `OP_HEAL`. Lo cubre `pruebas/rpgmaker/test_curar.py`, con el camino entero
   —perder la pelea del mapa 9 y forzar un encuentro— corrido a mano con
-  `/extras/scratchpad/heal/historia.py` sobre `demo-titulo`. El `ChangeHP` que
+  `/extras/scratchpad/heal/historia.py` sobre la demo. El `ChangeHP` que
   suma entró en el mismo opcode; el que resta sigue sin compilar, y
   `ResetAfterBattles` tiene uno, así que **ese evento común sigue sin
   compilar**.
@@ -1079,7 +1103,7 @@ nombre del bug.
    **La ROM**: bajaron al banco 1 el equipo y la tienda, 3162 bytes, y el
    banco 0 pasó de 12 bytes libres a unos tres mil en el cartucho más
    apretado. Los números se miden, no se copian de acá: ver AGENTS.md, y ojo
-   con que **el que manda ya no es `demo-ciudad` sino `titulo`**.
+   con que **el que manda ya no es `abl` sino `titulo`**.
 
    Rindieron porque su frontera es mínima: tres entradas y dos puentes nuevos,
    porque los otros ocho ya estaban de cuando bajó la pelea. La trampa que
@@ -1166,8 +1190,8 @@ ya nadie discute no necesita renglón.
   hardware —bandas diagonales y formas—, así que **sus colores no valen**. El
   FX Pak contesta "no encuentro la pista" con nuestros archivos y todavía no se
   sabe por qué, siendo que la ROM del juego sí la encuentra.
-* **El MSU-1 de `demo-titulo`**. taro reportó que esa ROM no carga la música de
-  alta calidad y la otra sí. **En emulador las dos hacen exactamente lo mismo**,
+* **El MSU-1 con pantalla de título**. taro reportó que la ROM con título no
+  carga la música de alta calidad y la de sin sí. **En emulador las dos hacen exactamente lo mismo**,
   medido leyendo `MSU_HAY` y `MSU_SUENA` de la WRAM cuadro a cuadro, así que el
   defecto es de hardware solamente. El único candidato que produce ese síntoma:
   **bsnes no pone `AUDIO_BUSY` nunca** —`io.audioBusy` arranca en falso en
@@ -1228,6 +1252,25 @@ van a mover.
   contadores, y hoy la golden hornea lo que hace la ROM, así que la divergencia
   no existe como rojo. Si el paso de los tiles animados llegara a estar mal, lo
   dice el ojo y no la tanda. Los casos siguen mirando hasta el cuadro 40.
+
+* **Los ticks de pantalla corren después del intérprete y en RM2k corren
+  antes.** Al ordenar el cuadro como `Game_Map::Update` el 2026-09-20 —ver el
+  comentario del lazo en `main.s`— quedó afuera esto: el destello, la sacudida,
+  la cámara corrida, el cartel y la lluvia son `game_screen->Update()` y
+  `game_pictures->Update()`, que van en `game_map.cpp:1305`, o sea **antes** de
+  `UpdateForegroundEvents`, y acá van después. Ninguno decide si algo se mueve
+  ni cuándo, así que la diferencia es de un cuadro en lo que se ve; moverlos es
+  otro cambio y mueve sus goldens.
+
+* **Un movimiento bloqueado de una ruta forzada se saltea, y ahora hay una
+  golden que depende de eso.** Es una decisión de modelo vieja y declarada
+  —`tools/port/eventos.py`: RM2k reintentaría para siempre y una prueba colgada
+  no dice nada—, pero hasta el 2026-09-20 ninguna golden la ejercitaba. Con el
+  cuadro reordenado, la ruta del héroe de `droide-tapado` arranca un cuadro más
+  tarde, el paso hacia arriba cae justo cuando el droide ocupa la celda, y el
+  paso se pierde: el héroe termina una celda más abajo que antes y no hay tick
+  que empareje la captura —probado de -12 a +12—. La golden nueva congela eso.
+  Si algún día el bloqueo pasa a reintentarse, esas cinco se mueven.
 
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
   arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la
@@ -1716,7 +1759,7 @@ raíz, y cada `.py` fue a un paquete de Python de verdad, que se importa por su
 nombre (`from rpgmaker import lcf`). De abajo hacia arriba, y ninguna importa
 de una de más arriba:
 
-    rpgmaker/    lcf, ditto_schema, gen_ditto_schema, event_codes, rm2k
+    rpgmaker/    lcf, event_codes, rm2k
     comun/       cache_disco
     ensamblado/  bancos, ensamblar
     emulador/    retro, bsnes-wram.patch
@@ -1726,7 +1769,7 @@ de una de más arriba:
     port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
                  ventana, fuente, escena, animacion, asignador, tiles_bin,
                  snes_convert
-    ditto/, tiles/, brr/, protocol/   los proyectos de Rust
+    ditto/, tiles/, gunter/, protocol/   los proyectos de Rust
 
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
@@ -1735,10 +1778,20 @@ partirlo es trabajo de criterio. Ver `tools/README.md`.
 ## Una mejora de velocidad gratis que apareció midiendo
 
 La capa de encima llama a `tile_colors` **894.000 veces** —medido el
-2026-09-16 sobre `demo-ciudad` con `SIN_CACHE=1`— porque los colores de cada
+2026-09-16 sobre `abl` con `SIN_CACHE=1`— porque los colores de cada
 tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
+
+Y la de al lado, que el caché de muestras del 2026-09-20 **tapó en vez de
+arreglar**: el recorte de `snes_music.Banco` pide el banco de percusión,
+pregunta si entra, y si no entra vuelve a pedirlo con el presupuesto bajado un
+10%. Bajar de a un 10% hasta llegar a cero son unas ciento veinte vueltas, y
+por eso `build_drum_bank` se llama **790 veces** en una conversión de
+`abl` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
+sigue siendo una búsqueda lineal donde cabe una binaria, y hoy es lo que llena
+el caché de claves. Tocarlo cambia qué muestras salen, así que pide medir la
+ROM byte por byte; no es urgente.
 
 ## ~~La tanda en paralelo~~ hecho el 2026-09-19
 
@@ -1771,7 +1824,10 @@ sumado de todos los procesos:
 
 En frío, desde `rom/build/` vacío —sin el caché del conversor—, **7m26s en
 serie y 5m13s en paralelo**: los casi cinco minutos que quedan son armar los
-cinco cartuchos, que siguen en serie. **La memoria no limita**: el
+cinco cartuchos, que siguen en serie. **Ese número es del 2026-09-19 y quedó
+viejo por lo bajo**: al día siguiente el caché de muestras preparadas bajó
+`just cartuchos` de 4m46s a 2m08s, con el resto del caché caliente. Lo que
+tarda hoy lo dice el build. **La memoria no limita**: el
 `MemAvailable` nunca bajó de 44 GB, y ninguna corrida en primer plano la mató
 el reaper.
 
@@ -1805,9 +1861,13 @@ decida taro:
 
 * **`destraba`, `play` y `rom/Containerfile`**: decidido por taro el mismo día,
   se fueron.
-* **`tools/rpgmaker/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
-  sale `tools/rpgmaker/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
-  sin cómo regenerarse. Se quedó; una receta como `protocolo` lo haría visible.
+* **`tools/rpgmaker/gen_ditto_schema.py`** no lo corría ninguna receta y era de
+  donde salía `tools/rpgmaker/ditto_schema.py`, que sí es pipeline. Cerrado el
+  2026-09-20 dándolo vuelta: el esquema lo **publica Ditto** —`ditto schema`—
+  y Python lo leía; el generador se borró. Ese mismo día se cerró del todo:
+  `data/` pasó a ser la vista resuelta y el esquema dejó de tener un lector de
+  este lado, así que `ditto_schema.py`, su JSON, `just esquema` y
+  `test_esquema.py` se fueron también.
 * **`assets/medir.py`** se fue, y con él la forma de repetir los números de
   `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.
 * **Las cuatro esquinas de la cámara** y **el audio contra el MIDI** quedaron

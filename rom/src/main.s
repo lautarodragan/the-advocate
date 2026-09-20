@@ -1260,6 +1260,37 @@ loop:
     ; como RM2k: lo único que sigue corriendo es la música. Ver `fundido_tick`.
     jsr fundido_tick
     bne congelado
+    ; De acá abajo el cuadro sigue el orden de `Game_Map::Update`
+    ; —`game_map.cpp:1256-1318` de easyrpg—, y lo que manda es **dónde cae el
+    ; jugador**: allá `UpdateMapEvents` va antes de `game_player->Update()`
+    ; (`:1274` contra `:1288`) y `UpdateForegroundEvents` va después (`:1310`),
+    ; con `UpdateMessage` (`:1297`) y `UpdateTimers` (`:1304`) en el medio.
+    ;
+    ; Lo que **no** está en ese orden son los ticks de pantalla —el destello,
+    ; la sacudida, la cámara corrida, el cartel, la lluvia—: allá son
+    ; `game_screen->Update()` y `game_pictures->Update()` y van en `:1305`, o
+    ; sea antes del intérprete, y acá van después. Ninguno de ellos decide si
+    ; algo se mueve ni cuándo, así que la diferencia es de un cuadro en lo que
+    ; se ve y no en lo que pasa; moverlos es otro cambio, con sus goldens.
+    jsr eventos_de_mapa         ; `UpdateMapEvents`: refresco, automáticas y
+                                ; paralelos, **antes** del héroe
+    jsr animar_quietos          ; los que animan sin moverse, antes que las
+                                ; rutas: si una agarra a uno, gana la ranura
+    jsr mover_eventos           ; y las rutas forzadas de los eventos, que son
+                                ; la parte de `UpdateMapEvents` que camina
+                                ; —`Game_Character::Update()` desde
+                                ; `Game_Event::Update`, `game_event.cpp:608`—.
+                                ; Van acá y no después del intérprete para que
+                                ; un evento y el héroe arranquen la ruta que
+                                ; una página les acaba de poner en el mismo
+                                ; cuadro: los dos, en el que viene. Con el
+                                ; intérprete todavía arriba del héroe los dos
+                                ; arrancaban un cuadro antes y empataban; con
+                                ; él abajo, dejarlos acá abajo desempataba, y
+                                ; `parar-rutas` lo mostraba con el NPC
+                                ; adelantado un cuadro respecto del héroe.
+    jsr move_hero               ; `game_player->Update()`
+    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
     ; El cronómetro va **antes** del intérprete, que es donde lo pone
     ; `Game_Map::Update`: `UpdateTimers()` corre y recién después
     ; `UpdateForegroundEvents`. O sea que la página que lo arranca no se lleva
@@ -1270,15 +1301,14 @@ loop:
     ; costaba un cuadro perdido, y el cuadro perdido tapaba justo este uno de
     ; más. Los dos errores juntos daban cero.
     jsr timer_tick
+    ; `UpdateForegroundEvents`, **después** del héroe: lo que el paso recién
+    ; terminado encoló —un evento de contacto, un cofre, una trampa— arranca en
+    ; este mismo cuadro y no en el que viene. Estuvo arriba de `move_hero`
+    ; hasta el 2026-09-20, y eso le costaba un cuadro a todo contacto: el
+    ; barrido de la cola ya había pasado cuando `advance_step` la llenaba.
     jsr eventos_tick
-    jsr tinte_de_evento
-    jsr move_hero
-    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
-    jsr animar_quietos          ; los que animan sin moverse, antes que las
-                                ; rutas: si una agarra a uno, gana la ranura
-    jsr mover_eventos           ; y las rutas forzadas de los eventos, después
-                                ; del héroe y después del intérprete: el orden
-                                ; es el mismo que el de la referencia
+    jsr tinte_de_evento         ; el tinte que haya pedido el intérprete, pegado
+                                ; a él: si no, lo aplicaría un cuadro tarde
     jsr animacion_tick          ; la animación de batalla, antes que los
                                 ; destellos que dispara
     jsr animacion_dibujo_tick   ; y su dibujo, pegado: los dos avanzan el
@@ -1780,7 +1810,51 @@ nada:
     rts
 .endproc
 
-; Un cuadro del intérprete, desde el lazo principal.
+; Lo que en `Game_Map::Update` corre **antes** del jugador: el refresco
+; pendiente y `UpdateMapEvents` —`game_map.cpp:1259` y `:1274`, contra el
+; `game_player->Update()` de `:1288`—.
+;
+; Está partido de `eventos_tick` justamente por eso: el primer plano cae del
+; otro lado del héroe, y así lo que un paso encola se atiende en el mismo
+; cuadro. Ver el lazo principal.
+.proc eventos_de_mapa
+.a8
+.i16
+    ; El refresco pendiente, antes de todo: es cuando `Game_Map::Update` mira
+    ; `GetNeedRefresh`.
+    lda refresco
+    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
+    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
+    stz refresco
+    stz refresco_cuadro
+    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
+                                ; evento: la página activa cambió
+sin_refresco:
+    ; `Game_Event::CheckEventAutostart`, que cuelga de
+    ; `Game_Event::UpdateNextMovementAction` —`game_event.cpp:409`— y por eso
+    ; corre acá adentro: todo evento con una automática activa queda esperando,
+    ; una vez por cuadro y **antes** del intérprete. Marcarlo más tarde —al
+    ; terminar una página— le adelantaba un cuadro a las que se activan en
+    ; medio de otra.
+    ;
+    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
+    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
+    ; donde caía algo caro, como el tinte de `snes-pan`.
+    lda auto_n
+    beq sin_automaticas
+    jsr esperar_automaticas
+sin_automaticas:
+    ; Los paralelos, que es la otra mitad de `UpdateMapEvents`
+    ; —`game_event.cpp:590`—: corren antes del héroe, antes del mensaje y antes
+    ; del primer plano. O sea que un evento paralelo sigue corriendo con un
+    ; cuadro de texto abierto y con otra página en curso, que es justo para lo
+    ; que existe.
+    jmp paralelos_tick
+.endproc
+
+; Un cuadro del intérprete de primer plano, desde el lazo principal:
+; `Game_Map::UpdateForegroundEvents` —`game_map.cpp:1310`— con el
+; `UpdateMessage` de `:1297` pegado adelante.
 ;
 ; Acá estaba el cambio de fondo: antes `cargar_mapa` corría todas las páginas de
 ; una, con la pantalla apagada, y volvía con todo hecho. El tiempo quedaba
@@ -1793,35 +1867,6 @@ nada:
 .proc eventos_tick
 .a8
 .i16
-    ; El refresco pendiente, antes del intérprete: es cuando `Game_Map::Update`
-    ; mira `GetNeedRefresh`.
-    lda refresco
-    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
-    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
-    stz refresco
-    stz refresco_cuadro
-    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
-                                ; evento: la página activa cambió
-sin_refresco:
-    ; `Game_Event::CheckEventAutostart`: todo evento con una automática activa
-    ; queda esperando, una vez por cuadro y **antes** del intérprete, que es el
-    ; orden de `Game_Map::Update`. Marcarlo más tarde —al terminar una página—
-    ; le adelantaba un cuadro a las que se activan en medio de otra.
-    ;
-    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
-    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
-    ; donde caía algo caro, como el tinte de `snes-pan`.
-    lda auto_n
-    beq sin_automaticas
-    jsr esperar_automaticas
-sin_automaticas:
-    ; Los paralelos, **antes** del mensaje y antes de la espera del primer
-    ; plano: en `Game_Map::Update` el orden es refresco, `UpdateMapEvents`,
-    ; `game_player->Update()`, `UpdateMessage` y recién ahí
-    ; `UpdateForegroundEvents`. O sea que un evento paralelo sigue corriendo
-    ; con un cuadro de texto abierto y con otra página en curso, que es justo
-    ; para lo que existe.
-    jsr paralelos_tick
     rep #$20
 .a16
     lda ev_esperando
@@ -10946,8 +10991,8 @@ cargar_el_mapa:
     ; `BG1SC`, `BG2SC`, los scrolls y `TM` los escribe `ppu_init`, que hasta
     ; ahora corría una sola vez en el arranque porque nadie los tocaba después.
     ; Sin volver a llamarlo el juego arranca con el tilemap de BG1 apuntando al
-    ; del título —o sea todos los tiles corridos, que es lo que taro vio en
-    ; `demo-titulo`— y con `TM` en cero, que es la pantalla en negro con la
+    ; del título —o sea todos los tiles corridos, que es lo que taro vio
+    ; jugando la demo— y con `TM` en cero, que es la pantalla en negro con la
     ; lógica y la música corriendo detrás.
     ;
     ; **snes9x y la comparación de pixeles no lo vieron**, y por una razón que
@@ -11201,6 +11246,111 @@ fila:
     rts
 .endproc
 
+; --- el texto que depende del actor -----------------------------------------
+;
+; El nombre, el nivel y los HP máximos **no vienen horneados** en un bloque de
+; celdas por actor: se componen de a una letra por celda, con los glifos de
+; `ranura_glifo_celdas`. El porqué está en "lo que depende del actor" de
+; titulo.py y es el mismo que ya vale para el oro y para la pantalla de
+; ítems: el banco de tiles es uno solo y está deduplicado, así que un bloque
+; por actor lo hacía crecer con cada uno que pudiera estar en el grupo.
+
+; `msg_ptr` apuntando a una de las tiras del actor que trae A, corrida los X
+; bytes de `RANURA_TEXTO_NOMBRE`, `_NIVEL` o `_MAX`. Se lleva A y X, y **Y
+; queda como estaba**: el que llama la trae con la celda donde va a escribir.
+;
+; Usa `msg_ptr` de puntero por lo mismo que la pantalla de ítems: ninguna de
+; estas pantallas se abre con un mensaje en pantalla, así que el compositor no
+; lo tiene ocupado. Y tiene que ser él o alguno de la página directa, porque
+; `lda [dp], y` sólo direcciona ahí.
+.proc ranura_texto_de
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; RANURA_TEXTO_ANCHO bytes por actor
+    sta msg_ptr
+    txa
+    clc
+    adc msg_ptr
+    clc
+    adc #.loword(ranura_actor_texto)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^ranura_actor_texto
+    sta msg_ptr + 2
+    rts
+.endproc
+
+; Un texto del banco de las ranuras, de a una letra por celda: `msg_ptr` la
+; primera letra, Y la celda de arriba de la primera y A cuántas letras. Se
+; lleva A, X, `temp` y `temp + 2`, y **deja Y como estaba**: el que llama
+; escribe varias tiras de la misma fila corriéndola.
+;
+; Primero las celdas de arriba de todas las letras, que van seguidas en la
+; VRAM y aprovechan el autoincremento, y después las de abajo. Es
+; `texto_escribir` de la pantalla de ítems con la otra tabla de glifos: son
+; dos bancos distintos y cada uno tiene el suyo.
+.proc ranura_texto_escribir
+.a8
+.i16
+    sta temp                    ; cuántas letras
+    lda #$80
+    sta VMAIN
+    phy                         ; la celda, para la segunda pasada
+    rep #$20
+.a16
+    lda #0
+    sta temp + 2                ; las celdas de arriba
+    sty VMADDL
+    sep #$20
+.a8
+    jsr renglon
+    rep #$20
+.a16
+    lda 1, s                    ; la misma celda, que `renglon` se llevó Y
+    clc
+    adc #32                     ; y las de abajo, una fila más abajo
+    sta VMADDL
+    lda #2
+    sta temp + 2
+    sep #$20
+.a8
+    jsr renglon
+    ply
+    rts
+
+renglon:
+    ldy #0
+letra:
+    lda [msg_ptr], y
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #ITEM_PRIMER_CARACTER
+    asl a
+    asl a                       ; cuatro bytes por glifo
+    clc
+    adc temp + 2                ; la celda de arriba o la de abajo
+    tax
+    lda f:ranura_glifo_celdas, x
+    sta VMDATAL                 ; y la VRAM avanza una palabra
+    sep #$20
+.a8
+    iny
+    tya                         ; de a una letra: son menos de 256
+    cmp temp
+    bcc letra
+    rts
+.endproc
+
 ; El grupo de la partida de la ranura que está en `ranura`: las caras de los
 ; primeros RANURA_CARAS_MAX, y el nombre del primero. Es lo que
 ; `Window_SaveFile::Refresh` dibuja por archivo, menos los puntos de vida, que
@@ -11213,6 +11363,9 @@ fila:
 ; nombre lo dicen dos tablas del conversor, `ranura_cara_vram` y
 ; `ranura_nombre_vram`, como `ranura_vram` para las filas: la cuenta vive en
 ; un solo lado.
+;
+; La cara es un bloque horneado y el nombre y el nivel **no**: ésos se
+; componen con glifos, ver `ranura_texto_escribir`.
 ;
 ; El escritorio, que está justo: `temp` y `temp + 2` son del rectángulo,
 ; `temp + 3` guarda cuántos son, y **`titulo_flancos` hace de índice de
@@ -11281,23 +11434,16 @@ siguiente:
     inc titulo_flancos
     bra otro_miembro
 las_caras_listas:
-    ; El nombre del líder, que es el primero.
+    ; El nombre del líder, que es el primero, y su nivel: los dos compuestos
+    ; con glifos encima de la fila. `temp + 3` ya no hace falta, así que
+    ; `ranura_texto_escribir` puede usar `temp`.
     lda temp + 3
     beq listo                   ; un grupo vacío no tiene líder
     stz titulo_flancos
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
-    bcs listo
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda ranura_nombre_bloque, x
-    cmp #$FF
-    beq listo
-    pha
+    bcs listo                   ; un actor que esta ROM no conoce
+    pha                         ; el actor, para las dos tiras
     lda ranura
     rep #$20
 .a16
@@ -11305,21 +11451,30 @@ las_caras_listas:
     asl a
     tax
     lda ranura_nombre_vram, x
-    tay
-    lda #(RANURA_NOMBRE_COLS * 2)
-    sta temp
+    tay                         ; la celda del nombre
     sep #$20
 .a8
-    lda #RANURA_NOMBRE_FILAS
-    sta temp + 2
     pla
+    pha
+    ldx #RANURA_TEXTO_NOMBRE
+    jsr ranura_texto_de
+    lda #RANURA_NOMBRE_COLS
+    jsr ranura_texto_escribir
+    ; Y el nivel, que cae unas celdas más abajo de la misma fila. Y quedó
+    ; donde estaba: `ranura_texto_escribir` la conserva.
     rep #$20
 .a16
-    and #$00FF
-    tax
+    tya
+    clc
+    adc #RANURA_NIVEL_DESPL
+    tay
     sep #$20
 .a8
-    jsr ranura_rect_subir
+    pla
+    ldx #RANURA_TEXTO_NIVEL
+    jsr ranura_texto_de
+    lda #RANURA_NIVEL_CIFRAS
+    jsr ranura_texto_escribir
 listo:
     rts
 
@@ -11952,13 +12107,13 @@ dividir:
     asl a
     asl a
     tax
-    lda menu_cifra_celdas, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda menu_cifra_celdas + 2, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
     dey
     lda temp                    ; ¿queda algo?
@@ -12051,8 +12206,20 @@ otra_opcion:
     rts
 .endproc
 
-; El grupo, de a una fila por actor: cara, nombre, nivel, estado y HP. Lo
-; comparten el menú y la elección de actor.
+; El grupo, de a una fila por actor: el bloque fijo de la fila, la cara, y
+; encima el nombre, el nivel, los HP de ahora y el máximo. Lo comparten el
+; menú y la elección de actor.
+;
+; **El bloque es uno solo para las cuatro filas y para todos los actores**:
+; lleva el término del nivel, el estado y el de los HP, que no dependen de
+; nadie. Lo que sí depende del actor —su nombre, su nivel y su máximo— se
+; compone con glifos, y eso es lo que hace que el banco de tiles no crezca
+; con la cantidad de actores; ver `ranura_texto_escribir`.
+;
+; La fila se queda en la pila toda la vuelta y cada paso vuelve a sacar de
+; ella la celda y el actor en vez de guardarlos: la página directa está llena
+; —`temp` y `temp + 2` los usan las dos rutinas que escriben— y cada paso
+; corre una vez por fila, con el PPU apagado.
 .proc menu_grupo_pintar
 .a8
 .i16
@@ -12061,53 +12228,133 @@ otro_miembro:
     cmp grupo_n
     bcs grupo_listo
     cmp #MENU_FILAS_GRUPO
-    bcs grupo_listo
-    pha
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda grupo, x                ; el actor
+    bcc entra
+grupo_listo:
+    rts
+entra:
+    pha                         ; la fila, hasta el final de la vuelta
+    jsr actor_de
     cmp #MENU_ACTORES_N
-    bcs sin_bloque              ; uno que esta ROM no conoce
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda menu_actor_bloque, x
-    cmp #$FF
-    beq sin_bloque
-    sta temp + 3
+    bcc conocido
+    jmp siguiente               ; uno que esta ROM no conoce
+conocido:
+
+    ; --- el bloque fijo de la fila ---
     pla
     pha
+    jsr fila_vram
+    lda #(MENU_ACTOR_COLS * 2)
+    sta temp
+    lda #MENU_ACTOR_FILAS
+    sta temp + 2
+    ldx #MENU_BLQ_FILA
+    jsr ranura_rect_subir
+
+    ; --- la cara, en la esquina de arriba a la izquierda de la fila ---
+    pla
+    pha
+    jsr fila_vram
+    pla
+    pha
+    jsr actor_de
     rep #$20
 .a16
     and #$00FF
-    asl a
     tax
-    lda menu_fila_vram, x
-    tay
-    lda temp + 3
-    and #$00FF
-    tax
-    lda #(MENU_ACTOR_COLS * 2)
-    sta temp
     sep #$20
 .a8
-    lda #MENU_ACTOR_FILAS
+    lda ranura_cara_bloque, x
+    cmp #$FF
+    beq sin_cara
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #(MENU_CARA_CELDAS * 2)
+    sta temp
+    lda #MENU_CARA_CELDAS
     sta temp + 2
     jsr ranura_rect_subir
-    ; Y los HP de ahora encima del bloque, que no los trae: el bloque se
-    ; hornea al convertir. El actor se vuelve a buscar en `grupo` en vez de
-    ; guardarlo, porque los dos bytes que sobraban de `temp` los usa
-    ; `ranura_rect_subir`.
+sin_cara:
+
+    ; --- el nombre ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_NOMBRE_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_NOMBRE
+    jsr ranura_texto_de
+    lda #MENU_NOMBRE_COLS
+    jsr ranura_texto_escribir
+
+    ; --- el nivel ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_NIVEL_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_NIVEL
+    jsr ranura_texto_de
+    lda #RANURA_NIVEL_CIFRAS
+    jsr ranura_texto_escribir
+
+    ; --- el máximo, detrás de la barra ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_MAX_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_MAX
+    jsr ranura_texto_de
+    lda #MENU_MAX_CIFRAS
+    jsr ranura_texto_escribir
+
+    ; --- y los HP de ahora, que no son texto del cartucho sino estado ---
     pla
     pha
     sta temp + 2                ; la fila
+    jsr actor_de
+    sta temp                    ; el actor
+    jsl f:menu_hp_escribir
+siguiente:
+    pla
+    inc a
+    jmp otro_miembro
+
+; El actor de la fila que trae A, y la celda donde arranca esa fila en el
+; tilemap. Las dos se vuelven a preguntar en cada paso; ver el comentario de
+; arriba.
+actor_de:
     rep #$20
 .a16
     and #$00FF
@@ -12115,13 +12362,18 @@ otro_miembro:
     sep #$20
 .a8
     lda grupo, x
-    sta temp                    ; el actor
-    jsl f:menu_hp_escribir
-sin_bloque:
-    pla
-    inc a
-    bra otro_miembro
-grupo_listo:
+    rts
+
+fila_vram:
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por entrada
+    tax
+    lda menu_fila_vram, x
+    tay
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -13273,7 +13525,8 @@ listo:
     ; break;`—, así que un `PlayBGM` que llega mientras la pista anterior
     ; todavía se está abriendo se pierde entero. Acá pasa de verdad: con
     ; pantalla de título hay dos pistas pedidas con 1,8 s de diferencia —la del
-    ; título y la de la apertura—, y en `demo-ciudad` la primera es la única.
+    ; título y la de la apertura—, y sin pantalla de título la primera es la
+    ; única.
     ;
     ; La pista se guarda en Y mientras tanto: la espera usa X.
     tay
@@ -18867,7 +19120,7 @@ TEXTO_OFS_Y = 2
 ; que es lo que ya sabían `ptr_mas` y `msg_empezar`.
 ;
 ; No es teórico y no bastaba con arreglar `msg_empezar`: el bloque de textos de
-; `demo-ciudad` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
+; `abl` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
 ; encima del borde** empieza bien y sigue leyendo basura. Es la cinemática de
 ; los Neon Vipers del mapa 14: de la basura salía un largo de renglón de 76
 ; caracteres y con él la pantalla hecha basura, por el camino que el tope de
@@ -18899,7 +19152,7 @@ listo:
 .i16
     ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
     ; hasta 64 KB, o sea **más que la ventana de un banco de LoROM**: con los
-    ; 29 mapas de `demo-ciudad` son 48972 bytes y arranca en $46:8000, así que
+    ; 29 mapas de `abl` son 48972 bytes y arranca en $46:8000, así que
     ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
     ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
     ; que ya sabía `ptr_mas` para la grilla del mapa; acá se sumaba de a
@@ -23326,8 +23579,7 @@ hdma_mascara:
 ;
 ; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
 ; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
+; la regla de RM2k.
 pass_salir:
     .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
 pass_entrar:
@@ -23608,7 +23860,7 @@ listo:
 ; reportó jugando —"en el menú siempre se muestra en 40", que es el máximo de
 ; Talan—. El máximo y la barra siguen horneados, que ésos no cambian.
 ;
-; Las cifras son las mismas celdas que el oro —`menu_cifra_celdas`, una por
+; Las cifras son los mismos glifos que el oro —`ranura_glifo_celdas`, una por
 ; celda— y caen alineadas sin tocar nada porque las dos líneas se dibujan a
 ; dos pixeles del borde de arriba de su celda. `titulo._pegar_hp` es la
 ; referencia, con las mismas columnas.
@@ -23679,13 +23931,13 @@ cifra:
     asl a                       ; dos palabras por cifra
     tax
     sty VMADDL
-    lda menu_cifra_celdas, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
     sta VMDATAL
     tya
     clc
     adc #32                     ; la celda de abajo
     sta VMADDL
-    lda menu_cifra_celdas + 2, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
     sep #$20
 .a8
@@ -26135,7 +26387,7 @@ sin_cursor_orden:
     cmp #BA_ORDEN_HABILIDAD
     beq texto_de_la_habilidad
     ; **De dos bytes**, como `actor_hab_txt` y `enemigo_txt`: el índice de un
-    ; texto no entra en uno. Con los 29 mapas de `demo-ciudad` los textos de la
+    ; texto no entra en uno. Con los 29 mapas de `abl` los textos de la
     ; batalla arrancan en el 273, así que la tabla de un byte que estaba acá
     ; hasta el 2026-09-14 los truncaba a 17, 18, 19 y 32, que son renglones de
     ; la descripción de un ítem: el menú dibujaba cuatro textos largos, uno
@@ -27806,7 +28058,7 @@ nada:
 ; --- el banco de la pantalla, también fuera del banco 0 ---------------------
 ;
 ; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis
-; bytes que el banco 0 ya no tenía: `demo-ciudad` quedaba en 32748 de 32704, y
+; bytes que el banco 0 ya no tenía: `abl` quedaba en 32748 de 32704, y
 ; antes de eso le sobraban **dos**. Ésta es la que sale más barata de mudar de
 ; todo lo que mide más de cien bytes: no llama a nadie —son escrituras de
 ; registro y cuatro DMA— así que no hace falta ningún puente, y no corre por

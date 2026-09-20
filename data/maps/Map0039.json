@@ -6,30 +6,63 @@
       "name": "EV0001",
       "pages": [
         {
-          "condition": {"switch_a_id": 24},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "A quick nap to restore my strength?"},
-            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
-            {"code": "ShowInn", "indent": 1, "parameters": [0, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Refreshing!"},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "A quick nap to restore my strength?"
+            },
+            {"code": 10140, "indent": 0, "parameters": [2], "string": "Yes/No"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "Yes"},
+            {"code": 10730, "indent": 1, "parameters": [0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Refreshing!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 0, "parameters": [1], "string": "No"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I shouldn't hang around here for too"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "long... just in case!"},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "long... just in case!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -39,7 +72,40 @@
       "id": 2,
       "name": "TalDoorBottom",
       "pages": [
-        {"character_index": 117, "id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 117,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 9,
       "y": 13
@@ -49,8 +115,13 @@
       "name": "TalDoorTop",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 111,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -59,26 +130,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 151
+            "item_id": 1,
+            "switch_a_id": 151,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [90, 100, 50], "string": "Open2"},
-            {"code": "ChangeEventLocation", "parameters": [2, 0, 8, 13]},
-            {"code": "ChangeEventLocation", "parameters": [3, 0, 8, 12]},
-            {"code": "Wait", "parameters": [4]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "Teleport", "parameters": [37, 10, 31]},
-            {"code": "ChangeEventLocation", "parameters": [2, 0, 9, 13]},
-            {"code": "ChangeEventLocation", "parameters": [3, 0, 9, 12]}
+            {"code": 11550, "indent": 0, "parameters": [90, 100, 50], "string": "Open2"},
+            {"code": 10860, "indent": 0, "parameters": [2, 0, 8, 13], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [3, 0, 8, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [4], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [37, 10, 31], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [2, 0, 9, 13], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [3, 0, 9, 12], "string": ""}
           ],
           "id": 1,
-          "layer": "above",
-          "move_type": "stationary"
+          "layer": 2,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 111,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -87,17 +174,43 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 153
+            "item_id": 1,
+            "switch_a_id": 153,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I should check and see if the vidcasts"},
-            {"code": "ShowMessage_2", "string": "have any information about the"},
-            {"code": "ShowMessage_2", "string": "assassination of the Director."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I should check and see if the vidcasts"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have any information about the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "assassination of the Director."
+            }
           ],
           "id": 2,
-          "layer": "above",
-          "move_type": "stationary"
+          "layer": 2,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -108,30 +221,63 @@
       "name": "EV0004",
       "pages": [
         {
-          "condition": {"switch_a_id": 24},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "A quick nap to restore my strength?"},
-            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
-            {"code": "ShowInn", "indent": 1, "parameters": [0, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Refreshing!"},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "A quick nap to restore my strength?"
+            },
+            {"code": 10140, "indent": 0, "parameters": [2], "string": "Yes/No"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "Yes"},
+            {"code": 10730, "indent": 1, "parameters": [0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Refreshing!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 0, "parameters": [1], "string": "No"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I shouldn't hang around here for too"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "long... just in case!"},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "long... just in case!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -142,39 +288,97 @@
       "name": "EV0005",
       "pages": [
         {
-          "condition": {"switch_a_id": 24},
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I wonder if the vidcasts have news of"},
-            {"code": "ShowMessage_2", "string": "the Director's assassination yet..."},
-            {"code": "PlaySound", "parameters": [60, 80, 50], "string": "Key"},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "PlaySound", "parameters": [60, 130, 50], "string": "Sand Storm"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [60, 130, 50], "string": "Sand Storm"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [60, 130, 50], "string": "Sand Storm"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "This computer is so cheap, the news"},
-            {"code": "ShowMessage_2", "string": "is barely coming in..."},
-            {"code": "PlaySound", "parameters": [60, 130, 50], "string": "Sand Storm"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [60, 80, 50], "string": "Key"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I bet my neighbor could get the vidcasts."},
-            {"code": "ShowMessage_2", "string": "He's got a massive antenna, after all."},
-            {"code": "ControlSwitches", "parameters": [0, 153, 153, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 151, 151, 0]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I wonder if the vidcasts have news of"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Director's assassination yet..."
+            },
+            {"code": 11550, "indent": 0, "parameters": [60, 80, 50], "string": "Key"},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [60, 130, 50], "string": "Sand Storm"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [60, 130, 50], "string": "Sand Storm"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [60, 130, 50], "string": "Sand Storm"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This computer is so cheap, the news"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "is barely coming in..."},
+            {"code": 11550, "indent": 0, "parameters": [60, 130, 50], "string": "Sand Storm"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [60, 80, 50], "string": "Key"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I bet my neighbor could get the vidcasts."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He's got a massive antenna, after all."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 153, 153, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 151, 151, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -183,19 +387,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 151
+            "item_id": 1,
+            "switch_a_id": 151,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's useless. My computer is a worthless"},
-            {"code": "ShowMessage_2", "string": "piece of junk. I won't be able to get any"},
-            {"code": "ShowMessage_2", "string": "information from it."},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]}
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's useless. My computer is a worthless"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "piece of junk. I won't be able to get any"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "information from it."},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""}
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -206,51 +431,96 @@
       "name": "EV0006",
       "pages": [
         {
-          "condition": {"switch_a_id": 24},
-          "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's my Insta-Shave Unit, complete with"},
-            {"code": "ShowMessage_2", "string": "Teeth-Cleaning Module and deodorant"},
-            {"code": "ShowMessage_2", "string": "spray."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Should I use it?"},
-            {"code": "ShowChoice", "parameters": [2], "string": "Yes/No"},
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "Yes"},
-            {"code": "PlaySound", "indent": 1, "parameters": [60, 100, 50], "string": "Cold9"},
-            {"code": "PlaySound", "indent": 1, "parameters": [60, 100, 50], "string": "Cold3"},
-            {
-              "code": "PlaySound",
-              "indent": 1,
-              "parameters": [60, 100, 50],
-              "string": "Explosion5"
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "PlaySound", "indent": 1, "parameters": [60, 100, 50], "string": "Holy6"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's my Insta-Shave Unit, complete with"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Teeth-Cleaning Module and deodorant"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "spray."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Should I use it?"},
+            {"code": 10140, "indent": 0, "parameters": [2], "string": "Yes/No"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "Yes"},
+            {"code": 11550, "indent": 1, "parameters": [60, 100, 50], "string": "Cold9"},
+            {"code": 11550, "indent": 1, "parameters": [60, 100, 50], "string": "Cold3"},
+            {"code": 11550, "indent": 1, "parameters": [60, 100, 50], "string": "Explosion5"},
+            {"code": 11550, "indent": 1, "parameters": [60, 100, 50], "string": "Holy6"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Maybe I'll be less recognizable now."
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "But I wasn't THAT scruffy..."},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 157, 157, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceOption", "parameters": [1], "string": "No"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "But I wasn't THAT scruffy..."
+            },
+            {"code": 10210, "indent": 1, "parameters": [0, 157, 157, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 0, "parameters": [1], "string": "No"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I've got more important things to"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "worry about!"},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "worry about!"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -259,20 +529,47 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 25
+            "item_id": 1,
+            "switch_a_id": 25,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I've already used my Insta-Shave today!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get razor burn!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've already used my Insta-Shave today!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get razor burn!"
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -281,17 +578,38 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 157
+            "item_id": 1,
+            "switch_a_id": 157,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I've already used my Insta-Shave today!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't want to get razor burn!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've already used my Insta-Shave today!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to get razor burn!"
+            }
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 6,
@@ -302,7 +620,13 @@
       "name": "EV0007",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -311,15 +635,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 24
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "These pipes are as ugly as ever."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "These pipes are as ugly as ever."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 3,
@@ -330,7 +670,13 @@
       "name": "EV0008",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -339,15 +685,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 24
+            "item_id": 1,
+            "switch_a_id": 24,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "These pipes are as ugly as ever."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "These pipes are as ugly as ever."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 3,
@@ -358,7 +720,13 @@
       "name": "EV0009",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -367,21 +735,43 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ARDEN"},
-            {"code": "ShowMessage_2", "string": "So this is home, huh?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Well... it's where I live."},
-            {"code": "ControlSwitches", "parameters": [0, 154, 154, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "So this is home, huh?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well... it's where I live."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 154, 154, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -390,21 +780,48 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 56
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "SALDRA"},
-            {"code": "ShowMessage_2", "string": "What a dump! This is your home?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Well... it's where I live."},
-            {"code": "ControlSwitches", "parameters": [0, 154, 154, 0]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SALDRA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What a dump! This is your home?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well... it's where I live."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 154, 154, 0], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -413,14 +830,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 154
+            "item_id": 1,
+            "switch_a_id": 154,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     }
   ],
-  "save_count": 172
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 172,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

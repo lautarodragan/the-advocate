@@ -16,7 +16,7 @@
 //!
 //! # What it emits
 //!
-//! Three things, and all three come from the CSV and from no judgement of
+//! Four things, and all four come from the CSV and from no judgement of
 //! ours:
 //!
 //! * the **structs** and the **enums**, with liblcf's names;
@@ -26,7 +26,11 @@
 //!   the `Default` from there, and the struct's `#[serde(default)]` uses it
 //!   for JSON;
 //! * the **codec**: which field is which chunk, how it is encoded, and whether
-//!   it is emitted when it holds the default (the `PersistIfDefault` column).
+//!   it is emitted when it holds the default (the `PersistIfDefault` column);
+//! * the **description** —`src/schema/description.rs`—, which is the same
+//!   thing as data, for `ditto schema` to hand to a reader that is not Rust.
+//!   It is emitted here and not read back out of the generated structs so
+//!   that the two cannot say different things.
 //!
 //! What is **not** generated are the six structs liblcf reads by hand
 //! (`RawStruct`): `Parameters`, `Equipment`, `Rect`, `EventCommand`,
@@ -125,8 +129,9 @@ fn main() {
             "/// Generated from `constants.csv`.\n#[allow(non_upper_case_globals)]\npub const {name}: i32 = {value};\n\n"
         ));
     }
+    let mut enum_names: BTreeMap<String, Vec<(String, i64)>> = BTreeMap::new();
     for (name, variants) in &enums {
-        emit_enum(&mut text, name, variants);
+        enum_names.insert(name.clone(), emit_enum(&mut text, name, variants));
     }
     for (structure, fields) in &flags {
         emit_flags(&mut text, structure, fields);
@@ -153,13 +158,30 @@ fn main() {
     fs::create_dir_all(&out_dir).expect("could not create the output directory");
     let target = out_dir.join("mod.rs");
     fs::write(&target, text).expect("could not write the schema");
+
+    // The same pass writes the description, on purpose: it says the same
+    // things the structs above say —the chunk, the default, the enum— and
+    // the only way for the two not to drift is for one run to write both.
+    let mut desc = String::new();
+    emit_description(
+        &mut desc,
+        &by_structure,
+        &enums,
+        &enum_names,
+        &structs,
+        &constants,
+    );
+    let desc_target = out_dir.join("description.rs");
+    fs::write(&desc_target, desc).expect("could not write the description");
+
     println!(
-        "{} structures ({} with codec), {} enums and {} flag sets -> {}",
+        "{} structures ({} with codec), {} enums and {} flag sets -> {}, {}",
         by_structure.len(),
         with_codec,
         enums.len(),
         flags.len(),
-        target.display()
+        target.display(),
+        desc_target.display()
     );
 }
 
@@ -183,6 +205,8 @@ fn header(out: &mut String) {
          //! `crate::lcf::schema_struct`.\n\
          \n\
          #![allow(dead_code, unused_variables, clippy::all)]\n\
+         \n\
+         pub mod description;\n\
          \n\
          use crate::lcf::*;\n\
          use serde::{Deserialize, Serialize};\n\n",
@@ -429,17 +453,26 @@ fn rust_type(e: &Enc) -> String {
 
 // --- Emission -------------------------------------------------------------
 
-fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) {
+/// Emits the enum and returns the variants that made it in, by the name they
+/// carry in the JSON. The caller needs them for `description.rs`: an enum value
+/// travels as that name, so whoever reads the JSON needs the same table, and
+/// building it twice is how it would drift.
+fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(String, i64)> {
     // `Other` is what keeps the round trip from depending on liblcf knowing
     // every value: a number the table does not name is stored as a number and
     // comes back the same.
+    // `Serialize` is **not** in the derive list: an enum goes into the JSON as
+    // its name in the exact dump and as its number in the resolved view, and
+    // that choice is `lcf::serialize_enum`'s. `Deserialize` is derived, and it
+    // is the `#[serde(rename)]` below that it reads.
     out.push_str(&format!(
         "/// Generated from `enums.csv`.\n\
-         #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]\n\
+         #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]\n\
          pub enum {name} {{\n"
     ));
     let mut seen = BTreeSet::new();
     let mut usable: Vec<(String, i64)> = Vec::new();
+    let mut json_names: Vec<(String, i64)> = Vec::new();
     for (variant, value) in variants {
         let id = type_ident(variant);
         if !seen.insert(id.clone()) {
@@ -448,6 +481,7 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) {
         out.push_str(&format!("    #[serde(rename = \"{variant}\")]\n"));
         out.push_str(&format!("    {id},\n"));
         usable.push((id, *value));
+        json_names.push((variant.clone(), *value));
     }
     out.push_str("    /// A value `enums.csv` does not name. It goes back to the binary as is.\n");
     out.push_str("    Other(i32),\n}\n\n");
@@ -470,7 +504,27 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) {
         out.push_str(&format!("            {value} => {name}::{id},\n"));
     }
     out.push_str(&format!(
-        "            v => {name}::Other(v),\n        }}\n    }}\n}}\n\n"
+        "            v => {name}::Other(v),\n        }}\n    }}\n"
+    ));
+    out.push_str(
+        "    /// The name `enums.csv` gives this value, and `None` for one it\n\
+         \x20   /// does not name.\n\
+         \x20   pub fn json_name(self) -> Option<&'static str> {\n        match self {\n",
+    );
+    for ((id, _), (variant, _)) in usable.iter().zip(json_names.iter()) {
+        out.push_str(&format!(
+            "            {name}::{id} => Some(\"{variant}\"),\n"
+        ));
+    }
+    out.push_str(&format!(
+        "            {name}::Other(_) => None,\n        }}\n    }}\n}}\n\n"
+    ));
+
+    out.push_str(&format!(
+        "impl serde::Serialize for {name} {{\n    \
+         fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {{\n        \
+         serialize_enum(\"{name}\", self.json_name(), self.to_i32(), s)\n    \
+         }}\n}}\n\n"
     ));
 
     if let Some((first, _)) = usable.first() {
@@ -478,6 +532,7 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) {
             "impl Default for {name} {{\n    fn default() -> Self {{ {name}::{first} }}\n}}\n\n"
         ));
     }
+    json_names
 }
 
 /// A `*_Flags` field is a bitfield: `flags.csv` gives the order of the bits and
@@ -899,4 +954,260 @@ fn field_ident(s: &str) -> String {
         }
         _ => clean,
     }
+}
+
+// --- The description ------------------------------------------------------
+
+/// Emits `description.rs`: the same schema, as data one can hand to someone
+/// who is not Rust.
+///
+/// Why it exists: the JSON Ditto writes **omits every field holding its
+/// default** and stores enums **by name**, so reading that JSON without the
+/// defaults and the enum tables is reading it wrong. Whoever reads it needs
+/// them, and the one that has them is this generator. Published here they are
+/// data; scraped out of the generated Rust —which is how it used to be done—
+/// they are a guess about someone else's source code.
+fn emit_description(
+    out: &mut String,
+    by_structure: &BTreeMap<&str, Vec<&Field>>,
+    enums: &BTreeMap<String, Vec<(String, i64)>>,
+    enum_names: &BTreeMap<String, Vec<(String, i64)>>,
+    structs: &[StructDef],
+    constants: &[(String, String)],
+) {
+    let consts = constant_values(constants);
+    let known: BTreeSet<String> = by_structure.keys().map(|s| type_ident(s)).collect();
+
+    out.push_str(
+        "//! The schema as data: what `ditto schema` writes out.\n\
+         //!\n\
+         //! **Generated by `cargo xtask generate`, and committed on purpose**,\n\
+         //! in the same run that writes `mod.rs` so that the two cannot drift.\n\
+         //! It is not edited by hand.\n\
+         //!\n\
+         //! Each field carries what a reader of the JSON needs and cannot see\n\
+         //! in the JSON itself: the chunk it is in the binary, the default it\n\
+         //! holds when it is absent, the enum whose names its values are, and\n\
+         //! the struct it nests.\n\
+         \n\
+         #![allow(dead_code)]\n\
+         \n\
+         /// A field of a schema struct.\n\
+         pub struct FieldDesc {\n\
+         \x20   pub name: &'static str,\n\
+         \x20   /// Its chunk in the binary. `None` for `id`, which the array\n\
+         \x20   /// carries in front of the element instead of in a chunk.\n\
+         \x20   pub chunk: Option<u32>,\n\
+         \x20   /// What the field holds when the JSON leaves it out, as JSON\n\
+         \x20   /// itself. `None` means the default of the type: an empty list,\n\
+         \x20   /// or a struct all in default.\n\
+         \x20   pub default: Option<&'static str>,\n\
+         \x20   /// The enum its value is a name of, if it is one.\n\
+         \x20   pub enumeration: Option<&'static str>,\n\
+         \x20   /// `PersistIfDefault`: the binary writes this chunk even when it\n\
+         \x20   /// holds the default. The JSON omits it like any other, and that\n\
+         \x20   /// is the only difference in presence between the two.\n\
+         \x20   pub persist: bool,\n\
+         \x20   /// The struct it carries inside, one or a list of them.\n\
+         \x20   pub nested: Option<&'static str>,\n\
+         }\n\
+         \n\
+         /// Every struct of the schema, with its fields in the order of the\n\
+         /// chunks.\n\
+         pub static STRUCTS: &[(&str, &[FieldDesc])] = &[\n",
+    );
+    for (structure, fields) in by_structure {
+        let name = type_ident(structure);
+        let with_id = structs.iter().any(|s| &s.name == structure && s.with_id);
+        out.push_str(&format!("    (\"{name}\", &[\n"));
+        if with_id {
+            out.push_str(
+                "        FieldDesc { name: \"id\", chunk: None, default: Some(\"0\"), \
+                 enumeration: None, persist: false, nested: None },\n",
+            );
+        }
+        for c in visible(fields) {
+            let e = enc(&c.ty, enums, &enum_name(c, enums));
+            let field = field_ident(&c.name).replace("r#", "");
+            let default = match json_default(&c.default, &e, &consts, enum_names) {
+                Some(v) => format!("Some({v:?})"),
+                None => "None".to_string(),
+            };
+            let enumeration = match &e {
+                Enc::Enum(n) => format!("Some({n:?})"),
+                _ => "None".to_string(),
+            };
+            let nested = match nested_struct(&e) {
+                Some(n) if known.contains(&n) => format!("Some({n:?})"),
+                _ => "None".to_string(),
+            };
+            out.push_str(&format!(
+                "        FieldDesc {{ name: {field:?}, chunk: Some({:#04x}), \
+                 default: {default}, enumeration: {enumeration}, persist: {}, \
+                 nested: {nested} }},\n",
+                c.index, c.persist
+            ));
+        }
+        out.push_str("    ]),\n");
+    }
+    out.push_str("];\n\n");
+
+    out.push_str(
+        "/// Every enum, by the name each value travels under in the JSON.\n\
+         pub static ENUMS: &[(&str, &[(&str, i32)])] = &[\n",
+    );
+    for (name, variants) in enum_names {
+        out.push_str(&format!("    (\"{name}\", &[\n"));
+        for (variant, value) in variants {
+            out.push_str(&format!("        ({variant:?}, {value}),\n"));
+        }
+        out.push_str("    ]),\n");
+    }
+    out.push_str("];\n");
+}
+
+/// The struct a field carries inside, if it carries one.
+fn nested_struct(e: &Enc) -> Option<String> {
+    match e {
+        Enc::Struct(n) | Enc::Raw(n) | Enc::Array(n) => Some(n.clone()),
+        Enc::EventCommands => Some("EventCommand".to_string()),
+        Enc::MoveCommands => Some("MoveCommand".to_string()),
+        _ => None,
+    }
+}
+
+/// `constants.csv` written as numbers. The expressions it uses are three:
+/// a literal, `a * b` and `a << b`.
+fn constant_values(constants: &[(String, String)]) -> BTreeMap<String, i64> {
+    let mut out = BTreeMap::new();
+    for (name, expr) in constants {
+        let expr = expr.trim();
+        let value = if let Some((a, b)) = expr.split_once('*') {
+            number(a) * number(b)
+        } else if let Some((a, b)) = expr.split_once("<<") {
+            number(a) << number(b)
+        } else if let Ok(v) = expr.parse::<i64>() {
+            v
+        } else {
+            continue; // not a number: `kEmptyName` is a string, and is handled apart
+        };
+        out.insert(name.clone(), value);
+    }
+    out
+}
+
+fn number(s: &str) -> i64 {
+    s.trim()
+        .parse::<i64>()
+        .unwrap_or_else(|_| panic!("a number I cannot read: {s:?}"))
+}
+
+/// The default of a field as JSON, or `None` for the default of the type.
+///
+/// It mirrors `default_value`, which writes the same thing as a Rust
+/// expression, and the two are kept next to each other for that reason.
+fn json_default(
+    default: &str,
+    e: &Enc,
+    consts: &BTreeMap<String, i64>,
+    enum_names: &BTreeMap<String, Vec<(String, i64)>>,
+) -> Option<String> {
+    let d = default.trim();
+    match e {
+        Enc::Bool => Some(if d == "True" { "true".into() } else { "false".into() }),
+        Enc::Ber | Enc::U8 | Enc::I8 | Enc::U32 => {
+            let v = d.split('|').next().unwrap_or("0");
+            Some(json_number(v, consts))
+        }
+        Enc::F64 => {
+            let v = d.split('|').next().unwrap_or("");
+            if v.is_empty() {
+                Some("0.0".into())
+            } else {
+                Some(v.to_string())
+            }
+        }
+        // The same sentinel `default_value` writes as `"\u{1}"`.
+        Enc::Text if d == "kEmptyName" => Some("\"\\u0001\"".into()),
+        Enc::Text => Some(json_string(
+            d.strip_prefix('"')
+                .and_then(|d| d.strip_suffix('"'))
+                .unwrap_or(d),
+        )),
+        Enc::Enum(n) => {
+            let v = d.split('|').next().unwrap_or("");
+            match v.parse::<i64>() {
+                Ok(v) => Some(v.to_string()),
+                // No default declared: the enum's own, which is its first
+                // variant —that is what `impl Default` emits.
+                Err(_) => enum_names
+                    .get(n)
+                    .and_then(|vs| vs.first())
+                    .map(|(_, value)| value.to_string()),
+            }
+        }
+        Enc::VecU8 | Enc::VecI16 | Enc::VecI32 | Enc::VecU32 | Enc::VecBool => json_list(d),
+        _ => None,
+    }
+}
+
+fn json_number(v: &str, consts: &BTreeMap<String, i64>) -> String {
+    let v = v.trim();
+    if v.is_empty() {
+        return "0".into();
+    }
+    if let Ok(n) = v.parse::<i64>() {
+        return n.to_string();
+    }
+    match consts.get(v) {
+        Some(n) => n.to_string(),
+        None => panic!("fields.csv has a default I cannot turn into a number: {v:?}"),
+    }
+}
+
+fn json_string(s: &str) -> String {
+    let mut out = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// The same list defaults `list` reads —`[1]`, `[1]*162`, `[31]+[15]*143`—,
+/// written out element by element.
+fn json_list(d: &str) -> Option<String> {
+    let d = d.trim();
+    if d.is_empty() {
+        return None;
+    }
+    let mut items: Vec<String> = Vec::new();
+    if let Some(r) = d.strip_prefix("[x for x in range(") {
+        let inner = r.trim_end_matches(']').trim_end_matches(')');
+        let mut it = inner.split(',').map(|x| x.trim());
+        let a: i64 = number(it.next().unwrap_or("0"));
+        let b: i64 = number(it.next().unwrap_or("0"));
+        items.extend((a..b).map(|v| v.to_string()));
+    } else {
+        for piece in d.split('+') {
+            let piece = piece.trim();
+            let (body, times) = match piece.split_once('*') {
+                Some((a, b)) => (a.trim(), b.trim().parse::<usize>().unwrap_or(1)),
+                None => (piece, 1),
+            };
+            let value = body.trim_start_matches('[').trim_end_matches(']').trim();
+            for _ in 0..times {
+                items.push(value.to_string());
+            }
+        }
+    }
+    Some(format!("[{}]", items.join(",")))
 }

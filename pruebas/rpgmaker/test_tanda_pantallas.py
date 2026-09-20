@@ -222,7 +222,7 @@ BATALLAS = (
     ("batalla-hab-blanco", "batalla", 240,
      ("right:130", "a:140", "a:150"), None),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
-    # taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla
+    # taro jugó: `abl` lleva 57 ítems y los textos de la batalla
     # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
     # otros cuatro uno encima del otro, y con eso el menú era ilegible. El
     # relleno, en el cartucho chico, lo garantiza sin depender de cuántos

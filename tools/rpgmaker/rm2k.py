@@ -92,30 +92,6 @@ def hero_start(passable, width, height, blocked=()):
     return best[1], best[2]
 
 
-def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
-    """Si desde (x,y) se puede dar un paso en (dx,dy).
-
-    Las dos caras se consultan, la que se deja y la que se entra, que es la
-    regla de RM2k. Está separada de `walk` porque hay quien necesita caminar de
-    a un paso —para mirar entre paso y paso si la celda tiene una puerta— y las
-    reglas tienen que ser las mismas, no una copia parecida.
-    """
-    leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
-               (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
-    entering = {(1, 0): PASS_LEFT, (-1, 0): PASS_RIGHT,
-                (0, 1): PASS_UP, (0, -1): PASS_DOWN}[(dx, dy)]
-    nx, ny = x + dx, y + dy
-    if not (0 <= nx < width and 0 <= ny < height):
-        return False
-    if not passable[y * width + x] & leaving:
-        return False
-    if not passable[ny * width + nx] & entering:
-        return False
-    if (nx, ny) in blocked:
-        return False                # hay un NPC parado ahí
-    return True
-
-
 # --- la animación del ChipSet -----------------------------------------------
 #
 # Dos animaciones que no tienen nada que ver entre sí y corren a la vez, las dos

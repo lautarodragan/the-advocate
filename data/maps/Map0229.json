@@ -6,13 +6,38 @@
       "name": "Worker2",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 6,
           "character_name": "Future2",
-          "condition": {"switch_a_id": 68},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -23,13 +48,38 @@
       "name": "Worker2",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 6,
           "character_name": "Future2",
-          "condition": {"switch_a_id": 68},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -40,13 +90,38 @@
       "name": "Worker2",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 6,
           "character_name": "Future2",
-          "condition": {"switch_a_id": 68},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -57,41 +132,107 @@
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 3, 1]},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 3, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 3, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 2, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 2, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 1, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 120, 120, 200, 0, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "ShowMessage", "string": "MEMNOSYNE"},
-            {"code": "ShowMessage_2", "string": "The sheer drudgery of doing the same"},
-            {"code": "ShowMessage_2", "string": "thing day after day after day..."},
-            {"code": "PlaySound", "parameters": [100, 60, 50], "string": "Rebirth3"},
-            {"code": "Teleport", "parameters": [230, 15, 7]}
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 3, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 3, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 3, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 2, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 2, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 1, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 1, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 120, 120, 200, 0, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MEMNOSYNE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The sheer drudgery of doing the same"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "thing day after day after day..."
+            },
+            {"code": 11550, "indent": 0, "parameters": [100, 60, 50], "string": "Rebirth3"},
+            {"code": 10810, "indent": 0, "parameters": [230, 15, 7], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 18
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 18,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }
