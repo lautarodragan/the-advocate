@@ -1,35 +1,8 @@
-# Dónde quedamos
-
-Lo que existe **sólo mientras alguien trabaja**: qué se decidió y sigue
-valiendo, qué espera respuesta de taro, qué no se probó todavía, qué no cubre
-la tanda, y hacia dónde vamos.
-
-Lo que **no** va acá: el relato de lo hecho. Eso está en `git log`, que en este
-repo tiene mensajes largos justamente para eso, y lo durable está en
-`README.md`. Este archivo llegó a tener dos mil líneas por append-only y se
-volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
-
-Se escribe **mientras se trabaja**, no al final.
-
-**Lo que no se está trabajando activamente tampoco va acá, y desde el
-2026-09-20 tiene dónde ir**: `wishlist/` es lo que nos gustaría hacer y nadie
-está haciendo, un archivo por idea; `divergencias/` es dónde la ROM no hace lo
-que RM2k hace, con lo medido y cómo reproducirlo; y `decisiones/` son las
-decisiones tomadas que siguen valiendo, las que hay que conocer para no
-rehacerlas ni contradecirlas.
-
-El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treinta
-secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
-que el párrafo de arriba dice que no va acá. Están enteras en el `git log`.
-
-Última vez que se tocó: 2026-09-20.
-
 **Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
 y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
 translúcidos con el color math del PPU en vez de con trama). Todas las demás
 ramas de sub-agente están mergeadas y sus worktrees borrados —eran 18 y ocupaban
 7,1 GB—.
-
 
 ## La etapa en curso: partir el pipeline, y cero features hasta terminarla
 
