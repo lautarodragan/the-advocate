@@ -11,6 +11,10 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
+**Lo que no se está trabajando activamente tampoco va acá, y desde el
+2026-09-20 tiene dónde ir**: `wishlist/` es lo que nos gustaría hacer y nadie
+está haciendo, un archivo por idea.
+
 El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treinta
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
 que el párrafo de arriba dice que no va acá. Están enteras en el `git log`.
@@ -1783,24 +1787,6 @@ de una de más arriba:
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
 partirlo es trabajo de criterio. Ver `tools/README.md`.
-
-## Una mejora de velocidad gratis que apareció midiendo
-
-La capa de encima llama a `tile_colors` **894.000 veces** —medido el
-2026-09-16 sobre `abl` con `SIN_CACHE=1`— porque los colores de cada
-tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
-un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
-estaba acá, lo reemplazó el paso 8.)
-
-Y la de al lado, que el caché de muestras del 2026-09-20 **tapó en vez de
-arreglar**: el recorte de `snes_music.Banco` pide el banco de percusión,
-pregunta si entra, y si no entra vuelve a pedirlo con el presupuesto bajado un
-10%. Bajar de a un 10% hasta llegar a cero son unas ciento veinte vueltas, y
-por eso `build_drum_bank` se llama **790 veces** en una conversión de
-`abl` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
-sigue siendo una búsqueda lineal donde cabe una binaria, y hoy es lo que llena
-el caché de claves. Tocarlo cambia qué muestras salen, así que pide medir la
-ROM byte por byte; no es urgente.
 
 ## ~~La tanda en paralelo~~ hecho el 2026-09-19
 
