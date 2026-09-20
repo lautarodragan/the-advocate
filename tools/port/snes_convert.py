@@ -818,6 +818,53 @@ def hornear_en_el_mapa(game_map, horneables):
         game_map.upper_layer[celda] = tile
 
 
+# --- DIAGNÓSTICO DESCARTABLE, NO MERGEAR -----------------------------------
+#
+# `DIAG_NO_DIBUJAR` le saca el dibujo a un grupo de eventos de un mapa, para
+# medir cuánto cuesta dibujarlos. Es el mismo mecanismo con que nacen escondidas
+# las filas de los eventos horneados —`visible` en cero, `build_oam` no les arma
+# objeto— y por eso no mide otra cosa que lo que mediría el arreglo de verdad.
+#
+#   DIAG_NO_DIBUJAR=11:todos        ningún evento del mapa 11 se dibuja
+#   DIAG_NO_DIBUJAR=11:tile:80      los dibujados con el tile 80 no se dibujan
+#   DIAG_NO_DIBUJAR=11:afuera:80    ésos se siguen dibujando, pero desde una
+#                                   celda fuera de la pantalla: es el control
+#                                   de "¿cuesta un evento estacionado afuera?"
+#
+# `cambia` se apaga junto con el dibujo porque si no el refresco vuelve a
+# mostrar la fila: el bit $20 de la página es "tu fila sigue a la página".
+DIAG_AFUERA = (97, 97)
+
+
+def _diagnostico_no_dibujar(map_id, game_map, npcs):
+    pedido = os.environ.get("DIAG_NO_DIBUJAR", "")
+    if not pedido:
+        return
+    partes = pedido.split(":")
+    if int(partes[0]) != map_id:
+        return
+    modo = partes[1]
+    elegidos = []
+    for npc in npcs:
+        if modo == "todos":
+            elegidos.append(npc)
+            continue
+        base = rm2k.sin_horneado(npc["charset"])
+        if not base.startswith(rm2k.TILE_PREFIX):
+            continue
+        if int(base.rsplit(":", 1)[1]) == int(partes[2]):
+            elegidos.append(npc)
+    for npc in elegidos:
+        if modo == "afuera":
+            npc["x"], npc["y"] = DIAG_AFUERA
+        else:
+            npc["visible"] = False
+            npc["cambia"] = False
+    print("  mapa %d: DIAGNÓSTICO %r sobre %d evento(s): %s"
+          % (map_id, pedido, len(elegidos),
+             ", ".join(str(n["evento"] + 1) for n in elegidos)))
+
+
 def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                     timer_colores=(), solo_aqui=None, poses=None):
     """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
@@ -6812,6 +6859,7 @@ def convertir(renderer, map_id, args, inicio=None):
     for npc in npcs:
         if npc["evento"] in horneados:
             npc["visible"] = False
+    _diagnostico_no_dibujar(map_id, game_map, npcs)
     table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
