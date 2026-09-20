@@ -258,7 +258,7 @@ filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
 que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen rom/build/demo-ciudad/demo-ciudad.sfc`, una
+que se le pida a taro —`mednafen rom/build/abl/abl.sfc`, una
 receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 
@@ -298,13 +298,13 @@ el 2026-09-13 la misma pregunta se contestó **81**, **1** y **85** bytes en la
 misma tarde, y las tres estaban bien —cada una con un `mapdata.inc` distinto—.
 Así que al decir "quedan N bytes" hay que decir con cuál.
 
-**El que manda es el más apretado, y no es `demo-ciudad`**: hasta el
+**El que manda es el más apretado, y no es la demo**: hasta el
 2026-09-17 sí lo era, pero desde que las pruebas arman un cartucho con los 40
 mapas, el que menos margen tiene es `titulo` —el de pruebas con la pantalla de
-título—, seguido de `pruebas`. `demo-ciudad` sobrepasa a los dos por unos
-cuatrocientos bytes, así que medir sólo en él dice que hay lugar cuando no lo
+título—, seguido de `pruebas`. `abl`, la demo, sobrepasa a los dos por unos
+cuatrocientos bytes, así que medir sólo en ella dice que hay lugar cuando no lo
 hay. Acá había un número escrito y se quedó viejo: **no se escribe, se mide**,
-y hay que medir los seis.
+y hay que medirlos todos: `abl` y los que arma `cartuchos`.
 
 Medirlo no pide tocar ningún fuente: se ensambla un objeto aparte con un
 `.res N` en el segmento que se quiere medir y se lo linkea junto al `.o` que

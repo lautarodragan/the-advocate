@@ -184,8 +184,8 @@ cartuchos *args:
 # juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
 # Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
 # sin música y sin cámara. La referencia hace lo mismo, así que no sería un bug
-# de la ROM: sería una demo mal armada. `cinematica` usa el 10 por la misma
-# razón.
+# de la ROM: sería una demo mal armada. La familia `cinematica` de la tanda usa
+# el 10 por la misma razón.
 #
 # Con cronómetro, para hacerle lugar al rojo de los dígitos; ver "Lashe City" en
 # ESTADO.md. La lista de mapas es **el subárbol de "Lashe City" que entra**: el
@@ -218,7 +218,7 @@ demo nombre="abl":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
-# La persecución en auto, que no entra en `demo-ciudad` y no hace falta que
+# La persecución en auto, que no entra en `abl` y no hace falta que
 # entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
 # juega desde el primer cuadro sin tener que recorrer Lashe City.
 #

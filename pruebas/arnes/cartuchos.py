@@ -49,7 +49,7 @@ DESTINO = os.environ.get("CARTUCHOS",
 # `Teleport` con que empieza; ver `mapa_del_caso` en snes_convert.py.
 MAPA_DE_ARRANQUE = 6
 
-# Los mapas: los de `demo-ciudad` más los que usan las pruebas, que es la
+# Los mapas: los de `abl` más los que usan las pruebas, que es la
 # regla de taro del 2026-09-16 —cada mapa que se suma al proyecto se suma para
 # todos los builds—. Afuera queda el 66: la ventana no le entra en la VRAM.
 MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,

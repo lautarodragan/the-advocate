@@ -145,7 +145,16 @@ en "Lo que la tanda no cubre".
 Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
 `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
-`demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
+**El justfile tiene una sola demo desde el 2026-09-20**: `just demo` arma
+`rom/build/abl/abl.sfc`, la cadena entera con pantalla de título, que es lo que
+taro juega. Con ella se fueron las cinco recetas que armaban ROMs para mirar
+algo a mano —`demo-vipers`, `demo-cofres`, `demo-trampa`, `demo-piedras` y
+`musica`—: lo que probaban ya lo cobra la tanda, y la regla es la misma que se
+llevó a `destraba` —lo que no es ni pipeline ni prueba no vive en el justfile—.
+Quedan `demo`, `demo-carrera` —que no comparte un solo mapa con la otra— y
+`msu`, que desde ese día no vuelve a renderizar la pista que no cambió.
+
+`abl` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
 point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
@@ -457,7 +466,7 @@ se pueden empezar hoy.
    test no sepa armar nada.
 
    **Medido el 2026-09-17: la compresión no es lo que frena.** La unión que
-   pide la regla —los mapas de las pruebas más los de `demo-ciudad`— son 41.
+   pide la regla —los mapas de las pruebas más los de `abl`— son 41.
    Sin el 66 y el 261 (ver abajo), **los datos de los otros 39 entran**; lo que
    no entra es el **banco 0**, por 361 bytes, y la tabla más grande que el
    conversor pone ahí es `anim_tabla`, 16 bytes por mapa. Se reproduce con:
@@ -483,7 +492,7 @@ se pueden empezar hoy.
      (`SIN_VENTANA` en `pruebas/conftest.py`). Con la ventana en todo el
      cartucho, el 66 no convierte.
    * **El grupo.** El mapa 261 se prueba con `--grupo 11`; con el de
-     `demo-ciudad` el actor 11 puede liderar, comparte paleta con un NPC del
+     `abl` el actor 11 puede liderar, comparte paleta con un NPC del
      mapa, y el conversor corta porque un destello los haría brillar a los
      dos. `--descartar-eventos` no lo cubre.
    * **Las páginas de prueba**: unos veinte flags del conversor —de
@@ -657,7 +666,7 @@ se pueden empezar hoy.
      `pan-lluvia`: en un cartucho con un caso de cronómetro en el mismo mapa
      —`pan-lluvia` y `timer` en el 6— el cuadro 66 difiere en 584 pixeles, y
      `sacudir-lluvia-60` en 679. Se evita no juntándolos —las lluvias van en
-     el chico—, pero **puede verse en `demo-ciudad`**, que lleva cronómetro
+     el chico—, pero **puede verse en `abl`**, que lleva cronómetro
      en todos los mapas y llueve en el 1: no se miró;
    * **la lista "Use Item" de la pelea no dibuja los nombres de los ítems
      cuyo índice de texto pasa de 255**: quedan el cursor y las cantidades.
@@ -666,7 +675,7 @@ se pueden empezar hoy.
      cartucho con `--relleno-de-textos 200`: `batalla-item` y
      `batalla-item-blanco` difieren en 521 pixeles, todos en los nombres.
      Por eso ese relleno va en `cruza` y no en el chico. **Puede verse en
-     `demo-ciudad`**, cuyos textos de la batalla arrancan pasado el 255: no
+     `abl`**, cuyos textos de la batalla arrancan pasado el 255: no
      se miró;
    * **en el cartucho de pruebas la primera vuelta del lazo termina tres
      cuadros más tarde** que en uno de un mapa. `Partida` lo espera antes de
@@ -729,7 +738,7 @@ se pueden empezar hoy.
    Mudarlos al juego golden es mover archivos y ponerles la condición.
 
    Lo que se puede esperar de comprimir, medido: la parte usada de
-   `demo-ciudad` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
+   `abl` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
    cartucho son gráficos, que es lo compresible, y descomprimir al cargar un
    mapa es la técnica de la consola. Ojo con medirlo mal: el `.sfc` entero da
    97% porque el millón de ceros de relleno comprime a nada, y el `mapdata.inc`
@@ -758,11 +767,13 @@ se pueden empezar hoy.
 **Las dos cadenas son independientes**: 5 → 6 es el acomodo de bancos, 7 → 8 es
 el reparto de paletas. Se pueden hacer en paralelo.
 
-**Lo que se decidió no hacer:** dejar de armar `demo-ciudad`. Es la misma
-receta que `demo-titulo` con `--con-titulo` de más, o sea un subconjunto, pero
-esta semana difirieron de verdad —el reporte del MSU-1 fue "la que tiene título
-no carga la música de alta calidad, la otra sí"— y `demo-ciudad` fue el control
-que permitió aislar que era el arranque con título. Cuesta un minuto.
+**Hecho el 2026-09-20, y al revés de lo que acá decía:** las dos demos son
+una sola, `abl`, siempre con pantalla de título. Lo que decía era que la ROM
+sin título valía como control, porque el reporte del MSU-1 fue "la que tiene
+título no carga la música de alta calidad, la otra sí" y ella permitió aislar
+que era el arranque con título. Sigue siendo cierto, y por eso el control se
+arma cuando hace falta —`--con-titulo` de menos en la receta— en vez de vivir
+en el justfile: taro juega una sola ROM, la completa.
 
 **Y un número que cierra una pregunta vieja:** un cartucho con todos los mapas
 es imposible. **29 mapas ocupan el 74,4% de los 4 MB** y el juego tiene 328.
@@ -931,7 +942,7 @@ de cada una está en `README.md`.
     el gráfico del héroe y después salta lo vuelve a poner en el comando
     siguiente al teletransporte.
 
-  Y lo que cuesta en el cartucho, medido sobre `demo-ciudad`: el gráfico al que
+  Y lo que cuesta en el cartucho, medido sobre `abl`: el gráfico al que
   una ruta cambia al héroe entra al **banco de sprites del mapa**, como el de
   cualquier evento. En el mapa 9 son dos más —`Future2:7` y `Future1:0`— y con
   ellos un evento dibujado con un tile del chipset pasa a colgarse de una
@@ -1041,7 +1052,7 @@ nombre del bug.
   **Hecho**: era `FullHeal` compilando a nada, y desde el 2026-09-19 es
   `OP_HEAL`. Lo cubre `pruebas/rpgmaker/test_curar.py`, con el camino entero
   —perder la pelea del mapa 9 y forzar un encuentro— corrido a mano con
-  `/extras/scratchpad/heal/historia.py` sobre `demo-titulo`. El `ChangeHP` que
+  `/extras/scratchpad/heal/historia.py` sobre la demo. El `ChangeHP` que
   suma entró en el mismo opcode; el que resta sigue sin compilar, y
   `ResetAfterBattles` tiene uno, así que **ese evento común sigue sin
   compilar**.
@@ -1076,7 +1087,7 @@ nombre del bug.
    **La ROM**: bajaron al banco 1 el equipo y la tienda, 3162 bytes, y el
    banco 0 pasó de 12 bytes libres a unos tres mil en el cartucho más
    apretado. Los números se miden, no se copian de acá: ver AGENTS.md, y ojo
-   con que **el que manda ya no es `demo-ciudad` sino `titulo`**.
+   con que **el que manda ya no es `abl` sino `titulo`**.
 
    Rindieron porque su frontera es mínima: tres entradas y dos puentes nuevos,
    porque los otros ocho ya estaban de cuando bajó la pelea. La trampa que
@@ -1163,8 +1174,8 @@ ya nadie discute no necesita renglón.
   hardware —bandas diagonales y formas—, así que **sus colores no valen**. El
   FX Pak contesta "no encuentro la pista" con nuestros archivos y todavía no se
   sabe por qué, siendo que la ROM del juego sí la encuentra.
-* **El MSU-1 de `demo-titulo`**. taro reportó que esa ROM no carga la música de
-  alta calidad y la otra sí. **En emulador las dos hacen exactamente lo mismo**,
+* **El MSU-1 con pantalla de título**. taro reportó que la ROM con título no
+  carga la música de alta calidad y la de sin sí. **En emulador las dos hacen exactamente lo mismo**,
   medido leyendo `MSU_HAY` y `MSU_SUENA` de la WRAM cuadro a cuadro, así que el
   defecto es de hardware solamente. El único candidato que produce ese síntoma:
   **bsnes no pone `AUDIO_BUSY` nunca** —`io.audioBusy` arranca en falso en
@@ -1732,7 +1743,7 @@ partirlo es trabajo de criterio. Ver `tools/README.md`.
 ## Una mejora de velocidad gratis que apareció midiendo
 
 La capa de encima llama a `tile_colors` **894.000 veces** —medido el
-2026-09-16 sobre `demo-ciudad` con `SIN_CACHE=1`— porque los colores de cada
+2026-09-16 sobre `abl` con `SIN_CACHE=1`— porque los colores de cada
 tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
@@ -1742,7 +1753,7 @@ arreglar**: el recorte de `snes_music.Banco` pide el banco de percusión,
 pregunta si entra, y si no entra vuelve a pedirlo con el presupuesto bajado un
 10%. Bajar de a un 10% hasta llegar a cero son unas ciento veinte vueltas, y
 por eso `build_drum_bank` se llama **790 veces** en una conversión de
-`demo-ciudad` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
+`abl` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
 sigue siendo una búsqueda lineal donde cabe una binaria, y hoy es lo que llena
 el caché de claves. Tocarlo cambia qué muestras salen, así que pide medir la
 ROM byte por byte; no es urgente.

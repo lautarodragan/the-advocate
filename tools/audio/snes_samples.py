@@ -88,7 +88,7 @@ class Voice:
 # Lo que se guarda acá es **la voz entera**: el remuestreo, la normalización y
 # el BRR que sale de ellos. `muestras_brr.codificar` ya cacheaba lo último, y
 # ése nunca fue el problema — la preparación en Python que va antes sí. Medido
-# con `cProfile` sobre una conversión de `demo-ciudad` **con el caché
+# con `cProfile` sobre una conversión de `abl` **con el caché
 # caliente**: de 165 s de perfil, 114,6 eran audio, y de ésos 108,9 los ponía
 # `build_drum_bank`, que en una conversión se llama 790 veces.
 #
@@ -97,7 +97,7 @@ class Voice:
 # menos claves, pero su clave lleva *qué golpes* pide el cartucho, así que dos
 # cartuchos con listas de temas distintas no comparten ni una entrada. El golpe
 # suelto sí: la clave es una nota y un presupuesto, y ésos se repiten entre las
-# 790 vueltas, entre los cinco cartuchos de prueba y entre las dos demos.
+# 790 vueltas, entre los cinco cartuchos de prueba y la demo.
 
 _version = None
 _huellas = {}

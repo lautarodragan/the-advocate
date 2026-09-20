@@ -205,7 +205,7 @@ EasyRPG lo disparan.
 
 ## Lo que viene, y una decisión ya tomada: el emisor hacia la SNES
 
-Hoy el conversor escribe **texto de assembler**: para `demo-ciudad` son 148.686
+Hoy el conversor escribe **texto de assembler**: para la demo son 148.686
 líneas y 11 MB, de las cuales 145.885 son `.byte` y `.word`. Eso se ensambla en
 unos 11 segundos por build.
 

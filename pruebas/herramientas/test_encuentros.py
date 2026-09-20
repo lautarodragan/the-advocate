@@ -165,7 +165,7 @@ def test_cuantos_mapas(juego):
     """Los números del juego, clavados: si cambian, cambió el volcado.
 
     Están acá y no en un comentario porque son los que deciden el alcance: 53
-    mapas de 328 pueden tener un encuentro, y de los 29 de `demo-ciudad` son
+    mapas de 328 pueden tener un encuentro, y de los 29 de `abl` son
     cinco.
     """
     _db, tree = juego

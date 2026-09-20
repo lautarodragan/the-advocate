@@ -1469,7 +1469,7 @@ def convert_layers(base, above_img, variantes=None):
     """`_convert_layers`, recordado en disco.
 
     Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
-    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `demo-ciudad`,
+    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `abl`,
     medido el 2026-09-10— y es una función pura de sus argumentos. La clave son
     **los pixeles de las imágenes** y no el `.lmu` ni el ChipSet: así entra
     todo lo que las produce, el renderer incluido, sin tener que enumerarlo. Y
@@ -3790,7 +3790,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Textos muertos delante de todos los demás, para que los índices de
         # la batalla pasen de 255 en un cartucho de un mapa. Es el hermano de
         # `--relleno-de-mensajes`: reproducirlo de verdad pide los cincuenta y
-        # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
+        # siete ítems de `abl`, o sea sus veintinueve mapas y dos
         # minutos y medio de conversor por caso. **No cambia un pixel**: son
         # textos de largo cero que nadie dibuja, y el índice de un texto no lo
         # modela la referencia —ella escribe caracteres—, así que el flag es de
@@ -4070,7 +4070,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # con la pelea abierta más lo que este port sabe hacer; la cuenta de
         # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
         # **Fuera del banco 0**, como `item_k` y por lo mismo: con los mapas de
-        # `demo-ciudad` el área de código quedó en 32775 de 32704 al ponerlas
+        # `abl` el área de código quedó en 32775 de 32704 al ponerlas
         # acá. La pelea las lee con `lda f:item_batalla, x`.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
@@ -4082,7 +4082,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                    for n in items], declarar=True)
         handle.write('.segment "TABLAS"\n')
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
-        # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
+        # por lo mismo: ahí no entran. Con los diez mapas de `abl` el
         # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
         # libres— y el cartel del `ShowPicture` no entraba. Se leen con
         # `lda f:item_txt_lo, x`, que cuesta un byte y un ciclo por lectura en
@@ -4121,7 +4121,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `item_actores` va también fuera del banco 0 —se lee con
         # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
         # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
-        # 2026-09-13 `just demo demo-ciudad` cortaba con "el área no
+        # 2026-09-13 `just demo` cortaba con "el área no
         # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
         # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
         # así que el ciclo de más del direccionamiento largo no se nota.
@@ -4511,7 +4511,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for _n, f, _c in P.BA_ORDENES])
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
         # **De dos bytes.** Un índice de texto no entra en uno: con los 29
-        # mapas de `demo-ciudad` los de la batalla arrancan en el 273, y la
+        # mapas de `abl` los de la batalla arrancan en el 273, y la
         # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
         # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
         words_asm("ba_orden_txt", [
@@ -5012,7 +5012,7 @@ def parser_de_flags():
                         help="que **todos** los temas aporten muestras al "
                              "banco compartido, en vez de recortar los "
                              "últimos hasta que el banco entre en la ARAM. "
-                             "El recorte es lo que hace que en `demo-ciudad` "
+                             "El recorte es lo que hace que en `abl` "
                              "a los nueve temas del final les falten entre el "
                              "28%% y el 88%% de las notas —las que piden un "
                              "programa que no está—; con esto no falta "

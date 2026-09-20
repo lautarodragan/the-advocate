@@ -10,7 +10,7 @@ normalización que van antes— la cachea `snes_samples`, en otra categoría y c
 otra clave; las dos caducan juntas porque las dos llevan `version()`.
 
 **Las dos memorias son lo que hace viable un proceso por muestra.** Medido el
-2026-09-15 sobre una conversión entera de `demo-ciudad` con `SIN_CACHE=1`: el
+2026-09-15 sobre una conversión entera de `abl` con `SIN_CACHE=1`: el
 conversor pide 34.493 codificaciones para **608 muestras distintas** y 70.279
 zonas del SoundFont para **100 selectores distintos**. Sin memoria serían
 104.772 arranques de proceso; con ella son 708, y las 708 —binario, archivos

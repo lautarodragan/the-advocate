@@ -957,7 +957,7 @@ va una celda antes del texto.
 **Las dos tablas son de dos bytes, y eso no es de adorno.** Un índice de texto
 nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
 tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
-`demo-ciudad` los textos de la batalla arrancan en el 273, que en un byte no
+`abl` los textos de la batalla arrancan en el 273, que en un byte no
 entra. El caso que lo cuida es `batalla-textos-lejos`, y `ca65` **rechaza** un
 `.byte` que no entre en un byte en vez de truncarlo.
 
@@ -1147,7 +1147,7 @@ Medido sobre el juego entero:
     23 áreas, colgando de 20 mapas
     33 mapas con tropas propias, ninguno de ellos con área
     53 mapas donde puede salir un encuentro, de 328
-    5 de los 29 de `demo-ciudad`: el 20, el 21, el 26, el 28 y el 32
+    5 de los 29 de `abl`: el 20, el 21, el 26, el 28 y el 32
     129 tropas distintas
 
 **Cómo se dispara**, de `Game_Player::UpdateEncounterSteps`. Cada paso del
@@ -1359,7 +1359,7 @@ Tres decisiones, las tres por la ARAM:
 
 La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta un tick. Lo
 que se corrió fue una grabación de la apertura de
-`demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
+`abl` con el núcleo de libretro, contra la misma ROM con el volumen de
 los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
 hueco entre el fin del tercero y el siguiente (cuadros 890 a 920) las dos
 salidas son idénticas muestra por muestra. Es decir, la música vuelve entera.
@@ -1506,6 +1506,12 @@ con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
 punto de loop en muestras, y el audio crudo.
+
+Y correr la receta de nuevo no rehace nada: una pista no depende del
+cartucho sino del MIDI, del soundfont, de fluidsynth y de cómo se normaliza, y
+todo eso está en la clave. Lo que se guarda en `rom/build/cache/msu/` es el
+sha256 del `.pcm`, no el `.pcm`, porque el archivo ya está escrito al lado de
+la ROM.
 
 Una cosa más del lado del cartucho: **la pista se normaliza a 0,97 de la
 escala**. fluidsynth se corre bajo, en 0,6, porque con 1,0 los temas de muchas
