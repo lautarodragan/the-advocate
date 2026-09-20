@@ -3788,8 +3788,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                                    - len(paleta)))) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
         # Textos muertos delante de todos los demás, para que los índices de
-        # la batalla pasen de 255 en un cartucho de un mapa. Es el hermano de
-        # `--relleno-de-mensajes`: reproducirlo de verdad pide los cincuenta y
+        # la batalla pasen de 255 en un cartucho de un mapa. Lo que dice
+        # `--relleno-de-textos`: reproducirlo de verdad pide los cincuenta y
         # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
         # minutos y medio de conversor por caso. **No cambia un pixel**: son
         # textos de largo cero que nadie dibuja, y el índice de un texto no lo
@@ -4993,13 +4993,6 @@ def parser_de_flags():
                              "batalla pasen de 255 sin armar un cartucho de\n"
                              "veintinueve mapas. No cambia un pixel: la\n"
                              "referencia no modela índices de texto")
-    parser.add_argument("--relleno-de-mensajes", type=int, default=0,
-                        help="bytes muertos al principio del bloque de textos, para\n"
-                             "que los desplazamientos pasen los 32 KB que mide\n"
-                             "la ventana de un banco de LoROM. Es lo único que\n"
-                             "reproduce el defecto de `msg_empezar` sin armar un\n"
-                             "cartucho de diez mapas hablados. El otro lado del\n"
-                             "mismo flag de la otra herramienta")
     parser.add_argument("--con-titulo", action="store_true",
                         help="lleva la pantalla de título del juego, con su "
                              "menú de empezar y cargar. Sin esto la ROM "
@@ -5229,7 +5222,7 @@ def main():
     # páginas: cada `ShowMessage` deja su texto acá y se lleva un
     # desplazamiento, que es lo que va en el bytecode. La referencia arma el
     # mismo bloque en el mismo orden.
-    mensajes = eventos.Mensajes(args.relleno_de_mensajes)
+    mensajes = eventos.Mensajes()
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.

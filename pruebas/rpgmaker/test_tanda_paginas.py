@@ -24,7 +24,7 @@ el de su golden.
 
 import pytest
 
-from tanda import golden, partida
+from tanda import cartucho, cuadro_de_texto, golden, partida
 
 # `KeyInputProc`: nombre —que es también el de su caso en `pruebas/casos/`,
 # con el `Teleport` a la celda del héroe—, los ticks, los toques de A y los
@@ -64,32 +64,38 @@ def test_tecla(nombre, cuadros, apretar, tocar):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
+# Los dos cuadros de la página automática del mapa 255, por un renglón que
+# sea sólo suyo: el primero ni el segundo se distinguen por el de arriba, que
+# en los dos es el nombre del lugar.
+PRIMER_CUADRO = "The undercarriage of the bridge isn't"
+SEGUNDO_CUADRO = "Make as little noise as possible!"
+
+# El texto del juego pasando por el bloque de la ROM: nombre —que es el de su
+# golden—, el caso, el cartucho, el tick, el renglón que identifica al cuadro
+# que se está mirando y qué tiene que pasarle a ese cuadro en el cartucho.
 TEXTOS = (
-    ("texto", "grupo-11-en-255", None),
-    # El mismo caso con el bloque de textos corrido más allá del primer banco.
-    # Verificado en rojo con el `msg_empezar` de antes: 3116 pixeles en el
-    # cuadro 60 y 3404 en el 400, todos en la ventana, que ahí dibuja el texto
-    # que le tocó leer de otro lado.
-    ("texto-lejos", "grupo-11-en-255", "chico"),
-    # Y el mismo con el cuadro **encima** del borde de banco, que es lo que
-    # `texto-lejos` no cubría: allá el cuadro entero cae del otro lado y
-    # `msg_empezar` ya lo ubicaba bien, acá la cabecera y el primer largo
-    # quedan en el banco de antes y el texto sigue en el de después. El
-    # compositor avanzaba `msg_ptr` con un `inc` de dieciséis bits, así que a
-    # partir del borde leía el $0000 del mismo banco, que en LoROM no es ROM.
-    #
-    # El relleno son 32766 y no un número redondo: el bloque queda alineado al
-    # banco —lo hace el `.bloque`— así que el cuadro de dos bytes antes del
-    # borde es el que lo cruza. Verificado en rojo con el `inc msg_ptr` de
-    # antes: **3414 pixeles en el cuadro 60**. El 400 da cero también con el
-    # defecto puesto, porque el segundo cuadro arranca entero del otro lado.
-    ("texto-cruza", "grupo-11", "cruza"),
+    # Sin pedir nada: el cuadro donde caiga. Es el único que mira los dos
+    # ticks, porque es el que prueba el encadenado.
+    ("texto", "grupo-11-en-255", None, (60, 400), None, None),
+    # El mismo texto en `cruza`, donde el empujón lo deja **encima** del borde
+    # de banco: la cabecera y el primer largo quedan en un banco y el texto
+    # sigue en el otro. El compositor avanzaba `msg_ptr` con un `inc` de
+    # dieciséis bits, así que a partir del borde leía el $0000 del mismo
+    # banco, que en LoROM no es ROM. Verificado en rojo con ese `inc`:
+    # **3414 pixeles**.
+    ("texto-cruza", "grupo-11", "cruza", (60,), PRIMER_CUADRO, "cruza"),
+    # Y el cuadro que sigue, que en el mismo cartucho cae entero del otro lado
+    # del borde: ahí `msg_empezar` sumaba el desplazamiento de dieciséis bits
+    # al puntero y perdía el acarreo. Verificado en rojo con esa suma: 3404
+    # pixeles. Son dos posiciones del mismo empujón y por eso un cartucho
+    # solo, donde antes hacían falta dos rellenos que no convivían.
+    ("texto-lejos", "grupo-11", "cruza", (400,), SEGUNDO_CUADRO, "lejos"),
 )
 
 
-@pytest.mark.parametrize("nombre,caso,en", TEXTOS,
+@pytest.mark.parametrize("nombre,caso,en,cuadros,renglon,donde", TEXTOS,
                          ids=[caso[0] for caso in TEXTOS])
-def test_texto(nombre, caso, en):
+def test_texto(nombre, caso, en, cuadros, renglon, donde):
     """`texto`: el texto **del juego**, no el que le dictamos a la ROM.
 
     Todo lo demás usa el `ShowMessage` de una página de prueba, o sea líneas
@@ -105,13 +111,33 @@ def test_texto(nombre, caso, en):
     entero. Y el **encadenado**: al apretar A el primero se cierra y el segundo
     se abre en el mismo tick.
 
-    `en` es el cartucho: los dos corridos van en uno con bytes muertos
-    delante del bloque de textos —`--relleno-de-mensajes`, el chico y
-    `cruza`—, que es lo que corre los desplazamientos más allá de los 32 KB
-    que mide la ventana de un banco de LoROM. Son dos cartuchos porque cada
-    relleno pone el mismo mensaje en otro lugar.
+    **Las tres goldens son la misma imagen**, y eso es justamente lo que se
+    prueba: lo que cambia entre los cartuchos no es lo que se dibuja sino
+    dónde quedaron esos bytes. Por eso los dos corridos no alcanzan con la
+    golden: si mañana el bloque se acomoda distinto y el cuadro deja de cruzar
+    el borde, la imagen sale igual y la prueba dejaría de probar lo que dice.
+    De ahí el `assert`, que va antes de correr nada y mira el cartucho.
     """
-    for cuadro in (60, 400):
+    if donde:
+        desplazamiento, byte, largo = cuadro_de_texto(cartucho(en), renglon)
+        # Un cuadro cruza si sus bytes no caen todos en el mismo banco, y los
+        # 32 KB del archivo que arrancan en `banco * $8000` **son** el banco.
+        cruza = byte >> 15 != (byte + largo - 1) >> 15
+        # Y "del otro lado" es que el operando de 16 bits sumado a la
+        # dirección del bloque se pase de $FFFF, que es la cuenta que hace
+        # `msg_empezar`.
+        lejos = (cartucho(en).simbolos["mensajes"] & 0xFFFF) \
+            + desplazamiento > 0xFFFF
+        porque = (
+            "el cuadro %r del cartucho %r cae en el byte $%06X del archivo, "
+            "mide %d y su desplazamiento es %d: cruza=%s, del otro lado=%s. "
+            "Esta prueba lo quiere %r y lo que lo pone ahí es el tamaño del "
+            "caso `empujon` —ver pruebas/casos/empujon.json y el cartucho "
+            "`cruza` en pruebas/arnes/cartuchos.py—, así que si el bloque de "
+            "textos se movió, el empujón hay que volver a medirlo."
+            % (renglon, en, byte, largo, desplazamiento, cruza, lejos, donde))
+        assert (cruza if donde == "cruza" else lejos and not cruza), porque
+    for cuadro in cuadros:
         p = partida(caso, en=en)
         p.correr(cuadro, apretar_a=(200,))
         golden("%s-%d" % (nombre, cuadro), p.imagen())

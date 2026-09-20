@@ -1266,23 +1266,8 @@ class Mensajes:
     hacerlo cuando el héroe pisa cada uno.
     """
 
-    def __init__(self, relleno=0):
-        """`relleno` son bytes muertos delante de todo, y existe para una sola
-        cosa: correr el desplazamiento de los cuadros más allá de los 32 KB que
-        mide la ventana de un banco de LoROM.
-
-        Ahí es donde `msg_empezar` se equivocaba —sumaba el desplazamiento de
-        dieciséis bits al puntero y perdía el acarreo, así que todo cuadro
-        pasado el primer banco leía de otro lado— y reproducirlo pide un bloque
-        de más de 32 KB, o sea unos diez mapas hablados. Un cartucho así no
-        entra en la tanda: tarda minutos. Con el relleno, un cartucho de un solo
-        mapa lo reproduce.
-
-        Los dos lados lo construyen con el mismo número, así que los
-        desplazamientos siguen siendo los mismos de los dos lados; el relleno no
-        se dibuja nunca.
-        """
-        self.datos = bytearray(relleno)
+    def __init__(self):
+        self.datos = bytearray()
         self.donde = {}         # las líneas ya guardadas -> su desplazamiento
         self.textos = {}        # y la vuelta, que es lo que usa la referencia
 

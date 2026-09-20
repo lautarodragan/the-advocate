@@ -94,25 +94,27 @@ CARTUCHOS = {
     # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
     # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
     # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
-    # puede pedir— y el relleno de mensajes de 33000. Y las dos
+    # puede pedir—. Y las dos
     # lluvias: en el 6 del de pruebas corren casos con cronómetro, las gotas
     # caen en la paleta de los dígitos, y ésa `subir_timer_pal` la sube sin
     # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
     "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
-               "--heroe-encima", "--encuentros-de-prueba", "8",
-               "--relleno-de-mensajes", "33000"],
+               "--heroe-encima", "--encuentros-de-prueba", "8"],
               ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "pan-lluvia", "sacudir-lluvia"]),
-    # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
-    # del borde de banco. No convive con el del chico: los dos corren el mismo
-    # mensaje, cada uno a otro lugar. Y el relleno de textos, que en el chico
-    # borraba los nombres de la lista "Use Item" de `batalla-item`: es un
-    # defecto de la ROM, está en ESTADO.md. Medido que convive con éste: el
-    # bloque de mensajes queda en la misma dirección.
-    "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766",
-               "--relleno-de-textos", "200"],
-              ["grupo-11", "batalla"]),
+    # El borde de banco del bloque de textos, que es lo que prueba
+    # `test_texto`: acá el primer cuadro del 255 queda **encima** del borde
+    # —empieza en un banco y termina en el otro— y el segundo entero del otro
+    # lado. Los dos lugares salen de un solo empujón, `empujon`, que es una
+    # página de prueba de puro texto: los textos de las páginas van delante de
+    # los de los mapas, así que su tamaño es lo que elige dónde cae el borde.
+    # Va **al final** de la lista para no correrle la página a `batalla`.
+    #
+    # Y el relleno de textos, que en el chico borraba los nombres de la lista
+    # "Use Item" de `batalla-item`: es un defecto de la ROM, está en ESTADO.md.
+    "cruza": (["--map-id", "255", "--relleno-de-textos", "200"],
+              ["grupo-11", "batalla", "empujon"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
     # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
     # sale con otra rampa de fundido y otro tinte— y el cronómetro le saca
@@ -125,7 +127,11 @@ CARTUCHOS = {
 # Los casos que no van en el cartucho de pruebas porque viven en otro.
 FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
-         "pelea-82-grupo-11-12"}
+         "pelea-82-grupo-11-12",
+         # Y el empujón, que no entra en el de pruebas porque no cabe: su
+         # bloque de textos ya mide 61.809 bytes y el operando de `OP_MESSAGE`
+         # es de 16 bits, así que sobran 3.727 y el empujón pide 32.707.
+         "empujon"}
 
 # El que corre sin que nadie lo pida, que es la página 0: el grupo de la tanda
 # en el mapa de arranque.
