@@ -630,10 +630,12 @@ se pueden empezar hoy.
      21, **los casos con los actores 12 y 13 en el grupo** —decisión de taro:
      en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
      `--heroe-encima`, los encuentros cada 8 pasos, el relleno de mensajes de
-     33000 y **las dos lluvias**, por el primer defecto de abajo;
+     33000 y el de textos de 200. **Las dos lluvias volvieron al de pruebas**
+     el 2026-09-20, al arreglarse el primer defecto de abajo, y el relleno de
+     textos vino de `cruza` con el segundo;
    * `cruza`, el relleno de mensajes de 32766, que pone el mismo mensaje en
-     otro lugar que el de 33000 y no puede convivir con él, y el relleno de
-     textos de 200, por el segundo defecto de abajo.
+     otro lugar que el de 33000 y no puede convivir con él. Es lo único que
+     le queda: el relleno de textos se fue al chico.
 
    `ChangeEncounterSteps` no está implementado, así que los encuentros de
    prueba siguen siendo un flag del cartucho chico.
@@ -646,28 +648,29 @@ se pueden empezar hoy.
    `tram-900` y `tram-1200`, el viaje del tranvía que sigue hasta el 16. taro
    las miró. Lado a lado en `/extras/capturas/9f/`.
 
-   **Dos defectos conocidos**, encontrados armando el cartucho único y sin
-   arreglar a propósito —cero features hasta cerrar la etapa—:
+   **Los dos defectos que el cartucho único destapó están arreglados** desde
+   el 2026-09-20, cada uno en su commit y sin mover una sola golden. Lo que
+   queda escrito es lo que no está en el diff:
 
-   * **las gotas de lluvia en un mapa con cronómetro no se tiñen.** Las gotas
-     buscan la primera paleta de sprite con lugar —`gotas_de_lluvia` en
-     snes_convert.py—, y si el mapa lleva los dígitos suele ser la de ellos;
-     `subir_timer_pal` sube esa paleta **sin teñir**, a propósito para los
-     dígitos, y las gotas salen grises en una pantalla teñida. Lo destapó
-     `pan-lluvia`: en un cartucho con un caso de cronómetro en el mismo mapa
-     —`pan-lluvia` y `timer` en el 6— el cuadro 66 difiere en 584 pixeles, y
-     `sacudir-lluvia-60` en 679. Se evita no juntándolos —las lluvias van en
-     el chico—, pero **puede verse en `demo-ciudad`**, que lleva cronómetro
-     en todos los mapas y llueve en el 1: no se miró;
-   * **la lista "Use Item" de la pelea no dibuja los nombres de los ítems
-     cuyo índice de texto pasa de 255**: quedan el cursor y las cantidades.
-     Es la misma clase que arregló `batalla-textos-lejos` para los renglones
-     del menú, en otra tabla. Se reproduce con el caso `batalla-item` en un
-     cartucho con `--relleno-de-textos 200`: `batalla-item` y
-     `batalla-item-blanco` difieren en 521 pixeles, todos en los nombres.
-     Por eso ese relleno va en `cruza` y no en el chico. **Puede verse en
-     `demo-ciudad`**, cuyos textos de la batalla arrancan pasado el 255: no
-     se miró;
+   * ~~**las gotas de lluvia en un mapa con cronómetro no se tiñen**~~. La
+     paleta de los dígitos la vuelve a subir `subir_timer_pal` sin teñir, y
+     eso es correcto —en RM2k el cronómetro va encima del tinte,
+     `Priority_Timer` 140 contra `Priority_Screen` 90—; la lluvia va debajo
+     —`Priority_Weather`, 80— así que no puede compartirla. `gotas_de_lluvia`
+     la saltea, como ya salteaba las ranuras de líder. **En `demo-ciudad` no
+     se veía**: los dígitos y las gotas comparten paleta en catorce de sus
+     veintinueve mapas, pero no en el 1, que es donde llueve. Lo que cuesta,
+     medido: el mapa 18 de `demo-ciudad` se queda sin gotas por falta de
+     paleta, y en el cartucho de pruebas no se pierde ninguno;
+   * ~~**la lista "Use Item" de la pelea no dibuja los nombres**~~, y **no
+     era de la ROM ni tenía que ver con el 255**: el índice se arma y se lee
+     de a dieciséis bits de punta a punta. Era `--relleno-de-textos`, que
+     metía sus textos muertos delante de todos, y el nombre de un ítem no
+     sale de una tabla sino de la cuenta `3k`. Descartado el 255 midiendo:
+     con relleno 100 —nombres del 100 al 168— desaparecen los mismos 521
+     pixeles. En `demo-ciudad` tampoco se veía: 62 ítems son los textos 0 a
+     183, y lo que pasa del 255 son los términos de la batalla, que
+     `ba_orden_txt` ya nombra con dos bytes;
    * **en el cartucho de pruebas la primera vuelta del lazo termina tres
      cuadros más tarde** que en uno de un mapa. `Partida` lo espera antes de
      mirar el `Teleport`, pero lo que cuenta cuadros de hardware desde el

@@ -94,10 +94,14 @@ CARTUCHOS = {
     # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
     # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
     # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
-    # puede pedir— y el relleno de mensajes de 33000. Y las dos
-    # lluvias: en el 6 del de pruebas corren casos con cronómetro, las gotas
-    # caen en la paleta de los dígitos, y ésa `subir_timer_pal` la sube sin
-    # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
+    # puede pedir— y los dos rellenos: el de mensajes de 33000 y el de textos
+    # de 200, que corre los índices de la batalla más allá del 255 y vive acá
+    # porque `batalla-item` es el caso que lo mira.
+    #
+    # Las dos lluvias estuvieron acá hasta el 2026-09-20 y volvieron al de
+    # pruebas: caían en la paleta de los dígitos del cronómetro, que
+    # `subir_timer_pal` sube sin teñir, y salían grises en una pantalla
+    # teñida. Hoy `gotas_de_lluvia` saltea esa paleta.
     "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--heroe-encima", "--encuentros-de-prueba", "8",
                "--relleno-de-mensajes", "33000",
@@ -107,10 +111,10 @@ CARTUCHOS = {
                "pelea-82-grupo-11-12"]),
     # El otro relleno de mensajes, que deja el primer mensaje del 255 encima
     # del borde de banco. No convive con el del chico: los dos corren el mismo
-    # mensaje, cada uno a otro lugar. Y el relleno de textos, que en el chico
-    # borraba los nombres de la lista "Use Item" de `batalla-item`: es un
-    # defecto de la ROM, está en ESTADO.md. Medido que convive con éste: el
-    # bloque de mensajes queda en la misma dirección.
+    # mensaje, cada uno a otro lugar, y ésa es la única razón por la que este
+    # cartucho existe. El relleno de textos estuvo acá hasta el 2026-09-20,
+    # porque en el chico borraba los nombres de la lista "Use Item" de
+    # `batalla-item`; eso era el relleno y no la ROM, y se fue con el arreglo.
     "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766"],
               ["grupo-11", "batalla"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
