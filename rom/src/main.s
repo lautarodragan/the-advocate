@@ -16196,8 +16196,17 @@ gira:
     jsr ranura_del_evento
     cpx #$FFFF
     beq sin_ruta
+    ; `IsFacingLocked`: la orden 26 de su ruta le fijó la mirada y sólo la 27
+    ; se la suelta, así que no gira ni con el héroe hablándole. La ruta puede
+    ; haber terminado hace rato —el bit queda en la ranura— y por eso se mira
+    ; antes que `ruta_ocupada`: es el director muerto de `RunDirectorScene`,
+    ; que hace `26` y nunca un `27` (mapas 19, 46 y 96).
+    lda ruta_ev + 18, x
+    and #$08
+    bne fija
     jsr ruta_ocupada
     beq sin_ruta                ; la ranura quedó de una ruta que ya terminó
+fija:
     rts                         ; una ruta andando: ella decide adónde mira
 sin_ruta:
     lda ev_buscado

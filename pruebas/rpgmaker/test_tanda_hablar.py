@@ -10,6 +10,7 @@ escenas, y está explicado en `pruebas/abl/test_tanda_escenas.py`.
 
 import pytest
 
+from consola import en_la_wram
 from tanda import golden, partida
 
 # Hablarle a algo: nombre, la página de prueba —el `Teleport` al mapa y a la
@@ -63,6 +64,12 @@ HABLADAS = (
     # derecha. Es el `GangMember1` que taro encontró sin girar.
     ("gemelo-ruta", "gemelo-ruta", (25, 70, 110, 150),
      (20, 60, 140, 160)),
+    # Y el mismo con la orden 26 detrás de la 13: la ruta le **fija** la
+    # mirada, así que tiene que quedarse mirando a la derecha aunque el héroe
+    # le hable. Es la ruta del director muerto de `RunDirectorScene` —mapas
+    # 19, 46 y 96—, que hace `26` y nunca un `27`.
+    ("gemelo-fija", "gemelo-fija", (25, 70, 110, 150),
+     (20, 60, 140, 160)),
     # Los fuegos translúcidos de los barriles del mapa 9, con la mezcla
     # horneada en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra
     # que el conversor y la referencia horneen contra el mismo fondo.
@@ -112,3 +119,40 @@ def test_hablar(nombre, caso, apretar, cuadros):
         p = partida(caso)
         p.correr(cuadro, apretar_a=apretar)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
+
+
+# El evento al que las dos páginas de abajo le hablan, que es el mismo que
+# `gemelo-ruta` y `gemelo-fija` mandan a mirar a la derecha. El `MoveEvent` lo
+# nombra **14**, que es su id de RM2k, y la ROM lo llama **13**: su número es
+# el índice en `game_map.events`, que `paginas_del_mapa` cuenta desde cero.
+EVENTO_QUE_GIRA = 13
+
+
+def _giro_ev(caso):
+    """Qué evento quedó girado hacia el héroe tras hablarle, o `None`.
+
+    `GIRO_EV` es el único estado del giro que no depende de una fila de
+    `npc_buf`: vale $FF mientras nadie gire. Se mira acá y no sólo en la
+    golden porque una golden nueva no puede dar rojo antes del arreglo, y
+    esto sí: ver "Una golden caza regresiones" en AGENTS.md.
+    """
+    p = partida(caso)
+    p.correr(60, apretar_a=(25,))
+    quien = p.consola.ram(en_la_wram(p.simbolos["GIRO_EV"]), 1)[0]
+    return None if quien == 0xFF else quien
+
+
+def test_una_ruta_terminada_no_impide_girar():
+    """El control de `test_la_mirada_fija_no_gira`: sin la orden 26, gira."""
+    assert _giro_ev("gemelo-ruta") == EVENTO_QUE_GIRA
+
+
+def test_la_mirada_fija_no_gira():
+    """`IsFacingLocked`: la orden 26 de una ruta le gana al giro hacia el héroe.
+
+    `Game_Event::ScheduleForegroundExecution` sólo da vuelta al evento si
+    `!(IsFacingLocked() || IsSpinning())`, y la ruta de `RunDirectorScene`
+    —mapas 19, 46 y 96— fija la mirada del director muerto y no la suelta
+    nunca, así que hablarle no tiene que girarlo.
+    """
+    assert _giro_ev("gemelo-fija") is None
