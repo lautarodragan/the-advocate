@@ -4,6 +4,10 @@ Esto es lo que **no** se deduce leyendo el código. Todo lo demás está en
 fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
     ESTADO.md        dónde quedamos: lo que está a medias y lo que se supone
+    decisiones/      las decisiones tomadas que siguen valiendo, una por
+                     archivo: para no rehacerlas ni contradecirlas
+    divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
+    wishlist/        lo que nos gustaría hacer y nadie está haciendo
     justfile         qué se puede correr; los comentarios explican el porqué
     README.md        el juego original, el volcado a JSON, y el port a SNES
                      entero con sus trampas y "Lo que falta"
