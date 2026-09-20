@@ -73,8 +73,8 @@ from port import escena as escena_mod
 from audio import snes_music
 from port.asignador import CELL, cut_tiles, tile_colors
 from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
-from render.render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
-                               find_resource, load_image)
+from render.render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, TILE,
+                               build_passability, find_resource, load_image)
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -653,6 +653,169 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
                           else TODAS_LAS_POSES if npc["evento"] in movibles
                           else (grafico[2],))
     return poses
+
+
+# --- los eventos que se hornean en el mapa ----------------------------------
+# Un evento que se dibuja con **un tile opaco del ChipSet**, siempre el mismo y
+# siempre en la misma celda, no necesita dibujarse como evento: su tile se mete
+# en la capa alta del mapa y su fila del NPC nace escondida. El evento sigue
+# entero para su lógica —dispara, cierra el paso, es blanco de una página—; lo
+# que se ahorra es su objeto de OAM y su paso por `place_npc`, que es lo que
+# cuesta cuadros en el mapa más cargado del juego.
+#
+# **La pasabilidad no cambia, y eso es lo que permite esconder la fila.** Para
+# un tile de la capa alta sin el bit de "por encima del héroe",
+# `rm2k.passability_map` resuelve la celda con los bits de ese tile, que son
+# exactamente los que `rm2k.pasabilidad_del_tile` le hacía imponer a la fila del
+# evento; y `pasa_con_evento`, en main.s, saltea las filas escondidas. O sea que
+# el horneado le pasa la misma respuesta de la tabla al mapa. Lo cuida
+# `pruebas/herramientas/test_horneados.py`.
+#
+# Lo que **no** se ahorra todavía: su paleta de sprite y su ranura de VRAM. El
+# evento sigue entrando en el reparto de `npcs_dibujables` como si se dibujara,
+# a propósito: sacarlo de ahí le libera una paleta al mapa y con eso cambia lo
+# que se ve —los tiles que hoy se dibujan con una paleta ajena pasarían a tener
+# la suya, y el mapa 11 tiene uno—, y eso es una decisión aparte de ésta.
+
+# Los comandos que mueven un evento de celda o le tocan el dibujo: un evento que
+# alguna página puede correr de lugar, cambiar de dibujo o hacer destellar no
+# está fijo, así que no se hornea. Se miran los comandos **crudos** y no las
+# páginas compiladas: es más conservador —cuenta también las páginas que este
+# port no compila— y no hace falta compilar nada para preguntarlo, que es lo que
+# deja tomar la decisión antes de dibujar las capas.
+COMANDOS_QUE_MUEVEN = (eventos.MOVE_EVENT, eventos.CHANGE_EVENT_LOCATION,
+                       eventos.TRADE_EVENT_LOCATIONS, eventos.FLASH_SPRITE)
+
+
+def _alfas_del_tile(atlas, indice):
+    """El alfa de los 16x16 pixeles del tile `indice` de la capa alta."""
+    from PIL import Image
+    tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
+    atlas.render_tile(tile, 0, 0, rm2k.UPPER_BASE + indice)
+    return tile.getchannel("A").tobytes()
+
+
+def eventos_horneables(renderer, game_map):
+    """Los eventos del mapa que se pueden hornear, como {evento: tile del mapa}.
+
+    La regla es deliberadamente chica, porque lo que la sostiene es que **se vea
+    igual**; ante la duda el evento se sigue dibujando. Se piden las cinco
+    cosas:
+
+    * **se dibuja con un tile de la capa alta del ChipSet** —no con un CharSet—,
+      con el tile 0 afuera porque en RM2k es "sin gráfico";
+    * **el dibujo es fijo**: una sola página, sin condición, y su gráfico no
+      sigue a la página. Una puerta que se abre con un switch cambia de tile, así
+      que no entra;
+    * **el evento no se mueve ni cambia**: sin `move_type`, sin ruta propia en
+      ninguna página, sin animación continua, y ninguna página del mapa lo corre
+      de lugar ni lo hace destellar (ver `COMANDOS_QUE_MUEVEN`);
+    * **el tile tapa la celda entera**: opaco en las 16x16, y sin el bit de "por
+      encima del héroe" —con él, metido en la capa alta se dibujaría por encima
+      del héroe y no por debajo, que es donde está el sprite de un evento de la
+      capa de abajo—;
+    * **la celda tiene lugar**: el evento es de la capa de abajo y la capa alta
+      del mapa está vacía ahí. Si ya hay un tile dibujado, hornear lo taparía, y
+      si el evento es de la capa del héroe o de la de encima su sprite no va en
+      la capa alta del mapa sin cambiar qué tapa a qué.
+
+    Que el tile de abajo esté animado **no lo saca**: la celda se hornea en
+    todos los dibujos de la animación, porque lo que se toca es la capa del mapa
+    y `capas_animadas` los renderiza todos desde ahí. Lo que se pierde es la
+    animación que el tile opaco ya tapaba.
+    """
+    atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_nombre", None))
+    flags = getattr(game_map, "pasabilidad_tiles", None)
+    if atlas is None or flags is None:
+        return {}
+    # Que el tile 0 de la capa alta —el que lleva una celda vacía— no dibuje
+    # nada se comprueba y no se supone: es lo que hace que meterle el tile del
+    # evento no tape nada. En los ChipSets de este juego lo cumple; uno que no
+    # lo cumpla deja al mapa sin horneados en vez de cambiar lo que se ve.
+    if any(_alfas_del_tile(atlas, 0)):
+        return {}
+    # Los eventos que alguna página corre de lugar, hace destellar o manda a
+    # caminar. Va por el id de RM2k, que es lo que llevan los comandos, y lo
+    # traduce el mismo `eventos.Eventos` que usa la compilación.
+    del_mapa = eventos.Eventos(game_map)
+    tocados = set()
+    for evento in game_map.events:
+        for page in evento.pages:
+            for cmd in page.commands:
+                if cmd.code in COMANDOS_QUE_MUEVEN and cmd.parameters:
+                    blanco = del_mapa.blanco(cmd.parameters[0])
+                    if blanco:
+                        tocados.add(blanco - 1)
+    # Y los que caminan solos: `move_type` en cualquier cosa que no sea quieto,
+    # o una ruta propia en alguna página.
+    caminan = {numero for numero, evento in enumerate(game_map.events)
+               if any(p.move_type or p.move_route.commands
+                      for p in evento.pages)}
+    opacos = {}
+    horneables = {}
+    for npc in collect_npcs(game_map):
+        numero = npc["evento"]
+        base = rm2k.sin_horneado(npc["charset"])
+        if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
+            continue
+        if npc["cambia"] or npc["anima"] or numero in caminan \
+                or numero in tocados:
+            continue
+        paginas = game_map.events[numero].pages
+        if len(paginas) != 1 or paginas[0].condition.active:
+            continue
+        if npc["layer"] != rm2k.LAYER_BELOW:
+            continue
+        indice = int(base.rsplit(":", 1)[1])
+        if not indice:
+            continue                    # el tile 0 es "sin gráfico"
+        tile = rm2k.UPPER_BASE + indice
+        if flags[tile] & rm2k.PASS_ABOVE:
+            continue                    # iría por encima del héroe
+        celda = npc["y"] * game_map.width + npc["x"]
+        if game_map.upper_layer[celda] != rm2k.UPPER_BASE:
+            continue                    # la capa alta de la celda está ocupada
+        if indice not in opacos:
+            opacos[indice] = all(a == 255 for a in _alfas_del_tile(atlas, indice))
+        if not opacos[indice]:
+            continue
+        horneables[numero] = (celda, tile)
+    return horneables
+
+
+def _mismo_reparto_de_cgram(sin, con):
+    """Si hornear no le movió a nadie más los colores con que se dibuja.
+
+    Lo que el horneado le agrega al mapa son los colores del tile, y los colores
+    del fondo son un pozo común con un presupuesto: unos cuantos de más le hacen
+    fusionar —y entonces cambian pixeles de celdas que no tienen nada que ver— o
+    le sacan una paleta a la capa de encima, que empaqueta por tile y fusiona
+    mucho peor. Las dos cosas se ven acá: la capa de encima tiene que salir
+    idéntica, y el fondo con el mismo presupuesto y sin fusionar más que antes.
+    Que la paleta del fondo tenga colores nuevos, y por lo tanto otro orden, no
+    es un cambio: el tilemap sale con los índices de esa misma paleta.
+    """
+    if con is None:
+        return False
+    (_, _, _, antes), encima_antes = sin
+    (_, _, _, ahora), encima_ahora = con
+    return (encima_antes == encima_ahora
+            and antes["presupuesto"] == ahora["presupuesto"]
+            and antes["fusionados"] == ahora["fusionados"])
+
+
+def hornear_en_el_mapa(game_map, horneables):
+    """Mete el tile de cada evento horneado en la capa alta del mapa.
+
+    Se hace sobre el `game_map` y no sobre la imagen dibujada, y eso resuelve
+    tres cosas de una: las capas se dibujan desde acá —así que los dibujos de la
+    animación del ChipSet salen horneados también—, la clave del caché de las
+    capas lleva la capa alta, así que cambia sola, y la pasabilidad de la celda
+    la resuelve `passability_map` con los bits del tile, que son los mismos que
+    imponía la fila del evento.
+    """
+    for celda, tile in horneables.values():
+        game_map.upper_layer[celda] = tile
 
 
 def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
@@ -6286,7 +6449,31 @@ def convertir(renderer, map_id, args, inicio=None):
     capas = capas_convertidas(renderer, game_map)
     if capas is None:
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
+
+    # Y las capas otra vez, con los eventos opacos horneados adentro del mapa.
+    # Se convierten **las dos** y se comparan porque hornear le agrega colores
+    # al fondo: si eso le hiciera fusionar colores, o le corriera el reparto de
+    # CGRAM a la capa de encima, cambiaría lo que se ve en celdas que no tienen
+    # nada que ver con el horneado. En ese caso el mapa va sin hornear, que es
+    # lo de siempre. La segunda conversión no se paga dos veces en un build
+    # caliente: las dos quedan en el caché en disco, con su clave.
+    horneados = eventos_horneables(renderer, game_map)
+    if horneados:
+        hornear_en_el_mapa(game_map, horneados)
+        con_horneado = capas_convertidas(renderer, game_map)
+        if _mismo_reparto_de_cgram(capas, con_horneado):
+            capas = con_horneado
+        else:
+            print("  mapa %d: hornear %d evento(s) le movía el reparto de "
+                  "CGRAM, así que van dibujados" % (map_id, len(horneados)))
+            for celda, _tile in horneados.values():
+                game_map.upper_layer[celda] = rm2k.UPPER_BASE
+            horneados = {}
     (tile_data, cram, tilemap, summary), above_data = capas
+    if horneados:
+        print("  mapa %d: %d evento(s) opaco(s) horneados en el mapa: %s"
+              % (map_id, len(horneados),
+                 ", ".join(str(e + 1) for e in sorted(horneados))))
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -6372,6 +6559,20 @@ def convertir(renderer, map_id, args, inicio=None):
         print("  mapa %d: %d gráfico(s) sin paleta propia, dibujados con una "
               "ajena: %s" % (map_id, len(prestadas),
                              ", ".join(sorted("%s:%d" % k for k in prestadas))))
+    # Un evento horneado que se dibujaba con una paleta ajena no se puede
+    # esconder: el sprite y el tile del fondo mostrarían colores distintos —el
+    # prestado y los de verdad— y taparlo con el segundo cambia lo que se ve.
+    # Ninguno de los mapas del juego lo pide hoy; si aparece, hay que sacarlo de
+    # la regla y no aprobar la golden.
+    horneado_prestado = sorted(
+        evento for evento in horneados
+        for npc in npcs
+        if npc["evento"] == evento and (npc["charset"], npc["index"]) in prestadas)
+    if horneado_prestado:
+        sys.exit("mapa %d: el evento %s se hornea en el mapa y además se "
+                 "dibujaba con una paleta ajena, así que horneado se vería con "
+                 "otros colores. Ver `eventos_horneables`."
+                 % (map_id, ", ".join(str(e + 1) for e in horneado_prestado)))
     for evento, tile in descartados:
         aviso_de_descarte(
             "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
@@ -6601,6 +6802,16 @@ def convertir(renderer, map_id, args, inicio=None):
             print("  mapa %d: las animaciones de batalla se dibujan en %d "
                   "tiles desde el %d, paleta %d"
                   % (map_id, animacion_mod.TILES, anim_base, anim_pal))
+    # Y las filas de los eventos horneados nacen escondidas: su tile ya está
+    # dibujado en el mapa. La fila sigue estando entera —el evento dispara,
+    # cierra el paso y es blanco de una ruta como cualquiera—, y `build_oam` la
+    # saltea sin armar un objeto, que es lo que se está ahorrando. `tile_pasa`
+    # se deja puesto a propósito: la celda ya la resuelve la tabla del mapa con
+    # los mismos bits, y si alguna vez una página volviera a mostrar esta fila,
+    # el dato que necesita está.
+    for npc in npcs:
+        if npc["evento"] in horneados:
+            npc["visible"] = False
     table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
