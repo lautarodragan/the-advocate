@@ -72,6 +72,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render/render_map.py` |
+| Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `eventos_horneables` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |

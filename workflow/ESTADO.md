@@ -241,6 +241,15 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   que dé verde— sino aflojarlos, o leer `cuadros_perdidos`, que ya viaja en la
   salida de cada captura.
 
+  Y hay un pico que no es un pico sino una cuesta: **caminando**, el mapa más
+  cargado pierde cuadros seguido, y lo que los produce son los eventos
+  dibujados. Medido el 2026-09-20 en el mapa 11, por 1200 cuadros: del orden de
+  **siete cuadros perdidos por cada evento dibujado**, y quieto ninguno. De ahí
+  salió hornear los opacos —`done/eventos-opacos-al-mapa.md`—, que bajó los 450
+  de ese mapa a 228; lo que queda son los eventos que el juego mueve, que no se
+  pueden hornear. Ojo al medirlo: `cuadros_perdidos` **satura en 255**, así que
+  hay que leerlo y ponerlo en cero cada pocas decenas de cuadros.
+
   Lo que esto bloqueaba **se destrabó solo el 2026-09-16**, cuando la golden
   pasó a ser una captura de la propia ROM: darle caso propio a la escena del
   ascensor del mapa 2 es gratis y está en
