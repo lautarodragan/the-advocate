@@ -10,12 +10,12 @@
 
 use std::path::PathBuf;
 use std::process::Command;
-use tiles::convert::Options;
-use tiles::grid::{Picture, ENTRIES};
-use tiles::image;
+use voodoo::convert::Options;
+use voodoo::grid::{Picture, ENTRIES};
+use voodoo::image;
 
 /// Every entry gets a colour, so a case only has to care about indices.
-fn every_colour() -> Vec<Option<tiles::Rgb15>> {
+fn every_colour() -> Vec<Option<voodoo::Rgb15>> {
     (0..ENTRIES)
         .map(|e| Some(((e % 32) as u8, (e / 32) as u8, 0)))
         .collect()
@@ -34,13 +34,13 @@ fn picture(width: usize, height: usize, paint: impl Fn(usize, usize) -> u8) -> P
     }
 }
 
-fn convert(picture: &Picture, bpp: usize) -> tiles::Result<tiles::Converted> {
-    tiles::convert(picture, &[], &Options::at(bpp))
+fn convert(picture: &Picture, bpp: usize) -> voodoo::Result<voodoo::Converted> {
+    voodoo::convert(picture, &[], &Options::at(bpp))
 }
 
-fn answer(result: tiles::Result<tiles::Converted>) -> String {
+fn answer(result: voodoo::Result<voodoo::Converted>) -> String {
     match result {
-        Err(tiles::Bad::Answer(message)) => message,
+        Err(voodoo::Bad::Answer(message)) => message,
         Err(other) => panic!("expected an answer, got a usage error: {other}"),
         Ok(_) => panic!("expected it to be refused"),
     }
@@ -132,7 +132,7 @@ fn priority_is_set_on_the_cells_that_draw() {
         priority: 1,
         ..Options::at(4)
     };
-    let done = tiles::convert(&picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }), &[], &options)
+    let done = voodoo::convert(&picture(16, 8, |x, _| if x < 8 { 1 } else { 0 }), &[], &options)
         .unwrap();
     assert_eq!(done.tilemap[0][0] & 0x2000, 0x2000);
     assert_eq!(done.tilemap[0][1], 0);
@@ -153,7 +153,7 @@ fn colour_memory_is_the_palette_of_the_picture() {
     let done = convert(&picture(8, 8, |_, _| 17), 4).unwrap();
     assert_eq!(done.cgram.len(), 2 * ENTRIES);
     for (entry, word) in done.cgram.chunks_exact(2).enumerate() {
-        let expected = tiles::cgram_word(((entry % 32) as u8, (entry / 32) as u8, 0));
+        let expected = voodoo::cgram_word(((entry % 32) as u8, (entry / 32) as u8, 0));
         assert_eq!(u16::from_le_bytes([word[0], word[1]]), expected, "entry {entry}");
     }
 }
@@ -227,33 +227,33 @@ fn a_picture_that_is_not_indexed_is_a_usage_error() {
         .write_image_data(&[0; 8 * 8 * 4])
         .unwrap();
     match image::read(&path) {
-        Err(tiles::Bad::Usage(message)) => assert!(message.contains("indexed"), "{message}"),
+        Err(voodoo::Bad::Usage(message)) => assert!(message.contains("indexed"), "{message}"),
         other => panic!("expected a usage error, got {:?}", other.map(|_| ())),
     }
 }
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("tiles-test-{}-{name}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("voodoo-test-{}-{name}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
 
 fn run(args: &[&str]) {
-    let status = Command::new(env!("CARGO_BIN_EXE_tiles"))
+    let status = Command::new(env!("CARGO_BIN_EXE_voodoo"))
         .args(args)
         .output()
         .unwrap();
     assert!(
         status.status.success(),
-        "tiles {args:?}: {}",
+        "voodoo {args:?}: {}",
         String::from_utf8_lossy(&status.stderr)
     );
 }
 
 // --- animations -------------------------------------------------------------
 
-fn animated(picture: &Picture, animations: &[Vec<Picture>]) -> tiles::Result<tiles::Converted> {
-    tiles::convert(picture, animations, &Options::at(8))
+fn animated(picture: &Picture, animations: &[Vec<Picture>]) -> voodoo::Result<voodoo::Converted> {
+    voodoo::convert(picture, animations, &Options::at(8))
 }
 
 /// Two cells that look the same in the base picture, one of them animated:
@@ -270,8 +270,8 @@ fn an_animated_cell_gets_its_own_tile_in_a_run_after_the_still_ones() {
     assert_eq!(done.tilemap[0][1] & 0x03FF, 3);
     let run = &done.animations[0];
     assert_eq!((run.first, run.count, run.frames.len()), (3, 1, 2));
-    assert_eq!(run.frames[0], tiles::pack_tile(&[[9; 8]; 8], 8));
-    assert_eq!(run.frames[1], tiles::pack_tile(&[[11; 8]; 8], 8));
+    assert_eq!(run.frames[0], voodoo::pack_tile(&[[9; 8]; 8], 8));
+    assert_eq!(run.frames[1], voodoo::pack_tile(&[[11; 8]; 8], 8));
     // What the tile data holds for the run is the base picture's frame.
     assert_eq!(&done.tiles[3 * 64..], &run.frames[0][..]);
 }
@@ -346,7 +346,7 @@ fn frames_that_disagree_on_a_drawn_entry_are_refused() {
 fn a_frame_of_another_size_is_a_usage_error() {
     let base = picture(16, 8, |_, _| 9);
     match animated(&base, &[vec![picture(8, 8, |_, _| 9)]]) {
-        Err(tiles::Bad::Usage(message)) => assert!(message.contains("frame 1"), "{message}"),
+        Err(voodoo::Bad::Usage(message)) => assert!(message.contains("frame 1"), "{message}"),
         other => panic!("expected a usage error, got {:?}", other.map(|_| ())),
     }
 }

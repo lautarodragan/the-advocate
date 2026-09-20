@@ -1688,7 +1688,7 @@ def convert(grid, palette, variantes, otras, resumen):
 
     # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
     # corrida contigua por familia, después de los quietos: eso lo hace
-    # `tiles`, que es quien numera. Ver "Animations" en tools/tiles/README.md.
+    # Voodoo, que es quien numera. Ver "Animations" en tools/voodoo/README.md.
     tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
         imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
         max_tiles=MAX_TILES)

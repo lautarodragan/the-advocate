@@ -50,7 +50,7 @@ llamada está mal).
 Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
 1. **los conversores puros**, un proyecto por responsabilidad: `tools/gunter/` (muestras
-   → BRR, con el lector de SoundFont) y `tools/tiles/` (PNG → tiles y paletas). Son
+   → BRR, con el lector de SoundFont) y `tools/voodoo/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
 2. **el ensamblador**: fue `w65/` y desde el 2026-09-16 es `ca65` + `ld65`,
@@ -144,7 +144,7 @@ un defecto de la **página de prueba** de guardado y no del juego—. Está abaj
 en "Lo que la tanda no cubre".
 
 Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
-`tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
+`voodoo-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
 **El justfile tiene una sola demo desde el 2026-09-20**: `just demo` arma
 `rom/build/abl/abl.sfc`, la cadena entera con pantalla de título, que es lo que
@@ -197,13 +197,13 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
     tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
     tools/gunter/     Gunter: BRR y lector de SoundFont       enchufado: las muestras salen de acá
-    tools/tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
+    tools/voodoo/     Voodoo: imagen indexada -> tiles       enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
 ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.
 
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
-byte por byte iguales a las de antes de cada corte. `tools/tiles/` tiene la suya de
+byte por byte iguales a las de antes de cada corte. `tools/voodoo/` tiene la suya de
 que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
 frena es el desempate de `try_pack`, acá abajo.
 
@@ -217,16 +217,16 @@ frena es el desempate de `try_pack`, acá abajo.
   hashes de enteros no varían entre corridas, así que no es una ROM que cambie
   sola: es un desempate del que dependemos sin haberlo elegido, y tiene costo
   —en una llamada medida obliga a fusionar dos colores que con un desempate
-  determinista no haría falta fusionar—. El `tools/tiles/` de antes del paso 8
+  determinista no haría falta fusionar—. El `tools/voodoo/` de antes del paso 8
   desempataba por los colores mismos: de 32 llamadas, 25 idénticas, 1 con las
   mismas paletas en otro orden, 6 distintas y **ninguna peor**.
 
   **Desde el paso 8 es una decisión del asignador**, `tools/port/asignador.py`, y ya
-  no de `tools/tiles/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
+  no de `tools/voodoo/`, que no empaqueta. Se toma cuando el asignador pase a Rust —ahí
   el orden de hash de CPython no existe— o antes, cambiando el desempate en
   Python. Cualquiera de las dos mueve el tilemap de algunos mapas y hay que
   rebendecir esas goldens; el código del desempate determinista está en la
-  historia de `tools/tiles/`, antes de `4953089`.
+  historia de `tools/voodoo/`, antes de `4953089`.
 
 * ~~**Que un paralelo espere a su propio mensaje.**~~ **Hecho el 2026-09-20**;
   queda escrito porque es el porqué y porque el costo se midió dos veces. En
@@ -299,7 +299,7 @@ Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
 refactors: **no hay features hasta que cierre**.
 
 **Al 2026-09-16 están hechos el 1, el 3 y el 4, y el 2 a medias.** O sea que lo
-que queda, en orden, es: enchufar `tools/tiles/` —bloqueado por una decisión, no por
+que queda, en orden, es: enchufar `tools/voodoo/` —bloqueado por una decisión, no por
 trabajo—, que taro bendiga las goldens, `ca65` con el asignador, agrupar los
 cartuchos, y partir `main.s` al final. Los dos primeros no dependen de nadie y
 se pueden empezar hoy.
@@ -308,9 +308,9 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `tools/gunter/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
+2. ~~Enchufar `tools/gunter/` y `tools/voodoo/`, y borrar los de Python~~ el 2026-09-16 se
    fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
-   snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
+   snes-validar`; `tools/voodoo/` se enchufó en el paso 8, con otro diseño.
 
    El argumento que cerró la discusión, y que vale para lo que falta: dejar una
    segunda implementación no se sostiene, porque si el port se equivoca **la ROM
@@ -407,12 +407,12 @@ se pueden empezar hoy.
    capa de encima con `repartir_encima`, dónde arranca, y la paleta del fondo
    con `build_palette`— y `convert_above` y `convert` sólo emiten.
 
-8. **El asignador corre primero, y `tools/tiles/` convierte lo que ya entra.** ✅ el
+8. **El asignador corre primero, y `tools/voodoo/` convierte lo que ya entra.** ✅ el
    2026-09-17, con la ROM byte por byte igual en cada sub-paso.
    Rediseñado por taro el 2026-09-17; lo que sigue reemplaza al "enchufar
-   `tools/tiles/`" que había acá.
+   `tools/voodoo/`" que había acá.
 
-   **La frontera**: `tiles` no toma decisiones artísticas —dada una imagen que
+   **La frontera**: Voodoo no toma decisiones artísticas —dada una imagen que
    el formato puede representar, la representa sin tocar un pixel, y si no
    puede, falla—; el asignador sí —decide qué se pierde: fusionar colores,
    empaquetar paletas, repartir CGRAM entre capas, sprites y mapas—. La
@@ -423,36 +423,36 @@ se pueden empezar hoy.
 
    **El pipeline**: render → **asignador** (el cartucho entero de una vez) →
    **PNG indexados de 8 bits con índices absolutos de CGRAM** más un
-   manifiesto → **`tiles`** → conversor → `ca65` + `ld65`. En una capa de
+   manifiesto → **`voodoo`** → conversor → `ca65` + `ld65`. En una capa de
    4bpp, `índice >> 4` es la paleta y `índice & 15` el color; así no hace
    falta metadata —un PNG no puede decir "mis índices arrancan en N", y un
    chunk propio lo borra el primer editor que lo guarde—. Cada PNG lleva la
-   CGRAM entera, **duplicada a propósito**: `tiles` junta las entradas que
+   CGRAM entera, **duplicada a propósito**: `voodoo` junta las entradas que
    usa cada imagen y **corta si dos le dan distinto color a la misma**. Las
    imágenes del asignador quedan en `rom/build/<cartucho>/asignador/`, para
    mirarlas y retocarlas sin armar la ROM.
 
-   **`--merge` se va de `tiles`**, y con él el empaquetado de paletas y
+   **`--merge` se va de `voodoo`**, y con él el empaquetado de paletas y
    `--first-palette`: son del asignador, que por ahora sigue en Python y más
-   adelante va a ser un proyecto en Rust aparte, con `tiles` como biblioteca.
-   Mantener un "asignador tonto" en `tiles` se descartó: habría dos
+   adelante va a ser un proyecto en Rust aparte, con `voodoo` como biblioteca.
+   Mantener un "asignador tonto" en `voodoo` se descartó: habría dos
    respuestas a "qué color se pierde".
 
    **Lo que esto gana**: como el asignador sigue siendo el de Python, con el
-   mismo desempate, las paletas no cambian, y `tiles` sólo corta, deduplica y
+   mismo desempate, las paletas no cambian, y `voodoo` sólo corta, deduplica y
    espeja. **Enchufarlo no mueve ninguna golden**: los bytes pueden cambiar —el
    orden de los tiles— y los pixeles no. El desempate nuevo, que era lo único
    que iba a mover la ROM a propósito, se va con el asignador a Rust.
 
    | | qué | criterio |
    |---|---|---|
-   | 8a ✅ | `tiles` recibe PNG indexado en espacio CGRAM; se van `--merge`, el empaquetado, `--first-palette` e `inspect` | pruebas de `tiles` |
-   | 8b ✅ | `tiles` recibe varios dibujos que comparten pool, con los que animan en corridas al final | pruebas de `tiles` |
-   | 8c ✅ | el asignador emite la capa de encima como PNG indexado y `tiles` la convierte | ninguna golden se mueve: la ROM salió igual |
+   | 8a ✅ | `voodoo` recibe PNG indexado en espacio CGRAM; se van `--merge`, el empaquetado, `--first-palette` e `inspect` | pruebas de `voodoo` |
+   | 8b ✅ | `voodoo` recibe varios dibujos que comparten pool, con los que animan en corridas al final | pruebas de `voodoo` |
+   | 8c ✅ | el asignador emite la capa de encima como PNG indexado y `voodoo` la convierte | ninguna golden se mueve: la ROM salió igual |
    | 8d ✅ | lo mismo con el fondo y sus dibujos | ninguna golden se mueve: la ROM salió igual |
-   | 8e ✅ | se borra lo que `tiles` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
+   | 8e ✅ | se borra lo que `voodoo` reemplazó; lo que queda de `pixeles.py` va al módulo del asignador | la ROM igual a la de 8d |
 
-   Los sprites no pasan hoy por `tiles` en ningún lado: quedan para después.
+   Los sprites no pasan hoy por `voodoo` en ningún lado: quedan para después.
 
 9. **Un solo cartucho para todas las pruebas.** Regla de taro, el 2026-09-16:
    *"nunca dos builds distintos para incluir distintos datos"*. No hace falta
@@ -1789,7 +1789,7 @@ partirlo es trabajo de criterio. Ver `tools/README.md`.
 La capa de encima llama a `tile_colors` **894.000 veces** —medido el
 2026-09-16 sobre `abl` con `SIN_CACHE=1`— porque los colores de cada
 tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
-un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
+un diccionario de una línea. (El análisis de por qué `tools/voodoo/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
 
 Y la de al lado, que el caché de muestras del 2026-09-20 **tapó en vez de

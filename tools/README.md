@@ -34,7 +34,7 @@ aparte, en inglés y sin una mención a este juego (ver AGENTS.md):
     ditto/       lee y escribe los formatos de RPG Maker 2000
     protocol/    declara un bytecode y genera las constantes de sus dos lados
     gunter/      Gunter: códec BRR y lector de SoundFont
-    tiles/       de una imagen a tiles, paletas y tilemap
+    voodoo/      Voodoo: de una imagen a tiles, paletas y tilemap
 
 Se instalan con `just herramientas` y se usan desde el PATH: ningún `.py` de
 acá los compila ni los busca en `target/`.
