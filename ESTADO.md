@@ -725,30 +725,6 @@ para no volver a pensarlo:
 * **El dibujo de las animaciones de batalla**: está medido y sin empezar; el
   sonido y la luz sí están.
 
-## Dos que decían ser decisiones y hay que mirar antes de mudarlas
-
-Las decisiones tomadas que siguen valiendo **se fueron a `decisiones/`**, un
-archivo por decisión: son el piso sobre el que se trabaja, no trabajo a medias.
-Estas dos no se mudaron porque no está claro que sigan valiendo, y eso lo mira
-taro:
-
-* **Las ROMs para probar a mano viven en `pruebas-manuales/<fecha>-<commit>/`**,
-  en el repo y gitignorado, desde el 2026-09-12: taro las saca desde el host, y
-  sacarlas de `/extras` pedía un `podman cp` cada vez. Lo anterior a esa fecha
-  quedó en `/extras/builds/`. **Cuidado con el disco**: un build con las ocho
-  pistas de MSU-1 son 383 MB, y éste es el disco de taro y no un volumen
-  descartable; conviene dejar el último y borrar los anteriores. **Acá dice
-  "el último" y `AGENTS.md` dice "los dos últimos"**, que es más nuevo —del
-  2026-09-20, después de que `pruebas-manuales/` llegara a 4,3 GB—, y además
-  manda que haya un solo `.sfc` por build. O sea que esto es la versión vieja
-  de una regla que ya vive en `AGENTS.md`.
-* **Los builds numerados de `rom/build/` no se arman a mano.** No están en git
-  y no los produce ninguna receta salvo el 12. Armar uno a mano es cómo se
-  terminó mirando el mapa 6 creyendo que era la demo del hito 12. **Los hitos
-  no existen desde el 2026-09-16**, así que "salvo el 12" ya no quiere decir
-  nada; lo que sí sigue valiendo es que las ROMs salen de una receta, y eso lo
-  dice `AGENTS.md`.
-
 ## El margen de ROM y de RAM, medido
 
 Lo que dejaron la liberación del banco 0 del 2026-09-19 y la de la BSS del
