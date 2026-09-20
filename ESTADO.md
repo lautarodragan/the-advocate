@@ -1226,6 +1226,25 @@ van a mover.
   no existe como rojo. Si el paso de los tiles animados llegara a estar mal, lo
   dice el ojo y no la tanda. Los casos siguen mirando hasta el cuadro 40.
 
+* **Los ticks de pantalla corren después del intérprete y en RM2k corren
+  antes.** Al ordenar el cuadro como `Game_Map::Update` el 2026-09-20 —ver el
+  comentario del lazo en `main.s`— quedó afuera esto: el destello, la sacudida,
+  la cámara corrida, el cartel y la lluvia son `game_screen->Update()` y
+  `game_pictures->Update()`, que van en `game_map.cpp:1305`, o sea **antes** de
+  `UpdateForegroundEvents`, y acá van después. Ninguno decide si algo se mueve
+  ni cuándo, así que la diferencia es de un cuadro en lo que se ve; moverlos es
+  otro cambio y mueve sus goldens.
+
+* **Un movimiento bloqueado de una ruta forzada se saltea, y ahora hay una
+  golden que depende de eso.** Es una decisión de modelo vieja y declarada
+  —`tools/port/eventos.py`: RM2k reintentaría para siempre y una prueba colgada
+  no dice nada—, pero hasta el 2026-09-20 ninguna golden la ejercitaba. Con el
+  cuadro reordenado, la ruta del héroe de `droide-tapado` arranca un cuadro más
+  tarde, el paso hacia arriba cae justo cuando el droide ocupa la celda, y el
+  paso se pierde: el héroe termina una celda más abajo que antes y no hay tick
+  que empareje la captura —probado de -12 a +12—. La golden nueva congela eso.
+  Si algún día el bloqueo pasa a reintentarse, esas cinco se mueven.
+
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
   arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la
   respuesta en las banderas, se restaura el índice con `ply`, y el `beq` que
