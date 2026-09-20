@@ -15,7 +15,7 @@ El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treint
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
 que el párrafo de arriba dice que no va acá. Están enteras en el `git log`.
 
-Última vez que se tocó: 2026-09-19.
+Última vez que se tocó: 2026-09-20.
 
 **Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
 y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
@@ -218,30 +218,30 @@ frena es el desempate de `try_pack`, acá abajo.
   rebendecir esas goldens; el código del desempate determinista está en la
   historia de `tools/tiles/`, antes de `4953089`.
 
-* **Que un paralelo espere a su propio mensaje.** Es el tercero de los
-  arreglos del A de las piedras, y quedó sin hacer porque **no entra**. En RM2k
-  el paralelo que abrió un mensaje se para hasta que se cierra
-  (`game_interpreter.cpp:439-441` de easyrpg), y un `ShowMessage` de un
-  paralelo con otro mensaje abierto espera (`:928`). Acá el paralelo sigue en
-  el tick siguiente: la pág. 3 de `LTSentry1` —la que abre el guardia cuando
-  la piedra rompe la PC— prende los switches 46 y 51 y echa a caminar al
-  guardia con el mensaje todavía en pantalla. Y un paralelo que abre un mensaje
-  con otro abierto **lo pisa**. No se vio pasar en este juego, pero nada lo
-  impide.
+* ~~**Que un paralelo espere a su propio mensaje.**~~ **Hecho el 2026-09-20**;
+  queda escrito porque es el porqué y porque el costo se midió dos veces. En
+  RM2k el paralelo que abrió un mensaje se para hasta que se cierra
+  —`IsMessageActive() && _state.show_message`, `game_interpreter.cpp:434-441`
+  de easyrpg— y un `ShowMessage` de un paralelo con otro mensaje abierto
+  espera (`:928`). Acá el paralelo seguía en el tick siguiente: la pág. 3 de
+  `LTSentry1` —la que abre el guardia cuando la piedra rompe la PC— prendía
+  los switches 46 y 51 y echaba a caminar al guardia con el mensaje todavía en
+  pantalla; medido en el tick 80, un tick después de que el mensaje empezara a
+  componerse. Y un paralelo que abría un mensaje con otro abierto **lo
+  pisaba**.
 
-  Lo que costaba, medido el 2026-09-19 con una implementación de prueba —el
-  dueño del mensaje en un byte, `par_ev` en `$FF` fuera del lazo de
-  paralelos, el salteo en `un_paralelo` y la espera en `op_message`—: **49
-  bytes del banco 0**, cuando al cartucho de pruebas le quedaban 26 y al de
-  título 22, y **un byte de la BSS del banco 0, que entonces estaba llena**:
-  `ld65` decía que se pasa por uno. Para comparar, los otros tres arreglos del
-  mismo bug costaron 8, 16 y 4 bytes. **Los dos frenos se destrabaron**: el
-  banco 0 con la mudanza al banco 1 del 2026-09-19, y la BSS con `PILA` bajando
-  a 128 el 2026-09-20. Cuánto queda hoy se mide como dice AGENTS.md.
+  Lo cubre `test_un_paralelo_espera_a_su_propio_mensaje` en
+  `pruebas/abl/test_piedras.py`, que es la prueba que estaba pensada: tirar la
+  piedra hacia arriba desde (19,52) y mirar los dos switches antes y después
+  de cerrar el mensaje.
 
-  La prueba está pensada y es barata: tirar la piedra hacia arriba desde
-  (19,52) y mirar que los switches 46 y 51 sigan apagados con el mensaje
-  abierto y se prendan después de cerrarlo. Hoy daría rojo.
+  Lo que costaba, medido el 2026-09-19 con una implementación de prueba, eran
+  **49 bytes del banco 0** y **uno de la BSS, que entonces estaba llena**;
+  hecho de verdad salieron **56 y 1**. Lo que lo destrabó fueron los dos
+  puntos de abajo: la mudanza al banco 1 del 2026-09-19 y `PILA` bajando a 128
+  el 2026-09-20. Para comparar, los otros tres arreglos del mismo bug costaron
+  8, 16 y 4 bytes.
+
 ### Defectos de los originales, anotados y no arreglados
 
 Ninguno se tocó al portar, porque arreglarlos cambiaría la salida y eso es
@@ -776,7 +776,8 @@ para no volver a pensarlo:
 * **El rediseño de la escena de batalla**: fondo real y monstruos por separado,
   compuestos en VRAM al armar la pelea. Medido: unos 667 KB para el juego
   entero contra los 4,1 MB de hornear cada combinación.
-* **`ShowInn` para el Bum**.
+* ~~**`ShowInn` para el Bum**~~: hecho el 2026-09-20, con la deuda de lo que
+  se ve anotada abajo.
 * **Los eventos-tile al fondo** para el lag del minijuego del HQ.
 * **La carrera de Lashe City**, que tiene su propia sección acá arriba.
 * **El dibujo de las animaciones de batalla**: está medido y sin empezar; el
@@ -1044,12 +1045,24 @@ nombre del bug.
   suma entró en el mismo opcode; el que resta sigue sin compilar, y
   `ResetAfterBattles` tiene uno, así que **ese evento común sigue sin
   compilar**.
-* **El bum del mapa 20 no habla**: su página usa `ShowInn`, que el compilador no
-  conoce. Hay 18 en el juego; 17 compilarían con él. Necesita curar, así que va
-  después de lo de arriba.
-* **El director muerto gira al hablarle** (mapas 19, 46 y 96): la ruta de
-  `RunDirectorScene` le fija la mirada con la orden 26, y `giro_disparar` no
-  mira ese bit. Tres instrucciones en `main.s`.
+* ~~**El bum del mapa 20 no habla**~~ **hecho el 2026-09-20**: era `ShowInn`, y
+  desde ese día se compila expandiéndolo a comandos que el intérprete ya hacía
+  —el saludo con su elección, una rama por oro, `OP_GOLD` y `OP_HEAL`—, sin un
+  opcode nuevo. Compilan 17 de las 18 páginas del juego; la del 348 sigue
+  cortada por una elección con rama de cancelar. Lo cubre
+  `pruebas/rpgmaker/test_posada.py`, con el bloque comparado byte por byte y
+  las cuatro combinaciones de oro y respuesta jugadas en el cartucho de
+  pruebas. **La deuda que quedó es toda de lo que se ve**: no hay ventana de
+  oro al lado del saludo, "Yes" no sale en gris cuando no alcanza —elegirlo
+  equivale a "No"— y no hay fundido ni música de posada, que es
+  `Scene_Map::CallInn`. Y una posada gratis —6 de las 18— es sólo la cura, que
+  es lo que hace RM2k con el precio en cero.
+* ~~**El director muerto gira al hablarle**~~ **hecho el 2026-09-20**: la ruta
+  de `RunDirectorScene` le fija la mirada con la orden 26 y `giro_disparar` no
+  miraba ese bit. Son tres instrucciones y 7 bytes del banco 0. Lo cubre el
+  caso `gemelo-fija` de `test_tanda_hablar.py`, con su golden y con el estado
+  del giro —`GIRO_EV`— afirmado aparte: una golden nueva nace con lo que la
+  ROM haga, así que no puede dar rojo antes del arreglo.
 
 **El orden, decidido por taro:**
 
@@ -1111,8 +1124,12 @@ nombre del bug.
 
    Y la pila no se puede bajar dos veces: los 128 que quedan son el margen que
    cuida la prueba, no lugar disponible.
-3. **Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
-   mensajes —un paralelo espera a su propio mensaje—.
+3. ~~**Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
+   mensajes~~ **los tres hechos el 2026-09-20**, en ese orden y cada uno en su
+   commit. Entre los tres se llevaron 63 bytes del banco 0 —7 el director, 56
+   el paralelo, ninguno la posada, que no toca la ROM— y 1 byte de la BSS, el
+   dueño del mensaje. De los tres, el único que dejó deuda es la posada, y
+   está arriba.
 
 ## Lo que taro probó, y lo que falta probar
 
