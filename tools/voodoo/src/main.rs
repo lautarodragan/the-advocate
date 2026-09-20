@@ -9,10 +9,10 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use tiles::convert::{Options, COLORS_PER_PALETTE};
-use tiles::fail::{Bad, Result};
-use tiles::grid::{Picture, CELL, ENTRIES};
-use tiles::{color, image, pack};
+use voodoo::convert::{Options, COLORS_PER_PALETTE};
+use voodoo::fail::{Bad, Result};
+use voodoo::grid::{Picture, CELL, ENTRIES};
+use voodoo::{color, image, pack};
 
 /// What the two exit codes mean, and why they are not the same.
 ///
@@ -24,7 +24,7 @@ const MISUSE: u8 = 2;
 
 #[derive(Parser)]
 #[command(
-    name = "tiles",
+    name = "voodoo",
     about = "Cut an indexed picture into 8x8 tiles and pack them, with the tilemap and \
              colour memory, the way a planar PPU reads them",
     after_help = "Exit codes: 1 the answer is no (the picture breaks the format, it needs \
@@ -188,7 +188,7 @@ fn do_convert(args: &Convert) -> Result<()> {
             .collect::<Result<Vec<_>>>()?;
         animations.push(frames);
     }
-    let done = tiles::convert(&picture, &animations, &options)?;
+    let done = voodoo::convert(&picture, &animations, &options)?;
     for (path, animation) in args.animation_out.iter().zip(&done.animations) {
         write(path, &animation.frames.concat())?;
     }

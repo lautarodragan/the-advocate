@@ -6,7 +6,7 @@ entrada, y no por el orden de iteración de una tabla de hash de CPython.
 # Status
 
 Anotado y sin empezar. **Es una decisión del asignador**, `tools/port/asignador.py`,
-desde el paso 8: `tools/tiles/` ya no empaqueta. Se toma cuando el asignador
+desde el paso 8: `tools/voodoo/` ya no empaqueta. Se toma cuando el asignador
 pase a Rust —ahí el orden de hash de CPython no existe— o antes, cambiando el
 desempate en Python.
 
@@ -23,10 +23,10 @@ dependemos sin haberlo elegido, y tiene costo —en una llamada medida obliga a
 fusionar dos colores que con un desempate determinista no haría falta
 fusionar—.
 
-Lo que se sabe de la alternativa, porque ya existió: el `tools/tiles/` de antes
+Lo que se sabe de la alternativa, porque ya existió: el `tools/voodoo/` de antes
 del paso 8 desempataba por los colores mismos, y de 32 llamadas dio **25
 idénticas, 1 con las mismas paletas en otro orden, 6 distintas y ninguna
-peor**. Ese código está en la historia de `tools/tiles/`, antes de `4953089`.
+peor**. Ese código está en la historia de `tools/voodoo/`, antes de `4953089`.
 
 Lo que cuesta hacerlo: cualquiera de los dos caminos **mueve el tilemap de
 algunos mapas**, así que hay goldens que se van a mover y taro las tiene que

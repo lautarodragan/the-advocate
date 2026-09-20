@@ -85,7 +85,7 @@ MAX_TILES = 1024
 # su índice dentro de una paleta de 16.
 #
 # Dónde cae el corte entre las dos no es fijo: lo decide el conversor mapa por
-# mapa, en convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
+# mapa, en _convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
 # con tres, 79. Antes eran dos siempre, y 27 mapas no entraban —los tres
 # primeros del juego entre ellos— mientras el fondo dejaba colores sin usar.
 #
@@ -1466,49 +1466,84 @@ def build_palette(grid, bg_colors, otras=()):
             [fusionar(g) for g in otras], merged)
 
 
-def _huella_de_imagen(img):
-    """Lo que hace a una imagen: modo, tamaño y pixeles."""
-    return b"%s %dx%d " % (img.mode.encode(), img.size[0], img.size[1]) \
-        + img.tobytes()
-
-
 _VERSION_CAPAS = None
 
 
-def convert_layers(base, above_img, variantes=None):
-    """`_convert_layers`, recordado en disco.
+def _version_capas():
+    """Qué versión del código produjo lo que haya guardado bajo `capas`.
 
-    Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
-    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `abl`,
-    medido el 2026-09-10— y es una función pura de sus argumentos. La clave son
-    **los pixeles de las imágenes** y no el `.lmu` ni el ChipSet: así entra
-    todo lo que las produce, el renderer incluido, sin tener que enumerarlo. Y
-    lleva el hash de este archivo y de `rm2k.py`, que es de donde salen las
-    constantes del reparto: tocar el conversor invalida lo suyo solo.
+    Son las cinco piezas que participan del dibujo o de la conversión, más los
+    dos programas que no son fuentes de este árbol:
 
-    Verificado con `SIN_CACHE=1`: el `.sfc` es el mismo byte por byte.
+    * `render/render_map.py` y `render/chipset.py` **dibujan** las capas y
+      expanden el ChipSet. Hasta el 2026-09-20 no hacían falta, porque la clave
+      eran los pixeles ya dibujados: cambiar el dibujo cambiaba la clave solo.
+      Desde que la clave sale de los insumos, la única forma de que un cambio
+      en el dibujo invalide lo guardado es ésta;
+    * `port/asignador.py` decide qué colores se pierden, `rpgmaker/rm2k.py`
+      tiene las constantes del reparto y de las familias animadas, y este
+      archivo hace el resto;
+    * **el binario de Voodoo**, que es el que emite los tiles: recompilarlo sin
+      tocar ningún `.py` tiene que invalidar lo guardado;
+    * **la versión de Pillow**, que es quien decodifica el PNG del ChipSet y
+      compone los tiles. Antes tampoco hacía falta, por lo mismo: los pixeles
+      que salían de Pillow *eran* la clave.
+
+    Lo que **no** entra, y es a propósito: `rpgmaker/lcf.py`. Lo que lee del
+    volcado —las dos capas, el tamaño, la pasabilidad del ChipSet— entra por su
+    valor en `insumos_de_capas`, así que un cambio en cómo se lee sólo importa
+    si cambia lo leído, y entonces la clave cambia sola.
     """
     global _VERSION_CAPAS
-    from comun import cache_disco
     if _VERSION_CAPAS is None:
-        # Y el binario de `tiles`, que es el que emite: recompilarlo sin tocar
-        # nada de acá tiene que invalidar lo guardado.
-        # Y el asignador, que decide qué colores quedan: hasta el 2026-09-17
-        # no estaba, así que cambiar cómo se fusiona no invalidaba nada.
+        import PIL
+        from comun import cache_disco
         _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
+                                                 "port/asignador.py",
                                                  "rpgmaker/rm2k.py",
-                                                 "port/asignador.py")
-                          + tiles_bin.version())
-    partes = [_VERSION_CAPAS, _huella_de_imagen(base),
-              _huella_de_imagen(above_img)]
-    for familia in sorted(variantes or {}):
-        partes.append("familia %s" % familia)
-        for img in variantes[familia]:
-            partes.append(_huella_de_imagen(img))
-    en_disco = cache_disco.clave(*partes)
-    hecho = cache_disco.leer("capas", en_disco)
-    if hecho is None:
-        hecho = _convert_layers(base, above_img, variantes)
+                                                 "render/render_map.py",
+                                                 "render/chipset.py")
+                          + tiles_bin.version()
+                          + " Pillow " + PIL.__version__)
+    return _VERSION_CAPAS
+
+
+def capas_convertidas(renderer, game_map):
+    """Las capas del mapa convertidas, recordadas en disco. `None` si no hay
+    ChipSet.
+
+    Es lo más caro del conversor de punta a punta: **dibujar** las dos capas y
+    los dibujos de sus animaciones con Pillow, y después cuantizarlas, cortarlas
+    en tiles y repartir CGRAM.
+
+    La clave sale de **los insumos** —el mapa, su ChipSet y la versión del
+    código que dibuja y convierte— y no del resultado. Hasta el 2026-09-20
+    salía de los pixeles ya dibujados, que tenía la virtud de que no había nada
+    que enumerar: lo que produjera las imágenes entraba solo. El costo era que
+    para preguntarle al caché había que dibujar igual, y dibujar los 29 mapas de
+    `abl` con sus animaciones son 24 de los 65 s de un build caliente. Con la
+    clave de los insumos, un build caliente no dibuja ninguno.
+
+    Lo que se pierde es justamente esa virtud, y por eso `insumos_de_capas` vive
+    al lado de `render_layers` y dice qué lee: ahora la lista se mantiene a
+    mano, y si queda corta el caché contesta viejo sin que nada falle.
+
+    Verificado con `SIN_CACHE=1` y con el caché borrado: el `.sfc` es el mismo
+    byte por byte.
+    """
+    from comun import cache_disco
+    insumos = renderer.insumos_de_capas(game_map)
+    en_disco = None
+    if insumos is not None:
+        en_disco = cache_disco.clave(_version_capas(), *insumos)
+        hecho = cache_disco.leer("capas", en_disco)
+        if hecho is not None:
+            return hecho
+    base, above_img, variantes = renderer.capas_animadas(game_map)
+    if base is None:
+        return None
+    hecho = _convert_layers(base, above_img, variantes)
+    if en_disco is not None:
         cache_disco.guardar("capas", en_disco, hecho)
     return hecho
 
@@ -1688,7 +1723,7 @@ def convert(grid, palette, variantes, otras, resumen):
 
     # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
     # corrida contigua por familia, después de los quietos: eso lo hace
-    # `tiles`, que es quien numera. Ver "Animations" en tools/tiles/README.md.
+    # Voodoo, que es quien numera. Ver "Animations" en tools/voodoo/README.md.
     tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
         imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
         max_tiles=MAX_TILES)
@@ -6252,13 +6287,10 @@ def convertir(renderer, map_id, args, inicio=None):
                       comandos_de_casos(args, map_id))
     name = renderer.tree.map_names.get(map_id, "?")
 
-    base, _above, variantes = renderer.capas_animadas(game_map)
-
-    if base is None:
+    capas = capas_convertidas(renderer, game_map)
+    if capas is None:
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
-
-    (tile_data, cram, tilemap, summary), above_data = convert_layers(
-        base, _above, variantes=variantes)
+    (tile_data, cram, tilemap, summary), above_data = capas
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,

@@ -1,15 +1,15 @@
 [package]
-name = "tiles"
+name = "voodoo"
 version = "0.1.0"
 edition = "2021"
 description = "Turns an indexed picture into 8x8 tiles, a tilemap and colour memory, packed the way a 4bpp/8bpp planar PPU wants them"
 
 [lib]
-name = "tiles"
+name = "voodoo"
 path = "src/lib.rs"
 
 [[bin]]
-name = "tiles"
+name = "voodoo"
 path = "src/main.rs"
 
 [dependencies]

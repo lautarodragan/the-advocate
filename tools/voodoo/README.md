@@ -1,8 +1,13 @@
-# tiles
+# Voodoo: an indexed picture into tiles
 
-    tiles convert town.png --bpp 4 -o town.4bpp --palette town.cgram --tilemap town.map
-    tiles convert sky.png  --bpp 8 -o sky.8bpp --palette sky.cgram --tilemap sky.map
-    tiles render town.4bpp --palette town.cgram --tilemap town.map --columns 40 -o back.png
+Voodoo is the tool; **tiles, tilemaps and colour memory are the formats it
+writes**, the ones a planar PPU reads. Those names stay wherever they name the
+format — an 8x8 tile, a tilemap entry, bits per pixel — and `voodoo` is what
+you type.
+
+    voodoo convert town.png --bpp 4 -o town.4bpp --palette town.cgram --tilemap town.map
+    voodoo convert sky.png  --bpp 8 -o sky.8bpp --palette sky.cgram --tilemap sky.map
+    voodoo render town.4bpp --palette town.cgram --tilemap town.map --columns 40 -o back.png
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints the
 rules below.
@@ -66,7 +71,7 @@ count as a second palette.
 
 ## Saying no is most of the job
 
-    $ tiles convert busy.png --bpp 4
+    $ voodoo convert busy.png --bpp 4
     error: the cell at column 12, row 3 draws with palettes 1 and 2, and a
     tilemap entry names one palette per cell
 
@@ -91,7 +96,7 @@ goes on the cells that draw.
 
 ## Animations
 
-    tiles convert map.png --bpp 8 -o map.8bpp --tilemap map.map --palette map.cgram \
+    voodoo convert map.png --bpp 8 -o map.8bpp --tilemap map.map --palette map.cgram \
         --animation water1.png,water2.png --animation-out water.bin \
         --animation flag1.png,flag2.png,flag3.png --animation-out flag.bin
 

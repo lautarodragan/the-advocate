@@ -144,7 +144,7 @@ def huella():
     checkout` de ida y vuelta deja fechas nuevas con el mismo contenido.
 
     **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan,
-    `tiles`, que convierte las capas, y `gunter`, que codifica las muestras—:
+    `voodoo`, que convierte las capas, y `gunter`, que codifica las muestras—:
     si no entraran, reinstalarlos no invalidaría nada y las pruebas correrían
     contra ROMs armadas con los viejos, en silencio.
 

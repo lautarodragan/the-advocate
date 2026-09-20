@@ -70,7 +70,7 @@ de los paquetes de Python del port —ver `tools/README.md`—:
     tools/ditto/     lee y escribe los formatos de RPG Maker 2000
     tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
     tools/gunter/    Gunter: códec BRR y lector de SoundFont
-    tools/tiles/     de una imagen a tiles, paletas y tilemap
+    tools/voodoo/    Voodoo: de una imagen a tiles, paletas y tilemap
 
 Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -103,20 +103,20 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/gunter/` y `tools/tiles/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/` y `tools/voodoo/` no necesitan nada.
 
-### `tools/tiles/` no decide colores, y eso no se arregla
+### `tools/voodoo/` no decide colores, y eso no se arregla
 
-`tools/tiles/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
+`tools/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
 asignador, `tools/port/asignador.py`, que corre **antes** y deja lo que decidió como
 imágenes en `rom/build/<cartucho>/asignador/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
-Es de taro, el 2026-09-17. `tiles` tuvo un `--merge` que fusionaba colores; se
-sacó para que haya una sola respuesta a "qué color se perdió". Devolverle a
-`tiles` cualquier decisión de ésas deshace el diseño, aunque sea cómodo.
+Es de taro, el 2026-09-17. Voodoo tuvo un `--merge` que fusionaba colores; se
+sacó para que haya una sola respuesta a "qué color se perdió". Devolverle
+cualquier decisión de ésas deshace el diseño, aunque sea cómodo.
 
 ## El número de un opcode se elige en la declaración
 
