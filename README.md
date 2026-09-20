@@ -3014,9 +3014,10 @@ evento del mapa, y la celda que se lee es la **viva**: `tile_x`/`tile_y` y
 `eventos.py`, o sea adonde una ruta forzada o un `ChangeEventLocation` dejaron
 al personaje.
 
-Cuál celda es ésa depende de dónde cae el intérprete en el lazo: corre en
-`eventos_tick` y el héroe se mueve después, en `move_hero`, así que la página de
-un cuadro ve la celda con la que terminó el cuadro anterior. En el modelo
+Cuál celda es ésa depende de dónde cae el intérprete en el lazo, y desde el
+2026-09-20 cae **al final**: `move_hero` corre antes que `eventos_tick`, que es
+el orden de `Game_Map::Update`, así que la página de un cuadro ve la celda con
+la que el héroe termina **ese** cuadro y no el anterior. En el modelo
 `Estado.heroe` ya no la escribe nadie —el lazo de cuadros se fue con la
 referencia—: la pone quien arma el `Estado`, y el día que vuelva a haber un
 lazo tiene que escribirla en ese mismo lugar.

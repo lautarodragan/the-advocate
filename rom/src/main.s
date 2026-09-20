@@ -1260,6 +1260,37 @@ loop:
     ; como RM2k: lo único que sigue corriendo es la música. Ver `fundido_tick`.
     jsr fundido_tick
     bne congelado
+    ; De acá abajo el cuadro sigue el orden de `Game_Map::Update`
+    ; —`game_map.cpp:1256-1318` de easyrpg—, y lo que manda es **dónde cae el
+    ; jugador**: allá `UpdateMapEvents` va antes de `game_player->Update()`
+    ; (`:1274` contra `:1288`) y `UpdateForegroundEvents` va después (`:1310`),
+    ; con `UpdateMessage` (`:1297`) y `UpdateTimers` (`:1304`) en el medio.
+    ;
+    ; Lo que **no** está en ese orden son los ticks de pantalla —el destello,
+    ; la sacudida, la cámara corrida, el cartel, la lluvia—: allá son
+    ; `game_screen->Update()` y `game_pictures->Update()` y van en `:1305`, o
+    ; sea antes del intérprete, y acá van después. Ninguno de ellos decide si
+    ; algo se mueve ni cuándo, así que la diferencia es de un cuadro en lo que
+    ; se ve y no en lo que pasa; moverlos es otro cambio, con sus goldens.
+    jsr eventos_de_mapa         ; `UpdateMapEvents`: refresco, automáticas y
+                                ; paralelos, **antes** del héroe
+    jsr animar_quietos          ; los que animan sin moverse, antes que las
+                                ; rutas: si una agarra a uno, gana la ranura
+    jsr mover_eventos           ; y las rutas forzadas de los eventos, que son
+                                ; la parte de `UpdateMapEvents` que camina
+                                ; —`Game_Character::Update()` desde
+                                ; `Game_Event::Update`, `game_event.cpp:608`—.
+                                ; Van acá y no después del intérprete para que
+                                ; un evento y el héroe arranquen la ruta que
+                                ; una página les acaba de poner en el mismo
+                                ; cuadro: los dos, en el que viene. Con el
+                                ; intérprete todavía arriba del héroe los dos
+                                ; arrancaban un cuadro antes y empataban; con
+                                ; él abajo, dejarlos acá abajo desempataba, y
+                                ; `parar-rutas` lo mostraba con el NPC
+                                ; adelantado un cuadro respecto del héroe.
+    jsr move_hero               ; `game_player->Update()`
+    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
     ; El cronómetro va **antes** del intérprete, que es donde lo pone
     ; `Game_Map::Update`: `UpdateTimers()` corre y recién después
     ; `UpdateForegroundEvents`. O sea que la página que lo arranca no se lleva
@@ -1270,15 +1301,14 @@ loop:
     ; costaba un cuadro perdido, y el cuadro perdido tapaba justo este uno de
     ; más. Los dos errores juntos daban cero.
     jsr timer_tick
+    ; `UpdateForegroundEvents`, **después** del héroe: lo que el paso recién
+    ; terminado encoló —un evento de contacto, un cofre, una trampa— arranca en
+    ; este mismo cuadro y no en el que viene. Estuvo arriba de `move_hero`
+    ; hasta el 2026-09-20, y eso le costaba un cuadro a todo contacto: el
+    ; barrido de la cola ya había pasado cuando `advance_step` la llenaba.
     jsr eventos_tick
-    jsr tinte_de_evento
-    jsr move_hero
-    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
-    jsr animar_quietos          ; los que animan sin moverse, antes que las
-                                ; rutas: si una agarra a uno, gana la ranura
-    jsr mover_eventos           ; y las rutas forzadas de los eventos, después
-                                ; del héroe y después del intérprete: el orden
-                                ; es el mismo que el de la referencia
+    jsr tinte_de_evento         ; el tinte que haya pedido el intérprete, pegado
+                                ; a él: si no, lo aplicaría un cuadro tarde
     jsr animacion_tick          ; la animación de batalla, antes que los
                                 ; destellos que dispara
     jsr animacion_dibujo_tick   ; y su dibujo, pegado: los dos avanzan el
@@ -1780,7 +1810,51 @@ nada:
     rts
 .endproc
 
-; Un cuadro del intérprete, desde el lazo principal.
+; Lo que en `Game_Map::Update` corre **antes** del jugador: el refresco
+; pendiente y `UpdateMapEvents` —`game_map.cpp:1259` y `:1274`, contra el
+; `game_player->Update()` de `:1288`—.
+;
+; Está partido de `eventos_tick` justamente por eso: el primer plano cae del
+; otro lado del héroe, y así lo que un paso encola se atiende en el mismo
+; cuadro. Ver el lazo principal.
+.proc eventos_de_mapa
+.a8
+.i16
+    ; El refresco pendiente, antes de todo: es cuando `Game_Map::Update` mira
+    ; `GetNeedRefresh`.
+    lda refresco
+    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
+    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
+    stz refresco
+    stz refresco_cuadro
+    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
+                                ; evento: la página activa cambió
+sin_refresco:
+    ; `Game_Event::CheckEventAutostart`, que cuelga de
+    ; `Game_Event::UpdateNextMovementAction` —`game_event.cpp:409`— y por eso
+    ; corre acá adentro: todo evento con una automática activa queda esperando,
+    ; una vez por cuadro y **antes** del intérprete. Marcarlo más tarde —al
+    ; terminar una página— le adelantaba un cuadro a las que se activan en
+    ; medio de otra.
+    ;
+    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
+    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
+    ; donde caía algo caro, como el tinte de `snes-pan`.
+    lda auto_n
+    beq sin_automaticas
+    jsr esperar_automaticas
+sin_automaticas:
+    ; Los paralelos, que es la otra mitad de `UpdateMapEvents`
+    ; —`game_event.cpp:590`—: corren antes del héroe, antes del mensaje y antes
+    ; del primer plano. O sea que un evento paralelo sigue corriendo con un
+    ; cuadro de texto abierto y con otra página en curso, que es justo para lo
+    ; que existe.
+    jmp paralelos_tick
+.endproc
+
+; Un cuadro del intérprete de primer plano, desde el lazo principal:
+; `Game_Map::UpdateForegroundEvents` —`game_map.cpp:1310`— con el
+; `UpdateMessage` de `:1297` pegado adelante.
 ;
 ; Acá estaba el cambio de fondo: antes `cargar_mapa` corría todas las páginas de
 ; una, con la pantalla apagada, y volvía con todo hecho. El tiempo quedaba
@@ -1793,35 +1867,6 @@ nada:
 .proc eventos_tick
 .a8
 .i16
-    ; El refresco pendiente, antes del intérprete: es cuando `Game_Map::Update`
-    ; mira `GetNeedRefresh`.
-    lda refresco
-    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
-    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
-    stz refresco
-    stz refresco_cuadro
-    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
-                                ; evento: la página activa cambió
-sin_refresco:
-    ; `Game_Event::CheckEventAutostart`: todo evento con una automática activa
-    ; queda esperando, una vez por cuadro y **antes** del intérprete, que es el
-    ; orden de `Game_Map::Update`. Marcarlo más tarde —al terminar una página—
-    ; le adelantaba un cuadro a las que se activan en medio de otra.
-    ;
-    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
-    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
-    ; donde caía algo caro, como el tinte de `snes-pan`.
-    lda auto_n
-    beq sin_automaticas
-    jsr esperar_automaticas
-sin_automaticas:
-    ; Los paralelos, **antes** del mensaje y antes de la espera del primer
-    ; plano: en `Game_Map::Update` el orden es refresco, `UpdateMapEvents`,
-    ; `game_player->Update()`, `UpdateMessage` y recién ahí
-    ; `UpdateForegroundEvents`. O sea que un evento paralelo sigue corriendo
-    ; con un cuadro de texto abierto y con otra página en curso, que es justo
-    ; para lo que existe.
-    jsr paralelos_tick
     rep #$20
 .a16
     lda ev_esperando
