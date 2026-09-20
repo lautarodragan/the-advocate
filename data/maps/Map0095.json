@@ -6,90 +6,244 @@
       "name": "EV0001",
       "pages": [
         {
-          "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Where are you going, Professor Eisen?"},
-            {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23]
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "So... it's wired itself into the base's"},
-            {"code": "ShowMessage_2", "string": "intercom system. I hope it hasn't"},
-            {"code": "ShowMessage_2", "string": "realized that I'm a threat to it."},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I'm just down here for... routine"},
-            {"code": "ShowMessage_2", "string": "maintenance, Advocate."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "You want me to shoot down the"},
-            {"code": "ShowMessage_2", "string": "missiles. Why are you down here?"},
-            {"code": "ShowMessage_2", "string": "You should go watch the explosions"},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "on the long-range monitors. I'm"},
-            {"code": "ShowMessage_2", "string": "really looking forward to it."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate!"},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I don't think I want you down here."},
-            {"code": "ControlSwitches", "parameters": [0, 297, 297, 0]},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Close2"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Damn - that would have been the quickest"},
-            {"code": "ShowMessage_2", "string": "way... I'd better get ready for some"},
-            {"code": "ShowMessage_2", "string": "acrobatics!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 0, 0, 99, 0]},
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
             {
-              "code": "ShowPicture",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where are you going, Professor Eisen?"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So... it's wired itself into the base's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "intercom system. I hope it hasn't"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "realized that I'm a threat to it."
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm just down here for... routine"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "maintenance, Advocate."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You want me to shoot down the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "missiles. Why are you down here?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You should go watch the explosions"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "on the long-range monitors. I'm"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "really looking forward to it."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't think I want you down here."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 297, 297, 0], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Close2"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Damn - that would have been the quickest"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "way... I'd better get ready for some"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "acrobatics!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 0, 0, 99, 0], "string": ""},
+            {
+              "code": 11110,
+              "indent": 0,
               "parameters": [1, 0, 70, 10, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976],
               "string": "Fortitude"
             },
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [2, 0, 55, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 60],
               "string": "9"
             },
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [3, 0, 70, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976],
               "string": "9"
             },
-            {"code": "ControlSwitches", "parameters": [0, 298, 298, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "Eisen is a computer programmer, not"},
-            {"code": "ShowMessage_2", "string": "a body-builder. Any physical task, such"},
-            {"code": "ShowMessage_2", "string": "as climbing ladders, jumping gaps,"},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "running very quickly, getting zapped"},
-            {"code": "ShowMessage_2", "string": "by dangerous electronics - these"},
-            {"code": "ShowMessage_2", "string": "activities all drain his Fortitude."},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "If Eisen's Fortitude reaches 0, he"},
-            {"code": "ShowMessage_2", "string": "won't be able to proceed."},
-            {"code": "PanScreen", "parameters": [2, 0, 5, 4, 1]},
-            {"code": "PanScreen", "parameters": [2, 1, 5, 4, 1]},
-            {"code": "FlashSprite", "parameters": [53, 31, 0, 0, 31, 25, 1]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "If I can find the three release mechanisms,"},
-            {"code": "ShowMessage_2", "string": "I should be able to open that secondary"},
-            {"code": "ShowMessage_2", "string": "access hatch..."},
-            {"code": "PanScreen", "parameters": [3, 1, 5, 5, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 315, 315, 0]}
+            {"code": 10210, "indent": 0, "parameters": [0, 298, 298, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Eisen is a computer programmer, not"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a body-builder. Any physical task, such"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "as climbing ladders, jumping gaps,"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "running very quickly, getting zapped"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "by dangerous electronics - these"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "activities all drain his Fortitude."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If Eisen's Fortitude reaches 0, he"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "won't be able to proceed."
+            },
+            {"code": 11060, "indent": 0, "parameters": [2, 0, 5, 4, 1], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 5, 4, 1], "string": ""},
+            {"code": 11320, "indent": 0, "parameters": [53, 31, 0, 0, 31, 25, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If I can find the three release mechanisms,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I should be able to open that secondary"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "access hatch..."},
+            {"code": 11060, "indent": 0, "parameters": [3, 1, 5, 5, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 315, 315, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -98,11 +252,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 297
+            "item_id": 1,
+            "switch_a_id": 297,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 13,
@@ -113,17 +279,55 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I can't go back up to the Command"},
-            {"code": "ShowMessage_2", "string": "Center - I need to shut down the"},
-            {"code": "ShowMessage_2", "string": "Advocate... and fast!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
-            {"code": "Wait", "parameters": [5]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't go back up to the Command"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Center - I need to shut down the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate... and fast!"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 10,
@@ -133,10 +337,48 @@
       "id": 3,
       "name": "EV0003",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_index": 109,
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 109,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -145,10 +387,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 297
+            "item_id": 1,
+            "switch_a_id": 297,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -158,10 +413,48 @@
       "id": 4,
       "name": "EV0004",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_index": 115,
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 115,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -170,16 +463,37 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 297
+            "item_id": 1,
+            "switch_a_id": 297,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate has sealed off this passage."},
-            {"code": "ShowMessage_2", "string": "I'll need to find another way around."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate has sealed off this passage."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll need to find another way around."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -190,90 +504,244 @@
       "name": "EV0005",
       "pages": [
         {
-          "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Where are you going, Professor Eisen?"},
-            {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23]
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "So... it's wired itself into the base's"},
-            {"code": "ShowMessage_2", "string": "intercom system. I hope it hasn't"},
-            {"code": "ShowMessage_2", "string": "realized that I'm a threat to it."},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I'm just down here for... routine"},
-            {"code": "ShowMessage_2", "string": "maintenance, Advocate."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "You want me to shoot down the"},
-            {"code": "ShowMessage_2", "string": "missiles. Why are you down here?"},
-            {"code": "ShowMessage_2", "string": "You should go watch the explosions"},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "on the long-range monitors. I'm"},
-            {"code": "ShowMessage_2", "string": "really looking forward to it."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate!"},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I don't think I want you down here."},
-            {"code": "ControlSwitches", "parameters": [0, 297, 297, 0]},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Close2"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Damn - that would have been the quickest"},
-            {"code": "ShowMessage_2", "string": "way... I'd better get ready for some"},
-            {"code": "ShowMessage_2", "string": "acrobatics!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 0, 0, 99, 0]},
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
             {
-              "code": "ShowPicture",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where are you going, Professor Eisen?"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So... it's wired itself into the base's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "intercom system. I hope it hasn't"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "realized that I'm a threat to it."
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm just down here for... routine"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "maintenance, Advocate."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You want me to shoot down the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "missiles. Why are you down here?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You should go watch the explosions"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "on the long-range monitors. I'm"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "really looking forward to it."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't think I want you down here."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 297, 297, 0], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Close2"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Damn - that would have been the quickest"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "way... I'd better get ready for some"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "acrobatics!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 0, 0, 99, 0], "string": ""},
+            {
+              "code": 11110,
+              "indent": 0,
               "parameters": [1, 0, 70, 10, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976],
               "string": "Fortitude"
             },
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [2, 0, 55, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 60],
               "string": "9"
             },
             {
-              "code": "ShowPicture",
+              "code": 11110,
+              "indent": 0,
               "parameters": [3, 0, 70, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976],
               "string": "9"
             },
-            {"code": "ControlSwitches", "parameters": [0, 298, 298, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "Eisen is a computer programmer, not"},
-            {"code": "ShowMessage_2", "string": "a body-builder. Any physical task, such"},
-            {"code": "ShowMessage_2", "string": "as climbing ladders, jumping gaps,"},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "running very quickly, getting zapped"},
-            {"code": "ShowMessage_2", "string": "by dangerous electronics - these"},
-            {"code": "ShowMessage_2", "string": "activities all drain his Fortitude."},
-            {"code": "ShowMessage", "string": "A NOTE ABOUT FORTITUDE"},
-            {"code": "ShowMessage_2", "string": "If Eisen's Fortitude reaches 0, he"},
-            {"code": "ShowMessage_2", "string": "won't be able to proceed."},
-            {"code": "PanScreen", "parameters": [2, 0, 5, 4, 1]},
-            {"code": "PanScreen", "parameters": [2, 1, 5, 4, 1]},
-            {"code": "FlashSprite", "parameters": [53, 31, 0, 0, 31, 25, 1]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "If I can find the three release mechanisms,"},
-            {"code": "ShowMessage_2", "string": "I should be able to open that secondary"},
-            {"code": "ShowMessage_2", "string": "access hatch..."},
-            {"code": "PanScreen", "parameters": [3, 1, 5, 5, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 315, 315, 0]}
+            {"code": 10210, "indent": 0, "parameters": [0, 298, 298, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Eisen is a computer programmer, not"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a body-builder. Any physical task, such"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "as climbing ladders, jumping gaps,"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "running very quickly, getting zapped"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "by dangerous electronics - these"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "activities all drain his Fortitude."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "A NOTE ABOUT FORTITUDE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If Eisen's Fortitude reaches 0, he"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "won't be able to proceed."
+            },
+            {"code": 11060, "indent": 0, "parameters": [2, 0, 5, 4, 1], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 5, 4, 1], "string": ""},
+            {"code": 11320, "indent": 0, "parameters": [53, 31, 0, 0, 31, 25, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If I can find the three release mechanisms,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I should be able to open that secondary"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "access hatch..."},
+            {"code": 11060, "indent": 0, "parameters": [3, 1, 5, 5, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 315, 315, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -282,11 +750,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 297
+            "item_id": 1,
+            "switch_a_id": 297,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 13,
@@ -297,18 +777,42 @@
       "name": "SaveByFortitudeStart",
       "pages": [
         {
-          "animation_type": "fixed_continuous",
-          "character_direction": "up",
+          "animation_type": 3,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "savept",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [70, 100, 50], "string": "Holy5"},
-            {"code": "OpenSaveMenu"},
-            {"code": "ChangeSaveAccess", "parameters": [0]}
+            {"code": 11550, "indent": 0, "parameters": [70, 100, 50], "string": "Holy5"},
+            {"code": 11910, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11930, "indent": 0, "parameters": [0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "translucent": true
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": true,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -319,15 +823,58 @@
       "name": "EV0007",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Even if I were able to open the door,"},
-            {"code": "ShowMessage_2", "string": "Advocate could just close it again."},
-            {"code": "ShowMessage_2", "string": "I'll need to find a way around."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Even if I were able to open the door,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate could just close it again."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll need to find a way around."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -338,15 +885,58 @@
       "name": "EV0008",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Even if I were able to open the door,"},
-            {"code": "ShowMessage_2", "string": "Advocate could just close it again."},
-            {"code": "ShowMessage_2", "string": "I'll need to find a way around."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Even if I were able to open the door,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate could just close it again."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll need to find a way around."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -357,15 +947,46 @@
       "name": "EV0009",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 36, 3, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 3, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 38,
@@ -376,56 +997,108 @@
       "name": "EV0010",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "This is one of the hydraulic controls"},
-            {"code": "ShowMessage_2", "string": "for the secondary access hatch."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [100, 150, 50], "string": "Open1"},
-            {"code": "ControlSwitches", "parameters": [0, 301, 301, 0]},
-            {"code": "ControlVars", "parameters": [0, 50, 50, 1, 0, 1, 0]},
-            {"code": "ConditionalBranch", "parameters": [1, 50, 0, 1, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EISEN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This is one of the hydraulic controls"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for the secondary access hatch."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 150, 50], "string": "Open1"},
+            {"code": 10210, "indent": 0, "parameters": [0, 301, 301, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 50, 50, 1, 0, 1, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 50, 0, 1, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "That's the first one. There are two more!"
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 50, 0, 2, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "EISEN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 50, 0, 2, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "That's the second of the release controls."
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "There's only one left!"},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [1, 50, 0, 3, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "EISEN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "There's only one left!"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [1, 50, 0, 3, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "That's the last of the controls! Now I"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "can get through to the core!"},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "can get through to the core!"
+            },
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -434,15 +1107,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 301
+            "item_id": 1,
+            "switch_a_id": 301,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I've already activated this release control."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've already activated this release control."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 48,
@@ -452,10 +1141,48 @@
       "id": 11,
       "name": "EV0011",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_index": 74,
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 74,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -464,10 +1191,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 301
+            "item_id": 1,
+            "switch_a_id": 301,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 48,
@@ -478,15 +1218,49 @@
       "name": "EV0012",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 36,
@@ -497,29 +1271,64 @@
       "name": "EV0013",
       "pages": [
         {
-          "character_direction": "up",
-          "character_pattern": "left",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ControlVars", "parameters": [0, 39, 39, 0, 6, 10001, 1]},
-            {"code": "ControlVars", "parameters": [0, 40, 40, 0, 6, 10001, 2]},
-            {"code": "ControlVars", "parameters": [0, 41, 41, 0, 6, 6, 1]},
-            {"code": "ControlVars", "parameters": [0, 42, 42, 0, 6, 6, 2]},
-            {"code": "ConditionalBranch", "parameters": [1, 39, 1, 41, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 40, 1, 42, 0, 1]},
-            {"code": "ChangeSaveAccess", "indent": 2, "parameters": [1]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 39, 39, 0, 6, 10001, 1],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [0, 40, 40, 0, 6, 10001, 2],
+              "string": ""
+            },
+            {"code": 10220, "indent": 0, "parameters": [0, 41, 41, 0, 6, 6, 1], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 42, 42, 0, 6, 6, 2], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 39, 1, 41, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 40, 1, 42, 0, 1], "string": ""},
+            {"code": 11930, "indent": 2, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
           "translucent": true,
-          "trigger": "parallel"
+          "trigger": 4
         }
       ],
       "x": 8,
@@ -530,15 +1339,49 @@
       "name": "EV0014",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 38,
@@ -549,15 +1392,49 @@
       "name": "EV0015",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -568,15 +1445,49 @@
       "name": "EV0016",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 23,
@@ -587,15 +1498,49 @@
       "name": "EV0017",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -606,15 +1551,49 @@
       "name": "EV0018",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -625,15 +1604,49 @@
       "name": "EV0019",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -644,15 +1657,49 @@
       "name": "EV0020",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -663,16 +1710,49 @@
       "name": "EV0021",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 27, 24, 1, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 27, 24, 1, 25],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 29,
@@ -683,16 +1763,49 @@
       "name": "EV0022",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 27, 24, 2, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 27, 24, 2, 25],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 29,
@@ -703,19 +1816,49 @@
       "name": "EV0023",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 33,
@@ -726,19 +1869,49 @@
       "name": "EV0024",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 33,
@@ -749,15 +1922,49 @@
       "name": "EV0025",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 46,
@@ -768,15 +1975,49 @@
       "name": "EV0026",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 42,
@@ -787,15 +2028,49 @@
       "name": "EV0027",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 40,
@@ -806,15 +2081,49 @@
       "name": "EV0028",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 44,
@@ -825,19 +2134,49 @@
       "name": "EV0029",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 0, 27, 24, 0, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 0, 27, 24, 0, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 43,
@@ -848,19 +2187,49 @@
       "name": "EV0030",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 2, 27, 24, 2, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 2, 27, 24, 2, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 43,
@@ -871,15 +2240,49 @@
       "name": "EV0031",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 0, 0, 25, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 0, 0, 25, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 39,
@@ -890,15 +2293,49 @@
       "name": "EV0032",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 2, 2, 25, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 25, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 39,
@@ -909,15 +2346,49 @@
       "name": "EV0033",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 33,
@@ -928,15 +2399,49 @@
       "name": "EV0034",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 33,
@@ -947,15 +2452,46 @@
       "name": "EV0035",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 36, 1, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 1, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 36,
@@ -966,16 +2502,46 @@
       "name": "EV0036",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 36, 2, 26, 38, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 39, 27, 37]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 2, 26, 38, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 39, 27, 37],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 37,
@@ -986,13 +2552,46 @@
       "name": "EV0037",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The pipe is too slippery for me to climb up."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The pipe is too slippery for me to climb up."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 37,
@@ -1003,13 +2602,46 @@
       "name": "EV0038",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The pipe is too slippery for me to climb up."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The pipe is too slippery for me to climb up."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 37,
@@ -1020,56 +2652,108 @@
       "name": "EV0039",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "This is one of the hydraulic controls"},
-            {"code": "ShowMessage_2", "string": "for the secondary access hatch."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [100, 150, 50], "string": "Open1"},
-            {"code": "ControlSwitches", "parameters": [0, 300, 300, 0]},
-            {"code": "ControlVars", "parameters": [0, 50, 50, 1, 0, 1, 0]},
-            {"code": "ConditionalBranch", "parameters": [1, 50, 0, 1, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EISEN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This is one of the hydraulic controls"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for the secondary access hatch."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 150, 50], "string": "Open1"},
+            {"code": 10210, "indent": 0, "parameters": [0, 300, 300, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 50, 50, 1, 0, 1, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 50, 0, 1, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "That's the first one.  There are two more!"
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 50, 0, 2, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "EISEN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 50, 0, 2, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "That's the second of the release controls."
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "There's only one left!"},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [1, 50, 0, 3, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "EISEN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "There's only one left!"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [1, 50, 0, 3, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "That's the last of the controls! Now I"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "can get through to the core!"},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "can get through to the core!"
+            },
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1078,15 +2762,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 300
+            "item_id": 1,
+            "switch_a_id": 300,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I've already activated this release control."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've already activated this release control."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 17,
@@ -1096,10 +2796,48 @@
       "id": 40,
       "name": "EV0040",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_index": 74,
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 74,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1108,10 +2846,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 300
+            "item_id": 1,
+            "switch_a_id": 300,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 17,
@@ -1122,15 +2873,49 @@
       "name": "EV0041",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -1141,15 +2926,49 @@
       "name": "EV0042",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 31,
@@ -1160,19 +2979,49 @@
       "name": "EV0043",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 26,
@@ -1183,19 +3032,49 @@
       "name": "EV0044",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [147, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 10, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [147, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 10, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 26,
@@ -1206,15 +3085,49 @@
       "name": "EV0045",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 30,
@@ -1225,15 +3138,49 @@
       "name": "EV0046",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 2]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 32,
@@ -1244,56 +3191,108 @@
       "name": "EV0047",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "This is one of the hydraulic controls"},
-            {"code": "ShowMessage_2", "string": "for the secondary access hatch."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [100, 150, 50], "string": "Open1"},
-            {"code": "ControlSwitches", "parameters": [0, 302, 302, 0]},
-            {"code": "ControlVars", "parameters": [0, 50, 50, 1, 0, 1, 0]},
-            {"code": "ConditionalBranch", "parameters": [1, 50, 0, 1, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EISEN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This is one of the hydraulic controls"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for the secondary access hatch."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 150, 50], "string": "Open1"},
+            {"code": 10210, "indent": 0, "parameters": [0, 302, 302, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 50, 50, 1, 0, 1, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [1, 50, 0, 1, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "That's the first one. There are two more!"
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 50, 0, 2, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "EISEN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 50, 0, 2, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "That's the second of the release controls."
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "There's only one left!"},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [1, 50, 0, 3, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "EISEN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "There's only one left!"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [1, 50, 0, 3, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "That's the last of the controls! Now I"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "can get through to the core!"},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "can get through to the core!"
+            },
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1302,15 +3301,31 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 302
+            "item_id": 1,
+            "switch_a_id": 302,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I've already activated this release control."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've already activated this release control."
+            }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -1320,10 +3335,48 @@
       "id": 48,
       "name": "EV0048",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
-          "character_index": 74,
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 74,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1332,10 +3385,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 302
+            "item_id": 1,
+            "switch_a_id": 302,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -1346,13 +3412,46 @@
       "name": "EV0049",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The pipe is too slippery for me to climb up."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The pipe is too slippery for me to climb up."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 37,
@@ -1363,16 +3462,46 @@
       "name": "EV0050",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 36, 2, 38, 26, 2, 2, 2, 2, 2, 2, 27, 39, 37]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 2, 38, 26, 2, 2, 2, 2, 2, 2, 27, 39, 37],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [5]}
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 37,
@@ -1383,15 +3512,49 @@
       "name": "EV0051",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 1, 1, 25, 1],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 43,
@@ -1402,15 +3565,49 @@
       "name": "EV0052",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowBattleAnimation", "parameters": [146, 10001, 1, 0]},
-            {"code": "ControlVars", "parameters": [0, 48, 48, 2, 0, 5, 0]},
-            {"code": "CallEvent", "parameters": [0, 9, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 3, 3, 25, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [146, 10001, 1, 0], "string": ""},
+            {"code": 10220, "indent": 0, "parameters": [0, 48, 48, 2, 0, 5, 0], "string": ""},
+            {"code": 12330, "indent": 0, "parameters": [0, 9, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 45,
@@ -1421,68 +3618,111 @@
       "name": "Secondary AccessHatc",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 109,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [1, 50, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EISEN"},
+            {"code": 12010, "indent": 0, "parameters": [1, 50, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "There are three release controls somewhere"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "down here to unlock this access hatch."
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [1, 50, 0, 1, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "EISEN"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [1, 50, 0, 1, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I have to trigger two more of the release"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "controls to unlock this access door."
             },
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [1, 50, 0, 2, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "EISEN"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [1, 50, 0, 2, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EISEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I have to trigger one more release control"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "to unlock this door."},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ConditionalBranch", "indent": 3, "parameters": [1, 50, 0, 3, 0, 1]},
-            {"code": "ShowMessage", "indent": 4, "string": "EISEN"},
-            {"code": "ShowMessage_2", "indent": 4, "string": "The access hatch is unlocked!"},
-            {"code": "PlaySound", "indent": 4, "parameters": [100, 50, 50], "string": "Open2"},
-            {"code": "ControlSwitches", "indent": 4, "parameters": [0, 303, 303, 0]},
-            {"code": "END", "indent": 4},
-            {"code": "ElseBranch", "indent": 3},
-            {"code": "END", "indent": 4},
-            {"code": "EndBranch", "indent": 3},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 20110, "indent": 3, "parameters": [], "string": "to unlock this door."},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 3, "parameters": [1, 50, 0, 3, 0, 1], "string": ""},
+            {"code": 10110, "indent": 4, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 4,
+              "parameters": [],
+              "string": "The access hatch is unlocked!"
+            },
+            {"code": 11550, "indent": 4, "parameters": [100, 50, 50], "string": "Open2"},
+            {"code": 10210, "indent": 4, "parameters": [0, 303, 303, 0], "string": ""},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1491,10 +3731,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 303
+            "item_id": 1,
+            "switch_a_id": 303,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 24,
@@ -1504,11 +3757,48 @@
       "id": 54,
       "name": "EV0054",
       "pages": [
-        {"id": 1, "move_type": "stationary", "trigger": "touched"},
         {
-          "character_direction": "up",
-          "character_name": "Eisen",
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "Eisen",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1517,39 +3807,93 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 305
+            "item_id": 1,
+            "switch_a_id": 305,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "How are you transmitting the self-destruct"},
-            {"code": "ShowMessage_2", "string": "codes to this base? You're not using"},
-            {"code": "ShowMessage_2", "string": "a remote, are you?"},
-            {"code": "MoveEvent", "parameters": [10005, 8, 0, 0, 24, 25]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "What? I'm not transmitting any self-destruct"},
-            {"code": "ShowMessage_2", "string": "codes!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Someone is. Someone is trying to"},
-            {"code": "ShowMessage_2", "string": "blow up this base and keep me from"},
-            {"code": "ShowMessage_2", "string": "seeing a missile explosion."},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "That makes me sad. Who would want"},
-            {"code": "ShowMessage_2", "string": "to keep me from having my fun?"},
-            {"code": "Teleport", "parameters": [100, 6, 5]}
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How are you transmitting the self-destruct"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "codes to this base? You're not using"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "a remote, are you?"},
+            {"code": 11330, "indent": 0, "parameters": [10005, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What? I'm not transmitting any self-destruct"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "codes!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Someone is. Someone is trying to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "blow up this base and keep me from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "seeing a missile explosion."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That makes me sad. Who would want"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to keep me from having my fun?"
+            },
+            {"code": 10810, "indent": 0, "parameters": [100, 6, 5], "string": ""}
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "Eisen",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1558,66 +3902,155 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 306
+            "item_id": 1,
+            "switch_a_id": 306,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate, can you cancel the self-destruct"},
-            {"code": "ShowMessage_2", "string": "order?"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "No, it's keying into the hardwired"},
-            {"code": "ShowMessage_2", "string": "matrix of the base. I don't have access."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "But this way I'll get to experience an"},
-            {"code": "ShowMessage_2", "string": "actual explosion - that's even better than"},
-            {"code": "ShowMessage_2", "string": "watching one on the long-range monitors!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate... shoot down the missiles."},
-            {"code": "ShowMessage_2", "string": "Whoever sent that destruction order"},
-            {"code": "ShowMessage_2", "string": "wants to kill us both!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Kill? I won't be killed. I'm part of almost"},
-            {"code": "ShowMessage_2", "string": "every mechanical system the Agency"},
-            {"code": "ShowMessage_2", "string": "owns. I can't be killed."},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "You CAN be killed! If you let those"},
-            {"code": "ShowMessage_2", "string": "missiles destroy Lashe and Prima,"},
-            {"code": "ShowMessage_2", "string": "the Agency will erase you completely!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Death? There is no such thing... is there?"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Is there?"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "No."},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "They can't do that."},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I will not let them kill me!"},
-            {"code": "Teleport", "parameters": [99, 4, 7]}
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate, can you cancel the self-destruct"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "order?"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No, it's keying into the hardwired"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "matrix of the base. I don't have access."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But this way I'll get to experience an"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "actual explosion - that's even better than"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "watching one on the long-range monitors!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate... shoot down the missiles."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Whoever sent that destruction order"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "wants to kill us both!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Kill? I won't be killed. I'm part of almost"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "every mechanical system the Agency"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "owns. I can't be killed."},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You CAN be killed! If you let those"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "missiles destroy Lashe and Prima,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Agency will erase you completely!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Death? There is no such thing... is there?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Is there?"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "No."},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "They can't do that."},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I will not let them kill me!"
+            },
+            {"code": 10810, "indent": 0, "parameters": [99, 4, 7], "string": ""}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "Eisen",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1626,25 +4059,55 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 307
+            "item_id": 1,
+            "switch_a_id": 307,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "The missiles have been destroyed."},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "You did it! Advocate, transmit my voice"},
-            {"code": "ShowMessage_2", "string": "over the exterior loudspeakers! They"},
-            {"code": "ShowMessage_2", "string": "have to cancel the self-destruct sequence!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "Teleport", "parameters": [100, 14, 7]}
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The missiles have been destroyed."
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You did it! Advocate, transmit my voice"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "over the exterior loudspeakers! They"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have to cancel the self-destruct sequence!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [100, 14, 7], "string": ""}
           ],
           "id": 4,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 20,
@@ -1655,35 +4118,93 @@
       "name": "EV0055",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 3, 3, 3, 37]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "What are you doing, Professor?"},
-            {"code": "ShowMessage_2", "string": "I don't want you down here."},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Advocate, listen to me!"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "If you don't shoot down those missiles,"},
-            {"code": "ShowMessage_2", "string": "the people of Lashe and Prima will die!"},
-            {"code": "ShowMessage_2", "string": "It will be all your fault!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I don't care."},
-            {"code": "ControlSwitches", "parameters": [0, 304, 304, 0]},
-            {"code": "ChangeScreenTransitions", "parameters": [0, 19]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 23]},
-            {"code": "Teleport", "parameters": [99, 6, 13]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 3, 3, 3, 37],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What are you doing, Professor?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want you down here."
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate, listen to me!"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If you don't shoot down those missiles,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the people of Lashe and Prima will die!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It will be all your fault!"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I don't care."},
+            {"code": 10210, "indent": 0, "parameters": [0, 304, 304, 0], "string": ""},
+            {"code": 10690, "indent": 0, "parameters": [0, 19], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 23], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [99, 6, 13], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 23,
@@ -1694,7 +4215,13 @@
       "name": "EV0056",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1703,40 +4230,83 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 315
+            "item_id": 1,
+            "switch_a_id": 315,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [1, 48, 0, 0, 2, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EISEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "So... tired... can't go on..."},
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 15, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 300, 300, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 301, 301, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 302, 302, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 303, 303, 1]},
-            {"code": "ControlVars", "indent": 1, "parameters": [0, 50, 50, 0, 0, 0, 0]},
-            {"code": "ControlVars", "indent": 1, "parameters": [0, 48, 48, 0, 0, 99, 0]},
-            {"code": "CallEvent", "indent": 1, "parameters": [0, 9, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "Teleport", "indent": 1, "parameters": [95, 11, 39]},
-            {"code": "TintScreen", "indent": 1, "parameters": [100, 100, 100, 100, 10, 1]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 12010, "indent": 0, "parameters": [1, 48, 0, 0, 2, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "So... tired... can't go on..."
+            },
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 100, 15, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 300, 300, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 301, 301, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 302, 302, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 303, 303, 1], "string": ""},
+            {"code": 10220, "indent": 1, "parameters": [0, 50, 50, 0, 0, 0, 0], "string": ""},
+            {"code": 10220, "indent": 1, "parameters": [0, 48, 48, 0, 0, 99, 0], "string": ""},
+            {"code": 12330, "indent": 1, "parameters": [0, 9, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [95, 11, 39], "string": ""},
+            {
+              "code": 11030,
+              "indent": 1,
+              "parameters": [100, 100, 100, 100, 10, 1],
+              "string": ""
+            },
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
       "x": 7,
       "y": 36
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 50,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
   "parallax_flag": true,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
   "parallax_name": "TasgardePan",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 88,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 50
 }

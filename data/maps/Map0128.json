@@ -6,11 +6,38 @@
       "name": "Emily",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -21,419 +48,986 @@
       "name": "EV0002",
       "pages": [
         {
-          "event_commands": [
-            {"code": "Wait", "parameters": [5]},
-            {
-              "code": "MoveEvent",
-              "parameters": [1, 8, 0, 0, 15, 23, 23, 23, 13, 23, 23, 23, 12]
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
             },
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Here we are. The orchestra sometimes"},
-            {"code": "ShowMessage_2", "string": "practices out here - I don't think they"},
-            {"code": "ShowMessage_2", "string": "realize that I know about this grove too."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 2, 2]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's nice."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "I'm glad you like it! Here, let me put this"},
-            {"code": "ShowMessage_2", "string": "down."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13, 23, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 497, 497, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 1, 1, 2, 2]},
-            {"code": "Wait", "parameters": [16]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "That's... that's a radio! Doesn't that count"},
-            {"code": "ShowMessage_2", "string": "as \"technology?\""},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "I won't tell Daddy if you won't. <wink>"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I thought everyone here was morally"},
-            {"code": "ShowMessage_2", "string": "against all machines, or something? Why"},
-            {"code": "ShowMessage_2", "string": "do you have that? They're pretty rare, too."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "My mother gave it to me when I was"},
-            {"code": "ShowMessage_2", "string": "little. She grew up before the Shortage,"},
-            {"code": "ShowMessage_2", "string": "of course, when they were common."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I've only seen them on the vidcasts, and"},
-            {"code": "ShowMessage_2", "string": "I'm pretty sure those are usually props,"},
-            {"code": "ShowMessage_2", "string": "and not the real thing."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Want to hear it?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 23, 23, 12]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "But... what if someone hears? We could"},
-            {"code": "ShowMessage_2", "string": "get in a lot of trouble!"},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We'll be fine - everyone's busy with the"},
-            {"code": "ShowMessage_2", "string": "celebration. Plus, we'll be able to hear"},
-            {"code": "ShowMessage_2", "string": "if the orchestra stops playing."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "I'm pretty sure they're the only ones who"},
-            {"code": "ShowMessage_2", "string": "know about this little grove, anyway."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 23, 12]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't know..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "It'll be fun! Let me just turn it on. I only"},
-            {"code": "ShowMessage_2", "string": "have the few \"tapes\" that my mother kept"},
-            {"code": "ShowMessage_2", "string": "with it, but I like them."},
-            {"code": "PlaySound", "parameters": [80, 100, 50], "string": "Switch1"},
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
             {
-              "code": "PlayBGM",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 15, 23, 23, 23, 13, 23, 23, 23, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Here we are. The orchestra sometimes"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "practices out here - I don't think they"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "realize that I know about this grove too."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2, 2, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It's nice."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm glad you like it! Here, let me put this"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "down."},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13, 23, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 497, 497, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 1, 1, 1, 2, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [16], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's... that's a radio! Doesn't that count"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "as \"technology?\""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I won't tell Daddy if you won't. <wink>"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I thought everyone here was morally"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "against all machines, or something? Why"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "do you have that? They're pretty rare, too."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My mother gave it to me when I was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "little. She grew up before the Shortage,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of course, when they were common."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've only seen them on the vidcasts, and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm pretty sure those are usually props,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "and not the real thing."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Want to hear it?"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 23, 23, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But... what if someone hears? We could"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "get in a lot of trouble!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We'll be fine - everyone's busy with the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "celebration. Plus, we'll be able to hear"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "if the orchestra stops playing."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm pretty sure they're the only ones who"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "know about this little grove, anyway."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 23, 12],
+              "string": ""
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I don't know..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It'll be fun! Let me just turn it on. I only"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have the few \"tapes\" that my mother kept"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with it, but I like them."
+            },
+            {"code": 11550, "indent": 0, "parameters": [80, 100, 50], "string": "Switch1"},
+            {
+              "code": 11510,
+              "indent": 0,
               "parameters": [0, 100, 100, 100],
               "string": "Pretty_Good_Year_2_JW"
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 13]},
-            {"code": "Wait", "parameters": [4]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Turn it down! That's way too loud!"},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "OK, OK... sorry."},
-            {"code": "PlaySound", "parameters": [80, 100, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
             {
-              "code": "PlayBGM",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 13],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [4], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Turn it down! That's way too loud!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "OK, OK... sorry."},
+            {"code": 11550, "indent": 0, "parameters": [80, 100, 50], "string": "Switch1"},
+            {
+              "code": 11510,
+              "indent": 0,
               "parameters": [0, 60, 100, 100],
               "string": "Pretty_Good_Year_2_JW"
             },
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0, 15]},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's pretty."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "It's very old. This song was written at"},
-            {"code": "ShowMessage_2", "string": "least thirty years ago, and probably more"},
-            {"code": "ShowMessage_2", "string": "than that."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Do you ever wonder what life must have"},
-            {"code": "ShowMessage_2", "string": "been like before the Shortage?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Not really. But I guess things would be"},
-            {"code": "ShowMessage_2", "string": "different. When I worked for Delcentric -"},
-            {"code": "ShowMessage_2", "string": "I mean... I guess I shouldn't talk about it."},
-            {"code": "Wait", "parameters": [12]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "More of Daddy's rules? I don't mind;"},
-            {"code": "ShowMessage_2", "string": "I'd love to hear about your life before"},
-            {"code": "ShowMessage_2", "string": "coming here!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Well... let's just say that I was... framed"},
-            {"code": "ShowMessage_2", "string": "for killing someone really important."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Who did you kill?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I didn't kill anybody! I said I was framed!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3]},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Sorry."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "But why are we talking about me?"},
-            {"code": "ShowMessage_2", "string": "You're the one who almost killed"},
-            {"code": "ShowMessage_2", "string": "herself!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I - I'm sorry. I shouldn't have said that."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I... like your song..."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "You haven't asked me what MY profession"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It's pretty."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's very old. This song was written at"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "least thirty years ago, and probably more"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "than that."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Do you ever wonder what life must have"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "been like before the Shortage?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not really. But I guess things would be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "different. When I worked for Delcentric -"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I mean... I guess I shouldn't talk about it."
+            },
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "More of Daddy's rules? I don't mind;"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'd love to hear about your life before"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "coming here!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well... let's just say that I was... framed"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for killing someone really important."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Who did you kill?"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I didn't kill anybody! I said I was framed!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 3, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sorry."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But why are we talking about me?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're the one who almost killed"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "herself!"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I - I'm sorry. I shouldn't have said that."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I... like your song..."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You haven't asked me what MY profession"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "is. I'm 24, so I've taken the Trials, you know."
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Um... what's your profession, Emily?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Talan, why are so nice to me? Is it because"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Um... what's your profession, Emily?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, why are so nice to me? Is it because"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "you genuinely like me, or is it because you're"
             },
-            {"code": "ShowMessage_2", "string": "afraid I'll kill myself if you aren't?"},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "afraid I'll kill myself if you aren't?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "I... really like you, Emily. That's the truth!"
             },
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Is it, though? Or am I just scared of"},
-            {"code": "ShowMessage_2", "string": "the consequences?"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Let's just dance, Talan."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 3, 23, 2, 2, 2, 2, 15]},
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 29, 23, 23, 2, 2, 2, 2, 13, 28]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Is it, though? Or am I just scared of"
             },
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [1, 2, 0, 0, 15, 26, 1, 1, 27]},
-            {"code": "MoveEvent", "parameters": [10001, 2, 0, 0, 13, 29, 26, 1, 1, 27, 28]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 16, 1]},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "TintScreen", "parameters": [50, 50, 50, 100, 5, 1]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I meant what I said, Emily... I really"},
-            {"code": "ShowMessage_2", "string": "do like you."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Talan, I -"},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE"},
-            {"code": "ShowMessage_2", "string": "What's going on here?!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12, 24, 24]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 393, 393, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "I thought I heard music coming from"},
-            {"code": "ShowMessage_2", "string": "down here!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "The celebration's over already?"},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "It's been over for thirty minutes!"},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 28, 2, 2, 2, 2, 1, 1, 2, 2, 29]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ORCHESTRA MEMBER"},
-            {"code": "ShowMessage_2", "string": "It's... a radio! That's against the law!"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 2, 2, 2, 2, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "You know what this means, Emily?"},
-            {"code": "ShowMessage_2", "string": "Banishment from Paradise!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 2, 3, 3, 3, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "But..."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 1, 1, 3, 3, 3, 1, 14]},
-            {"code": "Wait", "parameters": [12]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "This has been a long time coming - just"},
-            {"code": "ShowMessage_2", "string": "because you're the daughter of a"},
-            {"code": "ShowMessage_2", "string": "Councilman, you think you can -"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 3, 3, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's mine."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 15, 23, 14]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 1, 14]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 3, 14]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25, 15]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "... What?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "The radio is mine. I brought it with me from"},
-            {"code": "ShowMessage_2", "string": "Lashe City. I didn't realize that I couldn't"},
-            {"code": "ShowMessage_2", "string": "use it here."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 13, 23, 14]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "You didn't... realize? Oh..."},
-            {"code": "ChangeEventLocation", "parameters": [6, 0, 9, 0]},
-            {"code": "ChangeEventLocation", "parameters": [7, 0, 10, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 394, 394, 0]},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "What's all the commotion down here?"},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
-            {"code": "ShowMessage_2", "string": "The, uh... the new citizen of Paradise"},
-            {"code": "ShowMessage_2", "string": "brought a radio with him... he, uh..."},
-            {"code": "ShowMessage_2", "string": "didn't realize he couldn't keep it."},
-            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 2, 2]},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Talan, the usual penalty for using such"},
-            {"code": "ShowMessage_2", "string": "a machine inside Paradise is banishment."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "However... since you have just been welcomed"},
-            {"code": "ShowMessage_2", "string": "into our society it would be a shame to kick"},
-            {"code": "ShowMessage_2", "string": "you out on the very same night."},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "So... I'm going to make an exception."},
-            {"code": "ShowMessage_2", "string": "Since it was you... no penalty. But you must"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the consequences?"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Let's just dance, Talan."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 3, 23, 2, 2, 2, 2, 15],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 29, 23, 23, 2, 2, 2, 2, 13, 28],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 2, 0, 0, 15, 26, 1, 1, 27],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 2, 0, 0, 13, 29, 26, 1, 1, 27, 28],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 16, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [50, 50, 50, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I meant what I said, Emily... I really"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "do like you."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Talan, I -"},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What's going on here?!"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 12, 24, 24],
+              "string": ""
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 24, 25, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 393, 393, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I thought I heard music coming from"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "down here!"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The celebration's over already?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's been over for thirty minutes!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 28, 2, 2, 2, 2, 1, 1, 2, 2, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA MEMBER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's... a radio! That's against the law!"
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [5, 8, 0, 0, 2, 2, 2, 2, 13],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You know what this means, Emily?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Banishment from Paradise!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 2, 3, 3, 3, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "But..."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 1, 1, 3, 3, 3, 1, 14],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This has been a long time coming - just"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "because you're the daughter of a"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Councilman, you think you can -"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 3, 3, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "It's mine."},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 15, 23, 14], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 1, 14], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 3, 3, 14], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 24, 25, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... What?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The radio is mine. I brought it with me from"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Lashe City. I didn't realize that I couldn't"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "use it here."},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 13, 23, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You didn't... realize? Oh..."
+            },
+            {"code": 10860, "indent": 0, "parameters": [6, 0, 9, 0], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [7, 0, 10, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 394, 394, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's all the commotion down here?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 12], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 12], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The, uh... the new citizen of Paradise"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "brought a radio with him... he, uh..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "didn't realize he couldn't keep it."
+            },
+            {"code": 11330, "indent": 0, "parameters": [6, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, the usual penalty for using such"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a machine inside Paradise is banishment."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "However... since you have just been welcomed"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "into our society it would be a shame to kick"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you out on the very same night."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So... I'm going to make an exception."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Since it was you... no penalty. But you must"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "bring the radio to Storage; you cannot keep it."
             },
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "If it happens again, though - I will not be"},
-            {"code": "ShowMessage_2", "string": "so lenient, and you WILL be banished."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Emily, I'm disappointed - you should have"},
-            {"code": "ShowMessage_2", "string": "told Talan that was against the rules."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Daddy, I -"},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Goodnight."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "MoveEvent",
-              "parameters": [6, 8, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If it happens again, though - I will not be"
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 14]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ORCHESTRA LEADER"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "so lenient, and you WILL be banished."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Emily, I'm disappointed - you should have"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "told Talan that was against the rules."
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Daddy, I -"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Goodnight."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [6, 8, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 14], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ORCHESTRA LEADER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Well... I'll just save you the trouble and bring"
             },
-            {"code": "ShowMessage_2", "string": "the radio to Storage myself! I wouldn't"},
-            {"code": "ShowMessage_2", "string": "want either of you to forget to, after all!"},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 28, 2, 1, 1, 29]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 497, 497, 1]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 100], "string": "(OFF)"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the radio to Storage myself! I wouldn't"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "want either of you to forget to, after all!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 28, 2, 1, 1, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 497, 497, 1], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 100], "string": "(OFF)"},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 3, 8, 0, 0, 36, 28, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 29, 34, 8, 65, 66, 76, 68, 97,
                 108, 105, 97, 3
-              ]
+              ],
+              "string": ""
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 4, 8, 0, 0, 36, 28, 3, 0, 0, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108,
                 105, 97, 3, 29
-              ]
+              ],
+              "string": ""
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 5, 8, 0, 0, 36, 28, 3, 0, 0, 0, 0, 29, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97,
                 3
-              ]
+              ],
+              "string": ""
             },
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 12]},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 2, 2, 2, 2, 2, 2]},
-            {"code": "Wait", "parameters": [18]},
-            {"code": "ControlSwitches", "parameters": [0, 393, 393, 1]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Talan..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ISABELLA"},
-            {"code": "ShowMessage_2", "string": "I offered to give you advice if you ran"},
-            {"code": "ShowMessage_2", "string": "into any women troubles, Talan..."},
-            {"code": "ShowMessage", "string": "ISABELLA"},
-            {"code": "ShowMessage_2", "string": "... but I can see you don't really need"},
-            {"code": "ShowMessage_2", "string": "my help. You're pretty quick-thinking,"},
-            {"code": "ShowMessage_2", "string": "when you need to be..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "You knew it wasn't really mine? How?"},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ISABELLA"},
-            {"code": "ShowMessage_2", "string": "Because that's exactly what Drago would"},
-            {"code": "ShowMessage_2", "string": "have done for me."},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [7]},
-            {"code": "ShowMessage", "string": "ISABELLA"},
-            {"code": "ShowMessage_2", "string": "Plus... I escorted you through the tunnel"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1, 12], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [7, 8, 0, 0, 2, 2, 2, 2, 2, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [18], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 393, 393, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Talan..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ISABELLA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I offered to give you advice if you ran"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "into any women troubles, Talan..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ISABELLA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "... but I can see you don't really need"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "my help. You're pretty quick-thinking,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "when you need to be..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You knew it wasn't really mine? How?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ISABELLA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Because that's exactly what Drago would"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "have done for me."},
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [7], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ISABELLA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Plus... I escorted you through the tunnel"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "when you got here, and you weren't carrying it."
             },
-            {"code": "ShowMessage_2", "string": "<grin>"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "ISABELLA"},
-            {"code": "ShowMessage_2", "string": "You're all right, Talan."},
-            {"code": "ShowMessage_2", "string": "Goodnight, Emily."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Goodnight, Miss Isabella."},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "<grin>"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ISABELLA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "You're all right, Talan."},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Goodnight, Emily."},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
             {
-              "code": "MoveEvent",
-              "parameters": [7, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Goodnight, Miss Isabella."
             },
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "You don't think she's going to turn us in,"},
-            {"code": "ShowMessage_2", "string": "do you?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Isabella? I don't think so."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "It's late... we should probably head back."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Yeah."},
-            {"code": "ControlSwitches", "parameters": [0, 382, 382, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 383, 383, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 389, 389, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 391, 391, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 390, 390, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 394, 394, 1]},
-            {"code": "Teleport", "parameters": [108, 32, 23]},
-            {"code": "ControlSwitches", "parameters": [0, 395, 395, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 392, 392, 0]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [7, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You don't think she's going to turn us in,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "do you?"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Isabella? I don't think so."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's late... we should probably head back."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yeah."},
+            {"code": 10210, "indent": 0, "parameters": [0, 382, 382, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 383, 383, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 389, 389, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 391, 391, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 390, 390, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 394, 394, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [108, 32, 23], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 395, 395, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 392, 392, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -442,21 +1036,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 392
+            "item_id": 1,
+            "switch_a_id": 392,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 3,
       "name": "OrchestraLeader",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "Crown2",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -465,23 +1078,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 393
+            "item_id": 1,
+            "switch_a_id": 393,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 9
+      "x": 9,
+      "y": 0
     },
     {
       "id": 4,
       "name": "Orchestra2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "People7",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -490,23 +1120,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 393
+            "item_id": 1,
+            "switch_a_id": 393,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 10
+      "x": 10,
+      "y": 0
     },
     {
       "id": 5,
       "name": "Orchestra3",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -515,24 +1162,74 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 393
+            "item_id": 1,
+            "switch_a_id": 393,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 6
+      "x": 6,
+      "y": 0
     },
     {
       "id": 6,
       "name": "Pierson",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -541,24 +1238,74 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 394
+            "item_id": 1,
+            "switch_a_id": 394,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 7,
       "name": "Isabella",
       "pages": [
-        {"id": 1, "move_type": "stationary"},
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -567,22 +1314,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 394
+            "item_id": 1,
+            "switch_a_id": 394,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 18
+      "x": 18,
+      "y": 0
     },
     {
       "id": 8,
       "name": "EV0008",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 96,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -591,10 +1356,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 497
+            "item_id": 1,
+            "switch_a_id": 497,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -605,8 +1383,13 @@
       "name": "EV0009",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 102,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -615,10 +1398,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 497
+            "item_id": 1,
+            "switch_a_id": 497,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -629,7 +1425,13 @@
       "name": "EV0010",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -638,20 +1440,57 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 47, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 12330, "indent": 0, "parameters": [0, 47, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
       "y": 14
     }
   ],
-  "save_count": 48
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 48,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

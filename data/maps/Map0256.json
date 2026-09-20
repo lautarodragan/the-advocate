@@ -6,36 +6,132 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 54, 1, 0, 0, 1]},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 56, 1, 0, 0, 1]},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 54, 54, 0]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "For the past two years, the BLURRED LINE"},
-            {"code": "ShowMessage_2", "string": "saga has told the story of Talan's escape"},
-            {"code": "ShowMessage_2", "string": "from the all-powerful Agency and its"},
-            {"code": "ShowMessage_2", "string": "intense desire to find and capture him."},
-            {"code": "ShowMessage", "string": "But all things must come to an end."},
-            {"code": "ShowMessage_2", "string": "For Talan, that end approaches."},
-            {"code": "ShowMessage", "string": "Next winter, Talan stops running.\\|\\|\\^"},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "ExplosForTeaser"},
-            {"code": "Teleport", "parameters": [268, 0, 9]}
+            {"code": 12010, "indent": 0, "parameters": [0, 54, 1, 0, 0, 1], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 56, 1, 0, 0, 1], "string": ""},
+            {"code": 10210, "indent": 2, "parameters": [0, 54, 54, 0], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For the past two years, the BLURRED LINE"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "saga has told the story of Talan's escape"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from the all-powerful Agency and its"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "intense desire to find and capture him."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But all things must come to an end."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For Talan, that end approaches."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Next winter, Talan stops running.\\|\\|\\^"
+            },
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [0, 100, 100, 50],
+              "string": "ExplosForTeaser"
+            },
+            {"code": 10810, "indent": 0, "parameters": [268, 0, 9], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 44
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 44,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

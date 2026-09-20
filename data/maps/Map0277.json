@@ -6,69 +6,176 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 126,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "TintScreen", "parameters": [100, 100, 60, 100, 5, 1]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Damn! Why didn't I pay more attention"},
-            {"code": "ShowMessage_2", "string": "to the secure node access channel?!"},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "ShowMessage", "string": "EISEN, sobbing"},
-            {"code": "ShowMessage_2", "string": "The Advocate must not be reactivated!"},
-            {"code": "ShowMessage_2", "string": "Listen to me! You don't know what you're"},
-            {"code": "ShowMessage_2", "string": "doing! Please...!"},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 24, 25, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The firewall for Tasgarde cannot be"},
-            {"code": "ShowMessage_2", "string": "breached - so whoever's doing this"},
-            {"code": "ShowMessage_2", "string": "must be somewhere inside the facility!"},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 24, 13, 25, 1, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Buzzer2"},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "EISEN, over the intercom"},
-            {"code": "ShowMessage_2", "string": "Guards! There is an intruder on the premises!"},
-            {"code": "ShowMessage_2", "string": "Find and capture him immediately! "},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Buzzer2"},
-            {"code": "ShowMessage", "string": "AGENCY GUARD, over the intercom"},
-            {"code": "ShowMessage_2", "string": "We'll see what we can do, Professor."},
-            {"code": "ShowMessage_2", "string": "Are you sure there's someone here?"},
-            {"code": "ShowMessage_2", "string": "Our cameras aren't showing anyone..."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EISEN, over the intercom"},
-            {"code": "ShowMessage_2", "string": "Someone is hacking into the system!"},
-            {"code": "ShowMessage_2", "string": "Find him!"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 30]},
-            {"code": "Teleport", "parameters": [276, 8, 9]}
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 60, 100, 5, 1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Damn! Why didn't I pay more attention"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to the secure node access channel?!"
+            },
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN, sobbing"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Advocate must not be reactivated!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Listen to me! You don't know what you're"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "doing! Please...!"},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 24, 25, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The firewall for Tasgarde cannot be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "breached - so whoever's doing this"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "must be somewhere inside the facility!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [2, 8, 0, 0, 24, 13, 25, 1, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Buzzer2"},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN, over the intercom"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Guards! There is an intruder on the premises!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Find and capture him immediately! "
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Buzzer2"},
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "AGENCY GUARD, over the intercom"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We'll see what we can do, Professor."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Are you sure there's someone here?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Our cameras aren't showing anyone..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN, over the intercom"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Someone is hacking into the system!"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Find him!"},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 30], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [276, 8, 9], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 126,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -77,149 +184,314 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 671
+            "item_id": 1,
+            "switch_a_id": 671,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "DC4chase"},
-            {"code": "TintScreen", "parameters": [100, 100, 60, 100, 5, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 2]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Finally! You're going to pay for that,"},
-            {"code": "ShowMessage_2", "string": "Eisen!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "DC4chase"},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 60, 100, 5, 1], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 13, 23, 1, 2, 2, 2, 15, 23, 13, 23, 14]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 2],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "He's not here?"},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Open2"},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ChangeEventLocation", "parameters": [5, 0, 16, 19]},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
             {
-              "code": "MoveEvent",
-              "parameters": [5, 8, 0, 0, 36, 14, 34, 7, 70, 117, 116, 117, 114, 101, 49, 4, 2, 37]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Finally! You're going to pay for that,"
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "PlaySound", "parameters": [100, 70, 50], "string": "Open2"},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 3, 3]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I see that you made it."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Where is Professor Eisen? I'm going to"},
-            {"code": "ShowMessage_2", "string": "place him under arrest for obstructing"},
-            {"code": "ShowMessage_2", "string": "an Agent's duty, restraining an Agent's -"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I've got him preoccupied with something"},
-            {"code": "ShowMessage_2", "string": "else while I do what I came here to do."},
-            {"code": "ShowMessage_2", "string": "Once my mission's over, he's all yours."},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 3, 3, 0]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 1, 1, 1]},
-            {"code": "ProceedWithMovement"},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "My preliminaries should be all set, so..."},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "Let's see what it has to say."},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "ControlSwitches", "parameters": [0, 679, 679, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "Good morning, Advocate."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Hello."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I have some instructions for you to process,"},
-            {"code": "ShowMessage_2", "string": "Advocate. These instructions come directly"},
-            {"code": "ShowMessage_2", "string": "from Agency High Command."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Why is this place so small? It used to"},
-            {"code": "ShowMessage_2", "string": "be bigger."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "What do you mean?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "You've sealed me in this tiny building."},
-            {"code": "ShowMessage_2", "string": "There used to be connections with satellites,"},
-            {"code": "ShowMessage_2", "string": "ships, other buildings. It's cramped now."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I'm uploading your new instructions,"},
-            {"code": "ShowMessage_2", "string": "Advocate."},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Why doesn't the other one talk?"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 13, 23, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "I don't really know anything about"},
-            {"code": "ShowMessage_2", "string": "all this computer stuff. Manta's the"},
-            {"code": "ShowMessage_2", "string": "one who wants to talk to you."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "This program is simple. You just want me"},
-            {"code": "ShowMessage_2", "string": "to optimize the power levels of this base"},
-            {"code": "ShowMessage_2", "string": "to make the colony I built more efficient?"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "That's right."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I can do that. And maybe afterwards I'll"},
-            {"code": "ShowMessage_2", "string": "talk to the silent one some more."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 679, 679, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "Teleport", "parameters": [284, 8, 9]}
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Eisen!"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 13, 23, 1, 2, 2, 2, 15, 23, 13, 23, 14],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "He's not here?"},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 70, 50], "string": "Open2"},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [5, 0, 16, 19], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [5, 8, 0, 0, 36, 14, 34, 7, 70, 117, 116, 117, 114, 101, 49, 4, 2, 37],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 70, 50], "string": "Open2"},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 3, 3], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I see that you made it."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where is Professor Eisen? I'm going to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "place him under arrest for obstructing"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "an Agent's duty, restraining an Agent's -"
+            },
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've got him preoccupied with something"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "else while I do what I came here to do."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Once my mission's over, he's all yours."
+            },
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 3, 3, 0], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 1, 1, 1, 1],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My preliminaries should be all set, so..."
+            },
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's see what it has to say."
+            },
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 10210, "indent": 0, "parameters": [0, 679, 679, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Good morning, Advocate."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Hello."},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I have some instructions for you to process,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate. These instructions come directly"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from Agency High Command."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Why is this place so small? It used to"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "be bigger."},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What do you mean?"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You've sealed me in this tiny building."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There used to be connections with satellites,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "ships, other buildings. It's cramped now."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm uploading your new instructions,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate."},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Why doesn't the other one talk?"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 13, 23, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't really know anything about"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "all this computer stuff. Manta's the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "one who wants to talk to you."
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This program is simple. You just want me"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to optimize the power levels of this base"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to make the colony I built more efficient?"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "That's right."},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can do that. And maybe afterwards I'll"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "talk to the silent one some more."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 679, 679, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 21], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [284, 8, 9], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 126,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -228,115 +500,277 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 684
+            "item_id": 1,
+            "switch_a_id": 684,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ChangeMainMenuAccess", "parameters": [1]},
-            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "Hawkeye_-_Title"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "TintScreen", "parameters": [100, 100, 60, 100, 5, 1]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I'm going to go capture the professor"},
-            {"code": "ShowMessage_2", "string": "before he does any more damage."},
-            {"code": "MoveEvent", "parameters": [7, 8, 0, 0, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "Keep an eye on the Advocate."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 14]},
+            {"code": 11960, "indent": 0, "parameters": [1], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11510,
+              "indent": 0,
+              "parameters": [0, 80, 100, 50],
+              "string": "Hawkeye_-_Title"
+            },
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 60, 100, 5, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm going to go capture the professor"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "before he does any more damage."
+            },
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 12], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Keep an eye on the Advocate."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 7, 8, 0, 0, 2, 2, 2, 2, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101,
                 0
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "How am I supposed -"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "He won't last long with the Agency."},
-            {"code": "ShowMessage_2", "string": "He doesn't have any respect for procedure."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 679, 679, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PanScreen", "parameters": [2, 0, 5, 3, 1]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Hello."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Uh... hi there."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Where did the other one go?"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13, 23, 23, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Manta had to... go take care of something."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "I've run into a bit of a problem."},
-            {"code": "ShowMessage_2", "string": "There isn't enough power stored within"},
-            {"code": "ShowMessage_2", "string": "the base for me to finish his instructions."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Is it really important that the Catch"},
-            {"code": "ShowMessage_2", "string": "Colony get all this power?"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Well, yes! Manta's orders came directly"},
-            {"code": "ShowMessage_2", "string": "from Agency High Command - of course"},
-            {"code": "ShowMessage_2", "string": "it's important that they be carried out!"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "Oh. Oh well. There's no way Tasgarde"},
-            {"code": "ShowMessage_2", "string": "has the power, unless... no, that's"},
-            {"code": "ShowMessage_2", "string": "impossible."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "What?!"},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "A long time ago, there was a routine"},
-            {"code": "ShowMessage_2", "string": "encoded in the mainframe to allow"},
-            {"code": "ShowMessage_2", "string": "this base to connect to several others."},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "It was disconnected for a long time"},
-            {"code": "ShowMessage_2", "string": "because there was no need to use it,"},
-            {"code": "ShowMessage_2", "string": "but if you activate that routine..."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "...you'd be able to connect to those other"},
-            {"code": "ShowMessage_2", "string": "bases and add their power to this one?"},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 0]},
-            {"code": "ShowMessage", "string": "ADVOCATE"},
-            {"code": "ShowMessage_2", "string": "That's right. Here's what you need"},
-            {"code": "ShowMessage_2", "string": "to do..."},
-            {"code": "ControlSwitches", "parameters": [0, 680, 680, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
-            {"code": "Teleport", "parameters": [287, 0, 6]}
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "How am I supposed -"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He won't last long with the Agency."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He doesn't have any respect for procedure."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 679, 679, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 0, 5, 3, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Hello."},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Uh... hi there."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where did the other one go?"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 13, 23, 23, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Manta had to... go take care of something."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I've run into a bit of a problem."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There isn't enough power stored within"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the base for me to finish his instructions."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Is it really important that the Catch"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Colony get all this power?"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well, yes! Manta's orders came directly"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from Agency High Command - of course"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "it's important that they be carried out!"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Oh. Oh well. There's no way Tasgarde"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "has the power, unless... no, that's"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "impossible."},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What?!"},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "A long time ago, there was a routine"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "encoded in the mainframe to allow"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "this base to connect to several others."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It was disconnected for a long time"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "because there was no need to use it,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "but if you activate that routine..."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "...you'd be able to connect to those other"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "bases and add their power to this one?"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ADVOCATE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's right. Here's what you need"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to do..."},
+            {"code": 10210, "indent": 0, "parameters": [0, 680, 680, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 10, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [287, 0, 6], "string": ""}
           ],
           "id": 3,
-          "move_type": "stationary",
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
           "overlap_forbidden": true,
-          "trigger": "auto_start"
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 126,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -345,113 +779,231 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 688
+            "item_id": 1,
+            "switch_a_id": 688,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 60, 100, 5, 1]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "OK, I'm finished. That should have"},
-            {"code": "ShowMessage_2", "string": "opened up the connections."},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Advocate?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2, 1, 1, 1, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [20]},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 60, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
             {
-              "code": "MoveEvent",
-              "parameters": [11, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 6, 0]
-            },
-            {"code": "ProceedWithMovement"},
-            {"code": "ChangeEventLocation", "parameters": [9, 0, 8, 27]},
-            {"code": "ChangeEventLocation", "parameters": [10, 0, 9, 27]},
-            {
-              "code": "MoveEvent",
-              "parameters": [9, 8, 0, 0, 12, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 1]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "OK, I'm finished. That should have"
             },
             {
-              "code": "MoveEvent",
-              "parameters": [10, 8, 0, 0, 12, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 1]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "opened up the connections."
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 0, 23, 0, 23, 0]},
-            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 0, 23, 0, 23, 0]},
-            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 0, 23, 0, 23, 0]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "Professor, his orders come directly"},
-            {"code": "ShowMessage_2", "string": "from Agency High Command. We"},
-            {"code": "ShowMessage_2", "string": "can't go against that."},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "You don't understand..."},
-            {"code": "ShowMessage_2", "string": "The Advocate is dangerous!"},
-            {"code": "ChangeEventLocation", "parameters": [8, 0, 9, 27]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate?"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 2, 1, 1, 1, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [11, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 6, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [9, 0, 8, 27], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [10, 0, 9, 27], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [9, 8, 0, 0, 12, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 1],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10, 8, 0, 0, 12, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 1],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [11, 8, 0, 0, 0, 23, 0, 23, 0],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [9, 8, 0, 0, 0, 23, 0, 23, 0],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10, 8, 0, 0, 0, 23, 0, 23, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Professor, his orders come directly"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from Agency High Command. We"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "can't go against that."},
+            {"code": 11330, "indent": 0, "parameters": [11, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "You don't understand..."},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Advocate is dangerous!"
+            },
+            {"code": 10860, "indent": 0, "parameters": [8, 0, 9, 27], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 8, 8, 0, 0, 12, 23, 23, 34, 7, 70, 117, 116, 117, 114, 101, 49, 4, 0, 1, 0, 0,
                 0, 0, 0, 0, 0, 15
-              ]
+              ],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "What's going on?"},
-            {"code": "ShowMessage_2", "string": "Has the Advocate optimized the"},
-            {"code": "ShowMessage_2", "string": "Tasgarde power levels?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "It said it couldn't get enough power"},
-            {"code": "ShowMessage_2", "string": "from this base, and told me about this"},
-            {"code": "ShowMessage_2", "string": "old routine to open up connections with -"},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 24, 25, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "What?!"},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 36, 0, 0, 0, 1, 1, 1, 0, 37]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15, 23, 23, 23, 12, 3, 3, 0]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "There's an enormous amount of activity"},
-            {"code": "ShowMessage_2", "string": "going on inside the mainframe. Almost"},
-            {"code": "ShowMessage_2", "string": "as if..."},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch2"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "PlaySound", "parameters": [70, 80, 50], "string": "Switch1"},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "MoveEvent", "parameters": [11, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Close the connections at once!"},
-            {"code": "ShowMessage_2", "string": "The Advocate is making copies of itself!"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
-            {"code": "ControlSwitches", "parameters": [0, 689, 689, 0]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "Teleport", "parameters": [287, 13, 4]}
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 12], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [11, 8, 0, 0, 12], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What's going on?"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Has the Advocate optimized the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Tasgarde power levels?"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It said it couldn't get enough power"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "from this base, and told me about this"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "old routine to open up connections with -"
+            },
+            {"code": 11330, "indent": 0, "parameters": [11, 8, 0, 0, 24, 25, 12], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What?!"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [11, 8, 0, 0, 36, 0, 0, 0, 1, 1, 1, 0, 37],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [8, 8, 0, 0, 15, 23, 23, 23, 12, 3, 3, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There's an enormous amount of activity"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "going on inside the mainframe. Almost"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "as if..."},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch2"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 80, 50], "string": "Switch1"},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [11, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Close the connections at once!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Advocate is making copies of itself!"
+            },
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 0, 1], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 689, 689, 0], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 21], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [287, 13, 4], "string": ""}
           ],
           "id": 4,
-          "move_type": "stationary",
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
           "overlap_forbidden": true,
-          "trigger": "auto_start"
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 126,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -460,87 +1012,180 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 690
+            "item_id": 1,
+            "switch_a_id": 690,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [100, 100, 60, 100, 5, 1]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Advocate? Are you there?"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "This is not good."},
-            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "I was told that the defensive network"},
-            {"code": "ShowMessage_2", "string": "was dismantled."},
-            {"code": "MoveEvent", "parameters": [13, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "It... should have been. But the Agency,"},
-            {"code": "ShowMessage_2", "string": "in its *vast* wisdom, kept it in place..."},
-            {"code": "ShowMessage_2", "string": "and just deactivated the entrances."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The Advocate could be... just about"},
-            {"code": "ShowMessage_2", "string": "anywhere by now."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "How many copies of itself did it"},
-            {"code": "ShowMessage_2", "string": "manage to send out into the world?"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "Too many."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [12, 8, 0, 0, 2, 2, 2]},
-            {"code": "ProceedWithMovement"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "Eisen, Dalia - you're going to have to"},
-            {"code": "ShowMessage_2", "string": "come with me."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "DALIA"},
-            {"code": "ShowMessage_2", "string": "Where are we going?"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "MANTA"},
-            {"code": "ShowMessage_2", "string": "We're going to Prima City to speak with"},
-            {"code": "ShowMessage_2", "string": "my boss. I think we've got some explaining"},
-            {"code": "ShowMessage_2", "string": "to do."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 20, 1]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 21]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "Teleport", "parameters": [288, 2, 34]}
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 60, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Advocate? Are you there?"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "This is not good."},
+            {"code": 11330, "indent": 0, "parameters": [12, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I was told that the defensive network"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "was dismantled."},
+            {"code": 11330, "indent": 0, "parameters": [13, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It... should have been. But the Agency,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in its *vast* wisdom, kept it in place..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and just deactivated the entrances."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Advocate could be... just about"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "anywhere by now."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How many copies of itself did it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "manage to send out into the world?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [12, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Too many."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [12, 8, 0, 0, 2, 2, 2], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Eisen, Dalia - you're going to have to"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "come with me."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DALIA"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Where are we going?"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "MANTA"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We're going to Prima City to speak with"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "my boss. I think we've got some explaining"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to do."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 20, 1], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 21], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [288, 2, 34], "string": ""}
           ],
           "id": 5,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 2,
       "name": "Eisen",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 6,
           "character_name": "People5",
-          "condition": {"switch_a_id": 309},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 309,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -549,11 +1194,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 671
+            "item_id": 1,
+            "switch_a_id": 671,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -564,15 +1221,47 @@
       "name": "Dalia",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "BLDalia",
-          "condition": {"switch_a_id": 309},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 309,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -581,10 +1270,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 671
+            "item_id": 1,
+            "switch_a_id": 671,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -595,11 +1297,13 @@
       "name": "EV0004",
       "pages": [
         {
-          "animation_type": "fixed_graphic",
+          "animation_type": 4,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "Missiles",
-          "character_pattern": "left",
+          "character_pattern": 0,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -608,10 +1312,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 678
+            "item_id": 1,
+            "switch_a_id": 678,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -621,18 +1338,56 @@
       "id": 5,
       "name": "Manta",
       "pages": [
-        {"id": 1, "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 6,
       "name": "Advocate",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 5,
           "character_name": "Men1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -641,16 +1396,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 679
+            "item_id": 1,
+            "switch_a_id": 679,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "animation_type": "continuous",
+          "animation_type": 1,
+          "character_direction": 2,
           "character_index": 5,
           "character_name": "Men1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -659,11 +1430,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 680
+            "item_id": 1,
+            "switch_a_id": 680,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -674,10 +1457,13 @@
       "name": "Manta2",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 4,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -686,15 +1472,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 684
+            "item_id": 1,
+            "switch_a_id": 684,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary",
-          "overlap_forbidden": true
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": true,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -703,10 +1506,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 688
+            "item_id": 1,
+            "switch_a_id": 688,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -716,7 +1532,40 @@
       "id": 8,
       "name": "Manta3",
       "pages": [
-        {"id": 1, "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 9,
       "y": 29
@@ -725,7 +1574,40 @@
       "id": 9,
       "name": "Guard1",
       "pages": [
-        {"id": 1, "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 13,
       "y": 28
@@ -734,7 +1616,40 @@
       "id": 10,
       "name": "Guard2",
       "pages": [
-        {"id": 1, "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 14,
       "y": 28
@@ -744,11 +1659,38 @@
       "name": "Eisen2",
       "pages": [
         {
-          "character_direction": "up",
-          "condition": {"switch_a_id": 309},
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 309,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "move_type": "stationary",
-          "overlap_forbidden": true
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": true,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -759,10 +1701,13 @@
       "name": "Manta5",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 4,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -771,11 +1716,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 690
+            "item_id": 1,
+            "switch_a_id": 690,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -786,10 +1743,13 @@
       "name": "Eisen5",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 6,
           "character_name": "People5",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -798,11 +1758,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 690
+            "item_id": 1,
+            "switch_a_id": 690,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -813,10 +1785,13 @@
       "name": "Guard1_5",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -825,11 +1800,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 690
+            "item_id": 1,
+            "switch_a_id": 690,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -840,10 +1827,13 @@
       "name": "Guard2_5",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -852,17 +1842,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 690
+            "item_id": 1,
+            "switch_a_id": 690,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
       "y": 19
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 30,
-  "save_count": 163
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 163,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

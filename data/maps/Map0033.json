@@ -6,8 +6,11 @@
       "name": "Arden",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "Chara2",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 15,
             "flags": {
@@ -18,11 +21,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 54
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 24,
@@ -33,9 +48,11 @@
       "name": "Saldra",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 6,
           "character_name": "Chara3",
+          "character_pattern": 1,
           "condition": {
             "actor_id": 17,
             "flags": {
@@ -46,11 +63,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 56
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -61,11 +90,38 @@
       "name": "Agent4",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 25,
@@ -76,11 +132,38 @@
       "name": "Agent5",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -91,11 +174,38 @@
       "name": "Agent3",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 23,
@@ -106,12 +216,38 @@
       "name": "Agent6",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -122,12 +258,38 @@
       "name": "Agent7",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -138,12 +300,38 @@
       "name": "Agent2",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 22,
@@ -154,12 +342,38 @@
       "name": "Agent1",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 22,
@@ -170,315 +384,437 @@
       "name": "EV0010",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "dcbest"},
-            {"code": "ChangeHeroTitle", "parameters": [14], "string": "Limping"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ConditionalBranch", "parameters": [5, 15, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Well, we defeated two guards and"},
+            {"code": 11510, "indent": 0, "parameters": [0, 80, 100, 50], "string": "dcbest"},
+            {"code": 10620, "indent": 0, "parameters": [14], "string": "Limping"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [5, 15, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Well, we defeated two guards and"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "seven took their place. I don't like"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "those numbers..."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "It's not over yet."},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "What? Are you -"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "    RUN!"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "those numbers..."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "It's not over yet."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "What? Are you -"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "    RUN!"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12],
+              "string": ""
             },
-            {"code": "Wait", "indent": 1, "parameters": [12]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "C'mon, Arden - it's time to go!"},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I couldn't agree more!"},
+            {"code": 11410, "indent": 1, "parameters": [12], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
               "indent": 1,
-              "parameters": [1, 8, 0, 0, 28, 36, 2, 2, 2, 2, 24, 2, 25]
+              "parameters": [],
+              "string": "C'mon, Arden - it's time to go!"
             },
-            {"code": "Wait", "indent": 1, "parameters": [12]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 2, 2]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 2, 13, 2]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "I couldn't agree more!"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+              "parameters": [1, 8, 0, 0, 28, 36, 2, 2, 2, 2, 24, 2, 25],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [6, 8, 0, 0, 2]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [7, 8, 0, 0, 2, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
+            {"code": 11410, "indent": 1, "parameters": [12], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [9, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 2, 13, 2], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [5, 8, 0, 0, 2, 2, 2], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 1,
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2],
+              "string": ""
+            },
+            {"code": 11330, "indent": 1, "parameters": [4, 8, 0, 0, 2, 1, 3, 2], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [6, 8, 0, 0, 2], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [7, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
               "indent": 1,
               "parameters": [
                 10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
                 111, 119, 49, 100, 100, 50, 23, 14
-              ]
+              ],
+              "string": ""
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
               "parameters": [
                 1, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37,
                 39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "indent": 1, "parameters": [30]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Aggh... my ankle."},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 29]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 21]},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Are you all right?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "I'm... fine. It's nothing."},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Are you sure?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Red or blue?"},
-            {"code": "ShowMessage", "indent": 1, "string": "ARDEN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 132, 132, 0]},
-            {"code": "ShowChoice", "indent": 1, "parameters": [0], "string": "Red/Blue"},
-            {"code": "ShowChoiceOption", "indent": 1, "parameters": [0], "string": "Red"},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 130, 130, 0]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [1, 8, 0, 0, 36, 12, 37]},
-            {"code": "Wait", "indent": 2, "parameters": [6]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [1, 0, 0, 0]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 15]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 2},
-            {"code": "ShowChoiceOption", "indent": 1, "parameters": [1], "string": "Blue"},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 131, 131, 0]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [1, 8, 0, 0, 36, 1, 1, 1, 14, 37]},
-            {"code": "Wait", "indent": 2, "parameters": [10]},
-            {"code": "ChangeEventLocation", "indent": 2, "parameters": [1, 0, 0, 0]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 15]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 2},
-            {"code": "ShowChoiceEnd", "indent": 1},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Let's get out of here!"},
-            {"code": "PlaySound", "indent": 1, "parameters": [100, 150, 0], "string": "Flame4"},
-            {"code": "Wait", "indent": 1, "parameters": [4]},
-            {"code": "PlaySound", "indent": 1, "parameters": [100, 50, 0], "string": "Flame5"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "Teleport", "indent": 1, "parameters": [4, 9, 8]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [5, 17, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "From two guards to seven."},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Great."},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "It's not over yet."},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Are you blind, or somethin'?"},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "    RUN!"},
+            {"code": 11410, "indent": 1, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Aggh... my ankle."},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 29], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 21], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Are you all right?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I'm... fine. It's nothing."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Are you sure?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Red or blue?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "What?"},
+            {"code": 10210, "indent": 1, "parameters": [0, 132, 132, 0], "string": ""},
+            {"code": 10140, "indent": 1, "parameters": [0], "string": "Red/Blue"},
+            {"code": 20140, "indent": 1, "parameters": [0], "string": "Red"},
+            {"code": 10210, "indent": 2, "parameters": [0, 130, 130, 0], "string": ""},
+            {
+              "code": 11330,
               "indent": 2,
-              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+              "parameters": [10001, 8, 0, 0, 36, 3, 12, 37],
+              "string": ""
             },
-            {"code": "Wait", "indent": 2, "parameters": [12]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "C'mon, Saldra - it's time to go!"},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Yeah!"},
+            {"code": 11330, "indent": 2, "parameters": [1, 8, 0, 0, 36, 12, 37], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [6], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 1, "parameters": [1], "string": "Blue"},
+            {"code": 10210, "indent": 2, "parameters": [0, 131, 131, 0], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
-              "parameters": [2, 8, 0, 0, 28, 36, 3, 3, 2, 2, 2, 2, 24, 2, 25]
+              "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37],
+              "string": ""
             },
-            {"code": "Wait", "indent": 2, "parameters": [12]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [9, 8, 0, 0, 2, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2]},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
-              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+              "parameters": [1, 8, 0, 0, 36, 1, 1, 1, 14, 37],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [6, 8, 0, 0, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [7, 8, 0, 0, 2, 2]},
-            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": 11410, "indent": 2, "parameters": [10], "string": ""},
+            {"code": 10860, "indent": 2, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Let's get out of here!"},
+            {"code": 11550, "indent": 1, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": 11410, "indent": 1, "parameters": [4], "string": ""},
+            {"code": 11550, "indent": 1, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [4, 9, 8], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [5, 17, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "From two guards to seven."
+            },
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Great."},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "It's not over yet."},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "Are you blind, or somethin'?"
+            },
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "    RUN!"},
+            {
+              "code": 11330,
+              "indent": 2,
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 2, "parameters": [12], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "C'mon, Saldra - it's time to go!"
+            },
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Yeah!"},
+            {
+              "code": 11330,
+              "indent": 2,
+              "parameters": [2, 8, 0, 0, 28, 36, 3, 3, 2, 2, 2, 2, 24, 2, 25],
+              "string": ""
+            },
+            {"code": 11410, "indent": 2, "parameters": [12], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [9, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2], "string": ""},
+            {
+              "code": 11330,
+              "indent": 2,
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2],
+              "string": ""
+            },
+            {"code": 11330, "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [6, 8, 0, 0, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [7, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
               "indent": 2,
               "parameters": [
                 10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
                 111, 119, 49, 100, 100, 50, 23, 14
-              ]
+              ],
+              "string": ""
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
               "parameters": [
                 2, 8, 0, 0, 28, 38, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 37,
                 39, 29, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 0, 23, 23, 14
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "indent": 2, "parameters": [30]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Aggh... my ankle."},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 29]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [2, 8, 0, 0, 21]},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "You all right?"},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "I'm... fine. It's nothing."},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Are you positive?"},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Red or blue?"},
-            {"code": "ShowMessage", "indent": 2, "string": "SALDRA"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Huh?"},
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 132, 132, 0]},
-            {"code": "ShowChoice", "indent": 2, "parameters": [0], "string": "Red/Blue"},
-            {"code": "ShowChoiceOption", "indent": 2, "parameters": [0], "string": "Red"},
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 130, 130, 0]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [2, 8, 0, 0, 36, 12, 37]},
-            {"code": "Wait", "indent": 3, "parameters": [6]},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 0, 0, 0]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 17]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "parameters": [1], "string": "Blue"},
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 131, 131, 0]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [2, 8, 0, 0, 36, 1, 1, 1, 14, 37]},
-            {"code": "Wait", "indent": 3, "parameters": [10]},
-            {"code": "ChangeEventLocation", "indent": 3, "parameters": [2, 0, 0, 0]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 17]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceEnd", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Let's get out of here!"},
-            {"code": "PlaySound", "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
-            {"code": "Wait", "indent": 2, "parameters": [4]},
-            {"code": "PlaySound", "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "Teleport", "indent": 2, "parameters": [4, 9, 8]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 11410, "indent": 2, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Aggh... my ankle."},
+            {"code": 11330, "indent": 2, "parameters": [10001, 8, 0, 0, 29], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [2, 8, 0, 0, 21], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "You all right?"},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
+              "string": "I'm... fine. It's nothing."
+            },
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Are you positive?"},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Red or blue?"},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "SALDRA"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Huh?"},
+            {"code": 10210, "indent": 2, "parameters": [0, 132, 132, 0], "string": ""},
+            {"code": 10140, "indent": 2, "parameters": [0], "string": "Red/Blue"},
+            {"code": 20140, "indent": 2, "parameters": [0], "string": "Red"},
+            {"code": 10210, "indent": 3, "parameters": [0, 130, 130, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 3,
+              "parameters": [10001, 8, 0, 0, 36, 3, 12, 37],
+              "string": ""
+            },
+            {"code": 11330, "indent": 3, "parameters": [2, 8, 0, 0, 36, 12, 37], "string": ""},
+            {"code": 11410, "indent": 3, "parameters": [6], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [2, 0, 0, 0], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 17], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 2, "parameters": [1], "string": "Blue"},
+            {"code": 10210, "indent": 3, "parameters": [0, 131, 131, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 3,
+              "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 3,
+              "parameters": [2, 8, 0, 0, 36, 1, 1, 1, 14, 37],
+              "string": ""
+            },
+            {"code": 11410, "indent": 3, "parameters": [10], "string": ""},
+            {"code": 10860, "indent": 3, "parameters": [2, 0, 0, 0], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 17], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Let's get out of here!"},
+            {"code": 11550, "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": 11410, "indent": 2, "parameters": [4], "string": ""},
+            {"code": 11550, "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10810, "indent": 2, "parameters": [4, 9, 8], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "Where'd the rest of these blasted"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "guards come from?"},
-            {"code": "ShowMessage", "indent": 2, "string": "AGENCY GUARD"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "guards come from?"},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "AGENCY GUARD"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Give up now, and we'll go easy on"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "you, punk."},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "It's not over yet."},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "you, punk."},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "It's not over yet."},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
-              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12]
+              "parameters": [10001, 8, 0, 0, 36, 2, 2, 2, 2, 24, 2, 25, 23, 12],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 2, "parameters": [9, 8, 0, 0, 2, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2]},
+            {"code": 11330, "indent": 2, "parameters": [9, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [8, 8, 0, 0, 2, 13, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [5, 8, 0, 0, 2, 2, 2], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
-              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2]
+              "parameters": [3, 8, 0, 0, 15, 13, 2, 2, 2, 2, 2],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [6, 8, 0, 0, 2]},
-            {"code": "MoveEvent", "indent": 2, "parameters": [7, 8, 0, 0, 2, 2]},
-            {"code": "Wait", "indent": 2, "parameters": [10]},
+            {"code": 11330, "indent": 2, "parameters": [4, 8, 0, 0, 2, 1, 3, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [6, 8, 0, 0, 2], "string": ""},
+            {"code": 11330, "indent": 2, "parameters": [7, 8, 0, 0, 2, 2], "string": ""},
+            {"code": 11410, "indent": 2, "parameters": [10], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 2,
               "parameters": [
                 10001, 8, 0, 0, 38, 28, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 37, 29, 39, 12, 35, 5, 66, 108, 111, 119, 54, 60, 100, 100, 23, 35, 5, 66, 108,
                 111, 119, 49, 100, 100, 50, 23, 14
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "indent": 2, "parameters": [30]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Aggh... my ankle."},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 29]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 11410, "indent": 2, "parameters": [30], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Aggh... my ankle."},
+            {"code": 11330, "indent": 2, "parameters": [10001, 8, 0, 0, 29], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I think it's sprained... I won't be able"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "to move as quickly until I get to a"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "doctor."},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "doctor."},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Time to make an important choice!"
             },
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 132, 132, 0]},
-            {"code": "ShowChoice", "indent": 2, "parameters": [0], "string": "Red/Blue"},
-            {"code": "ShowChoiceOption", "indent": 2, "parameters": [0], "string": "Red"},
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 130, 130, 0]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 3, 12, 37]},
-            {"code": "Wait", "indent": 3, "parameters": [6]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceOption", "indent": 2, "parameters": [1], "string": "Blue"},
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 131, 131, 0]},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37]},
-            {"code": "Wait", "indent": 3, "parameters": [10]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 10]},
-            {"code": "END", "indent": 3},
-            {"code": "ShowChoiceEnd", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Get me out of here!"},
-            {"code": "PlaySound", "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
-            {"code": "Wait", "indent": 2, "parameters": [4]},
-            {"code": "PlaySound", "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "Teleport", "indent": 2, "parameters": [4, 9, 8]},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10210, "indent": 2, "parameters": [0, 132, 132, 0], "string": ""},
+            {"code": 10140, "indent": 2, "parameters": [0], "string": "Red/Blue"},
+            {"code": 20140, "indent": 2, "parameters": [0], "string": "Red"},
+            {"code": 10210, "indent": 3, "parameters": [0, 130, 130, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 3,
+              "parameters": [10001, 8, 0, 0, 36, 3, 12, 37],
+              "string": ""
+            },
+            {"code": 11410, "indent": 3, "parameters": [6], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 2, "parameters": [1], "string": "Blue"},
+            {"code": 10210, "indent": 3, "parameters": [0, 131, 131, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 3,
+              "parameters": [10001, 8, 0, 0, 36, 1, 1, 14, 37],
+              "string": ""
+            },
+            {"code": 11410, "indent": 3, "parameters": [10], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Get me out of here!"},
+            {"code": 11550, "indent": 2, "parameters": [100, 150, 0], "string": "Flame4"},
+            {"code": 11410, "indent": 2, "parameters": [4], "string": ""},
+            {"code": 11550, "indent": 2, "parameters": [100, 50, 0], "string": "Flame5"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10810, "indent": 2, "parameters": [4, 9, 8], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 32,
@@ -489,12 +825,38 @@
       "name": "EV0011",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 33,
@@ -505,12 +867,38 @@
       "name": "EV0012",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 31,
@@ -521,11 +909,38 @@
       "name": "EV0013",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -536,11 +951,38 @@
       "name": "EV0014",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -551,11 +993,38 @@
       "name": "EV0015",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 29,
@@ -566,11 +1035,38 @@
       "name": "EV0016",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -581,11 +1077,38 @@
       "name": "EV0017",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -596,11 +1119,38 @@
       "name": "EV0018",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -611,12 +1161,38 @@
       "name": "EV0019",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -627,12 +1203,38 @@
       "name": "EV0020",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 24,
@@ -643,12 +1245,38 @@
       "name": "EV0021",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -659,12 +1287,38 @@
       "name": "EV0022",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -675,21 +1329,69 @@
       "name": "EV0023",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "BLVehicles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 32,
       "y": 29
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 50,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
   "parallax_flag": true,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
   "parallax_name": "Dawn1",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 46,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 50
 }

@@ -5,7 +5,40 @@
       "id": 1,
       "name": "Stash",
       "pages": [
-        {"character_name": "BLPeople", "id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 15,
       "y": 10
@@ -15,7 +48,13 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -24,396 +63,520 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 72
+            "item_id": 1,
+            "switch_a_id": 72,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Uh... hey. How's it going?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "BALD MAN"},
-            {"code": "ShowMessage_2", "string": "Not too bad. Can I help you?"},
-            {"code": "ConditionalBranch", "parameters": [0, 72, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh... hey. How's it going?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not too bad. Can I help you?"
+            },
+            {"code": 12010, "indent": 0, "parameters": [0, 72, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You, uh... probably don't remember me, but -"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Of course I remember you: I stole some"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "money from you this morning."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "money from you this morning."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "But this morning, on the Hover Tram..."
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "What?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yeah, you were my least profitable"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "catch all day. Just a couple creds."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Huh? How can you sit there and admit"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "to having robbed me? I don't get it!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's a marketing technique I'm working on."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Care to buy a gold and silver plated"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "chronometer?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... no thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "chronometer?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... no thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "See - some people track me down and"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "try to claim their lost stuff. It gets them"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "into the store, and they usually end up"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "buying something. And if they don't"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "make their way here, then I've got"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "some resaleable merchandise."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "some resaleable merchandise."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Well, I'm not going to buy anything!"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "I just want my creds back!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I just want my creds back!"
+            },
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "My name's Stash. It's a pleasure to meet"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you, buddy. I admire your resolve."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Well, um... thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Well, um... thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Especially since I was looking for a buyer"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "for this AG7-17 model behind me. But I"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "guess I'm just out of luck today."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well... yeah, sorry. How much were"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you asking for the... what model was it?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's an AG7-17. Pretty old, but it's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "got ports for all sorts of weaponry,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and even has circuit-hacking capability"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "with three I/O interface components"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and a D3-style \"blazer\" power pack."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "This baby was once top of the line!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah. How much... did you say?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Yeah. How much... did you say?"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Actually... for you, today only, I might see"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "fit to part with this AG7-17 model battle"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "droid for the money I've already stolen."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You never know when you might need"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "a battle droid watching your back,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "after all. This baby could come in useful."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You know, you're right! I'll take it!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Done! You've got yourself an AG7-17!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Come along, AG7-17! You're gonna help"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "keep me alive until I can prove to the"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Agency I've done nothing wrong!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... AG7-17. Come here!"},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Agency I've done nothing wrong!"
+            },
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... AG7-17. Come here!"},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Why isn't it moving? I paid good money..."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "er... you stole good money for it!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Hmmm... oh yeah, that's right! I knew"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "there was a reason I wanted to sell it!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's missing a Motivator Chip. Without"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "one, it's basically scrap metal."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "one, it's basically scrap metal."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "So... you're telling me my new AG7-17,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "with some special power pack and"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "with some special power pack and"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "a whole bunch of I/O thingamabobs..."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "... can't actually DO anything?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "... can't actually DO anything?"
+            },
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Not without a Motivator Chip, it can't."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "So where can I get a Motivator Chip?!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It seems to me I saw one in the old"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Recycling Plant behind my shop a couple"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "weeks ago. You might find one there."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Through this door up here? You're"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "sure you saw one in the Recycling"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Plant?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Plant?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yep. It shouldn't be tough to get at all."
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              "string": ""
             },
-            {"code": "Wait", "indent": 1, "parameters": [16]},
+            {"code": 11410, "indent": 1, "parameters": [16], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "As long as you avoid the collapsing"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "floors, the Junkbots, and the electrical"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "system... <chuckle>"},
-            {"code": "Teleport", "indent": 1, "parameters": [59, 20, 47]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "system... <chuckle>"},
+            {"code": 10810, "indent": 1, "parameters": [59, 20, 47], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -422,401 +585,526 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 71
+            "item_id": 1,
+            "switch_a_id": 71,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Uh... hey. How's it going?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "BALD MAN"},
-            {"code": "ShowMessage_2", "string": "Not too bad. Can I help you?"},
-            {"code": "ConditionalBranch", "parameters": [0, 71, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh... hey. How's it going?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not too bad. Can I help you?"
+            },
+            {"code": 12010, "indent": 0, "parameters": [0, 71, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You, uh... probably don't remember me, but -"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Of course I remember you: I stole some"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "ugly thing from you this morning."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "But this morning, on the Hover Tram..."
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "What?"},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "What?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yeah, you were my least profitable"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "catch all day. Nobody's interested in"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "that ugly \"Idol\" thing."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "that ugly \"Idol\" thing."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Huh? How can you sit there and admit"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "to having robbed me? I don't get it!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's a marketing technique I'm working on."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Care to buy a gold and silver plated"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "chronometer?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... no thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "chronometer?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... no thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "See - some people track me down and"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "try to claim their lost stuff. It gets them"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "into the store, and they usually end up"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "buying something. And if they don't"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "make their way here, then I've got"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "some resaleable merchandise."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "some resaleable merchandise."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Well, I'm not going to buy anything!"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "I just want the Idol back!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "I just want the Idol back!"
+            },
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "My name's Stash. It's a pleasure to meet"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you, buddy. I admire your resolve."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Well, um... thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Well, um... thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Especially since I was looking for a buyer"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "for this AG7-17 model behind me. But I"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "guess I'm just out of luck today."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well... yeah, sorry. How much were"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you asking for the... what model was it?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's an AG7-17. Pretty old, but it's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "got ports for all sorts of weaponry,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and even has circuit-hacking capability"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "with three I/O interface components"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and a D3-style \"blazer\" power pack."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "This baby was once top of the line!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah. How much... did you say?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Yeah. How much... did you say?"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Actually... for you, today only, I might see"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "fit to part with this AG7-17 model battle"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "droid for what I've already stolen."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You never know when you might need"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "a battle droid watching your back,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "after all. This baby could come in useful."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You know, you're right! I'll take it!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Done! You've got yourself an AG7-17!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Come along, AG7-17! You're gonna help"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "keep me alive until I can prove to the"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Agency I've done nothing wrong!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... AG7-17. Come here!"},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Agency I've done nothing wrong!"
+            },
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... AG7-17. Come here!"},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Why isn't it moving? I paid good money..."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "er... you stole good merchandise for it!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Hmmm... oh yeah, that's right! I knew"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "there was a reason I wanted to sell it!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's missing a Motivator Chip. Without"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "one, it's basically scrap metal."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "one, it's basically scrap metal."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "So... you're telling me my new AG7-17,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "with some special power pack and"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "with some special power pack and"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "a whole bunch of I/O thingamabobs..."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "... can't actually DO anything?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "... can't actually DO anything?"
+            },
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Not without a Motivator Chip, it can't."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "So where can I get a Motivator Chip?!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It seems to me I saw one in the old"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Recycling Plant behind my shop a couple"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "weeks ago. You might find one there."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Through this door up here? You're"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "sure you saw one in the Recycling"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Plant?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Plant?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yep. It shouldn't be tough to get at all."
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              "string": ""
             },
-            {"code": "Wait", "indent": 1, "parameters": [16]},
+            {"code": 11410, "indent": 1, "parameters": [16], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "As long as you avoid the collapsing"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "floors, the Junkbots, and the electrical"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "system... <chuckle>"},
-            {"code": "Teleport", "indent": 1, "parameters": [59, 20, 47]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "system... <chuckle>"},
+            {"code": 10810, "indent": 1, "parameters": [59, 20, 47], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -825,382 +1113,503 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 186
+            "item_id": 1,
+            "switch_a_id": 186,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Uh... hey. How's it going?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "BALD MAN"},
-            {"code": "ShowMessage_2", "string": "Not too bad. Can I help you?"},
-            {"code": "ConditionalBranch", "parameters": [0, 186, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh... hey. How's it going?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not too bad. Can I help you?"
+            },
+            {"code": 12010, "indent": 0, "parameters": [0, 186, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Let's see... what have you got for sale?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I remember you! You're the broke guy"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I met on the Hover Tram this morning!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Huh?"},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Huh?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yeah, I can't believe I wasted my time"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "trying to pick your pocket. You had"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "nothing! No creds, nothing!"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "nothing! No creds, nothing!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Huh? How can you sit there and admit"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "to trying to rob me? I don't get it!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's a marketing technique I'm working on."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Care to buy a gold and silver plated"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "chronometer?"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... no thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "chronometer?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... no thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "See - some people track me down and"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "try to claim their lost stuff. It gets them"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "into the store, and they usually end up"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "buying something. And if they don't"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "make their way here, then I've got"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "some resaleable merchandise."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "some resaleable merchandise."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Well, I'm not going to buy anything!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "BALD MAN"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "BALD MAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "My name's Stash. It's a pleasure to meet"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you, buddy. I admire your resolve."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Well, um... thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Well, um... thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Especially since I was looking for a buyer"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "for this AG7-17 model behind me. But I"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "guess I'm just out of luck today."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well... yeah, sorry. How much were"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "you asking for the... what model was it?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's an AG7-17. Pretty old, but it's"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "got ports for all sorts of weaponry,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and even has circuit-hacking capability"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "with three I/O interface components"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and a D3-style \"blazer\" power pack."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "This baby was once top of the line!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Yeah. How much... did you say?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Yeah. How much... did you say?"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Actually... for you, today only, I might see"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "fit to part with this AG7-17 model battle"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "droid, seeing how poor you are."},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "droid, seeing how poor you are."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "You never know when you might need"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "a battle droid watching your back,"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "after all. This baby could come in useful."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You know, you're right! I'll take it!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Done! You've got yourself an AG7-17!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sucker!"},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sucker!"},
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 3, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Come along, AG7-17! You're gonna help"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "keep me alive until I can prove to the"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Agency I've done nothing wrong!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... AG7-17. Come here!"},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Why isn't it moving?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Agency I've done nothing wrong!"
+            },
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... AG7-17. Come here!"},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Why isn't it moving?"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Hmmm... oh yeah, that's right! I knew there"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "was a reason I wanted to give it away!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It's missing a Motivator Chip. Without"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "one, it's basically scrap metal."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "one, it's basically scrap metal."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "So... you're telling me my new AG7-17,"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "with some special power pack and"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "with some special power pack and"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "a whole bunch of I/O thingamabobs..."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "... can't actually DO anything?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "... can't actually DO anything?"
+            },
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Not without a Motivator Chip, it can't."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "So where can I get a Motivator Chip?!"
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It seems to me I saw one in the old"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Recycling Plant behind my shop a couple"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "weeks ago. You might find one there."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Through this door up here? You're"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "sure you saw one in the Recycling"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Plant?"},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Plant?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Yep. It shouldn't be tough to get at all."
             },
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              "string": ""
             },
-            {"code": "Wait", "indent": 1, "parameters": [16]},
+            {"code": 11410, "indent": 1, "parameters": [16], "string": ""},
             {
-              "code": "MoveEvent",
+              "code": 11330,
               "indent": 1,
-              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3],
+              "string": ""
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "STASH"},
+            {"code": 11330, "indent": 1, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "STASH"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "As long as you avoid the collapsing"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "floors, the Junkbots, and the electrical"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "system... <chuckle>"},
-            {"code": "Teleport", "indent": 1, "parameters": [59, 20, 47]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "system... <chuckle>"},
+            {"code": 10810, "indent": 1, "parameters": [59, 20, 47], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 3,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1209,135 +1618,363 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 29
+            "item_id": 1,
+            "switch_a_id": 29,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 13]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Uh... hey. How's it going?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "BALD MAN"},
-            {"code": "ShowMessage_2", "string": "Not too bad. Can I help you?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Let's see... what have you got for sale?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "BALD MAN"},
-            {"code": "ShowMessage_2", "string": "My name's Stash. I've been trying to"},
-            {"code": "ShowMessage_2", "string": "find a buyer for this battle droid behind"},
-            {"code": "ShowMessage_2", "string": "me... you want it?"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "How much are you asking for the... "},
-            {"code": "ShowMessage_2", "string": "what model is it?"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "It's an AG7-17. Pretty old, but it's"},
-            {"code": "ShowMessage_2", "string": "got ports for all sorts of weaponry,"},
-            {"code": "ShowMessage_2", "string": "and even has circuit-hacking capability"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "with three I/O interface components"},
-            {"code": "ShowMessage_2", "string": "and a D3-style \"blazer\" power pack."},
-            {"code": "ShowMessage_2", "string": "This baby was once top of the line!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Yeah. How much... did you say?"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Actually... for you, today only, I might see"},
-            {"code": "ShowMessage_2", "string": "fit to part with this AG7-17 model battle"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh... hey. How's it going?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not too bad. Can I help you?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's see... what have you got for sale?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "BALD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My name's Stash. I've been trying to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "find a buyer for this battle droid behind"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "me... you want it?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How much are you asking for the... "
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "what model is it?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's an AG7-17. Pretty old, but it's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "got ports for all sorts of weaponry,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and even has circuit-hacking capability"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with three I/O interface components"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and a D3-style \"blazer\" power pack."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This baby was once top of the line!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Yeah. How much... did you say?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Actually... for you, today only, I might see"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "fit to part with this AG7-17 model battle"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "droid, just for your taking the time to come in."
             },
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "You never know when you might need"},
-            {"code": "ShowMessage_2", "string": "a battle droid watching your back,"},
-            {"code": "ShowMessage_2", "string": "after all. This baby could come in useful."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "You know, you're right! I'll take it!"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Done! You've got yourself an AG7-17!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Sucker!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "MessageOptions", "parameters": [1, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Sucker!"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 2]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Come along, AG7-17! You're gonna help"},
-            {"code": "ShowMessage_2", "string": "keep me alive until I can prove to the"},
-            {"code": "ShowMessage_2", "string": "Agency I've done nothing wrong!"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 2]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Uh... AG7-17. Come here!"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Why isn't it moving?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Hmmm... oh yeah, that's right! I knew there"},
-            {"code": "ShowMessage_2", "string": "was a reason I wanted to give it away!"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "It's missing a Motivator Chip. Without"},
-            {"code": "ShowMessage_2", "string": "one, it's basically scrap metal."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "So... you're telling me my new AG7-17,"},
-            {"code": "ShowMessage_2", "string": "with some special power pack and"},
-            {"code": "ShowMessage_2", "string": "a whole bunch of I/O thingamabobs..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... can't actually DO anything?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Not without a Motivator Chip, it can't."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "So where can I get a Motivator Chip?!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "It seems to me I saw one in the old"},
-            {"code": "ShowMessage_2", "string": "Recycling Plant behind my shop a couple"},
-            {"code": "ShowMessage_2", "string": "weeks ago. You might find one there."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Through this door up here? You're"},
-            {"code": "ShowMessage_2", "string": "sure you saw one in the Recycling"},
-            {"code": "ShowMessage_2", "string": "Plant?"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Yep. It shouldn't be tough to get at all."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You never know when you might need"
             },
-            {"code": "Wait", "parameters": [16]},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a battle droid watching your back,"
             },
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "As long as you avoid the collapsing"},
-            {"code": "ShowMessage_2", "string": "floors, the Junkbots, and the electrical"},
-            {"code": "ShowMessage_2", "string": "system... <chuckle>"},
-            {"code": "Teleport", "parameters": [59, 20, 47]}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "after all. This baby could come in useful."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You know, you're right! I'll take it!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Done! You've got yourself an AG7-17!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sucker!"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sucker!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 3, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Come along, AG7-17! You're gonna help"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "keep me alive until I can prove to the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Agency I've done nothing wrong!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Uh... AG7-17. Come here!"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Why isn't it moving?"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Hmmm... oh yeah, that's right! I knew there"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "was a reason I wanted to give it away!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's missing a Motivator Chip. Without"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "one, it's basically scrap metal."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So... you're telling me my new AG7-17,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with some special power pack and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a whole bunch of I/O thingamabobs..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "... can't actually DO anything?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not without a Motivator Chip, it can't."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So where can I get a Motivator Chip?!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It seems to me I saw one in the old"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Recycling Plant behind my shop a couple"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "weeks ago. You might find one there."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Through this door up here? You're"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "sure you saw one in the Recycling"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Plant?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Yep. It shouldn't be tough to get at all."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [16], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3],
+              "string": ""
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "As long as you avoid the collapsing"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "floors, the Junkbots, and the electrical"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "system... <chuckle>"},
+            {"code": 10810, "indent": 0, "parameters": [59, 20, 47], "string": ""}
           ],
           "id": 4,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": true,
@@ -1347,55 +1984,107 @@
               "variable": false
             },
             "item_id": 126,
-            "switch_a_id": 205
+            "switch_a_id": 205,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I got the Motivator Chip!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "I expected you to come from the back"},
-            {"code": "ShowMessage_2", "string": "door - but I see that you do have it."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Just give me one second and I'll get"},
-            {"code": "ShowMessage_2", "string": "your AG7-17 all ready."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 15, 1]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ControlSwitches", "parameters": [0, 150, 150, 0]},
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 15, 1]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 18]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "Enjoy your AG7-17 battle droid!"},
-            {"code": "ShowMessage_2", "string": "Remember, it's illegal to possess one"},
-            {"code": "ShowMessage_2", "string": "of those, so be careful..."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Illegal? Huh?"},
-            {"code": "ShowMessage", "string": "STASH"},
-            {"code": "ShowMessage_2", "string": "See ya later, buddy!"},
-            {"code": "ControlSwitches", "parameters": [0, 185, 185, 1]},
-            {"code": "ChangeItems", "parameters": [1, 0, 126, 0, 1]},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "fm2bar_gs"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "PlayBGM",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I got the Motivator Chip!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I expected you to come from the back"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "door - but I see that you do have it."
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Just give me one second and I'll get"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "your AG7-17 all ready."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 15, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 150, 150, 0], "string": ""},
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [100, 100, 100, 100, 15, 1],
+              "string": ""
+            },
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 18], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Enjoy your AG7-17 battle droid!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Remember, it's illegal to possess one"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of those, so be careful..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Illegal? Huh?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "STASH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "See ya later, buddy!"},
+            {"code": 10210, "indent": 0, "parameters": [0, 185, 185, 1], "string": ""},
+            {"code": 10320, "indent": 0, "parameters": [1, 0, 126, 0, 1], "string": ""},
+            {
+              "code": 11510,
+              "indent": 0,
               "parameters": [0, 50, 100, 50],
               "string": "golden_axe-turtlevillage2"
             },
-            {"code": "Teleport", "parameters": [48, 3, 39]},
-            {"code": "MemorizeLocation", "parameters": [127, 128, 129]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "Teleport", "parameters": [164, 3, 7]}
+            {"code": 10810, "indent": 0, "parameters": [48, 3, 39], "string": ""},
+            {"code": 10820, "indent": 0, "parameters": [127, 128, 129], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [164, 3, 7], "string": ""}
           ],
           "id": 5,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
+      "x": 0,
       "y": 3
     },
     {
@@ -1403,16 +2092,47 @@
       "name": "AG7-17",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "AG717",
-          "character_pattern": "left",
+          "character_pattern": 0,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1421,15 +2141,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 150
+            "item_id": 1,
+            "switch_a_id": 150,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
       "y": 8
     }
   ],
-  "save_count": 65
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 65,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

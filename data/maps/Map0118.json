@@ -6,20 +6,48 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 350, 0, 0, 0, 1]},
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 70, 2, 1]},
-            {"code": "Teleport", "indent": 1, "parameters": [108, 37, 41]},
-            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 70, 2, 1]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "Teleport", "indent": 1, "parameters": [108, 37, 41]},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 12010, "indent": 0, "parameters": [0, 350, 0, 0, 0, 1], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 70, 2, 1], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [108, 37, 41], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [70, 70, 70, 70, 2, 1], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [108, 37, 41], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 9,
@@ -30,10 +58,13 @@
       "name": "Dince",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -42,206 +73,88 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 350
-          },
-          "event_commands": [
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "Hi. You must be new here. I'm Dince, an"},
-            {"code": "ShowMessage_2", "string": "apprentice Defender. Just one more year"},
-            {"code": "ShowMessage_2", "string": "until I'm 18 and can take the Trials!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Oh, I didn't know there was an age"},
-            {"code": "ShowMessage_2", "string": "requirement."},
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "Yeah... if you're born here, like I was, then"},
-            {"code": "ShowMessage_2", "string": "you get to stay until you're 18 before you"},
-            {"code": "ShowMessage_2", "string": "need to take the Trials."},
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "I'd better pass them, too - I'm not very good"},
-            {"code": "ShowMessage_2", "string": "at forging armor, so I always get yelled at."},
-            {"code": "ControlSwitches", "parameters": [0, 356, 356, 0]}
-          ],
-          "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
-        },
-        {
-          "character_direction": "up",
-          "character_index": 2,
-          "character_name": "Chara4",
-          "condition": {
-            "flags": {
-              "actor": false,
-              "item": false,
-              "switch_a": true,
-              "switch_b": true,
-              "timer": false,
-              "variable": false
-            },
+            "item_id": 1,
             "switch_a_id": 350,
-            "switch_b_id": 356
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "I guess I should keep working."}
-          ],
-          "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
-        },
-        {
-          "character_direction": "up",
-          "character_index": 2,
-          "character_name": "Chara4",
-          "condition": {
-            "flags": {
-              "actor": false,
-              "item": false,
-              "switch_a": true,
-              "switch_b": false,
-              "timer": false,
-              "variable": false
-            },
-            "switch_a_id": 376
-          },
-          "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 356, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "Oh, hello again. I heard that you've been"
-            },
-            {"code": "ShowMessage_2", "indent": 1, "string": "accepted - congratulations!"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Thanks."},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "Take my advice and don't become a"
-            },
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "Defender - my master is a lunatic! He"
-            },
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "expects me to have this forged by tonight!"
-            },
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "The half-forged armor melts into a"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "puddle in the fireplace."},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Oh no! Drat!"},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "I'd better leave him alone for now."
-            },
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 377, 377, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Hi. You must be new here. I'm Dince, an"
             },
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "apprentice Defender. Just one more year"
             },
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "until I'm 18 and can take the Trials!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Oh, I didn't know there was an age"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "requirement."},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "requirement."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Yeah... if you're born here, like I was, then"
             },
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "you get to stay until you're 18 before you"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "need to take the Trials."},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "need to take the Trials."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "I'd better pass them, too - I'm not very good"
             },
             {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "at forging armor, so I always get yelled at. They'd"
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "at forging armor, so I always get yelled at."
             },
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "have kicked me out already, if they could."
-            },
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "Take my advice and don't become a"
-            },
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "Defender - my master is a lunatic! He"
-            },
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "expects me to have this forged by tonight!"
-            },
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "The half-forged armor melts into a"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "puddle in the fireplace."},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "DINCE"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Oh no! Drat!"},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 0, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
-              "string": "I'd better leave him alone for now."
-            },
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 2, 0, 0]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 377, 377, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 10210, "indent": 0, "parameters": [0, 356, 356, 0], "string": ""}
           ],
-          "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -250,70 +163,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 377,
-            "switch_b_id": 376
+            "item_id": 1,
+            "switch_a_id": 350,
+            "switch_b_id": 356,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "I'm never going to finish this in time!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I guess I should keep working."
+            }
           ],
-          "id": 4,
-          "layer": "same",
-          "move_type": "stationary"
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
-            "flags": {
-              "actor": false,
-              "item": false,
-              "switch_a": true,
-              "switch_b": true,
-              "timer": false,
-              "variable": false
-            },
-            "switch_a_id": 427,
-            "switch_b_id": 388
-          },
-          "event_commands": [
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "This metal doesn't want to cooperate."},
-            {"code": "ShowMessage_2", "string": "<sigh>"}
-          ],
-          "id": 5,
-          "layer": "same",
-          "move_type": "stationary"
-        },
-        {
-          "character_direction": "up",
-          "character_index": 2,
-          "character_name": "Chara4",
-          "condition": {
-            "flags": {
-              "actor": false,
-              "item": false,
-              "switch_a": true,
-              "switch_b": true,
-              "timer": false,
-              "variable": false
-            },
-            "switch_a_id": 441,
-            "switch_b_id": 388
-          },
-          "event_commands": [
-            {"code": "ShowMessage", "string": "DINCE"},
-            {"code": "ShowMessage_2", "string": "I need to finish this armor before I"},
-            {"code": "ShowMessage_2", "string": "can go to the play tonight! Oh, man!"}
-          ],
-          "id": 6,
-          "layer": "same",
-          "move_type": "stationary"
-        },
-        {
-          "character_direction": "up",
-          "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -322,10 +205,351 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 457
+            "item_id": 1,
+            "switch_a_id": 376,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [
+            {"code": 12010, "indent": 0, "parameters": [0, 356, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Oh, hello again. I heard that you've been"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "accepted - congratulations!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Thanks."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Take my advice and don't become a"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Defender - my master is a lunatic! He"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "expects me to have this forged by tonight!"
+            },
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "The half-forged armor melts into a"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "puddle in the fireplace."},
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Oh no! Drat!"},
+            {"code": 10120, "indent": 1, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I'd better leave him alone for now."
+            },
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 377, 377, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Hi. You must be new here. I'm Dince, an"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "apprentice Defender. Just one more year"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "until I'm 18 and can take the Trials!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Oh, I didn't know there was an age"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "requirement."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Yeah... if you're born here, like I was, then"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "you get to stay until you're 18 before you"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "need to take the Trials."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I'd better pass them, too - I'm not very good"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "at forging armor, so I always get yelled at. They'd"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "have kicked me out already, if they could."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Take my advice and don't become a"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Defender - my master is a lunatic! He"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "expects me to have this forged by tonight!"
+            },
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "The half-forged armor melts into a"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "puddle in the fireplace."},
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "DINCE"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Oh no! Drat!"},
+            {"code": 10120, "indent": 1, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I'd better leave him alone for now."
+            },
+            {"code": 10120, "indent": 1, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 377, 377, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
+          ],
+          "id": 3,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 2,
+          "character_name": "Chara4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 377,
+            "switch_b_id": 376,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm never going to finish this in time!"
+            }
+          ],
+          "id": 4,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 2,
+          "character_name": "Chara4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 427,
+            "switch_b_id": 388,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This metal doesn't want to cooperate."
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "<sigh>"}
+          ],
+          "id": 5,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 2,
+          "character_name": "Chara4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 441,
+            "switch_b_id": 388,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DINCE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I need to finish this armor before I"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "can go to the play tonight! Oh, man!"
+            }
+          ],
+          "id": 6,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 457,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 7,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -335,7 +559,40 @@
       "id": 3,
       "name": "EV0003",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 16,
       "y": 6
@@ -344,7 +601,40 @@
       "id": 4,
       "name": "EV0004",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 17,
       "y": 6
@@ -353,7 +643,40 @@
       "id": 5,
       "name": "EV0005",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 18,
       "y": 6
@@ -363,10 +686,13 @@
       "name": "Isabella",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -375,11 +701,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 457
+            "item_id": 1,
+            "switch_a_id": 457,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 17,
@@ -390,10 +728,13 @@
       "name": "Emily",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -402,15 +743,26 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 457
+            "item_id": 1,
+            "switch_a_id": 457,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "She can't die!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "She can't die!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 13,
@@ -421,10 +773,13 @@
       "name": "Pierson",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -433,52 +788,74 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 457
+            "item_id": 1,
+            "switch_a_id": 457,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 12010, "indent": 0, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Hurry to the marshes and find the antidote!"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Isabella doesn't have very much time..."
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You need to rescue Drago from the hidden"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "bandit hideout somewhere to the north!"
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "I don't like this at all... that bandit raid was"
             },
-            {"code": "ShowMessage_2", "string": "too unusual. I think something suspicious"},
-            {"code": "ShowMessage_2", "string": "is going on..."}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "too unusual. I think something suspicious"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "is going on..."}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -489,9 +866,13 @@
       "name": "Radin/Sern",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -500,18 +881,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 457,
-            "switch_b_id": 386
+            "switch_b_id": 386,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -520,16 +915,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 457,
-            "switch_b_id": 385
+            "switch_b_id": 385,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -538,10 +949,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 458
+            "item_id": 1,
+            "switch_a_id": 458,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -552,7 +976,13 @@
       "name": "IsabellaWoundedScene",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -561,395 +991,500 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 457
+            "item_id": 1,
+            "switch_a_id": 457,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "Wait", "indent": 1, "parameters": [20]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "How is she?"},
-            {"code": "Wait", "indent": 1, "parameters": [15]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 12010, "indent": 0, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "How is she?"},
+            {"code": 11410, "indent": 1, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The arrow was coated with Gnashtooth"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "poison - she doesn't have very long to live."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Is there an antidote?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Is there an antidote?"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You're the expert, Radin. Is there an"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "antidote for Gnashtooth?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "antidote for Gnashtooth?"},
+            {"code": 11330, "indent": 1, "parameters": [9, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The only known antidote for this toxin"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "is a powder made from the tongue of a"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Murgator - and they're very dangerous."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We have to do something! Isabella will die"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "if we don't!"},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "if we don't!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "If Drago were here, he'd have already"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "found a Murgator, killed it, and given"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "her the antidote!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 13]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "her the antidote!"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "It is unfortunate that the bandits captured"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Drago - and highly unusual: they've never"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "taken prisoners before. I was also not aware"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "that they had access to Gnashtooth."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 13]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 11330, "indent": 1, "parameters": [9, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The Defenders have already left to"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "rescue Drago. Maybe they'll get him"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "back in time to find the antidote?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "That is a possibility."},
-            {"code": "MoveEvent", "indent": 1, "parameters": [7, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "That is a possibility."},
+            {"code": 11330, "indent": 1, "parameters": [7, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We can't just wait around for them"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "to get back! We need to find the"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "antidote NOW!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 15]},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "to get back! We need to find the"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "antidote NOW!"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "What if Radin and I are able to find"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "a Murgator - would we be able to"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "save Isabella?"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 14]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "a Murgator - would we be able to"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "save Isabella?"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Do you know where to find this antidote?"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The Ill Marshes to the south would be"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "an ideal environment for Murgators... but"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "there's no guarantee that any live there."
             },
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We have to try, even if there's only"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "a slight chance..."},
-            {"code": "Wait", "indent": 1, "parameters": [20]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "a slight chance..."},
+            {"code": 11410, "indent": 1, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Very well. Radin and Talan, good luck."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "And keep this quiet - I don't want to cause"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "any more of a panic."},
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "any more of a panic."},
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We should outfit ourselves before we leave."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The swamp is far to the south, and Murgators"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "are very dangerous."},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 1, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 27]},
-            {"code": "Teleport", "indent": 1, "parameters": [108, 37, 41]},
-            {"code": "TintScreen", "indent": 1, "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 458, 458, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "are very dangerous."},
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 27], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [108, 37, 41], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 458, 458, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I hope Radin and the other Farmers can"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "find the antidote quickly. The poison on"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "this arrow... is very rare."},
-            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "this arrow... is very rare."
+            },
+            {"code": 11330, "indent": 1, "parameters": [9, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Permission to lead a corps of Defenders"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "against the bandit hideout, Sir?"},
-            {"code": "Wait", "indent": 1, "parameters": [10]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "against the bandit hideout, Sir?"
+            },
+            {"code": 11410, "indent": 1, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I don't know, Sern. This whole raid was"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "unusual. I think it might be a trap."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [7, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 11330, "indent": 1, "parameters": [7, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "But Drago's been captured by the bandits!"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "We have to get him back... that's what"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "Isabella would want!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Isabella would want!"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I know, Emily, I know. But the bandits have"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "never taken prisoners before, and their"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "arrows have never been poison-tipped."
             },
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "If we send all of our Defenders to get"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Drago back, Paradise will be defenseless."
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "We can't risk it."},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "This feels like a setup."},
-            {"code": "Wait", "indent": 1, "parameters": [15]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "We can't risk it."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "This feels like a setup."},
+            {"code": 11410, "indent": 1, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Sern and I could go. Leave the rest of the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Defenders here, and the two of us could "
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "get Drago back!"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Out of the question. We need -"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [9, 8, 0, 0, 12]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "get Drago back!"},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Out of the question. We need -"
+            },
+            {"code": 11330, "indent": 1, "parameters": [9, 8, 0, 0, 12], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "The boy has a point. We might be able to"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "get in without being noticed. We could"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "have Drago back within a few hours."
             },
-            {"code": "MoveEvent", "indent": 1, "parameters": [7, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 11330, "indent": 1, "parameters": [7, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You let those farmers go looking for the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "antidote for Isabella. Drago deserves"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "the same - He needs to be rescued!"
             },
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Saving just one isn't good enough - because"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "without each other, Drago and Isabella would"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "rather be dead! I just know it."},
-            {"code": "Wait", "indent": 1, "parameters": [15]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "... ... ..."},
-            {"code": "MoveEvent", "indent": 1, "parameters": [8, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "rather be dead! I just know it."
+            },
+            {"code": 11410, "indent": 1, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 1, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "Sern and Talan, it looks as if it's up to you."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The bandit hideout is somewhere to the"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "north. Bring Drago home to us."},
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "north. Bring Drago home to us."
+            },
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "We should outfit ourselves before we leave."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Who knows what we'll have to face up north?"
             },
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 1, 0]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
-            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 28]},
-            {"code": "Teleport", "indent": 1, "parameters": [108, 37, 41]},
-            {"code": "TintScreen", "indent": 1, "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 458, 458, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "wb3town"}
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 28], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [108, 37, 41], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 458, 458, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 80, 100, 50], "string": "wb3town"}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -958,23 +1493,40 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 458
+            "item_id": 1,
+            "switch_a_id": 458,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 11,
       "name": "EV0011",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -983,18 +1535,38 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 427,
-            "switch_b_id": 388
+            "switch_b_id": 388,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "DEFENDER"},
-            {"code": "ShowMessage_2", "string": "Dince's heart is in the right place, but"},
-            {"code": "ShowMessage_2", "string": "he can't seem to master the art of"},
-            {"code": "ShowMessage_2", "string": "forging."}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DEFENDER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Dince's heart is in the right place, but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "he can't seem to master the art of"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "forging."}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -1004,7 +1576,40 @@
       "id": 12,
       "name": "EV0012",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 16,
       "y": 7
@@ -1013,7 +1618,40 @@
       "id": 13,
       "name": "EV0013",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 17,
       "y": 7
@@ -1022,7 +1660,40 @@
       "id": 14,
       "name": "EV0014",
       "pages": [
-        {"id": 1, "layer": "same", "move_type": "stationary"}
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
       ],
       "x": 18,
       "y": 7
@@ -1032,7 +1703,13 @@
       "name": "EV0015",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1041,21 +1718,63 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "RADIN"},
-            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't find ingredients here."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
       "y": 14
     }
   ],
-  "save_count": 64
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 64,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

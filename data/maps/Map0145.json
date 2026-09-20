@@ -6,14 +6,47 @@
       "name": "Sewell",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -22,10 +55,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -36,14 +82,47 @@
       "name": "Lerle",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -52,10 +131,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -66,14 +158,47 @@
       "name": "Auleen",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 3,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -82,10 +207,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -96,15 +234,47 @@
       "name": "Emily",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -113,10 +283,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -127,47 +310,156 @@
       "name": "EV0005",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "There you are, Talan. Ready for the big"},
-            {"code": "ShowMessage_2", "string": "night?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I think so."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 2, 13, 23, 15, 23]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "AULEEN"},
-            {"code": "ShowMessage_2", "string": "I'm still not very happy about doing this"},
-            {"code": "ShowMessage_2", "string": "here - I always hear strange noises..."},
-            {"code": "ShowMessage_2", "string": "The whole place is creepy."},
-            {"code": "ShowMessage", "string": "LERLE"},
-            {"code": "ShowMessage_2", "string": "I haven't seen anything strange here since"},
-            {"code": "ShowMessage_2", "string": "Talan and I got the script - maybe whatever"},
-            {"code": "ShowMessage_2", "string": "was haunting this place has moved on."},
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "Tonight we've got something even creepier"},
-            {"code": "ShowMessage_2", "string": "to worry about... an AUDIENCE! So"},
-            {"code": "ShowMessage_2", "string": "everyone concentrate, and just do it like"},
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "we've been practicing. And no whispering"},
-            {"code": "ShowMessage_2", "string": "backstage - the acoustics here are so good"},
-            {"code": "ShowMessage_2", "string": "that the audience will hear every word!"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Here comes the first of the audience!"},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 14]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 10]},
-            {"code": "ControlSwitches", "parameters": [0, 443, 443, 0]},
-            {"code": "Teleport", "parameters": [146, 9, 8]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There you are, Talan. Ready for the big"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "night?"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I think so."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 2, 13, 23, 15, 23],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AULEEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm still not very happy about doing this"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "here - I always hear strange noises..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The whole place is creepy."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I haven't seen anything strange here since"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan and I got the script - maybe whatever"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "was haunting this place has moved on."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Tonight we've got something even creepier"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to worry about... an AUDIENCE! So"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "everyone concentrate, and just do it like"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "we've been practicing. And no whispering"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "backstage - the acoustics here are so good"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "that the audience will hear every word!"
+            },
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Here comes the first of the audience!"
+            },
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 443, 443, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [146, 9, 8], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -176,10 +468,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 7,
@@ -190,10 +495,13 @@
       "name": "EV0006",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -202,11 +510,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -217,10 +537,13 @@
       "name": "EV0007",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -229,11 +552,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 7,
@@ -244,10 +579,13 @@
       "name": "EV0008",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -256,11 +594,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -271,10 +621,13 @@
       "name": "EV0009",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -283,11 +636,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -298,10 +663,13 @@
       "name": "EV0010",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -310,11 +678,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -325,10 +705,13 @@
       "name": "EV0011",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -337,11 +720,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -352,10 +747,13 @@
       "name": "EV0012",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -364,11 +762,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -379,10 +789,13 @@
       "name": "EV0013",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -391,11 +804,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -406,10 +831,13 @@
       "name": "EV0014",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -418,11 +846,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -433,10 +873,13 @@
       "name": "EV0015",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -445,11 +888,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -460,10 +915,13 @@
       "name": "EV0016",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -472,11 +930,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -487,10 +957,13 @@
       "name": "EV0017",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -499,11 +972,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -514,10 +999,13 @@
       "name": "EV0018",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -526,11 +1014,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -541,10 +1041,13 @@
       "name": "EV0019",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -553,11 +1056,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -568,10 +1083,13 @@
       "name": "EV0020",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -580,11 +1098,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 21,
@@ -595,10 +1125,13 @@
       "name": "EV0021",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -607,11 +1140,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 24,
@@ -622,10 +1167,13 @@
       "name": "EV0022",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -634,11 +1182,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -649,10 +1209,13 @@
       "name": "EV0023",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -661,11 +1224,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -676,10 +1251,13 @@
       "name": "EV0024",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -688,11 +1266,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -703,10 +1293,13 @@
       "name": "EV0025",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -715,11 +1308,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 20,
@@ -730,10 +1335,13 @@
       "name": "EV0026",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -742,11 +1350,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 23,
@@ -757,10 +1377,13 @@
       "name": "EV0027",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -769,11 +1392,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 6,
@@ -784,10 +1419,13 @@
       "name": "EV0028",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -796,11 +1434,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -811,10 +1461,13 @@
       "name": "EV0029",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -823,11 +1476,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -838,10 +1503,13 @@
       "name": "EV0030",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -850,11 +1518,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -865,10 +1545,13 @@
       "name": "EV0031",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -877,11 +1560,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -892,10 +1587,13 @@
       "name": "EV0032",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -904,11 +1602,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -919,10 +1629,13 @@
       "name": "EV0033",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -931,11 +1644,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -946,10 +1671,13 @@
       "name": "EV0034",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -958,11 +1686,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 22,
@@ -973,10 +1713,13 @@
       "name": "EV0035",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -985,11 +1728,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 25,
@@ -1000,10 +1755,13 @@
       "name": "EV0036",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1012,11 +1770,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -1027,10 +1797,13 @@
       "name": "EV0037",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1039,11 +1812,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 27,
@@ -1054,10 +1839,13 @@
       "name": "EV0038",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1066,11 +1854,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -1081,10 +1881,13 @@
       "name": "EV0039",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1093,11 +1896,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 28,
@@ -1108,10 +1923,13 @@
       "name": "EV0040",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1120,11 +1938,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 19,
@@ -1135,10 +1965,13 @@
       "name": "EV0041",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1147,11 +1980,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -1162,10 +2007,13 @@
       "name": "Pierson",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1174,11 +2022,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 18,
@@ -1189,10 +2049,13 @@
       "name": "EV0043",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1201,11 +2064,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -1216,10 +2091,13 @@
       "name": "EV0044",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1228,11 +2106,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 6,
@@ -1243,10 +2133,13 @@
       "name": "EV0045",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1255,11 +2148,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -1270,10 +2175,13 @@
       "name": "EV0046",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1282,11 +2190,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -1297,10 +2217,13 @@
       "name": "EV0047",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1309,11 +2232,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -1324,10 +2259,13 @@
       "name": "EV0048",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1336,11 +2274,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -1351,8 +2301,13 @@
       "name": "EV0049",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1361,43 +2316,86 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "FadeOutBGM", "parameters": [2000]},
-            {"code": "PanScreen", "parameters": [2, 2, 20, 3, 1]},
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "Ladies and gentlemen! The Actors of"},
-            {"code": "ShowMessage_2", "string": "Paradise are pleased to welcome you"},
-            {"code": "ShowMessage_2", "string": "to our latest performance, and our first"},
-            {"code": "ShowMessage", "string": "SEWELL"},
+            {"code": 11520, "indent": 0, "parameters": [2000], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 20, 3, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Ladies and gentlemen! The Actors of"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Paradise are pleased to welcome you"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to our latest performance, and our first"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "in this magnificent building: our new Theatre!"
             },
-            {"code": "ShowMessage_2", "string": "So sit back, and enjoy this tale of woe from"},
-            {"code": "ShowMessage_2", "string": "a forgotten era:"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "\"The Tragedy of Captain Ellis!\""},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "clap"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
-            {"code": "PanScreen", "parameters": [3, 0, 20, 6, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "Meanwhile..."},
-            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "WW2_Water"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "Teleport", "parameters": [147, 11, 6]},
-            {"code": "ControlSwitches", "parameters": [0, 444, 444, 0]}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So sit back, and enjoy this tale of woe from"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "a forgotten era:"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "\"The Tragedy of Captain Ellis!\""
+            },
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "clap"},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 10, 1], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [3, 0, 20, 6, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "Meanwhile..."},
+            {"code": 11510, "indent": 0, "parameters": [0, 80, 100, 50], "string": "WW2_Water"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [147, 11, 6], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 444, 444, 0], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1406,10 +2404,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 444
+            "item_id": 1,
+            "switch_a_id": 444,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -1420,10 +2431,13 @@
       "name": "Drago",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1432,11 +2446,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 20,
@@ -1447,10 +2473,13 @@
       "name": "Isabella",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1459,11 +2488,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 22,
@@ -1474,10 +2515,13 @@
       "name": "EV0052",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Crown2",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1486,11 +2530,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 26,
@@ -1501,10 +2557,13 @@
       "name": "EV0053",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1513,11 +2572,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 443
+            "item_id": 1,
+            "switch_a_id": 443,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 24,
@@ -1528,9 +2599,13 @@
       "name": "Lerle2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1539,11 +2614,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 445
+            "item_id": 1,
+            "switch_a_id": 445,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -1554,9 +2641,13 @@
       "name": "Auleen2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 3,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1565,11 +2656,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 445
+            "item_id": 1,
+            "switch_a_id": 445,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -1580,8 +2683,13 @@
       "name": "Sewell2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1590,124 +2698,209 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 445
+            "item_id": 1,
+            "switch_a_id": 445,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ControlSwitches", "parameters": [0, 446, 446, 0]},
-            {"code": "PanScreen", "parameters": [2, 3, 5, 6, 1]},
-            {"code": "PanScreen", "parameters": [2, 2, 3, 6, 1]},
-            {"code": "TintScreen", "parameters": [70, 70, 70, 100, 15, 1]},
-            {"code": "Wait", "parameters": [30]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "ACTORS"},
-            {"code": "ShowMessage_2", "string": "Thank you, thank you!"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 0, 0, 0]},
-            {"code": "ConditionalBranch", "parameters": [0, 436, 0, 0, 0, 1]},
-            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 211, 0, 1]},
-            {"code": "ChangeItems", "indent": 1, "parameters": [0, 0, 257, 0, 3]},
-            {"code": "ShowMessage", "indent": 1, "string": "For TALAN's excellent performance,"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "he receives:"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "     Crimson Sword-RL"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "      Healing Draught-HP x3"},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 437, 0, 0, 0, 1]},
-            {"code": "ChangeItems", "indent": 2, "parameters": [0, 0, 210, 0, 1]},
-            {"code": "ChangeItems", "indent": 2, "parameters": [0, 0, 257, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "For TALAN's good  performance,"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "he receives:"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "     Two-Handed Sword-RL"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "     Healing Draught-HP"},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 438, 0, 0, 0, 1]},
-            {"code": "ChangeItems", "indent": 3, "parameters": [0, 0, 239, 0, 1]},
-            {"code": "ChangeItems", "indent": 3, "parameters": [0, 0, 258, 0, 1]},
+            {"code": 10210, "indent": 0, "parameters": [0, 446, 446, 0], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 3, 5, 6, 1], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 3, 6, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [70, 70, 70, 100, 15, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ACTORS"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Thank you, thank you!"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 0, 0, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 436, 0, 0, 0, 1], "string": ""},
+            {"code": 10320, "indent": 1, "parameters": [0, 0, 211, 0, 1], "string": ""},
+            {"code": 10320, "indent": 1, "parameters": [0, 0, 257, 0, 3], "string": ""},
             {
-              "code": "ShowMessage",
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "For TALAN's excellent performance,"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "he receives:"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "     Crimson Sword-RL"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "      Healing Draught-HP x3"
+            },
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 437, 0, 0, 0, 1], "string": ""},
+            {"code": 10320, "indent": 2, "parameters": [0, 0, 210, 0, 1], "string": ""},
+            {"code": 10320, "indent": 2, "parameters": [0, 0, 257, 0, 1], "string": ""},
+            {
+              "code": 10110,
+              "indent": 2,
+              "parameters": [],
+              "string": "For TALAN's good  performance,"
+            },
+            {"code": 20110, "indent": 2, "parameters": [], "string": "he receives:"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "     Two-Handed Sword-RL"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "     Healing Draught-HP"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 438, 0, 0, 0, 1], "string": ""},
+            {"code": 10320, "indent": 3, "parameters": [0, 0, 239, 0, 1], "string": ""},
+            {"code": 10320, "indent": 3, "parameters": [0, 0, 258, 0, 1], "string": ""},
+            {
+              "code": 10110,
               "indent": 3,
+              "parameters": [],
               "string": "For TALAN's lackluster  performance,"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "he receives:"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "     Heavy Jacket-B"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "     Recharge Draught-SP"},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "ConditionalBranch", "indent": 3, "parameters": [0, 439, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 4, "string": "For TALAN's abysmal performance,"},
-            {"code": "ShowMessage_2", "indent": 4, "string": "he receives:"},
-            {"code": "ShowMessage_2", "indent": 4, "string": "     Nothing..."},
-            {"code": "END", "indent": 4},
-            {"code": "ElseBranch", "indent": 3},
-            {"code": "END", "indent": 4},
-            {"code": "EndBranch", "indent": 3},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "SEWELL"},
-            {"code": "ShowMessage_2", "string": "Thank you very much for your time!"},
-            {"code": "ShowMessage_2", "string": "You've been a wonderful audience!"},
-            {"code": "ControlSwitches", "parameters": [0, 446, 446, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE"},
-            {"code": "ShowMessage_2", "string": "I must speak with the Council!"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PanScreen", "parameters": [2, 2, 5, 6, 1]},
-            {"code": "MoveEvent", "parameters": [42, 8, 0, 0, 24, 25, 3, 3, 14]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "What? What's going on?"},
-            {"code": "MoveEvent", "parameters": [59, 8, 0, 0, 28, 0, 0, 0, 29]},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "toprepare"},
-            {"code": "ShowMessage", "string": "DEFENDER"},
-            {"code": "ShowMessage_2", "string": "It's the Agency! The Agency is attacking"},
-            {"code": "ShowMessage_2", "string": "Paradise!"},
-            {"code": "MoveEvent", "parameters": [42, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "What?!? Impossible! They wouldn't dare -"},
-            {"code": "PanScreen", "parameters": [3, 2, 5, 6, 0]},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "he receives:"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "     Heavy Jacket-B"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "     Recharge Draught-SP"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 3, "parameters": [0, 439, 0, 0, 0, 1], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [50, 8, 0, 0, 28, 36, 0, 0, 0, 0, 24, 0, 0, 0, 25, 14, 29]
+              "code": 10110,
+              "indent": 4,
+              "parameters": [],
+              "string": "For TALAN's abysmal performance,"
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "DRAGO"},
-            {"code": "ShowMessage_2", "string": "Defenders! Back to Paradise! Our home"},
-            {"code": "ShowMessage_2", "string": "is in danger!"},
-            {"code": "PanScreen", "parameters": [2, 2, 2, 6, 1]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Damn! I knew we should have left more"},
-            {"code": "ShowMessage_2", "string": "Defenders to stand guard!"},
-            {"code": "ShowMessage", "string": "DRAGO"},
-            {"code": "ShowMessage_2", "string": "Everyone! Follow me!"},
+            {"code": 20110, "indent": 4, "parameters": [], "string": "he receives:"},
+            {"code": 20110, "indent": 4, "parameters": [], "string": "     Nothing..."},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10, "indent": 4, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "SEWELL"},
             {
-              "code": "MoveEvent",
-              "parameters": [50, 8, 0, 0, 28, 36, 24, 2, 2, 2, 25, 2, 2, 2, 29]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Thank you very much for your time!"
             },
-            {"code": "Wait", "parameters": [6]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "PanScreen", "parameters": [3, 2, 5, 6, 1]},
-            {"code": "TintScreen", "parameters": [40, 40, 40, 100, 1, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 492, 492, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 15]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 26]},
-            {"code": "Teleport", "parameters": [158, 15, 37]}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You've been a wonderful audience!"
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 446, 446, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I must speak with the Council!"
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 5, 6, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [42, 8, 0, 0, 24, 25, 3, 3, 14],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What? What's going on?"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [59, 8, 0, 0, 28, 0, 0, 0, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "toprepare"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DEFENDER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's the Agency! The Agency is attacking"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Paradise!"},
+            {"code": 11330, "indent": 0, "parameters": [42, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What?!? Impossible! They wouldn't dare -"
+            },
+            {"code": 11060, "indent": 0, "parameters": [3, 2, 5, 6, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [50, 8, 0, 0, 28, 36, 0, 0, 0, 0, 24, 0, 0, 0, 25, 14, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DRAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Defenders! Back to Paradise! Our home"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "is in danger!"},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 2, 6, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Damn! I knew we should have left more"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Defenders to stand guard!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DRAGO"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Everyone! Follow me!"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [50, 8, 0, 0, 28, 36, 24, 2, 2, 2, 25, 2, 2, 2, 29],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [3, 2, 5, 6, 1], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [40, 40, 40, 100, 1, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 492, 492, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 26], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [158, 15, 37], "string": ""}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 14,
@@ -1718,9 +2911,13 @@
       "name": "Emily2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1729,11 +2926,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 445
+            "item_id": 1,
+            "switch_a_id": 445,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
@@ -1744,7 +2953,13 @@
       "name": "ApplauseMeter",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1753,17 +2968,28 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 446
+            "item_id": 1,
+            "switch_a_id": 446,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "clap"},
-            {"code": "Wait", "parameters": [17]},
-            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "clap"},
-            {"code": "Wait", "parameters": [14]}
+            {"code": 11550, "indent": 0, "parameters": [100, 90, 50], "string": "clap"},
+            {"code": 11410, "indent": 0, "parameters": [17], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 90, 50], "string": "clap"},
+            {"code": 11410, "indent": 0, "parameters": [14], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "parallel"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 4
         }
       ],
       "x": 7,
@@ -1774,10 +3000,13 @@
       "name": "RunningDefender",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -1786,18 +3015,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 445
+            "item_id": 1,
+            "switch_a_id": 445,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
       "y": 29
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 30,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 74,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 30
 }
