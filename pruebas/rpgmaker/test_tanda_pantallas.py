@@ -231,7 +231,7 @@ BATALLAS = (
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "batalla", 200, (), "cruza"),
+    ("batalla-textos-lejos", "batalla", 200, (), "chico"),
 )
 
 
