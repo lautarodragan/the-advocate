@@ -57,7 +57,7 @@ DRUM_BUDGET = 16 * 1024
 
 # La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
 # instrumento distinto en vez de una altura distinta. Eso es del formato, así
-# que quien lo sabe es `brr sf2`: acá se pide `drum:36` y nada más.
+# que quien lo sabe es `gunter sf2`: acá se pide `drum:36` y nada más.
 DRUM_SECONDS = 0.5
 
 MIN_RATE = 4000
@@ -147,7 +147,7 @@ def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
         return None
 
     # Qué zona cubre la nota, si el loop vale y de dónde sale la nota raíz son
-    # decisiones del formato, y las toma `brr sf2`: acá el loop ya viene en
+    # decisiones del formato, y las toma `gunter sf2`: acá el loop ya viene en
     # cuadros y relativo al PCM extraído, y `loop` ya dice que no cuando la
     # zona no repite o cuando el loop está vacío.
     looped = sample.loop

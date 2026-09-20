@@ -49,7 +49,7 @@ llamada está mal).
 
 Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
-1. **los conversores puros**, un proyecto por responsabilidad: `tools/brr/` (muestras
+1. **los conversores puros**, un proyecto por responsabilidad: `tools/gunter/` (muestras
    → BRR, con el lector de SoundFont) y `tools/tiles/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
@@ -142,7 +142,7 @@ Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —
 un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
 en "Lo que la tanda no cubre".
 
-Los cuatro proyectos en Rust tienen sus propias tandas: `just brr-pruebas`,
+Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
 `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -186,7 +186,7 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
     tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
-    tools/brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
+    tools/gunter/     Gunter: BRR y lector de SoundFont       enchufado: las muestras salen de acá
     tools/tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
@@ -298,7 +298,7 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `tools/brr/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
+2. ~~Enchufar `tools/gunter/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
    fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
    snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
 
@@ -1723,7 +1723,7 @@ de una de más arriba:
     port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
                  ventana, fuente, escena, animacion, asignador, tiles_bin,
                  snes_convert
-    ditto/, tiles/, brr/, protocol/   los proyectos de Rust
+    ditto/, tiles/, gunter/, protocol/   los proyectos de Rust
 
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y

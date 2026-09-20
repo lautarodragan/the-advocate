@@ -1,8 +1,8 @@
 """De dónde salen las muestras del port, y cómo llegan a BRR.
 
-Acá no hay ni códec ni lector de SoundFont: los dos son `tools/brr/`, el binario de
-Rust, y este módulo es el puente entre él y el conversor. Lo que sí hay es lo
-que el binario no puede tener, porque no sabe nada de este juego: el caché en
+Acá no hay ni códec ni lector de SoundFont: los dos son Gunter —`tools/gunter/`,
+el binario de Rust—, y este módulo es el puente entre él y el conversor. Lo que
+sí hay es lo que el binario no puede tener, porque no sabe nada de este juego: el caché en
 disco del conversor y la memoria de lo ya pedido.
 
 **Las dos memorias son lo que hace viable un proceso por muestra.** Medido el
@@ -15,7 +15,7 @@ temporales y todo— cuestan **1,33 s** de una conversión de 102 s.
 Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
 juntar todas las muestras en una sola invocación ahorraría 0,35 s de esos
-102 s: menos del medio por ciento, a cambio de un modo más en `tools/brr/`. Y encima
+102 s: menos del medio por ciento, a cambio de un modo más en Gunter. Y encima
 no se pueden juntar del todo: `snes_samples.build_bank` decide el presupuesto
 de la muestra siguiente mirando cuánto ocupó la anterior, así que los trabajos
 no existen todos juntos en ningún momento.
@@ -30,14 +30,14 @@ import wave
 
 from comun import cache_disco
 
-FALTA = """falta `brr`, el códec de muestras del SPC700.
+FALTA = """falta `gunter`, el códec de muestras del SPC700.
 
-Es un binario de Rust que vive en `tools/brr/` y se instala como herramienta del
-sistema, no se compila en cada corrida:
+Es un binario de Rust que vive en `tools/gunter/` y se instala como herramienta
+del sistema, no se compila en cada corrida:
 
     just herramientas
 
-Eso hace `cargo install --locked --path brr`. Si falta cargo, en Arch es
+Eso hace `cargo install --locked --path tools/gunter`. Si falta cargo, en Arch es
 `pacman -S rust`."""
 
 # Propiedades del formato, no nuestras: el DSP lee bloques de nueve bytes que
@@ -56,13 +56,13 @@ _extraidas = {}
 
 
 def binario():
-    """La ruta del `brr` del PATH, igual que `ensamblar.binarios()`.
+    """La ruta del `gunter` del PATH, igual que `ensamblar.binarios()`.
 
     Levanta `SystemExit` si no está: que falte una herramienta del sistema no
     es un error de programa, y un traceback de veinte líneas tapa la única
     línea que dice cómo tenerla.
     """
-    ruta = shutil.which("brr")
+    ruta = shutil.which("gunter")
     if ruta is None:
         raise SystemExit(FALTA)
     return ruta
@@ -71,10 +71,11 @@ def binario():
 def _version_del_codec():
     """Qué versión de "el codificador" produjo lo que hay en el caché.
 
-    Van este archivo y **el binario instalado**, no los fuentes de `tools/brr/`: el
-    binario del PATH se instala aparte, así que un árbol con `tools/brr/src` tocado y
-    sin `just herramientas` corrido sigue codificando con el de antes. Lo que
-    la clave tiene que describir es lo que produjo los bytes.
+    Van este archivo y **el binario instalado**, no los fuentes de
+    `tools/gunter/`: el binario del PATH se instala aparte, así que un árbol con
+    `tools/gunter/src` tocado y sin `just herramientas` corrido sigue
+    codificando con el de antes. Lo que la clave tiene que describir es lo que
+    produjo los bytes.
     """
     h = hashlib.sha256()
     for ruta in (os.path.abspath(__file__), binario()):
@@ -92,9 +93,9 @@ def _correr(args):
     try:
         hecho = subprocess.run([binario()] + args, capture_output=True)
     except OSError as e:
-        raise SystemExit("no se pudo correr `brr`: %s\n\n%s" % (e, FALTA))
+        raise SystemExit("no se pudo correr `gunter`: %s\n\n%s" % (e, FALTA))
     if hecho.returncode:
-        raise Error("brr %s salió con %d: %s"
+        raise Error("gunter %s salió con %d: %s"
                     % (" ".join(args), hecho.returncode,
                        hecho.stderr.decode("utf-8", "replace").strip()))
     return hecho.stdout.decode("utf-8", "replace")
@@ -103,7 +104,7 @@ def _correr(args):
 def _json(texto):
     """La última línea que el binario imprimió con `--json`.
 
-    Es un objeto de escalares y nada más —así lo emite `brr`—, así que el
+    Es un objeto de escalares y nada más —así lo emite `gunter`—, así que el
     módulo `json` alcanza y sobra.
     """
     import json
@@ -146,7 +147,7 @@ def codificar(muestras, loop_block=None):
 
 
 def _codificar(muestras, loop_block):
-    with tempfile.TemporaryDirectory(prefix="abl-brr-") as donde:
+    with tempfile.TemporaryDirectory(prefix="abl-gunter-") as donde:
         entrada = os.path.join(donde, "pcm")
         salida = os.path.join(donde, "brr")
         with open(entrada, "wb") as f:

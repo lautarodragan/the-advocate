@@ -2607,7 +2607,7 @@ son **20 bytes**.
 
     rom/src/main.s               65816: arranque, carga al SPC700, reproductor
     tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
-    tools/brr/                   códec BRR y lector de SoundFont, en Rust
+    tools/gunter/                Gunter: códec BRR y lector de SoundFont, en Rust
     tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
     tools/audio/sdsp.py          registros del DSP y el banco de timbres
     tools/audio/snes_music.py    el MIDI del mapa a muestras y stream
@@ -2719,7 +2719,7 @@ tema de prueba contra el 95% de la Mega Drive.
 ### Toolchain
 
 **Tres cosas: `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas de Rust del repo —`brr` para las muestras, `ditto` y
+herramientas de Rust del repo —`gunter` para las muestras, `ditto` y
 `protocol`—, que **se consumen desde el PATH**: se instalan una vez con `just
 herramientas` y ningún script ni prueba de este juego llama a `cargo`. El
 porqué de eso está en `AGENTS.md`, y cómo se compila `cc65`, que no viene

@@ -16,13 +16,13 @@ protocolo *args:
 protocolo-pruebas:
   cd tools/protocol && cargo test
 
-# El códec BRR y el lector de SoundFont, y **el que arma las muestras de la
-# ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
+# Gunter: el códec BRR y el lector de SoundFont, y **el que arma las muestras
+# de la ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
 # rampa, cuadrada, impulso, saturación— más los mensajes de error, así que no
 # necesitan ni el juego ni un soundfont. Que las muestras de verdad salgan bien
 # lo cobra cualquier demo, porque viajan adentro del `.sfc`.
-brr-pruebas:
-  cd tools/brr && cargo test
+gunter-pruebas:
+  cd tools/gunter && cargo test
 
 # El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a
 # `tools/rpgmaker/lcf.py` ni al conversor: convive con ellos. Ver DITTO.md, que
@@ -79,19 +79,19 @@ ensamblar := "python3 tools/ensamblado/ensamblar.py"
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # --- Las herramientas de Rust ----------------------------------------------
-# `tools/protocol/`, `tools/brr/`, `tools/ditto/` y `tools/tiles/` son
+# `tools/protocol/`, `tools/gunter/`, `tools/ditto/` y `tools/tiles/` son
 # proyectos aparte, y el port los consume **desde el PATH**, como consume
 # python3 o un core de libretro: ningún script ni prueba de este juego llama a
 # `cargo`. Se instalan una vez y quedan.
 herramientas:
   cargo install --locked --path tools/protocol --root {{cargo_root}}
-  cargo install --locked --path tools/brr --root {{cargo_root}}
+  cargo install --locked --path tools/gunter --root {{cargo_root}}
   cargo install --locked --path tools/ditto --root {{cargo_root}}
   cargo install --locked --path tools/tiles --root {{cargo_root}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las
-# herramientas del PATH —`ca65` + `ld65` arman la ROM y `brr` sus muestras—. La
+# herramientas del PATH —`ca65` + `ld65` arman la ROM y `gunter` sus muestras—. La
 # ROM se corre desde Python cuadro a cuadro (tools/emulador/retro.py), sin emulador con
 # ventana ni servidor X.
 #

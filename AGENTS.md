@@ -65,7 +65,7 @@ de los paquetes de Python del port —ver `tools/README.md`—:
 
     tools/ditto/     lee y escribe los formatos de RPG Maker 2000
     tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
-    tools/brr/       códec BRR y lector de SoundFont
+    tools/gunter/    Gunter: códec BRR y lector de SoundFont
     tools/tiles/     de una imagen a tiles, paletas y tilemap
 
 Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
@@ -99,7 +99,7 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/brr/` y `tools/tiles/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/` y `tools/tiles/` no necesitan nada.
 
 ### `tools/tiles/` no decide colores, y eso no se arregla
 
