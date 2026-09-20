@@ -553,7 +553,7 @@ Tres cosas de cómo está hecho:
 **Cada ranura con partida muestra lo que muestra RM2k**, que es lo que
 `Window_SaveFile::Refresh` dibuja por archivo: el nombre del archivo, el
 nombre del líder, el nivel —`lvl_short` en el color 1 del sistema y el número
-a dos cifras, "L  1", mockeado en 1 porque no hay actores con nivel— y las
+a dos cifras, "L 20" con Kersh, que sale de su `initial_level`— y las
 **caras** del grupo, del FaceSet y a 48x48, que es por lo que la fila mide 48
 pixeles.
 
@@ -568,12 +568,15 @@ Cómo está hecho, porque no es una variante más de la fila pre-renderizada: el
 grupo lo dice **la partida guardada** —los seis bytes de `grupo` en la SRAM de
 la ranura, en `PARTIDA_GRUPO`— y por cada actor que pueda entrar al grupo con
 los mapas de la ROM, `miembros_posibles`, el conversor emite un bloque de 36
-celdas con su cara y otro de 14 con su nombre. `ranura_pintar` sube la fila y
+celdas con su cara. `ranura_pintar` sube la fila y
 después, si tiene partida, `ranura_grupo_pintar` lee el grupo de la SRAM y
 escribe encima los rectángulos que le tocan, con `ranura_rect_subir`: un DMA
 por fila de celdas, con el puntero de origen que el DMA mismo va dejando donde
-terminó. A dónde va cada cara y cada nombre lo dicen dos tablas del conversor
-—`ranura_cara_vram`, de a cuatro por ranura para no multiplicar por tres, y
+terminó. **El nombre del líder y su nivel no son bloques**: los compone
+`ranura_texto_escribir` de a una letra por celda, ver "Lo que depende del
+actor se compone con glifos" más abajo. A dónde va cada cara y cada nombre lo
+dicen dos tablas del conversor —`ranura_cara_vram`, de a cuatro por ranura
+para no multiplicar por tres, y
 `ranura_nombre_vram`—, como `ranura_vram` para las filas. Cada cara lleva su
 paleta, reducida a 15 colores con `reducir` como la imagen del título, en las
 paletas 1 a 7 de BG2; en RM2k el índice 0 del FaceSet es transparente, igual
@@ -631,12 +634,13 @@ cortado a propósito, tres de sus cuatro pruebas dan rojo.
 **B abre el menú**, que es `Scene_Menu` de RM2k: las cinco
 órdenes a la izquierda —`Use Item`, `Tech Skill`, `Equipment`, `Save`, `End
 Game`, con los términos del LDB—, el oro abajo y el grupo a la derecha, con la
-cara, el nombre, el nivel —mockeado en 1, como en las ranuras—, el estado y
-los HP del nivel, llenos. Hoy **sólo guardar hace algo**: abre la pantalla de
+cara, el nombre, el nivel —el de su `initial_level`, como en las ranuras—, el
+estado y los HP. **Hacen algo tres órdenes** —`MENU_HECHAS` en `titulo.py`—:
+los ítems, el equipo y guardar. Guardar abre la pantalla de
 ranuras en modo guardar y, elija o cancele, vuelve al menú con el cursor en
-Save, como `Scene_Save` vuelve a `Scene_Menu`. Las otras cuatro van en el
-color 3 del sistema, el de "no se puede", y A no hace nada con ellas: ítems,
-técnicas y equipo son los pasos que siguen, y terminar el juego pide volver al
+Save, como `Scene_Save` vuelve a `Scene_Menu`. Las otras dos van en el
+color 3 del sistema, el de "no se puede", y A no hace nada con ellas: las
+técnicas son un paso que sigue, y terminar el juego pide volver al
 título sin reiniciar el SPC700.
 
 **La geometría es nuestra**, no la de RM2k: allá son 320x240 con ventanas, acá
@@ -645,15 +649,16 @@ actor, la experiencia ni los SP, y el oro con una cifra por celda y no a los 6
 pixeles de la fuente, para que la ROM las escriba de a una sin armar tiles. Es
 cosmético y está declarado.
 
-**Los HP de ahora se escriben corriendo, y el máximo va horneado.** La fila de
-cada actor es un bloque de celdas que el conversor dibuja una vez, así que
-cualquier número que lleve adentro es el del día que se convirtió: con los HP ahí
-el menú muestra siempre el máximo del nivel por más que una pelea los baje, y la
-comparación de pixeles no lo ve porque `render_menu` hornea el mismo número. Las
-tres cifras las escribe `menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de
-una por cifra que el oro y por la misma razón; el "/máximo" de al lado sigue
-horneado, que ése no cambia. Vale para las dos pantallas que comparten el
-panel, el menú y la elección de actor, porque las dos pasan por
+**Los HP de ahora se escriben corriendo.** El bloque de la fila lo dibuja el
+conversor una vez, así que cualquier número que llevara adentro sería el del
+día que se convirtió: con los HP ahí el menú muestra siempre el máximo del
+nivel por más que una pelea los baje, y la comparación de pixeles no lo ve
+porque `render_menu` hornea el mismo número. Las tres cifras las escribe
+`menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de una por cifra que
+el oro y por la misma razón. El "/máximo" de al lado tampoco va horneado desde
+el 2026-09-20, pero por otro motivo: cambia de un actor a otro, y todo lo que
+cambia con el actor se compone con glifos. Vale para las dos pantallas que
+comparten el panel, el menú y la elección de actor, porque las dos pasan por
 `menu_grupo_pintar`.
 
 Las cifras caen alineadas con las del oro sin tocar nada: las dos líneas se
@@ -665,6 +670,42 @@ pantalla de ranuras —las caras son las mismas y guardar se abre desde el menú
 Las órdenes en gris llevan su propia paleta de BG2: el color 3 es un degradé y
 con el del texto sumaban 18 colores, así que a las caras les quedan seis
 paletas.
+
+### Lo que depende del actor se compone con glifos
+
+**El nombre, el nivel y los HP máximos no se hornean**: la ROM los escribe de
+a una letra por celda con los glifos de `ranura_glifo_celdas`, que son las
+mismas dos celdas por carácter que ya usaban el oro y los HP de ahora. Es una
+decisión de presupuesto, medida: el banco de tiles de estas dos pantallas es
+**uno solo y está deduplicado**, así que lo que se hornea por actor no lo
+comparte con nadie, y el texto de un actor eran unos siete tiles marginales
+cada uno. Con 12 actores el banco juntaba 446 de los 448 que entran en la
+VRAM; con el actor 21 adentro, 462 —por eso sus casos vivían en un cartucho
+aparte—; y los 52 actores con cara del juego entero, 751. Componiendo, lo que
+se paga una vez son las letras que los nombres usan y lo único que sigue
+costando por actor es su cara: los mismos 12 actores juntan 364 tiles, y el 21
+entra.
+
+Subir el texto **a demanda** en vez de componerlo se midió y no servía: una
+cara residente cuesta 8,4 tiles marginales contra 13 de una ranura a demanda,
+y el texto suelto de un actor son de 22 a 39 tiles contra los 7 que cuesta
+estando adentro del banco deduplicado.
+
+Lo que se paga, y está declarado como cosmético: las letras compuestas van a 8
+pixeles de paso y no a los 6 de la fuente, así que el nombre, el nivel y el
+máximo salen un poco más anchos que si se hornearan. Es el mismo precio que ya
+pagaban el oro, los HP y las pantallas de ítems, equipo y tienda. Lo que no
+depende del actor —"File 1", "- Empty -", el término del nivel, "Normal",
+"HP", las órdenes— se sigue horneando con la fuente, y por eso al hacer el
+cambio sólo se movieron las dos goldens del menú.
+
+De qué sale cada tira: `ranura_actor_texto` es una fila de 32 bytes ASCII por
+actor —el nombre, las dos cifras del nivel y el máximo detrás de su barra—,
+emitida por el conversor fuera del banco 0. `ranura_texto_de` arma el puntero
+y `ranura_texto_escribir` escribe primero las celdas de arriba de todas las
+letras, que van seguidas en la VRAM, y después las de abajo, que es lo mismo
+que hace `texto_escribir` en la pantalla de ítems con su propia tabla de
+glifos.
 
 **La séptima cara se cuelga de una paleta prestada.** La lista de caras no es la
 del grupo sino la de todos los que algún `ChangePartyMembers` de los mapas de la

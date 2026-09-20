@@ -297,13 +297,13 @@ def menu(sys_img, textos, font_id=None):
 # Lashe City. Es una pantalla propia y no una capa encima del título, así que
 # tiene la VRAM para ella sola y todo puede ir en 4bpp.
 #
-# **Todo el texto está pre-renderizado**, incluidas las dos variantes de cada
-# ranura —vacía y ocupada—. Es lo que evita tener que componer texto en caliente
-# como hace la ventana de mensaje: los datos que la pantalla muestra o son fijos
-# (el número de ranura) o están mockeados (el nivel), así que no hay nada que
-# armar mientras corre. El día que el nivel sea de verdad, esa línea pasa a
-# componerse con glifos sueltos como los dígitos del cronómetro, y el resto
-# queda igual.
+# **El texto que no depende de la partida está pre-renderizado**, incluidas
+# las dos variantes de cada ranura —vacía y ocupada— y el término del nivel.
+# Lo que sí depende de ella —el nombre del líder y su nivel— se compone de a
+# una letra por celda con glifos sueltos, como los dígitos del cronómetro; ver
+# "lo que depende del actor" acá abajo. Hasta el 2026-09-20 se horneaba
+# también, con un bloque por actor, y eso hacía que el banco creciera con cada
+# actor que pudiera estar en el grupo.
 #
 # Lo que la ROM sí hace en caliente es **elegir qué bloque de celdas escribe en
 # cada fila**: por ranura hay cuatro —vacía o llena, con cursor o sin él— y

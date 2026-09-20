@@ -469,11 +469,13 @@ se pueden empezar hoy.
        python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/unico \
            -o rom/build/unico/unico.sfc
 
-   **Dos límites que el cartucho único destapa**, y que el juego entero va a
+   **Dos límites que el cartucho único destapó**, y que el juego entero va a
    pedir resolver igual: la ventana no entra en la VRAM de un mapa grande como
    el 66, y **la pantalla de ranuras junta las caras de todos los actores que
-   pueden estar en el grupo** —con el 66 se pasa por 28 tiles de 448—. Las dos
-   se arreglan subiendo cosas cuando hacen falta, no teniéndolas siempre.
+   pueden estar en el grupo** —con el 66 se pasaba por 28 tiles de 448—. El
+   segundo se destrabó el 2026-09-20 componiendo el texto del actor con
+   glifos: lo que crece por actor es la cara y nada más. El de la ventana
+   sigue, y se arregla subiendo cosas cuando hacen falta.
 
    Lo que sí frena, y es de diseño, son las opciones que hoy son **del
    cartucho entero** y las pruebas usan distintas:
@@ -552,9 +554,10 @@ se pueden empezar hoy.
      teletransporte.
    * **`--descartar-eventos` se va**: los 14 cartuchos que lo usan salen byte
      por byte iguales sin él.
-   * **Lo que no entra en el cartucho único va en uno aparte**, chico: los
-     casos del actor 21 —con ellos la pantalla de ranuras junta 462 tiles de
-     448—, `--heroe-encima` y los dos rellenos de mensajes, que cuidan una
+   * **Lo que no entra en el cartucho único va en uno aparte**, chico:
+     entonces los casos del actor 21 —con ellos la pantalla de ranuras juntaba
+     462 tiles de 448; desde el 2026-09-20 entran y volvieron al de
+     pruebas—, `--heroe-encima` y los dos rellenos de mensajes, que cuidan una
      disposición del cartucho y no una imagen.
    * Encontrado midiendo, sin causa aislada: **después de un `Teleport` desde
      otro mapa, el cofre del caso `cofre` no aparece aunque la variable 123
@@ -626,8 +629,8 @@ se pueden empezar hoy.
      el save point, la apertura y el cartel. Llegar al 4 con un `Teleport` no
      es arrancar ahí —la cinemática sale con otra rampa y otro tinte—, y el
      cronómetro en todos los mapas le saca una paleta a cada uno;
-   * `chico`, lo que no entra o cuida una disposición del cartucho: el actor
-     21, **los casos con los actores 12 y 13 en el grupo** —decisión de taro:
+   * `chico`, lo que no entra o cuida una disposición del cartucho: **los
+     casos con los actores 12 y 13 en el grupo** —decisión de taro:
      en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
      `--heroe-encima`, los encuentros cada 8 pasos, el relleno de mensajes de
      33000 y **las dos lluvias**, por el primer defecto de abajo;
