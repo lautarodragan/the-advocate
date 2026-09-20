@@ -6,7 +6,13 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -15,39 +21,88 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "RADIN"},
-            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't find ingredients here."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 2,
       "name": "Farmer",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "Crown3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "FARMER"},
-            {"code": "ShowMessage_2", "string": "Without us farmers, Paradise would starve!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "FARMER"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Without us farmers, Paradise would starve!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "We really are the lifeblood of this community."
             }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -58,21 +113,58 @@
       "name": "Defender",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "Chara1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "DEFENDER"},
-            {"code": "ShowMessage_2", "string": "Although we're on the Council, we still need"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DEFENDER"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Although we're on the Council, we still need"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "to perform our duties. I have the tunnel-guarding"
             },
-            {"code": "ShowMessage_2", "string": "shift following Isabella and Drago."}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "shift following Isabella and Drago."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -83,21 +175,58 @@
       "name": "Lawyer",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "People4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "LAWYER"},
-            {"code": "ShowMessage_2", "string": "The Agency caravans still bring goods to sell"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAWYER"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Agency caravans still bring goods to sell"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "us - they also bring us the latest legal texts."
             },
-            {"code": "ShowMessage_2", "string": "There's another shipment due next week."}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "There's another shipment due next week."
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -108,24 +237,53 @@
       "name": "Actor",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ACTOR"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ACTOR"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "We get many of our scripts from the ruins of a"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "pre-Shortage theatre to the west.  It's pretty"
             },
-            {"code": "ShowMessage_2", "string": "dangerous, though."}
+            {"code": 20110, "indent": 0, "parameters": [], "string": "dangerous, though."}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -136,18 +294,58 @@
       "name": "Actress",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 3,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "ACTRESS"},
-            {"code": "ShowMessage_2", "string": "Since everyone in Paradise has to pull their"},
-            {"code": "ShowMessage_2", "string": "own weight, the acting profession is very"},
-            {"code": "ShowMessage_2", "string": "important. People need to be entertained!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "ACTRESS"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Since everyone in Paradise has to pull their"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "own weight, the acting profession is very"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "important. People need to be entertained!"
+            }
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -158,18 +356,53 @@
       "name": "Farmer",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 3,
           "character_name": "People1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "FARMER"},
-            {"code": "ShowMessage_2", "string": "The bandits of the north have been raiding"},
-            {"code": "ShowMessage_2", "string": "our fields lately. We need to do something"},
-            {"code": "ShowMessage_2", "string": "about them!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "FARMER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The bandits of the north have been raiding"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "our fields lately. We need to do something"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "about them!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -180,17 +413,47 @@
       "name": "Defender",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 3,
           "character_name": "Chara1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "DEFENDER"},
-            {"code": "ShowMessage_2", "string": "The Trials are different for everyone."},
-            {"code": "ShowMessage_2", "string": "But good luck!"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DEFENDER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Trials are different for everyone."
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "But good luck!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -201,21 +464,53 @@
       "name": "Lawyer",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "Chara4",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowMessage", "string": "LAWYER"},
-            {"code": "ShowMessage_2", "string": "You'd be amazed at the amount of trouble"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAWYER"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You'd be amazed at the amount of trouble"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "the people of Paradise can get themselves into."
             },
-            {"code": "ShowMessage_2", "string": "We lawyers are vital!"}
+            {"code": 20110, "indent": 0, "parameters": [], "string": "We lawyers are vital!"}
           ],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -226,16 +521,47 @@
       "name": "Pierson",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -244,25 +570,52 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 350
+            "item_id": 1,
+            "switch_a_id": 350,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Please return and speak with me once"},
-            {"code": "ShowMessage_2", "string": "you have explored our town and met some"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Please return and speak with me once"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you have explored our town and met some"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "of our citizens. I am sure you will wish to stay."
             }
           ],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -271,59 +624,83 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 361,
-            "switch_b_id": 350
+            "switch_b_id": 350,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Are you done looking around?"},
-            {"code": "ShowChoice", "parameters": [1], "string": "No/Yes"},
-            {"code": "ShowChoiceOption", "parameters": [0], "string": "No"},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Are you done looking around?"
+            },
+            {"code": 10140, "indent": 0, "parameters": [1], "string": "No/Yes"},
+            {"code": 20140, "indent": 0, "parameters": [0], "string": "No"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well, make yourself at home. Come back"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "and speak with me when you are ready."
             },
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceOption", "parameters": [1], "string": "Yes"},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20140, "indent": 0, "parameters": [1], "string": "Yes"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Excellent! We'll set you up in a guest house"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "for the night, and tomorrow morning we"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "will awake you for your Trials."},
-            {"code": "ShowMessage", "indent": 1, "string": "PIERSON"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sleep well, candidate Talan!"},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Uh... yes. Thank you."},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 362, 362, 0]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 350, 350, 1]},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 14]},
             {
-              "code": "PlayBGM",
+              "code": 20110,
               "indent": 1,
-              "parameters": [0, 100, 100, 50],
-              "string": "dfrelax"
+              "parameters": [],
+              "string": "will awake you for your Trials."
             },
-            {"code": "Teleport", "indent": 1, "parameters": [114, 2, 6]},
-            {"code": "END", "indent": 1},
-            {"code": "ShowChoiceEnd"}
+            {"code": 10110, "indent": 1, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Sleep well, candidate Talan!"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Uh... yes. Thank you."},
+            {"code": 10210, "indent": 1, "parameters": [0, 362, 362, 0], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 350, 350, 1], "string": ""},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11510, "indent": 1, "parameters": [0, 100, 100, 50], "string": "dfrelax"},
+            {"code": 10810, "indent": 1, "parameters": [114, 2, 6], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -334,42 +711,105 @@
       "name": "RunExplainScene1",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "OLD MAN"},
-            {"code": "ShowMessage_2", "string": "Welcome to Paradise, friend. My name is"},
-            {"code": "ShowMessage_2", "string": "Pierson, and these are the men and women"},
-            {"code": "ShowMessage_2", "string": "of the Council."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
             {
-              "code": "ShowMessage_2",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "OLD MAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Welcome to Paradise, friend. My name is"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Pierson, and these are the men and women"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "of the Council."},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "My name is Talan.  I... can't thank you enough"
             },
-            {"code": "ShowMessage_2", "string": "for saving me from the Agency."},
-            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 13, 23]},
-            {"code": "ShowMessage", "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "for saving me from the Agency."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10, 8, 0, 0, 13, 23], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Well... you're not quite in the clear, yet... you"
             },
-            {"code": "ShowMessage_2", "string": "still have to face the Trials. Allow me to"},
-            {"code": "ShowMessage_2", "string": "explain."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 12]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "Teleport", "parameters": [175, 9, 5]}
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "still have to face the Trials. Allow me to"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "explain."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [10, 8, 0, 0, 12], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [175, 9, 5], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -378,102 +818,283 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 484
+            "item_id": 1,
+            "switch_a_id": 484,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "MoveEvent", "parameters": [10, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "We named it \"Paradise\" and set to work"},
-            {"code": "ShowMessage_2", "string": "fixing the buildings and establishing a small"},
-            {"code": "ShowMessage_2", "string": "community for those out of favor with"},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "the Agency.  We have lived here ever since,"},
-            {"code": "ShowMessage_2", "string": "gaining new members, losing old ones, but"},
-            {"code": "ShowMessage_2", "string": "always disavowing technology and the Agency."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't understand - why does the Agency let"},
-            {"code": "ShowMessage_2", "string": "you stay here? Why have they given up on"},
-            {"code": "ShowMessage_2", "string": "their pursuit of me because I made it here?"},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "We came to an agreement with the Director"},
-            {"code": "ShowMessage_2", "string": "of the Agency many, many years ago. He"},
-            {"code": "ShowMessage_2", "string": "would not wish to break it."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 14], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We named it \"Paradise\" and set to work"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "fixing the buildings and establishing a small"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "community for those out of favor with"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Agency.  We have lived here ever since,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "gaining new members, losing old ones, but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "always disavowing technology and the Agency."
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't understand - why does the Agency let"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you stay here? Why have they given up on"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "their pursuit of me because I made it here?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We came to an agreement with the Director"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of the Agency many, many years ago. He"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "would not wish to break it."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "But that is enough history for one day. You wish"
             },
-            {"code": "ShowMessage_2", "string": "to know how you can stay here in this nirvana"},
-            {"code": "ShowMessage_2", "string": "we have been given."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Um... yes. What exactly are these \"Trials?\""},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Anyone wishing to stay in Paradise has the"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to know how you can stay here in this nirvana"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "we have been given."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Um... yes. What exactly are these \"Trials?\""
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Anyone wishing to stay in Paradise has the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "benefit of having their history erased - no one"
             },
-            {"code": "ShowMessage_2", "string": "here will pry into your past."},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "However, this is not a benefit to be lightly"},
-            {"code": "ShowMessage_2", "string": "given. We do not want this place to be a den"},
-            {"code": "ShowMessage_2", "string": "of criminals, as the Agency considers it."},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "For this reason, anyone wishing to stay must"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "here will pry into your past."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "However, this is not a benefit to be lightly"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "given. We do not want this place to be a den"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of criminals, as the Agency considers it."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For this reason, anyone wishing to stay must"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "complete a test of his moral fitness and strength"
             },
-            {"code": "ShowMessage_2", "string": "of character."},
-            {"code": "ShowMessage", "string": "PIERSON"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "of character."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "You will be given the Trials tomorrow morning."
             },
-            {"code": "ShowMessage_2", "string": "For now, you are welcome to explore our"},
-            {"code": "ShowMessage_2", "string": "community and speak with our citizens."},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "If you successfully complete tomorrow's"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For now, you are welcome to explore our"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "community and speak with our citizens."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If you successfully complete tomorrow's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "Trials, you will be asked to select one of the"
             },
-            {"code": "ShowMessage_2", "string": "four main professions of Paradise."},
-            {"code": "ShowMessage", "string": "PIERSON"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "four main professions of Paradise."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "This will establish your role in our community,"
             },
-            {"code": "ShowMessage_2", "string": "so choose wisely. But for now, welcome to"},
-            {"code": "ShowMessage_2", "string": "Paradise, and good luck tomorrow!"},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Please return and speak to me when you have"},
-            {"code": "ShowMessage_2", "string": "finished your explorations of our town."},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Thank you, Sir."},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Pierson will do fine, Talan. We try not to"},
-            {"code": "ShowMessage_2", "string": "make very much of status in Paradise. Let"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "so choose wisely. But for now, welcome to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Paradise, and good luck tomorrow!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Please return and speak to me when you have"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "finished your explorations of our town."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Thank you, Sir."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Pierson will do fine, Talan. We try not to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "make very much of status in Paradise. Let"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
               "string": "the Agency display their ranks - it is not for us."
             },
-            {"code": "ControlSwitches", "parameters": [0, 350, 350, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 349, 349, 0]}
+            {"code": 10210, "indent": 0, "parameters": [0, 350, 350, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 349, 349, 0], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -482,52 +1103,110 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 349
+            "item_id": 1,
+            "switch_a_id": 349,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 12,
       "name": "EV0012",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 350, 0, 0, 0, 1]},
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 70, 2, 1]},
-            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
-            {"code": "TintScreen", "indent": 1, "parameters": [70, 70, 70, 70, 2, 1]},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 361, 361, 0]},
-            {
-              "code": "PlayBGM",
-              "indent": 1,
-              "parameters": [0, 80, 100, 50],
-              "string": "wb3town"
-            },
-            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {
-              "code": "PlayBGM",
-              "indent": 1,
-              "parameters": [0, 80, 100, 50],
-              "string": "wb3town"
-            },
-            {"code": "Teleport", "indent": 1, "parameters": [108, 25, 22]},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 12010, "indent": 0, "parameters": [0, 350, 0, 0, 0, 1], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 70, 2, 1], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [108, 25, 22], "string": ""},
+            {"code": 11030, "indent": 1, "parameters": [70, 70, 70, 70, 2, 1], "string": ""},
+            {"code": 10210, "indent": 1, "parameters": [0, 361, 361, 0], "string": ""},
+            {"code": 11510, "indent": 1, "parameters": [0, 80, 100, 50], "string": "wb3town"},
+            {"code": 10810, "indent": 1, "parameters": [108, 25, 22], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11510, "indent": 1, "parameters": [0, 80, 100, 50], "string": "wb3town"},
+            {"code": 10810, "indent": 1, "parameters": [108, 25, 22], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 10,
       "y": 19
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 20,
-  "save_count": 54
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 54,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

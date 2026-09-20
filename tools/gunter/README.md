@@ -1,22 +1,26 @@
-# BRR, and where samples come from
+# Gunter: BRR, and where samples come from
+
+Gunter is the tool; **BRR is the format it writes**, the one the SPC700 plays.
+The name of the format stays wherever it names the format — the `.brr` files,
+the nine-byte blocks, the codec — and `gunter` is what you type.
 
 Two jobs that always turn up together, as one binary:
 
-* **`brr encode`** — PCM into BRR, the compressed sample format the SNES sound
+* **`gunter encode`** — PCM into BRR, the compressed sample format the SNES sound
   chip plays. Nine bytes per sixteen samples, take it or leave it.
-* **`brr sf2`** — read a SoundFont and take a sample out of it, which is how
+* **`gunter sf2`** — read a SoundFont and take a sample out of it, which is how
   you get PCM worth encoding in the first place.
 
 Nothing here knows what the samples are for. Where files go, what a sample is
 called, how loud it should be and at what rate to store it are the caller's
 decisions; this only does the two conversions, and says exactly what it did.
 
-    brr encode piano.wav -o piano.brr --loop-sample 1024
-    brr decode piano.brr -o back.wav --rate 22050
-    brr info piano.brr
-    brr sf2 bank.sf2 --list
-    brr sf2 bank.sf2 --extract program:0 -o piano.wav
-    brr sf2 bank.sf2 --extract drum:36 -o kick.wav
+    gunter encode piano.wav -o piano.brr --loop-sample 1024
+    gunter decode piano.brr -o back.wav --rate 22050
+    gunter info piano.brr
+    gunter sf2 bank.sf2 --list
+    gunter sf2 bank.sf2 --extract program:0 -o piano.wav
+    gunter sf2 bank.sf2 --extract drum:36 -o kick.wav
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints the
 selectors and the rules below.
@@ -32,7 +36,7 @@ clicking once a second.
 So every command that produces or reads a sample prints them, and `--json`
 prints the same thing in one line a build script can read:
 
-    $ brr encode piano.wav -o piano.brr --loop-sample 1024 --json
+    $ gunter encode piano.wav -o piano.brr --loop-sample 1024 --json
     {"output": "piano.brr", "samples": 8192, "rate": 22050, "blocks": 512,
      "bytes": 4608, "loop_block": 64, "loop_sample": 1024,
      "worst_error_percent": "1.870", "within_limit": true}

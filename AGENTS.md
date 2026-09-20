@@ -65,7 +65,7 @@ de los paquetes de Python del port —ver `tools/README.md`—:
 
     tools/ditto/     lee y escribe los formatos de RPG Maker 2000
     tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
-    tools/brr/       códec BRR y lector de SoundFont
+    tools/gunter/    Gunter: códec BRR y lector de SoundFont
     tools/tiles/     de una imagen a tiles, paletas y tilemap
 
 Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
@@ -99,7 +99,7 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/brr/` y `tools/tiles/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/` y `tools/tiles/` no necesitan nada.
 
 ### `tools/tiles/` no decide colores, y eso no se arregla
 
@@ -252,13 +252,15 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 `test_cores.py`. Recompilarlos sin mirar deja de ser inocuo.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
-`liblcf` es de donde se genera `tools/rpgmaker/event_codes.py`: los códigos de comando
-de RM2k salen de ahí y de ningún otro lado, porque la primera versión del
-filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
-que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
+`liblcf` es de donde sale el esquema de Ditto —y con él los defaults que
+`data/` trae ya aplicados— y de donde salen los códigos de comando de RM2k
+(`tools/rpgmaker/event_codes.json`): salen de ahí y de ningún otro lado, porque la primera
+versión del filtro de puertas los puso de memoria y tres estaban mal. Si hace
+falta algo que no se consigue desde acá, se le pide a taro que lo copie a
+`/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen rom/build/demo-ciudad/demo-ciudad.sfc`, una
+que se le pida a taro —`mednafen rom/build/abl/abl.sfc`, una
 receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 
@@ -298,13 +300,13 @@ el 2026-09-13 la misma pregunta se contestó **81**, **1** y **85** bytes en la
 misma tarde, y las tres estaban bien —cada una con un `mapdata.inc` distinto—.
 Así que al decir "quedan N bytes" hay que decir con cuál.
 
-**El que manda es el más apretado, y no es `demo-ciudad`**: hasta el
+**El que manda es el más apretado, y no es la demo**: hasta el
 2026-09-17 sí lo era, pero desde que las pruebas arman un cartucho con los 40
 mapas, el que menos margen tiene es `titulo` —el de pruebas con la pantalla de
-título—, seguido de `pruebas`. `demo-ciudad` sobrepasa a los dos por unos
-cuatrocientos bytes, así que medir sólo en él dice que hay lugar cuando no lo
+título—, seguido de `pruebas`. `abl`, la demo, sobrepasa a los dos por unos
+cuatrocientos bytes, así que medir sólo en ella dice que hay lugar cuando no lo
 hay. Acá había un número escrito y se quedó viejo: **no se escribe, se mide**,
-y hay que medir los seis.
+y hay que medirlos todos: `abl` y los que arma `cartuchos`.
 
 Medirlo no pide tocar ningún fuente: se ensambla un objeto aparte con un
 `.res N` en el segmento que se quiere medir y se lo linkea junto al `.o` que
@@ -320,8 +322,9 @@ sus 32.704 bytes con `CODE`—, **`BSS`** y **`ZEROPAGE`**. El banco 1 es
 el final del banco: lo que queda libre se lee mirando hasta dónde llega su
 último símbolo en la tabla de símbolos.
 
-**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
-capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
+**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR,
+muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
+fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/comun/cache_disco.py`.
@@ -366,8 +369,15 @@ Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 Lo que hay que hacer siempre:
 
 * **Traer los builds al repo principal.** Los worktrees viven en `/extras`, que
-  no está montado en el host. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` 
-  que diga qué  mirar y con qué limitaciones se chocó.
+  no está montado en el host. Van a `pruebas-manuales/<fecha>-<commit>/`, con un
+  `LEEME.txt` que diga qué mirar y con qué limitaciones se chocó.
+
+  **Un solo `.sfc` por build, y se llama `abl.sfc`**: el cartucho con pantalla
+  de título, que es el que taro juega. Las otras demos no se copian; el que las
+  quiera las arma. Y **se dejan los dos últimos directorios y nada más**: el
+  anterior sirve para comparar con lo que se venía jugando, y los de más atrás
+  se rearman desde su commit. Es de taro, el 2026-09-20, después de que
+  `pruebas-manuales/` llegara a 4,3 GB en 51 directorios.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.

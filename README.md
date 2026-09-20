@@ -98,12 +98,11 @@ Cómo está repartido `tools/` en carpetas, y qué puede importar de qué, está
 `tools/README.md`.
 
     tools/rpgmaker/lcf.py               el juego, leído del volcado a JSON de data/
-    tools/rpgmaker/ditto_schema.py      generado: los nombres, defaults y enums de ese JSON
-    tools/rpgmaker/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
     tools/render/chipset.py             expansión del ChipSet a un atlas de tiles resueltos
     tools/render/charset.py             recorte de sprites de personaje
     tools/render/render_map.py          las capas de un mapa como imagen, y los CharSets
-    tools/rpgmaker/event_codes.py       generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.json     generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.py       lo carga
     tools/protocol/                     el generador, en Rust: declaración -> constantes
     tools/port/event_opcodes.py         generado desde tools/protocol/events.toml
     tools/audio/music_opcodes.py        generado desde tools/protocol/music.toml
@@ -170,23 +169,24 @@ Se puede apuntar a otra copia con `ABL_RTP_DIR`.
 
 ## Los datos en formato versionable
 
-    just datos         # el juego -> data/, con Ditto
+    just datos         # el juego -> data/ y rom/build/ditto-exacto/, con Ditto
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así que el
 conversor y las pruebas están mirando estos archivos y no los binarios. Quién lo
 escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto pack` rearma los
-330 archivos byte por byte. El porqué de la decisión está en `DITTO.md` y lo que
-hay adentro, en `data/README.md`.
+330 archivos byte por byte —desde el volcado exacto, que la misma corrida deja
+en `rom/build/ditto-exacto/` y que no se versiona—. El porqué de la decisión
+está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
 
-    data/ditto.json           la versión del volcado y el header de cada archivo
+    data/ditto.json           la versión del volcado, cuál vista es, y los headers
     data/maps.json            el árbol de mapas y la posición inicial
     data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
     data/maps/Map0001.tiles   las dos capas de tiles, una fila del mapa por línea
     data/db/*.json            la base de datos, una sección por archivo
 
-Son 19,4 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
+Son 30,9 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
 base de datos entera — 60 actores, 400 skills, 450 ítems, 175 enemigos, 300
 tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 
@@ -194,16 +194,19 @@ tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 serían opacos para git; en texto, cambiar un tile cambia una línea, en la fila
 y la columna en que está en el mapa.
 
-**Se omite lo que está en su valor por defecto**, que es exactamente lo que
-hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
-vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.py`, generada
-desde el esquema de Ditto, que se genera desde liblcf. Es la respuesta al bug
-que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
-dice 10, porque el default estaba escrito a mano y estaba mal.
+**Está todo escrito, con los defaults ya aplicados.** El binario omite lo que
+vale su valor por defecto, y `data/` **no**: desde el 2026-09-20 es la *vista
+resuelta* que emite Ditto, así que un `max_hp` que el archivo no guardaba
+aparece acá en 10 y no hay tabla que consultar. Es la respuesta al bug que
+originó todo esto: llegaba con 1 porque el default estaba escrito a mano y
+estaba mal.
 
-**Y los enums salen como texto**: `"trigger": "auto_start"` en vez de
-`"trigger": 3`, `"code": "ShowMessage"` en vez de `10110`. Los nombres son los
-de liblcf.
+**Y los enums son números**: `"trigger": 3`, `"code": 10110`, que es lo que el
+port espera. El nombre —`"auto_start"`, `"ShowMessage"`, los de liblcf— está en
+el *volcado exacto*, el otro árbol que la misma corrida de `just datos` deja en
+`rom/build/ditto-exacto/` y que no se versiona: es el que tiene la forma del
+binario, el único que `ditto pack` puede volver a escribir, y el que hay que
+abrir para leer el juego. Ver `DITTO.md`.
 
 **Encoding.** El texto es cp1252, porque ABL se hizo con el RM2k de Don Miguel.
 Quedan un par de mensajes del RTP japonés que el autor nunca tocó y siguen en
@@ -957,7 +960,7 @@ va una celda antes del texto.
 **Las dos tablas son de dos bytes, y eso no es de adorno.** Un índice de texto
 nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
 tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
-`demo-ciudad` los textos de la batalla arrancan en el 273, que en un byte no
+`abl` los textos de la batalla arrancan en el 273, que en un byte no
 entra. El caso que lo cuida es `batalla-textos-lejos`, y `ca65` **rechaza** un
 `.byte` que no entre en un byte en vez de truncarlo.
 
@@ -1147,7 +1150,7 @@ Medido sobre el juego entero:
     23 áreas, colgando de 20 mapas
     33 mapas con tropas propias, ninguno de ellos con área
     53 mapas donde puede salir un encuentro, de 328
-    5 de los 29 de `demo-ciudad`: el 20, el 21, el 26, el 28 y el 32
+    5 de los 29 de `abl`: el 20, el 21, el 26, el 28 y el 32
     129 tropas distintas
 
 **Cómo se dispara**, de `Game_Player::UpdateEncounterSteps`. Cada paso del
@@ -1359,7 +1362,7 @@ Tres decisiones, las tres por la ARAM:
 
 La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta un tick. Lo
 que se corrió fue una grabación de la apertura de
-`demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
+`abl` con el núcleo de libretro, contra la misma ROM con el volumen de
 los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
 hueco entre el fin del tercero y el siguiente (cuadros 890 a 920) las dos
 salidas son idénticas muestra por muestra. Es decir, la música vuelve entera.
@@ -1506,6 +1509,12 @@ con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
 punto de loop en muestras, y el audio crudo.
+
+Y correr la receta de nuevo no rehace nada: una pista no depende del
+cartucho sino del MIDI, del soundfont, de fluidsynth y de cómo se normaliza, y
+todo eso está en la clave. Lo que se guarda en `rom/build/cache/msu/` es el
+sha256 del `.pcm`, no el `.pcm`, porque el archivo ya está escrito al lado de
+la ROM.
 
 Una cosa más del lado del cartucho: **la pista se normaliza a 0,97 de la
 escala**. fluidsynth se corre bajo, en 0,6, porque con 1,0 los temas de muchas
@@ -1829,9 +1838,9 @@ nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
 Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
-ser una puerta —o sea, sin intérprete— sale de `tools/rpgmaker/event_codes.py`, que se
-genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
-y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
+ser una puerta —o sea, sin intérprete— sale de
+`tools/rpgmaker/event_codes.json`, que se saca de liblcf y de ningún otro lado.
+Puestos de memoria, tres estaban mal, y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
 como puertas eventos que cambian la música y el sprite del héroe. **La
 comparación no puede ver ese error**, porque una lista equivocada compila una
 ROM equivocada y la golden es la captura de esa ROM. Esa clase de error se
@@ -2607,7 +2616,7 @@ son **20 bytes**.
 
     rom/src/main.s               65816: arranque, carga al SPC700, reproductor
     tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
-    tools/brr/                   códec BRR y lector de SoundFont, en Rust
+    tools/gunter/                Gunter: códec BRR y lector de SoundFont, en Rust
     tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
     tools/audio/sdsp.py          registros del DSP y el banco de timbres
     tools/audio/snes_music.py    el MIDI del mapa a muestras y stream
@@ -2719,7 +2728,7 @@ tema de prueba contra el 95% de la Mega Drive.
 ### Toolchain
 
 **Tres cosas: `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas de Rust del repo —`brr` para las muestras, `ditto` y
+herramientas de Rust del repo —`gunter` para las muestras, `ditto` y
 `protocol`—, que **se consumen desde el PATH**: se instalan una vez con `just
 herramientas` y ningún script ni prueba de este juego llama a `cargo`. El
 porqué de eso está en `AGENTS.md`, y cómo se compila `cc65`, que no viene

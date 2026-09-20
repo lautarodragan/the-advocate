@@ -6,27 +6,80 @@
       "name": "Missile2",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "up",
+          "animation_type": 1,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "ShquaMissiles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
+          "move_frequency": 3,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "fourfold",
-          "move_type": "stationary"
+          "move_speed": 6,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
-          "character_pattern": "right",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 2,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -35,20 +88,56 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 312
+            "item_id": 1,
+            "switch_a_id": 312,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
+          "layer": 0,
           "move_frequency": 2,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -59,29 +148,80 @@
       "name": "Missile1",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "up",
+          "animation_type": 1,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "ShquaMissiles",
-          "character_pattern": "right",
+          "character_pattern": 2,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
           "move_frequency": 2,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
-          "character_pattern": "right",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 2,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -90,22 +230,59 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 312
+            "item_id": 1,
+            "switch_a_id": 312,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
+          "layer": 0,
           "move_frequency": 2,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
+      "x": 0,
       "y": 3
     },
     {
@@ -113,29 +290,80 @@
       "name": "Missile5",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "up",
+          "animation_type": 1,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "ShquaMissiles",
-          "character_pattern": "right",
+          "character_pattern": 2,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
           "move_frequency": 4,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {"command_id": "move_down"},
-              {},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "fourfold",
-          "move_type": "stationary"
+          "move_speed": 6,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
-          "character_pattern": "right",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 2,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -144,20 +372,56 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 312
+            "item_id": 1,
+            "switch_a_id": 312,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
+          "layer": 0,
           "move_frequency": 2,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 17,
@@ -168,28 +432,80 @@
       "name": "Missile4",
       "pages": [
         {
-          "animation_type": "continuous",
-          "character_direction": "up",
+          "animation_type": 1,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "ShquaMissiles",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
+          "layer": 1,
           "move_frequency": 1,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
-          "character_pattern": "right",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 2,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -198,20 +514,56 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 312
+            "item_id": 1,
+            "switch_a_id": 312,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
+          "layer": 0,
           "move_frequency": 2,
           "move_route": {
             "move_commands": [
-              {"command_id": "lock_facing"},
-              {},
-              {"command_id": "move_down"},
-              {"command_id": "unlock_facing"}
-            ]
+              {
+                "command_id": 26,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 0,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 2,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              },
+              {
+                "command_id": 27,
+                "parameter_a": 0,
+                "parameter_b": 0,
+                "parameter_c": 0,
+                "parameter_string": ""
+              }
+            ],
+            "repeat": true,
+            "skippable": false
           },
-          "move_speed": "double",
-          "move_type": "stationary"
+          "move_speed": 5,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -222,18 +574,52 @@
       "name": "EV0006",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "misslesnd"},
-            {"code": "Wait", "parameters": [35]},
-            {"code": "ControlSwitches", "parameters": [0, 291, 291, 0]},
-            {"code": "Teleport", "parameters": [93, 3, 9]}
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "misslesnd"},
+            {"code": 11410, "indent": 0, "parameters": [35], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 291, 291, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [93, 3, 9], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -242,23 +628,50 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 292
+            "item_id": 1,
+            "switch_a_id": 292,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "misslesnd"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ControlSwitches", "parameters": [0, 293, 293, 0]},
-            {"code": "Teleport", "parameters": [93, 6, 9]}
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "misslesnd"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [3, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 293, 293, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [93, 6, 9], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -267,20 +680,37 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 304
+            "item_id": 1,
+            "switch_a_id": 304,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "misslesnd"},
-            {"code": "Wait", "parameters": [35]},
-            {"code": "ControlSwitches", "parameters": [0, 305, 305, 0]},
-            {"code": "Teleport", "parameters": [95, 20, 31]}
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "misslesnd"},
+            {"code": 11410, "indent": 0, "parameters": [35], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 305, 305, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [95, 20, 31], "string": ""}
           ],
           "id": 3,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -289,40 +719,74 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 306
+            "item_id": 1,
+            "switch_a_id": 306,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowBattleAnimation", "parameters": [62, 3, 0, 0]},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ShowBattleAnimation", "parameters": [62, 4, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "ShowBattleAnimation", "parameters": [62, 2, 0, 0]},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ShowBattleAnimation", "parameters": [148, 4, 0, 0]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ControlSwitches", "parameters": [0, 312, 312, 0]},
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 5, 1]},
-            {"code": "ShowBattleAnimation", "parameters": [77, 1, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "ShowBattleAnimation", "parameters": [77, 3, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "ShowBattleAnimation", "parameters": [77, 2, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "ShowBattleAnimation", "parameters": [77, 4, 1, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 307, 307, 0]},
-            {"code": "Teleport", "parameters": [95, 20, 31]}
+            {"code": 11210, "indent": 0, "parameters": [62, 3, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [62, 4, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [62, 2, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [148, 4, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 312, 312, 0], "string": ""},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 5, 1], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [77, 1, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [77, 3, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [77, 2, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11210, "indent": 0, "parameters": [77, 4, 1, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 307, 307, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [95, 20, 31], "string": ""}
           ],
           "id": 4,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
   "parallax_auto_loop_y": true,
   "parallax_flag": true,
+  "parallax_loop_x": false,
   "parallax_loop_y": true,
   "parallax_name": "pan2",
+  "parallax_sx": 0,
   "parallax_sy": 8,
-  "save_count": 44
+  "save_count": 44,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

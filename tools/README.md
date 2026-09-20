@@ -9,9 +9,10 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
-    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf,
-                 ditto_schema y su generador), los códigos de comando de
-                 RM2k (event_codes) y sus reglas (rm2k)
+    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), los
+                 códigos de comando de RM2k (event_codes) y sus reglas
+                 (rm2k). Ninguna regla del formato vive acá: data/ viene
+                 resuelto. Tiene su propio README
     comun/       el caché en disco del conversor (cache_disco)
     ensamblado/  el mapa de memoria (bancos) y el que arma la ROM (ensamblar)
     emulador/    el core de libretro desde Python (retro), y el parche de
@@ -32,7 +33,7 @@ aparte, en inglés y sin una mención a este juego (ver AGENTS.md):
 
     ditto/       lee y escribe los formatos de RPG Maker 2000
     protocol/    declara un bytecode y genera las constantes de sus dos lados
-    brr/         códec BRR y lector de SoundFont
+    gunter/      Gunter: códec BRR y lector de SoundFont
     tiles/       de una imagen a tiles, paletas y tilemap
 
 Se instalan con `just herramientas` y se usan desde el PATH: ningún `.py` de
