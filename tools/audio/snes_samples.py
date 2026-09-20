@@ -121,12 +121,15 @@ def _version_de_la_preparacion():
     return _version
 
 
-def _huella_del_soundfont(ruta):
+def huella_del_soundfont(ruta):
     """El contenido del SoundFont, no su ruta.
 
     `ABL_SOUNDFONT` puede apuntar a otro banco, y un banco puede cambiar sin
     cambiar de nombre: la clave tiene que caducar con cualquiera de las dos.
     Se lee una vez por proceso porque el archivo pesa megas.
+
+    Es pública porque `msu.py` renderiza con **el mismo soundfont** y su clave
+    necesita la misma huella, por la misma razón.
     """
     if ruta not in _huellas:
         h = hashlib.sha256()
@@ -213,7 +216,7 @@ def plan_rate(attack_frames, loop_frames, source_rate, budget):
 def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
     """Un instrumento del SoundFont en BRR, cacheado. Ver `_cacheada`."""
     return _cacheada(_voces, (soundfont, program, budget, key),
-                     (_huella_del_soundfont(soundfont), "program",
+                     (huella_del_soundfont(soundfont), "program",
                       str(program), str(budget), str(key)),
                      lambda: _build_voice(soundfont, program, budget, key))
 
@@ -268,7 +271,7 @@ def _build_voice(soundfont, program, budget, key):
 def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
     """Un golpe de percusión en BRR, cacheado. Ver `_cacheada`."""
     return _cacheada(_tambores, (soundfont, note, budget, seconds),
-                     (_huella_del_soundfont(soundfont), "drum", str(note),
+                     (huella_del_soundfont(soundfont), "drum", str(note),
                       str(budget), repr(seconds)),
                      lambda: _build_drum(soundfont, note, budget, seconds))
 

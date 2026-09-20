@@ -282,5 +282,10 @@ demo-carrera nombre="demo-carrera":
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
 # el MSU-1 no se enciende.
+#
+# **Correrla de nuevo no rehace lo que no cambió**: una pista depende del MIDI,
+# del soundfont, de fluidsynth y de cómo se normaliza, nada de eso es del
+# cartucho, y todo eso está en la clave. Ver `clave_de_la_pista` en msu.py.
+# Con `SIN_CACHE=1` se rehacen todas.
 msu nombre="abl":
   python3 tools/audio/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
