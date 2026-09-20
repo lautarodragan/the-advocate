@@ -6,48 +6,45 @@ capa de más abajo de `tools/` —ver `tools/README.md`—: no importa de ningun
 otra.
 
     lcf.py              el juego, leído del volcado de `data/`
-    ditto_schema.json   generado: el esquema del formato, que publica Ditto
-    ditto_schema.py     lo carga y lo expone como `CAMPOS` y `ENUMS`
     event_codes.json    generado: los nombres de los comandos de evento
     event_codes.py      lo carga y lo expone como `EVENT_CODES`
     rm2k.py             las reglas del juego original: pasabilidad, autotiles,
                         animación del chipset, sprites de una página
 
-## Los dos JSON no se editan a mano
+## Acá no vive ninguna regla del formato, y eso fue una decisión
 
-Los dos son datos de otro —del formato, no de este juego—, y los dos están
-commiteados a propósito: es lo que hace que armar una ROM no necesite tener
-ninguna herramienta de Rust instalada.
+`lcf.py` lee `data/`, que desde el 2026-09-20 es la **vista resuelta** que
+emite Ditto: todos los campos escritos, con su default ya aplicado, y los enums
+en número. Así que `campo` son tres líneas y un campo que falte es un
+`KeyError` —que es lo que se quiere: quiere decir que `data/` quedó viejo, no
+que valga cero—.
 
-    just esquema        ditto_schema.json, desde `ditto schema`
-    (ver abajo)         event_codes.json, desde liblcf
+Hasta ese día `data/` era el volcado exacto —defaults omitidos, enums por
+nombre— y para entenderlo hacían falta acá adentro un `ditto_schema.json` con
+los defaults y las tablas de enums, y un `ditto_schema.py` que lo cargara. Eran
+111 KB de esquema del formato viviendo del lado del que lee, y se fueron con
+`just esquema` y con la prueba que los cuidaba. `ditto schema` sigue existiendo
+del lado de Ditto, porque el volcado exacto se sigue emitiendo y leerlo lo
+necesita; lo que ya no pasa es que el port lo consuma.
 
-`ditto_schema.json` es lo que hace falta para leer `data/`, y hace falta porque
-el volcado **omite todo campo que valga su default** —la misma regla que el
-binario, y lo que lo hace un tercio más chico— y guarda **los enums por
-nombre**: `"same"`, `"auto_start"`, `"ShowMessage"`. Un campo ausente no vale
-cero, vale lo que dice el formato; y `"auto_start"` es un 3 que sólo sabe la
-tabla.
+Lo único que sigue siendo criterio de acá es **adivinar la codificación de un
+texto** —ver `lcf.texto`—, que es lo contrario de una regla del formato: el
+formato no dice en qué juego de caracteres está una cadena.
 
-Ese dato lo tiene Ditto, que lo saca de las CSV de liblcf —`fields.csv`,
-`enums.csv`, `constants.csv`—, y **lo publica**: `ditto schema` lo escribe como
-JSON y acá se lee. Hasta el 2026-09-20 era al revés: un `gen_ditto_schema.py`
-le sacaba los defaults y las tablas al código de Rust de Ditto **con
-expresiones regulares**, para escribir 1.688 líneas de Python. Funcionaba, y de
-paso leía `9 * 256` como 9 en cinco campos de los archivos de guardado, que
-este port no lee. El que tiene el dato lo publica; el que lo necesita no lo
-scrapea. Es el mismo trato que `tools/protocol/` tiene con los dos bytecodes.
-
-Que el JSON no se haya quedado viejo lo cobra
-`pruebas/herramientas/test_esquema.py`, que vuelve a correr `ditto schema` y
-exige que no cambie nada.
+Y una cosa más, que no viene de `data/`: los 183 casos de `pruebas/casos/*.json`
+los escribimos nosotros, en la taquigrafía que se puede escribir a mano —el
+comando por su nombre y sólo los campos que dicen algo—. Los lee
+`lcf.comandos_escritos`, que no es `lcf.comandos`: el único dato de afuera que
+usa es `event_codes.json`.
 
 ## Los códigos de comando de evento
 
 `event_codes.json` es de número a nombre —`10110` es `ShowMessage`—, y
 `event_codes.py` lo carga como `EVENT_CODES`. Era un diccionario escrito
 adentro del `.py`; desde el 2026-09-20 es un archivo de datos, porque eso es lo
-que siempre fue: 165 pares y ninguna lógica.
+que siempre fue: 165 pares y ninguna lógica. Está commiteado a propósito: es lo
+que hace que armar una ROM no necesite tener ninguna herramienta de Rust
+instalada.
 
 Sale del **enum `Code` de liblcf** —`src/generated/lcf/rpg/eventcommand.h`— y
 de ningún otro lado. Ahí están los 165, contra los 128 de `enums.csv`: los 37

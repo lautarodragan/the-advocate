@@ -98,8 +98,6 @@ Cómo está repartido `tools/` en carpetas, y qué puede importar de qué, está
 `tools/README.md`.
 
     tools/rpgmaker/lcf.py               el juego, leído del volcado a JSON de data/
-    tools/rpgmaker/ditto_schema.json    generado: los nombres, defaults y enums de ese JSON
-    tools/rpgmaker/ditto_schema.py      lo carga; lo escribe `ditto schema`
     tools/render/chipset.py             expansión del ChipSet a un atlas de tiles resueltos
     tools/render/charset.py             recorte de sprites de personaje
     tools/render/render_map.py          las capas de un mapa como imagen, y los CharSets
@@ -171,23 +169,24 @@ Se puede apuntar a otra copia con `ABL_RTP_DIR`.
 
 ## Los datos en formato versionable
 
-    just datos         # el juego -> data/, con Ditto
+    just datos         # el juego -> data/ y rom/build/ditto-exacto/, con Ditto
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así que el
 conversor y las pruebas están mirando estos archivos y no los binarios. Quién lo
 escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto pack` rearma los
-330 archivos byte por byte. El porqué de la decisión está en `DITTO.md` y lo que
-hay adentro, en `data/README.md`.
+330 archivos byte por byte —desde el volcado exacto, que la misma corrida deja
+en `rom/build/ditto-exacto/` y que no se versiona—. El porqué de la decisión
+está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
 
-    data/ditto.json           la versión del volcado y el header de cada archivo
+    data/ditto.json           la versión del volcado, cuál vista es, y los headers
     data/maps.json            el árbol de mapas y la posición inicial
     data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
     data/maps/Map0001.tiles   las dos capas de tiles, una fila del mapa por línea
     data/db/*.json            la base de datos, una sección por archivo
 
-Son 19,4 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
+Son 30,9 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
 base de datos entera — 60 actores, 400 skills, 450 ítems, 175 enemigos, 300
 tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 
@@ -195,16 +194,19 @@ tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 serían opacos para git; en texto, cambiar un tile cambia una línea, en la fila
 y la columna en que está en el mapa.
 
-**Se omite lo que está en su valor por defecto**, que es exactamente lo que
-hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
-vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.json`,
-que **publica Ditto** —`ditto schema`, o `just esquema`— y que sale de liblcf.
-Es la respuesta al bug que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
-dice 10, porque el default estaba escrito a mano y estaba mal.
+**Está todo escrito, con los defaults ya aplicados.** El binario omite lo que
+vale su valor por defecto, y `data/` **no**: desde el 2026-09-20 es la *vista
+resuelta* que emite Ditto, así que un `max_hp` que el archivo no guardaba
+aparece acá en 10 y no hay tabla que consultar. Es la respuesta al bug que
+originó todo esto: llegaba con 1 porque el default estaba escrito a mano y
+estaba mal.
 
-**Y los enums salen como texto**: `"trigger": "auto_start"` en vez de
-`"trigger": 3`, `"code": "ShowMessage"` en vez de `10110`. Los nombres son los
-de liblcf.
+**Y los enums son números**: `"trigger": 3`, `"code": 10110`, que es lo que el
+port espera. El nombre —`"auto_start"`, `"ShowMessage"`, los de liblcf— está en
+el *volcado exacto*, el otro árbol que la misma corrida de `just datos` deja en
+`rom/build/ditto-exacto/` y que no se versiona: es el que tiene la forma del
+binario, el único que `ditto pack` puede volver a escribir, y el que hay que
+abrir para leer el juego. Ver `DITTO.md`.
 
 **Encoding.** El texto es cp1252, porque ABL se hizo con el RM2k de Don Miguel.
 Quedan un par de mensajes del RTP japonés que el autor nunca tocó y siguen en

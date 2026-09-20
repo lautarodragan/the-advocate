@@ -62,8 +62,9 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 4. **el compilador de eventos**: JSON → bytecode y tablas. No es Ditto y no
    puede serlo: Ditto es un transcodificador bidireccional y sin pérdida, y
    esto es un compilador unidireccional, con pérdida y atado a un target. Lo
-   que sí sale de acá es `tools/rpgmaker/lcf.py` + `tools/rpgmaker/ditto_schema.py`,
-   que en Rust pasan a ser `use ditto`. Y `tools/rpgmaker/rm2k.py` —534 líneas
+   que sí sale de acá es `tools/rpgmaker/lcf.py`, que en Rust pasa a ser
+   `use ditto` —y ahí vuelven los nombres de los enums, que hoy `data/` no
+   trae—. Y `tools/rpgmaker/rm2k.py` —534 líneas
    de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
@@ -798,6 +799,15 @@ para no volver a pensarlo:
 
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
 de cada una está en `README.md`.
+
+* **`data/` es la vista resuelta, y el volcado exacto no se versiona.** Del
+  2026-09-20: `ditto unpack` emite las dos en la misma corrida —`data/` con
+  todos los campos escritos y los enums en número, y `rom/build/ditto-exacto/`
+  con la forma del binario—, y `tools/rpgmaker/lcf.py` no sabe ninguna regla
+  del formato. Perder los nombres de `data/` es aceptado: vuelven el día que el
+  pipeline sea Rust y Ditto sea una lib. El porqué entero está en `DITTO.md`;
+  no versionar el exacto es lo que hace que la única fuente del binario sea el
+  juego, que es lo que `ditto pack` ya necesitaba tener al lado para comparar.
 
 * **Un caso largo en cero no prueba nada por sí solo.** El caso `talan` estuvo
   una vez en verde sin ejercitar nada —la página no compilaba, los dos lados no
@@ -1724,7 +1734,7 @@ raíz, y cada `.py` fue a un paquete de Python de verdad, que se importa por su
 nombre (`from rpgmaker import lcf`). De abajo hacia arriba, y ninguna importa
 de una de más arriba:
 
-    rpgmaker/    lcf, ditto_schema, event_codes, rm2k
+    rpgmaker/    lcf, event_codes, rm2k
     comun/       cache_disco
     ensamblado/  bancos, ensamblar
     emulador/    retro, bsnes-wram.patch
@@ -1828,8 +1838,11 @@ decida taro:
   se fueron.
 * **`tools/rpgmaker/gen_ditto_schema.py`** no lo corría ninguna receta y era de
   donde salía `tools/rpgmaker/ditto_schema.py`, que sí es pipeline. Cerrado el
-  2026-09-20 dándolo vuelta: el esquema lo **publica Ditto** —`ditto schema`,
-  que es `just esquema`— y Python lo lee; el generador se borró.
+  2026-09-20 dándolo vuelta: el esquema lo **publica Ditto** —`ditto schema`—
+  y Python lo leía; el generador se borró. Ese mismo día se cerró del todo:
+  `data/` pasó a ser la vista resuelta y el esquema dejó de tener un lector de
+  este lado, así que `ditto_schema.py`, su JSON, `just esquema` y
+  `test_esquema.py` se fueron también.
 * **`assets/medir.py`** se fue, y con él la forma de repetir los números de
   `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.
 * **Las cuatro esquinas de la cámara** y **el audio contra el MIDI** quedaron
