@@ -1048,6 +1048,14 @@ grupo_listo:
     stz eleg_activo
     stz msg_estado
     stz msg_subir
+    ; Los dos que dicen quién abrió el mensaje. En basura, `par_ev` haría que
+    ; el primer plano anotara un dueño cualquiera y `un_paralelo` saltearía
+    ; para siempre al evento que llevara ese número: es de los errores que
+    ; `test_cores.py` ve y una golden no, porque bsnes arranca la WRAM con
+    ; basura y snes9x en cero.
+    lda #$FF
+    sta msg_duenio
+    sta par_ev
     ; Y su cola de escapes, por lo mismo: una pausa en basura frenaría la
     ; página igual que `msg_abierto`. Hoy no se leen sin que `msg_empezar` las
     ; haya escrito, pero eso vale mientras el guard de arriba siga siendo
@@ -2934,6 +2942,11 @@ lazo:
     cmp par_n
     bcc lazo
 
+    ; Fuera del lazo no hay paralelo, y eso es lo que `op_message` mira para
+    ; saber si el mensaje que abre es de un paralelo o del primer plano.
+    lda #$FF
+    sta par_ev
+
     pla
     sta ev_activo
     pla
@@ -2965,6 +2978,25 @@ lazo:
 .proc un_paralelo
 .a8
 .i16
+    ; Con un mensaje en pantalla un paralelo sigue corriendo —para eso
+    ; existe—, **salvo que el mensaje sea suyo**: el guard de
+    ; `Game_Interpreter::Update` es `IsMessageActive() && _state.show_message`
+    ; (easyrpg `game_interpreter.cpp:434-441`). Sin esto, el paralelo del
+    ; guardia del `Lazer Teeth HQ` prendía sus dos switches y se echaba a
+    ; caminar un tick después de pedir su propio mensaje.
+    ;
+    ; Su estado no se lee ni se guarda: este cuadro no lo toca. El paso del
+    ; evento sí se da, porque `Game_Event::Update` llama a
+    ; `Game_Character::Update()` pase lo que pase con el intérprete.
+    lda msg_abierto
+    ora msg_estado              ; también mientras se compone
+    ora eleg_activo
+    beq no_es_mio
+    lda msg_duenio
+    cmp par_ev
+    bne no_es_mio
+    jmp dar_el_paso             ; `beq` no llega: el cuerpo está en el medio
+no_es_mio:
     ; Dónde cae su estado: el evento por ocho.
     rep #$20
 .a16
@@ -3071,6 +3103,7 @@ guardar:
     lda ev_activo
     sta WMDATA
 
+dar_el_paso:
     ; Y el paso de **este** evento, acá mismo y no al final de la vuelta.
     ; `Game_Event::Update` corre el intérprete paralelo y a continuación llama a
     ; `Game_Character::Update()` —easyrpg, `game_event.cpp:580`—, y
@@ -4152,6 +4185,26 @@ otro:
 ; viaja en el cartucho es un byte por letra y lo compone el 65816, que es la
 ; salida de FF6.
 op_message:
+    ; Un paralelo no abre su mensaje encima del de otro: **espera**.
+    ; `CommandShowMessage` arranca con `if (!CanShowMessage(main_flag)) return
+    ; false;` y para un intérprete de fondo eso es `!is_active` (easyrpg
+    ; `game_interpreter.cpp:928` y `window_message.h:216`); devolver false deja
+    ; el cursor donde estaba, o sea que el opcode se reintenta el cuadro que
+    ; viene. El primer plano no necesita el chequeo —con un mensaje abierto
+    ; `eventos_tick` ni siquiera lo llama— y por eso el que decide es `par_ev`.
+    lda par_ev
+    cmp #$FF
+    beq abrir                   ; primer plano
+    lda msg_abierto
+    ora msg_estado
+    ora eleg_activo
+    beq abrir
+    dey                         ; el cursor vuelve a este mismo opcode
+    sty ev_cur
+    rts
+abrir:
+    lda par_ev
+    sta msg_duenio              ; $FF si lo abre el primer plano
     ; El mensaje no aparece en este cuadro: hay que componerle el texto, y eso
     ; lleva unos cuantos. La ventana se prende sola cuando el compositor
     ; termina; mientras tanto la página ya está bloqueada.
@@ -22250,6 +22303,13 @@ ruta_frec_op: .res 1
 ; Van acá y no en la página cero porque no se tocan en ningún lazo cerrado, y
 ; la página cero la necesita el compositor de texto.
 msg_abierto: .res 1
+
+; De quién es el mensaje que está en pantalla: el evento del paralelo que lo
+; abrió, o $FF si lo abrió el primer plano —o si no hay ninguno—. Es el
+; `_state.show_message` de easyrpg, que allá es un campo por intérprete y acá
+; alcanza con uno solo porque hay un mensaje a la vez. Lo escribe `op_message`
+; copiando `par_ev`, que vale $FF fuera del lazo de paralelos.
+msg_duenio:  .res 1
 
 ; El estado del compositor. Un mensaje no aparece en el cuadro en que se lo
 ; pide: se compone de a MSG_CHARS caracteres por vuelta del lazo, renglón por

@@ -287,3 +287,36 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
     assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
         "el A que cerró el mensaje le habló también a EV0060, que el héroe "
         "tenía enfrente")
+
+
+# Los dos switches que prende la pág. 3 de `LTSentry1` —el guardia que viene a
+# ver qué pasó— **después** de su propio mensaje: el 46 y el 51.
+SWITCHES_DEL_GUARDIA = (46, 51)
+
+
+def test_un_paralelo_espera_a_su_propio_mensaje(partida):
+    """La tercera divergencia de los mensajes, y la que quedó para el final.
+
+    Un intérprete paralelo sigue corriendo con un mensaje en pantalla —para
+    eso existe— **salvo que el mensaje sea suyo**: el guard de
+    `Game_Interpreter::Update` es `IsMessageActive() && _state.show_message`
+    (easyrpg `game_interpreter.cpp:434-441`). Acá el paralelo del guardia
+    abría su mensaje y seguía de largo en el mismo cuadro, así que los dos
+    switches que van detrás del `ShowMessage` se prendían **un tick después de
+    que el mensaje empezara a componerse**, con el texto todavía en pantalla,
+    y el guardia arrancaba a caminar mientras hablaba.
+    """
+    p = tirarle_a_la_pc(hablarle_a_la_reja(partida(caso=MAPAS)))
+    for numero in SWITCHES_DEL_GUARDIA:
+        assert not p.switch(numero), (
+            "el switch %d está prendido con el mensaje del guardia todavía "
+            "abierto: su paralelo siguió corriendo detrás de su propio "
+            "`ShowMessage`" % numero)
+
+    p.tocar("a")
+    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
+    p.correr(10)
+    for numero in SWITCHES_DEL_GUARDIA:
+        assert p.switch(numero), (
+            "cerrado el mensaje, el paralelo tiene que seguir donde estaba y "
+            "prender el switch %d; quedó apagado" % numero)
