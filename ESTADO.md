@@ -149,9 +149,12 @@ vuelta a vuelta.
 Cuántas pruebas hay y cuántas pasan lo imprime **`just pruebas`**, que desde el
 2026-09-16 las corre todas: la tanda de regresión dejó de ser una tanda aparte y
 sus casos son pruebas de pytest en `pruebas/*/test_tanda*.py`, contra las goldens.
-Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —es
-un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
-en "Lo que la tanda no cubre".
+**Ya no hay ningún `xfail`**: el que quedaba —el de la *página de prueba* de
+guardado, que no llegaba a guardar si la partida cambiaba de mapa— dejó de
+reproducirse el 2026-09-20 y no porque se haya arreglado nada, sino porque el
+cartucho que lleva la pantalla de título pasó a arrancar en el mapa 4. Quedó
+como prueba normal, con el diagnóstico entero adentro, en
+`pruebas/rpgmaker/test_titulo.py`.
 
 Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
 `voodoo-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
@@ -547,18 +550,14 @@ cada uno lo tiene el registro. Lo que dejaron y sigue valiendo:
    para el del juego los `en-<mapa>`, con la celda donde el héroe caía cuando
    ese mapa era el de arranque de su cartucho.
 
-   **Son cuatro y no uno**, y cada uno tiene su porqué en `CARTUCHOS`:
+   **Son tres y no uno**, y cada uno tiene su porqué en `CARTUCHOS`:
 
    * `pruebas`, los 40 mapas arrancando en el 6, con todo lo que entra;
-   * `titulo`, el mismo con pantalla de título —y un tema de arranque—. El
-     título cambia el arranque del cartucho entero: con él adentro caían 28
-     pruebas por el arnés y se movían tres goldens. Como lleva los mismos
-     mapas y casos, `test_titulo_es_el_mismo_juego` lo compara contra el de
-     pruebas;
-   * `juego`, los 40 mapas arrancando en el 4 con cronómetro: el recorrido,
-     el save point, la apertura y el cartel. Llegar al 4 con un `Teleport` no
-     es arrancar ahí —la cinemática sale con otra rampa y otro tinte—, y el
-     cronómetro en todos los mapas le saca una paleta a cada uno;
+   * `juego`, los 40 mapas arrancando en el 4, con cronómetro **y con la
+     pantalla de título**: el recorrido, el save point, la apertura, el cartel
+     y todo lo del título. Llegar al 4 con un `Teleport` no es arrancar ahí
+     —la cinemática sale con otra rampa y otro tinte—, y el cronómetro en
+     todos los mapas le saca una paleta a cada uno;
    * `chico`, lo que no entra o cuida una disposición del cartucho: **los
      casos con los actores 12 y 13 en el grupo** —decisión de taro:
      en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
@@ -570,6 +569,19 @@ cada uno lo tiene el registro. Lo que dejaron y sigue valiendo:
 
    `ChangeEncounterSteps` no está implementado, así que los encuentros de
    prueba siguen siendo un flag del cartucho chico.
+
+   **El cartucho `titulo` se fue el 2026-09-20**, y con él
+   `test_titulo_es_el_mismo_juego`. Era el de pruebas con la pantalla delante
+   y con sus mismos mapas y casos, y esa igualdad era su razón de ser: aquella
+   prueba lo comparaba contra el de pruebas. Se midió antes de tocarlo, con un
+   cartucho armado sólo para eso, que **el título no mueve una sola golden**:
+   las cuatro de la pantalla salen idénticas arrancando en el 4 en vez de en
+   el 6, y las diecisiete de `cinematica`, `apertura` y `cartel` —congeladas
+   sin título— salen byte por byte iguales sacadas a través de él. La prueba
+   que se fue comparaba dos capturas **negras** —57.344 pixeles de un solo
+   color—, así que la pregunta "¿son la misma ROM?" la contestan mejor esas
+   diecisiete, que pasan por el título y se ven. Ahorra 42 segundos de `just
+   cartuchos`: 1m55 a 1m13, medido con el caché caliente.
 
    **El quinto cartucho, `cruza`, se fue el 2026-09-20.** Existía sólo por
    `--relleno-de-mensajes`: bytes muertos delante del bloque de textos para
