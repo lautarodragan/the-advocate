@@ -5020,15 +5020,6 @@ def parser_de_flags():
                              "todas. El banco pasa a no entrar entero en la "
                              "ARAM, que no es un problema: ahí vive un "
                              "paquete de mapa por vez")
-    parser.add_argument("--banco-sin-prioridad", action="store_true",
-                        help="que el tema del mapa de arranque **no** tenga "
-                             "prioridad para aportar muestras al banco. Es "
-                             "para las ROMs de escuchar: arrancar en el mapa "
-                             "20 le da prioridad a su tema y entonces suena "
-                             "entero, que es justo lo contrario de lo que se "
-                             "quiere reproducir. Con esto el reparto del "
-                             "banco es el mismo que el de `demo-ciudad`, que "
-                             "arranca en un mapa sin música")
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
@@ -5703,8 +5694,7 @@ def main():
     # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se,
-        prioridad=([] if args.banco_sin_prioridad
-                   else [t for t in (tema_titulo, arranque) if t != 0xFF]),
+        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF],
         tope=(1 << 30) if args.banco_entero else None)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que

@@ -172,9 +172,13 @@ _xdist:
 cartuchos *args:
   python3 pruebas/arnes/cartuchos.py {{args}}
 
-# Las dos ROMs que taro juega: `demo-ciudad`, la cadena entera de la apertura
-# hasta Lashe City, y `demo-titulo`, la misma con pantalla de título. Van a
-# `rom/build/<nombre>/`, que es donde él las busca.
+# **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
+# con pantalla de título, en `rom/build/abl/abl.sfc`, que es donde él la busca.
+#
+# Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
+# y la de sin no la jugaba nadie —la pantalla de título la cubren por su lado
+# los cartuchos de `cartuchos`—. Es la misma decisión que dejó un solo `.sfc` en
+# `pruebas-manuales/`; está en AGENTS.md.
 #
 # **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
 # juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
@@ -203,15 +207,12 @@ cartuchos *args:
 #                            fondo y de sprite más la ventana no entran en los
 #                            64 KB. Y la elección del 36 es una sola página: o
 #                            compilan los cuatro destinos o no compila ninguno.
-demo nombre="demo-ciudad" titulo="":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  titulo="{{titulo}}"
+demo nombre="abl":
   mkdir -p rom/build/{{nombre}}
   python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
-      --con-timer ${titulo:+--con-titulo} \
+      --con-timer --con-titulo \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -272,152 +273,6 @@ demo-carrera nombre="demo-carrera":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
-# La cinemática de los Neon Vipers. **El mapa es el 14, `NV Get Talan to Work`**,
-# no el 11: la escena pasa en la calle de enfrente del escondite de los Lazer
-# Teeth, y eso es lo que la hace parecer parte del HQ.
-#
-# Un solo mapa y sin nada que apretar para llegar: la página del `SceneDriver` es
-# **automática y sin condición**, así que arranca sola al entrar. Lo único que
-# hace el jugador es apretar A cuadro por cuadro.
-#
-# Sirve para ver la escena entera y no para reproducir el defecto del cuadro de
-# texto que cae sobre el borde de banco del bloque de textos: **con un mapa solo
-# el bloque no llega a cruzar**. Para eso están `demo-ciudad`, que es la que taro
-# jugó, y el caso `texto-cruza` de la tanda.
-#
-# `--grupo 14` es Talan, igual que en la carrera y en las piedras.
-demo-vipers nombre="demo-vipers":
-  mkdir -p rom/build/{{nombre}}
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 14 \
-      --con-timer \
-      -o rom/build/{{nombre}}/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
-
-# El minijuego de las piedras del `Lazer Teeth HQ`, para jugarlo sin caminar
-# media Lashe City. Un solo mapa —el 11— y el héroe **parado abajo de la reja**.
-#
-# Cómo se juega, que es lo que el juego mismo explica en el cuadro de texto:
-# apretar A mirando la reja —Talan agarra tres piedras y prende el switch 43,
-# que es lo que activa el motor del minijuego—, y después **A y enseguida una
-# dirección** para tirar una. La piedra vuela en esa dirección hasta chocar, y
-# los cuatro `Block*` de (31..33, 55..56) son adonde va a parar.
-#
-# **`--inicio 26 52` es la celda de abajo de `Grate1`**, que está en (26,51) y
-# es pared: al entrar, Talan mira para abajo, así que hay que tocar arriba una
-# vez —que lo gira sin moverlo, porque la reja no se pisa— y después A.
-#
-# `--grupo 14` es Talan, que es con quien el juego llega hasta acá, igual que
-# en `demo-carrera`. Con el grupo de pruebas el héroe sería Kersh.
-#
-# Aparte de `demo` por lo mismo que la carrera: el mapa inicial es otro y
-# la lista de mapas no se parece en nada.
-demo-piedras nombre="demo-piedras":
-  mkdir -p rom/build/{{nombre}}
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 11 \
-      --con-timer --inicio 26 52 \
-      -o rom/build/{{nombre}}/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
-
-# Los cofres del Sector 30 y de los Rat Tracks, para probar la colisión sin
-# cruzar media Lashe City. Tres mapas —el 20, el 21 y el 26— y el héroe parado
-# **al lado del Slum30Chest1c**, en (80,19).
-#
-# Lo que la hace distinta de entrar caminando: **arranca con la bandera de
-# atravesar paredes prendida**, que es el estado en el que el Hover-Tram deja a
-# la partida —ver "Atravesar paredes vale mientras dura la ruta" en README.md—.
-# La página de prueba le fuerza al héroe una ruta de una sola orden, la 36, sin
-# un solo paso; no se ve ni se oye nada. Con la ROM de antes del 2026-09-13, con
-# esa bandera puesta se le camina por encima a todos los eventos del cartucho;
-# con ésta, a ninguno.
-#
-# `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
-demo-cofres nombre="demo-cofres":
-  mkdir -p rom/build/{{nombre}}
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
-      --con-timer --inicio 80 19 \
-      -o rom/build/{{nombre}}/mapdata.inc \
-      --comandos-de-prueba pruebas/casos/atravesar-sin-paso.json
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
-
-# La misma demo que `demo-ciudad` pero **arrancando en el mapa que se le diga**,
-# para escuchar su tema sin tener que caminar hasta ahí.
-#
-#   just musica 20 wb3shop
-#   just musica 20 wb3shop banco-entero
-#
-# **El tema se pasa a mano y no sale del mapa**: la mayoría de esos mapas no
-# tiene BGM propia en el LDB —la prende un `PlayBGM` de una de sus páginas— así
-# que arrancar ahí sin `--tema-de-arranque` deja la ROM muda hasta que corra esa
-# página, que suele pedir switches de la historia.
-#
-# **Lleva los mismos mapas que `demo-ciudad` a propósito, y
-# `--banco-sin-prioridad`.** El tema suena distinto según con cuántos comparta el
-# banco de muestras: una ROM de un mapa solo le da el banco entero y no reproduce
-# lo que taro oye. Y arrancar en un mapa le daba **prioridad** a su tema
-# —`build_varios` se la da al del mapa de arranque— así que sonaba entero, que es
-# justo lo contrario de lo que hay que escuchar. Ver "El paquete de audio de cada
-# mapa" en el README.
-#
-# `banco-entero` es la comparación que hay que hacer de oído: sin él los temas
-# del final de la lista no aportan ninguna muestra y se les caen del stream las
-# notas cuyo programa no está; con él no se le cae ninguna nota a nadie y lo que
-# baja es la resolución de todas.
-musica mapa tema banco="":
-  #!/usr/bin/env bash
-  set -euo pipefail
-  nombre="musica-{{mapa}}-{{tema}}{{ if banco == "" { "" } else { "-banco-entero" } }}"
-  # La tabla de mapas es **la de `demo-ciudad`, en su orden**, y el mapa donde
-  # arranca se elige con `--inicial`, que es un índice en esa tabla. No con
-  # `--map-id`: ése pone al mapa primero en la tabla, y el orden de la tabla es
-  # el orden en que se numeran los temas, así que el tema del mapa elegido
-  # quedaba **primero de la lista** y por lo tanto entre los que sí aportan al
-  # banco. Medido: `musica-20` armada con `--map-id 20` daba `wb3shop` al 100%.
-  tabla="4 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 32 33 34 36"
-  inicial=$(echo $tabla | tr ' ' '\n' | grep -nx "{{mapa}}" | cut -d: -f1)
-  if [ -z "$inicial" ]; then echo "el mapa {{mapa}} no está en demo-ciudad"; exit 1; fi
-  inicial=$((inicial - 1))
-  mkdir -p rom/build/$nombre
-  python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
-      --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
-              32 33 34 36 \
-      --inicial $inicial --tema-de-arranque {{tema}} \
-      --con-timer --banco-sin-prioridad \
-      {{ if banco == "" { "" } else { "--banco-entero" } }} \
-      -o rom/build/$nombre/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/$nombre \
-      -o rom/build/$nombre/$nombre.sfc \
-      --simbolos rom/build/$nombre/$nombre.sfc.sym
-
-# El cofre trampa de los Rat Tracks B1, al lado del héroe: la demo más corta
-# posible para ver el Game Over de la pelea que ese cofre abre. Arranca pegado al
-# `RatTrackChest6c`; con mirar hacia arriba y apretar A la pelea empieza, y con
-# Talan solo —y la huida prohibida por la página— se pierde en unos segundos.
-#
-# Es lo que reprodujo el cuelgue de perder ahí, que dejaba la consola clavada en
-# el arranque con el mapa dibujado y el juego muerto. El porqué está en `main.s`,
-# en el `APU_CMD_IPL` que `reset` manda antes de `spc_upload`. Lleva también el
-# mapa 26 para poder seguir a los Rat Tracks B2 y probar de paso el jefe, que
-# pierde igual.
-demo-trampa nombre="demo-trampa":
-  mkdir -p rom/build/{{nombre}}
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 21 --mapas 26 \
-      --con-timer --inicio 22 36 \
-      -o rom/build/{{nombre}}/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
-
-# Las dos de una vez.
-demos:
-  just demo demo-ciudad
-  just demo demo-titulo 1
-
 # Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
 # —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
 # `demo` porque no hace falta para jugar: sin estos archivos la ROM suena
@@ -427,5 +282,5 @@ demos:
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
 # el MSU-1 no se enciende.
-msu nombre="demo-ciudad":
+msu nombre="abl":
   python3 tools/audio/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
