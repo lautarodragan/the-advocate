@@ -13,8 +13,10 @@ Se escribe **mientras se trabaja**, no al final.
 
 **Lo que no se está trabajando activamente tampoco va acá, y desde el
 2026-09-20 tiene dónde ir**: `wishlist/` es lo que nos gustaría hacer y nadie
-está haciendo, un archivo por idea, y `divergencias/` es dónde la ROM no hace
-lo que RM2k hace, con lo medido y cómo reproducirlo.
+está haciendo, un archivo por idea; `divergencias/` es dónde la ROM no hace lo
+que RM2k hace, con lo medido y cómo reproducirlo; y `decisiones/` son las
+decisiones tomadas que siguen valiendo, las que hay que conocer para no
+rehacerlas ni contradecirlas.
 
 El 2026-09-15 pasó de 2.703 líneas a menos de 800: se habían acumulado treinta
 secciones fechadas de "taro reportó tal cosa, se arregló así", que es justo lo
@@ -723,271 +725,29 @@ para no volver a pensarlo:
 * **El dibujo de las animaciones de batalla**: está medido y sin empezar; el
   sonido y la luz sí están.
 
-## Decisiones tomadas que siguen valiendo
+## Dos que decían ser decisiones y hay que mirar antes de mudarlas
 
-Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
-de cada una está en `README.md`.
-
-* **`data/` es la vista resuelta, y el volcado exacto no se versiona.** Del
-  2026-09-20: `ditto unpack` emite las dos en la misma corrida —`data/` con
-  todos los campos escritos y los enums en número, y `rom/build/ditto-exacto/`
-  con la forma del binario—, y `tools/rpgmaker/lcf.py` no sabe ninguna regla
-  del formato. Perder los nombres de `data/` es aceptado: vuelven el día que el
-  pipeline sea Rust y Ditto sea una lib. El porqué entero está en `DITTO.md`;
-  no versionar el exacto es lo que hace que la única fuente del binario sea el
-  juego, que es lo que `ditto pack` ya necesitaba tener al lado para comparar.
-
-* **Un caso largo en cero no prueba nada por sí solo.** El caso `talan` estuvo
-  una vez en verde sin ejercitar nada —la página no compilaba, los dos lados no
-  hacían nada— y mil doscientos cuadros de cero se ven muy convincentes. Antes
-  de creerle a un cero hay que **ver la página compilar**, y mejor todavía,
-  verlo dar rojo con algo roto a propósito. Lo delató algo suelto: la lista de
-  temas del cartucho bajó de cuatro a tres.
-
-* **La página activa de un evento se congela hasta el refresco.** No se
-  recalcula cada vez que alguien pregunta: es `Game_Event::page`, y sólo la
-  reescribe `Game_Map::Refresh()`, al principio de `Game_Map::Update`. La ROM
-  ya lo hacía —la guarda en la fila del NPC— y la referencia no, hasta que el
-  2026-09-06 las dos pasaron a guardar la instantánea. De ahí queda una regla
-  para cualquier lazo que corte a mano: **no se corta con un refresco
-  pendiente**, porque el cuadro que viene sí hace algo.
-
-* **Los eventos disparan con dos bits cada uno, no con una cola.** Es el
-  `waiting_execution` de `Game_Event`: `FLAG_AUTO` dice si la página activa del
-  evento es una automática que compiló y `FLAG_ESPERA` si tiene una página
-  esperando turno, la haya puesto el barrido de las automáticas, la tecla de
-  acción o un contacto. Reemplazó a una cola de ocho punteros que se llenaba y
-  descartaba —y que pasada la octava interacción leía sus propios contadores
-  como bytecode—.
-
-  De ahí salen dos cosas que antes no pasaban: una automática **se repite**
-  mientras siga siendo la activa, y una que se vuelve activa con el mapa ya
-  cargado **arranca**. Lo segundo es lo que dejaba muerta la segunda mitad del
-  recuerdo de CORE y MANTA, y como la ROM y la referencia se equivocaban igual,
-  la comparación daba cero.
-
-* **El refresco corre en tres momentos y está partido en dos mitades.** No es
-  una optimización de gusto: es lo que lo hace entrar en un cuadro.
-
-      al salir del intérprete   elige sólo los eventos con automáticas
-      al empezar el cuadro      elige todas las páginas activas
-      ídem, después             recarga rutas y gráficos de los NPCs
-
-  Lo primero es el `if (GetNeedRefresh()) Refresh();` del final de
-  `Game_Interpreter::Update`, y de él depende que el idioma de RM2k funcione:
-  una página que prende el switch que la desactiva deja de ser la activa antes
-  de que se decida qué corre después. Sin eso perdía ocho cuadros en el mapa 2
-  arrancándose a sí misma.
-
-  EasyRPG además refresca **antes de cada comando**. Acá no hace falta y sale
-  caro —cinco cuadros en la cinemática de apertura, que prende switches de a
-  montones—: ningún opcode de los que hay lee cuál es la página activa de un
-  evento. El día que aparezca uno que sí, esto vuelve al lazo.
-
-  Y la mitad cara —recargar filas de OAM y ranuras de ruta— se posterga al
-  cuadro siguiente porque no se ve hasta que se dibuje.
-
-* **La página de prueba se apaga sola**, prendiendo el switch 1023 en su primer
-  comando, con una segunda página vacía que lo pide. Es el idioma con el que
-  las páginas del juego se desactivan, y no lo ejercitaba nada; sin él, ahora
-  que las automáticas se repiten, la página de prueba reiniciaría su propia
-  ruta para siempre. Su evento es el primer índice libre del mapa y no un
-  número alto: los barridos de la ROM van de cero a `ev_total`.
-
-* **`ConditionalBranch`: cinco de las doce clases.** Switch, variable, oro,
-   objeto y actor, y de la de actor tres de sus siete preguntas —está en el
-   grupo, sabe la habilidad, tiene puesto el objeto—. El renglón de abajo es
-   de cuando sólo había switch y se deja porque el porqué sigue valiendo; los
-   números de hoy están arriba.
-
-   Lo viejo: **sólo con condiciones de switch.** Son 21 páginas de
-   las 24 que el comando destraba; las tres que faltan preguntan por el héroe
-   en el grupo, y sin grupo variable esa rama daría siempre lo mismo: modelarla
-   sin nada que la ejercite es inventarse una diferencia. Las variables suman
-   cero, medido.
-
-  Compila a dos opcodes: `OP_IF` —switch, polaridad y destino— y `OP_GOTO`, el
-  salto sin condición que va donde estaba el `else`. **El destino es absoluto
-  dentro de la página**, así que en la ROM saltar es asignar el cursor; quién
-  es ese destino lo resuelve el conversor, que es el único que ve la página
-  entera, emitiéndolo en blanco y parcheándolo al cerrar la rama. El
-  anidamiento sale de una pila y no de mirar la indentación como
-  `SkipToNextConditional`: él recorre una lista lineal, acá los bloques ya
-  vienen anidados.
-
-* **Las órdenes de ruta 26 y 27 sobre el héroe se aceptan y se tiran.** Fijar y
-  soltar la mirada. Decidido con taro el 2026-09-06: son un extra y el juego se
-  puede jugar sin ellas. Se tiran **al compilar**, así que no llegan al
-  cartucho y no hay nada a medias. Las 28 y 29 —la
-  velocidad— sí se hacen, y con ellas el paso del héroe dejó de ser fijo: cuenta
-  medias unidades de RM2k y **queda a la velocidad que la ruta le dejó**, como
-  en RM2k, que repone la frecuencia al terminar pero no la velocidad.
-
-* **La orden 9 de ruta, `move_towards_hero`, se camina desde el 2026-09-12.**
-  No es una orden nueva: `UpdateMoveRoute` hace `TurnTowardCharacter(hero)` y
-  después `Move(GetDirection())`, o sea la 21 y un `move_*` pegados, así que
-  los dos lados la resuelven con lo que ya tenían. Medido sobre el juego
-  entero, **+33 páginas** —de 2802 a 2835—, y es la única que rendía: las otras
-  nueve que faltan (al azar, huyendo del héroe, hacia adelante y los cinco
-  giros en el lugar) suman **+1 entre todas**, así que no se hicieron. La cubre
-  `npc-hacia-heroe`. Queda afuera en las **rutas propias de página**, que son
-  dos del mapa 105 y ninguna prueba llega ahí; ver `ruta_propia`.
-* **Las diagonales van sobre eventos y no sobre el héroe**, y siguen así: su
-  paso está escrito una vez por dirección, y de las 26 rutas del juego con
-  diagonales ninguna es del héroe. El conversor rechaza la página que lo
-  intente.
-
-* **`CallEvent` se compila en línea desde el 2026-09-12**, y con eso el
-  Hover-Tram del mapa 9 se puede tomar. En RM2k es `Push<ExecutionType::Call>`,
-  una pila de intérpretes; acá no hace falta ninguna, porque el llamado corre
-  entero antes de que siga el que llamó, así que pegar su bytecode en el lugar
-  da lo mismo. **Ninguna llamada de este juego es recursiva**, medido, y el
-  anidamiento se topa en `LLAMADA_MAX`.
-
-  Es la única de las cuatro piezas que **no toca al intérprete**: lo que cambia
-  es el bytecode que se emite, no quién lo corre. Cuando existía la referencia
-  su caso se verificaba en rojo bajándole `LLAMADA_MAX` a un solo lado; hoy, sin
-  segundo lado, lo que queda es la golden.
-
-  Lo medido: **cero páginas ganadas y cero perdidas** —2882 antes y después—,
-  porque si el llamado no compila la llamada se saltea, que es lo que el port
-  venía haciendo. Exigir que compilara costaría **183 páginas** de las 221 que
-  compilan y llaman. Se hacen de verdad **10 llamadas** en cuatro mapas —el 9,
-  el 11, el 114 y uno más— y se siguen salteando 216, casi todas a eventos
-  comunes que se cortan en `ControlVars` y en los menús propios del original.
-  El precio en cartucho es **+608 bytes de bytecode en todo el juego, +0,9%**,
-  y se lo llevan tres mapas: el 11 (+344), el 9 (+195) y el 114 (+69).
-
-* **La orden 34 sobre el héroe se hace desde el 2026-09-12**, y lo que la tenía
-  afuera resultó no valer: su gráfico sale de la tabla de actores, pero las
-  doce poses del actor están escritas **con la misma forma** que una entrada de
-  `npc_poses`, así que la ROM le mueve el puntero a `hero_poses` y `place_hero`
-  ni se entera. Son **+30 páginas** del juego —de 2835 a 2865— y 16
-  automáticas, y entre ellas las tres del `EV0047` del mapa 8, con el que taro
-  nunca pudo interactuar, y la del `Hover-Tram` del mapa 9, que le cambia el
-  gráfico al héroe para subirlo. Lo que cuesta, las dos cosas declaradas y
-  modeladas igual de los dos lados:
-
-  * **Mientras el cambio está puesto, el héroe se dibuja con la paleta del
-    gráfico nuevo**, que es una de las ocho de sprite del mapa, y no con la
-    ranura propia del líder. `hero_cgram` se apaga al cambiar: dejarlo puesto
-    le escribiría los quince colores de Talan encima a la paleta del gráfico,
-    porque `aplicar_tinte` los sube **en la fila que dice `hero_pal`**.
-  * **No sobrevive al cambio de mapa.** Las poses viven en el banco de sprites
-    del mapa, así que el gráfico de allá no existe acá; la ROM lo repone en
-    `elegir_grafico_heroe`. En RM2k
-    `Game_Player` se lo lleva. No se nota: la única página del juego que cambia
-    el gráfico del héroe y después salta lo vuelve a poner en el comando
-    siguiente al teletransporte.
-
-  Y lo que cuesta en el cartucho, medido sobre `abl`: el gráfico al que
-  una ruta cambia al héroe entra al **banco de sprites del mapa**, como el de
-  cualquier evento. En el mapa 9 son dos más —`Future2:7` y `Future1:0`— y con
-  ellos un evento dibujado con un tile del chipset pasa a colgarse de una
-  paleta ajena. **Las animaciones de batalla del mapa 9 no se dibujaban ya
-  antes**: el control sin la 34 da el mismo aviso, así que ese mapa llenaba las
-  ocho paletas por su cuenta.
-
-  Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama —el gráfico que se
-  ve y el `nobodyhere`, que esconde al héroe como esconde a un evento—. * **Los
-  temas comparten un solo banco de muestras.** Un banco por tema pediría subirlo
-  en cada `PlayBGM` —medio segundo, o sea treinta cuadros de juego frenado—. La
-  razón que lo cerró en su momento era además que había que modelarlo en la
-  referencia, y modelar cuánto tarda una transferencia es justo lo que no se
-  puede medir honestamente; **esa mitad se cayó con la referencia** y lo que
-  queda en pie es el medio segundo. Si alguna vez se reabre, es por ahí. * **El
-  arranque está dimensionado para el techo de ARAM**, no para el banco de hoy:
-  `BOOT_CUADROS = 112` y `--arranque 115`. Cuesta 1,9 s de mapa congelado al
-  encender y a cambio llenar la ARAM no cuesta nada. Lo que lo compraría de
-  vuelta es un driver del SPC700 que reciba por los cuatro puertos en vez del
-  uno del IPL. * **Un gráfico que no entra en las ocho paletas de sprite no se
-  dibuja.** Lo decide el conversor, con una sola función. Vale para los eventos
-  dibujados con un tile del chipset y, desde la orden 34, para los gráficos a
-  los que una ruta cambia: ahí la orden esconde al evento en vez de cambiarlo.
-  Forzarlos rompía tres mapas —el 108, el 114 y el 207—. * **La tecla de acción
-  mira las dos celdas, y cada una pide la capa contraria.**
-  `CheckEventTriggerHere` quiere `GetLayer() != Layers_same` y
-  `CheckEventTriggerThere` quiere `== Layers_same`. No es simetría de adorno: un
-  evento de la capa del héroe le cierra el paso, así que nunca se podría parar
-  encima; uno de otra capa no lo frena y se le camina por arriba. El filtro vive
-  en la ROM y no en el conversor, porque la misma página vale o no según qué
-  celda la esté mirando.
-
-* **Se dibujan todos los eventos, aunque sea con una paleta ajena.** Es de taro:
-  *"si no podemos incluir todos los eventos, el proyecto entero se cae"*. El que
-  no consigue paleta propia se cuelga de la que menos colores le falte, y cada
-  color ausente va al más cercano por luma. Los números están en
-  `assets/LIMITACIONES.md`.
-
-* **Los líderes posibles comparten una ranura de CGRAM.** Lidera uno a la vez,
-  así que darle paleta propia a cada uno es tenerla ocupada por alguien que no
-  está en pantalla. La excepción es el líder que además es NPC de ese mapa —Kersh
-  en los mapas 1 y 6, Talan en el 3—, que se lleva la suya porque las dos filas
-  se usan a la vez.
-
-* **El cronómetro no tiene paleta propia**: entra en la de cualquier personaje
-  que use trece colores o menos. Tenerla aparte costaba un evento sin dibujar en
-  el mapa 2 —la celda del medio de la puerta que Core rompe—, y un evento que no
-  se dibuja igual ocupa lugar en `npcs_dibujables`.
-
-* **Una puerta no es un caso aparte: es una página de contacto con un
-  `Teleport` adentro**, y cruza por el intérprete como cualquier otro evento.
-  Tuvo tabla propia mientras no hubo intérprete —`collect_doors`,
-  `cruzar_puerta`—; se fue el 2026-09-20 porque la tabla congelaba la página
-  activa al empezar la partida y con eso mentía en las dos puertas del mapa 10
-  que el switch 231 cambia de destino. El único que sobrevive de ese camino es
-  `FUNDIDO_PUERTA`, que hoy sólo escribe el arnés para plantar la partida en un
-  mapa: está explicado en su línea de `main.s`.
-
-* **Una puerta al mismo mapa no recarga el mapa.** Recargar vuelve a leer del
-  cartucho las posiciones de los eventos, y con eso se pierde lo que los haya
-  movido aunque el jugador nunca haya salido. Es el `map_changed` de
-  `Game_Player::PerformTeleport`, y lo cuida `test_puerta_misma.py`.
-
-* **Atravesar paredes vale también para el salto**, no sólo para la caminata:
-  `CheckOrMakeWayEx` corta con `if (self.GetThrough()) return true;` antes de
-  mirar la pasabilidad, y `BeginMoveRouteJump` pasa por ahí. Pero **no es salirse
-  del mapa**: el chequeo de límites va antes, así que el que atraviesa se queda
-  clavado en la última columna.
-
-* **Agotar el presupuesto de teletransportes es un error, no un caso.** Al
-  agotarse, la ROM llama a `entrar_en_panico` en vez de seguir. Un salto
-  descartado en silencio es la forma de falla que
-  AGENTS.md nombra, y ésta sobrevivió semanas porque la partida seguía
-  andando, sólo que en el mapa equivocado.
+Las decisiones tomadas que siguen valiendo **se fueron a `decisiones/`**, un
+archivo por decisión: son el piso sobre el que se trabaja, no trabajo a medias.
+Estas dos no se mudaron porque no está claro que sigan valiendo, y eso lo mira
+taro:
 
 * **Las ROMs para probar a mano viven en `pruebas-manuales/<fecha>-<commit>/`**,
   en el repo y gitignorado, desde el 2026-09-12: taro las saca desde el host, y
   sacarlas de `/extras` pedía un `podman cp` cada vez. Lo anterior a esa fecha
   quedó en `/extras/builds/`. **Cuidado con el disco**: un build con las ocho
   pistas de MSU-1 son 383 MB, y éste es el disco de taro y no un volumen
-  descartable; conviene dejar el último y borrar los anteriores.
-
-* **Los gráficos están todos medidos y viven en `assets/`.** El titular, para no
-  tener que abrirlo: **el juego entra en 4 MB**. Son unos 2,9 MB entre mapas,
-  sprites, tiles y música, más 2,7 de arte que todavía no dibuja nadie.
-
-* **Los líderes posibles son una aproximación.** El conversor simula los
-  `ChangePartyMembers` de las páginas que compilan para saber qué actores pueden
-  ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el primer
-  lugar donde mirar; `pruebas/herramientas/test_lideres.py` cuida la parte que ya falló.
-
-* **El cartucho se queda en 4 MB.** Decidido con taro el 2026-09-13, con el
-  número delante: la demo de 29 mapas, siete animaciones, la batalla y 19 temas
-  pesa **2,52 MB, el 60%**. Para el juego entero **no alcanza** —`assets/README.md`
-  tiene la cuenta: ~2,9 MB de mapas, sprites, colisión y música, más 2,7 MB de
-  arte sin dibujar, y las 42 animaciones de batalla serían otros ~1,7 MB: unos 7
-  MB—. Pero el paso siguiente no es agrandar el cartucho: **LoROM topa en 4 MB**
-  y pasar de ahí es ExHiROM, o sea cambiar cómo se calcula cada dirección, con
-  todo lo que eso rompe en hardware y no en el emulador. Lo barato está antes, y
-  está medido en `assets/README.md`: el conversor **cuantiza por mapa**, así que
-  dos mapas que comparten chipset reciben paletas distintas y el mismo dibujo
-  termina siendo bytes distintos. Se revisa al llegar al 85-90% del cartucho.
-
+  descartable; conviene dejar el último y borrar los anteriores. **Acá dice
+  "el último" y `AGENTS.md` dice "los dos últimos"**, que es más nuevo —del
+  2026-09-20, después de que `pruebas-manuales/` llegara a 4,3 GB—, y además
+  manda que haya un solo `.sfc` por build. O sea que esto es la versión vieja
+  de una regla que ya vive en `AGENTS.md`.
 * **Los builds numerados de `rom/build/` no se arman a mano.** No están en git
   y no los produce ninguna receta salvo el 12. Armar uno a mano es cómo se
-  terminó mirando el mapa 6 creyendo que era la demo del hito 12.
-
+  terminó mirando el mapa 6 creyendo que era la demo del hito 12. **Los hitos
+  no existen desde el 2026-09-16**, así que "salvo el 12" ya no quiere decir
+  nada; lo que sí sigue valiendo es que las ROMs salen de una receta, y eso lo
+  dice `AGENTS.md`.
 
 ## El margen de ROM y de RAM, medido
 
