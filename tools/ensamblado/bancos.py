@@ -179,23 +179,23 @@ BANCOS = 128
 BANCOS_RESERVADOS = 2
 
 # La pila arranca en `$1FFF` y crece hacia abajo, hacia el BSS: los dos
-# comparten los 8 KB bajos. Esto es lo que se le deja.
+# comparten los 8 KB bajos. Esto es lo que se le deja, y el byte más bajo que le
+# toca es `$2000 - PILA`.
 #
-# **Medido de nuevo el 2026-09-19: baja 49 bytes, no 24.** El 24 que decía acá
-# era de antes de la pelea. La medición es la buena y conviene saber cómo se
-# hizo, porque la cadena más honda no se adivina leyendo: se marcó `$1F00-$1FFF`
-# con `$A5` en el `reset`, se corrió `just pruebas` entera y se leyó en cada
-# prueba el byte más bajo que dejó de ser `$A5`. Los 49 son de las peleas, que
-# son las que entran al banco 1 con `jsl` y vuelven por los puentes.
+# **Bajó de 256 a 128 el 2026-09-20, por decisión de taro**, para darle esos 128
+# bytes a la BSS, que está llena. Lo que hace que el margen deje de ser ciego es
+# `pruebas/herramientas/test_pila.py`: marca la zona de la pila **antes del
+# primer cuadro** y mide hasta dónde bajó de verdad en los caminos más hondos,
+# con el umbral en la mitad de acá. Sin esa prueba bajar el número sería gastar
+# un margen que no ve nadie —el modo de falla es la pila comiéndose la BSS, y
+# las goldens no lo distinguen ni `test_cores.py` tampoco, porque los dos
+# emuladores se corromperían igual—.
 #
-# O sea que sobran 207 bytes de margen, y la BSS está llena. **Bajar esto es la
-# forma más barata que hay de liberar BSS —un número y nada más— pero gasta el
-# margen, y el modo de falla es la pila comiéndose la BSS sin que nada lo vea**:
-# las goldens no lo distinguen y `test_cores.py` tampoco, porque los dos
-# emuladores se corromperían igual. Y 49 es lo que bajan los caminos que la
-# tanda ejecuta, no los que existen. Así que se baja con una decisión tomada,
-# no de paso.
-PILA = 256
+# Cuánto se usa **no se escribe acá**: lo imprime esa prueba, y el número que
+# había escrito envejeció dos veces (decía 24 cuando ya eran 49). Lo que sí es
+# de acá es de dónde sale el tope: la cadena más honda son las peleas, que
+# cruzan al banco 1 con `jsl` y vuelven por los puentes.
+PILA = 128
 
 
 def cfg():

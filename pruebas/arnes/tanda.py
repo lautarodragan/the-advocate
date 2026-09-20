@@ -38,7 +38,7 @@ import os
 import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     mapas_de, toques_de)
+                     mapas_de, marcar_la_pila, toques_de)
 
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
@@ -106,7 +106,7 @@ def rom(caso, en=None):
     return uno, uno.casos.index(caso)
 
 
-def partida(caso, nucleo=None, en=None, switches=(), titulo=None):
+def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
     """El caso corriendo, con el arranque ya pasado y, si empieza con un
     `Teleport`, con la llegada ya esperada.
 
@@ -115,14 +115,17 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None):
     anterior.
 
     `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
-    en snes9x y en bsnes. `en` elige el cartucho: ver `rom`.
+    en snes9x y en bsnes. `en` elige el cartucho: ver `rom`. `pila` marca la
+    zona de la pila antes del primer cuadro, y lo usa una sola prueba: ver
+    `consola.marcar_la_pila`.
     """
     uno, k = rom(caso, en)
     return Partida(uno.sfc, uno.simbolos, uno.mapas, switches=switches,
-                   titulo=titulo, nucleo=nucleo, caso=k, salta=uno.saltan[k])
+                   titulo=titulo, nucleo=nucleo, caso=k, salta=uno.saltan[k],
+                   pila=pila)
 
 
-def consola_cruda(caso, en=None):
+def consola_cruda(caso, en=None, pila=False):
     """La ROM con el arranque pasado y **sin reloj de juego**.
 
     Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
@@ -137,10 +140,10 @@ def consola_cruda(caso, en=None):
     `Partida` *es* el reloj de ticks, y una que no pueda contarlos sería una
     que miente sobre lo que sabe.
     """
-    return partida(caso, en=en).consola
+    return partida(caso, en=en, pila=pila).consola
 
 
-def encender(en, cuadros):
+def encender(en, cuadros, pila=False):
     """La ROM del cartucho `en`, recién encendida y con `cuadros` corridos.
 
     Sin caso y sin arranque: es para lo que se mira antes de que haya juego
@@ -148,6 +151,8 @@ def encender(en, cuadros):
     terminó. Corre la página 0, la de siempre.
     """
     consola = retro.Consola(cartucho(en).sfc, NUCLEO)
+    if pila:
+        marcar_la_pila(consola)
     consola.correr(cuadros)
     return consola
 

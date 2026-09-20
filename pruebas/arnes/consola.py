@@ -28,6 +28,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from emulador import retro                              # noqa: E402
+from ensamblado import bancos                           # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.
@@ -112,7 +113,7 @@ class Partida:
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
-                 nucleo=None, caso=0, salta=False):
+                 nucleo=None, caso=0, salta=False, pila=False):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -127,6 +128,13 @@ class Partida:
         # comparar las dos pantallas entre sí: ver `pruebas/rpgmaker/test_cores.py`.
         # Sin él vale el de siempre, que es snes9x.
         self.consola = retro.Consola(sfc, nucleo or NUCLEO)
+        # `pila` es sólo para `pruebas/herramientas/test_pila.py`, y va acá
+        # porque acá es el único momento en que la marca llega antes del primer
+        # cuadro: una línea después la ROM ya corrió el `reset`. Apagado por
+        # omisión porque marcar es **inicializar memoria**, y `test_cores.py`
+        # vive de que la ROM no dependa de la que no está inicializada.
+        if pila:
+            marcar_la_pila(self.consola)
         self.cuadro = 0
         self.hardware = 0
         # Cuántas vueltas del lazo quedaron antes del primer tick de la
@@ -687,6 +695,58 @@ class Partida:
         aserción por sí solo —un teletransporte pierde algunos— pero un salto
         grande dice que algo se volvió caro."""
         return self.byte("cuadros_perdidos")
+
+
+# --- la pila, marcada para poder medirla ------------------------------------
+#
+# La pila arranca en `$1FFF` —el `ldx #$1FFF` / `txs` del `reset`— y crece hacia
+# abajo, hacia la BSS. Lo que se le reserva es `bancos.PILA`, así que el byte más
+# bajo que le toca es `TOPE_DE_LA_PILA - PILA`. Los dos números salen del mapa de
+# memoria y no están copiados: si `PILA` cambia, la medición cambia con él.
+TOPE_DE_LA_PILA = 0x2000
+
+
+def marca_de(direccion):
+    """El centinela que le toca a ese byte de la pila.
+
+    **Cambia con la dirección a propósito.** Con un valor único, un `pha` que
+    empujara justo ese valor dejaría el byte igual y la medición diría que la
+    pila no llegó ahí; con uno distinto por dirección, un valor empujado puede
+    esconder **un** byte y no una tirada entera.
+    """
+    return (0xA5 ^ direccion) & 0xFF
+
+
+def marcar_la_pila(consola):
+    """Llena la zona de la pila con los centinelas.
+
+    Se llama **antes del primer `retro_run`**, que es lo que hace que esto mida
+    desde el `reset` sin costarle un byte a la ROM: el core ya cargó el cartucho
+    pero todavía no ejecutó una instrucción, así que todo lo que aparezca abajo
+    de `$2000` lo escribió la ROM.
+    """
+    fondo = TOPE_DE_LA_PILA - bancos.PILA
+    consola.escribir_ram(fondo, bytes(marca_de(fondo + i)
+                                      for i in range(bancos.PILA)))
+
+
+def hondura_de_la_pila(consola):
+    """Cuántos bytes bajó la pila: el byte más bajo que dejó de ser su marca.
+
+    Es una marca de agua, no una foto: nadie repone los centinelas, así que lo
+    que se lee al final de la partida es lo más honda que la pila estuvo en toda
+    la corrida, no dónde está ahora.
+
+    Cero quiere decir que la pila no bajó **ni un byte**, o sea que la marca no
+    llegó, no que la ROM no use la pila. Quien mida tiene que cobrar eso: es la
+    forma de que esta medición pase en vacío.
+    """
+    fondo = TOPE_DE_LA_PILA - bancos.PILA
+    crudo = consola.ram(fondo, bancos.PILA)
+    for i, byte in enumerate(crudo):
+        if byte != marca_de(fondo + i):
+            return TOPE_DE_LA_PILA - (fondo + i)
+    return 0
 
 
 def en_la_wram(direccion):
