@@ -3797,16 +3797,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
                                                    - len(paleta)))) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
-        # Textos muertos delante de todos los demás, para que los índices de
-        # la batalla pasen de 255 en un cartucho de un mapa. Es el hermano de
-        # `--relleno-de-mensajes`: reproducirlo de verdad pide los cincuenta y
-        # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
-        # minutos y medio de conversor por caso. **No cambia un pixel**: son
-        # textos de largo cero que nadie dibuja, y el índice de un texto no lo
-        # modela la referencia —ella escribe caracteres—, así que el flag es de
-        # un solo lado a propósito.
-        for _ in range(ranuras.get("relleno_textos") or 0):
-            item_textos_ofs.append((0, 0))
 
         def texto_nuevo(texto):
             texto = titulo_mod.texto_de_item(texto, 255)
@@ -3820,6 +3810,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     item.name, titulo_mod.ITEM_NOMBRE_ANCHO)]
                     + titulo_mod.partir_descripcion(item.description)):
                 texto_nuevo(texto)
+        # Textos muertos **detrás de los de los ítems y delante de todos los
+        # demás**, para que los índices de la batalla pasen de 255 en un
+        # cartucho de un mapa. Es el hermano de `--relleno-de-mensajes`:
+        # reproducirlo de verdad pide los cincuenta y siete ítems de
+        # `demo-ciudad`, o sea sus veintinueve mapas y dos minutos y medio de
+        # conversor por caso.
+        #
+        # **Van acá y no al principio, que es donde estaban hasta el
+        # 2026-09-20.** El nombre de un ítem no se nombra por una tabla sino
+        # por la cuenta `3k` —`3k + 1` y `3k + 2` son sus dos renglones de
+        # descripción, ver `texto_escribir`—, así que un texto muerto delante
+        # del primero corre todos los ítems y la ROM termina dibujando los
+        # muertos, que miden cero: la lista "Use Item" de la pelea salía con
+        # el cursor y las cantidades y sin un solo nombre. Con el relleno acá
+        # el flag vuelve a cumplir lo que promete, que es no cambiar un pixel.
+        for _ in range(ranuras.get("relleno_textos") or 0):
+            item_textos_ofs.append((0, 0))
         # Y los fijos, detrás: los parámetros y las ranuras del equipo, y el
         # nombre de cada actor que puede entrar al grupo. Ver pantallas.py.
         P = pantallas_mod
@@ -4998,11 +5005,11 @@ def parser_de_flags():
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
     parser.add_argument("--relleno-de-textos", type=int, default=0,
-                        help="textos muertos delante del bloque de textos de\n"
-                             "las pantallas, para que los índices de la\n"
-                             "batalla pasen de 255 sin armar un cartucho de\n"
-                             "veintinueve mapas. No cambia un pixel: la\n"
-                             "referencia no modela índices de texto")
+                        help="textos muertos detrás de los de los ítems, para\n"
+                             "que los índices de la batalla pasen de 255 sin\n"
+                             "armar un cartucho de veintinueve mapas. No\n"
+                             "cambia un pixel, y por eso no van delante de\n"
+                             "todo: el nombre del ítem k es el texto 3k")
     parser.add_argument("--relleno-de-mensajes", type=int, default=0,
                         help="bytes muertos al principio del bloque de textos, para\n"
                              "que los desplazamientos pasen los 32 KB que mide\n"

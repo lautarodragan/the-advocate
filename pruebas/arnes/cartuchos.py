@@ -100,7 +100,8 @@ CARTUCHOS = {
     # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
     "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--heroe-encima", "--encuentros-de-prueba", "8",
-               "--relleno-de-mensajes", "33000"],
+               "--relleno-de-mensajes", "33000",
+               "--relleno-de-textos", "200"],
               ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12"]),
@@ -110,8 +111,7 @@ CARTUCHOS = {
     # borraba los nombres de la lista "Use Item" de `batalla-item`: es un
     # defecto de la ROM, está en ESTADO.md. Medido que convive con éste: el
     # bloque de mensajes queda en la misma dirección.
-    "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766",
-               "--relleno-de-textos", "200"],
+    "cruza": (["--map-id", "255", "--relleno-de-mensajes", "32766"],
               ["grupo-11", "batalla"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
     # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
