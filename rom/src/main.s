@@ -11201,6 +11201,111 @@ fila:
     rts
 .endproc
 
+; --- el texto que depende del actor -----------------------------------------
+;
+; El nombre, el nivel y los HP máximos **no vienen horneados** en un bloque de
+; celdas por actor: se componen de a una letra por celda, con los glifos de
+; `ranura_glifo_celdas`. El porqué está en "lo que depende del actor" de
+; titulo.py y es el mismo que ya vale para el oro y para la pantalla de
+; ítems: el banco de tiles es uno solo y está deduplicado, así que un bloque
+; por actor lo hacía crecer con cada uno que pudiera estar en el grupo.
+
+; `msg_ptr` apuntando a una de las tiras del actor que trae A, corrida los X
+; bytes de `RANURA_TEXTO_NOMBRE`, `_NIVEL` o `_MAX`. Se lleva A y X, y **Y
+; queda como estaba**: el que llama la trae con la celda donde va a escribir.
+;
+; Usa `msg_ptr` de puntero por lo mismo que la pantalla de ítems: ninguna de
+; estas pantallas se abre con un mensaje en pantalla, así que el compositor no
+; lo tiene ocupado. Y tiene que ser él o alguno de la página directa, porque
+; `lda [dp], y` sólo direcciona ahí.
+.proc ranura_texto_de
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; RANURA_TEXTO_ANCHO bytes por actor
+    sta msg_ptr
+    txa
+    clc
+    adc msg_ptr
+    clc
+    adc #.loword(ranura_actor_texto)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^ranura_actor_texto
+    sta msg_ptr + 2
+    rts
+.endproc
+
+; Un texto del banco de las ranuras, de a una letra por celda: `msg_ptr` la
+; primera letra, Y la celda de arriba de la primera y A cuántas letras. Se
+; lleva A, X, `temp` y `temp + 2`, y **deja Y como estaba**: el que llama
+; escribe varias tiras de la misma fila corriéndola.
+;
+; Primero las celdas de arriba de todas las letras, que van seguidas en la
+; VRAM y aprovechan el autoincremento, y después las de abajo. Es
+; `texto_escribir` de la pantalla de ítems con la otra tabla de glifos: son
+; dos bancos distintos y cada uno tiene el suyo.
+.proc ranura_texto_escribir
+.a8
+.i16
+    sta temp                    ; cuántas letras
+    lda #$80
+    sta VMAIN
+    phy                         ; la celda, para la segunda pasada
+    rep #$20
+.a16
+    lda #0
+    sta temp + 2                ; las celdas de arriba
+    sty VMADDL
+    sep #$20
+.a8
+    jsr renglon
+    rep #$20
+.a16
+    lda 1, s                    ; la misma celda, que `renglon` se llevó Y
+    clc
+    adc #32                     ; y las de abajo, una fila más abajo
+    sta VMADDL
+    lda #2
+    sta temp + 2
+    sep #$20
+.a8
+    jsr renglon
+    ply
+    rts
+
+renglon:
+    ldy #0
+letra:
+    lda [msg_ptr], y
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #ITEM_PRIMER_CARACTER
+    asl a
+    asl a                       ; cuatro bytes por glifo
+    clc
+    adc temp + 2                ; la celda de arriba o la de abajo
+    tax
+    lda f:ranura_glifo_celdas, x
+    sta VMDATAL                 ; y la VRAM avanza una palabra
+    sep #$20
+.a8
+    iny
+    tya                         ; de a una letra: son menos de 256
+    cmp temp
+    bcc letra
+    rts
+.endproc
+
 ; El grupo de la partida de la ranura que está en `ranura`: las caras de los
 ; primeros RANURA_CARAS_MAX, y el nombre del primero. Es lo que
 ; `Window_SaveFile::Refresh` dibuja por archivo, menos los puntos de vida, que
@@ -11213,6 +11318,9 @@ fila:
 ; nombre lo dicen dos tablas del conversor, `ranura_cara_vram` y
 ; `ranura_nombre_vram`, como `ranura_vram` para las filas: la cuenta vive en
 ; un solo lado.
+;
+; La cara es un bloque horneado y el nombre y el nivel **no**: ésos se
+; componen con glifos, ver `ranura_texto_escribir`.
 ;
 ; El escritorio, que está justo: `temp` y `temp + 2` son del rectángulo,
 ; `temp + 3` guarda cuántos son, y **`titulo_flancos` hace de índice de
@@ -11281,23 +11389,16 @@ siguiente:
     inc titulo_flancos
     bra otro_miembro
 las_caras_listas:
-    ; El nombre del líder, que es el primero.
+    ; El nombre del líder, que es el primero, y su nivel: los dos compuestos
+    ; con glifos encima de la fila. `temp + 3` ya no hace falta, así que
+    ; `ranura_texto_escribir` puede usar `temp`.
     lda temp + 3
     beq listo                   ; un grupo vacío no tiene líder
     stz titulo_flancos
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
-    bcs listo
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda ranura_nombre_bloque, x
-    cmp #$FF
-    beq listo
-    pha
+    bcs listo                   ; un actor que esta ROM no conoce
+    pha                         ; el actor, para las dos tiras
     lda ranura
     rep #$20
 .a16
@@ -11305,21 +11406,30 @@ las_caras_listas:
     asl a
     tax
     lda ranura_nombre_vram, x
-    tay
-    lda #(RANURA_NOMBRE_COLS * 2)
-    sta temp
+    tay                         ; la celda del nombre
     sep #$20
 .a8
-    lda #RANURA_NOMBRE_FILAS
-    sta temp + 2
     pla
+    pha
+    ldx #RANURA_TEXTO_NOMBRE
+    jsr ranura_texto_de
+    lda #RANURA_NOMBRE_COLS
+    jsr ranura_texto_escribir
+    ; Y el nivel, que cae unas celdas más abajo de la misma fila. Y quedó
+    ; donde estaba: `ranura_texto_escribir` la conserva.
     rep #$20
 .a16
-    and #$00FF
-    tax
+    tya
+    clc
+    adc #RANURA_NIVEL_DESPL
+    tay
     sep #$20
 .a8
-    jsr ranura_rect_subir
+    pla
+    ldx #RANURA_TEXTO_NIVEL
+    jsr ranura_texto_de
+    lda #RANURA_NIVEL_CIFRAS
+    jsr ranura_texto_escribir
 listo:
     rts
 
@@ -11952,13 +12062,13 @@ dividir:
     asl a
     asl a
     tax
-    lda menu_cifra_celdas, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda menu_cifra_celdas + 2, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
     dey
     lda temp                    ; ¿queda algo?
@@ -12051,8 +12161,20 @@ otra_opcion:
     rts
 .endproc
 
-; El grupo, de a una fila por actor: cara, nombre, nivel, estado y HP. Lo
-; comparten el menú y la elección de actor.
+; El grupo, de a una fila por actor: el bloque fijo de la fila, la cara, y
+; encima el nombre, el nivel, los HP de ahora y el máximo. Lo comparten el
+; menú y la elección de actor.
+;
+; **El bloque es uno solo para las cuatro filas y para todos los actores**:
+; lleva el término del nivel, el estado y el de los HP, que no dependen de
+; nadie. Lo que sí depende del actor —su nombre, su nivel y su máximo— se
+; compone con glifos, y eso es lo que hace que el banco de tiles no crezca
+; con la cantidad de actores; ver `ranura_texto_escribir`.
+;
+; La fila se queda en la pila toda la vuelta y cada paso vuelve a sacar de
+; ella la celda y el actor en vez de guardarlos: la página directa está llena
+; —`temp` y `temp + 2` los usan las dos rutinas que escriben— y cada paso
+; corre una vez por fila, con el PPU apagado.
 .proc menu_grupo_pintar
 .a8
 .i16
@@ -12061,53 +12183,133 @@ otro_miembro:
     cmp grupo_n
     bcs grupo_listo
     cmp #MENU_FILAS_GRUPO
-    bcs grupo_listo
-    pha
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda grupo, x                ; el actor
+    bcc entra
+grupo_listo:
+    rts
+entra:
+    pha                         ; la fila, hasta el final de la vuelta
+    jsr actor_de
     cmp #MENU_ACTORES_N
-    bcs sin_bloque              ; uno que esta ROM no conoce
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda menu_actor_bloque, x
-    cmp #$FF
-    beq sin_bloque
-    sta temp + 3
+    bcc conocido
+    jmp siguiente               ; uno que esta ROM no conoce
+conocido:
+
+    ; --- el bloque fijo de la fila ---
     pla
     pha
+    jsr fila_vram
+    lda #(MENU_ACTOR_COLS * 2)
+    sta temp
+    lda #MENU_ACTOR_FILAS
+    sta temp + 2
+    ldx #MENU_BLQ_FILA
+    jsr ranura_rect_subir
+
+    ; --- la cara, en la esquina de arriba a la izquierda de la fila ---
+    pla
+    pha
+    jsr fila_vram
+    pla
+    pha
+    jsr actor_de
     rep #$20
 .a16
     and #$00FF
-    asl a
     tax
-    lda menu_fila_vram, x
-    tay
-    lda temp + 3
-    and #$00FF
-    tax
-    lda #(MENU_ACTOR_COLS * 2)
-    sta temp
     sep #$20
 .a8
-    lda #MENU_ACTOR_FILAS
+    lda ranura_cara_bloque, x
+    cmp #$FF
+    beq sin_cara
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #(MENU_CARA_CELDAS * 2)
+    sta temp
+    lda #MENU_CARA_CELDAS
     sta temp + 2
     jsr ranura_rect_subir
-    ; Y los HP de ahora encima del bloque, que no los trae: el bloque se
-    ; hornea al convertir. El actor se vuelve a buscar en `grupo` en vez de
-    ; guardarlo, porque los dos bytes que sobraban de `temp` los usa
-    ; `ranura_rect_subir`.
+sin_cara:
+
+    ; --- el nombre ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_NOMBRE_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_NOMBRE
+    jsr ranura_texto_de
+    lda #MENU_NOMBRE_COLS
+    jsr ranura_texto_escribir
+
+    ; --- el nivel ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_NIVEL_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_NIVEL
+    jsr ranura_texto_de
+    lda #RANURA_NIVEL_CIFRAS
+    jsr ranura_texto_escribir
+
+    ; --- el máximo, detrás de la barra ---
+    pla
+    pha
+    jsr fila_vram
+    rep #$20
+.a16
+    tya
+    clc
+    adc #MENU_MAX_DESPL
+    tay
+    sep #$20
+.a8
+    pla
+    pha
+    jsr actor_de
+    ldx #RANURA_TEXTO_MAX
+    jsr ranura_texto_de
+    lda #MENU_MAX_CIFRAS
+    jsr ranura_texto_escribir
+
+    ; --- y los HP de ahora, que no son texto del cartucho sino estado ---
     pla
     pha
     sta temp + 2                ; la fila
+    jsr actor_de
+    sta temp                    ; el actor
+    jsl f:menu_hp_escribir
+siguiente:
+    pla
+    inc a
+    jmp otro_miembro
+
+; El actor de la fila que trae A, y la celda donde arranca esa fila en el
+; tilemap. Las dos se vuelven a preguntar en cada paso; ver el comentario de
+; arriba.
+actor_de:
     rep #$20
 .a16
     and #$00FF
@@ -12115,13 +12317,18 @@ otro_miembro:
     sep #$20
 .a8
     lda grupo, x
-    sta temp                    ; el actor
-    jsl f:menu_hp_escribir
-sin_bloque:
-    pla
-    inc a
-    bra otro_miembro
-grupo_listo:
+    rts
+
+fila_vram:
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por entrada
+    tax
+    lda menu_fila_vram, x
+    tay
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -23608,7 +23815,7 @@ listo:
 ; reportó jugando —"en el menú siempre se muestra en 40", que es el máximo de
 ; Talan—. El máximo y la barra siguen horneados, que ésos no cambian.
 ;
-; Las cifras son las mismas celdas que el oro —`menu_cifra_celdas`, una por
+; Las cifras son los mismos glifos que el oro —`ranura_glifo_celdas`, una por
 ; celda— y caen alineadas sin tocar nada porque las dos líneas se dibujan a
 ; dos pixeles del borde de arriba de su celda. `titulo._pegar_hp` es la
 ; referencia, con las mismas columnas.
@@ -23679,13 +23886,13 @@ cifra:
     asl a                       ; dos palabras por cifra
     tax
     sty VMADDL
-    lda menu_cifra_celdas, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
     sta VMDATAL
     tya
     clc
     adc #32                     ; la celda de abajo
     sta VMADDL
-    lda menu_cifra_celdas + 2, x
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
     sep #$20
 .a8
