@@ -36,3 +36,9 @@ subirlo.
 
 Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama: el gráfico que se
 ve, y el `nobodyhere`, que esconde al héroe como esconde a un evento.
+
+# Y sobre eventos
+
+Sobre eventos la 34 ya se hacía antes, y lo que valió también está medido:
+**+25 páginas**. Ese número vivía en "Lo que falta del port" de `ESTADO.md`,
+debajo de un título que decía que faltaba.

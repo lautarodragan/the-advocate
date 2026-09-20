@@ -1217,11 +1217,14 @@ decida taro:
 ## Lo que se dejó afuera a propósito
 
 * **El panorama del mapa 2** —los puntitos sobre azul cuando se enciende la
-  pantalla grande— pide una tercera capa de fondo y el modo 3 tiene dos.
+  pantalla grande— pide una tercera capa de fondo y el modo 3 tiene dos. Lo
+  que compraría está en `wishlist/panorama-del-mapa-2.md`.
 * **Los otros tipos de movimiento de las rutas propias**: al azar, vertical,
-  horizontal y hacia el héroe. Son 106 páginas. Y el giro en el lugar.
+  horizontal y hacia el héroe. Son 106 páginas. Y el giro en el lugar, que del
+  lado de las rutas forzadas es `wishlist/ruta-girar-sin-moverse.md`.
 * **El fundido de la transparencia de una ruta**: se acepta y se tira, porque
-  la SNES no atenúa un sprite por partes sin color math.
+  la SNES no atenúa un sprite por partes sin color math. Las ocho rutas del
+  juego que lo piden están en `wishlist/ruta-transparencia.md`.
 * **La ráfaga de entrada del mapa 8**: dos cuadros perdidos al entrar,
   invisibles jugando porque el fundido los absorbe —su reloj son cuadros de
   hardware—. Medido: las dos primeras vueltas se pasan del presupuesto de 262
@@ -1231,5 +1234,7 @@ decida taro:
 
 * **Los cuadros que el lazo pierde de vez en cuando** —la primera vuelta de una
   ROM con muchas páginas, y la vuelta en que termina un fundido—. No cambian
-  ningún pixel comparado, y son lo único que le falta a la escena del ascensor
-  para tener caso propio en la tanda.
+  ningún pixel comparado. Acá decía además que eran lo único que le faltaba a
+  la escena del ascensor para tener caso propio, y **eso dejó de ser cierto el
+  2026-09-16**, cuando la golden pasó a ser una captura de la propia ROM: ver
+  "Lo que falta del port" y `wishlist/caso-propio-para-la-escena-del-ascensor.md`.
