@@ -98,12 +98,13 @@ Cómo está repartido `tools/` en carpetas, y qué puede importar de qué, está
 `tools/README.md`.
 
     tools/rpgmaker/lcf.py               el juego, leído del volcado a JSON de data/
-    tools/rpgmaker/ditto_schema.py      generado: los nombres, defaults y enums de ese JSON
-    tools/rpgmaker/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
+    tools/rpgmaker/ditto_schema.json    generado: los nombres, defaults y enums de ese JSON
+    tools/rpgmaker/ditto_schema.py      lo carga; lo escribe `ditto schema`
     tools/render/chipset.py             expansión del ChipSet a un atlas de tiles resueltos
     tools/render/charset.py             recorte de sprites de personaje
     tools/render/render_map.py          las capas de un mapa como imagen, y los CharSets
-    tools/rpgmaker/event_codes.py       generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.json     generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.py       lo carga
     tools/protocol/                     el generador, en Rust: declaración -> constantes
     tools/port/event_opcodes.py         generado desde tools/protocol/events.toml
     tools/audio/music_opcodes.py        generado desde tools/protocol/music.toml
@@ -196,9 +197,9 @@ y la columna en que está en el mapa.
 
 **Se omite lo que está en su valor por defecto**, que es exactamente lo que
 hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
-vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.py`, generada
-desde el esquema de Ditto, que se genera desde liblcf. Es la respuesta al bug
-que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
+vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.json`,
+que **publica Ditto** —`ditto schema`, o `just esquema`— y que sale de liblcf.
+Es la respuesta al bug que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
 dice 10, porque el default estaba escrito a mano y estaba mal.
 
 **Y los enums salen como texto**: `"trigger": "auto_start"` en vez de
@@ -1829,9 +1830,9 @@ nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
 Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
-ser una puerta —o sea, sin intérprete— sale de `tools/rpgmaker/event_codes.py`, que se
-genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
-y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
+ser una puerta —o sea, sin intérprete— sale de
+`tools/rpgmaker/event_codes.json`, que se saca de liblcf y de ningún otro lado.
+Puestos de memoria, tres estaban mal, y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
 como puertas eventos que cambian la música y el sprite del héroe. **La
 comparación no puede ver ese error**, porque una lista equivocada compila una
 ROM equivocada y la golden es la captura de esa ROM. Esa clase de error se

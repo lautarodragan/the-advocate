@@ -62,8 +62,8 @@ Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 4. **el compilador de eventos**: JSON → bytecode y tablas. No es Ditto y no
    puede serlo: Ditto es un transcodificador bidireccional y sin pérdida, y
    esto es un compilador unidireccional, con pérdida y atado a un target. Lo
-   que sí sale de acá es `tools/rpgmaker/lcf.py` + `tools/rpgmaker/ditto_schema.py` (2.793
-   líneas), que en Rust pasan a ser `use ditto`. Y `tools/rpgmaker/rm2k.py` —534 líneas
+   que sí sale de acá es `tools/rpgmaker/lcf.py` + `tools/rpgmaker/ditto_schema.py`,
+   que en Rust pasan a ser `use ditto`. Y `tools/rpgmaker/rm2k.py` —534 líneas
    de semántica de RM2k— se **duplica** a Rust a propósito. El motivo original
    de dejar la copia de Python era la referencia, que ya no está; lo que la
    sostiene ahora es que las pruebas siguen en Python y la leen. Acá es también
@@ -1713,7 +1713,7 @@ raíz, y cada `.py` fue a un paquete de Python de verdad, que se importa por su
 nombre (`from rpgmaker import lcf`). De abajo hacia arriba, y ninguna importa
 de una de más arriba:
 
-    rpgmaker/    lcf, ditto_schema, gen_ditto_schema, event_codes, rm2k
+    rpgmaker/    lcf, ditto_schema, event_codes, rm2k
     comun/       cache_disco
     ensamblado/  bancos, ensamblar
     emulador/    retro, bsnes-wram.patch
@@ -1802,9 +1802,10 @@ decida taro:
 
 * **`destraba`, `play` y `rom/Containerfile`**: decidido por taro el mismo día,
   se fueron.
-* **`tools/rpgmaker/gen_ditto_schema.py`** no lo corre ninguna receta, pero es de donde
-  sale `tools/rpgmaker/ditto_schema.py`, que sí es pipeline: sin él, el generado queda
-  sin cómo regenerarse. Se quedó; una receta como `protocolo` lo haría visible.
+* **`tools/rpgmaker/gen_ditto_schema.py`** no lo corría ninguna receta y era de
+  donde salía `tools/rpgmaker/ditto_schema.py`, que sí es pipeline. Cerrado el
+  2026-09-20 dándolo vuelta: el esquema lo **publica Ditto** —`ditto schema`,
+  que es `just esquema`— y Python lo lee; el generador se borró.
 * **`assets/medir.py`** se fue, y con él la forma de repetir los números de
   `assets/README.md`. El README ahora lo dice y da el commit de donde sacarlo.
 * **Las cuatro esquinas de la cámara** y **el audio contra el MIDI** quedaron

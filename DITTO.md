@@ -58,13 +58,24 @@ queriendo decir de dónde salen los PNG y los MIDI, que no se mudaron.
 
 **Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** El
 JSON omite todo campo que valga el suyo, la misma regla que el binario, así que
-leerlo es saber qué vale un campo ausente. Eso sale de `tools/rpgmaker/ditto_schema.py`,
-que **se genera desde el esquema de Ditto** —`tools/rpgmaker/gen_ditto_schema.py`— y
-trae, por campo: su chunk, su default, su enum si tiene, si el formato lo
-escribe aunque valga el default (`PersistIfDefault`) y qué struct lleva
-adentro. Es la misma idea con la que se generaba el esquema del lector viejo,
-con la fuente corrida un lugar: liblcf genera el esquema de Ditto y Ditto genera
-éste.
+leerlo es saber qué vale un campo ausente. Eso sale de
+`tools/rpgmaker/ditto_schema.json`, que trae, por campo: su chunk, su default,
+su enum si tiene, si el formato lo escribe aunque valga el default
+(`PersistIfDefault`) y qué struct lleva adentro.
+
+**Ese JSON lo publica Ditto**: `ditto schema`, que es `just esquema`. Hasta el
+2026-09-20 era al revés —un `gen_ditto_schema.py` le sacaba los defaults y las
+tablas al `src/schema/mod.rs` de Ditto **con expresiones regulares sobre
+código Rust**, para escribir 1.688 líneas de Python—, y eso tenía dos
+problemas. El de fondo: el que tiene el dato no lo publicaba, y el que lo
+necesita lo scrapeaba. El concreto: cinco defaults salían mal, porque
+`kPanXDefault` es `9 * 256` en la CSV y la expresión regular paraba en el
+primer número. Son campos de los archivos de guardado, que este port no lee.
+
+Hoy el dato lo emite el mismo `cargo xtask generate` que emite las structs, en
+la misma corrida, así que las dos mitades no pueden separarse; Python lo lee y
+nada más. Es el patrón de `tools/protocol/`, que declara de un lado y genera
+para los dos. La fuente sigue siendo la misma de siempre: liblcf.
 
 Los enums vienen por nombre —`"same"`, `"auto_start"`, `"ShowMessage"`— y
 vuelven al número con las tablas de ese mismo archivo.
