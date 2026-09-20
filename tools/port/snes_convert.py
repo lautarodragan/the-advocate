@@ -2234,7 +2234,6 @@ MAPA_ESCALARES = [
     ("TIMER_BASE", "el primer tile de los dígitos del cronómetro, 0 si no hay"),
     ("LLUVIA_BASE", "el primer tile de las gotas de lluvia, 0 si no hay"),
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
-    ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
     ("RUTA_GRAFICO_COUNT", "cuántos gráficos distintos pide la orden 34"),
 ]
@@ -2250,7 +2249,7 @@ MAPA_BYTES = [
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "npc_table", "actor_table", "puertas",
+                 "bloque_pass", "npc_table", "actor_table",
                  "paginas", "ev_pos", "npc_poses", "ruta_grafico",
                  # La animación del ChipSet: las dos corridas de tiles y sus
                  # dibujos. Ver `anim_bytes`.
@@ -2270,11 +2269,6 @@ MAPA_PTR_BASE = (-(-(len(MAPA_ESCALARES) * 2 + len(MAPA_BYTES))
                    // MAPA_PTR_PASO) * MAPA_PTR_PASO)
 assert MAPA_PTR_BASE + len(MAPA_PUNTEROS) * MAPA_PTR_PASO <= MAPA_STRIDE, \
     "el registro de mapa no entra en %d bytes" % MAPA_STRIDE
-
-# Una puerta: dónde está, a qué mapa lleva y a qué celda. El paso es potencia de
-# dos para que buscarla sea un corrimiento, y sobra lugar para la dirección en
-# la que RM2k te deja mirando, que todavía no se usa.
-PUERTA_BYTES = 16
 
 # Una página de evento: a qué evento pertenece, qué la activa, y dónde está su
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
@@ -2337,7 +2331,6 @@ def campos_del_mapa(mapa):
         "TIMER_BASE": sprite[5] if sprite else 0,
         "LLUVIA_BASE": sprite[10] if sprite else 0,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
-        "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
         "RUTA_GRAFICO_COUNT": len(sprite[9]) if sprite else 0,
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
@@ -2966,7 +2959,6 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         ("ruta_grafico",
          bytes(b for par in (sprite[9] if sprite else []) for b in par)),
         ("ev_pos", mapa["ev_pos"]),
-        ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
         ("anim_tiles", mapa["anim"]),
     ]
@@ -3099,7 +3091,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "EV_STRIDE   = %d\n"
         "EV_MAX      = %d\n"
         "RUTA_EV_MAX = %d\n"
-        "PUERTA_BYTES = %d\n"
         "PAGINA_BYTES = %d\n"
         "GIRO_NINGUNO = $%04X\n"
         "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
@@ -3432,7 +3423,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
-           PUERTA_BYTES, PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
+           PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
            eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
            eventos.CUADROS_DE_PAUSA, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO, eventos.TECLA_ESPERA,
@@ -4659,34 +4650,6 @@ def sprite_colors_bytes(sprite):
     return bytes(out)
 
 
-def puertas_bytes(puertas, indices):
-    """Las puertas listas para la ROM, ya con el índice de tabla del destino.
-
-    Las que llevan a un mapa que no entró en la ROM se descartan acá: en la
-    consola serían un salto al vacío, y es mejor que no hagan nada a que hagan
-    cualquier cosa. El conversor avisa cuántas quedaron afuera.
-    """
-    out = bytearray()
-    afuera = 0
-    for puerta in puertas:
-        destino = indices.get(puerta["mapa"])
-        if destino is None:
-            afuera += 1
-            continue
-        registro = bytearray(PUERTA_BYTES)
-        registro[0:2] = puerta["x"].to_bytes(2, "little")
-        registro[2:4] = puerta["y"].to_bytes(2, "little")
-        registro[4:6] = puerta["destino_x"].to_bytes(2, "little")
-        registro[6:8] = puerta["destino_y"].to_bytes(2, "little")
-        # El índice del mapa va en dos bytes, como el de OP_TELEPORT: en uno
-        # el formato no puede nombrar los 328 mapas del juego. La ROM ya lo
-        # leía como word —con un `and #$00FF` porque el de al lado era cero—,
-        # así que esto es lo que hacía falta para que el alto sirva.
-        registro[8:10] = destino.to_bytes(2, "little")
-        out += registro
-    return bytes(out), afuera
-
-
 # Un evento en la tabla de posiciones: x e y en celdas, las dos de 16 bits
 # porque hay mapas de 500 celdas de ancho.
 EV_STRIDE = 4
@@ -5315,14 +5278,6 @@ def main():
     de_prueba = {}
 
     for mapa in mapas:
-        mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
-        cuantas = len(mapa["puertas"]) // PUERTA_BYTES
-        if cuantas or afuera:
-            print("  mapa %d: %d puerta(s)%s"
-                  % (mapa["id"], cuantas,
-                     ", %d a mapas que no están en la ROM" % afuera
-                     if afuera else ""))
-
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
@@ -6717,10 +6672,9 @@ def convertir(renderer, map_id, args, inicio=None):
         "resumen": summary,
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
-        "puertas_crudas": rm2k.collect_doors(game_map),
-        # Se guarda el mapa entero porque las puertas y los eventos no se
-        # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
-        # índices de la tabla.
+        # Se guarda el mapa entero porque las páginas de los eventos no se
+        # pueden compilar hasta que estén todos los mapas: un `Teleport`
+        # traduce ids de mapa a índices de la tabla.
         "game_map": game_map,
         # Para la tabla de páginas: dónde quedó cada (CharSet, índice, pose)
         # en el banco de sprites, qué eventos cambian de gráfico con la

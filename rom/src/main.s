@@ -739,8 +739,7 @@ bloques8_ptr: .res 3    ; la misma corrida ocho bytes, que es donde arranca la
                         ; más baratos que ocho `iny` en el lazo más caliente.
 pass_ptr:    .res 3     ; la pasabilidad, un byte por bloque
 npc_ptr:     .res 3     ; y la de NPCs, sólo mientras se la copia a la RAM
-puerta_ptr:  .res 3     ; la de puertas, mientras se la busca
-entrada_x:   .res 2     ; por dónde entrar al mapa que se está por cargar, en
+entrada_x:   .res 2    ; por dónde entrar al mapa que se está por cargar, en
 entrada_y:   .res 2     ; celdas. $FFFF quiere decir "donde diga el registro"
 
 ; El intérprete de eventos.
@@ -20995,119 +20994,13 @@ y_listo:
     sta ruta_espera
     bra sigue
 sin_ruta:
-    jsr cruzar_puerta           ; recién parado en la celda: ¿había puerta?
-    bne sigue                   ; la hubo: el mapa ya cambió y la celda de
-                                ; llegada no se pisa, igual que en RM2k
-    jsr probar_contacto         ; y si no, ¿hay un evento de contacto?
+    ; Recién parado en la celda: ¿hay un evento de contacto? Una puerta es uno
+    ; de ésos —una página de contacto cuyo único comando es el `Teleport`— así
+    ; que no tiene camino propio: cruza por el intérprete, como cualquier otro
+    ; teletransporte.
+    jsr probar_contacto
 sigue:
     rts
-.endproc
-
-; Si la celda donde el héroe acaba de pararse tiene una puerta, cargar el mapa
-; al que lleva. Se mira al terminar el paso y no al empezarlo, que es lo que
-; hace RM2k: el evento se dispara cuando el héroe ocupa la celda, no cuando la
-; encara. Devuelve A distinto de cero si cruzó.
-;
-; La tabla se recorre entera comparando. Son pocas —el mapa con más puertas del
-; juego tiene un puñado— y esto corre una vez cada dieciséis pixeles.
-.proc cruzar_puerta
-.a8
-.i16
-    ldx mapa_ofs
-    rep #$20
-.a16
-    lda f:mapa_tabla + M_PUERTA_COUNT, x
-    beq no_hay
-    sta temp                    ; cuántas quedan por mirar
-    lda f:mapa_tabla + M_PTR_PUERTAS, x
-    sta temp + 2
-    sep #$20
-.a8
-    lda f:mapa_tabla + M_PTR_PUERTAS + 2, x
-    sta puerta_ptr + 2
-    rep #$20
-.a16
-    lda temp + 2
-    sta puerta_ptr
-
-    ldy #$0000
-buscar:
-    lda [puerta_ptr], y
-    cmp tile_x
-    bne siguiente
-    iny
-    iny
-    lda [puerta_ptr], y
-    dey
-    dey
-    cmp tile_y
-    beq cruzar
-siguiente:
-    tya
-    clc
-    adc #PUERTA_BYTES
-    tay
-    dec temp
-    bne buscar
-no_hay:
-    sep #$20
-.a8
-    lda #0
-    rts
-
-cruzar:
-.a16
-    ; Acá se llega con A en 16 bits, desde el `beq` de arriba. El `.a16` no es
-    ; decoración: sin él el ensamblador viene creyendo lo que dejó dicho `no_hay`
-    ; y le pone un solo byte al `and #$00FF`, que el CPU lee como dos y se come
-    ; la instrucción siguiente.
-    ;
-    ; El destino está en el mismo registro: primero a dónde, después a qué mapa.
-    iny
-    iny
-    iny
-    iny
-    lda [puerta_ptr], y         ; la celda de destino, en X
-    sta entrada_x
-    iny
-    iny
-    lda [puerta_ptr], y         ; y en Y
-    sta entrada_y
-    iny
-    iny
-    lda [puerta_ptr], y         ; el índice del mapa al que lleva, en un word
-
-    ; Y el mapa no se carga acá: RM2k funde a negro al cruzar una puerta —una
-    ; puerta es un teletransporte y le toca la misma transición—, así que se
-    ; pide el fundido y la carga pasa adentro, con la pantalla ya apagada. El
-    ; héroe se queda visible en la celda de la puerta mientras la pantalla baja,
-    ; que es lo que se ve en el original.
-    sta fundido_mapa
-    ; **Una puerta al mismo mapa no recarga nada**, igual que un `Teleport` al
-    ; mismo mapa: ver `hubo_salto`. Recargar vuelve a leer del cartucho las
-    ; posiciones de los eventos, y con eso se pierde todo lo que los haya movido
-    ; —un `ChangeEventLocation`, un `TradeEventLocations`— aunque el jugador
-    ; nunca haya salido del mapa.
-    ;
-    ; Eso es lo que taro vio el 2026-09-07 con la puerta de arriba a la
-    ; izquierda del mapa 2. Abrirla mueve el `LBDoorTop` a (94,97) y truequea el
-    ; `LBDoorBottom` con el `MovinDoor`, así que el hueco queda negro. Cruzarla
-    ; anda bien —eso va por `OP_TELEPORT`, que sí distingue—; volver, no: el
-    ; evento 20 es una **puerta**, y al recargar el mapa las dos cosas volvían a
-    ; su lugar y reaparecían las franjas amarillas. Los dos cuartos son el mismo
-    ; mapa 2, separados lo suficiente como para que jugando parezcan dos.
-    cmp mapa_actual
-    sep #$20
-.a8
-    bne otro_mapa_puerta        ; `sep` no toca Z: el salto mira el `cmp`
-    lda #FUNDIDO_MISMO
-    bra pedir_puerta
-otro_mapa_puerta:
-    lda #FUNDIDO_PUERTA
-pedir_puerta:
-    jsr empezar_fundido
-    lda #1
-    rts                         ; cruzó: la celda de llegada no se pisa
 .endproc
 
 ; --- animación de caminata -------------------------------------------------

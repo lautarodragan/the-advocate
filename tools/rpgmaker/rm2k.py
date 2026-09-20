@@ -429,57 +429,6 @@ def collect_npcs(game_map):
     return npcs
 
 
-# El código de Teleport y los triggers de una página, de liblcf.
+# El código de comando de `Teleport`, de liblcf. Lo usa el planificador de
+# recorridos del arnés para saber a dónde lleva la página de un evento.
 TELEPORT = 10810
-TRIGGER_TOCA_HEROE = 1
-
-# Lo que puede acompañar a un teletransporte sin que deje de ser una puerta.
-#
-# El criterio no es "suena inofensivo" sino "que no lo hagamos no se ve en la
-# pantalla que comparamos": un fundido, una espera y un sonido se saltean y la
-# imagen final es la misma. Cualquier otra cosa —una condición, una variable,
-# un diálogo, un cambio de música o del gráfico del héroe— hace que el evento
-# haga algo más que mudarte, y ahí la puerta no alcanza.
-#
-# Estos números salen de tools/rpgmaker/event_codes.py y hay que sacarlos de ahí. La
-# primera versión los puso de memoria y tres estaban mal: dos de los que creía
-# inofensivos eran PlayBGM y ChangeSpriteAssociation, o sea que el filtro
-# aceptaba puertas que cambian la música y el sprite del héroe. Ese error la
-# comparación no lo ve, porque la referencia usa esta misma lista.
-PUERTA_ACOMPAÑAN = {
-    10,      # END
-    10120,   # MessageOptions
-    11410,   # Wait
-    11550,   # PlaySound: no tenemos efectos todavía, así que no se oye nada
-    11030,   # TintScreen: el fundido con el que RM2k cruza una puerta
-}
-
-
-def collect_doors(game_map):
-    """Las puertas del mapa: eventos cuyo único trabajo es mudarte de mapa.
-
-    De los 959 teletransportes del juego, 238 son de éstos y todos se disparan
-    con "toca el héroe". Los otros 721 están adentro de cinemáticas, con
-    variables y condiciones, y ésos piden el intérprete de eventos.
-
-    La gracia de separarlos es que las puertas se pueden hacer sin intérprete:
-    el héroe pisa una celda, se mira si hay puerta, y si hay se carga el mapa
-    de destino. Eso ya es un mundo en vez de un mapa suelto.
-    """
-    puertas = []
-    for event in game_map.events:
-        page = event.active_page()
-        if page is None or getattr(page, "trigger", None) != TRIGGER_TOCA_HEROE:
-            continue
-        codes = [c.code for c in page.commands]
-        if TELEPORT not in codes:
-            continue
-        if any(c != TELEPORT and c not in PUERTA_ACOMPAÑAN for c in codes):
-            continue
-        salto = next(c for c in page.commands if c.code == TELEPORT)
-        if len(salto.parameters) < 3:
-            continue
-        destino, x, y = salto.parameters[0], salto.parameters[1], salto.parameters[2]
-        puertas.append({"x": event.x, "y": event.y,
-                        "mapa": destino, "destino_x": x, "destino_y": y})
-    return puertas
