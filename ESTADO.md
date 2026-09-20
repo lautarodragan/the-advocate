@@ -1071,11 +1071,10 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   descartó fue eso más tener que modelarlo en la referencia, y esa mitad ya no
   está—; con los cuatro puertos en vez de uno, en cambio, se acorta el arranque,
   que hoy es `BOOT_CUADROS`, dimensionado para una ARAM llena.
-* **La cinemática de apertura, entera.** Corre con ventana
-  —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y `escape_newyork`
-  sonando; el 3 va para que el ascensor del mapa 2 lleve a algún lado, que si no
-  su página no compila— y el caso `apertura` de la tanda la compara hasta
-  el final con los quince toques de A que la cierran: el tinte se apaga, Core y
+* **La cinemática de apertura, entera.** La corre el caso `cinematica`
+  —`test_cinematica` en `pruebas/abl/test_tanda_escenas.py`, que es donde está
+  lo que el arnés tiene que saber de ella—, y la compara hasta el final con los
+  quince toques de A que la cierran: el tinte se apaga, Core y
   Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
   con dos `ChangeEventLocation` y un switch. De ahí el juego sigue con el
   jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
