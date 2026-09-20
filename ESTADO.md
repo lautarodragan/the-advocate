@@ -204,10 +204,10 @@ cada una con su `LEEME.txt` diciendo qué mirar y con qué limitaciones se choc�
 Cuatro proyectos independientes, todos en inglés y sin una mención a este juego.
 Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
-    tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
-    tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
+    tools/ditto/      lee y escribe los formatos de RM2k      enchufado: `data/` sale de acá
+    tools/protocol/   declara los dos bytecodes               enchufado: los cuatro generados
     tools/gunter/     Gunter: BRR y lector de SoundFont       enchufado: las muestras salen de acá
-    tools/voodoo/     Voodoo: imagen indexada -> tiles       enchufado: las capas de los mapas
+    tools/voodoo/     Voodoo: imagen indexada -> tiles        enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
 ningún script ni prueba llama a `cargo`—; el porqué está en `AGENTS.md`.

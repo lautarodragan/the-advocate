@@ -305,8 +305,9 @@ class Renderer:
         cambia un pixel si es el mismo archivo, y que salga del mismo lado no
         garantiza que no lo hayan tocado.
 
-        Se recuerda por nombre porque los mapas comparten ChipSet —29 mapas con
-        muchos menos ChipSets— y leerlo una vez por mapa no aportaría nada.
+        Se recuerda por nombre porque los mapas comparten ChipSet: un cartucho
+        tiene bastantes menos ChipSets que mapas, y leer el archivo una vez por
+        mapa no aportaría nada.
         """
         if filename not in self.huellas:
             path = find_resource(self.search_dirs, "ChipSet", filename)
