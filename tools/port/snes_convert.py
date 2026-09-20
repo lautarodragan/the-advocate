@@ -5168,6 +5168,8 @@ def main():
     # los dos lados tienen que mirar la misma base.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
+    # Y los términos de la posada, con los que `ShowInn` arma su saludo.
+    eventos.indexar_terminos(args.game_dir)
     # Y el equipo y las habilidades de cada actor del LDB: es lo que contestan
     # las dos ramas de actor con dos operandos, y la referencia lo arma con la
     # misma función. **Antes de `lideres_posibles`**, que compila páginas: ver

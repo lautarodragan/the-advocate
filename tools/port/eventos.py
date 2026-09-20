@@ -636,6 +636,12 @@ CALL_EVENT = 12330
 # contestaran; desde el 11 abre la tienda de verdad: ver OP_SHOP.
 OPEN_SHOP = 10720
 
+# Y la posada: `ShowInn`, con sus tres ramas. El juego tiene 18 páginas con
+# una y ninguna usa las ramas —medido el 2026-09-20—, así que se compila el
+# comando solo: ver `_compilar_posada`.
+SHOW_INN = 10730
+INN_STAY, INN_NO_STAY, INN_END = 20730, 20731, 20732
+
 # `ChangeSystemBGM` (10660): cambia el tema que el sistema usa para pelear,
 # para ganar, para la posada. El juego lo usa **130 veces en 25 mapas** y
 # siempre de a pares —el 0 y el 1, o sea `battle_music` y `battle_end_music`—:
@@ -2367,6 +2373,36 @@ def indexar_actores(game_dir):
     return dict(ACTOR_EQUIPO)
 
 
+# Los términos con que se arma el saludo de la posada. Son del juego y no
+# nuestros —el ABL cobra en "Cr"— así que salen del LDB y no de un literal, por
+# lo mismo que los de la pantalla de título. Van en un índice de módulo como
+# `ACTOR_EQUIPO`: el conversor lo arma una vez antes de compilar nada.
+#
+# Los dos juegos de términos son el `inn_type` de `ShowInn`: 0 el A y 1 el B.
+TERMINOS_POSADA = {}
+_TERMINOS_DE_POSADA = ("greeting_1", "greeting_2", "greeting_3", "accept",
+                       "cancel")
+
+
+def indexar_terminos(game_dir):
+    """Deja en `TERMINOS_POSADA` los términos de la posada y el del oro.
+
+    Sin esto `ShowInn` no compila —y lo dice—, en vez de armar el saludo con
+    palabras inventadas: el precio y la moneda son lo único que el jugador va
+    a leer para decidir.
+    """
+    from rpgmaker import lcf
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    terminos = db.secciones["terms"]
+    TERMINOS_POSADA.clear()
+    TERMINOS_POSADA["gold"] = lcf.campo("Terms", terminos, "gold")
+    for tipo, letra in ((0, "a"), (1, "b")):
+        TERMINOS_POSADA[tipo] = tuple(
+            lcf.campo("Terms", terminos, "inn_%s_%s" % (letra, nombre))
+            for nombre in _TERMINOS_DE_POSADA)
+    return dict(TERMINOS_POSADA)
+
+
 def indexar_variables(game_dir, extra=()):
     """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
     conversor y la referencia antes de compilar nada; tarda un tercio de
@@ -3080,6 +3116,14 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 abierta = pila.pop()
                 piezas[abierta] = con_destino(piezas[abierta], largo)
                 pieza = b""
+            elif cmd.code == SHOW_INN:
+                pieza = _compilar_posada(cmd, largo, mensajes)
+            elif cmd.code in (INN_STAY, INN_NO_STAY, INN_END):
+                # Las tres ramas de la posada. Ninguna de las 18 páginas del
+                # juego las usa —medido—, y hacerlas pide lo que `_compilar_
+                # posada` justamente no tiene: un lugar donde meter el cuerpo
+                # de "se quedó" adentro de una elección que ya está armada.
+                raise NoSePuede("una posada con sus ramas")
             elif cmd.code == CALL_EVENT:
                 pieza = _compilar_llamada(cmd, largo, hondo, indice_de_mapa,
                                           mensajes, eventos_mapa, temas,
@@ -3175,6 +3219,83 @@ def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
     return compilar_pagina(_Comandos(destino), indice_de_mapa, mensajes, ctx,
                            temas, graficos, imagenes, tropas,
                            base=largo, hondo=hondo + 1) or b""
+
+
+def _compilar_posada(cmd, largo, mensajes):
+    r"""`ShowInn`, expandido a comandos que la ROM ya sabe hacer.
+
+    La posada no es un opcode nuevo: es el saludo con su elección, una rama por
+    oro, el cobro y la cura, que son cinco cosas que el intérprete hace desde
+    antes. Se arma acá y no en `_compilar` porque los destinos de la elección y
+    de la rama son desplazamientos **absolutos dentro de la página**, y eso lo
+    sabe el lazo de `compilar_pagina`, que es quien lleva `largo`.
+
+    Lo que sale, con los desplazamientos relativos al arranque del bloque:
+
+         0  OP_MESSAGE  el saludo, dos renglones
+         3  OP_CHOICE   "Yes" y "No"; cancelar es "No"
+        14  OP_IF       oro >= precio, y si no, al final
+        21  OP_GOLD     se cobra
+        26  OP_HEAL     el grupo entero al máximo
+        30  el final, que es donde caen "No" y "no te alcanza"
+
+    El saludo es el de `CommandShowInn` (easyrpg
+    `game_interpreter_map.cpp:449-560`): `"{greeting_1} {precio}{gold}
+    {greeting_2}"` en el primer renglón —de ahí los dos espacios, porque
+    `greeting_2` de este juego empieza con uno— y `greeting_3` en el segundo.
+    Los términos son del LDB: ver `indexar_terminos`.
+
+    **Tres deudas declaradas**, y las tres son de lo que se ve y no de lo que
+    pasa:
+
+    * no hay ventana de oro al lado del saludo;
+    * "Yes" no sale en gris cuando no alcanza, así que se puede elegir;
+      elegirlo equivale a "No", que es lo que hace la rama por oro. En RM2k
+      el cursor no lo deja seleccionar;
+    * no hay fundido a negro ni música de posada: se cobra y se cura en el
+      acto. Eso es `Scene_Map::CallInn`.
+
+    **Una posada gratis es sólo la cura**: con el precio en cero
+    `CommandShowInn` no muestra nada y va derecho a
+    `ContinuationShowInnStart(indent, 0, 0)`, que se queda, cobra cero y
+    descansa. Son 6 de las 18 páginas del juego, las de los mapas 39, 59, 77 y
+    111 —los cuartos donde el guion deja dormir—.
+    """
+    p = cmd.parameters
+    if len(p) < 2:
+        raise NoSePuede("ShowInn sin operandos")
+    tipo, precio = p[0], p[1]
+    if precio == 0:
+        return bytes([OP_HEAL, 0, 0, 0])
+    if mensajes is None:
+        raise NoSePuede("una posada sin ventana donde ponerla")
+    if tipo not in TERMINOS_POSADA:
+        raise NoSePuede("posada del tipo %d, que no está en los términos: "
+                        "¿se llamó a indexar_terminos?" % tipo)
+    if not precio <= 0xFFFF:
+        # El tope es el operando de la rama de oro, que va en una palabra; el
+        # más caro del juego es de 100.
+        raise NoSePuede("posada de %d, que no entra en la rama de oro" % precio)
+    saludo_1, saludo_2, saludo_3, si, no = TERMINOS_POSADA[tipo]
+    donde = mensajes.agregar(
+        ["%s %d%s %s" % (saludo_1, precio, TERMINOS_POSADA["gold"], saludo_2),
+         saludo_3])
+    cuadros = cuadros_de_eleccion([(0, si), (1, no)], mensajes)
+    fin = largo + 30
+    rama = bytes([OP_IF, COND_ORO, precio & 0xFF, precio >> 8, 0,
+                  fin & 0xFF, fin >> 8])
+    return (bytes([OP_MESSAGE, donde & 0xFF, donde >> 8])
+            # Cancelar es la segunda opción: allá el `choice_cancel_type` por
+            # omisión es 5 y `inn_stay` es `choice_result == 0`, o sea que
+            # cancelar es no quedarse.
+            + bytes([OP_CHOICE, 2, 2])
+            + bytes([cuadros[0] & 0xFF, cuadros[0] >> 8,
+                     (largo + 14) & 0xFF, (largo + 14) >> 8])
+            + bytes([cuadros[1] & 0xFF, cuadros[1] >> 8,
+                     fin & 0xFF, fin >> 8])
+            + rama
+            + bytes([OP_GOLD, 1, precio & 0xFF, (precio >> 8) & 0xFF, 0])
+            + bytes([OP_HEAL, 0, 0, 0]))
 
 
 def imagen_aceptable(p):
