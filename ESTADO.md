@@ -547,7 +547,7 @@ cada uno lo tiene el registro. Lo que dejaron y sigue valiendo:
    para el del juego los `en-<mapa>`, con la celda donde el héroe caía cuando
    ese mapa era el de arranque de su cartucho.
 
-   **Son cinco y no uno**, y cada uno tiene su porqué en `CARTUCHOS`:
+   **Son cuatro y no uno**, y cada uno tiene su porqué en `CARTUCHOS`:
 
    * `pruebas`, los 40 mapas arrancando en el 6, con todo lo que entra;
    * `titulo`, el mismo con pantalla de título —y un tema de arranque—. El
@@ -562,16 +562,32 @@ cada uno lo tiene el registro. Lo que dejaron y sigue valiendo:
    * `chico`, lo que no entra o cuida una disposición del cartucho: **los
      casos con los actores 12 y 13 en el grupo** —decisión de taro:
      en el de pruebas podían liderar y le cambiaban los colores al mapa 13—,
-     `--heroe-encima`, los encuentros cada 8 pasos, el relleno de mensajes de
-     33000 y el de textos de 200. **Las dos lluvias volvieron al de pruebas**
-     el 2026-09-20, al arreglarse el primer defecto de abajo, y el relleno de
-     textos vino de `cruza` con el segundo;
-   * `cruza`, el relleno de mensajes de 32766, que pone el mismo mensaje en
-     otro lugar que el de 33000 y no puede convivir con él. Es lo único que
-     le queda: el relleno de textos se fue al chico.
+     `--heroe-encima`, los encuentros cada 8 pasos, el relleno de textos de
+     200 y el **borde de banco del bloque de textos**, que lo pone el caso
+     `empujon`. **Las dos lluvias volvieron al de pruebas** el 2026-09-20, al
+     arreglarse el primer defecto de abajo, y el relleno de textos vino de
+     `cruza` con el segundo.
 
    `ChangeEncounterSteps` no está implementado, así que los encuentros de
    prueba siguen siendo un flag del cartucho chico.
+
+   **El quinto cartucho, `cruza`, se fue el 2026-09-20.** Existía sólo por
+   `--relleno-de-mensajes`: bytes muertos delante del bloque de textos para
+   que un cuadro cayera del otro lado del borde de 32 KB de un banco de
+   LoROM, que es donde `msg_empezar` y el compositor se equivocaban. Hacían
+   falta dos cartuchos porque cada relleno ponía el **mismo** cuadro en otro
+   lugar. Desde que un caso es un evento de RM2k, sus textos van al mismo
+   bloque y van delante de los de los mapas, así que el empujón lo da un caso
+   —`empujon`, texto generado que no se dibuja nunca— y con **uno solo** los
+   dos cuadros de la página automática del 255 caen en lugares distintos: el
+   primero a caballo del borde y el segundo entero del otro lado. Los dos
+   `--relleno-de-mensajes` se fueron del conversor con él.
+
+   Y lo que hasta ese día no verificaba nadie: que el cuadro **siga**
+   cruzando. Las goldens de `texto`, `texto-cruza` y `texto-lejos` son la
+   misma imagen —ésa es la propiedad—, así que un bloque que se acomode
+   distinto las deja en verde igual. Ahora `test_texto` lee el cuadro del
+   `.sfc` con `tanda.cuadro_de_texto` y lo pide explícitamente.
 
    **Lo que el cartucho único cambió de las goldens**, cinco, cada causa
    aislada armando el cartucho viejo con una sola cosa del nuevo: `3-down-56`

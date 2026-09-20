@@ -3864,10 +3864,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 texto_nuevo(texto)
         # Textos muertos **detrás de los de los ítems y delante de todos los
         # demás**, para que los índices de la batalla pasen de 255 en un
-        # cartucho de un mapa. Es el hermano de `--relleno-de-mensajes`:
-        # reproducirlo de verdad pide los cincuenta y siete ítems de
-        # `abl`, o sea sus veintinueve mapas y dos minutos y medio de
-        # conversor por caso.
+        # cartucho de un mapa: reproducirlo de verdad pide los cincuenta y
+        # siete ítems de `abl`, o sea sus veintinueve mapas y dos minutos y
+        # medio de conversor por caso. Tuvo un hermano, `--relleno-de-mensajes`,
+        # que hacía lo mismo con el bloque de textos; ése se fue el 2026-09-20
+        # porque el empujón lo puede dar un caso —ver el cartucho `chico` en
+        # pruebas/arnes/cartuchos.py— y éste no, porque lo que corre no es un
+        # texto sino un índice.
         #
         # **Van acá y no al principio, que es donde estaban hasta el
         # 2026-09-20.** El nombre de un ítem no se nombra por una tabla sino
