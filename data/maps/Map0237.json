@@ -6,278 +6,366 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Sern? Are you in here?"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Sern? Are you in here?"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "There's a hole in the roof... he could have"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "fallen down here from up above..."
             },
-            {"code": "TintScreen", "indent": 1, "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 11030, "indent": 1, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "The light! Something's blocking out"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "the light!"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "PlaySound", "indent": 1, "parameters": [100, 80, 50], "string": "Roar"},
-            {"code": "MoveEvent", "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement", "indent": 1},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "What was that?!"},
-            {"code": "ChangeEscapeAccess", "indent": 1, "parameters": [0]},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "the light!"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 1, "parameters": [100, 80, 50], "string": "Roar"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "What was that?!"},
+            {"code": 11840, "indent": 1, "parameters": [0], "string": ""},
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 1,
               "parameters": [0, 0, 100, 100, 50],
               "string": "KW-robot"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 1,
               "parameters": [1, 0, 100, 100, 50],
               "string": "KW-robot"
             },
+            {"code": 10710, "indent": 1, "parameters": [0, 218, 1, 0, 0, 0], "string": "Cave1"},
+            {"code": 10210, "indent": 1, "parameters": [0, 626, 626, 0], "string": ""},
+            {"code": 10810, "indent": 1, "parameters": [235, 9, 11], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 28], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "EnemyEncounter",
+              "code": 20110,
               "indent": 1,
-              "parameters": [0, 218, 1, 0, 0, 0],
-              "string": "Cave1"
+              "parameters": [],
+              "string": "Here he is! That thing must have"
             },
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 626, 626, 0]},
-            {"code": "Teleport", "indent": 1, "parameters": [235, 9, 11]},
-            {"code": "ChangePartyMembers", "indent": 1, "parameters": [0, 0, 28]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Here he is! That thing must have"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "knocked him out!"},
-            {"code": "Wait", "indent": 1, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "Let's bring him back up to the"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "surface... we won't be able to"},
-            {"code": "ShowMessage_2", "indent": 1, "string": "use this tunnel after all."},
-            {"code": "TintScreen", "indent": 1, "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "MessageOptions", "indent": 1, "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "knocked him out!"},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
+              "string": "Let's bring him back up to the"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "surface... we won't be able to"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "use this tunnel after all."
+            },
+            {"code": 11030, "indent": 1, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 1, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
               "string": "I'm... I'm all right. I don't know what"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "that thing was, but this tunnel isn't safe."
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 1,
               "parameters": [0, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 1,
               "parameters": [1, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
-            {"code": "ChangeEscapeAccess", "indent": 1, "parameters": [1]},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Radin? Are you in here?"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {"code": 11840, "indent": 1, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "Radin? Are you in here?"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "There's a hole in the roof... he could have"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "fallen down here from up above..."
             },
-            {"code": "TintScreen", "indent": 2, "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {"code": 11030, "indent": 2, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "The light! Something's blocking out"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "the light!"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "PlaySound", "indent": 2, "parameters": [100, 80, 50], "string": "Roar"},
-            {"code": "MoveEvent", "indent": 2, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement", "indent": 2},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "What was that?!"},
-            {"code": "ChangeEscapeAccess", "indent": 2, "parameters": [0]},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "the light!"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 2, "parameters": [100, 80, 50], "string": "Roar"},
+            {"code": 11330, "indent": 2, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "What was that?!"},
+            {"code": 11840, "indent": 2, "parameters": [0], "string": ""},
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 2,
               "parameters": [0, 0, 100, 100, 50],
               "string": "KW-robot"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 2,
               "parameters": [1, 0, 100, 100, 50],
               "string": "KW-robot"
             },
+            {"code": 10710, "indent": 2, "parameters": [0, 218, 1, 0, 0, 0], "string": "Cave1"},
+            {"code": 10210, "indent": 2, "parameters": [0, 626, 626, 0], "string": ""},
+            {"code": 10810, "indent": 2, "parameters": [235, 9, 11], "string": ""},
+            {"code": 10330, "indent": 2, "parameters": [0, 0, 27], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "TALAN"},
             {
-              "code": "EnemyEncounter",
+              "code": 20110,
               "indent": 2,
-              "parameters": [0, 218, 1, 0, 0, 0],
-              "string": "Cave1"
+              "parameters": [],
+              "string": "Here he is! That thing must have"
             },
-            {"code": "ControlSwitches", "indent": 2, "parameters": [0, 626, 626, 0]},
-            {"code": "Teleport", "indent": 2, "parameters": [235, 9, 11]},
-            {"code": "ChangePartyMembers", "indent": 2, "parameters": [0, 0, 27]},
-            {"code": "ShowMessage", "indent": 2, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Here he is! That thing must have"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "knocked him out!"},
-            {"code": "Wait", "indent": 2, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "Let's bring him back up to the"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "surface... we won't be able to"},
-            {"code": "ShowMessage_2", "indent": 2, "string": "use this tunnel after all."},
-            {"code": "TintScreen", "indent": 2, "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "MessageOptions", "indent": 2, "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "knocked him out!"},
+            {"code": 11410, "indent": 2, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
+              "string": "Let's bring him back up to the"
+            },
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "surface... we won't be able to"
+            },
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
+              "string": "use this tunnel after all."
+            },
+            {"code": 11030, "indent": 2, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 2, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 2,
+              "parameters": [],
               "string": "I'm... I'm all right. I don't know what"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "that thing was, but this tunnel isn't safe."
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 2,
               "parameters": [0, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 2,
               "parameters": [1, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
-            {"code": "ChangeEscapeAccess", "indent": 2, "parameters": [1]},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Lerle? Are you in here?"},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {"code": 11840, "indent": 2, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 388, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "Lerle? Are you in here?"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "There's a hole in the roof... he could have"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "fallen down here from up above..."
             },
-            {"code": "TintScreen", "indent": 3, "parameters": [0, 0, 0, 100, 0, 0]},
-            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {"code": 11030, "indent": 3, "parameters": [0, 0, 0, 100, 0, 0], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "The light! Something's blocking out"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "the light!"},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "PlaySound", "indent": 3, "parameters": [100, 80, 50], "string": "Roar"},
-            {"code": "MoveEvent", "indent": 3, "parameters": [10001, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement", "indent": 3},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "What was that?!"},
-            {"code": "ChangeEscapeAccess", "indent": 3, "parameters": [0]},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "the light!"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 3, "parameters": [100, 80, 50], "string": "Roar"},
+            {"code": 11330, "indent": 3, "parameters": [10001, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 3, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "What was that?!"},
+            {"code": 11840, "indent": 3, "parameters": [0], "string": ""},
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 3,
               "parameters": [0, 0, 100, 100, 50],
               "string": "KW-robot"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 3,
               "parameters": [1, 0, 100, 100, 50],
               "string": "KW-robot"
             },
+            {"code": 10710, "indent": 3, "parameters": [0, 218, 1, 0, 0, 0], "string": "Cave1"},
+            {"code": 10210, "indent": 3, "parameters": [0, 626, 626, 0], "string": ""},
+            {"code": 10810, "indent": 3, "parameters": [235, 9, 11], "string": ""},
+            {"code": 10330, "indent": 3, "parameters": [0, 0, 26], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "TALAN"},
             {
-              "code": "EnemyEncounter",
+              "code": 20110,
               "indent": 3,
-              "parameters": [0, 218, 1, 0, 0, 0],
-              "string": "Cave1"
+              "parameters": [],
+              "string": "Here he is! That thing must have"
             },
-            {"code": "ControlSwitches", "indent": 3, "parameters": [0, 626, 626, 0]},
-            {"code": "Teleport", "indent": 3, "parameters": [235, 9, 11]},
-            {"code": "ChangePartyMembers", "indent": 3, "parameters": [0, 0, 26]},
-            {"code": "ShowMessage", "indent": 3, "string": "TALAN"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Here he is! That thing must have"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "knocked him out!"},
-            {"code": "Wait", "indent": 3, "parameters": [5]},
-            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "Let's bring him back up to the"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "surface... we won't be able to"},
-            {"code": "ShowMessage_2", "indent": 3, "string": "use this tunnel after all."},
-            {"code": "TintScreen", "indent": 3, "parameters": [100, 100, 100, 100, 5, 1]},
-            {"code": "MessageOptions", "indent": 3, "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {"code": 20110, "indent": 3, "parameters": [], "string": "knocked him out!"},
+            {"code": 11410, "indent": 3, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
+              "string": "Let's bring him back up to the"
+            },
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "surface... we won't be able to"
+            },
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "use this tunnel after all."
+            },
+            {"code": 11030, "indent": 3, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10120, "indent": 3, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "LERLE"},
+            {
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
               "string": "I'm... I'm all right. I don't know what"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "that thing was, but this tunnel isn't safe."
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 3,
               "parameters": [0, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
             {
-              "code": "ChangeSystemBGM",
+              "code": 10660,
               "indent": 3,
               "parameters": [1, 0, 100, 100, 50],
               "string": "T_VGFighterMAX_Masako"
             },
-            {"code": "ChangeEscapeAccess", "indent": 3, "parameters": [1]},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"}
+            {"code": 11840, "indent": 3, "parameters": [1], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 10,
@@ -288,12 +376,40 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [254, 18, 37]}
+            {"code": 10810, "indent": 0, "parameters": [254, 18, 37], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 10,
@@ -304,7 +420,13 @@
       "name": "AfterBattleMint",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -313,24 +435,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 498
+            "item_id": 1,
+            "switch_a_id": 498,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 35, 0]}
+            {"code": 12330, "indent": 0, "parameters": [0, 35, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 4,
       "name": "EV0004",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -339,21 +479,63 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "RADIN"},
-            {"code": "ShowMessage_2", "string": "I can't find ingredients here."},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "RADIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I can't find ingredients here."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
       "y": 14
     }
   ],
-  "save_count": 50
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 50,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

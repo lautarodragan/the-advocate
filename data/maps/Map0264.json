@@ -6,149 +6,274 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "FullHeal", "parameters": [0, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "It's almost too dark to keep going -"},
-            {"code": "ShowMessage_2", "string": "this is as good a place to rest as any,"},
-            {"code": "ShowMessage_2", "string": "I guess."},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 1, 0, 15]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "How are you feeling, Kersh?"},
-            {"code": "ShowMessage_2", "string": "We're going to stop here for tonight."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "All... right."},
-            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ConditionalBranch", "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "SERN"},
+            {"code": 10490, "indent": 0, "parameters": [0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's almost too dark to keep going -"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "this is as good a place to rest as any,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I guess."},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 1, 0, 15], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How are you feeling, Kersh?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We're going to stop here for tonight."
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "All... right."},
+            {"code": 11330, "indent": 0, "parameters": [6, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SERN"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "I'll light us a fire. We can keep our backs"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "to this old wall in case anything finds us in"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "the night."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "RADIN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "the night."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "RADIN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "I'll light us a fire. We don't really need"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "the warmth, but maybe it'll make this"
             },
-            {"code": "ShowMessage_2", "indent": 2, "string": "darkness less creepy."},
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 388, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "LERLE"},
+            {"code": 20110, "indent": 2, "parameters": [], "string": "darkness less creepy."},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 388, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "LERLE"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "I'll light us a fire. Surl is creepy by"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "daylight! I don't want to face midnight"
             },
-            {"code": "ShowMessage_2", "indent": 3, "string": "without a light of some kind."},
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
             {
-              "code": "MoveEvent",
-              "parameters": [6, 8, 0, 0, 36, 1, 1, 1, 1, 1, 1, 1, 1, 1, 14, 37]
+              "code": 20110,
+              "indent": 3,
+              "parameters": [],
+              "string": "without a light of some kind."
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Where... are we... going?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We're heading south, Kersh."},
-            {"code": "ShowMessage_2", "string": "This place used to be called Surl,"},
-            {"code": "ShowMessage_2", "string": "before it was... well, it's called Surl."},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 12, 23, 23, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Don't... like it. Want to leave."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 23, 12]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "I don't imagine it likes you much either."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Don't like you."},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 24, 25, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Honestly, you two! Why can't you be"},
-            {"code": "ShowMessage_2", "string": "nice to him, Talan?"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1, 1, 1, 15, 23, 1, 1, 1, 1]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "nightbg"},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [6, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [6, 8, 0, 0, 36, 1, 1, 1, 1, 1, 1, 1, 1, 1, 14, 37],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Where... are we... going?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We're heading south, Kersh."
             },
             {
-              "code": "MoveEvent",
-              "parameters": [5, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "This place used to be called Surl,"
             },
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "before it was... well, it's called Surl."
             },
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 12, 23, 23, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "ControlSwitches", "parameters": [0, 667, 667, 0]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "TintScreen", "parameters": [30, 30, 30, 100, 5, 1]},
-            {"code": "FadeOutBGM", "parameters": [2000]},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "ShowMessage", "string": "KERSH, sleeping"},
-            {"code": "ShowMessage_2", "string": "zzz... zzz... no..."},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "PlayBGM", "parameters": [0, 70, 100, 50], "string": "ValiusBatt"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ChangeScreenTransitions", "parameters": [0, 0]},
-            {"code": "Teleport", "parameters": [265, 0, 14]}
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Don't... like it. Want to leave."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 1, 23, 12],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't imagine it likes you much either."
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Don't like you."},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 24, 25, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Honestly, you two! Why can't you be"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "nice to him, Talan?"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 1, 1, 1, 15, 23, 1, 1, 1, 1],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 80, 100, 50], "string": "nightbg"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [6, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [5, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 667, 667, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [30, 30, 30, 100, 5, 1], "string": ""},
+            {"code": 11520, "indent": 0, "parameters": [2000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH, sleeping"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "zzz... zzz... no..."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 70, 100, 50], "string": "ValiusBatt"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10690, "indent": 0, "parameters": [0, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [265, 0, 14], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -157,224 +282,444 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 666
+            "item_id": 1,
+            "switch_a_id": 666,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "Wait", "parameters": [10]},
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "PlayBGM", "parameters": [0, 50, 100, 50], "string": "nightbg"},
-            {"code": "TintScreen", "parameters": [30, 30, 30, 100, 5, 1]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Aaaagh!"},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 50, 100, 50], "string": "nightbg"},
+            {"code": 11030, "indent": 0, "parameters": [30, 30, 30, 100, 5, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Aaaagh!"},
             {
-              "code": "MoveEvent",
-              "parameters": [9, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 4, 23, 24, 25, 23, 14, 2, 13]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [9, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 4, 23, 24, 25, 23, 14, 2, 13],
+              "string": ""
             },
-            {"code": "ProceedWithMovement"},
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Kersh, are you all right?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "Winter_8_CA"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Those... things I see when I sleep..."},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We talked about those, remember?"},
-            {"code": "ShowMessage_2", "string": "Those are dreams. You're probably"},
-            {"code": "ShowMessage_2", "string": "dreaming about Surl as it used to be."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Memnosyne said she got used to having"},
-            {"code": "ShowMessage_2", "string": "the memories of everyone from Surl, and"},
-            {"code": "ShowMessage_2", "string": "the dreams weren't so bad after awhile."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "I know... but these... are different."},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Sometimes... I see things that..."},
-            {"code": "ShowMessage_2", "string": "aren't from... the Surl people."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Terrible... things..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "You're getting better at speaking"},
-            {"code": "ShowMessage_2", "string": "already, Kersh. I bet it'll be just like"},
-            {"code": "ShowMessage_2", "string": "that with the bad dreams."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Before too long, you won't even notice the"},
-            {"code": "ShowMessage_2", "string": "bad dreams, wherever it is they come from."},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Can you... can you keep a... secret?"},
-            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 23, 23, 15, 23, 23, 23, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "What's wrong?"},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "KERSH, whispering"},
-            {"code": "ShowMessage_2", "string": "I think... I think I made everyone in"},
-            {"code": "ShowMessage_2", "string": "Surl die."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Why would... why do you say that?"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Whenever my eyes... are open... I see"},
-            {"code": "ShowMessage_2", "string": "everyone in Surl... and they're all dying,"},
-            {"code": "ShowMessage_2", "string": "and angry."},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "And whenever my eyes... are closed..."},
-            {"code": "ShowMessage_2", "string": "I see myself... doing things. Things that..."},
-            {"code": "ShowMessage_2", "string": "horrible things..."},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 14, 23, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Death! Everywhere! And... I see..."},
-            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 24, 25]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Kersh, it's OK... everything's all right..."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MoveEvent", "parameters": [8, 8, 0, 0, 15]},
-            {"code": "ProceedWithMovement"},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "Emily... can you tell me... how did you"},
-            {"code": "ShowMessage_2", "string": "find me? What was I doing before I"},
-            {"code": "ShowMessage_2", "string": "met you?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "I just... don't remember."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "Well... you..."},
-            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 14]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [12]},
-            {"code": "MoveEvent", "parameters": [9, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "We all lived at a place called Paradise."},
-            {"code": "ShowMessage_2", "string": "It was small, but... it was beautiful. We"},
-            {"code": "ShowMessage_2", "string": "were all so happy."},
-            {"code": "ShowMessage", "string": "EMILY"},
-            {"code": "ShowMessage_2", "string": "All our friends were right there - you"},
-            {"code": "ShowMessage_2", "string": "never needed to worry about being"},
-            {"code": "ShowMessage_2", "string": "lonely, or afraid."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "KERSH"},
-            {"code": "ShowMessage_2", "string": "I want to... dream about Paradise... instead"},
-            {"code": "ShowMessage_2", "string": "of Surl. I hate Surl! Tell me more... about"},
-            {"code": "ShowMessage_2", "string": "Paradise... please."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ConditionalBranch", "parameters": [0, 388, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "EMILY"},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Kersh, are you all right?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [0, 100, 100, 50],
+              "string": "Winter_8_CA"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Those... things I see when I sleep..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We talked about those, remember?"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Those are dreams. You're probably"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "dreaming about Surl as it used to be."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Memnosyne said she got used to having"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the memories of everyone from Surl, and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the dreams weren't so bad after awhile."
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I know... but these... are different."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sometimes... I see things that..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "aren't from... the Surl people."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Terrible... things..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're getting better at speaking"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "already, Kersh. I bet it'll be just like"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "that with the bad dreams."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Before too long, you won't even notice the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "bad dreams, wherever it is they come from."
+            },
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Can you... can you keep a... secret?"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [9, 8, 0, 0, 23, 23, 15, 23, 23, 23, 13],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What's wrong?"},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH, whispering"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I think... I think I made everyone in"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Surl die."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Why would... why do you say that?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Whenever my eyes... are open... I see"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "everyone in Surl... and they're all dying,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "and angry."},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "And whenever my eyes... are closed..."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I see myself... doing things. Things that..."
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "horrible things..."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [8, 8, 0, 0, 14, 23, 24, 25],
+              "string": ""
+            },
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Death! Everywhere! And... I see..."
+            },
+            {"code": 11330, "indent": 0, "parameters": [9, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Kersh, it's OK... everything's all right..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [8, 8, 0, 0, 15], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Emily... can you tell me... how did you"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "find me? What was I doing before I"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "met you?"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I just... don't remember."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Well... you..."},
+            {"code": 11330, "indent": 0, "parameters": [9, 8, 0, 0, 14], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [9, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We all lived at a place called Paradise."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It was small, but... it was beautiful. We"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "were all so happy."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "All our friends were right there - you"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "never needed to worry about being"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "lonely, or afraid."},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "KERSH"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I want to... dream about Paradise... instead"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of Surl. I hate Surl! Tell me more... about"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Paradise... please."},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 388, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "EMILY"},
+            {
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well... we all had to choose professions."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "You were an Actor, Kersh - one of the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "best! You'd get standing ovations..."
             },
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
-            {"code": "ConditionalBranch", "indent": 1, "parameters": [0, 385, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 2, "string": "EMILY"},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 1, "parameters": [0, 385, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 2, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "Well... we all had to choose professions."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "You were a Defender, Kersh - one of the"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 2,
+              "parameters": [],
               "string": "best! You had a suit of polished armor..."
             },
-            {"code": "END", "indent": 2},
-            {"code": "ElseBranch", "indent": 1},
-            {"code": "ConditionalBranch", "indent": 2, "parameters": [0, 386, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 3, "string": "EMILY"},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 1, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 2, "parameters": [0, 386, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 3, "parameters": [], "string": "EMILY"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "Well... we all had to choose professions."
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "You were a Farmer, Kersh - one of the best!"
             },
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 3,
+              "parameters": [],
               "string": "We never went hungry with you around!"
             },
-            {"code": "END", "indent": 3},
-            {"code": "ElseBranch", "indent": 2},
-            {"code": "END", "indent": 3},
-            {"code": "EndBranch", "indent": 2},
-            {"code": "END", "indent": 2},
-            {"code": "EndBranch", "indent": 1},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 5, 1]},
-            {"code": "FadeOutBGM", "parameters": [2000]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "zzz... zzz... zzz..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 13]},
-            {"code": "ProceedWithMovement"},
-            {"code": "Teleport", "parameters": [269, 1, 18]},
-            {"code": "ControlSwitches", "parameters": [0, 668, 668, 0]},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Daylight - time to be moving again."},
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 5, 1]}
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 3, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 2, "parameters": [], "string": ""},
+            {"code": 10, "indent": 2, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 1, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11520, "indent": 0, "parameters": [2000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "zzz... zzz... zzz..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [269, 1, 18], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 668, 668, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Daylight - time to be moving again."
+            },
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -383,27 +728,76 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 2,
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [257, 58, 18]}
+            {"code": 10810, "indent": 0, "parameters": [257, 58, 18], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -412,21 +806,43 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "We need to keep moving forward."},
-            {"code": "ShowMessage_2", "string": "Let's just get through Surl as quickly"},
-            {"code": "ShowMessage_2", "string": "as possible."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "ProceedWithMovement"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We need to keep moving forward."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's just get through Surl as quickly"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "as possible."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
+      "x": 0,
       "y": 8
     },
     {
@@ -434,15 +850,49 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [257, 58, 18]}
+            {"code": 10810, "indent": 0, "parameters": [257, 58, 18], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -451,21 +901,43 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "We need to keep moving forward."},
-            {"code": "ShowMessage_2", "string": "Let's just get through Surl as quickly"},
-            {"code": "ShowMessage_2", "string": "as possible."},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 1]},
-            {"code": "ProceedWithMovement"}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We need to keep moving forward."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Let's just get through Surl as quickly"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "as possible."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 1], "string": ""},
+            {"code": 11340, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
+      "x": 0,
       "y": 9
     },
     {
@@ -473,17 +945,47 @@
       "name": "Kersh",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -492,10 +994,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 666
+            "item_id": 1,
+            "switch_a_id": 666,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -506,17 +1021,47 @@
       "name": "Emily",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 4,
           "character_name": "emily",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -525,10 +1070,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 666
+            "item_id": 1,
+            "switch_a_id": 666,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 2,
@@ -539,9 +1097,13 @@
       "name": "ParadiseCharacter",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -550,17 +1112,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 386
+            "item_id": 1,
+            "switch_a_id": 386,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -569,17 +1146,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 388
+            "item_id": 1,
+            "switch_a_id": 388,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 2,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -588,16 +1180,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 385
+            "item_id": 1,
+            "switch_a_id": 385,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -606,10 +1214,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 666
+            "item_id": 1,
+            "switch_a_id": 666,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 4,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 1,
@@ -620,8 +1241,13 @@
       "name": "FireOut",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 139,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -630,16 +1256,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 667
+            "item_id": 1,
+            "switch_a_id": 667,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -648,10 +1290,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -662,9 +1317,13 @@
       "name": "Kersh2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -673,16 +1332,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 667
+            "item_id": 1,
+            "switch_a_id": 667,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -691,10 +1366,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -705,9 +1393,13 @@
       "name": "Emily2",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "emily",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -716,16 +1408,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 667
+            "item_id": 1,
+            "switch_a_id": 667,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -734,10 +1442,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -748,9 +1469,13 @@
       "name": "Talan2",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -759,16 +1484,32 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 667
+            "item_id": 1,
+            "switch_a_id": 667,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -777,10 +1518,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -791,9 +1545,13 @@
       "name": "ParadiseCharacter",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -802,18 +1560,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 386,
-            "switch_b_id": 667
+            "switch_b_id": 667,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "People3",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -822,18 +1594,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 388,
-            "switch_b_id": 667
+            "switch_b_id": 667,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 2,
           "character_name": "extra2(1)",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -842,17 +1628,32 @@
               "timer": false,
               "variable": false
             },
+            "item_id": 1,
             "switch_a_id": 385,
-            "switch_b_id": 667
+            "switch_b_id": 667,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 3,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         },
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
           "character_name": "nobodyhere",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -861,10 +1662,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 668
+            "item_id": 1,
+            "switch_a_id": 668,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 4,
-          "move_type": "stationary"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -875,12 +1689,40 @@
       "name": "EV0012",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [269, 1, 18]}
+            {"code": 10810, "indent": 0, "parameters": [269, 1, 18], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 19,
@@ -891,12 +1733,40 @@
       "name": "EV0013",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Teleport", "parameters": [269, 1, 18]}
+            {"code": 10810, "indent": 0, "parameters": [269, 1, 18], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "touched"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
         }
       ],
       "x": 19,
@@ -907,7 +1777,13 @@
       "name": "AfterBattleMint",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -916,24 +1792,42 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 498
+            "item_id": 1,
+            "switch_a_id": 498,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 35, 0]}
+            {"code": 12330, "indent": 0, "parameters": [0, 35, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
-      "x": 19
+      "x": 19,
+      "y": 0
     },
     {
       "id": 15,
       "name": "EV0015",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -942,20 +1836,57 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 811
+            "item_id": 1,
+            "switch_a_id": 811,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "CallEvent", "parameters": [0, 47, 0]},
-            {"code": "ControlSwitches", "parameters": [0, 811, 811, 1]}
+            {"code": 12330, "indent": 0, "parameters": [0, 47, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 811, 811, 1], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 19,
       "y": 14
     }
   ],
-  "save_count": 81
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 81,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

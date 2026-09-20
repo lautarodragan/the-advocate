@@ -7,13 +7,42 @@ one thing only: copy somebody else's shape.
     cargo run --release -- read   Map0001.lmu map1.json
     cargo run --release -- write  map1.json   Map0001.lmu
 
-    cargo run --release -- unpack ./game      ./dump
-    cargo run --release -- pack   ./dump      ./game-again
+    cargo run --release -- unpack ./game      ./exact ./resolved
+    cargo run --release -- pack   ./exact     ./game-again
+
+    cargo run --release -- schema schema.json
 
 `read`/`write` do one file, which is what one wants in order to look at a single
 map. `unpack`/`pack` do a whole game as **a tree of files**, which is what one
 wants in order to keep it in a repository; that layout has [its own
-section](#a-game-as-a-directory-and-not-one-big-json).
+section](#a-game-as-a-directory-and-not-one-big-json). `unpack` writes that tree
+**twice, in one run**, in the two views of [the next
+section](#two-views-of-the-same-document). `schema` writes out what the exact
+dump does not carry and a reader of it needs: see
+[below](#the-schema-is-published-as-data).
+
+## Two views of the same document
+
+The **exact dump** has the binary's own shape: a field holding its default is
+left out —the format's own rule— and an enum travels as the name `enums.csv`
+gives it. It is compact, it is the one that reads back, and it is the only one
+`pack` accepts. Reading it takes the schema.
+
+The **resolved view** is the same document with nothing left to know: **every
+field written**, its default already filled in, and every enum as the number the
+file stores. It is bigger —on the measured game, 19.4 MB against 30.9 MB— and it
+takes no schema at all: a consumer indexes the field and gets the value. It
+cannot be written back, and `pack` says so by name instead of quietly producing
+a binary with every chunk in it, which would be a valid file nobody ever wrote.
+
+**`unpack` writes both or neither**, which is why it takes two output
+directories and not one. They are the same document said in two ways, and what
+makes comparing them mean anything is that there is no way to have one from one
+run and the other from another.
+
+Both come out of the same `Serialize` impls and the same defaults —`src/lcf.rs`,
+`as_resolved`— for the same reason: two serializers could say different things
+about the same field.
 
 ## The only thing that makes it worth anything: the way back is byte for byte
 
@@ -83,7 +112,7 @@ A game written as a single JSON per binary file is unusable as a repository: the
 database alone is 17 MB in one file, so a one-word change to a term lands in a
 diff next to every enemy in the game. `unpack` writes a tree instead:
 
-    ditto.json            the layout's version, and the header of every file
+    ditto.json            the layout's version and view, and every file's header
     maps.json             the map tree: the `.lmt`
     maps/Map0001.json     one file per map, without its tile layers
     maps/Map0001.tiles    those layers, as a grid
@@ -160,10 +189,10 @@ in the corresponding struct.
 Conceptually the CSV is a **dependency** of Ditto: bumping its version is a
 change that gets reviewed like any other.
 
-Three things are generated, and all three come from the CSV and from no
-judgement of ours: the structs and the enums, the default of every field, and
-the codec —which field is which chunk, how it is encoded, and whether it is
-emitted when it holds the default—.
+Four things are generated, and all four come from the CSV and from no
+judgement of ours: the structs and the enums, the default of every field, the
+codec —which field is which chunk, how it is encoded, and whether it is
+emitted when it holds the default— and the description `schema` prints.
 
 **A text default in the CSV is a C++ literal, quotes and all.** `Music,name`
 holds `"(OFF)"` and the name is the five characters inside it. The generator
@@ -174,6 +203,28 @@ never noticed, because `Music::name` and `Sound::name` are the only two fields
 this hit and both are `PersistIfDefault`, so the binary carries them either
 way. It is exactly the kind of wrong default this project exists to remove, and
 it cost 61 KB of a 19.5 MB dump.
+
+### The schema is published as data
+
+The exact dump **is not self-describing**, and that is the point: a field
+holding its default is left out, and an enum travels as a name. So a reader that
+is not Ditto cannot know what an absent `max_hp` holds, nor what number
+`"auto_start"` is. It needs the schema, and until it has it, it is reading the
+file wrong. (A reader that wants none of this reads the resolved view instead,
+and that is what it is for.)
+
+    cargo run --release -- schema schema.json
+
+writes it out: every struct, and per field its chunk, its default as JSON,
+the enum its values are names of, whether the binary stores it even when it
+holds the default, and the struct it nests; plus every enum table. The same
+`cargo xtask generate` run emits both this and the structs above, from the
+same CSV rows, so the two cannot drift apart.
+
+The alternative —and what a consumer of this project actually did until
+2026-09-20— is to read `src/schema/mod.rs` with regular expressions and pull
+the defaults out of the Rust. It works until it does not: a default written as
+an expression (`9 * 256`) comes out as its first number.
 
 ### The default goes next to the field, written once
 

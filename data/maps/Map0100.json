@@ -6,12 +6,38 @@
       "name": "General",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "Chara3",
-          "condition": {"switch_a_id": 291},
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 291,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -22,11 +48,38 @@
       "name": "Granddad",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 4,
           "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 12,
@@ -37,11 +90,38 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 8,
@@ -52,12 +132,38 @@
       "name": "EV0004",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 7,
@@ -68,12 +174,38 @@
       "name": "EV0005",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -84,12 +216,38 @@
       "name": "EV0006",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -100,12 +258,38 @@
       "name": "EV0007",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -116,12 +300,38 @@
       "name": "EV0008",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -132,12 +342,38 @@
       "name": "EV0009",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
@@ -148,12 +384,38 @@
       "name": "EV0010",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 4,
@@ -164,56 +426,170 @@
       "name": "EV0011",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "GENERAL"},
-            {"code": "ShowMessage_2", "string": "Sir, we should be safe here."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "DIRECTOR"},
-            {"code": "ShowMessage_2", "string": "I don't doubt it, General. The missiles"},
-            {"code": "ShowMessage_2", "string": "weren't targetting Tasgarde. I'm just"},
-            {"code": "ShowMessage_2", "string": "worried about our citizens in Lashe and"},
-            {"code": "ShowMessage", "string": "DIRECTOR"},
-            {"code": "ShowMessage_2", "string": "Prima cities... they won't know what"},
-            {"code": "ShowMessage_2", "string": "hit them, if Eisen isn't able to get the"},
-            {"code": "ShowMessage_2", "string": "Advocate out of the defense network."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "GENERAL"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 0, 0, 3]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "GENERAL, whispering"},
-            {"code": "ShowMessage_2", "string": "(Transmit the high priority self-destruct"},
-            {"code": "ShowMessage_2", "string": "code to Tasgarde)"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD, whispering"},
-            {"code": "ShowMessage_2", "string": "(The code is transmitted, General."},
-            {"code": "ShowMessage_2", "string": "One minute until detonation)"},
-            {"code": "ShowMessage", "string": "GENERAL, whispering"},
-            {"code": "ShowMessage_2", "string": "(The people of Lashe and Prima salute"},
-            {"code": "ShowMessage_2", "string": "you, soldier. Maybe the old man will now"},
-            {"code": "ShowMessage_2", "string": "see that it's better to rely on the military"},
-            {"code": "ShowMessage", "string": "GENERAL, whispering"},
-            {"code": "ShowMessage_2", "string": "if he wants to get things done)"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 3, 3, 0, 0, 15]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "DIRECTOR"},
-            {"code": "ShowMessage_2", "string": "What's going on here, General?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 24, 25, 13]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "GENERAL"},
-            {"code": "ShowMessage_2", "string": "N-nothing, Sir."},
-            {"code": "ControlSwitches", "parameters": [0, 306, 306, 0]},
-            {"code": "Teleport", "parameters": [95, 20, 31]}
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sir, we should be safe here."
+            },
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DIRECTOR"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't doubt it, General. The missiles"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "weren't targetting Tasgarde. I'm just"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "worried about our citizens in Lashe and"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DIRECTOR"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Prima cities... they won't know what"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "hit them, if Eisen isn't able to get the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Advocate out of the defense network."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 0, 0, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL, whispering"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "(Transmit the high priority self-destruct"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "code to Tasgarde)"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD, whispering"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "(The code is transmitted, General."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "One minute until detonation)"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL, whispering"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "(The people of Lashe and Prima salute"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you, soldier. Maybe the old man will now"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "see that it's better to rely on the military"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL, whispering"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "if he wants to get things done)"
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [2, 8, 0, 0, 3, 3, 0, 0, 15],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DIRECTOR"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's going on here, General?"
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 24, 25, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "N-nothing, Sir."},
+            {"code": 10210, "indent": 0, "parameters": [0, 306, 306, 0], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [95, 20, 31], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -222,66 +598,210 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 307
+            "item_id": 1,
+            "switch_a_id": 307,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
           "event_commands": [
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "VOICE OF EISEN"},
-            {"code": "ShowMessage_2", "string": "Cancel the self-destruct! The missiles"},
-            {"code": "ShowMessage_2", "string": "have been destroyed!"},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 24, 25]},
-            {"code": "ShowMessage", "string": "DIRECTOR"},
-            {"code": "ShowMessage_2", "string": "Self destruct sequence?"},
-            {"code": "ShowMessage_2", "string": "General!"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "ShowMessage", "string": "GENERAL"},
-            {"code": "ShowMessage_2", "string": "Cancel the order!"},
-            {"code": "PlaySound", "parameters": [100, 50, 50], "string": "Flame8"},
-            {"code": "TintScreen", "parameters": [200, 200, 200, 100, 20, 1]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 0]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "susan"},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "But it was too late. The order had gone"},
-            {"code": "ShowMessage_2", "string": "through, and Tasgarde Military Base"},
-            {"code": "ShowMessage_2", "string": "was exploding from the inside."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "At almost the same time, across the"},
-            {"code": "ShowMessage_2", "string": "globe, Prima City suffered a direct"},
-            {"code": "ShowMessage_2", "string": "impact that killed 50,000 people."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "One of the missiles had dropped below"},
-            {"code": "ShowMessage_2", "string": "the detection range of the defensive"},
-            {"code": "ShowMessage_2", "string": "network, and had not been destroyed."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "I survived Tasgarde's death throes only"},
-            {"code": "ShowMessage_2", "string": "because the Advocate sealed off the"},
-            {"code": "ShowMessage_2", "string": "area where I fell. It saved my life."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "For its trouble, the Advocate was"},
-            {"code": "ShowMessage_2", "string": "deactivated and left to rust in the"},
-            {"code": "ShowMessage_2", "string": "shell that remained of the base."},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "Once I was discharged from the Agency"},
-            {"code": "ShowMessage_2", "string": "hospital, I too was confined to the remains"},
-            {"code": "ShowMessage_2", "string": "of Tasgarde."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "EISEN"},
-            {"code": "ShowMessage_2", "string": "The Advocate and I... memories of a time"},
-            {"code": "ShowMessage_2", "string": "the Agency would rather forget."},
-            {"code": "ControlSwitches", "parameters": [0, 308, 308, 0]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 21]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-            {"code": "Teleport", "parameters": [101, 7, 20]}
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE OF EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Cancel the self-destruct! The missiles"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "have been destroyed!"},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DIRECTOR"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Self destruct sequence?"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "General!"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "GENERAL"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Cancel the order!"},
+            {"code": 11550, "indent": 0, "parameters": [100, 50, 50], "string": "Flame8"},
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [200, 200, 200, 100, 20, 1],
+              "string": ""
+            },
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 1, 0], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "susan"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But it was too late. The order had gone"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "through, and Tasgarde Military Base"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "was exploding from the inside."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "At almost the same time, across the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "globe, Prima City suffered a direct"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "impact that killed 50,000 people."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "One of the missiles had dropped below"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the detection range of the defensive"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "network, and had not been destroyed."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I survived Tasgarde's death throes only"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "because the Advocate sealed off the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "area where I fell. It saved my life."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For its trouble, the Advocate was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "deactivated and left to rust in the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "shell that remained of the base."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Once I was discharged from the Agency"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "hospital, I too was confined to the remains"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "of Tasgarde."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "EISEN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Advocate and I... memories of a time"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Agency would rather forget."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 308, 308, 0], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 21], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [101, 7, 20], "string": ""}
           ],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 13
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 13,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

@@ -77,19 +77,20 @@ TEXTOS = (
     # Sin pedir nada: el cuadro donde caiga. Es el único que mira los dos
     # ticks, porque es el que prueba el encadenado.
     ("texto", "grupo-11-en-255", None, (60, 400), None, None),
-    # El mismo texto en `cruza`, donde el empujón lo deja **encima** del borde
-    # de banco: la cabecera y el primer largo quedan en un banco y el texto
-    # sigue en el otro. El compositor avanzaba `msg_ptr` con un `inc` de
+    # El mismo texto en `chico`, donde el caso `empujon` lo deja **encima** del
+    # borde de banco: la cabecera y el primer largo quedan en un banco y el
+    # texto sigue en el otro. El compositor avanzaba `msg_ptr` con un `inc` de
     # dieciséis bits, así que a partir del borde leía el $0000 del mismo
     # banco, que en LoROM no es ROM. Verificado en rojo con ese `inc`:
     # **3414 pixeles**.
-    ("texto-cruza", "grupo-11", "cruza", (60,), PRIMER_CUADRO, "cruza"),
+    ("texto-cruza", "grupo-11-en-255", "chico", (60,), PRIMER_CUADRO, "cruza"),
     # Y el cuadro que sigue, que en el mismo cartucho cae entero del otro lado
     # del borde: ahí `msg_empezar` sumaba el desplazamiento de dieciséis bits
     # al puntero y perdía el acarreo. Verificado en rojo con esa suma: 3404
-    # pixeles. Son dos posiciones del mismo empujón y por eso un cartucho
-    # solo, donde antes hacían falta dos rellenos que no convivían.
-    ("texto-lejos", "grupo-11", "cruza", (400,), SEGUNDO_CUADRO, "lejos"),
+    # pixeles. Son las dos posiciones de un solo empujón, y por eso un cartucho
+    # solo donde antes hacían falta dos rellenos que no convivían.
+    ("texto-lejos", "grupo-11-en-255", "chico", (400,), SEGUNDO_CUADRO,
+     "lejos"),
 )
 
 
@@ -133,7 +134,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
             "mide %d y su desplazamiento es %d: cruza=%s, del otro lado=%s. "
             "Esta prueba lo quiere %r y lo que lo pone ahí es el tamaño del "
             "caso `empujon` —ver pruebas/casos/empujon.json y el cartucho "
-            "`cruza` en pruebas/arnes/cartuchos.py—, así que si el bloque de "
+            "`chico` en pruebas/arnes/cartuchos.py—, así que si el bloque de "
             "textos se movió, el empujón hay que volver a medirlo."
             % (renglon, en, byte, largo, desplazamiento, cruza, lejos, donde))
         assert (cruza if donde == "cruza" else lejos and not cruza), porque
@@ -239,8 +240,8 @@ TIMERS = (("timer", (2, 31, 61, 90)),
           # El cronómetro llegando a cero. Mira el 2, el 40, el 59 y el 61 y
           # **se saltea justo el 60**, que es el único que difiere: es una
           # divergencia de un tick en el cuadro en que el cronómetro se apaga,
-          # 252 pixeles en los dígitos, y está anotada en ESTADO.md como
-          # cosmética.
+          # 252 pixeles en los dígitos, y está anotada en
+          # `divergencias/cronometro-llegando-a-cero.md` como cosmética.
           ("timer-cero", (2, 40, 59, 61)))
 
 

@@ -47,6 +47,47 @@ Los tres pasos, decididos con taro:
 3. Que **`tools/rpgmaker/lcf.py` los lea**, con sus 51 consumidores intactos. Hecho, y
    los 51 quedaron intactos.
 
+Y un cuarto, del 2026-09-20, que es el que cierra la idea: **que lo que Ditto
+entregue esté ya resuelto**, así el que lee no tiene que aprender el formato
+para poder leer. Es la sección que sigue.
+
+## La vista resuelta: el que tiene el formato lo resuelve
+
+`ditto unpack` emite **dos árboles con la misma forma, en la misma corrida**:
+
+* la **vista resuelta**, que es `data/`: todos los campos escritos, con su
+  default ya aplicado, y los enums como el número que guarda el binario. No
+  hace falta saber nada del formato para leerla, y eso es todo lo que se le
+  pide;
+* el **volcado exacto**, que es la forma del binario —defaults omitidos, enums
+  por nombre— y **no se versiona**: sale a `rom/build/ditto-exacto/`. Es el
+  único que `ditto pack` puede volver a escribir, así que es el que usa la
+  vuelta al binario —que ya necesita el juego original para comparar—, y es el
+  que taro mira para ver el juego con los nombres puestos.
+
+**Las dos salen juntas o no sale ninguna**, y por eso `unpack` toma dos
+directorios de salida y no uno. Si se pudieran generar por separado es cuestión
+de tiempo que una sea de una corrida y la otra de otra, y compararlas deje de
+significar algo. Del mismo lado está que las dos salgan de los mismos
+`Serialize` y de los mismos defaults: dos serializadores podrían decir cosas
+distintas del mismo campo.
+
+Empaquetar la vista resuelta escribiría **todos** los chunks y daría un binario
+que ningún editor escribió nunca —y uno válido, del que nadie se quejaría río
+abajo—, así que `ditto.json` dice cuál de las dos vistas es cada árbol y `pack`
+rechaza la resuelta por su nombre.
+
+**Lo que se pierde son los nombres**, y se pierde a propósito. Taro lo dijo
+así: *"si eventualmente el proceso entero ocurre en Rust, podemos hacer que
+ditto sea una lib que exporta los structs con sus definiciones serde, y
+recuperar los nombres legibles sin introducir código extra ni json extra"*. O
+sea que el camino de vuelta está pensado, y mientras tanto el volcado exacto se
+sigue generando a pedido.
+
+Lo que **cuesta** son 19,4 MB contra 30,9: un 59% más. Se paga una sola vez, en
+un árbol que es derivado, y a cambio `tools/rpgmaker/lcf.py` no tiene adentro
+ninguna regla del formato.
+
 ### Paso 3: cómo quedó `tools/rpgmaker/lcf.py`, y qué costó
 
 Las clases —`Map`, `Database`, `TreeMap` y todo lo que cuelga— tienen los
@@ -56,18 +97,26 @@ el directorio sólo si tiene adentro un volcado propio (un `ditto.json`): así u
 juego que no es éste se lee pasándole su propio volcado, y `--game-dir` sigue
 queriendo decir de dónde salen los PNG y los MIDI, que no se mudaron.
 
-**Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** El
-JSON omite todo campo que valga el suyo, la misma regla que el binario, así que
-leerlo es saber qué vale un campo ausente. Eso sale de `tools/rpgmaker/ditto_schema.py`,
-que **se genera desde el esquema de Ditto** —`tools/rpgmaker/gen_ditto_schema.py`— y
-trae, por campo: su chunk, su default, su enum si tiene, si el formato lo
-escribe aunque valga el default (`PersistIfDefault`) y qué struct lleva
-adentro. Es la misma idea con la que se generaba el esquema del lector viejo,
-con la fuente corrida un lugar: liblcf genera el esquema de Ditto y Ditto genera
-éste.
+**Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** Y
+desde el 2026-09-20 tampoco se leen de ningún lado: vienen aplicados en
+`data/`, que es la vista resuelta.
 
-Los enums vienen por nombre —`"same"`, `"auto_start"`, `"ShowMessage"`— y
-vuelven al número con las tablas de ese mismo archivo.
+Entre el 14 y el 20, en el medio, estuvo el paso que hoy se ve como una escala:
+`data/` era el volcado exacto y `lcf.py` llevaba el esquema del formato al lado
+para entenderlo —`ditto_schema.json`, con el chunk, el default, el enum y el
+`PersistIfDefault` de cada campo—. Primero ese esquema lo scrapeaba un
+`gen_ditto_schema.py` con expresiones regulares sobre el código Rust de Ditto
+—1.688 líneas de Python, y cinco defaults mal porque `kPanXDefault` es
+`9 * 256` y la expresión regular paraba en el primer número—; después lo
+publicó el propio Ditto, `ditto schema`. Los dos se fueron con la vista
+resuelta, que es la respuesta a la misma pregunta un escalón más arriba: en vez
+de publicar las reglas, entregar el dato con las reglas aplicadas.
+
+`ditto schema` **se queda igual**, del lado de Ditto: el volcado exacto se
+sigue emitiendo y sigue sin ser auto-descriptivo, así que quien lo lea y no sea
+Ditto lo necesita —Ditto no puede dar por sentado que este repo es su único
+usuario—. Y lo que lo respalda, `src/schema/description.rs`, es contra lo que
+miden `tests/schema.rs` y las pruebas de la vista resuelta.
 
 **Tres consumidores tuvieron que cambiar, y ninguno de los 51.** Los que
 cambiaron no llamaban a `lcf.Map`: metían la mano **por debajo** de la capa, a
@@ -125,15 +174,19 @@ Los pesos, sobre el mismo juego:
 
     17.569.229   el .ldb como un solo JSON, omitiendo defaults
     25.675.888   el .ldb como un solo JSON, como estaba antes
-    19.445.521   el volcado de Ditto entero, 674 archivos: lo que hoy es data/
+    19.445.521   el volcado exacto entero, 674 archivos: lo que data/ fue
+                 entre el 2026-09-14 y el 2026-09-20, y lo que hoy sale a
+                 rom/build/ditto-exacto/
+    30.902.519   la vista resuelta, los mismos 674 archivos: lo que hoy es data/
     16.121.259   el volcado que reemplazó, el de tools/export_json.py
 
-O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y `data/` pesa
-**21% más** que el volcado de Python que reemplazó. La diferencia no es grasa:
-el de Python era una *lectura* del juego —un comando de evento en una línea, y
-los campos que al port no le sirven no estaban—, y el de Ditto tiene que poder
-volver a escribir el binario, así que lleva todo. Un mapa concreto, el 8, pasó
-de 439.222 bytes como un JSON suelto a 99.915 de JSON más 67.902 de `.tiles`.
+O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y el volcado
+exacto pesaba **21% más** que el volcado de Python que reemplazó. La diferencia
+no es grasa: el de Python era una *lectura* del juego —un comando de evento en
+una línea, y los campos que al port no le sirven no estaban—, y el de Ditto
+tiene que poder volver a escribir el binario, así que lleva todo. Un mapa
+concreto, el 8, pasó de 439.222 bytes como un JSON suelto a 99.915 de JSON más
+67.902 de `.tiles`.
 
 Ese 21% se pagó a propósito. El volcado viejo —`tools/export_json.py`, con su
 lector de binarios `lcf_bin.py` y el esquema que `gen_schema.py` sacaba de
@@ -205,7 +258,7 @@ EasyRPG lo disparan.
 
 ## Lo que viene, y una decisión ya tomada: el emisor hacia la SNES
 
-Hoy el conversor escribe **texto de assembler**: para `demo-ciudad` son 148.686
+Hoy el conversor escribe **texto de assembler**: para la demo son 148.686
 líneas y 11 MB, de las cuales 145.885 son `.byte` y `.word`. Eso se ensambla en
 unos 11 segundos por build.
 

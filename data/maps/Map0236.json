@@ -6,12 +6,38 @@
       "name": "Kersh",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 5,
@@ -22,88 +48,216 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1, 1, 1, 1, 1, 0, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 0, 14]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1, 1, 1]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "Sir... two of the residents escaped. A man"},
-            {"code": "ShowMessage_2", "string": "and a woman jumped from the cliff into"},
-            {"code": "ShowMessage_2", "string": "the river. We couldn't stop them."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 1]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "Describe the man."},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "He had dark hair and was wearing"},
-            {"code": "ShowMessage_2", "string": "a visor of some sort. He matches the"},
-            {"code": "ShowMessage_2", "string": "description of the Director's assassin."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "You found nothing unusual in your"},
-            {"code": "ShowMessage_2", "string": "search of this place?"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "No, sir."},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "Hmmm... the old man must have given"},
-            {"code": "ShowMessage_2", "string": "it to him."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "Sir? We can have the Hovercraft"},
-            {"code": "ShowMessage_2", "string": "ready to go in minutes, and track them"},
-            {"code": "ShowMessage_2", "string": "before they leave the river -"},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "No, I will follow the fugitives on foot."},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15, 23, 23, 23, 14]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "Sir?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "Take the hovercraft back to Prima."},
-            {"code": "ShowMessage_2", "string": "Our Slicer should be ready by the"},
-            {"code": "ShowMessage_2", "string": "time you get there."},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "I will return to Prima shortly with new"},
-            {"code": "ShowMessage_2", "string": "orders."},
-            {"code": "Wait", "parameters": [2]},
-            {"code": "ShowMessage", "string": "AGENCY GUARD"},
-            {"code": "ShowMessage_2", "string": "Yes, Sir!"},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 15, 3, 2, 3, 3, 12]},
-            {"code": "MoveEvent", "parameters": [5, 8, 0, 0, 14]},
-            {"code": "MoveEvent", "parameters": [6, 8, 0, 0, 2, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "It was a good effort, Pierson. But the"},
-            {"code": "ShowMessage_2", "string": "boy can't run forever."},
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 10, 1]},
-            {"code": "Teleport", "parameters": [205, 10, 14]}
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 1, 1, 1, 1, 1, 0, 13],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 1, 1, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sir... two of the residents escaped. A man"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and a woman jumped from the cliff into"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the river. We couldn't stop them."
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Describe the man."},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "He had dark hair and was wearing"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "a visor of some sort. He matches the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "description of the Director's assassin."
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You found nothing unusual in your"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "search of this place?"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "No, sir."},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Hmmm... the old man must have given"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "it to him."},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sir? We can have the Hovercraft"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "ready to go in minutes, and track them"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "before they leave the river -"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No, I will follow the fugitives on foot."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 15, 23, 23, 23, 14],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Sir?"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Take the hovercraft back to Prima."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Our Slicer should be ready by the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "time you get there."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I will return to Prima shortly with new"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "orders."},
+            {"code": 11410, "indent": 0, "parameters": [2], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY GUARD"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Yes, Sir!"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 15, 3, 2, 3, 3, 12],
+              "string": ""
+            },
+            {"code": 11330, "indent": 0, "parameters": [5, 8, 0, 0, 14], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [6, 8, 0, 0, 2, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It was a good effort, Pierson. But the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "boy can't run forever."},
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 10, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [205, 10, 14], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     },
     {
       "id": 4,
       "name": "Agency Guard1",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -112,11 +266,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 608
+            "item_id": 1,
+            "switch_a_id": 608,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 14,
@@ -127,10 +293,13 @@
       "name": "Agency Guard2",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -139,11 +308,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 608
+            "item_id": 1,
+            "switch_a_id": 608,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 11,
@@ -154,10 +335,13 @@
       "name": "Agency Guard3",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -166,20 +350,54 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 608
+            "item_id": 1,
+            "switch_a_id": 608,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 10,
       "y": 8
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 30,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
   "parallax_flag": true,
+  "parallax_loop_x": false,
   "parallax_loop_y": true,
   "parallax_name": "Night1",
-  "save_count": 53
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 53,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

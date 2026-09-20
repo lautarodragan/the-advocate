@@ -6,12 +6,38 @@
       "name": "LTLookout1",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
           "character_index": 6,
           "character_name": "Chara3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 50,
@@ -22,168 +48,310 @@
       "name": "SceneDriver",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 45,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "Wait", "parameters": [35]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "It's quiet - almost... too quiet..."},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "PanScreen", "parameters": [2, 1, 15, 4, 1]},
-            {"code": "ChangeEventLocation", "parameters": [3, 0, 44, 9]},
-            {"code": "PanScreen", "parameters": [2, 3, 15, 4, 1]},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 13]},
-            {"code": "ShowMessage", "string": "LAZER TEETH MEMBER"},
-            {"code": "ShowMessage_2", "string": "Anything yet?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 15]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "Not yet, man. I'm surprised the Vipers"},
-            {"code": "ShowMessage_2", "string": "haven't come back to gloat about"},
-            {"code": "ShowMessage_2", "string": "getting the Idol."},
-            {"code": "ShowMessage", "string": "LAZER TEETH MEMBER"},
-            {"code": "ShowMessage_2", "string": "They'll be here. Keep your eyes peeled."},
-            {"code": "MoveEvent", "parameters": [3, 8, 0, 0, 12, 0]},
-            {"code": "Wait", "parameters": [4]},
-            {"code": "ChangeEventLocation", "parameters": [3, 0, 41, 37]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "<mocking voice>"},
-            {"code": "ShowMessage_2", "string": "\"Keep your eyes peeled!\""},
-            {"code": "ShowMessage_2", "string": "I don't see you up here, man..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "How'd I ever get stuck with lookout"},
-            {"code": "ShowMessage_2", "string": "duty? Just because the prisoner"},
-            {"code": "ShowMessage_2", "string": "escaped on my watch..."},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "This sucks."},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "I gotta get something to eat."},
-            {"code": "ShowMessage_2", "string": "The Vipers aren't gonna show up"},
-            {"code": "ShowMessage_2", "string": "anyway."},
+            {"code": 11410, "indent": 0, "parameters": [35], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
             {
-              "code": "MoveEvent",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's quiet - almost... too quiet..."
+            },
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 15, 4, 1], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [3, 0, 44, 9], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 3, 15, 4, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH MEMBER"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Anything yet?"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Not yet, man. I'm surprised the Vipers"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "haven't come back to gloat about"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "getting the Idol."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH MEMBER"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "They'll be here. Keep your eyes peeled."
+            },
+            {"code": 11330, "indent": 0, "parameters": [3, 8, 0, 0, 12, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [4], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [3, 0, 41, 37], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "<mocking voice>"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "\"Keep your eyes peeled!\""
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't see you up here, man..."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How'd I ever get stuck with lookout"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "duty? Just because the prisoner"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "escaped on my watch..."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "This sucks."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I gotta get something to eat."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Vipers aren't gonna show up"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "anyway."},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 1, 8, 0, 0, 36, 3, 3, 3, 3, 24, 3, 3, 25, 12, 0, 37, 34, 8, 66, 76, 80, 101,
                 111, 112, 108, 101, 3
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [12]},
-            {"code": "ChangeEventLocation", "parameters": [4, 0, 60, 19]},
-            {"code": "PanScreen", "parameters": [2, 1, 15, 4, 1]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 3, 3, 3]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 3, 3, 26, 0, 0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [20]},
+            {"code": 11410, "indent": 0, "parameters": [12], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [4, 0, 60, 19], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 15, 4, 1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 3, 3, 3, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 36, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 3, 3, 26, 0, 0, 0, 0, 0],
+              "string": ""
             },
-            {"code": "PanScreen", "parameters": [2, 3, 15, 4, 1]},
-            {"code": "ShowMessage", "string": "VOICE"},
-            {"code": "ShowMessage_2", "string": "Fine! I was just hungry, that's all!"},
-            {"code": "ShowMessage_2", "string": "Gimme a break!"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [1, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6, 2]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 36, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [3]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 24, 25]},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "What's this barrel doing here?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 12]},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 29, 29, 29, 3, 28, 28, 28]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "Did somebody leave a barrel out here"},
-            {"code": "ShowMessage_2", "string": "in front of the hideout? No?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 14]},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "Huh?"},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 36, 2, 2, 2, 2, 15]},
-            {"code": "Wait", "parameters": [13]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
+            {"code": 11060, "indent": 0, "parameters": [2, 3, 15, 4, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE"},
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Fine! I was just hungry, that's all!"
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 4, 1, 0]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "Gotcha!"},
-            {"code": "ShowMessage", "string": "TALAN"},
-            {"code": "ShowMessage_2", "string": "Blast! Now what?"},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "ShowMessage", "string": "VOICE"},
-            {"code": "ShowMessage_2", "string": "Hold it right there, Lazer Scum!"},
-            {"code": "MoveEvent", "parameters": [4, 8, 0, 0, 13]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 13]},
-            {"code": "ChangeEventLocation", "parameters": [5, 0, 57, 13]},
-            {"code": "ChangeEventLocation", "parameters": [6, 0, 59, 15]},
-            {"code": "ChangeEventLocation", "parameters": [7, 0, 54, 16]},
-            {"code": "ChangeEventLocation", "parameters": [8, 0, 59, 12]},
-            {"code": "ChangeEventLocation", "parameters": [9, 0, 56, 19]},
-            {"code": "PanScreen", "parameters": [2, 1, 15, 4, 1]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Gimme a break!"},
             {
-              "code": "MoveEvent",
-              "parameters": [5, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6, 2],
+              "string": ""
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 5, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 24, 25], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
             {
-              "code": "MoveEvent",
-              "parameters": [6, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "What's this barrel doing here?"
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 6, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 12], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [7, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 29, 29, 29, 3, 28, 28, 28],
+              "string": ""
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 7, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
             {
-              "code": "MoveEvent",
-              "parameters": [8, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Did somebody leave a barrel out here"
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 8, 0, 0]},
-            {"code": "Wait", "parameters": [1]},
-            {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth8"},
             {
-              "code": "MoveEvent",
-              "parameters": [9, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in front of the hideout? No?"
             },
-            {"code": "ShowBattleAnimation", "parameters": [132, 9, 0, 0]},
-            {"code": "Wait", "parameters": [4]},
-            {"code": "ShowMessage", "string": "NEON VIPERS"},
-            {"code": "ShowMessage_2", "string": "Run for it, Talan!"},
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "hzbreach"},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 3]},
-            {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
-            {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Huh?"},
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 36, 2, 2, 2, 2, 15],
+              "string": ""
             },
-            {"code": "PanScreen", "parameters": [2, 3, 15, 4, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]},
-            {"code": "MoveEvent", "parameters": [1, 8, 0, 0, 23, 23, 15, 23, 13, 24, 25]},
-            {"code": "Wait", "parameters": [8]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 1]},
-            {"code": "ShowMessage", "string": "LAZER TEETH LOOKOUT"},
-            {"code": "ShowMessage_2", "string": "The Vipers are here!"},
-            {"code": "ShowMessage_2", "string": "HELP!!\\|\\|\\^"},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
+            {"code": 11410, "indent": 0, "parameters": [13], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
             {
-              "code": "MoveEvent",
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 4, 1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Gotcha!"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Blast! Now what?"},
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "VOICE"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Hold it right there, Lazer Scum!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [4, 8, 0, 0, 13], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [1, 8, 0, 0, 13], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [5, 0, 57, 13], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [6, 0, 59, 15], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [7, 0, 54, 16], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [8, 0, 59, 12], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [9, 0, 56, 19], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 1, 15, 4, 1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [5, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 5, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [6, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 6, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [7, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 7, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [8, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 8, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 100, 50], "string": "Earth8"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [9, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0],
+              "string": ""
+            },
+            {"code": 11210, "indent": 0, "parameters": [132, 9, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [4], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "NEON VIPERS"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Run for it, Talan!"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "hzbreach"},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 36, 3], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 10], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3],
+              "string": ""
+            },
+            {"code": 11060, "indent": 0, "parameters": [2, 3, 15, 4, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 0, 23, 23, 15, 23, 13, 24, 25],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LAZER TEETH LOOKOUT"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The Vipers are here!"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "HELP!!\\|\\|\\^"},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
               "parameters": [
                 10001, 8, 0, 0, 3, 3, 3, 3, 24, 3, 3, 25, 3, 3, 24, 3, 3, 25, 0, 0, 0, 35, 5,
                 75, 105, 108, 108, 51, 80, 100, 100, 0, 0, 35, 6, 83, 119, 111, 114, 100, 49,
@@ -191,19 +359,31 @@
                 35, 6, 83, 119, 111, 114, 100, 49, 50, 100, 100, 3, 3, 35, 10, 69, 120, 112,
                 108, 111, 115, 105, 111, 110, 52, 50, 100, 100, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
                 3, 3, 3, 3, 3, 3
-              ]
+              ],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [40]},
-            {"code": "Teleport", "parameters": [16, 53, 7]},
-            {"code": "ControlSwitches", "parameters": [0, 73, 73, 0]}
+            {"code": 11410, "indent": 0, "parameters": [40], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [16, 53, 7], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 73, 73, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         },
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 45,
+          "character_name": "",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -212,11 +392,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 73
+            "item_id": 1,
+            "switch_a_id": 73,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 2,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 49,
@@ -227,11 +419,38 @@
       "name": "LTFighter1",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "Chara3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 41,
@@ -242,12 +461,38 @@
       "name": "NVBarrel1",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 47,
@@ -258,12 +503,38 @@
       "name": "NV1",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 50,
@@ -274,12 +545,38 @@
       "name": "NV2",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 51,
@@ -290,12 +587,38 @@
       "name": "NV3",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 52,
@@ -306,12 +629,38 @@
       "name": "NV4",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 53,
@@ -322,19 +671,69 @@
       "name": "NV5",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 54,
       "y": 37
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 75,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 45,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 75
 }

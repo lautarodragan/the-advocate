@@ -22,6 +22,7 @@ De ahí sale el único paso que no es mecánico: de 369 colores a 256.
 import collections
 
 from port import asignador
+from port import fuente
 
 CELL = 8
 ANCHO = 256
@@ -296,13 +297,13 @@ def menu(sys_img, textos, font_id=None):
 # Lashe City. Es una pantalla propia y no una capa encima del título, así que
 # tiene la VRAM para ella sola y todo puede ir en 4bpp.
 #
-# **Todo el texto está pre-renderizado**, incluidas las dos variantes de cada
-# ranura —vacía y ocupada—. Es lo que evita tener que componer texto en caliente
-# como hace la ventana de mensaje: los datos que la pantalla muestra o son fijos
-# (el número de ranura) o están mockeados (el nivel), así que no hay nada que
-# armar mientras corre. El día que el nivel sea de verdad, esa línea pasa a
-# componerse con glifos sueltos como los dígitos del cronómetro, y el resto
-# queda igual.
+# **El texto que no depende de la partida está pre-renderizado**, incluidas
+# las dos variantes de cada ranura —vacía y ocupada— y el término del nivel.
+# Lo que sí depende de ella —el nombre del líder y su nivel— se compone de a
+# una letra por celda con glifos sueltos, como los dígitos del cronómetro; ver
+# "lo que depende del actor" acá abajo. Hasta el 2026-09-20 se horneaba
+# también, con un bloque por actor, y eso hacía que el banco creciera con cada
+# actor que pudiera estar en el grupo.
 #
 # Lo que la ROM sí hace en caliente es **elegir qué bloque de celdas escribe en
 # cada fila**: por ranura hay cuatro —vacía o llena, con cursor o sin él— y
@@ -337,23 +338,50 @@ CARA_CELDAS = CARA // CELL      # 6
 CARA_COL = 14                   # o sea x = 112
 CARA_PASO = CARA_CELDAS         # pegadas: 112, 160, 208
 CARAS_MAX = 3
-# El nombre del líder, en la segunda línea: un bloque de dos celdas de alto
-# —la fuente mide 12 con la sombra— y siete de ancho, o sea nueve caracteres
-# de 6 px, que es lo más largo que hay en el LDB.
+# El nombre del líder, en la segunda línea: siete celdas de ancho, desde el
+# borde del texto hasta donde arranca la primera cara.
 NOMBRE_COL = RANURA_X // CELL   # 7
-NOMBRE_COLS = 7
+NOMBRE_COLS = CARA_COL - NOMBRE_COL     # 7
 NOMBRE_FILA = LINEA // CELL     # 2: la segunda línea arranca en y+16
-# Cuatro y no dos desde el 2026-09-13: el bloque del actor lleva **su nombre y
-# su nivel**, que son dos renglones seguidos. El nivel dejó de ser el mismo
-# para todos cuando pasó a salir de `initial_level`, así que no puede vivir en
-# la capa de la fila, que es una sola para las cuatro ranuras.
-NOMBRE_FILAS = 4
+# Y la tercera línea, el nivel: las dos cifras que van detrás del término
+# "L ", que sí se hornea porque es el mismo para todos.
+NIVEL_FILA = 2 * LINEA // CELL  # 4
+NIVEL_CIFRAS = 2                # "%2d", que es lo que muestra RM2k
+# En qué celda arranca el número: la que sigue al término, que mide dos
+# caracteres de la fuente. No es `RANURA_X + 12` redondeado a mano porque el
+# término sale del LDB y su ancho es el de la fuente.
+NIVEL_COL = (RANURA_X + 2 * fuente.ANCHO) // CELL       # 8
 # Y con qué paleta van las caras: la 0 es del texto, y cada cara lleva la suya
 # desde la 1. Son las paletas de BG2 a 4bpp, que en la consola son ocho.
 CARAS_PALETAS_MAX = 7
 # Cuántos tiles entran en el banco de la pantalla: el conversor lo comprueba
 # contra el reparto de VRAM, ver RANURA_MAP allá.
 RANURA_TILES_MAX = 448
+
+# --- lo que depende del actor, compuesto con glifos ---------------------------
+#
+# El nombre, el nivel y los HP máximos **se componen de a una letra por celda**
+# y no se hornean en un bloque por actor. El porqué es que el banco es uno
+# solo y está deduplicado: horneados, el texto de cada actor sumaba unos siete
+# tiles que no comparte con nadie, así que el banco crecía con cada actor que
+# pudiera estar en el grupo y el juego entero no entraba. Con glifos el texto
+# cuesta una vez —las letras que los nombres usan— y lo único que sigue
+# creciendo por actor son las caras.
+#
+# Es lo mismo que ya hacen los dígitos del oro, los HP de ahora y la pantalla
+# de ítems. El precio es el mismo que pagan ellos y está declarado: las letras
+# van a 8 pixeles de paso y no a los 6 de la fuente, así que el texto que
+# depende del actor sale un poco más ancho que antes. Lo que no depende de él
+# —"File 1", "- Empty -", el término del nivel, "Normal", "HP"— se sigue
+# horneando con la fuente, o sea que sale igual que siempre.
+#
+# Los glifos se dibujan **en la misma celda y con el mismo corrimiento que los
+# dígitos del oro** —uno en x, dos en y—, así que las diez cifras salen de acá
+# y la pantalla no lleva dos juegos de dígitos.
+GLIFO_COL = 3                   # la columna donde se dibuja el glifo suelto
+GLIFO_FILA = 25                 # y su fila; las dos son cualesquiera
+GLIFO_DX = 1                    # centrado en la celda: 6 px de fuente en 8
+GLIFO_DY = 2
 
 
 def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
@@ -438,25 +466,58 @@ def _texto_de_ranura(numero, db, llena):
     return ["%s %d" % (db.term_file, numero + 1), ""]
 
 
-def _escribir_nivel(destino, sys_img, x, y, db, font_id, actor):
-    """La tercera línea de una ranura llena, como `Window_SaveFile::Refresh`:
-    `lvl_short` completado a dos caracteres y en el color 1 del sistema, y el
-    número a dos cifras en el color normal. En el ABL es "L  1". Los puntos de
-    vida que RM2k pone al lado no van: este port no los tiene.
+def _escribir_termino_nivel(destino, sys_img, x, y, db, font_id):
+    """El término del nivel, como `Window_SaveFile::Refresh`: `lvl_short`
+    completado a dos caracteres y en el color 1 del sistema. En el ABL es "L ".
+    Los puntos de vida que RM2k pone al lado no van: este port no los tiene.
 
     Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo.
 
-    **El número es el del actor y no una constante**, desde el 2026-09-13: con
-    Kersh de líder dice 20 y con Core 15. Por eso este renglón se dibuja en la
-    capa del actor y no en la de la fila, igual que su nombre.
+    **El número no va acá**: lo compone la ROM con glifos, porque es lo único
+    de esta línea que depende del actor —con Kersh de líder dice 20 y con Core
+    15—. El término sí se hornea, que es el mismo para todos.
     """
     from port import ventana as ventana_mod
-    corto = (db.term_lvl_short or "")[:2].ljust(2)
-    fin = ventana_mod.dibujar_linea(destino, sys_img, x, y, corto, color=1,
-                                    font_id=font_id)
-    ventana_mod.dibujar_linea(destino, sys_img, fin, y,
-                              "%2d" % nivel_de(db.actors[actor]),
+    ventana_mod.dibujar_linea(destino, sys_img, x, y,
+                              (db.term_lvl_short or "")[:2].ljust(2), color=1,
                               font_id=font_id)
+
+
+def texto_de_nombre(db, actor, cols=None):
+    """El nombre del actor como la ROM lo compone: una letra por celda, con
+    las que la fuente no tiene vueltas '?' y rellenado con espacios.
+
+    El relleno no es adorno: la ROM escribe siempre las mismas celdas, así
+    que lo que sobra a la derecha tiene que borrar lo que hubiera."""
+    cols = MENU_NOMBRE_COLS if cols is None else cols
+    nombre = db.actors[actor].name if actor in db.actors else ""
+    return texto_de_item(nombre, cols).ljust(cols)
+
+
+def texto_de_nivel(db, actor):
+    """Las dos cifras del nivel, como las dice RM2k: alineadas a la derecha."""
+    nivel = nivel_de(db.actors[actor]) if actor in db.actors else 0
+    return ("%*d" % (NIVEL_CIFRAS, nivel))[-NIVEL_CIFRAS:]
+
+
+def texto_de_maximo(db, actor):
+    """Los HP máximos del actor detrás de su barra: "/168". Van al lado de los
+    HP de ahora, que la ROM escribe con los mismos glifos."""
+    maximo = parametro_de(db.actors[actor], "maxhp") if actor in db.actors else 0
+    return ("/%d" % maximo).ljust(MENU_MAX_CIFRAS)[:MENU_MAX_CIFRAS]
+
+
+def glifos_de(db, actores):
+    """Qué letras necesita el banco: las de lo que se compone, más las diez
+    cifras, que van siempre porque el oro y los HP de ahora las usan.
+
+    Sale de los textos mismos y no de un alfabeto escrito a mano: un cartucho
+    con tres actores no paga las letras de los otros."""
+    letras = set("0123456789 ")
+    for actor in actores:
+        letras |= set(texto_de_nombre(db, actor) + texto_de_nivel(db, actor)
+                      + texto_de_maximo(db, actor))
+    return sorted(letras)
 
 
 def cara_de(db, actor, game_dir):
@@ -598,6 +659,17 @@ MENU_HP_CIFRAS = 3              # ningún actor del juego pasa de 999
 MENU_HP_COL = 21                # x = 168, pegado al "HP" de la izquierda
 MENU_HP_FILA = 4                # la tercera línea, adentro del bloque
 MENU_MAX_X = (MENU_HP_COL + MENU_HP_CIFRAS) * CELL      # 192
+# Y dónde caen, adentro de la fila del actor, las tres tiras que dependen de
+# él y que la ROM compone con glifos: el nombre en la primera línea, las dos
+# cifras del nivel detrás del término en la segunda, y el máximo detrás de los
+# HP de ahora en la tercera. Ver "lo que depende del actor" allá arriba.
+MENU_NOMBRE_COL = MENU_TEXTO_X // CELL                  # 19
+MENU_NOMBRE_COLS = COLS - MENU_NOMBRE_COL               # 13
+MENU_NOMBRE_FILA = 0
+MENU_NIVEL_COL = (MENU_TEXTO_X + 2 * fuente.ANCHO) // CELL      # 20
+MENU_NIVEL_FILA = LINEA // CELL                         # 2
+MENU_MAX_COL = MENU_MAX_X // CELL                       # 24
+MENU_MAX_CIFRAS = 4             # la barra y hasta tres cifras: "/168"
 
 
 # --- la pantalla de ítems -----------------------------------------------------
@@ -721,19 +793,20 @@ def pantalla_items(sys_img, font_id=None):
     return tiles, paletas, glifos
 
 
-def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
-    """El texto **fijo** de un actor en el menú: nombre, nivel, estado, el
-    término de HP y el máximo detrás de la barra.
+def _escribir_menu_fila(destino, sys_img, db, font_id):
+    """El texto de una fila del grupo que **no depende del actor**: el término
+    del nivel, el estado y el de los HP.
 
-    Los HP de ahora **no** van acá, y ése es todo el arreglo del 2026-09-13:
-    este bloque se hornea al convertir y se sube tal cual, así que el número
-    que llevara adentro no podía cambiar nunca. taro lo reportó jugando —"el
-    hp se reduce en batalla, pero en el menú siempre se muestra en 40"—; los
-    40 son el máximo de Talan, que es quien lidera la intro.
+    Es un bloque solo para las cuatro filas y para todos los actores, y ésa es
+    la diferencia con antes: el nombre, el número del nivel y el máximo —lo
+    único que cambiaba de un actor a otro— los compone la ROM con glifos, así
+    que este bloque no se multiplica por la cantidad de actores.
 
-    Las tres cifras de ahora las escribe la ROM en `MENU_HP_COL`, de a una
-    celda cada una, con los mismos bloques que el oro. El precio es el mismo
-    que ya paga el oro: van a 8 pixeles y no a los 6 de la fuente.
+    Los HP de ahora tampoco van acá, y ése es el arreglo del 2026-09-13: este
+    bloque se hornea al convertir y se sube tal cual, así que el número que
+    llevara adentro no podía cambiar nunca. taro lo reportó jugando —"el hp se
+    reduce en batalla, pero en el menú siempre se muestra en 40"—; los 40 son
+    el máximo de Talan, que es quien lidera la intro.
     """
     from port import ventana as ventana_mod
 
@@ -741,13 +814,10 @@ def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
         return ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
                                          color=color, font_id=font_id)
 
-    a = db.actors[actor]
-    escribir(MENU_TEXTO_X, 2, a.name)
-    _escribir_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db, font_id,
-                    actor)
+    _escribir_termino_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db,
+                            font_id)
     escribir(MENU_TEXTO_X + MENU_ESTADO_DX, 2 + LINEA, db.term_normal_status)
     escribir(MENU_TEXTO_X, 2 + 2 * LINEA, db.term_hp_short, color=1)
-    escribir(MENU_MAX_X, 2 + 2 * LINEA, "/%d" % parametro_de(a, "maxhp"))
 
 
 def cifras_de(valor, cuantas):
@@ -774,9 +844,9 @@ def _pegar_hp(pegar, menu, fila, cuanto):
     las mismas columnas; lo que sobra a la izquierda queda en blanco.
     """
     cifras = cifras_de(cuanto, MENU_HP_CIFRAS)
-    for n, cifra in enumerate(cifras):
-        pegar(menu["cifras"][cifra], fila * MENU_ACTOR_FILAS + MENU_HP_FILA,
-              MENU_HP_COL + MENU_HP_CIFRAS - len(cifras) + n, 1)
+    _pegar_texto(pegar, menu, "".join(str(c) for c in cifras),
+                 fila * MENU_ACTOR_FILAS + MENU_HP_FILA,
+                 MENU_HP_COL + MENU_HP_CIFRAS - len(cifras))
 
 
 def cifras_del_oro(oro):
@@ -788,7 +858,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                      game_dir=None):
     """Los tiles de la pantalla de ranuras, sus paletas y sus bloques de celdas.
 
-    Devuelve `(tiles, paletas, cabeceras, filas, caras, nombres, menu)`:
+    Devuelve `(tiles, paletas, cabeceras, filas, caras, menu)`:
 
     * `paletas[0]` es la del texto, `paletas[1]` la de las órdenes
       deshabilitadas del menú, y las que siguen, una por cara.
@@ -797,15 +867,16 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
       —`load_game_message` y `save_game_message`, que en el ABL dicen "Load
       which slot?" y "Save in which slot?"—.
     * `filas[ranura][llena][cursor]` son las celdas de una fila entera, con
-      las celdas de las caras y del nombre en blanco.
+      las celdas de las caras, del nombre y del nivel en blanco.
     * `caras[actor]` son las 36 celdas de la cara, con su paleta puesta, para
-      los `actores` que tienen una; `nombres[actor]` las 14 del nombre. La ROM
-      los escribe encima de la fila según el grupo que la partida guardó, y
-      `render_ranuras` hace lo mismo.
+      los `actores` que tienen una. La ROM la escribe encima de la fila según
+      el grupo que la partida guardó, y `render_ranuras` hace lo mismo.
 
     * `menu` son los bloques del menú de pausa, que comparte banco y paleta:
-      `opciones[orden][deshabilitada]`, `cursor`, `cifras[d]`, `moneda` y
-      `actores[actor]`, este último con la cara ya puesta.
+      `opciones[orden][deshabilitada]`, `cursor`, `moneda`, `fila` —el texto
+      de una fila del grupo, uno solo para todas— y `glifos[letra]`, las dos
+      celdas de cada letra que la ROM compone. Las diez cifras están ahí: son
+      las que escriben el oro y los HP.
 
     Todas las variantes se dibujan antes de deduplicar, por lo mismo de siempre:
     el banco de tiles es uno solo.
@@ -836,13 +907,13 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                     escribir(una, RANURA_X - 16, y + 2, ">")
                 for n, linea in enumerate(_texto_de_ranura(numero, db, llena)):
                     escribir(una, RANURA_X, y + 2 + n * LINEA, linea)
+                if llena:
+                    # El término del nivel va en la fila y no en la capa del
+                    # actor: es el mismo para todos, y una ranura sin partida
+                    # no lo muestra.
+                    _escribir_termino_nivel(una, sys_img, RANURA_X,
+                                            y + 2 + 2 * LINEA, db, font_id)
                 capas.append(("fila", (numero, llena, cursor), una))
-    for actor in actores:
-        una = capa()
-        escribir(una, RANURA_X, RANURA_Y + 2 + LINEA, db.actors[actor].name)
-        _escribir_nivel(una, sys_img, RANURA_X, RANURA_Y + 2 + 2 * LINEA,
-                        db, font_id, actor)
-        capas.append(("nombre", actor, una))
     # Las del menú de pausa, en el mismo banco. Todas en la fila de más arriba
     # que les toca: los bloques valen en cualquier otra porque van alineados.
     from port import ventana as ventana_mod
@@ -857,19 +928,19 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     una = capa()
     escribir(una, MENU_CURSOR_COL * CELL, MENU_OPC_Y + 2, ">")
     capas.append(("menu_cursor", None, una))
-    for cifra in range(10):
+    for letra in glifos_de(db, actores):
         una = capa()
-        escribir(una, MENU_ORO_COL * CELL + 1, MENU_ORO_Y + 2, str(cifra))
-        capas.append(("menu_cifra", cifra, una))
+        escribir(una, GLIFO_COL * CELL + GLIFO_DX,
+                 GLIFO_FILA * CELL + GLIFO_DY, letra)
+        capas.append(("menu_glifo", letra, una))
     una = capa()
     ventana_mod.dibujar_linea(una, sys_img, MENU_MONEDA_COL * CELL,
                               MENU_ORO_Y + 2, db.term_gold, color=1,
                               font_id=font_id)
     capas.append(("menu_moneda", None, una))
-    for actor in actores:
-        una = capa()
-        _escribir_menu_actor(una, sys_img, db, actor, font_id)
-        capas.append(("menu_actor", actor, una))
+    una = capa()
+    _escribir_menu_fila(una, sys_img, db, font_id)
+    capas.append(("menu_fila", None, una))
 
     # Las órdenes deshabilitadas van en **su propia paleta**, la 1: el color 3
     # del sistema es un degradé que, sumado a los del texto, da 18 colores, y
@@ -898,10 +969,8 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     tiles, donde = [vacio], {vacio: 0}
     cabeceras = [None, None]
     filas = [[[None, None], [None, None]] for _ in range(ranuras)]
-    nombres = {}
     menu = {"opciones": [[None, None] for _ in range(MENU_OPCIONES)],
-            "cursor": None, "cifras": [None] * 10, "moneda": None,
-            "actores": {}}
+            "cursor": None, "glifos": {}, "moneda": None, "fila": None}
     for clase, clave, una in capas:
         if clase == "menu_opcion":
             orden, deshabilitada = clave
@@ -913,30 +982,25 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             menu["cursor"] = _bloque_de_celdas(
                 una, MENU_OPC_Y // CELL, 2, tiles, donde, indice,
                 MENU_CURSOR_COL, 1)
-        elif clase == "menu_cifra":
-            menu["cifras"][clave] = _bloque_de_celdas(
-                una, MENU_ORO_Y // CELL, 2, tiles, donde, indice,
-                MENU_ORO_COL, 1)
+        elif clase == "menu_glifo":
+            menu["glifos"][clave] = _bloque_de_celdas(
+                una, GLIFO_FILA, 2, tiles, donde, indice, GLIFO_COL, 1)
         elif clase == "menu_moneda":
             menu["moneda"] = _bloque_de_celdas(
                 una, MENU_ORO_Y // CELL, 2, tiles, donde, indice,
                 MENU_MONEDA_COL, MENU_MONEDA_COLS)
-        elif clase == "menu_actor":
-            menu["actores"][clave] = _bloque_de_celdas(
+        elif clase == "menu_fila":
+            menu["fila"] = _bloque_de_celdas(
                 una, 0, MENU_ACTOR_FILAS, tiles, donde, indice,
                 MENU_ACTOR_COL, MENU_ACTOR_COLS)
         elif clase == "cabecera":
             cabeceras[clave] = _bloque_de_celdas(
                 una, CABECERA_Y // CELL, CABECERA_FILAS, tiles, donde, indice)
-        elif clase == "fila":
+        else:
             numero, llena, cursor = clave
             fila0 = (RANURA_Y + numero * RANURA_SALTO) // CELL
             filas[numero][llena][cursor] = _bloque_de_celdas(
                 una, fila0, RANURA_FILAS, tiles, donde, indice)
-        else:
-            nombres[clave] = _bloque_de_celdas(
-                una, RANURA_Y // CELL + NOMBRE_FILA, NOMBRE_FILAS, tiles,
-                donde, indice, NOMBRE_COL, NOMBRE_COLS)
 
     # Y las caras, cada una con su paleta, pegadas arriba a la izquierda de la
     # primera fila para cortarlas en celdas con la misma función.
@@ -974,20 +1038,11 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     if prestadas_cara:
         print("  caras sin paleta propia, dibujadas con una ajena: %s"
               % ", ".join(db.actors[a].name for a in sorted(prestadas_cara)))
-    # La cara va adentro del bloque del actor en el menú: son las mismas celdas
-    # de la pantalla de ranuras —la cara está alineada a celdas en las dos—,
-    # así que no suma ni un tile.
-    for actor, celdas in menu["actores"].items():
-        for fila in range(CARA_CELDAS):
-            for col in range(CARA_CELDAS):
-                celdas[fila * MENU_ACTOR_COLS + col] = (
-                    caras[actor][fila * CARA_CELDAS + col] if actor in caras
-                    else 0)
     if len(tiles) > RANURA_TILES_MAX:
         raise SystemExit(
             "la pantalla de ranuras y el menú juntan %d tiles y en su banco "
             "entran %d" % (len(tiles), RANURA_TILES_MAX))
-    return tiles, paletas, cabeceras, filas, caras, nombres, menu
+    return tiles, paletas, cabeceras, filas, caras, menu
 
 
 def _pintor(fuera, tiles, paletas):
@@ -1011,6 +1066,29 @@ def _pintor(fuera, tiles, paletas):
     return pegar
 
 
+def _pegar_texto(pegar, menu, texto, fila, col):
+    """Un texto compuesto de a una letra por celda, como lo escribe la ROM."""
+    for n, letra in enumerate(texto):
+        pegar(menu["glifos"][letra], fila, col + n, 1)
+
+
+def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None):
+    """Una fila del panel del grupo: el bloque fijo, la cara y las tres tiras
+    que dependen del actor. Es lo que hace `menu_grupo_pintar`, en el mismo
+    orden, y por eso lo comparten el menú y la elección de actor."""
+    fila0 = fila * MENU_ACTOR_FILAS
+    pegar(menu["fila"], fila0, MENU_ACTOR_COL, MENU_ACTOR_COLS)
+    if actor in caras:
+        pegar(caras[actor], fila0, MENU_ACTOR_COL, CARA_CELDAS)
+    _pegar_texto(pegar, menu, texto_de_nombre(db, actor),
+                 fila0 + MENU_NOMBRE_FILA, MENU_NOMBRE_COL)
+    _pegar_texto(pegar, menu, texto_de_nivel(db, actor),
+                 fila0 + MENU_NIVEL_FILA, MENU_NIVEL_COL)
+    _pegar_texto(pegar, menu, texto_de_maximo(db, actor),
+                 fila0 + MENU_HP_FILA, MENU_MAX_COL)
+    _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
+
+
 def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
                 guardar_permitido=True, font_id=None, actores=None,
                 game_dir=None, hp=None):
@@ -1028,7 +1106,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
-    tiles, paletas, _, _, _, _, menu = pantalla_ranuras(
+    tiles, paletas, _, _, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
     pegar = _pintor(fuera, tiles, paletas)
@@ -1041,16 +1119,13 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     pegar(menu["cursor"], (MENU_OPC_Y + elegida * MENU_OPC_SALTO) // CELL,
           MENU_CURSOR_COL, 1)
     cifras = cifras_del_oro(oro)
-    for n, cifra in enumerate(cifras):
-        pegar(menu["cifras"][cifra], MENU_ORO_Y // CELL,
-              MENU_MONEDA_COL - len(cifras) + n, 1)
+    _pegar_texto(pegar, menu, "".join(str(c) for c in cifras),
+                 MENU_ORO_Y // CELL, MENU_MONEDA_COL - len(cifras))
     pegar(menu["moneda"], MENU_ORO_Y // CELL, MENU_MONEDA_COL,
           MENU_MONEDA_COLS)
     for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
-        if actor in menu["actores"]:
-            pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
-                  MENU_ACTOR_COL, MENU_ACTOR_COLS)
-            _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
+        if actor in actores:
+            _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp)
     return fuera
 
 
@@ -1076,15 +1151,13 @@ def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
-    tiles, paletas, _, _, _, _, menu = pantalla_ranuras(
+    tiles, paletas, _, _, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
     pegar = _pintor(fuera, tiles, paletas)
     for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
-        if actor in menu["actores"]:
-            pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
-                  MENU_ACTOR_COL, MENU_ACTOR_COLS)
-            _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
+        if actor in actores:
+            _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp)
     pegar(menu["cursor"], elegida * MENU_ACTOR_FILAS + OBJETIVO_CURSOR_FILA,
           OBJETIVO_CURSOR_COL, 1)
     return fuera
@@ -1147,7 +1220,7 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
     from PIL import Image
     grupos = grupos or {}
     actores = sorted({a for g in grupos.values() for a in g})
-    tiles, paletas, cabeceras, filas, caras, nombres, _ = pantalla_ranuras(
+    tiles, paletas, cabeceras, filas, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
     pegar = _pintor(fuera, tiles, paletas)
@@ -1161,12 +1234,15 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
         if not llena:
             continue
         grupo = list(grupos.get(numero, ()))
-        # El nombre del líder y las caras, como la ROM: los bloques del actor
-        # encima de la fila. Un actor sin cara no dibuja nada, que es lo que
-        # hace `DrawFace` con un nombre vacío.
-        if grupo and grupo[0] in nombres:
-            pegar(nombres[grupo[0]], fila0 + NOMBRE_FILA, NOMBRE_COL,
-                  NOMBRE_COLS)
+        # El nombre del líder y su nivel, compuestos con glifos encima de la
+        # fila, y las caras, que sí son bloques. Un actor sin cara no dibuja
+        # nada, que es lo que hace `DrawFace` con un nombre vacío.
+        if grupo and grupo[0] in actores:
+            _pegar_texto(pegar, menu,
+                         texto_de_nombre(db, grupo[0], NOMBRE_COLS),
+                         fila0 + NOMBRE_FILA, NOMBRE_COL)
+            _pegar_texto(pegar, menu, texto_de_nivel(db, grupo[0]),
+                         fila0 + NIVEL_FILA, NIVEL_COL)
         for lugar, actor in enumerate(grupo[:CARAS_MAX]):
             if actor in caras:
                 pegar(caras[actor], fila0, CARA_COL + lugar * CARA_PASO,

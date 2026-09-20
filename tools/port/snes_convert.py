@@ -85,7 +85,7 @@ MAX_TILES = 1024
 # su índice dentro de una paleta de 16.
 #
 # Dónde cae el corte entre las dos no es fijo: lo decide el conversor mapa por
-# mapa, en convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
+# mapa, en _convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
 # con tres, 79. Antes eran dos siempre, y 27 mapas no entraban —los tres
 # primeros del juego entre ellos— mientras el fondo dejaba colores sin usar.
 #
@@ -1161,7 +1161,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
 
 
 def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
-                   tope=OBJ_PALETTES):
+                   tope=OBJ_PALETTES, timer_pal=None):
     """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
     grises— y la paleta donde entran sus colores. Ver OP_WEATHER en eventos.py.
 
@@ -1171,9 +1171,19 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     cinco lugares; si no, en una fila de bloques propia. El tono `t` arriba es
     el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
     número de paleta).
+
+    **Y tampoco en la del cronómetro**, por la misma clase de razón que las
+    ranuras de líder: ésa la vuelve a subir `subir_timer_pal` **sin teñir**
+    —los dígitos van encima del tinte, `Priority_Timer` es 140 y
+    `Priority_Screen` 90—, así que una gota metida ahí se queda gris en una
+    pantalla teñida. La lluvia sí se tiñe en RM2k: `Priority_Weather` es 80,
+    o sea debajo del tinte.
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
-    cual = _primer_lugar(palettes, de_lider, quiere, tope)
+    evitar = set(de_lider)
+    if timer_pal is not None:
+        evitar.add(timer_pal)
+    cual = _primer_lugar(palettes, evitar, quiere, tope)
     if cual is None:
         # No hay lugar: este mapa no dibuja lluvia. No se le baja un color a
         # nadie para hacerle lugar, como al cronómetro: eso cambiaría el
@@ -1456,49 +1466,84 @@ def build_palette(grid, bg_colors, otras=()):
             [fusionar(g) for g in otras], merged)
 
 
-def _huella_de_imagen(img):
-    """Lo que hace a una imagen: modo, tamaño y pixeles."""
-    return b"%s %dx%d " % (img.mode.encode(), img.size[0], img.size[1]) \
-        + img.tobytes()
-
-
 _VERSION_CAPAS = None
 
 
-def convert_layers(base, above_img, variantes=None):
-    """`_convert_layers`, recordado en disco.
+def _version_capas():
+    """Qué versión del código produjo lo que haya guardado bajo `capas`.
 
-    Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
-    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `demo-ciudad`,
-    medido el 2026-09-10— y es una función pura de sus argumentos. La clave son
-    **los pixeles de las imágenes** y no el `.lmu` ni el ChipSet: así entra
-    todo lo que las produce, el renderer incluido, sin tener que enumerarlo. Y
-    lleva el hash de este archivo y de `rm2k.py`, que es de donde salen las
-    constantes del reparto: tocar el conversor invalida lo suyo solo.
+    Son las cinco piezas que participan del dibujo o de la conversión, más los
+    dos programas que no son fuentes de este árbol:
 
-    Verificado con `SIN_CACHE=1`: el `.sfc` es el mismo byte por byte.
+    * `render/render_map.py` y `render/chipset.py` **dibujan** las capas y
+      expanden el ChipSet. Hasta el 2026-09-20 no hacían falta, porque la clave
+      eran los pixeles ya dibujados: cambiar el dibujo cambiaba la clave solo.
+      Desde que la clave sale de los insumos, la única forma de que un cambio
+      en el dibujo invalide lo guardado es ésta;
+    * `port/asignador.py` decide qué colores se pierden, `rpgmaker/rm2k.py`
+      tiene las constantes del reparto y de las familias animadas, y este
+      archivo hace el resto;
+    * **el binario de Voodoo**, que es el que emite los tiles: recompilarlo sin
+      tocar ningún `.py` tiene que invalidar lo guardado;
+    * **la versión de Pillow**, que es quien decodifica el PNG del ChipSet y
+      compone los tiles. Antes tampoco hacía falta, por lo mismo: los pixeles
+      que salían de Pillow *eran* la clave.
+
+    Lo que **no** entra, y es a propósito: `rpgmaker/lcf.py`. Lo que lee del
+    volcado —las dos capas, el tamaño, la pasabilidad del ChipSet— entra por su
+    valor en `insumos_de_capas`, así que un cambio en cómo se lee sólo importa
+    si cambia lo leído, y entonces la clave cambia sola.
     """
     global _VERSION_CAPAS
-    from comun import cache_disco
     if _VERSION_CAPAS is None:
-        # Y el binario de `tiles`, que es el que emite: recompilarlo sin tocar
-        # nada de acá tiene que invalidar lo guardado.
-        # Y el asignador, que decide qué colores quedan: hasta el 2026-09-17
-        # no estaba, así que cambiar cómo se fusiona no invalidaba nada.
+        import PIL
+        from comun import cache_disco
         _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
+                                                 "port/asignador.py",
                                                  "rpgmaker/rm2k.py",
-                                                 "port/asignador.py")
-                          + tiles_bin.version())
-    partes = [_VERSION_CAPAS, _huella_de_imagen(base),
-              _huella_de_imagen(above_img)]
-    for familia in sorted(variantes or {}):
-        partes.append("familia %s" % familia)
-        for img in variantes[familia]:
-            partes.append(_huella_de_imagen(img))
-    en_disco = cache_disco.clave(*partes)
-    hecho = cache_disco.leer("capas", en_disco)
-    if hecho is None:
-        hecho = _convert_layers(base, above_img, variantes)
+                                                 "render/render_map.py",
+                                                 "render/chipset.py")
+                          + tiles_bin.version()
+                          + " Pillow " + PIL.__version__)
+    return _VERSION_CAPAS
+
+
+def capas_convertidas(renderer, game_map):
+    """Las capas del mapa convertidas, recordadas en disco. `None` si no hay
+    ChipSet.
+
+    Es lo más caro del conversor de punta a punta: **dibujar** las dos capas y
+    los dibujos de sus animaciones con Pillow, y después cuantizarlas, cortarlas
+    en tiles y repartir CGRAM.
+
+    La clave sale de **los insumos** —el mapa, su ChipSet y la versión del
+    código que dibuja y convierte— y no del resultado. Hasta el 2026-09-20
+    salía de los pixeles ya dibujados, que tenía la virtud de que no había nada
+    que enumerar: lo que produjera las imágenes entraba solo. El costo era que
+    para preguntarle al caché había que dibujar igual, y dibujar los 29 mapas de
+    `abl` con sus animaciones son 24 de los 65 s de un build caliente. Con la
+    clave de los insumos, un build caliente no dibuja ninguno.
+
+    Lo que se pierde es justamente esa virtud, y por eso `insumos_de_capas` vive
+    al lado de `render_layers` y dice qué lee: ahora la lista se mantiene a
+    mano, y si queda corta el caché contesta viejo sin que nada falle.
+
+    Verificado con `SIN_CACHE=1` y con el caché borrado: el `.sfc` es el mismo
+    byte por byte.
+    """
+    from comun import cache_disco
+    insumos = renderer.insumos_de_capas(game_map)
+    en_disco = None
+    if insumos is not None:
+        en_disco = cache_disco.clave(_version_capas(), *insumos)
+        hecho = cache_disco.leer("capas", en_disco)
+        if hecho is not None:
+            return hecho
+    base, above_img, variantes = renderer.capas_animadas(game_map)
+    if base is None:
+        return None
+    hecho = _convert_layers(base, above_img, variantes)
+    if en_disco is not None:
         cache_disco.guardar("capas", en_disco, hecho)
     return hecho
 
@@ -1678,7 +1723,7 @@ def convert(grid, palette, variantes, otras, resumen):
 
     # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
     # corrida contigua por familia, después de los quietos: eso lo hace
-    # `tiles`, que es quien numera. Ver "Animations" en tools/tiles/README.md.
+    # Voodoo, que es quien numera. Ver "Animations" en tools/voodoo/README.md.
     tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
         imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
         max_tiles=MAX_TILES)
@@ -1875,6 +1920,13 @@ RANURAS = 4
 # sube entero. `_controlar_ranuras` lo comprueba contra los repartos de
 # verdad, para que mover uno no deje esto escrito mal.
 RANURA_VRAM = 0x2000
+# La fila de `ranura_actor_texto`: el nombre, las dos cifras del nivel y el
+# máximo de HP de un actor, uno detrás del otro. Mide una potencia de dos
+# aunque sobren bytes, para que el índice del actor salga de cinco `asl` y no
+# de una multiplicación escrita en ensamblador.
+RANURA_TEXTO_ANCHO = 32
+RANURA_TEXTO_NIVEL = 16         # el nombre entra en trece, y sobran tres
+RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + titulo_mod.NIVEL_CIFRAS
 # En cuántos pedazos se parten los 32 KB de tiles de una escena de batalla:
 # un bloque de 32 KB es un banco entero y no entra al lado de nada.
 ESCENA_TROZO = 8192
@@ -2227,7 +2279,6 @@ MAPA_ESCALARES = [
     ("TIMER_BASE", "el primer tile de los dígitos del cronómetro, 0 si no hay"),
     ("LLUVIA_BASE", "el primer tile de las gotas de lluvia, 0 si no hay"),
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
-    ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
     ("RUTA_GRAFICO_COUNT", "cuántos gráficos distintos pide la orden 34"),
 ]
@@ -2243,7 +2294,7 @@ MAPA_BYTES = [
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "npc_table", "actor_table", "puertas",
+                 "bloque_pass", "npc_table", "actor_table",
                  "paginas", "ev_pos", "npc_poses", "ruta_grafico",
                  # La animación del ChipSet: las dos corridas de tiles y sus
                  # dibujos. Ver `anim_bytes`.
@@ -2263,11 +2314,6 @@ MAPA_PTR_BASE = (-(-(len(MAPA_ESCALARES) * 2 + len(MAPA_BYTES))
                    // MAPA_PTR_PASO) * MAPA_PTR_PASO)
 assert MAPA_PTR_BASE + len(MAPA_PUNTEROS) * MAPA_PTR_PASO <= MAPA_STRIDE, \
     "el registro de mapa no entra en %d bytes" % MAPA_STRIDE
-
-# Una puerta: dónde está, a qué mapa lleva y a qué celda. El paso es potencia de
-# dos para que buscarla sea un corrimiento, y sobra lugar para la dirección en
-# la que RM2k te deja mirando, que todavía no se usa.
-PUERTA_BYTES = 16
 
 # Una página de evento: a qué evento pertenece, qué la activa, y dónde está su
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
@@ -2330,7 +2376,6 @@ def campos_del_mapa(mapa):
         "TIMER_BASE": sprite[5] if sprite else 0,
         "LLUVIA_BASE": sprite[10] if sprite else 0,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
-        "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
         "RUTA_GRAFICO_COUNT": len(sprite[9]) if sprite else 0,
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
@@ -2959,7 +3004,6 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         ("ruta_grafico",
          bytes(b for par in (sprite[9] if sprite else []) for b in par)),
         ("ev_pos", mapa["ev_pos"]),
-        ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
         ("anim_tiles", mapa["anim"]),
     ]
@@ -3092,7 +3136,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "EV_STRIDE   = %d\n"
         "EV_MAX      = %d\n"
         "RUTA_EV_MAX = %d\n"
-        "PUERTA_BYTES = %d\n"
         "PAGINA_BYTES = %d\n"
         "GIRO_NINGUNO = $%04X\n"
         "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
@@ -3382,15 +3425,36 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "RANURA_BLOQUE_FILAS = 2\n"
         "; El grupo de la partida guardada, encima de la fila: las caras de\n"
         "; hasta RANURA_CARAS_MAX, de RANURA_CARA_COLS por RANURA_CARA_FILAS\n"
-        "; celdas, y el nombre del primero. Qué bloque le toca a cada actor lo\n"
-        "; dicen `ranura_cara_bloque` y `ranura_nombre_bloque`, por id de actor\n"
+        "; celdas, y el nombre y el nivel del primero. Qué bloque de cara le\n"
+        "; toca a cada actor lo dice `ranura_cara_bloque`, por id de actor\n"
         "; hasta RANURA_ACTORES_N, con $FF para 'no tiene'; y a dónde van,\n"
         "; `ranura_cara_vram` —de a cuatro por ranura— y `ranura_nombre_vram`.\n"
+        ";\n"
+        "; El nombre y el nivel no son bloques: se componen de a una letra por\n"
+        "; celda con `ranura_glifo_celdas`, y el texto de cada actor sale de\n"
+        "; su fila de `ranura_actor_texto` —el nombre, las dos cifras del\n"
+        "; nivel y el máximo de HP, uno detrás del otro—. Ver 'lo que depende\n"
+        "; del actor' en titulo.py: es lo que hace que el banco de tiles no\n"
+        "; crezca con la cantidad de actores.\n"
         "RANURA_CARAS_MAX  = %d\n"
         "RANURA_CARA_COLS  = %d\n"
         "RANURA_CARA_FILAS = %d\n"
         "RANURA_NOMBRE_COLS  = %d\n"
-        "RANURA_NOMBRE_FILAS = %d\n"
+        "; Cuánto mide la fila de un actor en `ranura_actor_texto` y dónde\n"
+        "; arranca cada tira adentro de ella. El ancho es una potencia de dos\n"
+        "; aunque sobren bytes: así el índice sale de corrimientos y no de una\n"
+        "; multiplicación.\n"
+        "RANURA_TEXTO_ANCHO  = %d\n"
+        "RANURA_TEXTO_NOMBRE = 0\n"
+        "RANURA_TEXTO_NIVEL  = %d\n"
+        "RANURA_TEXTO_MAX    = %d\n"
+        "RANURA_NIVEL_CIFRAS = %d\n"
+        "; A cuántas celdas del nombre cae la primera cifra del nivel.\n"
+        "RANURA_NIVEL_DESPL  = %d\n"
+        "; Y dónde arranca la cifra 0 adentro de `ranura_glifo_celdas`, que\n"
+        "; está indexada por carácter: es de ahí de donde el oro y los HP\n"
+        "; sacan sus dígitos.\n"
+        "GLIFO_CIFRA_0     = %d\n"
         "RANURA_ACTORES_N  = %d\n"
         "; Cuántas entradas de CGRAM sube la pantalla de ranuras: la paleta 0\n"
         "; del texto y una por cara, de dieciséis cada una.\n"
@@ -3404,7 +3468,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
-           PUERTA_BYTES, PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
+           PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
            eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
            eventos.CUADROS_DE_PAUSA, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO, eventos.TECLA_ESPERA,
@@ -3487,8 +3551,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            titulo_mod.CABECERA_Y // titulo_mod.CELL * 32,
            titulo_mod.CARAS_MAX, titulo_mod.CARA_CELDAS,
            titulo_mod.CARA_CELDAS, titulo_mod.NOMBRE_COLS,
-           titulo_mod.NOMBRE_FILAS,
-           (max(list(ranuras["caras"]) + list(ranuras["nombres"]) + [-1])
+           RANURA_TEXTO_ANCHO, RANURA_TEXTO_NIVEL, RANURA_TEXTO_MAX,
+           titulo_mod.NIVEL_CIFRAS,
+           ((titulo_mod.NIVEL_FILA - titulo_mod.NOMBRE_FILA) * 32
+            + titulo_mod.NIVEL_COL - titulo_mod.NOMBRE_COL),
+           (ord("0") - titulo_mod.ITEM_PRIMER_CARACTER) * 4,
+           (max(list(ranuras["caras"]) + list(ranuras["actores"]) + [-1])
             + 1),
            len(ranuras["paletas"]) * titulo_mod.MENU_CGRAM,
            titulo_mod.MENU_CGRAM))
@@ -3733,29 +3801,27 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         bloque(nombre, celdas_asm([fila[llena][cursor]]))
                         + "\n")
                     bloques_ranura.append(nombre)
-        # Y detrás, por actor que pueda entrar al grupo, su cara y su nombre:
-        # la ROM los escribe encima de la fila según lo que la partida guardó.
-        # Las celdas de las caras llevan la paleta en sus tres bits, que acá
-        # sí se usan: es BG2 a 4bpp.
-        bloque_de_cara, bloque_de_nombre = {}, {}
+        # Y detrás, por actor que pueda entrar al grupo, su cara: la ROM la
+        # escribe encima de la fila según lo que la partida guardó. Las celdas
+        # de las caras llevan la paleta en sus tres bits, que acá sí se usan:
+        # es BG2 a 4bpp.
+        #
+        # Su nombre y su nivel **no** son bloques: los compone la ROM con
+        # glifos, ver "lo que depende del actor" en titulo.py. Eso es lo que
+        # hace que el banco no crezca con la cantidad de actores.
+        bloque_de_cara = {}
         for actor in sorted(ranuras["caras"]):
             nombre = "ranura_cara_%d" % actor
             handle.write(bloque(nombre, celdas_asm([ranuras["caras"][actor]]))
                          + "\n")
             bloque_de_cara[actor] = len(bloques_ranura)
             bloques_ranura.append(nombre)
-        for actor in sorted(ranuras["nombres"]):
-            nombre = "ranura_nombre_%d" % actor
-            handle.write(bloque(nombre,
-                                celdas_asm([ranuras["nombres"][actor]]))
-                         + "\n")
-            bloque_de_nombre[actor] = len(bloques_ranura)
-            bloques_ranura.append(nombre)
         # Y los del menú de pausa, que viven en el mismo banco de tiles: cada
         # orden en sus dos variantes —la 1 es deshabilitada, en la paleta de
-        # lo gris—, la moneda, y un bloque por actor con la cara adentro. El
-        # cursor y las cifras del oro no van como bloques: son dos celdas cada
-        # uno y la ROM las escribe palabra por palabra, ver `menu_cifra_celdas`.
+        # lo gris—, la moneda, y el texto de una fila del grupo, que es uno
+        # solo para las cuatro y para todos los actores. El cursor y los
+        # glifos no van como bloques: son dos celdas cada uno y la ROM las
+        # escribe palabra por palabra, ver `ranura_glifo_celdas`.
         menu = ranuras["menu"]
         bloque_menu_opcion = len(bloques_ranura)
         for orden, variantes in enumerate(menu["opciones"]):
@@ -3767,13 +3833,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("menu_moneda", celdas_asm([menu["moneda"]]))
                      + "\n")
         bloques_ranura.append("menu_moneda")
-        bloque_de_actor = {}
-        for actor in sorted(menu["actores"]):
-            nombre = "menu_actor_%d" % actor
-            handle.write(bloque(nombre, celdas_asm([menu["actores"][actor]]))
-                         + "\n")
-            bloque_de_actor[actor] = len(bloques_ranura)
-            bloques_ranura.append(nombre)
+        bloque_menu_fila = len(bloques_ranura)
+        handle.write(bloque("menu_fila", celdas_asm([menu["fila"]])) + "\n")
+        bloques_ranura.append("menu_fila")
         # Y la pantalla de ítems, que tiene banco propio: la fuente de a una
         # letra por celda, sus dos paletas, y el texto de cada ítem que la ROM
         # conoce —nombre y dos renglones de descripción—, en ASCII.
@@ -3787,16 +3849,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
                                                    - len(paleta)))) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
-        # Textos muertos delante de todos los demás, para que los índices de
-        # la batalla pasen de 255 en un cartucho de un mapa. Lo que dice
-        # `--relleno-de-textos`: reproducirlo de verdad pide los cincuenta y
-        # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
-        # minutos y medio de conversor por caso. **No cambia un pixel**: son
-        # textos de largo cero que nadie dibuja, y el índice de un texto no lo
-        # modela la referencia —ella escribe caracteres—, así que el flag es de
-        # un solo lado a propósito.
-        for _ in range(ranuras.get("relleno_textos") or 0):
-            item_textos_ofs.append((0, 0))
 
         def texto_nuevo(texto):
             texto = titulo_mod.texto_de_item(texto, 255)
@@ -3810,6 +3862,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     item.name, titulo_mod.ITEM_NOMBRE_ANCHO)]
                     + titulo_mod.partir_descripcion(item.description)):
                 texto_nuevo(texto)
+        # Textos muertos **detrás de los de los ítems y delante de todos los
+        # demás**, para que los índices de la batalla pasen de 255 en un
+        # cartucho de un mapa. Es el hermano de `--relleno-de-mensajes`:
+        # reproducirlo de verdad pide los cincuenta y siete ítems de
+        # `abl`, o sea sus veintinueve mapas y dos minutos y medio de
+        # conversor por caso.
+        #
+        # **Van acá y no al principio, que es donde estaban hasta el
+        # 2026-09-20.** El nombre de un ítem no se nombra por una tabla sino
+        # por la cuenta `3k` —`3k + 1` y `3k + 2` son sus dos renglones de
+        # descripción, ver `texto_escribir`—, así que un texto muerto delante
+        # del primero corre todos los ítems y la ROM termina dibujando los
+        # muertos, que miden cero: la lista "Use Item" de la pelea salía con
+        # el cursor y las cantidades y sin un solo nombre. Con el relleno acá
+        # el flag vuelve a cumplir lo que promete, que es no cambiar un pixel.
+        for _ in range(ranuras.get("relleno_textos") or 0):
+            item_textos_ofs.append((0, 0))
         # Y los fijos, detrás: los parámetros y las ranuras del equipo, y el
         # nombre de cada actor que puede entrar al grupo. Ver pantallas.py.
         P = pantallas_mod
@@ -3828,7 +3897,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_tienda = None
         for juego in range(3):
             term = P.terminos_tienda(db, juego)
-            for nombre in P.TI_TERMINOS:
+            for nombre, _termino in P.TI_TERMINOS:
                 for renglon in titulo_mod.partir_descripcion(term[nombre]):
                     t = texto_nuevo(renglon)
                     if texto_tienda is None:
@@ -3844,7 +3913,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # eso correría el texto de su columna.
         term_batalla = P.terminos_batalla(db)
         texto_batalla = None
-        for nombre, _chunk in P.BA_TERMINOS:
+        for nombre, _termino in P.BA_TERMINOS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
                 texto = P.texto_de_orden(texto)
@@ -3929,13 +3998,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("ranura_nombre_vram:\n    .word %s\n" % ", ".join(
             str(fila_de[n] + titulo_mod.NOMBRE_FILA * 32
                 + titulo_mod.NOMBRE_COL) for n in range(RANURAS)))
-        actores_n = max(list(bloque_de_cara) + list(bloque_de_nombre)
+        actores_n = max(list(bloque_de_cara) + list(ranuras["actores"])
                         + [-1]) + 1
-        for nombre, tabla in (("ranura_cara_bloque", bloque_de_cara),
-                              ("ranura_nombre_bloque", bloque_de_nombre)):
-            handle.write("%s:\n    .byte %s\n" % (nombre, ", ".join(
-                str(tabla.get(actor, 0xFF)) for actor in range(actores_n))
-                or "$FF"))
+        handle.write("ranura_cara_bloque:\n    .byte %s\n" % (", ".join(
+            str(bloque_de_cara.get(actor, 0xFF))
+            for actor in range(actores_n)) or "$FF"))
         # El menú de pausa: sus bloques, y a dónde va cada cosa en el tilemap,
         # en palabras. La geometría es la de `titulo.py` y sale de ahí.
         T = titulo_mod
@@ -3945,12 +4012,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
         filas_opcion = [(T.MENU_OPC_Y + n * T.MENU_OPC_SALTO) // T.CELL
                         for n in range(T.MENU_OPCIONES)]
-        menu_actores_n = max(list(bloque_de_actor) + [-1]) + 1
         handle.write(
             "MENU_OPCIONES     = %d\n"
             "MENU_GUARDAR      = %d\n"
             "MENU_BLQ_OPCION   = %d\n"
             "MENU_BLQ_MONEDA   = %d\n"
+            "MENU_BLQ_FILA     = %d\n"
             "MENU_OPC_COLS     = %d\n"
             "MENU_MONEDA_COLS  = %d\n"
             "MENU_MONEDA_VRAM  = %d\n"
@@ -3961,18 +4028,33 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "OBJETIVO_CURSOR_DESPL = %d\n"
             "MENU_HP_CIFRAS    = %d\n"
             "MENU_HP_DESPL     = %d\n"
+            "MENU_CARA_CELDAS  = %d\n"
+            "MENU_NOMBRE_COLS  = %d\n"
+            "MENU_NOMBRE_DESPL = %d\n"
+            "MENU_NIVEL_DESPL  = %d\n"
+            "MENU_MAX_CIFRAS   = %d\n"
+            "MENU_MAX_DESPL    = %d\n"
             % (T.MENU_OPCIONES, T.MENU_GUARDAR, bloque_menu_opcion,
-               bloque_menu_moneda, T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
+               bloque_menu_moneda, bloque_menu_fila,
+               T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
                celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
-               menu_actores_n,
+               actores_n,
                T.OBJETIVO_CURSOR_FILA * 32
                + T.OBJETIVO_CURSOR_COL - T.MENU_ACTOR_COL,
                # Y a cuántas celdas de la primera del bloque del actor cae la
                # de las centenas de sus HP, que es lo que `menu_hp_escribir`
                # le suma a `menu_fila_vram`.
                T.MENU_HP_CIFRAS,
-               T.MENU_HP_FILA * 32 + T.MENU_HP_COL - T.MENU_ACTOR_COL))
+               T.MENU_HP_FILA * 32 + T.MENU_HP_COL - T.MENU_ACTOR_COL,
+               # La cara va en la esquina de arriba a la izquierda de la fila
+               # —de ahí que no lleve desplazamiento— y las tres tiras que la
+               # ROM compone, cada una en la suya.
+               T.CARA_CELDAS, T.MENU_NOMBRE_COLS,
+               T.MENU_NOMBRE_FILA * 32 + T.MENU_NOMBRE_COL - T.MENU_ACTOR_COL,
+               T.MENU_NIVEL_FILA * 32 + T.MENU_NIVEL_COL - T.MENU_ACTOR_COL,
+               T.MENU_MAX_CIFRAS,
+               T.MENU_HP_FILA * 32 + T.MENU_MAX_COL - T.MENU_ACTOR_COL))
         # Qué órdenes hacen algo: 1 sí, 0 no. La de guardar además mira el
         # permiso, en la ROM.
         handle.write("menu_hecha:\n    .byte %s\n" % ", ".join(
@@ -3985,16 +4067,50 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("menu_fila_vram:\n    .word %s\n" % ", ".join(
             str(celda_vram(r * T.MENU_ACTOR_FILAS, T.MENU_ACTOR_COL))
             for r in range(T.MENU_FILAS_GRUPO)))
-        # Las dos celdas de cada cifra y del cursor, arriba y abajo: la ROM
-        # las escribe de a una palabra.
-        handle.write("menu_cifra_celdas:\n    .word %s\n" % ", ".join(
-            "$%04X" % entry(c, False, False) for cifra in menu["cifras"]
-            for c in cifra))
+        # Las dos celdas del cursor, arriba y abajo: la ROM las escribe de a
+        # una palabra.
         handle.write("menu_cursor_celdas:\n    .word %s\n" % ", ".join(
             "$%04X" % entry(c, False, False) for c in menu["cursor"]))
-        handle.write("menu_actor_bloque:\n    .byte %s\n" % (", ".join(
-            str(bloque_de_actor.get(a, 0xFF)) for a in range(menu_actores_n))
-            or "$FF"))
+        # Y lo que la pantalla compone en caliente, que va **fuera del banco
+        # 0**: se lee con `lda f:`, y son casi mil bytes que al banco del
+        # código le harían falta. Los glifos están indexados por carácter
+        # —desde ITEM_PRIMER_CARACTER, como los de la pantalla de ítems— y las
+        # letras que este cartucho no usa quedan en la celda vacía: nadie las
+        # pide, y una tabla completa se indexa sin restar nada más.
+        handle.write('.segment "RODATA"\n')
+        vacio = "$%04X, $%04X" % (entry(0, False, False),
+                                  entry(0, False, False))
+        handle.write(".bloque %d\nranura_glifo_celdas:\n    .word %s\n"
+                     % (titulo_mod.ITEM_CARACTERES * 4, ", ".join(
+                         ", ".join("$%04X" % entry(c, False, False)
+                                   for c in menu["glifos"][letra])
+                         if letra in menu["glifos"] else vacio
+                         for letra in map(
+                             chr, range(titulo_mod.ITEM_PRIMER_CARACTER,
+                                        titulo_mod.ITEM_PRIMER_CARACTER
+                                        + titulo_mod.ITEM_CARACTERES)))))
+        # El texto de cada actor, en ASCII: el nombre —con espacios detrás,
+        # que son los que borran lo que hubiera—, las dos cifras del nivel y
+        # el máximo de HP detrás de su barra. **Las tres juntas, en una fila
+        # por actor**, para que la ROM tenga una sola dirección que calcular y
+        # tres desplazamientos que son constantes.
+        db_ranuras = ranuras["db"]
+        if (RANURA_TEXTO_NIVEL < titulo_mod.MENU_NOMBRE_COLS
+                or RANURA_TEXTO_MAX + titulo_mod.MENU_MAX_CIFRAS
+                > RANURA_TEXTO_ANCHO):
+            raise SystemExit("las tres tiras del actor no entran en los %d "
+                             "bytes de su fila" % RANURA_TEXTO_ANCHO)
+        tira = bytearray()
+        for a in range(actores_n):
+            fila = (titulo_mod.texto_de_nombre(db_ranuras, a)
+                    .ljust(RANURA_TEXTO_NIVEL)
+                    + titulo_mod.texto_de_nivel(db_ranuras, a)
+                    + titulo_mod.texto_de_maximo(db_ranuras, a))
+            tira += fila.ljust(RANURA_TEXTO_ANCHO).encode("ascii")
+        handle.write(".bloque %d\nranura_actor_texto:\n    .byte %s\n"
+                     % (max(1, len(tira)),
+                        ", ".join(str(b) for b in tira) or "0"))
+        handle.write('.segment "TABLAS"\n')
         # La pantalla de ítems. `item_k` va del número de RM2k a su lugar en
         # las tablas de la ROM, $FF si esta ROM no lo conoce; lo demás es por
         # lugar. `item_uso`: bit 0 si va en blanco y A hace algo, bit 1 si
@@ -4070,7 +4186,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # con la pelea abierta más lo que este port sabe hacer; la cuenta de
         # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
         # **Fuera del banco 0**, como `item_k` y por lo mismo: con los mapas de
-        # `demo-ciudad` el área de código quedó en 32775 de 32704 al ponerlas
+        # `abl` el área de código quedó en 32775 de 32704 al ponerlas
         # acá. La pelea las lee con `lda f:item_batalla, x`.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
@@ -4082,7 +4198,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                    for n in items], declarar=True)
         handle.write('.segment "TABLAS"\n')
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
-        # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
+        # por lo mismo: ahí no entran. Con los diez mapas de `abl` el
         # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
         # libres— y el cartel del `ShowPicture` no entraba. Se leen con
         # `lda f:item_txt_lo, x`, que cuesta un byte y un ciclo por lectura en
@@ -4121,7 +4237,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `item_actores` va también fuera del banco 0 —se lee con
         # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
         # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
-        # 2026-09-13 `just demo demo-ciudad` cortaba con "el área no
+        # 2026-09-13 `just demo` cortaba con "el área no
         # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
         # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
         # así que el ciclo de más del direccionamiento largo no se nota.
@@ -4469,7 +4585,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%-18s= $%04X\n"
                          % (constante, audio.get(nombre, 0xFFFF)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
-        for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
+        for k, (nombre, _termino) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
         # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
@@ -4511,7 +4627,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for _n, f, _c in P.BA_ORDENES])
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
         # **De dos bytes.** Un índice de texto no entra en uno: con los 29
-        # mapas de `demo-ciudad` los de la batalla arrancan en el 273, y la
+        # mapas de `abl` los de la batalla arrancan en el 273, y la
         # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
         # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
         words_asm("ba_orden_txt", [
@@ -4584,34 +4700,6 @@ def sprite_colors_bytes(sprite):
             out += cgram_word(color).to_bytes(2, "little")
         out += bytes(2 * (COLORS_PER_PALETTE - 1 - len(palette)))
     return bytes(out)
-
-
-def puertas_bytes(puertas, indices):
-    """Las puertas listas para la ROM, ya con el índice de tabla del destino.
-
-    Las que llevan a un mapa que no entró en la ROM se descartan acá: en la
-    consola serían un salto al vacío, y es mejor que no hagan nada a que hagan
-    cualquier cosa. El conversor avisa cuántas quedaron afuera.
-    """
-    out = bytearray()
-    afuera = 0
-    for puerta in puertas:
-        destino = indices.get(puerta["mapa"])
-        if destino is None:
-            afuera += 1
-            continue
-        registro = bytearray(PUERTA_BYTES)
-        registro[0:2] = puerta["x"].to_bytes(2, "little")
-        registro[2:4] = puerta["y"].to_bytes(2, "little")
-        registro[4:6] = puerta["destino_x"].to_bytes(2, "little")
-        registro[6:8] = puerta["destino_y"].to_bytes(2, "little")
-        # El índice del mapa va en dos bytes, como el de OP_TELEPORT: en uno
-        # el formato no puede nombrar los 328 mapas del juego. La ROM ya lo
-        # leía como word —con un `and #$00FF` porque el de al lado era cero—,
-        # así que esto es lo que hacía falta para que el alto sirva.
-        registro[8:10] = destino.to_bytes(2, "little")
-        out += registro
-    return bytes(out), afuera
 
 
 # Un evento en la tabla de posiciones: x e y en celdas, las dos de 16 bits
@@ -4988,11 +5076,11 @@ def parser_de_flags():
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
     parser.add_argument("--relleno-de-textos", type=int, default=0,
-                        help="textos muertos delante del bloque de textos de\n"
-                             "las pantallas, para que los índices de la\n"
-                             "batalla pasen de 255 sin armar un cartucho de\n"
-                             "veintinueve mapas. No cambia un pixel: la\n"
-                             "referencia no modela índices de texto")
+                        help="textos muertos detrás de los de los ítems, para\n"
+                             "que los índices de la batalla pasen de 255 sin\n"
+                             "armar un cartucho de veintinueve mapas. No\n"
+                             "cambia un pixel, y por eso no van delante de\n"
+                             "todo: el nombre del ítem k es el texto 3k")
     parser.add_argument("--con-titulo", action="store_true",
                         help="lleva la pantalla de título del juego, con su "
                              "menú de empezar y cargar. Sin esto la ROM "
@@ -5005,7 +5093,7 @@ def parser_de_flags():
                         help="que **todos** los temas aporten muestras al "
                              "banco compartido, en vez de recortar los "
                              "últimos hasta que el banco entre en la ARAM. "
-                             "El recorte es lo que hace que en `demo-ciudad` "
+                             "El recorte es lo que hace que en `abl` "
                              "a los nueve temas del final les falten entre el "
                              "28%% y el 88%% de las notas —las que piden un "
                              "programa que no está—; con esto no falta "
@@ -5013,15 +5101,6 @@ def parser_de_flags():
                              "todas. El banco pasa a no entrar entero en la "
                              "ARAM, que no es un problema: ahí vive un "
                              "paquete de mapa por vez")
-    parser.add_argument("--banco-sin-prioridad", action="store_true",
-                        help="que el tema del mapa de arranque **no** tenga "
-                             "prioridad para aportar muestras al banco. Es "
-                             "para las ROMs de escuchar: arrancar en el mapa "
-                             "20 le da prioridad a su tema y entonces suena "
-                             "entero, que es justo lo contrario de lo que se "
-                             "quiere reproducir. Con esto el reparto del "
-                             "banco es el mismo que el de `demo-ciudad`, que "
-                             "arranca en un mapa sin música")
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
@@ -5214,8 +5293,9 @@ def main():
     # ella. Con la ventana en la paleta 0 no hay nada que apretar: el fondo de
     # cada mapa arranca en `CGRAM_RESERVADAS` y llega hasta su propia capa de
     # encima, sin depender de lo que necesiten los otros mapas de la ROM.
-    # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
-    # cualquier otro, así que el índice de destino no se sabe hasta el final.
+    # Los teletransportes se resuelven cuando están todos los mapas: uno puede
+    # llevar a cualquier otro, así que el índice de destino no se sabe hasta el
+    # final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
 
     # El bloque de textos es de la ROM entera y se arma mientras se compilan las
@@ -5244,14 +5324,6 @@ def main():
     de_prueba = {}
 
     for mapa in mapas:
-        mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
-        cuantas = len(mapa["puertas"]) // PUERTA_BYTES
-        if cuantas or afuera:
-            print("  mapa %d: %d puerta(s)%s"
-                  % (mapa["id"], cuantas,
-                     ", %d a mapas que no están en la ROM" % afuera
-                     if afuera else ""))
-
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
@@ -5324,8 +5396,7 @@ def main():
         # que una página se cae, y es la única que se arregla desde afuera
         # —sumando el mapa— y no tocando el compilador. Así se pasó por alto la
         # página del ascensor del mapa 2, que se veía abrirse y no llevaba a
-        # ningún lado porque termina saltando al mapa 3. La lista de puertas ya
-        # avisa lo mismo; esto es su equivalente para las páginas.
+        # ningún lado porque termina saltando al mapa 3.
         afuera_de, cuantas = set(), 0
         for pagina in paginas:
             if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \
@@ -5537,14 +5608,14 @@ def main():
     items_rom = items_posibles(todos, miembros, renderer.database,
                                de_archivo)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
-     ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
+     ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
         miembros, args.game_dir)
     items_tiles, items_paletas, items_glifos = titulo_mod.pantalla_items(
         skin, renderer.database.font_id)
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
-                     "caras": ranura_caras, "nombres": ranura_nombres,
+                     "caras": ranura_caras,
                      "menu": ranura_menu, "items": items_rom,
                      "db": renderer.database, "actores": miembros,
                      "relleno_textos": args.relleno_de_textos,
@@ -5696,8 +5767,7 @@ def main():
     # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se,
-        prioridad=([] if args.banco_sin_prioridad
-                   else [t for t in (tema_titulo, arranque) if t != 0xFF]),
+        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF],
         tope=(1 << 30) if args.banco_entero else None)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
@@ -6111,7 +6181,7 @@ def casos_de_prueba(parser, args, tramos):
         casos.append(caso)
     for caso in casos:
         with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-            caso.comandos = lcf.comandos(json.load(archivo))
+            caso.comandos = lcf.comandos_escritos(json.load(archivo))
     return casos
 
 
@@ -6210,13 +6280,10 @@ def convertir(renderer, map_id, args, inicio=None):
                       comandos_de_casos(args, map_id))
     name = renderer.tree.map_names.get(map_id, "?")
 
-    base, _above, variantes = renderer.capas_animadas(game_map)
-
-    if base is None:
+    capas = capas_convertidas(renderer, game_map)
+    if capas is None:
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
-
-    (tile_data, cram, tilemap, summary), above_data = convert_layers(
-        base, _above, variantes=variantes)
+    (tile_data, cram, tilemap, summary), above_data = capas
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -6469,7 +6536,7 @@ def convertir(renderer, map_id, args, inicio=None):
     if args.con_lluvia:
         tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
             tiles, palettes, reparto[3],
-            timer_base, tope_de_paletas)
+            timer_base, tope_de_paletas, timer_pal)
         if not lluvia_base:
             print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
                   "paletas de sprite y acá no llueve" % map_id)
@@ -6647,10 +6714,9 @@ def convertir(renderer, map_id, args, inicio=None):
         "resumen": summary,
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
-        "puertas_crudas": rm2k.collect_doors(game_map),
-        # Se guarda el mapa entero porque las puertas y los eventos no se
-        # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
-        # índices de la tabla.
+        # Se guarda el mapa entero porque las páginas de los eventos no se
+        # pueden compilar hasta que estén todos los mapas: un `Teleport`
+        # traduce ids de mapa a índices de la tabla.
         "game_map": game_map,
         # Para la tabla de páginas: dónde quedó cada (CharSet, índice, pose)
         # en el banco de sprites, qué eventos cambian de gráfico con la

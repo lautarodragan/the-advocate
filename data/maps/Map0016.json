@@ -6,85 +6,151 @@
       "name": "EV0001",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 45,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "hzbreach"},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "hzbreach"},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [16, 46, 15]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [16, 46, 15], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [16, 43, 7]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [16, 43, 7], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 15]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 15],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [16, 24, 15]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [16, 24, 15], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "Teleport", "parameters": [16, 50, 73]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [16, 50, 73], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [30]},
-            {"code": "PanScreen", "parameters": [2, 0, 10, 4, 1]},
-            {"code": "TimerOperation", "parameters": [2, 0, 0, 0, 0]},
-            {"code": "ConditionalBranch", "parameters": [0, 68, 0, 0, 0, 1]},
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
+            {"code": 11410, "indent": 0, "parameters": [30], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 0, 10, 4, 1], "string": ""},
+            {"code": 10230, "indent": 0, "parameters": [2, 0, 0, 0, 0], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 68, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "ShowMessage_2",
+              "code": 20110,
               "indent": 1,
+              "parameters": [],
               "string": "Well, I'm late. Let's hope the boss isn't"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "TOO angry..."},
-            {"code": "END", "indent": 1},
-            {"code": "ElseBranch"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "TOO angry..."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11550, "indent": 1, "parameters": [100, 100, 50], "string": "Success2"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
-              "code": "PlaySound",
+              "code": 20110,
               "indent": 1,
-              "parameters": [100, 100, 50],
-              "string": "Success2"
-            },
-            {"code": "ShowMessage", "indent": 1, "string": "TALAN"},
-            {
-              "code": "ShowMessage_2",
-              "indent": 1,
+              "parameters": [],
               "string": "I made it to work, and with time to"
             },
-            {"code": "ShowMessage_2", "indent": 1, "string": "spare!"},
-            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 77, 77, 0]},
-            {"code": "END", "indent": 1},
-            {"code": "EndBranch"},
-            {"code": "PanScreen", "parameters": [2, 2, 10, 4, 1]},
-            {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36, 0, 0, 0, 0, 37]},
-            {"code": "FadeOutBGM", "parameters": [1000]},
-            {"code": "Wait", "parameters": [11]},
-            {"code": "PlayBGM", "parameters": [1000, 100, 100, 50], "string": "wb3mlair"},
-            {"code": "Teleport", "parameters": [17, 36, 73]}
+            {"code": 20110, "indent": 1, "parameters": [], "string": "spare!"},
+            {"code": 10210, "indent": 1, "parameters": [0, 77, 77, 0], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11060, "indent": 0, "parameters": [2, 2, 10, 4, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 36, 0, 0, 0, 0, 37],
+              "string": ""
+            },
+            {"code": 11520, "indent": 0, "parameters": [1000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [11], "string": ""},
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [1000, 100, 100, 50],
+              "string": "wb3mlair"
+            },
+            {"code": 10810, "indent": 0, "parameters": [17, 36, 73], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
       "x": 52,
       "y": 32
     }
   ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
   "height": 75,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
   "parallax_flag": true,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
   "parallax_name": "Evening1",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
   "save_count": 30,
+  "scroll_type": 0,
+  "top_level": false,
   "width": 75
 }

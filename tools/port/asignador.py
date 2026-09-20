@@ -4,7 +4,7 @@
 Todo lo que está acá **cambia lo que se ve**: fusionar un color con otro,
 decidir qué colores van juntos en una paleta, medir cuánto se mueve una imagen
 si se le saca un color. Es la mitad artística del pipeline de gráficos, y por
-eso no está en `tools/tiles/`, que sólo convierte lo que ya entra y nunca toca un
+eso no está en `tools/voodoo/`, que sólo convierte lo que ya entra y nunca toca un
 pixel. Ver "El asignador corre primero" en ESTADO.md.
 
 Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,
@@ -13,7 +13,7 @@ pase a Rust, esto es lo que se lleva primero.
 
 Hasta el 2026-09-17 se llamaba `pixeles.py` y hacía también la parte que no
 decide nada —indexar un tile en su paleta, probar sus espejados—, que pasó a
-`tiles`. Antes todavía estaba adentro de `md_convert.py`, que es de donde salió
+Voodoo. Antes todavía estaba adentro de `md_convert.py`, que es de donde salió
 el port a Mega Drive.
 """
 

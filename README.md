@@ -98,12 +98,11 @@ Cómo está repartido `tools/` en carpetas, y qué puede importar de qué, está
 `tools/README.md`.
 
     tools/rpgmaker/lcf.py               el juego, leído del volcado a JSON de data/
-    tools/rpgmaker/ditto_schema.py      generado: los nombres, defaults y enums de ese JSON
-    tools/rpgmaker/gen_ditto_schema.py  lo genera, desde el esquema de Ditto
     tools/render/chipset.py             expansión del ChipSet a un atlas de tiles resueltos
     tools/render/charset.py             recorte de sprites de personaje
     tools/render/render_map.py          las capas de un mapa como imagen, y los CharSets
-    tools/rpgmaker/event_codes.py       generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.json     generado: nombres de los opcodes de evento
+    tools/rpgmaker/event_codes.py       lo carga
     tools/protocol/                     el generador, en Rust: declaración -> constantes
     tools/port/event_opcodes.py         generado desde tools/protocol/events.toml
     tools/audio/music_opcodes.py        generado desde tools/protocol/music.toml
@@ -170,23 +169,24 @@ Se puede apuntar a otra copia con `ABL_RTP_DIR`.
 
 ## Los datos en formato versionable
 
-    just datos         # el juego -> data/, con Ditto
+    just datos         # el juego -> data/ y rom/build/ditto-exacto/, con Ditto
 
 `data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así que el
 conversor y las pruebas están mirando estos archivos y no los binarios. Quién lo
 escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto pack` rearma los
-330 archivos byte por byte. El porqué de la decisión está en `DITTO.md` y lo que
-hay adentro, en `data/README.md`.
+330 archivos byte por byte —desde el volcado exacto, que la misma corrida deja
+en `rom/build/ditto-exacto/` y que no se versiona—. El porqué de la decisión
+está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
 
-    data/ditto.json           la versión del volcado y el header de cada archivo
+    data/ditto.json           la versión del volcado, cuál vista es, y los headers
     data/maps.json            el árbol de mapas y la posición inicial
     data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
     data/maps/Map0001.tiles   las dos capas de tiles, una fila del mapa por línea
     data/db/*.json            la base de datos, una sección por archivo
 
-Son 19,4 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
+Son 30,9 MB en 674 archivos: los 328 mapas con sus eventos y comandos, más la
 base de datos entera — 60 actores, 400 skills, 450 ítems, 175 enemigos, 300
 tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 
@@ -194,16 +194,19 @@ tropas, 180 animaciones, 60 eventos comunes, 1200 switches y 250 variables.
 serían opacos para git; en texto, cambiar un tile cambia una línea, en la fila
 y la columna en que está en el mapa.
 
-**Se omite lo que está en su valor por defecto**, que es exactamente lo que
-hace el binario y con la misma tabla. Así que un campo ausente **no vale cero**:
-vale lo que dice el formato. Esa tabla es `tools/rpgmaker/ditto_schema.py`, generada
-desde el esquema de Ditto, que se genera desde liblcf. Es la respuesta al bug
-que originó todo esto: el `max_hp` de un enemigo llegaba con 1 donde el formato
-dice 10, porque el default estaba escrito a mano y estaba mal.
+**Está todo escrito, con los defaults ya aplicados.** El binario omite lo que
+vale su valor por defecto, y `data/` **no**: desde el 2026-09-20 es la *vista
+resuelta* que emite Ditto, así que un `max_hp` que el archivo no guardaba
+aparece acá en 10 y no hay tabla que consultar. Es la respuesta al bug que
+originó todo esto: llegaba con 1 porque el default estaba escrito a mano y
+estaba mal.
 
-**Y los enums salen como texto**: `"trigger": "auto_start"` en vez de
-`"trigger": 3`, `"code": "ShowMessage"` en vez de `10110`. Los nombres son los
-de liblcf.
+**Y los enums son números**: `"trigger": 3`, `"code": 10110`, que es lo que el
+port espera. El nombre —`"auto_start"`, `"ShowMessage"`, los de liblcf— está en
+el *volcado exacto*, el otro árbol que la misma corrida de `just datos` deja en
+`rom/build/ditto-exacto/` y que no se versiona: es el que tiene la forma del
+binario, el único que `ditto pack` puede volver a escribir, y el que hay que
+abrir para leer el juego. Ver `DITTO.md`.
 
 **Encoding.** El texto es cp1252, porque ABL se hizo con el RM2k de Don Miguel.
 Quedan un par de mensajes del RTP japonés que el autor nunca tocó y siguen en
@@ -553,7 +556,7 @@ Tres cosas de cómo está hecho:
 **Cada ranura con partida muestra lo que muestra RM2k**, que es lo que
 `Window_SaveFile::Refresh` dibuja por archivo: el nombre del archivo, el
 nombre del líder, el nivel —`lvl_short` en el color 1 del sistema y el número
-a dos cifras, "L  1", mockeado en 1 porque no hay actores con nivel— y las
+a dos cifras, "L 20" con Kersh, que sale de su `initial_level`— y las
 **caras** del grupo, del FaceSet y a 48x48, que es por lo que la fila mide 48
 pixeles.
 
@@ -568,12 +571,15 @@ Cómo está hecho, porque no es una variante más de la fila pre-renderizada: el
 grupo lo dice **la partida guardada** —los seis bytes de `grupo` en la SRAM de
 la ranura, en `PARTIDA_GRUPO`— y por cada actor que pueda entrar al grupo con
 los mapas de la ROM, `miembros_posibles`, el conversor emite un bloque de 36
-celdas con su cara y otro de 14 con su nombre. `ranura_pintar` sube la fila y
+celdas con su cara. `ranura_pintar` sube la fila y
 después, si tiene partida, `ranura_grupo_pintar` lee el grupo de la SRAM y
 escribe encima los rectángulos que le tocan, con `ranura_rect_subir`: un DMA
 por fila de celdas, con el puntero de origen que el DMA mismo va dejando donde
-terminó. A dónde va cada cara y cada nombre lo dicen dos tablas del conversor
-—`ranura_cara_vram`, de a cuatro por ranura para no multiplicar por tres, y
+terminó. **El nombre del líder y su nivel no son bloques**: los compone
+`ranura_texto_escribir` de a una letra por celda, ver "Lo que depende del
+actor se compone con glifos" más abajo. A dónde va cada cara y cada nombre lo
+dicen dos tablas del conversor —`ranura_cara_vram`, de a cuatro por ranura
+para no multiplicar por tres, y
 `ranura_nombre_vram`—, como `ranura_vram` para las filas. Cada cara lleva su
 paleta, reducida a 15 colores con `reducir` como la imagen del título, en las
 paletas 1 a 7 de BG2; en RM2k el índice 0 del FaceSet es transparente, igual
@@ -631,12 +637,13 @@ cortado a propósito, tres de sus cuatro pruebas dan rojo.
 **B abre el menú**, que es `Scene_Menu` de RM2k: las cinco
 órdenes a la izquierda —`Use Item`, `Tech Skill`, `Equipment`, `Save`, `End
 Game`, con los términos del LDB—, el oro abajo y el grupo a la derecha, con la
-cara, el nombre, el nivel —mockeado en 1, como en las ranuras—, el estado y
-los HP del nivel, llenos. Hoy **sólo guardar hace algo**: abre la pantalla de
+cara, el nombre, el nivel —el de su `initial_level`, como en las ranuras—, el
+estado y los HP. **Hacen algo tres órdenes** —`MENU_HECHAS` en `titulo.py`—:
+los ítems, el equipo y guardar. Guardar abre la pantalla de
 ranuras en modo guardar y, elija o cancele, vuelve al menú con el cursor en
-Save, como `Scene_Save` vuelve a `Scene_Menu`. Las otras cuatro van en el
-color 3 del sistema, el de "no se puede", y A no hace nada con ellas: ítems,
-técnicas y equipo son los pasos que siguen, y terminar el juego pide volver al
+Save, como `Scene_Save` vuelve a `Scene_Menu`. Las otras dos van en el
+color 3 del sistema, el de "no se puede", y A no hace nada con ellas: las
+técnicas son un paso que sigue, y terminar el juego pide volver al
 título sin reiniciar el SPC700.
 
 **La geometría es nuestra**, no la de RM2k: allá son 320x240 con ventanas, acá
@@ -645,15 +652,16 @@ actor, la experiencia ni los SP, y el oro con una cifra por celda y no a los 6
 pixeles de la fuente, para que la ROM las escriba de a una sin armar tiles. Es
 cosmético y está declarado.
 
-**Los HP de ahora se escriben corriendo, y el máximo va horneado.** La fila de
-cada actor es un bloque de celdas que el conversor dibuja una vez, así que
-cualquier número que lleve adentro es el del día que se convirtió: con los HP ahí
-el menú muestra siempre el máximo del nivel por más que una pelea los baje, y la
-comparación de pixeles no lo ve porque `render_menu` hornea el mismo número. Las
-tres cifras las escribe `menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de
-una por cifra que el oro y por la misma razón; el "/máximo" de al lado sigue
-horneado, que ése no cambia. Vale para las dos pantallas que comparten el
-panel, el menú y la elección de actor, porque las dos pasan por
+**Los HP de ahora se escriben corriendo.** El bloque de la fila lo dibuja el
+conversor una vez, así que cualquier número que llevara adentro sería el del
+día que se convirtió: con los HP ahí el menú muestra siempre el máximo del
+nivel por más que una pelea los baje, y la comparación de pixeles no lo ve
+porque `render_menu` hornea el mismo número. Las tres cifras las escribe
+`menu_hp_escribir` desde `FAR_HP`, con las mismas celdas de una por cifra que
+el oro y por la misma razón. El "/máximo" de al lado tampoco va horneado desde
+el 2026-09-20, pero por otro motivo: cambia de un actor a otro, y todo lo que
+cambia con el actor se compone con glifos. Vale para las dos pantallas que
+comparten el panel, el menú y la elección de actor, porque las dos pasan por
 `menu_grupo_pintar`.
 
 Las cifras caen alineadas con las del oro sin tocar nada: las dos líneas se
@@ -665,6 +673,42 @@ pantalla de ranuras —las caras son las mismas y guardar se abre desde el menú
 Las órdenes en gris llevan su propia paleta de BG2: el color 3 es un degradé y
 con el del texto sumaban 18 colores, así que a las caras les quedan seis
 paletas.
+
+### Lo que depende del actor se compone con glifos
+
+**El nombre, el nivel y los HP máximos no se hornean**: la ROM los escribe de
+a una letra por celda con los glifos de `ranura_glifo_celdas`, que son las
+mismas dos celdas por carácter que ya usaban el oro y los HP de ahora. Es una
+decisión de presupuesto, medida: el banco de tiles de estas dos pantallas es
+**uno solo y está deduplicado**, así que lo que se hornea por actor no lo
+comparte con nadie, y el texto de un actor eran unos siete tiles marginales
+cada uno. Con 12 actores el banco juntaba 446 de los 448 que entran en la
+VRAM; con el actor 21 adentro, 462 —por eso sus casos vivían en un cartucho
+aparte—; y los 52 actores con cara del juego entero, 751. Componiendo, lo que
+se paga una vez son las letras que los nombres usan y lo único que sigue
+costando por actor es su cara: los mismos 12 actores juntan 364 tiles, y el 21
+entra.
+
+Subir el texto **a demanda** en vez de componerlo se midió y no servía: una
+cara residente cuesta 8,4 tiles marginales contra 13 de una ranura a demanda,
+y el texto suelto de un actor son de 22 a 39 tiles contra los 7 que cuesta
+estando adentro del banco deduplicado.
+
+Lo que se paga, y está declarado como cosmético: las letras compuestas van a 8
+pixeles de paso y no a los 6 de la fuente, así que el nombre, el nivel y el
+máximo salen un poco más anchos que si se hornearan. Es el mismo precio que ya
+pagaban el oro, los HP y las pantallas de ítems, equipo y tienda. Lo que no
+depende del actor —"File 1", "- Empty -", el término del nivel, "Normal",
+"HP", las órdenes— se sigue horneando con la fuente, y por eso al hacer el
+cambio sólo se movieron las dos goldens del menú.
+
+De qué sale cada tira: `ranura_actor_texto` es una fila de 32 bytes ASCII por
+actor —el nombre, las dos cifras del nivel y el máximo detrás de su barra—,
+emitida por el conversor fuera del banco 0. `ranura_texto_de` arma el puntero
+y `ranura_texto_escribir` escribe primero las celdas de arriba de todas las
+letras, que van seguidas en la VRAM, y después las de abajo, que es lo mismo
+que hace `texto_escribir` en la pantalla de ítems con su propia tabla de
+glifos.
 
 **La séptima cara se cuelga de una paleta prestada.** La lista de caras no es la
 del grupo sino la de todos los que algún `ChangePartyMembers` de los mapas de la
@@ -957,7 +1001,7 @@ va una celda antes del texto.
 **Las dos tablas son de dos bytes, y eso no es de adorno.** Un índice de texto
 nombra un renglón del bloque que comparten las pantallas de ítems, equipo,
 tienda y batalla, y ese bloque crece con el cartucho: con los 57 ítems de
-`demo-ciudad` los textos de la batalla arrancan en el 273, que en un byte no
+`abl` los textos de la batalla arrancan en el 273, que en un byte no
 entra. El caso que lo cuida es `batalla-textos-lejos`, y `ca65` **rechaza** un
 `.byte` que no entre en un byte en vez de truncarlo.
 
@@ -1147,7 +1191,7 @@ Medido sobre el juego entero:
     23 áreas, colgando de 20 mapas
     33 mapas con tropas propias, ninguno de ellos con área
     53 mapas donde puede salir un encuentro, de 328
-    5 de los 29 de `demo-ciudad`: el 20, el 21, el 26, el 28 y el 32
+    5 de los 29 de `abl`: el 20, el 21, el 26, el 28 y el 32
     129 tropas distintas
 
 **Cómo se dispara**, de `Game_Player::UpdateEncounterSteps`. Cada paso del
@@ -1359,7 +1403,7 @@ Tres decisiones, las tres por la ARAM:
 
 La tanda no mide audio: compara imágenes, y `OP_SOUND` no cuesta un tick. Lo
 que se corrió fue una grabación de la apertura de
-`demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
+`abl` con el núcleo de libretro, contra la misma ROM con el volumen de
 los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
 hueco entre el fin del tercero y el siguiente (cuadros 890 a 920) las dos
 salidas son idénticas muestra por muestra. Es decir, la música vuelve entera.
@@ -1506,6 +1550,12 @@ con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el
 arreglo: cambia que no haya que reducirlo a ocho voces. La pista es "MSU1", el
 punto de loop en muestras, y el audio crudo.
+
+Y correr la receta de nuevo no rehace nada: una pista no depende del
+cartucho sino del MIDI, del soundfont, de fluidsynth y de cómo se normaliza, y
+todo eso está en la clave. Lo que se guarda en `rom/build/cache/msu/` es el
+sha256 del `.pcm`, no el `.pcm`, porque el archivo ya está escrito al lado de
+la ROM.
 
 Una cosa más del lado del cartucho: **la pista se normaliza a 0,97 de la
 escala**. fluidsynth se corre bajo, en 0,6, porque con 1,0 los temas de muchas
@@ -1828,14 +1878,14 @@ emite, y el evento se dibuja, se pisa y no hace nada. Por eso el conversor
 nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
-Y la lista de qué comandos puede acompañar a un teletransporte sin que deje de
-ser una puerta —o sea, sin intérprete— sale de `tools/rpgmaker/event_codes.py`, que se
-genera desde liblcf y de ningún otro lado. Puestos de memoria, tres estaban mal,
-y dos de ésos eran `PlayBGM` y `ChangeSpriteAssociation`: el filtro aceptaba
-como puertas eventos que cambian la música y el sprite del héroe. **La
-comparación no puede ver ese error**, porque una lista equivocada compila una
-ROM equivocada y la golden es la captura de esa ROM. Esa clase de error se
-revisa leyendo contra liblcf, no corriendo.
+Los códigos de comando con que el conversor decide todo esto salen de
+`tools/rpgmaker/event_codes.json`, que se saca de liblcf y de ningún otro lado.
+Cuando se pusieron de memoria —en el filtro que reconocía puertas, que ya no
+existe— tres estaban mal, y dos de ésos eran `PlayBGM` y
+`ChangeSpriteAssociation`: el filtro aceptaba como puertas eventos que cambian
+la música y el sprite del héroe. **La comparación no puede ver esa clase de
+error**, porque una lista equivocada compila una ROM equivocada y la golden es
+la captura de esa ROM. Se revisa leyendo contra liblcf, no corriendo.
 
 #### Un opcode por comando
 
@@ -1905,8 +1955,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 
 | Mecánica | en `rom/src/main.s` | quién la compila, o quién la mide |
 | --- | --- | --- |
-| Las puertas: un teletransporte sin intérprete, al **terminar** el paso | `cruzar_puerta` | `collect_doors` en `tools/rpgmaker/rm2k.py` |
-| Pisar un evento, y pisarlo al final de una ruta forzada | `probar_contacto`, `accion_en_celda` | — |
+| Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
 | Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
@@ -2607,7 +2656,7 @@ son **20 bytes**.
 
     rom/src/main.s               65816: arranque, carga al SPC700, reproductor
     tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
-    tools/brr/                   códec BRR y lector de SoundFont, en Rust
+    tools/gunter/                Gunter: códec BRR y lector de SoundFont, en Rust
     tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
     tools/audio/sdsp.py          registros del DSP y el banco de timbres
     tools/audio/snes_music.py    el MIDI del mapa a muestras y stream
@@ -2719,7 +2768,7 @@ tema de prueba contra el 95% de la Mega Drive.
 ### Toolchain
 
 **Tres cosas: `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas de Rust del repo —`brr` para las muestras, `ditto` y
+herramientas de Rust del repo —`gunter` para las muestras, `ditto` y
 `protocol`—, que **se consumen desde el PATH**: se instalan una vez con `just
 herramientas` y ningún script ni prueba de este juego llama a `cargo`. El
 porqué de eso está en `AGENTS.md`, y cómo se compila `cc65`, que no viene
@@ -2964,9 +3013,10 @@ evento del mapa, y la celda que se lee es la **viva**: `tile_x`/`tile_y` y
 `eventos.py`, o sea adonde una ruta forzada o un `ChangeEventLocation` dejaron
 al personaje.
 
-Cuál celda es ésa depende de dónde cae el intérprete en el lazo: corre en
-`eventos_tick` y el héroe se mueve después, en `move_hero`, así que la página de
-un cuadro ve la celda con la que terminó el cuadro anterior. En el modelo
+Cuál celda es ésa depende de dónde cae el intérprete en el lazo, y desde el
+2026-09-20 cae **al final**: `move_hero` corre antes que `eventos_tick`, que es
+el orden de `Game_Map::Update`, así que la página de un cuadro ve la celda con
+la que el héroe termina **ese** cuadro y no el anterior. En el modelo
 `Estado.heroe` ya no la escribe nadie —el lazo de cuadros se fue con la
 referencia—: la pone quien arma el `Estado`, y el día que vuelva a haber un
 lazo tiene que escribirla en ese mismo lugar.

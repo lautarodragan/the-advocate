@@ -207,8 +207,9 @@ def test_pagina(caso, nombre):
 
     Del arnés: el grupo lo arma la página de prueba, así que va en `caso`. El
     121 llega con `en-121`, que deja el del juego, y el 74 con
-    `grupo-21-en-74`, que va en el cartucho chico: con el actor 21 la
-    pantalla de ranuras no entra en el de pruebas.
+    `grupo-21-en-74`. Los dos casos van en el cartucho de pruebas: el 21 vivió
+    en el chico hasta que la pantalla de ranuras dejó de hornear un bloque de
+    texto por actor.
     """
     p = partida(caso)
     p.correr(240)

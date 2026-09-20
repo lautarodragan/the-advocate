@@ -6,9 +6,13 @@
       "name": "Boy",
       "pages": [
         {
-          "character_direction": "right",
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
           "character_name": "People4",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -17,13 +21,26 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 615
+            "item_id": 1,
+            "switch_a_id": 615,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
+      "x": 0,
       "y": 4
     },
     {
@@ -31,60 +48,116 @@
       "name": "EV0002",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "ShowBattleAnimation", "parameters": [77, 3, 1, 0]},
+            {"code": 11210, "indent": 0, "parameters": [77, 3, 1, 0], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [4, 8, 0, 0, 28, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [4, 8, 0, 0, 28, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ControlSwitches", "parameters": [0, 615, 615, 0]},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 615, 615, 0], "string": ""},
             {
-              "code": "MoveEvent",
-              "parameters": [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 5, 5, 5, 5, 1, 1, 1, 1, 1]
+              "code": 11330,
+              "indent": 0,
+              "parameters": [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 5, 5, 5, 5, 1, 1, 1, 1, 1],
+              "string": ""
             },
-            {"code": "PlaySound", "parameters": [50, 100, 50], "string": "Explosion2"},
-            {"code": "Wait", "parameters": [3]},
-            {"code": "PlaySound", "parameters": [50, 100, 0], "string": "Explosion5"},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "PlaySound", "parameters": [70, 100, 20], "string": "Explosion7"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "PlaySound", "parameters": [90, 80, 30], "string": "Explosion7"},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [0, 0, 0, 0]},
-            {"code": "ShowMessage", "string": "LITTLE BOY"},
-            {"code": "ShowMessage_2", "string": "C'mon, Bro! Wake up! C'mon!"},
-            {"code": "Wait", "parameters": [15]},
-            {"code": "FlashScreen", "parameters": [31, 31, 31, 31, 2, 0]},
-            {"code": "PlaySound", "parameters": [80, 150, 50], "string": "Bell"},
+            {"code": 11550, "indent": 0, "parameters": [50, 100, 50], "string": "Explosion2"},
+            {"code": 11410, "indent": 0, "parameters": [3], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [50, 100, 0], "string": "Explosion5"},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [70, 100, 20], "string": "Explosion7"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [90, 80, 30], "string": "Explosion7"},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LITTLE BOY"},
             {
-              "code": "ShowPicture",
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "C'mon, Bro! Wake up! C'mon!"
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11040, "indent": 0, "parameters": [31, 31, 31, 31, 2, 0], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [80, 150, 50], "string": "Bell"},
+            {
+              "code": 11110,
+              "indent": 0,
               "parameters": [20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 0],
               "string": "SurlBroDiff"
             },
-            {"code": "Wait", "parameters": [15]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 0]},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 1, 0], "string": ""},
             {
-              "code": "MovePicture",
-              "parameters": [20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1]
+              "code": 11120,
+              "indent": 0,
+              "parameters": [20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1],
+              "string": ""
             },
-            {"code": "Wait", "parameters": [10]},
-            {"code": "MessageOptions", "parameters": [1, 1, 0, 0]},
-            {"code": "ShowMessage", "string": "LITTLE BOY"},
-            {"code": "ShowMessage_2", "string": "I wanted to be in the army like my"},
-            {"code": "ShowMessage_2", "string": "brother Jim. He had a cool uniform"},
-            {"code": "ShowMessage_2", "string": "and got to carry a gun!"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "LITTLE BOY"},
-            {"code": "ShowMessage_2", "string": "I don't want to be in the Army anymore."},
-            {"code": "Teleport", "parameters": [214, 8, 9]},
-            {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 0]}
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LITTLE BOY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I wanted to be in the army like my"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "brother Jim. He had a cool uniform"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "and got to carry a gun!"},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "LITTLE BOY"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I don't want to be in the Army anymore."
+            },
+            {"code": 10810, "indent": 0, "parameters": [214, 8, 9], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 0, 0], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
       ],
+      "x": 0,
       "y": 14
     },
     {
@@ -92,11 +165,38 @@
       "name": "Brother",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
           "character_name": "Chara1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 15,
@@ -107,17 +207,69 @@
       "name": "Agent",
       "pages": [
         {
-          "character_direction": "left",
+          "animation_type": 0,
+          "character_direction": 3,
           "character_index": 1,
           "character_name": "BLAgents",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 16,
       "y": 8
     }
   ],
-  "save_count": 20
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 20,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

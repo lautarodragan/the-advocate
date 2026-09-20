@@ -1,11 +1,23 @@
 """Un caché en disco para lo que el conversor calcula igual en cada build.
 
-Convertir `demo-ciudad` tardaba 77 s, y casi nada de eso depende de algo que
-cambie entre un build y el siguiente: las muestras del soundfont son las mismas
-y los mapas también. Lo que sí cambia —el código— entra en la clave: cada
-categoría lleva el hash de los fuentes de los que sale, así que tocar el
-codificador o el conversor invalida lo suyo solo, sin que nadie tenga que
-acordarse de borrar nada.
+Casi nada de lo que cuesta una conversión depende de algo que cambie entre un
+build y el siguiente: las muestras del soundfont son las mismas y los mapas
+también. Lo que sí cambia —el código— entra en la clave: cada categoría lleva
+el hash de los fuentes de los que sale, así que tocar el codificador o el
+conversor invalida lo suyo solo, sin que nadie tenga que acordarse de borrar
+nada.
+
+Hoy son cuatro categorías: `capas` —los mapas convertidos a tiles—, `brr` —lo
+que devuelve el codificador—, `muestras` —la voz ya preparada, que es el
+remuestreo y la normalización que van antes de codificar— y `msu` —las pistas
+de MSU-1—. Las dos del SPC700 son categorías separadas a propósito: una sola,
+más arriba, ahorraría claves pero se caería entera cada vez que se toque
+cualquiera de los dos lados.
+
+`msu` es la rara y conviene saber por qué: **no guarda el valor sino su
+sha256**, porque el valor es un archivo de decenas de megas que ya está
+escrito al lado de la ROM, que es donde el MSU-1 lo va a buscar. Lo que el
+caché contesta ahí no es "tomá esto" sino "lo que hay es lo que yo haría".
 
 Vive en `rom/build/cache/`, que git ignora y que existe de los dos lados —el
 host y el contenedor—, porque las recetas se corren desde los dos. Se puede

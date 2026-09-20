@@ -33,6 +33,7 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
+from audio import muestras_brr                          # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 
@@ -48,7 +49,7 @@ DESTINO = os.environ.get("CARTUCHOS",
 # `Teleport` con que empieza; ver `mapa_del_caso` en snes_convert.py.
 MAPA_DE_ARRANQUE = 6
 
-# Los mapas: los de `demo-ciudad` más los que usan las pruebas, que es la
+# Los mapas: los de `abl` más los que usan las pruebas, que es la
 # regla de taro del 2026-09-16 —cada mapa que se suma al proyecto se suma para
 # todos los builds—. Afuera queda el 66: la ventana no le entra en la VRAM.
 MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,
@@ -88,33 +89,38 @@ CARTUCHOS = {
     "titulo": (_DE_PRUEBAS + ["--con-titulo",
                               "--tema-de-arranque", "escape_newyork"], None),
     # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
-    # no una imagen: el actor 21 —con él la pantalla de ranuras junta 462
-    # tiles de 448—, los casos con los actores 12 y 13 en el grupo —pueden
+    # no una imagen: los casos con los actores 12 y 13 en el grupo —pueden
     # liderar, y sus sprites en todos los mapas le cambiaban los colores al
     # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
     # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
     # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
-    # puede pedir—. Y las dos
-    # lluvias: en el 6 del de pruebas corren casos con cronómetro, las gotas
-    # caen en la paleta de los dígitos, y ésa `subir_timer_pal` la sube sin
-    # teñir. Es un defecto, está en ESTADO.md, y acá se evita no juntándolos.
-    "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
-               "--heroe-encima", "--encuentros-de-prueba", "8"],
-              ["grupo-21-en-74", "parado-tapado", "grupo-11-12-13",
-               "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
-               "pelea-82-grupo-11-12", "pan-lluvia", "sacudir-lluvia"]),
-    # El borde de banco del bloque de textos, que es lo que prueba
-    # `test_texto`: acá el primer cuadro del 255 queda **encima** del borde
-    # —empieza en un banco y termina en el otro— y el segundo entero del otro
-    # lado. Los dos lugares salen de un solo empujón, `empujon`, que es una
-    # página de prueba de puro texto: los textos de las páginas van delante de
-    # los de los mapas, así que su tamaño es lo que elige dónde cae el borde.
-    # Va **al final** de la lista para no correrle la página a `batalla`.
+    # puede pedir—, el relleno de textos de 200, que corre los índices de la
+    # batalla más allá del 255 y vive acá porque `batalla-item` es el caso que
+    # lo mira, y el **borde de banco** del bloque de textos.
     #
-    # Y el relleno de textos, que en el chico borraba los nombres de la lista
-    # "Use Item" de `batalla-item`: es un defecto de la ROM, está en ESTADO.md.
-    "cruza": (["--map-id", "255", "--relleno-de-textos", "200"],
-              ["grupo-11", "batalla", "empujon"]),
+    # El borde lo pone el caso `empujon`, que es una página de puro texto: los
+    # textos de las páginas de prueba van delante de los de los mapas, así que
+    # su tamaño es lo que elige dónde cae el borde adentro del bloque. Con el
+    # empujón medido, el primer cuadro del 255 queda **encima** del borde
+    # —empieza en un banco y termina en el otro— y el segundo entero del otro
+    # lado, que son las dos cosas que prueba `test_texto`. Va **al final** de
+    # la lista para no correrle la página a ningún otro caso.
+    #
+    # Hasta el 2026-09-20 eso lo hacían dos `--relleno-de-mensajes`, y hacían
+    # falta dos cartuchos porque cada relleno ponía el **mismo** cuadro en otro
+    # lugar. Con un empujón solo los dos cuadros caen en lugares distintos, así
+    # que el segundo cartucho —`cruza`— se fue.
+    #
+    # Las dos lluvias estuvieron acá hasta el 2026-09-20 y volvieron al de
+    # pruebas: caían en la paleta de los dígitos del cronómetro, que
+    # `subir_timer_pal` sube sin teñir, y salían grises en una pantalla
+    # teñida. Hoy `gotas_de_lluvia` saltea esa paleta.
+    "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
+               "--heroe-encima", "--encuentros-de-prueba", "8",
+               "--relleno-de-textos", "200"],
+              ["parado-tapado", "grupo-11-12-13",
+               "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
+               "pelea-82-grupo-11-12", "empujon"]),
     # El juego como se juega: arranca en el 4, con cronómetro en todos los
     # mapas. Llegar al 4 con un `Teleport` no es arrancar ahí —la cinemática
     # sale con otra rampa de fundido y otro tinte— y el cronómetro le saca
@@ -125,12 +131,12 @@ CARTUCHOS = {
 }
 
 # Los casos que no van en el cartucho de pruebas porque viven en otro.
-FUERA = {"grupo-21-en-74", "cartel", "pan-lluvia", "sacudir-lluvia",
+FUERA = {"cartel",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12",
          # Y el empujón, que no entra en el de pruebas porque no cabe: su
          # bloque de textos ya mide 61.809 bytes y el operando de `OP_MESSAGE`
-         # es de 16 bits, así que sobran 3.727 y el empujón pide 32.707.
+         # es de 16 bits, así que sobran 3.727 y el empujón pide 25.703.
          "empujon"}
 
 # El que corre sin que nadie lo pida, que es la página 0: el grupo de la tanda
@@ -145,14 +151,21 @@ def huella():
     ensamblador y el modelo. Se mira el contenido y no la fecha: `git
     checkout` de ida y vuelta deja fechas nuevas con el mismo contenido.
 
-    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan, y
-    `tiles`, que convierte las capas—: si no entraran, reinstalarlos no
-    invalidaría nada y las pruebas correrían contra ROMs armadas con los
-    viejos, en silencio.
+    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan,
+    `voodoo`, que convierte las capas, y `gunter`, que codifica las muestras—:
+    si no entraran, reinstalarlos no invalidaría nada y las pruebas correrían
+    contra ROMs armadas con los viejos, en silencio.
+
+    `gunter` faltaba hasta el 2026-09-20, y era el mismo agujero que el
+    párrafo de arriba describe: sus muestras viajan adentro del `.sfc`, así que
+    recompilarlo cambiaba la ROM sin cambiar el sello. No se notó porque el
+    caché de muestras sí lo miraba —`muestras_brr.version()`— y el `.py` que lo
+    llama se tocaba casi siempre en el mismo cambio.
     """
     h = hashlib.sha256()
     partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
-              + ensamblar.binarios() + [tiles_bin.binario()])
+              + ensamblar.binarios()
+              + [tiles_bin.binario(), muestras_brr.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:

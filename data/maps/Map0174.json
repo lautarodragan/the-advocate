@@ -6,11 +6,38 @@
       "name": "Pierson",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
           "character_index": 6,
           "character_name": "People1",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -21,10 +48,13 @@
       "name": "Kersh",
       "pages": [
         {
-          "character_direction": "up",
+          "animation_type": 0,
+          "character_direction": 0,
           "character_index": 5,
           "character_name": "Future1",
+          "character_pattern": 1,
           "condition": {
+            "actor_id": 1,
             "flags": {
               "actor": false,
               "item": false,
@@ -33,11 +63,23 @@
               "timer": false,
               "variable": false
             },
-            "switch_a_id": 483
+            "item_id": 1,
+            "switch_a_id": 483,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
           },
+          "event_commands": [],
           "id": 1,
-          "layer": "same",
-          "move_type": "stationary"
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
         }
       ],
       "x": 9,
@@ -48,45 +90,126 @@
       "name": "EV0003",
       "pages": [
         {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
           "event_commands": [
-            {"code": "TintScreen", "parameters": [70, 70, 40, 100, 5, 1]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "MessageOptions", "parameters": [0, 0, 1, 0]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "I thought it would be you."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ControlSwitches", "parameters": [0, 483, 483, 0]},
-            {"code": "Wait", "parameters": [10]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "Where is it?"},
-            {"code": "Wait", "parameters": [6]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "... ... ..."},
-            {"code": "MoveEvent", "parameters": [2, 8, 0, 0, 0, 0, 0, 0]},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "AGENCY CAPTAIN"},
-            {"code": "ShowMessage_2", "string": "I won't ask again. Where have you hidden it?"},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "You've made a tactical error, old friend."},
-            {"code": "Wait", "parameters": [20]},
-            {"code": "ShowMessage", "string": "PIERSON"},
-            {"code": "ShowMessage_2", "string": "Never underestimate an old man who"},
-            {"code": "ShowMessage_2", "string": "has nothing left to live for."},
-            {"code": "Wait", "parameters": [5]},
-            {"code": "TintScreen", "parameters": [0, 0, 0, 100, 1, 1]},
-            {"code": "Wait", "parameters": [25]},
-            {"code": "PlaySound", "parameters": [100, 90, 50], "string": "gun2"},
-            {"code": "FadeOutBGM", "parameters": [5000]},
-            {"code": "Wait", "parameters": [50]},
-            {"code": "Teleport", "parameters": [203, 10, 27]}
+            {"code": 11030, "indent": 0, "parameters": [70, 70, 40, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 0, 1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I thought it would be you."
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 483, 483, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Where is it?"},
+            {"code": 11410, "indent": 0, "parameters": [6], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "... ... ..."},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 0, 0, 0, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "AGENCY CAPTAIN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I won't ask again. Where have you hidden it?"
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You've made a tactical error, old friend."
+            },
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "PIERSON"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Never underestimate an old man who"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "has nothing left to live for."
+            },
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 1, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 11550, "indent": 0, "parameters": [100, 90, 50], "string": "gun2"},
+            {"code": 11520, "indent": 0, "parameters": [5000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [50], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [203, 10, 27], "string": ""}
           ],
           "id": 1,
-          "move_type": "stationary",
-          "trigger": "auto_start"
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
         }
-      ]
+      ],
+      "x": 0,
+      "y": 0
     }
   ],
-  "save_count": 29
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 29,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
 }

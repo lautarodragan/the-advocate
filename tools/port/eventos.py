@@ -2380,10 +2380,10 @@ def indexar_terminos(game_dir):
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     terminos = db.secciones["terms"]
     TERMINOS_POSADA.clear()
-    TERMINOS_POSADA["gold"] = lcf.campo("Terms", terminos, "gold")
+    TERMINOS_POSADA["gold"] = lcf.campo(terminos, "gold")
     for tipo, letra in ((0, "a"), (1, "b")):
         TERMINOS_POSADA[tipo] = tuple(
-            lcf.campo("Terms", terminos, "inn_%s_%s" % (letra, nombre))
+            lcf.campo(terminos, "inn_%s_%s" % (letra, nombre))
             for nombre in _TERMINOS_DE_POSADA)
     return dict(TERMINOS_POSADA)
 
@@ -4533,10 +4533,11 @@ class Estado:
         # **Hoy no la escribe nadie**: el lazo de cuadros que la hacía avanzar
         # se fue con la referencia, así que se queda en (0, 0) salvo que la
         # ponga a mano quien arme el `Estado`. Cuándo se escribe importa, y por
-        # eso queda anotado: en la ROM `move_hero` corre *después* de
-        # `eventos_tick`, así que la página de un cuadro ve la celda que el
-        # héroe tenía al terminar el cuadro anterior. El día que acá vuelva a
-        # haber un lazo, tiene que escribirla en ese mismo lugar.
+        # eso queda anotado: en la ROM `move_hero` corre *antes* de
+        # `eventos_tick` —el orden de `Game_Map::Update`—, así que la página de
+        # un cuadro ve la celda con la que el héroe termina ese mismo cuadro.
+        # El día que acá vuelva a haber un lazo, tiene que escribirla en ese
+        # mismo lugar.
         self.heroe = (0, 0)
         # El oro del grupo. No se muestra en ningún lado —el menú no existe—
         # pero la rama de oro de `ConditionalBranch` lo pregunta.

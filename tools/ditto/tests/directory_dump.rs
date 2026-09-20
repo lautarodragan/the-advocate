@@ -43,7 +43,7 @@ impl Drop for Temp {
 fn there_and_back(game: &Path, tmp: &Temp) -> Vec<String> {
     let dump = tmp.join("dump");
     let back = tmp.join("back");
-    ditto::dump::unpack(game, &dump).expect("unpack");
+    ditto::dump::unpack(game, &dump, &tmp.join("resolved")).expect("unpack");
     ditto::dump::pack(&dump, &back).expect("pack");
 
     let mut originals = vec![game.join("RPG_RT.ldb"), game.join("RPG_RT.lmt")];
@@ -123,7 +123,7 @@ fn the_tiles_are_a_grid_and_editing_it_changes_the_map() {
     std::fs::copy(&first, game.join(&name)).unwrap();
 
     let dump = tmp.join("dump");
-    ditto::dump::unpack(&game, &dump).unwrap();
+    ditto::dump::unpack(&game, &dump, &tmp.join("resolved")).unwrap();
 
     let stem = name.trim_end_matches(".lmu").to_string();
     let json = std::fs::read_to_string(dump.join("maps").join(format!("{stem}.json"))).unwrap();
@@ -169,4 +169,116 @@ fn the_tiles_are_a_grid_and_editing_it_changes_the_map() {
     };
     assert_eq!(after.lower_layer[0], map.lower_layer[0] + 1);
     assert_eq!(after.lower_layer[1..], map.lower_layer[1..], "only that tile");
+}
+
+// --- The resolved view -----------------------------------------------------
+
+/// A small game unpacked into its two views: `(exact, resolved)`.
+fn both_views(tmp: &Temp) -> (PathBuf, PathBuf) {
+    let dir = common::dir().expect("a corpus");
+    let game = tmp.join("game");
+    std::fs::create_dir_all(&game).unwrap();
+    for f in ["RPG_RT.ldb", "RPG_RT.lmt"] {
+        std::fs::copy(dir.join(f), game.join(f)).unwrap();
+    }
+    for m in common::maps(&dir).iter().take(3) {
+        std::fs::copy(m, game.join(m.file_name().unwrap())).unwrap();
+    }
+    let (exact, resolved) = (tmp.join("exact"), tmp.join("resolved"));
+    ditto::dump::unpack(&game, &exact, &resolved).unwrap();
+    (exact, resolved)
+}
+
+fn read_json(p: &Path) -> serde_json::Value {
+    serde_json::from_slice(&std::fs::read(p).unwrap()).unwrap()
+}
+
+/// What the resolved view promises: **every** field of the struct is there, so
+/// whoever reads it never has to know what an absent one would have held.
+#[test]
+fn the_resolved_view_writes_every_field() {
+    let Some(dir) = common::dir() else { return };
+    let Some(_) = common::files(&dir) else { return };
+    let tmp = Temp::new("resolved-fields");
+    let (exact, resolved) = both_views(&tmp);
+
+    let path = std::fs::read_dir(resolved.join("maps"))
+        .unwrap()
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .find(|p| p.extension().is_some_and(|x| x == "json"))
+        .expect("a map");
+    let name = path.file_name().unwrap().to_string_lossy().to_string();
+
+    let fields = ditto::schema::description::STRUCTS
+        .iter()
+        .find(|(n, _)| *n == "Map")
+        .unwrap()
+        .1;
+    // The two layers are the only ones missing, and that is the layout's doing
+    // and not the view's: they went to the `.tiles` next door.
+    let expected: std::collections::BTreeSet<&str> = fields
+        .iter()
+        .map(|f| f.name)
+        .filter(|n| *n != "lower_layer" && *n != "upper_layer")
+        .collect();
+    let here = read_json(&path);
+    let here: std::collections::BTreeSet<&str> =
+        here.as_object().unwrap().keys().map(String::as_str).collect();
+    assert_eq!(here, expected, "the resolved map is not every field");
+
+    let there = read_json(&exact.join("maps").join(&name));
+    assert!(
+        there.as_object().unwrap().len() < expected.len(),
+        "the exact dump should be the shorter of the two"
+    );
+}
+
+/// And the other half of the promise: an enum is the number the binary stores
+/// and not the name `enums.csv` gives it, which is what saves the reader the
+/// table.
+#[test]
+fn the_resolved_view_writes_the_enums_as_numbers() {
+    let Some(dir) = common::dir() else { return };
+    let Some(_) = common::files(&dir) else { return };
+    let tmp = Temp::new("resolved-enums");
+    let (exact, resolved) = both_views(&tmp);
+
+    // The first animation that does say where it is drawn: one holding the
+    // default is not in the exact dump at all, and then there is no name to
+    // compare the number against.
+    let there = read_json(&exact.join("db").join("animations.json"));
+    let here = read_json(&resolved.join("db").join("animations.json"));
+    let i = there
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|a| a["position"].is_string())
+        .expect("no animation names its position");
+    let (there, here) = (&there[i]["position"], &here[i]["position"]);
+    assert!(here.is_number(), "the resolved view should number it: {here}");
+    assert_eq!(
+        here.as_i64().unwrap(),
+        match there.as_str().unwrap() {
+            "up" => 0,
+            "middle" => 1,
+            "down" => 2,
+            other => panic!("a position the table does not name: {other}"),
+        }
+    );
+}
+
+/// Packing the resolved view would write every chunk and give a binary no
+/// editor ever wrote — a **valid** one, so nothing downstream would complain.
+/// So it is refused, by what `ditto.json` says it is.
+#[test]
+fn the_resolved_view_cannot_be_written_back() {
+    let Some(dir) = common::dir() else { return };
+    let Some(_) = common::files(&dir) else { return };
+    let tmp = Temp::new("resolved-pack");
+    let (exact, resolved) = both_views(&tmp);
+
+    ditto::dump::pack(&exact, &tmp.join("from-exact")).expect("the exact dump packs");
+    let e = ditto::dump::pack(&resolved, &tmp.join("from-resolved"))
+        .expect_err("the resolved view should not pack");
+    assert!(e.0.contains("resolved"), "{}", e.0);
 }
