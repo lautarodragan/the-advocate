@@ -2512,13 +2512,28 @@ exactos, el primer `jsr` escribe arriba de `pal_buf`, que es lo último que hay.
 Eso no se ve al armar ni al arrancar sino cuatrocientos cuadros adentro de una
 escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
 
-* **El mapa de memoria reserva la pila.** `PILA`, en `tools/ensamblado/bancos.py`, son
-  256 bytes que la BSS no puede tocar: el área `RAM` del `.cfg` termina antes,
-  y pasarse es un error de `ld65` al armar. El número está medido: la pila
-  más honda de la tanda —`core-puerta`, con el intérprete adentro de una NMI—
-  baja 24 bytes, y la cinemática de apertura entera, 28. Es el mismo agujero
-  que ya había tenido el ZEROPAGE, y la misma cura: un área que no se controla
-  se desborda en silencio.
+* **El mapa de memoria reserva la pila, y una prueba mide cuánta se usa.**
+  `PILA`, en `tools/ensamblado/bancos.py`, son bytes que la BSS no puede tocar:
+  el área `RAM` del `.cfg` termina antes, y pasarse es un error de `ld65` al
+  armar. Es el mismo agujero que ya había tenido el ZEROPAGE, y la misma cura:
+  un área que no se controla se desborda en silencio.
+
+  Pero reservar sola no alcanza, porque **lo que se desborda es la pila y no la
+  BSS**, y eso `ld65` no lo puede ver: pasarse no falla al armar, pisa la BSS
+  corriendo, y ahí no lo cobra ninguna de las dos redes —las goldens no lo
+  distinguen y `test_cores.py` tampoco, porque snes9x y bsnes se corromperían
+  igual—. Por eso el margen se mide: `pruebas/herramientas/test_pila.py` llena
+  la zona de la pila con centinelas **antes del primer cuadro** y lee el byte
+  más bajo que dejó de ser el suyo, o sea hasta dónde bajó de verdad, en los
+  caminos más hondos que conocemos. Avisa a la mitad de `PILA` y no al borde,
+  para que quede lugar para decidir.
+
+  La marca la pone el arnés y no la ROM a propósito, y no pierde nada: corre
+  después de `retro_load_game` y antes del primer `retro_run`, o sea con el
+  cartucho cargado y sin una instrucción ejecutada, así que el `reset` queda
+  adentro. Hacerlo desde la ROM costaría banco 0 —lo que se está tratando de
+  liberar— y, peor, inicializaría esa memoria para todas las pruebas, que es
+  exactamente lo que `test_cores.py` necesita que no pase.
 * **Se aflojaron dos topes, con la medida al lado.** `NPC_MAX` pasó de 127 a
   104 y `EV_MAX` de 128 a 120. El techo de `NPC_MAX` lo pone OAM —128 objetos,
   uno es el héroe— pero el mapa con más filas de todo el juego tiene **99**, y
@@ -2526,10 +2541,11 @@ escena y con la RAM entera pisada, así que hay dos reglas y van juntas:
   bytes, y ninguno puede quedar corto en silencio porque el conversor corta si
   un mapa se pasa.
 
-Cuánto queda hoy entre el final de la BSS y la pila lo dice la tabla de
-símbolos que se deja al lado de la ROM, y el margen es de un par de cientos
-de bytes contando la reserva. Lo que siga pidiendo RAM tiene que aflojar algo,
-y `ld65` lo va a decir al armar en vez de dejarlo pasar.
+Cuánto queda hoy entre el final de la BSS y la pila no se escribe acá: se mide,
+con el `.res` que explica AGENTS.md, y hay que decir con qué cartucho. La BSS
+estuvo llena hasta el 2026-09-20, y lo que le dio aire fue bajar `PILA`: es el
+único lugar de donde salía RAM sin reescribir nada. Lo que siga pidiendo tiene
+que aflojar algo, y `ld65` lo va a decir al armar en vez de dejarlo pasar.
 
 ### Las tablas van en el banco 0
 

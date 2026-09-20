@@ -183,10 +183,14 @@ def test_la_pila_no_pasa_del_umbral(nombre, camino):
         "ser: la marca no llegó a la WRAM, o la zona que se mira no es la de "
         "la pila. Ver consola.marcar_la_pila." % nombre)
     assert usado <= UMBRAL, (
-        "el camino %r bajó la pila %d bytes, y el umbral es %d —la mitad de "
+        "el camino %r bajó la pila %s bytes, y el umbral es %d —la mitad de "
         "PILA, que reserva %d—. La pila crece hacia la BSS, así que pasarse de "
         "%d la pisa sin que ninguna golden ni test_cores.py lo vean. Hay dos "
         "salidas: subir PILA en tools/ensamblado/bancos.py, que le saca esos "
         "bytes a la BSS, o mover la pila a la RAM lejana, que es lo que ya hace "
         "la pelea con su banco de datos."
-        % (nombre, usado, UMBRAL, bancos.PILA, bancos.PILA))
+        # "al menos" cuando la zona marcada quedó tocada hasta el último byte:
+        # ahí la pila ya se pasó de lo reservado y lo que hay debajo es BSS, que
+        # nadie marcó, así que no se puede decir cuánto más bajó.
+        % (nombre, ("al menos %d" % usado) if usado >= bancos.PILA else usado,
+           UMBRAL, bancos.PILA, bancos.PILA))

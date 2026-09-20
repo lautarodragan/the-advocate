@@ -233,11 +233,11 @@ frena es el desempate de `try_pack`, acá abajo.
   dueño del mensaje en un byte, `par_ev` en `$FF` fuera del lazo de
   paralelos, el salteo en `un_paralelo` y la espera en `op_message`—: **49
   bytes del banco 0**, cuando al cartucho de pruebas le quedaban 26 y al de
-  título 22, y **un byte de la BSS del banco 0, que está llena**: `ld65` dice
-  que se pasa por uno. Para comparar, los otros tres arreglos del mismo bug
-  costaron 8, 16 y 4 bytes. Hacerlo pide antes liberar lugar en el banco 0 —el
-  comentario de `TABLAS` dice qué se podría bajar— y un byte de RAM: o en la
-  lejana, que cuesta un byte más por acceso, o uno que se libere. Decide taro.
+  título 22, y **un byte de la BSS del banco 0, que entonces estaba llena**:
+  `ld65` decía que se pasa por uno. Para comparar, los otros tres arreglos del
+  mismo bug costaron 8, 16 y 4 bytes. **Los dos frenos se destrabaron**: el
+  banco 0 con la mudanza al banco 1 del 2026-09-19, y la BSS con `PILA` bajando
+  a 128 el 2026-09-20. Cuánto queda hoy se mide como dice AGENTS.md.
 
   La prueba está pensada y es barata: tirar la piedra hacia arriba desde
   (19,52) y mirar que los switches 46 y 51 sigan apagados con el mensaje
@@ -1057,7 +1057,8 @@ nombre del bug.
    despacho y el `jsl`; el cuerpo vive afuera—, y dejó al banco 0 con doce
    bytes, que es lo que disparó el punto 2. Cuánto sobra hoy se mide como dice
    AGENTS.md.
-2. ~~**Liberar el banco 0**~~ **la ROM, hecha el 2026-09-19; la BSS, no.**
+2. ~~**Liberar el banco 0**~~ **hecho: la ROM el 2026-09-19, la BSS el
+   2026-09-20.**
 
    **La ROM**: bajaron al banco 1 el equipo y la tienda, 3162 bytes, y el
    banco 0 pasó de 12 bytes libres a unos tres mil en el cartucho más
@@ -1080,8 +1081,27 @@ nombre del bug.
    giro hacia el héroe ~1700 y la saturación del tinte ~1560. En el banco 1
    entran todas: le quedan unos 21 KB.
 
-   **La BSS sigue llena y no tiene ninguna salida barata**, que es el
-   resultado de la medición y no una pausa: lo grande que hay ahí es
+   **La BSS**: lo que la destrabó fue bajar `PILA` de 256 a 128, decisión de
+   taro del 2026-09-20. Son 128 bytes que la BSS no tenía —medido: tenía cero
+   libres en `titulo` y en `pruebas`— y **no mueven un solo byte de la ROM**,
+   porque la BSS se asigna de `$0100` para arriba y lo único que corre es el
+   borde del área `RAM` del `.cfg`: las cinco ROMs de prueba salen byte por
+   byte iguales con 256 y con 128. Alcanza de sobra para el byte que pedía la
+   divergencia 3.
+
+   Lo que hacía falta para poder bajarlo era que el margen dejara de ser
+   ciego, y eso es `pruebas/herramientas/test_pila.py`: marca la zona de la
+   pila con centinelas **antes del primer cuadro** —después de
+   `retro_load_game` y antes del primer `retro_run`, así que el `reset` entra
+   en la medición y no le cuesta un byte a la ROM— corre los ocho caminos más
+   hondos que conocemos y lee hasta dónde bajó. El umbral es la mitad de
+   `PILA`, para avisar mientras todavía queda lugar. Cuánto baja cada camino
+   lo imprime la prueba; el tope está en las peleas, que cruzan al banco 1 con
+   `jsl`. Lo que **no** cubre es un camino que ninguna prueba ejecute, que es
+   por lo que el umbral no está pegado al tope.
+
+   **Lo demás de la BSS sigue sin salida barata**, y eso no cambió: lo grande
+   que hay ahí es
    `texto_buf` (1968 B), `npc_buf` (1664), `oam`, `cgram_sombra` y `pal_buf`
    (512 cada uno) y el estado de los eventos, y todo eso o se toca por cuadro
    o es origen de un DMA. La ventana de `$2180` no se indexa, así que ninguno
@@ -1089,13 +1109,8 @@ nombre del bug.
    pelea —correr con el banco de datos en `$7E`— y para `texto_buf` eso es
    reescribir el compositor de texto, que es el lazo más interno del repo.
 
-   Lo único barato es **bajar `PILA`**, en `tools/ensamblado/bancos.py`: son
-   256 bytes reservados y la cadena más honda mide 49 —medido el 2026-09-19
-   marcando la pila y corriendo la tanda entera; el 24 que decía era de antes
-   de la pelea—. Un número y nada más, y alcanza de sobra para el byte que
-   pide la divergencia 3. **Espera a taro** porque gasta un margen cuyo modo
-   de falla no lo ve nadie: ni las goldens ni `test_cores.py`, que compararían
-   dos corrupciones iguales.
+   Y la pila no se puede bajar dos veces: los 128 que quedan son el margen que
+   cuida la prueba, no lugar disponible.
 3. **Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
    mensajes —un paralelo espera a su propio mensaje—.
 
