@@ -65,7 +65,7 @@ de los paquetes de Python del port —ver `tools/README.md`—:
 
     tools/ditto/     lee y escribe los formatos de RPG Maker 2000
     tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
-    tools/brr/       códec BRR y lector de SoundFont
+    tools/gunter/    Gunter: códec BRR y lector de SoundFont
     tools/tiles/     de una imagen a tiles, paletas y tilemap
 
 Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
@@ -99,7 +99,7 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/brr/` y `tools/tiles/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/` y `tools/tiles/` no necesitan nada.
 
 ### `tools/tiles/` no decide colores, y eso no se arregla
 
@@ -322,8 +322,9 @@ sus 32.704 bytes con `CODE`—, **`BSS`** y **`ZEROPAGE`**. El banco 1 es
 el final del banco: lo que queda libre se lee mirando hasta dónde llega su
 último símbolo en la tabla de símbolos.
 
-**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
-capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
+**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR,
+muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
+fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/comun/cache_disco.py`.
@@ -368,8 +369,15 @@ Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 Lo que hay que hacer siempre:
 
 * **Traer los builds al repo principal.** Los worktrees viven en `/extras`, que
-  no está montado en el host. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` 
-  que diga qué  mirar y con qué limitaciones se chocó.
+  no está montado en el host. Van a `pruebas-manuales/<fecha>-<commit>/`, con un
+  `LEEME.txt` que diga qué mirar y con qué limitaciones se chocó.
+
+  **Un solo `.sfc` por build, y se llama `abl.sfc`**: el cartucho con pantalla
+  de título, que es el que taro juega. Las otras demos no se copian; el que las
+  quiera las arma. Y **se dejan los dos últimos directorios y nada más**: el
+  anterior sirve para comparar con lo que se venía jugando, y los de más atrás
+  se rearman desde su commit. Es de taro, el 2026-09-20, después de que
+  `pruebas-manuales/` llegara a 4,3 GB en 51 directorios.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.

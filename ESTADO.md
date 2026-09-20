@@ -49,7 +49,7 @@ llamada está mal).
 
 Los pasos, en orden, y ninguno bloquea al otro salvo 3→5→6:
 
-1. **los conversores puros**, un proyecto por responsabilidad: `tools/brr/` (muestras
+1. **los conversores puros**, un proyecto por responsabilidad: `tools/gunter/` (muestras
    → BRR, con el lector de SoundFont) y `tools/tiles/` (PNG → tiles y paletas). Son
    puros y lo sabemos **porque el conversor ya los cachea**. Los dos están
    hechos y conviven con su Python; lo que falta medido está más abajo;
@@ -142,7 +142,7 @@ Hay **un `xfail`**, y no es adorno: desde el 2026-09-13 se sabe de quién es —
 un defecto de la **página de prueba** de guardado y no del juego—. Está abajo,
 en "Lo que la tanda no cubre".
 
-Los cuatro proyectos en Rust tienen sus propias tandas: `just brr-pruebas`,
+Los cuatro proyectos en Rust tienen sus propias tandas: `just gunter-pruebas`,
 `tiles-pruebas`, `protocolo-pruebas` y `ditto-pruebas`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -186,7 +186,7 @@ Qué está enchufado y qué no, que es lo que cambia semana a semana:
 
     tools/ditto/      lee y escribe los formatos de RM2k     enchufado: `data/` sale de acá
     tools/protocol/   declara los dos bytecodes              enchufado: los cuatro generados
-    tools/brr/        códec BRR y lector de SoundFont        enchufado: las muestras salen de acá
+    tools/gunter/     Gunter: BRR y lector de SoundFont       enchufado: las muestras salen de acá
     tools/tiles/      imagen indexada -> tiles y tilemap     enchufado: las capas de los mapas
 
 **Se consumen desde el PATH** —`just herramientas` los instala y
@@ -298,7 +298,7 @@ se pueden empezar hoy.
    `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
    al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
    fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `tools/brr/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
+2. ~~Enchufar `tools/gunter/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
    fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
    snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
 
@@ -1723,7 +1723,7 @@ de una de más arriba:
     port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
                  ventana, fuente, escena, animacion, asignador, tiles_bin,
                  snes_convert
-    ditto/, tiles/, brr/, protocol/   los proyectos de Rust
+    ditto/, tiles/, gunter/, protocol/   los proyectos de Rust
 
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
@@ -1736,6 +1736,16 @@ La capa de encima llama a `tile_colors` **894.000 veces** —medido el
 tile se recalculan en el segundo recorrido en vez de guardarse del primero. Es
 un diccionario de una línea. (El análisis de por qué `tools/tiles/` no entraba, que
 estaba acá, lo reemplazó el paso 8.)
+
+Y la de al lado, que el caché de muestras del 2026-09-20 **tapó en vez de
+arreglar**: el recorte de `snes_music.Banco` pide el banco de percusión,
+pregunta si entra, y si no entra vuelve a pedirlo con el presupuesto bajado un
+10%. Bajar de a un 10% hasta llegar a cero son unas ciento veinte vueltas, y
+por eso `build_drum_bank` se llama **790 veces** en una conversión de
+`demo-ciudad` en lugar de diez. Con el caché eso ya no cuesta tiempo, pero
+sigue siendo una búsqueda lineal donde cabe una binaria, y hoy es lo que llena
+el caché de claves. Tocarlo cambia qué muestras salen, así que pide medir la
+ROM byte por byte; no es urgente.
 
 ## ~~La tanda en paralelo~~ hecho el 2026-09-19
 
@@ -1768,7 +1778,10 @@ sumado de todos los procesos:
 
 En frío, desde `rom/build/` vacío —sin el caché del conversor—, **7m26s en
 serie y 5m13s en paralelo**: los casi cinco minutos que quedan son armar los
-cinco cartuchos, que siguen en serie. **La memoria no limita**: el
+cinco cartuchos, que siguen en serie. **Ese número es del 2026-09-19 y quedó
+viejo por lo bajo**: al día siguiente el caché de muestras preparadas bajó
+`just cartuchos` de 4m46s a 2m08s, con el resto del caché caliente. Lo que
+tarda hoy lo dice el build. **La memoria no limita**: el
 `MemAvailable` nunca bajó de 44 GB, y ninguna corrida en primer plano la mató
 el reaper.
 

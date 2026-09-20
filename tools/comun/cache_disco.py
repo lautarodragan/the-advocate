@@ -1,11 +1,17 @@
 """Un caché en disco para lo que el conversor calcula igual en cada build.
 
-Convertir `demo-ciudad` tardaba 77 s, y casi nada de eso depende de algo que
-cambie entre un build y el siguiente: las muestras del soundfont son las mismas
-y los mapas también. Lo que sí cambia —el código— entra en la clave: cada
-categoría lleva el hash de los fuentes de los que sale, así que tocar el
-codificador o el conversor invalida lo suyo solo, sin que nadie tenga que
-acordarse de borrar nada.
+Casi nada de lo que cuesta una conversión depende de algo que cambie entre un
+build y el siguiente: las muestras del soundfont son las mismas y los mapas
+también. Lo que sí cambia —el código— entra en la clave: cada categoría lleva
+el hash de los fuentes de los que sale, así que tocar el codificador o el
+conversor invalida lo suyo solo, sin que nadie tenga que acordarse de borrar
+nada.
+
+Hoy son tres categorías: `capas` —los mapas convertidos a tiles—, `brr` —lo
+que devuelve el codificador— y `muestras` —la voz ya preparada, que es el
+remuestreo y la normalización que van antes de codificar—. Las dos de audio
+son categorías separadas a propósito: una sola, más arriba, ahorraría claves
+pero se caería entera cada vez que se toque cualquiera de los dos lados.
 
 Vive en `rom/build/cache/`, que git ignora y que existe de los dos lados —el
 host y el contenedor—, porque las recetas se corren desde los dos. Se puede

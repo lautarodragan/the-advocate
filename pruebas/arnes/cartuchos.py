@@ -33,6 +33,7 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
+from audio import muestras_brr                          # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 
@@ -139,14 +140,21 @@ def huella():
     ensamblador y el modelo. Se mira el contenido y no la fecha: `git
     checkout` de ida y vuelta deja fechas nuevas con el mismo contenido.
 
-    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan, y
-    `tiles`, que convierte las capas—: si no entraran, reinstalarlos no
-    invalidaría nada y las pruebas correrían contra ROMs armadas con los
-    viejos, en silencio.
+    **Los binarios entran por sí mismos** —`ca65` y `ld65`, que ensamblan,
+    `tiles`, que convierte las capas, y `gunter`, que codifica las muestras—:
+    si no entraran, reinstalarlos no invalidaría nada y las pruebas correrían
+    contra ROMs armadas con los viejos, en silencio.
+
+    `gunter` faltaba hasta el 2026-09-20, y era el mismo agujero que el
+    párrafo de arriba describe: sus muestras viajan adentro del `.sfc`, así que
+    recompilarlo cambiaba la ROM sin cambiar el sello. No se notó porque el
+    caché de muestras sí lo miraba —`muestras_brr.version()`— y el `.py` que lo
+    llama se tocaba casi siempre en el mismo cambio.
     """
     h = hashlib.sha256()
     partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
-              + ensamblar.binarios() + [tiles_bin.binario()])
+              + ensamblar.binarios()
+              + [tiles_bin.binario(), muestras_brr.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:

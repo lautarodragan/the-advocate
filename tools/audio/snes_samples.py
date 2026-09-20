@@ -28,10 +28,12 @@ Tres restricciones mandan en el resultado:
     dura poco: recortarlo ahorra poco y cuesta mucho.
 """
 
+import hashlib
 import math
 import os
 
 from audio import muestras_brr
+from comun import cache_disco
 
 # El sintetizador por software de Windows, que es con el que se compuso y se
 # escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
@@ -57,7 +59,7 @@ DRUM_BUDGET = 16 * 1024
 
 # La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
 # instrumento distinto en vez de una altura distinta. Eso es del formato, así
-# que quien lo sabe es `brr sf2`: acá se pide `drum:36` y nada más.
+# que quien lo sabe es `gunter sf2`: acá se pide `drum:36` y nada más.
 DRUM_SECONDS = 0.5
 
 MIN_RATE = 4000
@@ -79,6 +81,80 @@ class Voice:
     def __repr__(self):
         return "<Voz %d %r %d B a %d Hz>" % (self.program, self.name,
                                              len(self.data), self.rate)
+
+
+# --- el caché de la muestra preparada ---------------------------------------
+#
+# Lo que se guarda acá es **la voz entera**: el remuestreo, la normalización y
+# el BRR que sale de ellos. `muestras_brr.codificar` ya cacheaba lo último, y
+# ése nunca fue el problema — la preparación en Python que va antes sí. Medido
+# con `cProfile` sobre una conversión de `demo-ciudad` **con el caché
+# caliente**: de 165 s de perfil, 114,6 eran audio, y de ésos 108,9 los ponía
+# `build_drum_bank`, que en una conversión se llama 790 veces.
+#
+# **Se cachea el golpe y no el banco** —`build_drum(golpe, presupuesto)` y no
+# `build_drum_bank(golpes, presupuesto)`— y ésa es la decisión. El banco tiene
+# menos claves, pero su clave lleva *qué golpes* pide el cartucho, así que dos
+# cartuchos con listas de temas distintas no comparten ni una entrada. El golpe
+# suelto sí: la clave es una nota y un presupuesto, y ésos se repiten entre las
+# 790 vueltas, entre los cinco cartuchos de prueba y entre las dos demos.
+
+_version = None
+_huellas = {}
+_tambores = {}
+_voces = {}
+
+
+def _version_de_la_preparacion():
+    """Qué versión del código produjo la voz que hay guardada.
+
+    Va este archivo —el remuestreo, la normalización y el reparto de
+    presupuesto viven acá— y, por `muestras_brr.version()`, el puente y **el
+    binario instalado**. Lo que decide la clave es lo que produjo los bytes, y
+    los bytes pasan por los tres.
+    """
+    global _version
+    if _version is None:
+        _version = cache_disco.clave(muestras_brr.version(),
+                                     cache_disco.version_de(
+                                         "audio/snes_samples.py"))
+    return _version
+
+
+def _huella_del_soundfont(ruta):
+    """El contenido del SoundFont, no su ruta.
+
+    `ABL_SOUNDFONT` puede apuntar a otro banco, y un banco puede cambiar sin
+    cambiar de nombre: la clave tiene que caducar con cualquiera de las dos.
+    Se lee una vez por proceso porque el archivo pesa megas.
+    """
+    if ruta not in _huellas:
+        h = hashlib.sha256()
+        with open(ruta, "rb") as f:
+            for bloque in iter(lambda: f.read(1 << 20), b""):
+                h.update(bloque)
+        _huellas[ruta] = h.hexdigest()
+    return _huellas[ruta]
+
+
+def _cacheada(memoria, clave, partes, hacer):
+    """Una voz, de la memoria del proceso, del disco o recién hecha.
+
+    Lo guardado va adentro de una tupla de uno porque **`None` es un resultado
+    legítimo** —no hay tal golpe en el banco, o lo que entra en el presupuesto
+    no llega ni a un bloque— y `cache_disco.leer` devuelve `None` cuando no hay
+    nada. Sin el envoltorio, un "no existe" ya calculado se volvería a calcular
+    en cada corrida.
+    """
+    if clave in memoria:
+        return memoria[clave]
+    en_disco = cache_disco.clave(_version_de_la_preparacion(), *partes)
+    guardado = cache_disco.leer("muestras", en_disco)
+    if guardado is None:
+        guardado = (hacer(),)
+        cache_disco.guardar("muestras", en_disco, guardado)
+    memoria[clave] = guardado[0]
+    return guardado[0]
 
 
 def resample(samples, count):
@@ -135,6 +211,14 @@ def plan_rate(attack_frames, loop_frames, source_rate, budget):
 
 
 def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
+    """Un instrumento del SoundFont en BRR, cacheado. Ver `_cacheada`."""
+    return _cacheada(_voces, (soundfont, program, budget, key),
+                     (_huella_del_soundfont(soundfont), "program",
+                      str(program), str(budget), str(key)),
+                     lambda: _build_voice(soundfont, program, budget, key))
+
+
+def _build_voice(soundfont, program, budget, key):
     """Extrae un instrumento del SoundFont y lo deja en BRR.
 
     El ajuste fino está en que el loop caiga justo en un bloque. Se elige
@@ -147,7 +231,7 @@ def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
         return None
 
     # Qué zona cubre la nota, si el loop vale y de dónde sale la nota raíz son
-    # decisiones del formato, y las toma `brr sf2`: acá el loop ya viene en
+    # decisiones del formato, y las toma `gunter sf2`: acá el loop ya viene en
     # cuadros y relativo al PCM extraído, y `loop` ya dice que no cuando la
     # zona no repite o cuando el loop está vacío.
     looped = sample.loop
@@ -182,6 +266,14 @@ def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
 
 
 def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
+    """Un golpe de percusión en BRR, cacheado. Ver `_cacheada`."""
+    return _cacheada(_tambores, (soundfont, note, budget, seconds),
+                     (_huella_del_soundfont(soundfont), "drum", str(note),
+                      str(budget), repr(seconds)),
+                     lambda: _build_drum(soundfont, note, budget, seconds))
+
+
+def _build_drum(soundfont, note, budget, seconds):
     """Un golpe de percusión del kit estándar.
 
     En General MIDI la percusión vive en el banco 128 y cada tecla es un
@@ -228,6 +320,35 @@ def brightness(samples, rate):
     return rate / (2.0 * math.pi) * math.sqrt(diff / energy)
 
 
+_pedidos = {}
+
+
+def _pedido_del_golpe(soundfont, note):
+    """Qué tasa justifica el brillo de un golpe, y cuánto dura. O None.
+
+    **No depende del presupuesto**, y ahí está la gracia de tenerlo aparte:
+    `build_drum_bank` se llama cientos de veces con el mismo juego de golpes y
+    otro presupuesto, y el centroide de cada uno da lo mismo todas las veces.
+    Recorrerlo de nuevo costaba 48 de los 165 s del perfil.
+
+    Alcanza con la memoria del proceso y no va al disco: adentro de una
+    conversión esto son unas decenas de golpes, y el que las paga una sola vez
+    ya no las vuelve a ver.
+    """
+    clave = (soundfont, note)
+    if clave not in _pedidos:
+        sample = muestras_brr.extraer("drum:%d" % note, soundfont)
+        if sample is None:
+            _pedidos[clave] = None
+        else:
+            frames = min(sample.cuadros, int(DRUM_SECONDS * sample.tasa))
+            audio = sample.pcm[:min(frames, 8192)]
+            rate = 2.4 * brightness(audio, sample.tasa)
+            _pedidos[clave] = (max(MIN_RATE, min(MAX_RATE, rate)), frames,
+                               sample.tasa)
+    return _pedidos[clave]
+
+
 def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
     """Un golpe por cada nota de percusión que el MIDI use.
 
@@ -237,13 +358,9 @@ def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
     """
     wanted = {}
     for note in notes:
-        sample = muestras_brr.extraer("drum:%d" % note, soundfont)
-        if sample is None:
-            continue
-        frames = min(sample.cuadros, int(DRUM_SECONDS * sample.tasa))
-        audio = sample.pcm[:min(frames, 8192)]
-        rate = 2.4 * brightness(audio, sample.tasa)
-        wanted[note] = (max(MIN_RATE, min(MAX_RATE, rate)), frames, sample.tasa)
+        pedido = _pedido_del_golpe(soundfont, note)
+        if pedido is not None:
+            wanted[note] = pedido
 
     # Lo que costaría darle a cada uno lo que pide, en bytes de BRR.
     def cost(rate, frames, source_rate):
