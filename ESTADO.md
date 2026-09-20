@@ -101,7 +101,10 @@ barrido seguía.
 
 **Las pruebas se quedan en Python**, y no es deuda: es diseño. Decisión de taro
 —un lenguaje interpretado y menos estricto tiene ventajas ahí, y compilar para
-correr las pruebas suma tiempo sin aportar casi nada—. El efecto estructural que
+correr las pruebas suma tiempo sin aportar casi nada—. Pasar el arnés a C se
+descartó el 2026-09-18 con el número delante: medido con cProfile, de 13 s de
+`test_tanda_paginas.py` casi todo es el core emulando y cargándose —que ya es
+C— y lo que es Python no llega a un segundo. El efecto estructural que
 esto tenía —que mientras el conversor fuera Rust y la referencia Python la
 frontera del lenguaje les hiciera imposible compartir código— **se terminó al
 irse la referencia**: lo que queda del lado de Python son las pruebas y el
@@ -211,32 +214,6 @@ byte por byte iguales a las de antes de cada corte. `tools/tiles/` tiene la suya
 que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
 frena es el desempate de `try_pack`: ver `wishlist/desempate-try-pack.md`.
 
-### Lo que hay que decidir
-
-* ~~**Que un paralelo espere a su propio mensaje.**~~ **Hecho el 2026-09-20**;
-  queda escrito porque es el porqué y porque el costo se midió dos veces. En
-  RM2k el paralelo que abrió un mensaje se para hasta que se cierra
-  —`IsMessageActive() && _state.show_message`, `game_interpreter.cpp:434-441`
-  de easyrpg— y un `ShowMessage` de un paralelo con otro mensaje abierto
-  espera (`:928`). Acá el paralelo seguía en el tick siguiente: la pág. 3 de
-  `LTSentry1` —la que abre el guardia cuando la piedra rompe la PC— prendía
-  los switches 46 y 51 y echaba a caminar al guardia con el mensaje todavía en
-  pantalla; medido en el tick 80, un tick después de que el mensaje empezara a
-  componerse. Y un paralelo que abría un mensaje con otro abierto **lo
-  pisaba**.
-
-  Lo cubre `test_un_paralelo_espera_a_su_propio_mensaje` en
-  `pruebas/abl/test_piedras.py`, que es la prueba que estaba pensada: tirar la
-  piedra hacia arriba desde (19,52) y mirar los dos switches antes y después
-  de cerrar el mensaje.
-
-  Lo que costaba, medido el 2026-09-19 con una implementación de prueba, eran
-  **49 bytes del banco 0** y **uno de la BSS, que entonces estaba llena**;
-  hecho de verdad salieron **56 y 1**. Lo que lo destrabó fueron los dos
-  puntos de abajo: la mudanza al banco 1 del 2026-09-19 y `PILA` bajando a 128
-  el 2026-09-20. Para comparar, los otros tres arreglos del mismo bug costaron
-  8, 16 y 4 bytes.
-
 ### Defectos de los originales, anotados y no arreglados
 
 Ninguno se tocó al portar, porque arreglarlos cambiaría la salida y eso es
@@ -283,65 +260,20 @@ que están cerca, en vez de los 41 todos los cuadros.
 Acordado con taro el 2026-09-15, en este orden. Todo adentro de la etapa de
 refactors: **no hay features hasta que cierre**.
 
-**Al 2026-09-16 están hechos el 1, el 3 y el 4, y el 2 a medias.** O sea que lo
-que queda, en orden, es: enchufar `tools/tiles/` —bloqueado por una decisión, no por
-trabajo—, que taro bendiga las goldens, `ca65` con el asignador, agrupar los
-cartuchos, y partir `main.s` al final. Los dos primeros no dependen de nadie y
-se pueden empezar hoy.
+**Los pasos 1 a 4 están hechos** —el tinte que sobrevivía al cambio de mapa,
+enchufar los conversores y borrar los de Python, las recetas de la tanda
+pasando a pytest, y las goldens reemplazando a la referencia—; el relato de
+cada uno lo tiene el registro. Lo que dejaron y sigue valiendo:
 
-1. ~~El tinte que sobrevive al cambio de mapa~~ **hecho el 2026-09-15**:
-   `Partida.ir_al_mapa` destiñe la pantalla, la trampa se fue de `AGENTS.md`, y
-   al hacerlo aparecieron **tres goldens con el tinte horneado adentro** —uno
-   fallaba, dos pasaban—. taro los miró y los bendijo.
-2. ~~Enchufar `tools/gunter/` y `tools/tiles/`, y borrar los de Python~~ el 2026-09-16 se
-   fueron `sf2.py`, `brr.py`, `brr_check.py` y `w65.py`, y con ellos `just
-   snes-validar`; `tools/tiles/` se enchufó en el paso 8, con otro diseño.
+* **una segunda implementación no se sostiene**: si el port se equivoca la ROM
+  cambia y las goldens se ponen rojas, así que la comparación ya la hace el
+  criterio de aceptación, y tener dos sólo obliga a tocar las dos;
+* **las trampas del arnés viven en el docstring de su caso** —la celda (22,8)
+  de `tecla`, el cuadro que se saltea en `ruta-evento`, el `--toques-hardware`
+  que ignoraba `--apretar-a`—. No están en ningún otro lado;
+* **lo que queda pendiente del 4 es la bendición de las goldens**, y está
+  arriba en "Qué reemplazó a la referencia".
 
-   El argumento que cerró la discusión, y que vale para lo que falta: dejar una
-   segunda implementación no se sostiene, porque si el port se equivoca **la ROM
-   cambia y las goldens se ponen rojas**, así que la comparación ya la hace el
-   criterio de aceptación. Tener dos sólo obliga a tocar las dos. Cómo se
-   comparaban queda en el `git log`.
-3. ~~Las recetas de la tanda pasan a pytest~~ **hecho el 2026-09-16**. La tanda
-   dejó de existir como tanda: sus casos son pruebas de `pruebas/*/test_tanda*.py`
-   y comparan contra las goldens. Se fueron `rom/hitos.txt`, las recetas
-   `hitos`, `hitos-paralelo` y `hitos-foto`, el prefijo `snes-` de las recetas
-   que quedaron, `tools/snes_crop.py` y la receta `mednafen` con
-   `rom/mednafen.sh`. Lo que era el caso `bsnes` es ahora
-   `pruebas/rpgmaker/test_cores.py`, comparando snes9x contra bsnes.
-
-   Lo que quedó decidido y hay que respetar de acá en adelante:
-
-   * ~~corre secuencial, sin `pytest-xdist`~~ —primero simplificar, el
-     paralelismo después—: el después llegó el 2026-09-19, ver "La tanda en
-     paralelo";
-   * **la clave del directorio de cada cartucho es el hash de (grupo, flags)**,
-     porque un directorio por caso son ~900 MB. De ahí sale que `mapdata.inc`
-     haya dejado de ser estado global para las pruebas;
-   * el caso `elegir` **compara sólo píxeles**;
-   * las trampas que vivían en el comentario de cada receta se mudaron al
-     docstring de su caso —la celda (22,8) de `tecla`, el cuadro que se saltea
-     en `ruta-evento`, el `--toques-hardware` que ignoraba `--apretar-a`—. Son
-     del **arnés** y no del caso, y no están en ningún otro lado.
-
-   Y una idea de taro que sigue pendiente: **separar armar la ROM de correr las
-   pruebas**, pasándole la ruta del cartucho a la suite como argumento. Con eso
-   el test deja de saber compilar y pasa a ser sólo "corré esto y compará", que
-   es lo que hace evidente qué se está probando. Encaja con agrupar los
-   cartuchos, que es el punto 5.
-
-4. ~~Los golden files, y con ellos la referencia afuera~~ **hecho el
-   2026-09-16**. Las goldens son **capturas de la ROM** y no lo que la
-   referencia calculaba, y por eso se comparan en cero pixeles exactos y sin
-   máscara: lo que ninguna referencia podía modelar —cuál sprite descarta el PPU
-   cuando un scanline se pasa de 34 tiles de objeto— el emulador sí lo sabe, y
-   con eso se fueron 25 máscaras y 1.496 líneas que la tanda miraba y
-   descartaba.
-
-   **Lo que queda pendiente es la bendición**, y está arriba en "Qué reemplazó a
-   la referencia": se congelaron con la tanda en verde, nadie las miró una por
-   una, y sólo taro puede hacerlo. Para que no sea una tarde de mirar imágenes
-   conviene mostrarlas agrupadas por mapa, una vez cada una.
 5. **El acomodo de bancos sale del ensamblador.** ✅ el 2026-09-16, salvo dos
    casos que quedaron medidos. Lo hacía `.bloque`, una directiva nuestra: el
    conversor le decía al ensamblador "lo que sigue mide N bytes, rellená hasta
@@ -759,13 +691,11 @@ se pueden empezar hoy.
 **Las dos cadenas son independientes**: 5 → 6 es el acomodo de bancos, 7 → 8 es
 el reparto de paletas. Se pueden hacer en paralelo.
 
-**Hecho el 2026-09-20, y al revés de lo que acá decía:** las dos demos son
-una sola, `abl`, siempre con pantalla de título. Lo que decía era que la ROM
-sin título valía como control, porque el reporte del MSU-1 fue "la que tiene
-título no carga la música de alta calidad, la otra sí" y ella permitió aislar
-que era el arranque con título. Sigue siendo cierto, y por eso el control se
-arma cuando hace falta —`--con-titulo` de menos en la receta— en vez de vivir
-en el justfile: taro juega una sola ROM, la completa.
+**Hay una sola demo, `abl`, siempre con pantalla de título**, porque es la que
+taro juega. La ROM sin título sirve de control —así se aisló que el reporte de
+MSU-1 "la que tiene título no carga la música de alta calidad" era el arranque
+con título— y por eso se arma cuando hace falta, con `--con-titulo` de menos
+en la receta, en vez de vivir en el justfile.
 
 **Y un número que cierra una pregunta vieja:** un cartucho con todos los mapas
 es imposible. **29 mapas ocupan el 74,4% de los 4 MB** y el juego tiene 328.
@@ -779,8 +709,14 @@ para no volver a pensarlo:
 * **El rediseño de la escena de batalla**: fondo real y monstruos por separado,
   compuestos en VRAM al armar la pelea. Medido: unos 667 KB para el juego
   entero contra los 4,1 MB de hornear cada combinación.
-* ~~**`ShowInn` para el Bum**~~: hecho el 2026-09-20, con la deuda de lo que
-  se ve anotada abajo.
+* **Lo que le falta a la posada, que es todo de lo que se ve**: no hay
+  ventana de oro al lado del saludo, "Yes" no sale en gris cuando no alcanza
+  —elegirlo equivale a "No"— y no hay fundido ni música de posada, que es
+  `Scene_Map::CallInn`. Compilan 17 de las 18 páginas del juego; la del 348
+  sigue cortada por una elección con rama de cancelar.
+* **El `ChangeHP` que resta no compila.** El que suma entró en `OP_HEAL`, y
+  `ResetAfterBattles` tiene uno de los que restan, así que ese evento común
+  sigue sin compilar.
 * **Los eventos-tile al fondo** para el lag del minijuego del HQ.
 * **La carrera de Lashe City**, que tiene su propia sección acá arriba.
 * **El dibujo de las animaciones de batalla**: está medido y sin empezar; el
@@ -1052,105 +988,44 @@ de cada una está en `README.md`.
   terminó mirando el mapa 6 creyendo que era la demo del hito 12.
 
 
-## Lo que taro encontró jugando el 2026-09-19, y en qué orden se arregla
+## El margen de ROM y de RAM, medido
 
-Jugando `pruebas-manuales/2026-09-19-62ef7d4/`. Cada uno se investigó aparte, sin
-tocar el repo; los scripts de reproducción están en `/extras/scratchpad/` con el
-nombre del bug.
+Lo que dejaron la liberación del banco 0 del 2026-09-19 y la de la BSS del
+2026-09-20, que es lo que hay que saber antes de pedir más lugar. **Los
+números de cuánto sobra hoy se miden, no se copian de acá**: cómo, en
+`AGENTS.md`, y ojo con que el cartucho que manda es `titulo`.
 
-* ~~**Vuelve al título al entrar a una pelea al azar en los back alleys.**~~
-  **Hecho**: era `FullHeal` compilando a nada, y desde el 2026-09-19 es
-  `OP_HEAL`. Lo cubre `pruebas/rpgmaker/test_curar.py`, con el camino entero
-  —perder la pelea del mapa 9 y forzar un encuentro— corrido a mano con
-  `/extras/scratchpad/heal/historia.py` sobre la demo. El `ChangeHP` que
-  suma entró en el mismo opcode; el que resta sigue sin compilar, y
-  `ResetAfterBattles` tiene uno, así que **ese evento común sigue sin
-  compilar**.
-* ~~**El bum del mapa 20 no habla**~~ **hecho el 2026-09-20**: era `ShowInn`, y
-  desde ese día se compila expandiéndolo a comandos que el intérprete ya hacía
-  —el saludo con su elección, una rama por oro, `OP_GOLD` y `OP_HEAL`—, sin un
-  opcode nuevo. Compilan 17 de las 18 páginas del juego; la del 348 sigue
-  cortada por una elección con rama de cancelar. Lo cubre
-  `pruebas/rpgmaker/test_posada.py`, con el bloque comparado byte por byte y
-  las cuatro combinaciones de oro y respuesta jugadas en el cartucho de
-  pruebas. **La deuda que quedó es toda de lo que se ve**: no hay ventana de
-  oro al lado del saludo, "Yes" no sale en gris cuando no alcanza —elegirlo
-  equivale a "No"— y no hay fundido ni música de posada, que es
-  `Scene_Map::CallInn`. Y una posada gratis —6 de las 18— es sólo la cura, que
-  es lo que hace RM2k con el precio en cero.
-* ~~**El director muerto gira al hablarle**~~ **hecho el 2026-09-20**: la ruta
-  de `RunDirectorScene` le fija la mirada con la orden 26 y `giro_disparar` no
-  miraba ese bit. Son tres instrucciones y 7 bytes del banco 0. Lo cubre el
-  caso `gemelo-fija` de `test_tanda_hablar.py`, con su golden y con el estado
-  del giro —`GIRO_EV`— afirmado aparte: una golden nueva nace con lo que la
-  ROM haga, así que no puede dar rojo antes del arreglo.
+**La trampa de mudar al banco 1, que va a volver a aparecer con cada mudanza**:
+un dato que se va allá y se lee con direccionamiento absoluto pasa a leer el
+banco 0, porque el banco de datos sigue en cero. La última vez fue un solo
+`lda mensaje_de, x`, y la tienda abría sin el saludo.
 
-**El orden, decidido por taro:**
+**Lo que queda sin mover, medido, por si hace falta más ROM** (bytes netos del
+banco 0, contando puentes y entradas): las ranuras y guardar ~1500 con 10
+puentes, la pantalla de ítems ~1000 con 10, el menú de pausa y la elección de
+actor ~970 con 9, la pantalla de título ~350 con 12. Y dos que rinden más pero
+**son camino caliente y no se tocan sin decidirlo**: el giro hacia el héroe
+~1700 y la saturación del tinte ~1560. En el banco 1 entran todas: le quedan
+unos 21 KB.
 
-1. ~~**`OP_HEAL`**~~ **hecho.** En el banco 0 costó 14 bytes —la entrada del
-   despacho y el `jsl`; el cuerpo vive afuera—, y dejó al banco 0 con doce
-   bytes, que es lo que disparó el punto 2. Cuánto sobra hoy se mide como dice
-   AGENTS.md.
-2. ~~**Liberar el banco 0**~~ **hecho: la ROM el 2026-09-19, la BSS el
-   2026-09-20.**
+**La pila no se puede bajar dos veces.** `PILA` bajó de 256 a 128 el
+2026-09-20 —decisión de taro— y eso no movió un solo byte de la ROM, porque la
+BSS se asigna de `$0100` para arriba. Los 128 que quedan son el margen que
+cuida `pruebas/herramientas/test_pila.py`, no lugar disponible: la prueba
+marca la zona con centinelas antes del primer cuadro —después de
+`retro_load_game` y antes del primer `retro_run`, así que el `reset` entra en
+la medición y no le cuesta un byte a la ROM—, corre los ocho caminos más
+hondos que conocemos y avisa a la mitad de `PILA`. El tope está en las peleas,
+que cruzan al banco 1 con `jsl`. Lo que **no** cubre es un camino que ninguna
+prueba ejecute, que es por lo que el umbral no está pegado al tope.
 
-   **La ROM**: bajaron al banco 1 el equipo y la tienda, 3162 bytes, y el
-   banco 0 pasó de 12 bytes libres a unos tres mil en el cartucho más
-   apretado. Los números se miden, no se copian de acá: ver AGENTS.md, y ojo
-   con que **el que manda ya no es `abl` sino `titulo`**.
-
-   Rindieron porque su frontera es mínima: tres entradas y dos puentes nuevos,
-   porque los otros ocho ya estaban de cuando bajó la pelea. La trampa que
-   apareció —y que va a volver a aparecer con cada mudanza— es la simétrica de
-   la de la pelea: **un dato que se va al banco 1 y se lee con
-   direccionamiento absoluto pasa a leer el banco 0**, porque el banco de
-   datos sigue en cero. Era un solo `lda mensaje_de, x` y la tienda abría sin
-   el saludo.
-
-   **Lo que queda sin mover, medido, por si hace falta más ROM** (bytes netos
-   del banco 0, contando puentes y entradas): las ranuras y guardar ~1500 con
-   10 puentes, la pantalla de ítems ~1000 con 10, el menú de pausa y la
-   elección de actor ~970 con 9, la pantalla de título ~350 con 12. Y dos que
-   rinden más pero **son camino caliente y no se tocan sin decidirlo**: el
-   giro hacia el héroe ~1700 y la saturación del tinte ~1560. En el banco 1
-   entran todas: le quedan unos 21 KB.
-
-   **La BSS**: lo que la destrabó fue bajar `PILA` de 256 a 128, decisión de
-   taro del 2026-09-20. Son 128 bytes que la BSS no tenía —medido: tenía cero
-   libres en `titulo` y en `pruebas`— y **no mueven un solo byte de la ROM**,
-   porque la BSS se asigna de `$0100` para arriba y lo único que corre es el
-   borde del área `RAM` del `.cfg`: las cinco ROMs de prueba salen byte por
-   byte iguales con 256 y con 128. Alcanza de sobra para el byte que pedía la
-   divergencia 3.
-
-   Lo que hacía falta para poder bajarlo era que el margen dejara de ser
-   ciego, y eso es `pruebas/herramientas/test_pila.py`: marca la zona de la
-   pila con centinelas **antes del primer cuadro** —después de
-   `retro_load_game` y antes del primer `retro_run`, así que el `reset` entra
-   en la medición y no le cuesta un byte a la ROM— corre los ocho caminos más
-   hondos que conocemos y lee hasta dónde bajó. El umbral es la mitad de
-   `PILA`, para avisar mientras todavía queda lugar. Cuánto baja cada camino
-   lo imprime la prueba; el tope está en las peleas, que cruzan al banco 1 con
-   `jsl`. Lo que **no** cubre es un camino que ninguna prueba ejecute, que es
-   por lo que el umbral no está pegado al tope.
-
-   **Lo demás de la BSS sigue sin salida barata**, y eso no cambió: lo grande
-   que hay ahí es
-   `texto_buf` (1968 B), `npc_buf` (1664), `oam`, `cgram_sombra` y `pal_buf`
-   (512 cada uno) y el estado de los eventos, y todo eso o se toca por cuadro
-   o es origen de un DMA. La ventana de `$2180` no se indexa, así que ninguno
-   pasa a la RAM lejana sin reescribirlo; el camino que sí existe es el de la
-   pelea —correr con el banco de datos en `$7E`— y para `texto_buf` eso es
-   reescribir el compositor de texto, que es el lazo más interno del repo.
-
-   Y la pila no se puede bajar dos veces: los 128 que quedan son el margen que
-   cuida la prueba, no lugar disponible.
-3. ~~**Después**: la posada (`ShowInn`), el director, y la divergencia 3 de los
-   mensajes~~ **los tres hechos el 2026-09-20**, en ese orden y cada uno en su
-   commit. Entre los tres se llevaron 63 bytes del banco 0 —7 el director, 56
-   el paralelo, ninguno la posada, que no toca la ROM— y 1 byte de la BSS, el
-   dueño del mensaje. De los tres, el único que dejó deuda es la posada, y
-   está arriba.
+**Lo demás de la BSS sigue sin salida barata**: lo grande que hay ahí es
+`texto_buf` (1968 B), `npc_buf` (1664), `oam`, `cgram_sombra` y `pal_buf` (512
+cada uno) y el estado de los eventos, y todo eso o se toca por cuadro o es
+origen de un DMA. La ventana de `$2180` no se indexa, así que ninguno pasa a la
+RAM lejana sin reescribirlo; el camino que sí existe es el de la pelea —correr
+con el banco de datos en `$7E`— y para `texto_buf` eso es reescribir el
+compositor de texto, que es el lazo más interno del repo.
 
 ## Lo que taro probó, y lo que falta probar
 
@@ -1768,63 +1643,6 @@ de una de más arriba:
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
 partirlo es trabajo de criterio. Ver `tools/README.md`.
-
-## ~~La tanda en paralelo~~ hecho el 2026-09-19
-
-Decidido por taro el 2026-09-18: **el build va primero y en serie** —`just
-pruebas` corre `just cartuchos` antes que pytest, desde el 9f— y recién
-después la tanda corre en paralelo, con `pytest-xdist`. Así no hay dos
-procesos armando lo mismo y no hace falta lock: con un cartucho viejo cada
-proceso se niega a correr, igual que en serie, y nadie lo rearma.
-
-Lo que quedó, con el porqué en el comentario de `procesos` en el justfile:
-
-* **8 procesos con `--dist worksteal`**, porque son los núcleos físicos
-  —la máquina tiene 16 hilos— y más no rinde: lo que tarda es el core
-  emulando. `auto` daría 16, porque sin `psutil` xdist cuenta hilos.
-* **`PROCESOS=0 just pruebas` es en serie**, para depurar con `--pdb` o `-s`.
-* **Sin xdist, la receta corta antes de armar nada** y dice qué instalar; no
-  cae a serie, porque el aviso quedaría enterrado en la salida de pytest.
-  Desde el host puede hacer falta `pacman -S python-pytest-xdist`.
-
-Medido el 2026-09-19 en el contenedor, con la tanda entera; el pico es el RSS
-sumado de todos los procesos:
-
-    -n            caliente   pico
-    serie          157 s     3,0 GB
-    4               52 s     3,8 GB
-    8               33 s     4,5 GB
-    16 (= auto)     36 s     6,1 GB
-    8 worksteal     27 s     4,4 GB
-    16 worksteal    30 s     5,9 GB
-
-En frío, desde `rom/build/` vacío —sin el caché del conversor—, **7m26s en
-serie y 5m13s en paralelo**: los casi cinco minutos que quedan son armar los
-cinco cartuchos, que siguen en serie. **Ese número es del 2026-09-19 y quedó
-viejo por lo bajo**: al día siguiente el caché de muestras preparadas bajó
-`just cartuchos` de 4m46s a 2m08s, con el resto del caché caliente. Lo que
-tarda hoy lo dice el build. **La memoria no limita**: el
-`MemAvailable` nunca bajó de 44 GB, y ninguna corrida en primer plano la mató
-el reaper.
-
-Lo que se revisó para que nada se pise, y no hizo falta tocar: las capturas en
-rojo llevan el nombre de su golden y ninguna golden la compara más de una
-prueba; las de `rom/shots/` y `rom/build/cores/` son de una prueba cada una;
-el recorrido escribe en una carpeta por prueba; y el caché BRR ya escribía con
-`os.replace`. Y ninguna prueba depende de otra: las 464, cada una en su propio
-proceso, dan verde.
-
-Lo que queda, si alguna vez importa: con un cartucho viejo la tanda da **un
-rojo por prueba**, todos con el mismo mensaje claro —"corré `just
-cartuchos`"—. Con la receta no pasa, porque arma antes; sólo con un `pytest`
-suelto.
-
-Lo que se descartó el 2026-09-18: **pasar las pruebas a C** para hablarle a
-libretro sin ctypes. Medido ese día con cProfile sobre
-`test_tanda_paginas.py` con los cartuchos armados: de 13 s, casi todo es el
-core emulando y cargándose —ya es C—, y lo que es Python no llega a uno. El
-arnés en C no bajaría el tiempo y cambiaría pytest, PIL y el caché de
-cartuchos por código propio.
 
 ## Lo que no es pipeline ni pruebas: se fue el 2026-09-19
 
