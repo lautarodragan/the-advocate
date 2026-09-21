@@ -498,16 +498,21 @@ def texto_de_nombre(db, actor, cols=None):
     return texto_de_item(nombre, cols).ljust(cols)
 
 
-def texto_de_nivel(db, actor):
-    """Las dos cifras del nivel, como las dice RM2k: alineadas a la derecha."""
-    nivel = nivel_de(db.actors[actor]) if actor in db.actors else 0
+def texto_de_nivel(db, actor, nivel=None):
+    """Las dos cifras del nivel, como las dice RM2k: alineadas a la derecha.
+    Sin `nivel`, el de arranque; la ROM compone el de ahora con lo mismo,
+    `texto_nivel`."""
+    if nivel is None:
+        nivel = nivel_de(db.actors[actor]) if actor in db.actors else 0
     return ("%*d" % (NIVEL_CIFRAS, nivel))[-NIVEL_CIFRAS:]
 
 
-def texto_de_maximo(db, actor):
+def texto_de_maximo(db, actor, nivel=None):
     """Los HP máximos del actor detrás de su barra: "/168". Van al lado de los
-    HP de ahora, que la ROM escribe con los mismos glifos."""
-    maximo = parametro_de(db.actors[actor], "maxhp") if actor in db.actors else 0
+    HP de ahora, que la ROM escribe con los mismos glifos. Sin `nivel`, los
+    del de arranque; la ROM compone los del de ahora, `texto_maximo`."""
+    maximo = (parametro_de(db.actors[actor], "maxhp", nivel)
+              if actor in db.actors else 0)
     return ("/%d" % maximo).ljust(MENU_MAX_CIFRAS)[:MENU_MAX_CIFRAS]
 
 
@@ -1076,7 +1081,8 @@ def _pegar_texto(pegar, menu, texto, fila, col):
         pegar(menu["glifos"][letra], fila, col + n, 1)
 
 
-def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None):
+def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None,
+                         niveles=None):
     """Una fila del panel del grupo: el bloque fijo, la cara y las tres tiras
     que dependen del actor. Es lo que hace `menu_grupo_pintar`, en el mismo
     orden, y por eso lo comparten el menú y la elección de actor."""
@@ -1086,16 +1092,17 @@ def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None):
         pegar(caras[actor], fila0, MENU_ACTOR_COL, CARA_CELDAS)
     _pegar_texto(pegar, menu, texto_de_nombre(db, actor),
                  fila0 + MENU_NOMBRE_FILA, MENU_NOMBRE_COL)
-    _pegar_texto(pegar, menu, texto_de_nivel(db, actor),
+    nivel = (niveles or {}).get(actor)
+    _pegar_texto(pegar, menu, texto_de_nivel(db, actor, nivel),
                  fila0 + MENU_NIVEL_FILA, MENU_NIVEL_COL)
-    _pegar_texto(pegar, menu, texto_de_maximo(db, actor),
+    _pegar_texto(pegar, menu, texto_de_maximo(db, actor, nivel),
                  fila0 + MENU_HP_FILA, MENU_MAX_COL)
     _pegar_hp(pegar, menu, fila, hp_de_menu(db, actor, hp))
 
 
 def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
                 guardar_permitido=True, font_id=None, actores=None,
-                game_dir=None, hp=None):
+                game_dir=None, hp=None, niveles=None):
     """El menú de pausa como lo tiene que mostrar la consola.
 
     `grupo` son los actores en orden, `oro` el oro, `elegida` la orden con el
@@ -1107,6 +1114,8 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     `hp` es lo que la partida tiene en `FAR_HP`, de actor a HP: sin ella se
     supone que están llenos, que es con lo que arranca. Va aparte del bloque
     del actor porque el bloque se hornea y esto cambia con cada pelea.
+    `niveles`, de actor a nivel, es lo mismo para el nivel y el máximo: sin
+    ella, los de arranque.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
@@ -1129,7 +1138,8 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
           MENU_MONEDA_COLS)
     for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
         if actor in actores:
-            _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp)
+            _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp,
+                                 niveles)
     return fuera
 
 
@@ -1209,13 +1219,14 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
 
 
 def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
-                   grupos=None, game_dir=None):
+                   grupos=None, game_dir=None, niveles=None):
     """La pantalla de ranuras como la tiene que mostrar la consola.
 
     `llenas` es una secuencia de booleanos, una por ranura; `elegida`, dónde
     está el cursor; `modo`, 0 para cargar y 1 para guardar; `grupos`, por
     ranura llena, los actores del grupo guardado, que ponen el nombre del
-    primero y las caras de hasta CARAS_MAX.
+    primero y las caras de hasta CARAS_MAX; `niveles`, por ranura, el nivel
+    que el líder tenía en esa partida —sin ella, el de arranque—.
 
     Se arma con **los mismos bloques de celdas que la ROM sube**, no volviendo a
     dibujar el texto ni pegando la cara: si se dibujara acá con la fuente y
@@ -1245,7 +1256,9 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
             _pegar_texto(pegar, menu,
                          texto_de_nombre(db, grupo[0], NOMBRE_COLS),
                          fila0 + NOMBRE_FILA, NOMBRE_COL)
-            _pegar_texto(pegar, menu, texto_de_nivel(db, grupo[0]),
+            _pegar_texto(pegar, menu,
+                         texto_de_nivel(db, grupo[0],
+                                        (niveles or {}).get(numero)),
                          fila0 + NIVEL_FILA, NIVEL_COL)
         for lugar, actor in enumerate(grupo[:CARAS_MAX]):
             if actor in caras:

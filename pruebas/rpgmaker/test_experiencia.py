@@ -331,3 +331,78 @@ def test_la_pelea_ofrece_las_habilidades_del_nivel_de_ahora(partida):
         assert habilidades_en_la_pelea(una, nivel) == esperado, \
             "en el nivel %d" % nivel
     assert len(modelo.habilidades_de(base, ARDEN, 9)) > 2
+
+
+# --- lo que se ve -----------------------------------------------------------
+#
+# El nivel y los HP máximos del menú eran tiras del cartucho con el nivel de
+# arranque. Ahora los compone la ROM de la partida, y se comparan pixel por
+# pixel contra `titulo.render_menu` y `titulo.render_ranuras` con el mismo
+# nivel. Los niveles son distintos entre sí y de los de arranque, y hay uno
+# de una cifra y otro de dos, que es donde "%2d" y "/%d" se equivocan.
+NIVELES_DEL_MENU = {14: 9, 11: 30}
+
+
+def diferencia(una, esperada):
+    from tanda import quince_bits
+    captura = una.imagen().convert("RGB")
+    return sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
+               if x != y)
+
+
+def referencias():
+    from port import ventana
+    from render.render_map import GAME_DIR
+    base = db()
+    return base, ventana.skin(GAME_DIR, base.system_name), GAME_DIR
+
+
+def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
+    from port import titulo
+    from test_menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
+    base, skin, game_dir = referencias()
+    assert set(NIVELES_DEL_MENU) == set(GRUPO_MENU)
+    una = con_grupo(partida())
+    for actor, nivel in NIVELES_DEL_MENU.items():
+        poner_exp(una, actor,
+                  experiencia.lista_de(base.actors[actor])[nivel - 1], nivel)
+    abrir(una)
+    ahora = titulo.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
+                               game_dir, niveles=NIVELES_DEL_MENU)
+    antes = titulo.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
+                               game_dir)
+    assert diferencia(una, ahora) == 0
+    assert diferencia(una, antes) > 20, \
+        "con los niveles de arranque el menú tendría que verse distinto"
+
+
+def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
+    """`Window_SaveFile`: el nivel del líder **de la partida guardada**. Se
+    guarda con Talan en el 9 y se lo baja al 5 antes de volver a abrir la
+    pantalla, así que un 9 en la ranura sólo puede haber salido de la SRAM."""
+    from port import titulo
+    from consola import TITULO_AIRE
+    from test_menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
+    base, skin, game_dir = referencias()
+    lider = GRUPO_MENU[0]
+    una = con_grupo(partida())
+    poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[8], 9)
+    abrir(una)
+    for _ in range(3):                  # hasta Save
+        tocar(una, "down")
+    tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
+    tocar(una, "a", TITULO_AIRE)        # guarda en la primera
+    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[4], 5)
+    tocar(una, "a", TITULO_AIRE)        # y la vuelve a abrir
+    ranuras = una.simbolos["SRAM_RANURAS"]
+    llenas = [True] + [False] * (ranuras - 1)
+    grupos = {0: GRUPO_MENU}
+    ahora = titulo.render_ranuras(skin, base, ranuras, llenas, 0, 1,
+                                  base.font_id, grupos, game_dir, {0: 9})
+    assert diferencia(una, ahora) == 0
+    otra = titulo.render_ranuras(skin, base, ranuras, llenas, 0, 1,
+                                 base.font_id, grupos, game_dir, {0: 5})
+    assert diferencia(una, otra) > 0

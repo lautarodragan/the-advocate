@@ -282,6 +282,11 @@ ENC_STRIDE = 8
 ; tres ramas: el mapa de arriba termina en la pelea, que no pasa de $3CFF.
 FAR_EXP     = $6200
 EXP_NIVEL   = 3             ; el nivel, el cuarto byte
+; Y, al final del mismo lugar, ocho bytes donde `texto_nivel` y sus hermanas
+; componen el nivel y el máximo que el menú escribe: son números de la partida
+; y ya no tiras del cartucho. Las ranuras llegan a 128 antes de pisarlos, y el
+; conversor corta mucho antes: ver `experiencia_asm`.
+EXP_TEXTO   = $7E63F8
 ; `MaxExpValue()` de RM2k, en sus dos mitades.
 EXP_TOPE_HI = $0F
 EXP_TOPE_LO = $423F
@@ -11743,8 +11748,7 @@ las_caras_listas:
     sep #$20
 .a8
     pla
-    ldx #RANURA_TEXTO_NIVEL
-    jsr ranura_texto_de
+    jsl f:texto_nivel_guardado  ; el de la partida de la ranura, no el de ahora
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 listo:
@@ -12586,8 +12590,7 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    ldx #RANURA_TEXTO_NIVEL
-    jsr ranura_texto_de
+    jsl f:texto_nivel           ; el de ahora: sube peleando
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 
@@ -12606,8 +12609,7 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    ldx #RANURA_TEXTO_MAX
-    jsr ranura_texto_de
+    jsl f:texto_maximo          ; el de su nivel de ahora, como el nivel
     lda #MENU_MAX_CIFRAS
     jsr ranura_texto_escribir
 
@@ -24093,6 +24095,247 @@ cero:
     lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
 listo:
     rts
+.endproc
+
+; --- el nivel y el máximo en el menú -------------------------------------------
+;
+; Hasta el 2026-09-21 los dos eran tiras del cartucho, compuestas al convertir
+; con el nivel de arranque: no cambiaban nunca, así que no hacía falta más.
+; Desde que se sube de nivel, se componen acá en `EXP_TEXTO` con lo mismo que
+; decían —`titulo.texto_de_nivel` y `titulo.texto_de_maximo`— y el menú los
+; escribe con `ranura_texto_escribir` igual que antes: sólo cambia a dónde
+; apunta `msg_ptr`. Con el nivel de arranque dan exactamente las mismas
+; letras que las tiras, que es lo que deja a las goldens del menú quietas.
+;
+; Los tres entran con el actor en A, dejan `msg_ptr` apuntando al texto y
+; **dejan Y como estaba**, que es la celda donde el que llama va a escribir.
+; Un actor sin ranura de experiencia sigue con su tira del cartucho.
+
+; A16 —menos de mil— en tres cifras de 0 a 9, en `EXP_TEXTO + 5`, `+ 6` y
+; `+ 7`. Se lleva A y X; entra y sale con A de dieciséis.
+.proc tres_cifras
+.a16
+.i16
+    ldx #0
+centenas:
+    cmp #100
+    bcc hay_centenas
+    sbc #100                    ; C viene de la comparación
+    inx
+    bra centenas
+hay_centenas:
+    pha
+    txa
+    sep #$20
+.a8
+    sta f:EXP_TEXTO + 5
+    rep #$20
+.a16
+    pla
+    ldx #0
+decenas:
+    cmp #10
+    bcc unidades
+    sbc #10
+    inx
+    bra decenas
+unidades:
+    sep #$20
+.a8
+    sta f:EXP_TEXTO + 7
+    txa
+    sta f:EXP_TEXTO + 6
+    rep #$20
+.a16
+    rts
+.endproc
+
+; `msg_ptr` a la tira del cartucho del actor A, corrida X bytes: lo mismo que
+; `ranura_texto_de` del banco 0, para los que no tienen ranura. Se lleva A.
+.proc tira_del_cartucho
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; RANURA_TEXTO_ANCHO bytes por actor
+    sta msg_ptr
+    txa
+    clc
+    adc msg_ptr
+    clc
+    adc #.loword(ranura_actor_texto)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^ranura_actor_texto
+    sta msg_ptr + 2
+    rtl
+.endproc
+
+; `msg_ptr` a `EXP_TEXTO`.
+.proc apuntar_texto
+.a8
+.i16
+    rep #$20
+.a16
+    lda #.loword(EXP_TEXTO)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^EXP_TEXTO
+    sta msg_ptr + 2
+    rtl
+.endproc
+
+; El nivel A8 como "%2d" en `EXP_TEXTO`: la decena o un espacio, y la unidad.
+.proc nivel_a_texto
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    jsr tres_cifras
+    sep #$20
+.a8
+    lda f:EXP_TEXTO + 6
+    beq sin_decena
+    ora #'0'
+    bra decena
+sin_decena:
+    lda #' '
+decena:
+    sta f:EXP_TEXTO
+    lda f:EXP_TEXTO + 7
+    ora #'0'
+    sta f:EXP_TEXTO + 1
+    rts
+.endproc
+
+; El nivel de ahora del actor A.
+.proc texto_nivel
+.a8
+.i16
+    pha
+    jsr actor_nivel_de
+    cmp #$FF
+    bne tiene
+    pla
+    ldx #RANURA_TEXTO_NIVEL
+    jmp tira_del_cartucho
+tiene:
+    jsr nivel_a_texto
+    pla
+    jmp apuntar_texto
+.endproc
+
+EXP_NIVEL_EN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4 + EXP_NIVEL
+
+; El nivel que el actor A tenía **en la partida de la ranura `ranura`**, leído
+; de su SRAM: la pantalla de ranuras muestra cada partida como quedó, no como
+; está la de ahora. `FAR_EXP` es el último renglón de `partida_tabla`, así que
+; en la ranura cae `EXP_K * 4` bytes antes del final.
+.proc texto_nivel_guardado
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    bne tiene
+    pla
+    ldx #RANURA_TEXTO_NIVEL
+    jmp tira_del_cartucho
+tiene:
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    pha                         ; la ranura de experiencia por cuatro
+    lda ranura
+    and #$00FF
+    xba
+    asl a
+    asl a
+    asl a                       ; la ranura de SRAM por SRAM_STRIDE
+    clc
+    adc 1, s
+    tax
+    pla
+    sep #$20
+.a8
+    lda f:EXP_NIVEL_EN_SRAM, x
+    jsr nivel_a_texto
+    pla
+    jmp apuntar_texto
+.endproc
+
+; Los HP máximos del nivel de ahora del actor A, como "/%d" completado a
+; `MENU_MAX_CIFRAS` con espacios: `titulo.texto_de_maximo`.
+.proc texto_maximo
+.a8
+.i16
+    pha
+    jsr actor_nivel_de
+    cmp #$FF
+    bne tiene
+    pla
+    ldx #RANURA_TEXTO_MAX
+    jmp tira_del_cartucho
+tiene:
+    pla
+    phy
+    ldy #0
+    jsl f:nivel_param
+    rep #$20
+.a16
+    txa
+    jsr tres_cifras
+    sep #$20
+.a8
+    ldx #0
+    lda #'/'
+    sta f:EXP_TEXTO, x
+    inx
+    lda f:EXP_TEXTO + 5
+    beq sin_centena
+    ora #'0'
+    sta f:EXP_TEXTO, x
+    inx
+    lda f:EXP_TEXTO + 6
+    bra con_decena              ; con centena la decena va aunque sea cero
+sin_centena:
+    lda f:EXP_TEXTO + 6
+    beq sin_decena
+con_decena:
+    ora #'0'
+    sta f:EXP_TEXTO, x
+    inx
+sin_decena:
+    lda f:EXP_TEXTO + 7
+    ora #'0'
+    sta f:EXP_TEXTO, x
+    inx
+relleno:
+    cpx #MENU_MAX_CIFRAS
+    bcs completo
+    lda #' '
+    sta f:EXP_TEXTO, x
+    inx
+    bra relleno
+completo:
+    ply
+    jmp apuntar_texto
 .endproc
 
 ; `Game_Actor::IsSkillLearned` para el actor de `temp + 1` y la habilidad de
