@@ -8,10 +8,16 @@ a la mitad **en una zona vacía del mapa**, que no es donde se juega.
 
 # Status
 
-**Los dos caminos baratos están hechos. Falta el tercero**, que es el único que
-ataca el peor caso: hornear cada posición conocida y prender o apagar el tilemap.
+**Los dos caminos baratos están hechos**, y con ellos tres de las cinco celdas
+medidas entran en el cuadro. **La celda donde el minijuego se juega sigue sin
+entrar**, y **el camino que la atacaba —el 3— se descartó el 2026-09-21**:
+ver "Por qué no se optimiza".
 
-Después de los dos, caminando 1200 cuadros:
+Lo que queda es **rediseñar el minijuego para que no haya nada que optimizar**:
+las 52 baldosas dejan de ser eventos y pasan a ser tiles del mapa. Está
+decidido y sin empezar; el reparto, en "El rediseño".
+
+Después de los dos caminos, caminando 1200 cuadros:
 
     celda     diagnóstico   con los dos
     (50,50)       231           153
@@ -19,12 +25,6 @@ Después de los dos, caminando 1200 cuadros:
     (18,50)      1200             9
     (19,46)      1196          1141
     ( 5,50)      1200            19
-
-**Tres de las cinco celdas entran en el cuadro**, incluidas dos que estaban en
-30 fps clavados. **La celda donde el minijuego se juega, (19,46), sigue sin
-entrar**: ahí las baldosas están en pantalla, y ni hornear cuatro más ni dejar
-de procesar las de afuera le sacan nada. Es exactamente lo que el diagnóstico
-anticipaba de los dos.
 
 El build con que se midió el diagnóstico es descartable y **no va a `main`**: es
 una variable de entorno en `snes_convert.py` que le apaga el dibujo a un grupo
@@ -180,41 +180,17 @@ Cuesta 21 bytes de banco 0 y **gana en todos los mapas**, no sólo en el 11.
 las baldosas están en pantalla y siguen costando. En (19,46) baja de 1150 a
 1141.
 
-## 3. Hornear cada posición conocida y prender/apagar el tilemap — LO QUE FALTA
+## 3. Hornear cada posición conocida y prender/apagar el tilemap — DESCARTADO
 
-Es el camino de taro, y es el único que ataca los 1141 cuadros que quedan. Una
-baldosa que se mueve **entre dos celdas conocidas** —la suya y una fuera del
-mapa— se puede hornear en la suya, como ya se hornean las 22, y al apagarse el
-cono, en vez de mover una fila de OAM, se cambia el tile del mapa.
+Era el único camino que atacaba los 1141 cuadros: una baldosa que se mueve
+**entre dos celdas conocidas** se hornea en la suya, y al apagarse el cono se
+cambia el tile del mapa en vez de mover una fila de OAM. Techo medido, **1196 →
+23 cuadros perdidos de 1200**.
 
-Gana, en el peor caso medido, **1196 → 23 cuadros perdidos de 1200**: de 30 fps
-clavados a fluido. El diagnóstico lo midió antes de los caminos 1 y 2, y ésos ya
-se llevaron lo que se podían llevar de esa celda: hoy son 1141, y el techo
-—"sin las baldosas"— sigue siendo el mismo.
-
-Lo que cuesta, y no es poco: hoy **el tilemap se llena desde el cartucho**
-—`fill_window` al entrar y `stream_map` columna por columna al scrollear—, así
-que no hay dónde escribir un cambio. Hace falta una tabla de celdas pisadas en
-RAM que `stream_map` consulte, y volver a llenar la ventana cuando cambia. El
-presupuesto de banco 0 es lo que hay que medir antes de empezar, y en el
-cartucho más apretado de los que arma `cartuchos`: ver "Cuánto le sobra al
-banco 0" en AGENTS.md.
-
-Y hay una decisión de diseño adentro, que es la que taro puso en una línea:
-**que no se dibuje la baldosa, o que no se dibuje el tile que la baldosa tapa,
-pero no los dos**. Hornear la baldosa y dejar el tile del mapa debajo es lo que
-ya se hace con las 22; lo nuevo es poder volver atrás.
-
-Mueve goldens sólo si se equivoca. Si acierta, se ve igual.
-
-### Cuántos eventos del juego entero califican
-
-Medido el 2026-09-21 sobre los 328 mapas, con
-`/extras/scratch/horneado-movil/contar.py`. La regla ampliada —dibujo fijo de
-un tile del ChipSet, capa de abajo, sin animación continua, que no camina, y
-cuyos únicos movimientos son `ChangeEventLocation` con celda **constante**—
-da **59 eventos en 6 mapas**, de 123 con dibujo fijo de ChipSet en todo el
-juego:
+La regla es general —es la del horneado de hoy con "nunca se mueve" cambiado
+por "se mueve sólo a celdas constantes"— y **no sabe nada de ABL**. Lo que la
+descartó es cuánto rinde, medido el 2026-09-21 sobre los 328 mapas con
+`/extras/scratch/horneado-movil/contar.py`:
 
     mapa   eventos   posiciones por evento
       11      30       3
@@ -224,21 +200,20 @@ juego:
       17       1       3
       83       1       3
 
-Es la **cota de arriba**: el script no mira opacidad, ni si la celda tiene
-lugar, ni si hornear la abriría, que son las condiciones caras.
+**59 eventos en 6 mapas**, de 123 con dibujo fijo de ChipSet en todo el juego,
+y es la cota de arriba: el script no mira opacidad ni si hornear abriría la
+celda. O sea que **54 de los 59 están en dos mapas**, y el segundo —el 3, la
+sala destrozada del Emitter Room, con unos veinte eventos en pantalla a la
+vez— **no molesta jugando**: taro nunca notó lag ahí.
 
-Así que la regla es general pero **la ganancia está concentrada**: 54 de los 59
-están en dos mapas. El segundo es el **mapa 3**, con 24 —`Black*`, `Broke*`,
-`BustedConsole*`, `Link*` y `CoreBlood`—, casi todos entre x 59 y 73, o sea del
-orden de veinte en pantalla a la vez. Con los siete cuadros por evento dibujado
-que están medidos, eso es del orden de 140 cuadros de 1200: molesta, pero no es
-el caso del mapa 11. **No está medido en la ROM**, y conviene medirlo antes de
-usarlo como argumento: el mapa 3 está en `abl` y dibuja 35 eventos contra los
-69 del 11.
+Decisión de taro: no se paga una tabla de celdas pisadas en RAM, más el
+consultarla en `stream_map`, por un mapa. **Promediando otros juegos, rinde
+menos de un mapa.**
 
-Los otros cuatro mapas no justifican nada por sí solos.
+## 4. Un caso especial del conversor para las baldosas — DESCARTADO
 
-## 4. Un caso especial del conversor para las baldosas
+Lo descarta lo mismo que al 3, y antes ya lo descartaba que **reconoce este
+minijuego por dentro**, que es lo que el port no hace en ningún lado.
 
 Emitir las 52 como una estructura propia —un mapa de bits de "esta celda está
 iluminada"— en vez de 52 eventos. Gana lo mismo que el 3 y además ahorra 52
@@ -255,6 +230,122 @@ horneado sigue entrando en el reparto de `npcs_dibujables` como si se dibujara.
 Sacarlo libera una paleta y **cambia lo que se ve** —el mapa 11 tiene un gráfico
 dibujado con una paleta ajena, `@tile:lasheint:49`—, así que **mueve goldens** y
 es una decisión aparte. No gana cuadros: gana colores.
+
+# El rediseño
+
+Decidido el 2026-09-21. **Las 52 baldosas dejan de ser eventos**: el charco de
+luz pasa a ser un tile del mapa, y prender o apagar un cono es cambiar ese tile.
+Con eso no queda nada que optimizar, y lo que el motor gana son **dos comandos
+de RM2k que hoy no implementa**, útiles para cualquier juego que se porte.
+
+Gana lo mismo que ganaba el camino 3 —de 1141 cuadros perdidos al piso— y
+además saca 52 filas de la tabla de NPCs, que `pasa_con_evento` recorre en cada
+paso.
+
+## Los dos comandos, verificados contra liblcf y el intérprete de EasyRPG
+
+* **`TileSubstitution` (11750)**, parámetros `[capa alta?, tile viejo, tile
+  nuevo]`. Sustituye **todas** las celdas con ese tile, en esa capa, en todo el
+  mapa. Es por **número de tile y no por celda**, así que en la ROM es una
+  tabla chica en RAM que `stream_map` consulta al escribir cada tile —bastante
+  más barato que la tabla de celdas pisadas que pedía el camino 3—.
+
+  Que sea global por tile es lo que obliga a **duplicar el tile**: un número
+  por cono, o apagar uno los apagaría todos. Y duplicar **sale gratis**: Voodoo
+  deduplica a nivel 8x8 y reusa el espejado, así que un tile de ChipSet
+  repetido son cuatro celdas que ya estaban.
+
+* **`StoreTerrainID` (10910)**, parámetros `[modo, x, y, variable]`. El terreno
+  sale del tile de la **capa de abajo** —"RPG_RT always uses the terrain of the
+  first lower tile"—, no del de la capa alta. O sea que el terreno **no puede
+  decir "estoy iluminada"**, porque esa capa no cambia al apagarse el cono:
+  dice **"esta celda es del cono C"**, y si C está prendido ya lo sabe un
+  switch que el juego tiene.
+
+  De ahí sale que hagan falta **seis pisos duplicados y no 52**: uno por cono.
+  El paralelo queda en leer el terreno bajo el héroe, y si es de un cono, mirar
+  su switch.
+
+El port tiene que emitir además la **tabla de terrenos por ChipSet**, que
+`lcf.py` ya lee (`terrain_data`) y nadie usa. Va al banco 1, que tiene unos
+21 KB libres.
+
+## Lo medido del ChipSet
+
+El mapa 11 usa el **ChipSet 10**, que comparten siete mapas. Entre todos ocupan
+55 de los 144 tiles de la capa alta: **quedan 89 libres**. La capa de abajo
+tiene 162 ranuras, y el `terrain_data` del ChipSet 10 es **todo 1** — ABL no usa
+terrenos en ningún lado.
+
+Aun así, el rediseño va con **un ChipSet propio para el mapa 11**, decisión de
+taro: no comparte con nadie, así que duplicar pisos con su terreno no le toca
+un pixel a los otros seis mapas, y la deduplicación hace que un ChipSet casi
+igual al 10 no cueste tiles.
+
+## Lo que el reset pide
+
+`ResetPuzzle` reubica hoy 42 eventos **sin recargar el mapa**. Recargarlo no es
+equivalente —movería también al héroe y a la piedra—, así que **la baldosa
+apagada también es un tile propio**: prender es `80 → 80A` y apagar es
+`80A → 80`, la sustitución es simétrica y el reset es volver a sustituir.
+
+**Que `TileSubstitution` no persista es canon y se deja así**: en el intérprete
+se aplica al spriteset de la escena, o sea que se pierde al recargar el mapa. En
+ABL nunca se vuelve a este mapa, así que no hay nada que reaplicar.
+
+El único caso donde el rediseño podría diferir del original es **volver de una
+pelea**: en canon se perderían las sustituciones, pero los eventos de hoy
+sobreviven. No pasa, y está verificado: `Lazer Teeth HQ` tiene `encounters: []`,
+o sea ninguna tropa asignada. Queda anotado porque es lo que se reintroduce sin
+querer el día que alguien le ponga tropas a un mapa.
+
+De ahí sale una decisión de implementación que conviene tomar a propósito: **la
+tabla de sustituciones vive lo que vive el mapa cargado, no lo que vive la
+ventana del tilemap**. Limpiarla al cargar un mapa y no al rellenar la ventana
+la deja canónica y además correcta si algún día se vuelve de una pelea.
+
+## Las 33 baldosas con comandos
+
+Son copy-paste: disparan el "me atraparon, se reinicia el minijuego". Lo
+reemplaza el paralelo con el terreno, que es una comparación por paso en vez de
+verificar si (x, y) cae adentro de una forma arbitraria.
+
+## El fork del mapa, no el parche
+
+El mapa 11 rediseñado es un **reemplazo entero del archivo**, no una
+descripción de cambios, y el pipeline ignora el original si existe. Tres cosas
+que lo sostienen:
+
+* **No va en `parches/`**, que hoy es **salida generada** —las fusiones de
+  color que decidió el asignador—. Esto es entrada escrita a mano que manda
+  sobre todo lo demás: dos direcciones opuestas en un directorio es lo que
+  alguien regenera sin mirar.
+* **El original sigue versionado en `data/`**, así que el diff no se pierde: se
+  computa cuando haga falta. Y nada se pisa, porque `unpack` escribe en `data/`
+  y nunca en el fork.
+* **Es todo o nada.** Las capas viven afuera del JSON, así que un `.json` sin
+  su `.tiles` dejaría el build con las capas viejas y los eventos nuevos, y eso
+  **se ve bien** hasta que no. Falta una pieza, el build se niega.
+
+Las pruebas que pide, de taro y de acá: que el **id de adentro coincida con el
+nombre del archivo** —si no, se rompen los teleports—, y que **los teleports
+que entran a ese mapa desde el resto del juego sigan cayendo en celdas
+pisables**, que es la que rompe el juego de verdad y el id no cubre. El mapa 11
+está en `abl`, así que su golden cubre lo demás.
+
+Todo el fork es data y **Ditto lo puede escribir**: lee y escribe `.ldb`,
+`.lmu` y `.lmt`, con round-trip sobre los 330 archivos. Son cuatro cosas: el
+ChipSet nuevo en la base con su pasabilidad y sus terrenos, el `chipset_id` del
+mapa, el `upper_layer` con los charcos horneados, y los 52 eventos reemplazados
+por uno paralelo.
+
+## El reparto
+
+**Del motor, y general**: `TileSubstitution`, `StoreTerrainID`, la tabla de
+terrenos, y el mecanismo del fork con sus pruebas.
+
+**De ABL**: el ChipSet propio, los tiles duplicados, los terrenos por cono y el
+mapa rediseñado.
 
 # Cómo se reproduce
 
