@@ -269,6 +269,23 @@ ENC_SIN   = $FF
 ENC_FILAS  = 8
 ENC_STRIDE = 8
 
+; --- la experiencia y el nivel: su estado en la RAM lejana --------------------
+;
+; Cuatro bytes por actor que puede pelear, en el orden de `experiencia_ranuras`
+; del conversor —`actor_exp_k` dice cuál le toca a cada número de actor, o $FF—:
+; la experiencia de 24 bits, que en RM2k llega a 999999, y el nivel. Que el
+; nivel vaya pegado a la experiencia es lo que hace que la partida lleve un solo
+; renglón para los dos. Arranca desde `exp_inicial` en el reset y viaja en la
+; partida.
+;
+; $6200 a $63FF es el lugar que se le dio a esto el 2026-09-21, repartido entre
+; tres ramas: el mapa de arriba termina en la pelea, que no pasa de $3CFF.
+FAR_EXP     = $6200
+EXP_NIVEL   = 3             ; el nivel, el cuarto byte
+; `MaxExpValue()` de RM2k, en sus dos mitades.
+EXP_TOPE_HI = $0F
+EXP_TOPE_LO = $423F
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3A00
@@ -10650,7 +10667,7 @@ SRAM_DATOS = $0106
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + EXP_K * 4
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -23868,6 +23885,8 @@ partida_tabla:
     ; Y a qué gráfico le cambió el sprite un `ChangeSpriteAssociation`: un byte
     ; por actor. Viaja en la partida como en RM2k, y cruza el teletransporte.
     .word FAR_ACTOR_GRAF, ACTORES_N
+    ; Y la experiencia y el nivel de cada actor que puede pelear.
+    .word FAR_EXP, EXP_K * 4
     .word 0, 0
 
 ; Las cuatro tablas que bajaron del banco 0 el 2026-09-13, para hacerle lugar
@@ -23966,6 +23985,29 @@ cero:
     lda #0
     sta f:WMADDH
     lda #^(actor_spmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0
+    lda #$80
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    ; y la experiencia y el nivel, desde `exp_inicial`: `Game_Actor` arranca
+    ; en el `initial_level` con la experiencia justa de ese nivel.
+    rep #$20
+.a16
+    lda #FAR_EXP
+    sta f:WMADDL
+    lda #<(exp_inicial)
+    ora #(>(exp_inicial) * 256)
+    sta f:A1T0L
+    lda #(EXP_K * 4)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(exp_inicial)
     sta f:A1B0
     lda #0
     sta f:DMAP0
@@ -27280,6 +27322,113 @@ limpia:
     jmp ba_ejecutar
 .endproc
 
+; La experiencia de una victoria, repartida: `ProcessSceneActionVictory` le da
+; **la suma entera** a cada actor vivo del grupo —`GetActiveBattlers`, o sea los
+; que no están muertos—, no la divide entre ellos. La suma ya viene hecha por
+; tropa en `tropa_exp`: todos los enemigos de una victoria están muertos, que es
+; lo que `Game_EnemyParty::GetExp` pide. Corre al cerrar la pelea, con los HP ya
+; de vuelta en la partida. Se lleva `BA_S0`, `BA_T*`, A y X.
+.proc ba_exp_repartir
+.a8
+.i16
+    lda BA_RESULT
+    cmp #BA_VICTORIA
+    bne listo
+    lda BA_TROPA_K
+    cmp #$FF
+    beq listo                   ; una tropa que el cartucho no lleva
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:tropa_exp, x
+    sta BA_T1
+    sep #$20
+.a8
+    stz BA_S0
+otro:
+    lda BA_S0
+    cmp BA_NACT
+    bcs listo
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_HAY
+    beq siguiente
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    beq siguiente               ; muerto: `Exists()` lo deja afuera
+    lda BA_UNO + BA_NUMERO, x
+    jsr exp_sumar
+siguiente:
+    inc BA_S0
+    bra otro
+listo:
+    rts
+.endproc
+
+; `Game_Actor::ChangeExp(GetExp() + BA_T1)` para el actor A: suma, topa en
+; `MaxExpValue()` y sube de nivel mientras alcance. Un actor sin ranura de
+; experiencia no gana nada. Corre con el banco de datos en $7E, como toda la
+; pelea. Se lleva A, X, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así el
+; que reparte la puede sumar a varios.
+.proc exp_sumar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    bne tiene
+    rts
+tiene:
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T2                   ; la ranura
+    asl a
+    asl a
+    sta BA_T0                   ; y su desplazamiento en `FAR_EXP`
+    tax
+    lda FAR_EXP, x
+    clc
+    adc BA_T1
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda FAR_EXP + 2, x          ; el acarreo de la suma de arriba sigue en C
+    adc #0
+    sta FAR_EXP + 2, x
+    cmp #EXP_TOPE_HI
+    bcc sin_tope
+    bne topar
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    cmp #(EXP_TOPE_LO + 1)
+    sep #$20
+.a8
+    bcc sin_tope
+topar:
+    rep #$20
+.a16
+    lda #EXP_TOPE_LO
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda #EXP_TOPE_HI
+    sta FAR_EXP + 2, x
+sin_tope:
+    rts
+.endproc
+
 ; El fin del turno: o se acabó la pelea, o se vuelve a pedir órdenes.
 .proc ba_fin_de_turno
 .a8
@@ -28173,6 +28322,7 @@ guarda:
     inc BA_S0
     bra guarda
 guardados:
+    jsr ba_exp_repartir
     rtl
 
 recomponer:

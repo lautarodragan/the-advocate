@@ -70,6 +70,7 @@ from port import parches as parches_mod
 from port import titulo as titulo_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
+from port import experiencia as X
 from port import escena as escena_mod
 from audio import snes_music
 from port.asignador import CELL, cut_tiles, tile_colors
@@ -3125,6 +3126,83 @@ def animaciones_asm(animaciones, mapas):
     return "\n".join(out) + "\n"
 
 
+def experiencia_ranuras(db, actores):
+    """Los actores que llevan experiencia y nivel, en el orden de su ranura.
+
+    Son los que pueden entrar al grupo —`ranuras["actores"]`—, porque sólo
+    ellos pelean y la experiencia sólo se gana peleando: el juego no usa
+    `ChangeExp` ni `ChangeLevel` en ningún mapa. Tener ranura propia y no una
+    por número de actor es lo que hace que la partida crezca en cuatro bytes
+    por actor que pelea y no por cada uno de los sesenta del LDB. **Siempre al
+    menos una**, aunque sea de nadie: con cero el DMA del reset copiaría 64 KB.
+    """
+    return sorted(a for a in actores if a in db.actors) or [None]
+
+
+def experiencia_asm(db, actores, actores_n):
+    """Las tablas de la experiencia y del nivel: ver `port.experiencia`.
+
+    Deja el segmento en RODATA, que es donde lo encuentra quien la llama.
+
+    Por ranura de `experiencia_ranuras`:
+
+        exp_inicial    cuatro bytes: la experiencia de arranque, de 24 bits,
+                       y el nivel. Es lo que el reset copia a `FAR_EXP`.
+        exp_nivel_max  `GetMaxLevel()`, un byte.
+        exp_curva      dónde arranca su fila en `exp_tabla`, palabra.
+        nivel_fila     seis palabras: dónde arranca en `nivel_params` cada
+                       curva de parámetro, en el orden de `lcf.CURVAS`.
+
+    `exp_tabla` es `MakeExpList` de cada curva distinta —cuatro bytes por
+    nivel, `NIVEL_MAX` niveles— y `nivel_params` las seis curvas de cada
+    ranura, `NIVEL_MAX` palabras cada una. Todo va fuera del banco 0: se lee
+    al ganar una pelea, al armarla y en la pantalla de equipo, nunca por
+    cuadro.
+    """
+    ranuras_exp = experiencia_ranuras(db, actores)
+    k_de = {a: k for k, a in enumerate(ranuras_exp) if a is not None}
+    curvas, curva_de, inicial, maximo, filas, params = [], [], [], [], [], []
+    for a in ranuras_exp:
+        actor = db.actors[a] if a is not None else None
+        lista = (X.lista_de(actor) if actor else [0])
+        lista = lista + [0] * (X.NIVEL_MAX - len(lista))
+        if lista not in curvas:
+            curvas.append(lista)
+        curva_de.append(4 * X.NIVEL_MAX * curvas.index(lista))
+        exp = X.exp_inicial(actor) if actor else 0
+        inicial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
+                    X.nivel_inicial(actor) if actor else 1]
+        maximo.append(X.nivel_max(actor) if actor else 1)
+        for curva in lcf.CURVAS:
+            filas.append(2 * len(params))
+            valores = list(actor.params.get(curva) or []) if actor else []
+            valores = (valores + [0] * X.NIVEL_MAX)[:X.NIVEL_MAX]
+            params += [v & 0xFFFF for v in valores]
+    if 4 * len(ranuras_exp) > 0x200:
+        raise SystemExit("%d actores con experiencia no entran en los 512 "
+                         "bytes de FAR_EXP" % len(ranuras_exp))
+    out = ['.segment "RODATA"',
+           "EXP_K = %d" % len(ranuras_exp),
+           "EXP_NIVEL_MAX = %d" % X.NIVEL_MAX]
+
+    def tabla(etiqueta, directiva, valores, ancho):
+        out.append(".bloque %d" % max(ancho, ancho * len(valores)))
+        out.append("%s:" % etiqueta)
+        for i in range(0, len(valores), 16):
+            out.append("    %s %s" % (directiva, ", ".join(
+                str(v) for v in valores[i:i + 16])))
+
+    tabla("actor_exp_k", ".byte",
+          [k_de.get(a, 0xFF) for a in range(actores_n)], 1)
+    tabla("exp_inicial", ".byte", inicial, 1)
+    tabla("exp_nivel_max", ".byte", maximo, 1)
+    tabla("exp_curva", ".word", curva_de, 2)
+    tabla("exp_tabla", ".dword", [v for c in curvas for v in c], 4)
+    tabla("nivel_fila", ".word", filas, 2)
+    tabla("nivel_params", ".word", params, 2)
+    return "\n".join(out) + "\n"
+
+
 def escenas_asm(escenas, tropas):
     """Las escenas de batalla del cartucho, listas para el `.inc`.
 
@@ -4835,6 +4913,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             (titulo_mod.parametro_de(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)])
+        handle.write(experiencia_asm(db, ranuras["actores"], actores_n))
         # --- las habilidades ---
         #
         # Una fila por habilidad que el cartucho lleva, en el orden de
@@ -4938,6 +5017,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                              "de un byte: %d tropas, %d miembros"
                              % (len(usadas), len(miembros)))
         words_asm("tropa_id", usadas)
+        # La experiencia que da ganarle a cada una, ya sumada: ver
+        # `experiencia.exp_de_la_tropa`. Va fuera del banco 0, como todo lo de
+        # acá, porque la lee una vez por pelea.
+        exp_tropa = [X.exp_de_la_tropa(db, n) for n in usadas]
+        for n, exp in zip(usadas, exp_tropa):
+            if exp > 0xFFFF:
+                raise SystemExit("la tropa %d da %d de experiencia y la ROM "
+                                 "la suma en dieciséis bits" % (n, exp))
+        words_asm("tropa_exp", exp_tropa, declarar=True)
         bytes_asm("tropa_ini", inicios)
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas])

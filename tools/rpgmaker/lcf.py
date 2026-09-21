@@ -424,6 +424,12 @@ class Actor:
         # HP, los parámetros y la conclusión de que nadie sabía ninguna
         # habilidad.
         self.initial_level = campo(datos, "initial_level") or 1
+        # Hasta dónde sube y con qué curva de experiencia: los tres números de
+        # `Game_Actor::CalculateExp`. Ver `port.experiencia`.
+        self.final_level = campo(datos, "final_level")
+        self.exp_base = campo(datos, "exp_base")
+        self.exp_inflation = campo(datos, "exp_inflation")
+        self.exp_correction = campo(datos, "exp_correction")
         # Qué habilidad aprende en cada nivel, en el orden del LDB:
         # `Game_Actor::LearnLevelSkills` las recorre así.
         # `skill_id` vale **1** cuando el archivo no lo trae, que es lo que
