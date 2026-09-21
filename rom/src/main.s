@@ -2269,6 +2269,68 @@ no_hay:
     rts
 .endproc
 
+; El tema que prende el mapa al que se entra, entre `mapa_tema_callar` y el
+; final de la carga, o $FF si no hay que prender nada. En la RAM lejana porque
+; la BSS del banco 0 está llena.
+TEMA_DEL_MAPA = $7E6100
+
+; Lo que el mapa al que se entra le hace a la música, que es el
+; `Game_Map::PlayBgm` de easyrpg: su tema, si trae uno —`mapa_tema`, que ya
+; resolvió la herencia del árbol—. Vuelve con A en el tema que hay que prender
+; cuando el mapa esté cargado, o $FF si no hay que tocar nada, y en ese caso
+; lo que sonaba sigue.
+;
+; No se toca nada en dos casos:
+;
+; * `mapa_tema` en $FF: el mapa no trae tema, o es el `music_type` 1, "lo
+;   decide un evento". También un tema más allá de `TEMA_TOTAL`, igual que
+;   hace `op_bgm`.
+; * **el tema es el que ya está sonando**. `Game_System::BgmPlay` con el mismo
+;   nombre no lo reinicia: pasar de un mapa de los Rat Tracks al otro no
+;   vuelve `KSSMKEND` al principio. Con una salvedad, que es la suya también:
+;   si se estaba apagando por un `FadeOutBGM` —su `music_stopping`— sí
+;   arranca de cero.
+;
+; "Está sonando" no es sólo `music_apagada` en cero: con pista de MSU-1 el
+; SPC700 está callado a propósito y `music_apagada` vale 1. Por eso se mira
+; `MSU_SUENA` antes, que es lo mismo que hace `op_fade_bgm`.
+;
+; Si hay que cambiar, se calla acá, con la pantalla ya negra: el MSU-1 se para
+; y el SPC700 suelta las voces, como en `batalla_bgm`.
+.proc mapa_tema_callar
+.a8
+.i16
+    ldx fundido_mapa
+    lda f:mapa_tema, x
+    cmp #TEMA_TOTAL
+    bcs nada                    ; $FF, o uno que el cartucho no lleva
+    pha
+    lda bgm_fundido
+    bne cambia                  ; se estaba apagando: vuelve a empezar
+    lda f:MSU_SUENA
+    bne suena
+    lda music_apagada
+    bne cambia
+suena:
+    lda tema_actual + 1
+    bne cambia
+    pla
+    cmp tema_actual
+    bne cambia_ya
+nada:
+    lda #$FF
+    rts
+cambia:
+    pla
+cambia_ya:
+    pha
+    jsr msu_parar
+    lda #$FF
+    jsr batalla_bgm             ; callar: las voces sueltan
+    pla
+    rts
+.endproc
+
 ; Lo que el fundido tiene que hacer en su primer cuadro negro: cargar el mapa,
 ; o mover al héroe si el salto era al mismo. Se hace una vez y se apaga.
 ;
@@ -2290,6 +2352,14 @@ no_hay:
     jsr mover_heroe_a
     bra hecho
 carga:
+    ; El tema del mapa nuevo se decide **antes** de cargarlo, porque si cambia
+    ; hay que callar el que suena antes de que `paquete_cargar` arme el
+    ; paquete: ése deja quietas las muestras del tema que dice estar sonando,
+    ; y el que se va a prender las necesita en su lugar. Ver `mapa_tema_callar`.
+    pha
+    jsr mapa_tema_callar
+    sta f:TEMA_DEL_MAPA
+    pla
     cmp #FUNDIDO_PUERTA
     bne salto
     rep #$20
@@ -2305,7 +2375,7 @@ carga:
     ; estado, y arrancar a mitad de un paso no es lo que la prueba pidió.
     stz step_left
     stz moving
-    bra hecho
+    bra prender
 salto:
     rep #$20
 .a16
@@ -2324,6 +2394,15 @@ salto:
     ; eventos del mapa de destino no corrían jamás. Nada lo veía porque la única
     ; prueba que teletransportaba miraba el tinte, que lo pone el mapa de origen.
     ; Hoy lo hace `cargar_mapa_sin_eventos`, adentro de su refresco.
+prender:
+    ; Y el tema del mapa, con el paquete ya subido: sus muestras vinieron en
+    ; él. Va antes de que corra ninguna página del mapa nuevo, así que un
+    ; `PlayBGM` de un evento automático le gana, que es el orden de RM2k:
+    ; `Game_Map::PlayBgm` corre al armar el mapa, antes que sus eventos.
+    lda f:TEMA_DEL_MAPA
+    cmp #$FF
+    beq hecho
+    jsr music_start
 hecho:
     stz fundido_que
     ; Y OAM, que si no se queda con la del mapa que se dejó. El lazo no la

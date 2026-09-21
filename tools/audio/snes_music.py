@@ -633,9 +633,23 @@ def pack(frames, length, init):
 
 def tema_del_mapa(map_id, game_dir=GAME_DIR):
     """El nombre del tema que le toca a un mapa por el árbol, o "" si no tiene."""
+    return temas_de_los_mapas([map_id], game_dir)[0]
+
+
+def temas_de_los_mapas(map_ids, game_dir=GAME_DIR):
+    """`tema_del_mapa` de cada uno, leyendo el árbol una sola vez.
+
+    "" quiere decir que entrar al mapa **no cambia** lo que suena: o el mapa
+    no trae tema —la raíz del árbol—, o es el `music_type` 1, "lo decide un
+    evento". Es el `return` temprano de `Game_Map::PlayBgm` en easyrpg. Un
+    "(OFF)" sí es un tema: calla, igual que un `PlayBGM` de "(OFF)".
+    """
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
-    music = tree.map_music(map_id)
-    return music["name"] if music else ""
+    nombres = []
+    for map_id in map_ids:
+        music = tree.map_music(map_id)
+        nombres.append(music["name"] if music else "")
+    return nombres
 
 
 def leer_tema(name, game_dir=GAME_DIR):
@@ -841,7 +855,7 @@ def muestras_del_stream(stream):
 
 
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
-         sonidos=(), paquetes=()):
+         sonidos=(), paquetes=(), tema_de_mapa=()):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
@@ -853,6 +867,9 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     **paquetes**, uno por mapa —`paquetes`, en el orden de la tabla de mapas,
     cada uno con sus temas y las muestras de sus efectos—, y el directorio
     arranca con todas apuntando al silencio. Ver `paquete_cargar` en main.s.
+
+    `tema_de_mapa` es el tema que prende cada mapa al entrar, en el mismo
+    orden, o $FF si entrar no cambia lo que suena. Ver `mapa_tema_callar`.
     """
     def block(label, data, bloque=False):
         # Sin `.bloque` salvo en las muestras: eso es relleno para que un DMA
@@ -896,6 +913,10 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     tabla += "\ntema_msu:\n    .byte " + ", ".join(
         "$%02X" % PISTAS_MSU.get(t["nombre"], 0xFF)
         for t in (temas or [{"nombre": ""}]))
+    # Y el tema propio de cada mapa. Fuera del banco 0: se lee una vez por
+    # teletransporte, con `lda f:mapa_tema, x`.
+    tabla_mapa_tema = "mapa_tema:\n    .byte " + ", ".join(
+        "$%02X" % t for t in (list(tema_de_mapa) or [0xFF]))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
     # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
@@ -982,7 +1003,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "; porque se leen con un índice: van en el banco 0 como todo lo\n"
             "; que la CPU recorre con `lda tabla, x`.\n"
             '.segment "TABLAS"\n%s\n\n'
-            '.segment "RODATA"\n%s\n%s\n%s\n'
+            '.segment "RODATA"\n%s\n%s\n%s\n%s\n'
             '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in temas)
                or "ninguno",
@@ -992,7 +1013,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                SAMPLES_ADDR, len(samples),
                n, silencio, datos, ARAM_FIN, len(paquetes),
                SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, len(list(sonidos)),
-               tabla, tabla_se,
+               tabla, tabla_se, tabla_mapa_tema,
                block("spc_driver", driver),
                block("spc_samples", samples),
                7 * len(filas_m), "\n".join(filas_m),

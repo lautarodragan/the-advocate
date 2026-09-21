@@ -6371,15 +6371,17 @@ def main():
     #
     # Van **todos los temas que quepan**, compartiendo un solo banco de
     # muestras, y suena el del mapa donde la ROM arranca; los demás los prende
-    # un `PlayBGM`. Lo que decide cuántos entran es la ARAM y no el cartucho:
-    # ver `Banco` en snes_music.py, y "Varios temas en el cartucho" en el
-    # README.
+    # un `PlayBGM`, o el mapa al que se entra si trae uno propio —ver
+    # `mapa_tema_callar` en main.s—. Lo que decide cuántos entran es la ARAM y
+    # no el cartucho: ver `Banco` en snes_music.py, y "Varios temas en el
+    # cartucho" en el README.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
-    pedidos, arranque, tema_titulo = temas_de_la_rom(
+    pedidos, arranque, tema_titulo, tema_de_mapa = temas_de_la_rom(
         mapas[args.inicial]["id"], temas, args.game_dir,
         args.tema_de_arranque,
-        renderer.database.title_music if args.con_titulo else None)
+        renderer.database.title_music if args.con_titulo else None,
+        [m["id"] for m in mapas])
     # Los efectos, en el orden en que los piden las páginas compiladas: los
     # mapas se compilan en el orden de la ROM, así que los del mapa donde
     # arranca van primero —en la demo, la lluvia y el trueno de la apertura—.
@@ -6399,9 +6401,9 @@ def main():
         tope=(1 << 30) if args.banco_entero else None)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
-    # suena desde el principio— y las muestras de sus efectos, en el orden en
-    # que aparecen, que es la prioridad con que la ROM los sube si no entran
-    # todos. Ver `paquete_cargar` en main.s.
+    # suena desde el principio, y en todos el propio del mapa— y las muestras
+    # de sus efectos, en el orden en que aparecen, que es la prioridad con que
+    # la ROM los sube si no entran todos. Ver `paquete_cargar` en main.s.
     efectos = getattr(banco, "efectos", {})
     paquetes = []
     for i, _mapa in enumerate(mapas):
@@ -6409,6 +6411,15 @@ def main():
         suyos = list(pide["temas"])
         if i == args.inicial and arranque != 0xFF and arranque not in suyos:
             suyos.insert(0, arranque)
+        # Y el tema propio del mapa, **adelante**: es el único de la lista que
+        # suena seguro al entrar, así que si la ARAM no alcanza para todo es
+        # el último que se tiene que caer. Sin él en el paquete, sus muestras
+        # las tendría que subir `tema_asegurar` al prenderlo, rearmando el
+        # paquete entero una segunda vez.
+        if tema_de_mapa[i] != 0xFF:
+            if tema_de_mapa[i] in suyos:
+                suyos.remove(tema_de_mapa[i])
+            suyos.insert(0, tema_de_mapa[i])
         paquetes.append((suyos, [efectos[n][0] for n in pide["sonidos"]
                                  if n in efectos]))
     # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
@@ -6427,7 +6438,7 @@ def main():
               % (len(pide["temas"]), len(paquetes[-1][1])))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
-                    paquetes)
+                    paquetes, tema_de_mapa)
     for i, (suyos, suyas) in enumerate(paquetes[:len(mapas)]):
         if suyos or suyas:
             print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)"
@@ -6481,8 +6492,10 @@ def main():
                               if t not in snes_music.PISTAS_MSU))
 
 
-def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
-    """Qué temas pide el cartucho y cuál suena al arrancar.
+def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None,
+                    map_ids=()):
+    """Qué temas pide el cartucho, cuál suena al arrancar y cuál prende cada
+    mapa al entrar.
 
     Se piden **todos**: los que los `PlayBGM` compilados nombran, más el del
     mapa donde la ROM arranca, que es el que suena sin que pase nada. **Y
@@ -6495,6 +6508,13 @@ def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
     emitidos. Por eso el del mapa se agrega **al final**, que es lo único que
     no renumera a los demás; que ir último no signifique perder la ARAM lo
     arregla la prioridad que se le pasa a `build_varios`.
+
+    Y el tema propio de cada mapa de `map_ids` —en el orden de la tabla de
+    mapas—, que es el `Game_Map::PlayBgm` de easyrpg: lo que suena al entrar
+    por un teletransporte. Van detrás de todos, por la misma razón, y como el
+    índice de cada uno o $FF, que es "entrar no cambia la música". Un tema que
+    no entró en la ARAM se pide igual: suena por MSU-1, o con lo que otros
+    pusieron en el banco.
     """
     propio = forzado or snes_music.tema_del_mapa(map_id, game_dir)
     if propio:
@@ -6505,9 +6525,16 @@ def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
     # de comandos: es un dato del juego, no una elección nuestra.
     if titulo:
         temas.indice(titulo)
+    de_cada_mapa = []
+    for nombre in snes_music.temas_de_los_mapas(map_ids, game_dir):
+        indice = temas.indice(nombre) if nombre else 0xFF
+        # $FF es "no cambia": un tema con ese número no se podría prender.
+        # Tampoco lo prendería un `PlayBGM`, que lleva el índice en un byte.
+        assert indice <= 0xFF, "el tema %r no entra en un byte" % nombre
+        de_cada_mapa.append(indice)
     nombres = list(temas.nombres)
     return (nombres, (nombres.index(propio) if propio else 0xFF),
-            (nombres.index(titulo) if titulo else 0xFF))
+            (nombres.index(titulo) if titulo else 0xFF), de_cada_mapa)
 
 
 def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
