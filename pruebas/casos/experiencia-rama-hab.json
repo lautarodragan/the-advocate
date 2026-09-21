@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "Wait", "parameters": [3]},
+    {"code": "ConditionalBranch", "parameters": [5, 15, 4, 148, 0, 0]},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 218, 218, 0]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"}
+  ]
+}

@@ -4478,11 +4478,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_enemigo = {e: texto_nuevo(titulo_mod.texto_de_item(
             db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
         # Y los de las habilidades: las que sabe algún actor que puede entrar
-        # al grupo, **a su nivel del LDB** —ver `batalla.habilidades_de`—,
-        # ordenadas por número, que es el orden en que el menú las pone. Con el
-        # grupo de la intro son siete: 129, 130, 131, 143, 144, 146 y 150.
+        # al grupo **hasta el último nivel al que puede llegar** —ver
+        # `batalla.habilidades_de`—, ordenadas por número, que es el orden en
+        # que el menú las pone. Desde el 2026-09-21 los actores suben de nivel
+        # peleando, así que ya no alcanza con las de su nivel del LDB: la ROM
+        # las filtra por el nivel de ahora. Ver `nivel_tope`.
+        def nivel_tope(a):
+            """Hasta qué nivel puede llegar el actor en este cartucho: el
+            tope del LDB si tiene ranura de experiencia —los que pueden entrar
+            al grupo, `experiencia_ranuras`— y el de arranque si no, que es el
+            que va a tener siempre."""
+            if a in ranuras["actores"] and a in db.actors:
+                return X.nivel_max(db.actors[a])
+            return None
         habilidades_rom = sorted({h for a in ranuras["actores"]
-                                  for h in B.habilidades_de(db, a)})
+                                  for h in B.habilidades_de(db, a,
+                                                            nivel_tope(a))})
         texto_hab = {h: texto_nuevo(titulo_mod.texto_de_item(
             db.skills[h].name, P.BA_HAB_NOMBRE_ANCHO))
             for h in habilidades_rom}
@@ -4827,12 +4838,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # que pueden entrar al grupo, y `IsSkillLearned` no filtra ninguna de
         # las dos cosas. Con los 60 actores del LDB son 81 habilidades
         # aprendidas, o sea 162 bytes más los 122 del índice.
-        sabe_hab, sabe_hab_ini, sabe_hab_n = [], [], []
+        #
+        # Desde el 2026-09-21 la lista llega hasta `nivel_tope`, y cada una
+        # lleva en `sabe_hab_nivel` el nivel en que se aprende: la ROM las
+        # filtra contra el nivel de ahora, `sabe_habilidad`.
+        sabe_hab, sabe_hab_ini, sabe_hab_n, sabe_hab_nivel = [], [], [], []
         for a in range(actores_n):
-            suyas = B.aprendidas_de(db, a) if a in db.actors else []
+            suyas = (B.aprendidas_de(db, a, nivel_tope(a))
+                     if a in db.actors else [])
             sabe_hab_ini.append(len(sabe_hab))
             sabe_hab_n.append(len(suyas))
             sabe_hab += suyas
+            sabe_hab_nivel += [B.nivel_en_que_aprende(db, a, h)
+                               for h in suyas]
         if len(sabe_hab) > 255:
             raise SystemExit("las habilidades aprendidas del LDB son %d y "
                              "`sabe_hab_ini` es de un byte" % len(sabe_hab))
@@ -4840,6 +4858,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("sabe_hab", sabe_hab or [0], declarar=True)
         bytes_asm("sabe_hab_ini", sabe_hab_ini, declarar=True)
         bytes_asm("sabe_hab_n", sabe_hab_n, declarar=True)
+        bytes_asm("sabe_hab_nivel", sabe_hab_nivel or [0], declarar=True)
         handle.write('\n.segment "TABLAS"\n')
         words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
                                 for a in range(actores_n)], "$%04X")
@@ -4982,13 +5001,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Y por actor: dónde arranca su lista en `actor_hab`, cuántas tiene, y
         # cómo se llama su orden en el menú. Un actor que no puede entrar al
         # grupo no tiene ninguna: la lista se arma con `ranuras["actores"]`.
+        #
+        # Llega hasta `nivel_tope`, como `sabe_hab`, y por lo mismo: la ROM
+        # filtra contra el nivel de ahora con `actor_hab_nivel`, el nivel en
+        # que se aprende cada una. `actor_hab_desde` es el más bajo de ésos
+        # —255 si no tiene ninguna—, que es lo que le deja al menú decir "en
+        # gris" sin recorrer la lista.
         actor_hab, actor_hab_ini, actor_hab_n = [], [], []
+        actor_hab_nivel, actor_hab_desde = [], []
         for a in range(actores_n):
-            suyas = (B.habilidades_de(db, a)
+            suyas = (B.habilidades_de(db, a, nivel_tope(a))
                      if a in ranuras["actores"] else [])
+            # Las que la lista de la pelea puede mostrar. Una de más no se
+            # vería nunca, y eso con más actores o más niveles puede pasar.
+            if len(suyas) > P.BA_HAB_FILAS * P.BA_HAB_COLUMNAS:
+                raise SystemExit("el actor %d llega a saber %d habilidades y "
+                                 "la lista de la pelea tiene lugar para %d"
+                                 % (a, len(suyas),
+                                    P.BA_HAB_FILAS * P.BA_HAB_COLUMNAS))
             actor_hab_ini.append(len(actor_hab))
             actor_hab_n.append(len(suyas))
             actor_hab += [lugar_hab[h] for h in suyas]
+            niveles = [B.nivel_en_que_aprende(db, a, h) for h in suyas]
+            actor_hab_nivel += niveles
+            actor_hab_desde.append(min(niveles) if niveles else 255)
         if len(actor_hab) > 255 or len(habilidades_rom) > 255:
             raise SystemExit("las habilidades del cartucho no entran en las "
                              "tablas de un byte: %d habilidades, %d "
@@ -4997,6 +5033,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("actor_hab", actor_hab, declarar=True)
         bytes_asm("actor_hab_ini", actor_hab_ini, declarar=True)
         bytes_asm("actor_hab_n", actor_hab_n, declarar=True)
+        bytes_asm("actor_hab_nivel", actor_hab_nivel or [0], declarar=True)
+        bytes_asm("actor_hab_desde", actor_hab_desde, declarar=True)
         words_asm("actor_hab_txt", [texto_hab_orden.get(a, 0xFFFF)
                                     for a in range(actores_n)], "$%04X",
                   declarar=True)

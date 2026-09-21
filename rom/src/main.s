@@ -4631,43 +4631,11 @@ sia_eq_otra:
     bra sia_no
 
     ; --- la habilidad ---
-    ; `Game_Actor::IsSkillLearned`: la lista de `sabe_hab` que arranca en
-    ; `sabe_hab_ini[actor]` y dura `sabe_hab_n[actor]`. **No es `actor_hab`**,
-    ; que es la lista del menú de la pelea: ésa lleva sólo las que este port
-    ; sabe ejecutar y sólo de los actores que pueden entrar al grupo, y esta
-    ; pregunta no filtra ninguna de las dos cosas. Ver `sabe_hab` en el
-    ; conversor y `batalla.aprendidas_de`.
+    ; `Game_Actor::IsSkillLearned`, que vive fuera del banco 0 desde que mira
+    ; el nivel: ver `sabe_habilidad`. `sia_no` queda justo abajo.
 sia_habilidad:
-    rep #$20
-.a16
-    lda temp + 1
-    and #$00FF
-    tax                         ; el actor
-    sep #$20
-.a8
-    lda f:sabe_hab_n, x
-    beq sia_no                  ; no sabe ninguna
-    sta temp                    ; cuántas quedan por mirar
-    lda f:sabe_hab_ini, x
-    rep #$20
-.a16
-    and #$00FF
-    asl a                       ; la tabla es de palabras
-    tax
-    sep #$20
-.a8
-sia_hab_otra:
-    rep #$20
-.a16
-    lda f:sabe_hab, x
-    cmp temp + 2
-    sep #$20
-.a8
-    beq sia_si
-    inx
-    inx
-    dec temp
-    bne sia_hab_otra
+    jsl f:sabe_habilidad        ; Z: no la sabe
+    bne sia_si
 sia_no:
     rep #$20
 .a16
@@ -24097,6 +24065,100 @@ cero:
     rtl
 .endproc
 
+; El nivel de ahora del actor A, en A: el cuarto byte de su ranura de
+; `FAR_EXP`. Un actor sin ranura contesta $FF, que no filtra nada: las listas
+; de lo que sabe uno de ésos llegan sólo hasta su nivel de arranque, que es el
+; que va a tener siempre. Se lleva X; lee con `f:`, así que el banco de datos
+; da igual.
+.proc actor_nivel_de
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    beq listo
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
+listo:
+    rts
+.endproc
+
+; `Game_Actor::IsSkillLearned` para el actor de `temp + 1` y la habilidad de
+; `temp + 2`, que es como los deja `op_if_actor`: la lista de `sabe_hab` que
+; arranca en `sabe_hab_ini[actor]` y dura `sabe_hab_n[actor]`, contando sólo las
+; que se aprenden en un nivel que ya tiene —`sabe_hab_nivel`—, que es lo que
+; `LearnLevelSkills` dejó aprendido. **No es `actor_hab`**, que es la lista
+; del menú de la pelea: ésa lleva sólo las que este port sabe ejecutar y sólo
+; de los actores que pueden entrar al grupo, y esta pregunta no filtra ninguna
+; de las dos cosas. Ver `sabe_hab` en el conversor y `batalla.aprendidas_de`.
+;
+; Vuelve con A en 1 si la sabe y en 0 si no, y Z de eso. Deja Y como estaba
+; —ahí está el bytecode— y se lleva X y `temp`, el sub, que ya no hace falta.
+; Vivía en el banco 0 hasta que tuvo que mirar el nivel.
+.proc sabe_habilidad
+.a8
+.i16
+    phy
+    lda temp + 1
+    jsr actor_nivel_de
+    sta temp                    ; el nivel, que es contra lo que se filtra
+    rep #$20
+.a16
+    lda temp + 1
+    and #$00FF
+    tax                         ; el actor
+    lda f:sabe_hab_n, x
+    and #$00FF
+    beq no                      ; no sabe ninguna
+    tay                         ; cuántas quedan por mirar
+    lda f:sabe_hab_ini, x
+    and #$00FF
+    tax                         ; la primera, en entradas
+otra:
+    phx
+    txa
+    asl a                       ; `sabe_hab` es de palabras
+    tax
+    lda f:sabe_hab, x
+    plx
+    cmp temp + 2
+    bne sigue
+    sep #$20
+.a8
+    lda f:sabe_hab_nivel, x
+    cmp temp
+    beq si
+    bcc si                      ; se aprende en un nivel que ya pasó
+    rep #$20
+.a16
+sigue:
+    inx
+    dey
+    bne otra
+no:
+    sep #$20
+.a8
+    ply
+    lda #0
+    rtl
+si:
+    ply
+    lda #1
+    rtl
+.endproc
+
 ; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
 ; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
 ; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
@@ -26572,6 +26634,9 @@ falla_dice:
     lda #0
     sta BA_HAB_N
     jsr ba_actor_ldb
+    jsr actor_nivel_de
+    sta BA_S4                   ; su nivel: las de más arriba no las sabe
+    jsr ba_actor_ldb
     jsr ba_ax
     lda f:actor_hab_n, x
     beq listo
@@ -26584,19 +26649,30 @@ otra:
     lda BA_S3
     cmp BA_S1
     bcs listo
+    lda BA_HAB_N
     cmp #BA_HAB_MAX
     bcs listo
+    lda BA_S3
     clc
     adc BA_S2
     jsr ba_ax
+    ; `LearnLevelSkills`: la que se aprende en un nivel que todavía no tiene
+    ; no está. Que la lista siga ordenada por número lo da el conversor: se
+    ; saltean algunas, no se reordena ninguna.
+    lda f:actor_hab_nivel, x
+    cmp BA_S4
+    beq la_sabe
+    bcs no_la_sabe
+la_sabe:
     lda f:actor_hab, x
     pha
-    lda BA_S3
+    lda BA_HAB_N
     jsr ba_ax
     pla
     sta BA_HAB_LISTA, x
-    inc BA_S3
     inc BA_HAB_N
+no_la_sabe:
+    inc BA_S3
     bra otra
 listo:
     rts
@@ -26790,6 +26866,14 @@ hay_orden:
     lda f:actor_hab_n, x
     cmp #0
     beq en_gris
+    ; Y si todavía no llegó al nivel de la primera que aprende, tampoco.
+    lda f:actor_hab_desde, x
+    pha
+    jsr ba_actor_ldb
+    jsr actor_nivel_de
+    cmp 1, s                    ; C si ya la aprendió
+    pla                         ; `pla` no toca C
+    bcc en_gris
 sin_gris_orden:
     lda #0
     bra pone_variante
