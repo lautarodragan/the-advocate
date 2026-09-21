@@ -53,3 +53,16 @@ ABL como material. **Hecho** el 2026-09-19, después del 9f:
                            el recuerdo, el cartel, las escenas y cinemáticas
     pruebas/herramientas/  las que no corren ninguna ROM
     pruebas/arnes/         consola, tanda, cartuchos y recorrido
+
+## Una `Partida` viva por vez
+
+El core de libretro es **uno solo por proceso**, así que dos `Partida` vivas a
+la vez comparten la consola: la segunda se lleva puesta a la primera y las dos
+corren sobre el mismo estado. Una prueba que quiera comparar dos corridas tiene
+que correr una entera, guardarse lo que mire, y recién después arrancar la
+otra. Ver `capturas` en `rpgmaker/test_sustitucion.py`.
+
+No falla con un error: falla pareciendo ruido. Lo que se vio la primera vez
+fueron 28 pixeles de 57.344 distintos entre dos corridas que tenían la misma
+OAM, la misma CGRAM y el mismo `vueltas` —o sea, imposible—, y tablas de RAM
+que no eran las suyas.

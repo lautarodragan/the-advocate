@@ -2521,8 +2521,16 @@ class Sustituciones:
         # en ningún lado no está acá y no se puede sustituir hacia él.
         self.celdas = ({}, {})
         for (bajo, alto), bloque in self.combos.items():
-            for capa, tile in ((0, bajo), (1, alto)):
-                self.celdas[capa].setdefault(tile, self._mitad(bloque, capa))
+            # **La mitad de abajo sólo sirve si el tile de arriba de ese bloque
+            # no se hornea en ella.** Un tile de la capa alta **sin** el bit
+            # "Above" no se dibuja en BG2 sino encima del fondo —es lo que
+            # decide `draw_tiles`, y por eso hay tiles altos cuya mitad de BG2
+            # sale vacía—, así que la mitad de abajo de ese bloque es la
+            # composición de los dos y no el tile de abajo solo. Copiarla para
+            # armar otra combinación dibujaría el tile alto del vecino.
+            if not self._hornea(alto):
+                self.celdas[0].setdefault(bajo, self._mitad(bloque, 0))
+            self.celdas[1].setdefault(alto, self._mitad(bloque, 1))
         # Los bloques que alguna sustitución del mapa usa como clave, que es
         # lo que va a ocupar lugar en la tabla de la RAM.
         self.claves = set()
@@ -2535,6 +2543,16 @@ class Sustituciones:
         self.por_bytes = {}
         for bloque in range(len(mapa["pass"])):
             self.por_bytes.setdefault(self._huella(bloque), bloque)
+
+    def _hornea(self, alto):
+        """Si ese tile de la capa alta se hornea en el fondo en vez de ir a BG2.
+
+        Es la cuenta de `draw_tiles`: un tile alto va por encima del héroe
+        —o sea a BG2— sólo con el bit `Above` puesto, y sin él se dibuja
+        pegado al fondo. El tile vacío no dibuja nada y no hornea nada.
+        """
+        return (alto != rm2k.UPPER_BASE
+                and not self.flags[alto] & rm2k.PASS_ABOVE)
 
     def _mitad(self, bloque, capa):
         desde = bloque * BLOCK_BYTES + capa * 8
@@ -2609,15 +2627,26 @@ class Sustituciones:
                         continue
                     destino = list(combinacion)
                     destino[capa] = nuevo_id
-                    self._crear(tuple(destino))
+                    if self._crear(tuple(destino)) is None \
+                            and (capa_alta, viejo, nuevo) not in faltan:
+                        faltan.append((capa_alta, viejo, nuevo))
             if len(self.combos) == antes:
                 return faltan
 
     def _crear(self, combinacion):
-        """El bloque de una combinación que el mapa no dibuja en ningún lado."""
+        """El bloque de una combinación que el mapa no dibuja en ningún lado.
+
+        None es "esta combinación no se puede armar sin volver a dibujar el
+        mapa". Pasa cuando el tile de arriba se hornea en el fondo: ahí las dos
+        mitades del bloque no son independientes y no hay de dónde sacar la de
+        abajo. Ver `_hornea`.
+        """
         if combinacion in self.combos:
             return self.combos[combinacion]
         bajo, alto = combinacion
+        if self._hornea(alto) or bajo not in self.celdas[0] \
+                or alto not in self.celdas[1]:
+            return None
         huella = (self.celdas[0][bajo] + self.celdas[1][alto],
                   rm2k.pasa_de_celda(self.flags, bajo, alto),
                   rm2k.terreno_de(self.chipset, bajo))
@@ -5760,10 +5789,20 @@ def main():
             # No corta la conversión: la página que lo pide no compila, que es
             # lo que hace cualquier comando que no se puede ejecutar. Pero se
             # dice, porque desde afuera se ve como un evento que no hace nada.
-            print("  mapa %d: TileSubstitution hacia el tile %d de la capa de "
-                  "%s, que el mapa no dibuja en ninguna celda: sus 8x8 no "
-                  "entraron en la VRAM, así que la página no compila"
-                  % (mapa["id"], faltante[2],
+            #
+            # Los dos motivos por los que una sustitución no se puede armar, y
+            # los dos se arreglan del lado de la data: o el tile nuevo no está
+            # dibujado en ninguna celda del mapa —y entonces sus 8x8 no
+            # entraron en la VRAM—, o la combinación que haría falta lleva un
+            # tile alto **sin el bit "Above"**, que no se dibuja en BG2 sino
+            # horneado en el fondo, y ahí las dos capas del bloque dejan de ser
+            # independientes. Ver `Sustituciones._hornea`.
+            print("  mapa %d: TileSubstitution %d -> %d en la capa de %s: no "
+                  "se puede armar el bloque que haría falta. O el tile nuevo "
+                  "no está dibujado en ninguna celda del mapa, o alguno de los "
+                  "dos es un tile alto sin 'Above' y se hornea en el fondo. La "
+                  "página no compila."
+                  % (mapa["id"], faltante[1], faltante[2],
                      "arriba" if faltante[0] else "abajo"))
 
     # El bloque de textos es de la ROM entera y se arma mientras se compilan las

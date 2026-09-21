@@ -15,16 +15,47 @@ ver "Por qué no se optimiza".
 
 Lo que queda es **rediseñar el minijuego para que no haya nada que optimizar**:
 las 52 baldosas dejan de ser eventos y pasan a ser tiles del mapa. El reparto
-está en "El rediseño", y al 2026-09-21 **la mitad de la data está hecha y la
-del motor no**:
+está en "El rediseño", y al 2026-09-21 **las dos mitades están hechas**:
 
-* hecho: el mecanismo del fork (`juego/`, con sus pruebas), el ChipSet propio
+* la data: el mecanismo del fork (`juego/`, con sus pruebas), el ChipSet propio
   del mapa 11 y el mapa rediseñado. Los eventos dibujados del mapa pasan de
   **69 a 17**;
-* falta: `TileSubstitution`, `StoreTerrainID` y la tabla de terrenos. **Seis
-  páginas del mapa no compilan** sin ellos —las cuatro fuentes de luz que se
-  rompen, el `ResetPuzzle` y el paralelo nuevo—, así que el minijuego todavía
-  no se puede jugar. El mapa original no tenía ninguna página sin compilar.
+* el motor: `TileSubstitution`, `StoreTerrainID` y la tabla de terrenos, con
+  sus casos en `pruebas/rpgmaker/test_sustitucion.py` y
+  `pruebas/rpgmaker/test_terreno.py`. Con ellos compilan las seis páginas del
+  mapa que no compilaban —las cuatro fuentes de luz que se rompen, el
+  `ResetPuzzle` y el paralelo nuevo—.
+
+**Pero el minijuego todavía no se juega, y lo que falta es data.** Las cinco
+sustituciones del mapa no compilan, y el conversor dice por qué: **los tiles
+apagados no están dibujados en ninguna celda del mapa**. Son los altos 85, 86,
+87, 88 y 90 —el estado "cono apagado"—, y el mapa sólo dibuja los prendidos,
+81 a 84 y 89. Un tile que no está en ninguna celda no tiene sus 8x8 en la
+VRAM, así que no hay con qué dibujarlo y la página se cae entera. Se arregla
+poniendo **una celda de cada uno** en algún rincón del mapa; el costo en
+tiles es cero, porque Voodoo deduplica.
+
+Y hay una segunda condición que conviene mirar al mismo tiempo, porque las dos
+se arreglan de una: **un tile alto sin el bit `Above` no se dibuja en BG2 sino
+horneado en el fondo**, y entonces las dos capas del bloque dejan de ser
+independientes y la combinación tampoco se puede armar. En el ChipSet 53 los
+apagados 85 a 88 tienen el bit y los prendidos 81 a 84 no, así que **prender
+se puede armar y apagar no**. Lo más barato es darle a todos los diez el mismo
+tratamiento; cuál, es decisión artística —el bit dice si el charco se dibuja
+por encima del héroe—.
+
+Lo que hace que esto se vea y no se lo trague el silencio es que el conversor
+lo dice por línea, nombrando los dos tiles, y la página no compila en vez de
+compilar y dibujar cualquier cosa.
+
+**Y una cosa del motor que no es canónica**, para tenerla antes de mirarlo:
+**la sustitución no se ve en el acto**. El tilemap de la VRAM no se reescribe
+solo —`stream_map` sólo arma la columna que la cámara destapa— así que la
+ventana se rehace de a una columna por cuadro y tarda `WINDOW_COLS` cuadros en
+ponerse al día. Prendiendo o apagando un cono con la cámara quieta, el charco
+tarda hasta un segundo en cambiar; caminando se disimula, porque la cámara trae
+las columnas nuevas ya sustituidas. Si molesta, lo que hay que tocar es cuántas
+columnas por cuadro, y el techo es `push_strips`, que sube una sola.
 
 Y tres cosas que aparecieron al mirar las 52 antes de borrarlas, que corrigen
 lo que este documento daba por sentado más abajo: **los conos son cinco y sólo
@@ -391,10 +422,19 @@ documento no preveía —el porqué de cada una, en `juego/README.md`—:
 ## El reparto
 
 **Del motor, y general**: `TileSubstitution`, `StoreTerrainID`, la tabla de
-terrenos, y el mecanismo del fork con sus pruebas.
+terrenos, y el mecanismo del fork con sus pruebas. **Hecho**; lo que no
+resultó como se había supuesto está arriba, en "Status", y es que la
+sustitución tarda en verse.
+
+Y dos cosas que el motor pide y este documento no preveía —las dos son lo que
+hoy frena al mapa 11, ver "Status"—: **el tile hacia el que se sustituye tiene
+que estar dibujado en alguna celda del mapa**, en su capa, porque los 8x8 que
+entran en la VRAM son los de las celdas del mapa; y **si es un tile alto, con
+el bit `Above` puesto**, porque sin él se hornea en el fondo y las dos capas
+del bloque dejan de ser independientes.
 
 **De ABL**: el ChipSet propio, los tiles duplicados, los terrenos por cono y el
-mapa rediseñado.
+mapa rediseñado. **Hecho.**
 
 # Cómo se reproduce
 

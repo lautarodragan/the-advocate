@@ -249,14 +249,24 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   pueden hornear. Ojo al medirlo: `cuadros_perdidos` **satura en 255**, así que
   hay que leerlo y ponerlo en cero cada pocas decenas de cuadros.
 
-  **A medias, el 2026-09-21**: la celda donde el minijuego de las piedras se
+  **Rediseñado el 2026-09-21**: la celda donde el minijuego de las piedras se
   juega seguía en 30 fps clavados, y en vez de optimizar el motor se rediseñó
-  el minijuego —ver `tareas/el-mapa-11-no-entra-en-el-cuadro.md`—. La data ya
-  está: las 52 baldosas de luz del mapa 11 dejaron de ser eventos y son tiles
-  del mapa, con el mapa forkeado en `juego/` —los eventos dibujados del mapa
-  pasan de 69 a 17—. **Falta el motor**: `TileSubstitution` y `StoreTerrainID`,
-  sin los cuales seis páginas del mapa no compilan y los conos de luz no se
-  prenden ni se apagan. Hasta que estén, el minijuego no se puede jugar.
+  el minijuego —ver `tareas/el-mapa-11-no-entra-en-el-cuadro.md`—. Las 52
+  baldosas de luz del mapa 11 dejaron de ser eventos y son tiles del mapa, con
+  el mapa forkeado en `juego/` —los eventos dibujados del mapa pasan de 69 a
+  17—, y el motor aprendió `TileSubstitution` y `StoreTerrainID`. **Falta
+  data**: las cinco sustituciones del mapa no compilan porque los tiles del
+  estado "apagado" no están dibujados en ninguna celda, así que sus 8x8 no
+  entraron en la VRAM; el conversor lo dice por línea. Está en la tarea, con
+  la segunda condición que hay que mirar de paso.
+
+  Y una divergencia del motor que sale de ahí y vale para cualquier juego:
+  **una sustitución de tiles no se ve en el acto**. El tilemap de la VRAM no se
+  reescribe solo, así que la ventana se rehace de a una columna por cuadro y
+  tarda `WINDOW_COLS` cuadros en ponerse al día; RM2k redibuja el spriteset y
+  se ve ya. Caminando se disimula, porque la cámara trae las columnas nuevas ya
+  sustituidas. El techo de cuántas columnas por cuadro lo pone `push_strips`,
+  que sube una sola.
 
   Lo que esto bloqueaba **se destrabó solo el 2026-09-16**, cuando la golden
   pasó a ser una captura de la propia ROM: darle caso propio a la escena del
