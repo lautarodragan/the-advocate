@@ -26,12 +26,14 @@ HQ = "en-11"
 # Dónde vive la lista, para leerla: la RAM lejana se direcciona igual que el
 # banco $7E, así que el offset de `FAR_PAR_LISTA` es el de la WRAM.
 #
-# Los números son **índices de evento**, o sea la posición en la tabla del mapa
-# y no el id de RM2k: el evento 8 es el `LTSentry1` (id 14) y el 65 es el
-# `NVSpy` (id 71).
-TODOS = [1, 2, 3, 4, 5, 6, 7, 8, 26, 29, 65]
-SENTRY1 = 8
-NVSPY = 65
+# Lo que la lista lleva son **índices de evento**, o sea la posición en la tabla
+# del mapa y no el id de RM2k. Hasta el 2026-09-21 los once estaban escritos
+# acá, y eran un censo del mapa: el rediseño del minijuego de las piedras le
+# sacó 52 eventos y les corrió el índice a todos. Lo que esta prueba cuida no es
+# cuántos son sino que la lista **siga a la página activa**, así que el censo se
+# fue y los dos que se miran se buscan por nombre.
+SENTRY1 = "LTSentry1"
+NVSPY = "NVSpy"
 
 
 def lista_de(una):
@@ -40,6 +42,24 @@ def lista_de(una):
     datos = una.consola.ram(una.simbolos["FAR_PAR_LISTA"],
                             n * una.simbolos["PAR_LISTA_BYTES"])
     return [datos[i * una.simbolos["PAR_LISTA_BYTES"]] for i in range(n)]
+
+
+def indice_de(nombre):
+    """Qué índice le toca a ese evento en la tabla del mapa 11.
+
+    La tabla va en el orden de los ids, que es como la emite el conversor.
+    """
+    import os
+    import sys
+    raiz = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    sys.path.insert(0, os.path.join(raiz, "tools"))
+    from rpgmaker import lcf
+    game_map = lcf.Map("Map0011.lmu")
+    for indice, evento in enumerate(game_map.events):
+        if evento.name == nombre:
+            return indice
+    raise AssertionError("el mapa 11 no tiene ningún %r" % nombre)
 
 
 def test_la_lista_sigue_a_la_pagina_activa(partida):
@@ -57,24 +77,27 @@ def test_la_lista_sigue_a_la_pagina_activa(partida):
     activa tiene que volver a la lista. Sin eso, lo que se mide es que la ROM
     sabe sacar y no que sabe poner.
     """
+    sentry1, nvspy = indice_de(SENTRY1), indice_de(NVSPY)
     una = partida(caso=HQ)
     una.correr(10)
-    assert lista_de(una) == TODOS, "los once paralelos del mapa 11"
+    todos = lista_de(una)
+    assert sentry1 in todos and nvspy in todos, \
+        "el LTSentry1 y el NVSpy arrancan con su página paralela activa"
 
     una.prender(45)
     una.correr(3)
-    assert lista_de(una) == [e for e in TODOS if e != SENTRY1], \
+    assert lista_de(una) == [e for e in todos if e != sentry1], \
         "con el switch 45 el LTSentry1 pasa a su página de contacto"
 
     una.prender(48)
     una.correr(3)
-    assert lista_de(una) == [e for e in TODOS
-                             if e not in (SENTRY1, NVSPY)], \
+    assert lista_de(una) == [e for e in todos
+                             if e not in (sentry1, nvspy)], \
         "y con el 48 el NVSpy pasa a la suya de acción"
 
     una.apagar(45, 48)
     una.correr(3)
-    assert lista_de(una) == TODOS, \
+    assert lista_de(una) == todos, \
         "apagados los dos, las dos paralelas vuelven a ser las activas"
 
 

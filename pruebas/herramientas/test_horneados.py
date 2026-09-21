@@ -32,9 +32,9 @@ import cartuchos                                              # noqa: E402
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
 # goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita
 # que la lista envejezca cuando se le suma un mapa al proyecto. El 11 —el HQ de
-# los Lazer Teeth— es el que hornea la mayoría y el que motivó todo esto.
+# los Lazer Teeth— fue el que horneaba la mayoría y el que motivó todo esto,
+# hasta que sus baldosas dejaron de ser eventos.
 MAPAS = cartuchos.MAPAS
-HQ = 11
 
 
 def horneados_de(renderer, map_id):
@@ -43,18 +43,23 @@ def horneados_de(renderer, map_id):
     return game_map, snes_convert.eventos_horneables(renderer, game_map)
 
 
-def test_el_hq_de_los_lazer_teeth_hornea_sus_eventos_opacos():
-    """El mapa que motivó la regla tiene que seguir horneando algo.
+def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
+    """La regla no se puede apagar sola.
 
-    Sin número escrito: lo que se cuida es que la regla no se apague sola —un
-    filtro de más y el mapa 11 deja de ahorrar nada, y nadie se entera—. Cuántos
-    son lo dice el conversor en su informe.
+    Sin número escrito: un filtro de más y no se hornea nada, y nadie se
+    entera. Cuántos son lo dice el conversor en su informe.
+
+    **El sujeto ya no es el mapa 11**, que es para el que se escribió. El
+    2026-09-21 su minijuego se rediseñó y sus 52 baldosas de luz dejaron de ser
+    eventos —ver `juego/README.md`—, así que las 22 que horneaba no existen:
+    lo que le quedaba a la regla en este cartucho es otro mapa. La regla sigue
+    entera y sigue valiendo para el resto del juego; lo que se fue es su
+    cliente más grande.
     """
     renderer = Renderer()
-    _game_map, horneados = horneados_de(renderer, HQ)
-    assert horneados, \
-        "el mapa 11 no hornea ningún evento: la regla dejó de alcanzar al mapa " \
-        "para el que se escribió"
+    horneados = {m: horneados_de(renderer, m)[1] for m in MAPAS}
+    assert any(horneados.values()), \
+        "ningún mapa del cartucho hornea un evento: la regla dejó de alcanzar"
 
 
 def test_lo_que_se_hornea_tapa_la_celda_entera():
