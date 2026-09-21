@@ -35,6 +35,7 @@ en qué juego de caracteres está una cadena—.
 import json
 import os
 
+from rpgmaker import fork
 from rpgmaker.event_codes import EVENT_CODES
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -342,8 +343,18 @@ class Map:
         # están parados.
         base = os.path.basename(path)
         self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
-        raiz = os.path.join(volcado(path), "maps")
-        datos = leer(raiz, "Map%04d.json" % self.map_id)
+        raiz = volcado(path)
+        # El fork es sólo de **este** juego: un juego ajeno se lee pasándole su
+        # propio volcado, y ahí `juego/` no pinta nada.
+        forkeado = fork.mapa(self.map_id) if raiz == DATOS else None
+        if forkeado:
+            ruta_json, ruta_tiles = forkeado
+            datos = leer(ruta_json)
+        else:
+            ruta_json = os.path.join(raiz, "maps", "Map%04d.json" % self.map_id)
+            ruta_tiles = os.path.join(raiz, "maps",
+                                      "Map%04d.tiles" % self.map_id)
+            datos = leer(ruta_json)
 
         self.chipset_id = campo(datos, "chipset_id")
         self.width = campo(datos, "width")
@@ -358,8 +369,7 @@ class Map:
         self.parallax_sx = campo(datos, "parallax_sx")
         self.parallax_sy = campo(datos, "parallax_sy")
         self.lower_layer, self.upper_layer = capas(
-            os.path.join(raiz, "Map%04d.tiles" % self.map_id),
-            datos, self.width, self.height)
+            ruta_tiles, datos, self.width, self.height)
         self.events = [Event(e, self.map_id) for _, e
                        in sorted(por_id(lista(datos, "events")).items())]
 
@@ -602,6 +612,17 @@ class Database:
         self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
         crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
+        # Los ChipSets que agrega `juego/` —hoy uno solo, el propio del mapa
+        # 11—. Se **suman**: un id que ya esté en la base es un error, porque
+        # un fork que pisa una entrada envejece sin avisar el día que
+        # `just datos` la cambie. Ver `fork.py`.
+        if raiz == os.path.join(DATOS, "db"):
+            for numero, datos in fork.chipsets().items():
+                if numero in crudas["chipsets"]:
+                    raise ValueError(
+                        "el ChipSet %d ya está en data/: el fork agrega, no "
+                        "reemplaza" % numero)
+                crudas["chipsets"][numero] = datos["chipset"]
         self.chipsets = {i: Chipset(f) for i, f in crudas["chipsets"].items()}
         self.actors = {i: Actor(f) for i, f in crudas["actors"].items()}
         # Los ítems, y el número más alto: `ITEMS_N` en eventos.py es éste

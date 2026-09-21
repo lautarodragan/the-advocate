@@ -249,6 +249,15 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   pueden hornear. Ojo al medirlo: `cuadros_perdidos` **satura en 255**, así que
   hay que leerlo y ponerlo en cero cada pocas decenas de cuadros.
 
+  **A medias, el 2026-09-21**: la celda donde el minijuego de las piedras se
+  juega seguía en 30 fps clavados, y en vez de optimizar el motor se rediseñó
+  el minijuego —ver `tareas/el-mapa-11-no-entra-en-el-cuadro.md`—. La data ya
+  está: las 52 baldosas de luz del mapa 11 dejaron de ser eventos y son tiles
+  del mapa, con el mapa forkeado en `juego/` —los eventos dibujados del mapa
+  pasan de 69 a 17—. **Falta el motor**: `TileSubstitution` y `StoreTerrainID`,
+  sin los cuales seis páginas del mapa no compilan y los conos de luz no se
+  prenden ni se apagan. Hasta que estén, el minijuego no se puede jugar.
+
   Lo que esto bloqueaba **se destrabó solo el 2026-09-16**, cuando la golden
   pasó a ser una captura de la propia ROM: darle caso propio a la escena del
   ascensor del mapa 2 es gratis y está en

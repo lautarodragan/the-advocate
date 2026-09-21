@@ -13,6 +13,7 @@ import os
 from PIL import Image
 
 from render import charset
+from rpgmaker import fork
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, TILE, UPPER
@@ -238,6 +239,11 @@ class Renderer:
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir
         self.search_dirs = [REPO, game_dir, rtp_dir]
+        # Las imágenes de los ChipSets que agrega `juego/` se **arman** —el
+        # arte del juego no es nuestro para versionar, ver `fork.py`— y van
+        # primero en la búsqueda: son las que mandan cuando existen.
+        self.search_dirs.insert(0, fork.imagenes(
+            lambda nombre: find_resource(self.search_dirs, "ChipSet", nombre)))
         self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre,
                                  self.fondo_de_mapa)
         self.atlases = {}

@@ -14,8 +14,24 @@ entrar**, y **el camino que la atacaba —el 3— se descartó el 2026-09-21**:
 ver "Por qué no se optimiza".
 
 Lo que queda es **rediseñar el minijuego para que no haya nada que optimizar**:
-las 52 baldosas dejan de ser eventos y pasan a ser tiles del mapa. Está
-decidido y sin empezar; el reparto, en "El rediseño".
+las 52 baldosas dejan de ser eventos y pasan a ser tiles del mapa. El reparto
+está en "El rediseño", y al 2026-09-21 **la mitad de la data está hecha y la
+del motor no**:
+
+* hecho: el mecanismo del fork (`juego/`, con sus pruebas), el ChipSet propio
+  del mapa 11 y el mapa rediseñado. Los eventos dibujados del mapa pasan de
+  **69 a 17**;
+* falta: `TileSubstitution`, `StoreTerrainID` y la tabla de terrenos. **Seis
+  páginas del mapa no compilan** sin ellos —las cuatro fuentes de luz que se
+  rompen, el `ResetPuzzle` y el paralelo nuevo—, así que el minijuego todavía
+  no se puede jugar. El mapa original no tenía ninguna página sin compilar.
+
+Y tres cosas que aparecieron al mirar las 52 antes de borrarlas, que corrigen
+lo que este documento daba por sentado más abajo: **los conos son cinco y sólo
+cuatro se apagan** —el grupo B, 22 baldosas, no lo reubica nadie—, **no todas
+atrapan** —del cono A atrapa una sola y los conos D y E ninguna, así que los
+terrenos son tres y no seis— y **cuatro de las 22 del grupo B no son
+copy-paste**: tienen páginas propias según los switches 46 y 51.
 
 Después de los dos caminos, caminando 1200 cuadros:
 
@@ -262,9 +278,15 @@ paso.
   dice **"esta celda es del cono C"**, y si C está prendido ya lo sabe un
   switch que el juego tiene.
 
-  De ahí sale que hagan falta **seis pisos duplicados y no 52**: uno por cono.
-  El paralelo queda en leer el terreno bajo el héroe, y si es de un cono, mirar
-  su switch.
+  De ahí sale que hagan falta unos pocos pisos duplicados y no 52: uno por
+  cono. El paralelo queda en leer el terreno bajo el héroe, y si es de un cono,
+  mirar su switch.
+
+  **Son tres y no seis**, medido al hacerlo: sólo tres grupos de celdas
+  atrapan. Los tres terrenos son el 27, el 28 y el 29, que no los usa ningún
+  ChipSet del juego y traen los mismos valores que el 1 —el que el mapa tiene
+  hoy en todas sus celdas—, así que estrenarlos no cambia nada más que lo que
+  `StoreTerrainID` contesta.
 
 El port tiene que emitir además la **tabla de terrenos por ChipSet**, que
 `lcf.py` ya lee (`terrain_data`) y nadie usa. Va al banco 1, que tiene unos
@@ -306,9 +328,22 @@ la deja canónica y además correcta si algún día se vuelve de una pelea.
 
 ## Las 33 baldosas con comandos
 
-Son copy-paste: disparan el "me atraparon, se reinicia el minijuego". Lo
-reemplaza el paralelo con el terreno, que es una comparación por paso en vez de
-verificar si (x, y) cae adentro de una forma arbitraria.
+Se dieron por copy-paste y **no lo son**, aunque casi: al mirarlas una por una
+—el 2026-09-21, antes de borrarlas— salieron cinco scripts distintos y cuatro
+celdas con páginas propias.
+
+Los cinco scripts son el mismo "me atraparon, se reinicia el minijuego" con el
+guardia que mira y el texto cambiados: el del cono C lo agarra el `LTSentry2` y
+no el `LTSentry1`, la `A1` dice "avoid the light" donde las del B dicen "avoid
+the light, or not be seen", y hay una variante "avoid being seen" para cuando
+el guardia está caminando. Se copian tal cual a un evento de cinco páginas y
+el paralelo llama a la que toca, que es la forma que el mapa ya usaba.
+
+Las cuatro celdas con páginas propias son del grupo B y miran dos switches: el
+46 —el guardia se fue a ver el ruido— y el 51 —está caminando—. Una deja pasar,
+dos contestan "Something behind me?!" y tres cambian el texto. El paralelo las
+distingue por celda, y esa comparación **sólo corre cuando el héroe ya está
+parado en una del grupo B**, o sea una vez por partida y no una por cuadro.
 
 ## El fork del mapa, no el parche
 
@@ -338,6 +373,20 @@ Todo el fork es data y **Ditto lo puede escribir**: lee y escribe `.ldb`,
 ChipSet nuevo en la base con su pasabilidad y sus terrenos, el `chipset_id` del
 mapa, el `upper_layer` con los charcos horneados, y los 52 eventos reemplazados
 por uno paralelo.
+
+**Hecho el 2026-09-21**, con tres cosas que se decidieron al hacerlo y que este
+documento no preveía —el porqué de cada una, en `juego/README.md`—:
+
+* el fork del mapa lleva adentro un campo `id` que el volcado de Ditto no
+  tiene. Es lo único que hace real la prueba que taro pidió: el pipeline elige
+  el mapa por el **nombre del archivo** y los teleports lo nombran por su
+  **id**, y sin ese campo no hay "id de adentro" que comparar;
+* **el ChipSet nuevo no reemplaza la sección de la base: se agrega**, en un
+  archivo propio. Un fork que pisara `db/chipsets.json` envejecería sin avisar
+  el día que `just datos` la cambie;
+* **su imagen no se versiona: se arma.** El arte del juego no es nuestro para
+  redistribuir —vive en `/extras`—, así que lo commiteado es la receta —qué
+  bloque y qué tile se copian adónde— y el PNG sale a `rom/build/juego/`.
 
 ## El reparto
 
