@@ -7,7 +7,7 @@ ls | where type == dir | each {
     ($in.name | str uppercase)
     (ansi reset)
   ] | str join); 
-  print ''; 
+  # print ''; 
   ls $in.name | sort-by modified | where type == file | get name | each {
     let file = $in | path basename
 
@@ -16,15 +16,20 @@ ls | where type == dir | each {
       | first
       | get -o content
 
-    if ($yml | is-not-empty) {
-      let yml = $yml | from yml
-      if ($yml.name | is-not-empty) {
-        print $yml.name
-        print ''
-      }
+    let yml = if ($yml | is-not-empty) {
+      $yml | from yml
+    } else {
+      null
     }
+
+    let name = $yml | get -o name | default "(Not Named)"
     
-    print $file
+    # print $name
+    print (['  ' (ansi red) $name (ansi reset)] | str join)
+    print (['    ' (ansi green) $file (ansi reset)] | str join)
+    if ($yml | get -o description | is-not-empty) {
+      print (['    ' (ansi green) $yml.description (ansi reset)] | str join)
+    }
     
   }; 
   print '' 
