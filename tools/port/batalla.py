@@ -373,7 +373,7 @@ class Combatiente:
         return max(1, min(PARAM_MAX, self.agilidad_base + self.mod_agilidad))
 
 
-def actor_de(db, numero, equipo=None):
+def actor_de(db, numero, equipo=None, nivel=None):
     """El combatiente de un actor del LDB, con lo que tenga puesto.
 
     Los parámetros salen de `pantallas.parametros`, que es la misma función que
@@ -387,7 +387,7 @@ def actor_de(db, numero, equipo=None):
 
     El nivel es el `initial_level` del LDB y no el 1: ver `titulo.nivel_de`.
     Hasta el 2026-09-13 era el 1 y Kersh peleaba con 40 HP y ataque 17 en vez
-    de 168 y 80.
+    de 168 y 80. Con `nivel`, el que haya subido: ver `port.experiencia`.
     """
     from port import pantallas
     from port import titulo
@@ -395,13 +395,13 @@ def actor_de(db, numero, equipo=None):
     if equipo is None:
         equipo = list(actor.initial_equipment)
     ataque, defensa, espiritu, agilidad = pantallas.parametros(db, numero,
-                                                               equipo)
+                                                               equipo, nivel)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
+    quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp", nivel),
                         ataque, defensa, agilidad, 90, critico, True, numero,
-                        espiritu, titulo.parametro_de(actor, "maxsp"),
-                        habilidades_de(db, numero))
+                        espiritu, titulo.parametro_de(actor, "maxsp", nivel),
+                        habilidades_de(db, numero, nivel))
     return quien
 
 

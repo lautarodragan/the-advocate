@@ -24018,6 +24018,99 @@ cero:
     rtl
 .endproc
 
+; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
+; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
+; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
+; HP, 1 los SP, 2 el ataque, 3 la defensa, 4 el espíritu y 5 la agilidad.
+;
+; Entra con el actor en A y devuelve el valor en X. **Se lleva A e Y**, y no
+; toca la página directa: los que la llaman —la pantalla de equipo, la pelea,
+; `FullHeal`— la tienen ocupada cada uno con otra cosa, así que las cuentas van
+; por la pila. Todo lo que lee va con `f:`, así que el banco de datos da igual.
+;
+; Un actor sin ranura de experiencia —uno que no puede entrar al grupo— no
+; sube nunca, y lo suyo sale de las tablas de su nivel inicial, que son las de
+; siempre.
+.proc nivel_param
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    beq sin_ranura
+    rep #$20
+.a16
+    and #$00FF
+    pha                         ; la ranura
+    asl a
+    asl a
+    tax
+    lda f:FAR_LARGO + FAR_EXP + 2, x    ; el byte alto es el nivel
+    xba
+    and #$00FF
+    dec a
+    asl a
+    pha                         ; (nivel - 1) * 2, con la ranura debajo
+    lda 3, s
+    asl a
+    adc 3, s                    ; la ranura por tres: el `asl` dejó C en cero
+    asl a
+    sta 3, s                    ; y por seis, que es su primera fila
+    tya
+    clc
+    adc 3, s
+    asl a
+    tax
+    lda f:nivel_fila, x
+    clc
+    adc 1, s
+    tax
+    lda f:nivel_params, x
+    tax
+    pla
+    pla
+    sep #$20
+.a8
+    rtl
+sin_ranura:
+    rep #$20
+.a16
+    txa
+    asl a
+    tax                         ; el actor por dos
+    cpy #2
+    bcs de_los_cuatro
+    cpy #1
+    beq los_sp
+    lda f:actor_hpmax, x
+    bra listo
+los_sp:
+    lda f:actor_spmax, x
+    bra listo
+de_los_cuatro:
+    txa
+    asl a
+    asl a                       ; el actor por ocho: cuatro palabras cada uno
+    pha
+    tya
+    asl a
+    clc
+    adc 1, s
+    tax
+    pla
+    lda f:actor_params - 4, x   ; `actor_params` arranca en el ataque, el 2
+listo:
+    tax
+    sep #$20
+.a8
+    rtl
+.endproc
+
 ; `FullHeal`, y `ChangeHP` cuando suma: los dos son OP_HEAL, y los separa la
 ; cantidad. En 0 es `FullHeal`: los HP y los SP de cada actor del blanco a sus
 ; máximos. Es `Game_Actor::FullHeal` de easyrpg (`game_actor.cpp:391`), que
@@ -24074,14 +24167,26 @@ uno:
     rtl
 .endproc
 
-; El actor A: a sus máximos con `temp` en 0, o `temp` HP más. Se lleva X.
+; El actor A: a sus máximos con `temp` en 0, o `temp` HP más. Se lleva X e Y.
 ;
 ; Lo segundo es `Game_Battler::ChangeHp` (`game_battler.cpp:480`): a un caído
 ; no lo toca —ahí es `IsDead`, acá cero HP, que fuera de pelea es lo mismo— y
 ; lo que pase del máximo se topa, que es el `SetHp` de adentro. Los SP no.
+;
+; Los máximos son los de su nivel de ahora, `nivel_param`, y viven en la pila
+; mientras tanto: `temp` es la cantidad y `temp + 2` el actor de `curar`.
 .proc curar_actor
 .a8
 .i16
+    pha                         ; el actor
+    ldy #0
+    jsl f:nivel_param
+    phx                         ; los HP máximos
+    lda 3, s
+    ldy #1
+    jsl f:nivel_param
+    phx                         ; y los SP: pila = SP, HP, actor
+    lda 5, s
     rep #$20
 .a16
     and #$00FF
@@ -24089,9 +24194,9 @@ uno:
     tax
     lda temp
     bne sumar
-    lda f:actor_hpmax, x
+    lda 3, s
     sta f:FAR_LARGO + FAR_HP, x
-    lda f:actor_spmax, x
+    lda 1, s
     sta f:FAR_LARGO + FAR_SP, x
     bra listo
 sumar:
@@ -24100,15 +24205,18 @@ sumar:
     clc
     adc temp
     bcs topar                   ; dio la vuelta: la cantidad llega a $FFFF
-    cmp f:actor_hpmax, x
+    cmp 3, s
     bcc poner
 topar:
-    lda f:actor_hpmax, x
+    lda 3, s
 poner:
     sta f:FAR_LARGO + FAR_HP, x
 listo:
+    pla
+    pla
     sep #$20
 .a8
+    pla
     rts
 .endproc
 
@@ -24523,6 +24631,9 @@ hay_ranura:
     jmp siguiente_actor         ; una ranura del grupo sin nadie
 con_actor:
     sta BA_S0                 ; el actor del LDB
+    ldy #0
+    jsl f:nivel_param
+    stx BA_S2                 ; los HP máximos de su nivel
     ; Todo lo suyo a las palabras de paso: `ba_param` se lleva X, así que
     ; primero se junta y después se escribe con X puesto de una sola vez.
     rep #$20
@@ -24531,8 +24642,6 @@ con_actor:
     and #$00FF
     asl a
     tax
-    lda f:actor_hpmax, x
-    sta BA_S2                 ; los HP máximos del nivel
     lda f:actor_txt, x
     sta BA_S3                 ; y el número de texto de su nombre
     lda FAR_HP, x
@@ -24597,12 +24706,18 @@ con_actor:
     jsr ba_param                ; el espíritu, `eq_parametro` como los otros
     rep #$20
 .a16
+    sep #$20
+.a8
+    lda BA_S0
+    ldy #1
+    jsl f:nivel_param
+    stx BA_S3                 ; los SP máximos de su nivel
+    rep #$20
+.a16
     lda BA_S0
     and #$00FF
     asl a
     tax
-    lda f:actor_spmax, x
-    sta BA_S3
     lda FAR_SP, x
     sta BA_S4
     sep #$20
@@ -27373,8 +27488,12 @@ listo:
 ; `Game_Actor::ChangeExp(GetExp() + BA_T1)` para el actor A: suma, topa en
 ; `MaxExpValue()` y sube de nivel mientras alcance. Un actor sin ranura de
 ; experiencia no gana nada. Corre con el banco de datos en $7E, como toda la
-; pelea. Se lleva A, X, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así el
-; que reparte la puede sumar a varios.
+; pelea. Se lleva A, X, Y, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así
+; el que reparte la puede sumar a varios.
+;
+; Aprender las habilidades del nivel nuevo —`LearnLevelSkills`— no es un paso
+; de acá: la lista de cada actor se filtra por su nivel cada vez que se la
+; mira, así que alcanza con que el nivel suba.
 .proc exp_sumar
 .a8
 .i16
@@ -27426,6 +27545,59 @@ topar:
     lda #EXP_TOPE_HI
     sta FAR_EXP + 2, x
 sin_tope:
+    ; Y sube mientras alcance: el lazo de `ChangeExp`, que mira
+    ; `GetNextExp(nivel)` —la fila `nivel` de `exp_tabla`, lo que pide pasar
+    ; al siguiente— hasta el `GetMaxLevel()`. Una pelea puede subir más de un
+    ; nivel de una vez, y eso es de RM2k. Los HP y los SP no se tocan: subir
+    ; de nivel no cura, sólo sube el máximo.
+subir:
+    ldx BA_T2
+    lda f:exp_nivel_max, x
+    ldx BA_T0
+    cmp FAR_EXP + EXP_NIVEL, x
+    beq listo                   ; en el tope
+    bcc listo                   ; más arriba del tope: no pasa, pero no sube
+    lda FAR_EXP + EXP_NIVEL, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    pha                         ; el nivel por cuatro: su fila en la curva
+    lda BA_T2
+    asl a
+    tax
+    lda f:exp_curva, x
+    clc
+    adc 1, s
+    tax
+    pla
+    ; Lo que pide, en dos mitades: la baja a la pila —`BA_T*` están las tres
+    ; ocupadas— y la alta en A.
+    lda f:exp_tabla, x
+    pha
+    lda f:exp_tabla + 2, x
+    ldx BA_T0
+    sep #$20
+.a8
+    cmp FAR_EXP + 2, x          ; primero el byte alto
+    bne alto_distinto
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    cmp 1, s                    ; C si la experiencia alcanza
+    sep #$20
+.a8
+    ply                         ; `ply` no toca C
+    bcc listo
+    bra sube
+alto_distinto:
+    ply
+    bcs listo                   ; C: el alto que pide es más que el que hay
+sube:
+    inc FAR_EXP + EXP_NIVEL, x
+    bra subir
+listo:
     rts
 .endproc
 
@@ -29220,25 +29392,23 @@ ninguno:
 .proc eq_parametro
 .a8
 .i16
-    ; El del nivel: `actor_params`, cuatro palabras por actor.
+    ; El de su nivel de ahora: `nivel_param`, donde los cuatro de acá van del
+    ; 2 al 5. Y se guarda porque `nivel_param` se la lleva y el que llama a
+    ; esto no lo espera.
+    phy
     rep #$20
 .a16
-    lda comp_char
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    sta comp_or01
     lda comp_or01 + 2
     and #$00FF
-    asl a
     clc
-    adc comp_or01
-    tax
-    lda f:actor_params, x       ; fuera del banco 0: ver `actor_params`
-    sta comp_or01
+    adc #2
+    tay
     sep #$20
 .a8
+    lda comp_char
+    jsl f:nivel_param
+    stx comp_or01
+    ply
     lda #0
 ranura:
     pha

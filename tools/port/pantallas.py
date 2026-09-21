@@ -80,10 +80,11 @@ def tipo_de_ranura(ranura):
     return ranura + 1
 
 
-def parametros(db, actor, equipo):
+def parametros(db, actor, equipo, nivel=None):
     """Ataque, defensa, espíritu y agilidad: los del nivel más lo que suma el
-    equipo, topados en [1, 999] como `Game_Actor::GetAtk` y sus hermanas."""
-    base = [titulo.parametro_de(db.actors[actor], k)
+    equipo, topados en [1, 999] como `Game_Actor::GetAtk` y sus hermanas. Sin
+    `nivel`, el de arranque."""
+    base = [titulo.parametro_de(db.actors[actor], k, nivel)
             for k in ("attack", "defense", "spirit", "agility")]
     for item in equipo:
         if item:

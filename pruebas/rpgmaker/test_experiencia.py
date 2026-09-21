@@ -20,7 +20,7 @@ from port import experiencia                                # noqa: E402
 
 from consola import en_la_rom                               # noqa: E402
 from test_batalla import (GRUPO, TROPA_DROIDE, Pelea, db,   # noqa: E402
-                          en_el_droide, modelo_de)
+                          en_el_droide)
 
 
 def rom_de(una):
@@ -52,19 +52,30 @@ def poner_exp(una, actor, exp, nivel):
                              [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
 
 
-def ganar_al_droide(una, caidos=()):
+def ganar_al_droide(una, caidos=(), niveles=None):
     """La pelea del droide entera, atacando, y cerrada. Devuelve el modelo
     ya jugado, para saber quién quedó vivo.
 
-    Los de `caidos` entran a la pelea con cero HP, de los dos lados.
+    Los de `caidos` entran a la pelea con cero HP, de los dos lados, y los de
+    `niveles` pelean en ese nivel en el modelo —en la ROM ya se lo puso
+    `poner_exp`—. Los HP de la partida son los del reset, que son los del
+    nivel de arranque, así que a los de `niveles` se les topan en el máximo
+    del nivel nuevo, de los dos lados: es el `SetHp(GetHp())` de `SetLevel`,
+    que la ROM no necesita porque nunca baja a nadie de nivel.
     """
-    for actor in caidos:
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor, [0, 0])
-    pelea = Pelea(una).abrir()
-    esperado = modelo_de(db())
+    niveles = niveles or {}
+    base = db()
+    esperado = modelo.Batalla(
+        [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in GRUPO],
+        [modelo.enemigo_de(base, e, n)
+         for n, e in enumerate(base.troops[TROPA_DROIDE].members)])
     for quien in esperado.actores:
+        quien.hp = min(quien.hp_max, modelo.actor_de(base, quien.numero).hp)
         if quien.numero in caidos:
             quien.hp = 0
+        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * quien.numero,
+                                 [quien.hp & 0xFF, quien.hp >> 8])
+    pelea = Pelea(una).abrir()
     while esperado.resultado is None:
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
@@ -148,3 +159,98 @@ def test_la_experiencia_viaja_en_la_partida(partida):
     assert exp_y_nivel(una, actor) == (123456, 33), \
         "la experiencia no volvió de la SRAM: quedó en %r" \
         % (exp_y_nivel(una, actor),)
+
+
+# --- la subida de nivel -----------------------------------------------------
+
+def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
+    """El lazo de `ChangeExp`: sube mientras `GetNextExp(nivel)` alcance.
+
+    Manta entra en el nivel 2 con 83 de experiencia, uno menos de lo que pide
+    el 3, y el droide da 90: tiene que quedar en el 4, **dos niveles de una
+    vez**, porque 173 pasa también los 172 del 4. Kersh entra a 50 de su
+    siguiente nivel, que es la subida de a uno. Los dos números salen de
+    `experiencia.sumar` y no de acá.
+
+    De paso, Manta pelea en el nivel 2 y el modelo también: si la ROM armara
+    la pelea con los parámetros del nivel de arranque, los turnos no
+    coincidirían con los del modelo.
+    """
+    una = en_el_droide(partida)
+    base = db()
+    kersh, manta = GRUPO[0], GRUPO[2]
+    lista = experiencia.lista_de(base.actors[kersh])
+    nivel_k = experiencia.nivel_inicial(base.actors[kersh])
+    poner_exp(una, kersh, lista[nivel_k] - 50, nivel_k)
+    poner_exp(una, manta, 83, 2)
+    esperado = ganar_al_droide(una, niveles={manta: 2})
+    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    assert {kersh, manta} <= {c.numero for c in esperado.actores if c.vivo}
+    assert experiencia.sumar(base.actors[manta], 2, 83, ganada)[0] == 4, \
+        "el caso quiere dos niveles de una vez para Manta"
+    for actor, nivel, exp in ((kersh, nivel_k, lista[nivel_k] - 50),
+                              (manta, 2, 83)):
+        nivel, exp = experiencia.sumar(base.actors[actor], nivel, exp, ganada)
+        assert exp_y_nivel(una, actor) == (exp, nivel), \
+            "el actor %d quedó con %r y tendría que ser %r" % (
+                actor, exp_y_nivel(una, actor), (exp, nivel))
+
+
+def test_en_el_tope_no_sube_mas(partida):
+    """`GetMaxLevel()`: con el `final_level` del LDB alcanzado, la experiencia
+    se suma y el nivel no se mueve."""
+    una = en_el_droide(partida)
+    base = db()
+    actor = GRUPO[0]
+    tope = experiencia.nivel_max(base.actors[actor])
+    lista = experiencia.lista_de(base.actors[actor])
+    poner_exp(una, actor, lista[tope - 1] + 5, tope)
+    ganar_al_droide(una, niveles={actor: tope})
+    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    assert exp_y_nivel(una, actor) == (lista[tope - 1] + 5 + ganada, tope)
+
+
+def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
+    """`GetBaseMaxHp` y sus hermanas leen la curva del LDB **en el nivel que
+    tiene**, no en el de arranque.
+
+    Se le pone el nivel 30 a Kersh y se abre la pelea: los seis parámetros que
+    la pelea arma —HP y SP máximos, ataque, defensa, espíritu y agilidad—
+    tienen que ser los de `batalla.actor_de` con ese nivel, y distintos de
+    los del 20, que si no el caso no distingue nada. Los cuatro del medio
+    pasan por `eq_parametro`, que es también la de la pantalla de equipo.
+    """
+    una = en_el_droide(partida)
+    base = db()
+    kersh = GRUPO[0]
+    poner_exp(una, kersh, experiencia.lista_de(base.actors[kersh])[29], 30)
+    pelea = Pelea(una).abrir()
+    s = una.simbolos
+    d = s["BA_UNO"]
+    campos = {"hp_max": d + s["BA_HPMAX"], "sp_max": d + s["BA_SPMAX"],
+              "ataque": d + s["BA_ATK"], "defensa": d + s["BA_DEF"],
+              "espiritu": d + s["BA_SPI"], "agilidad": d + s["BA_AGI"]}
+    de_la_rom = {k: pelea.palabra(v) for k, v in campos.items()}
+    en_30 = modelo.actor_de(base, kersh, nivel=30)
+    en_20 = modelo.actor_de(base, kersh)
+    esperado = {k: getattr(en_30, k) for k in campos}
+    assert de_la_rom == esperado
+    assert all(esperado[k] != getattr(en_20, k) for k in campos), \
+        "los seis parámetros del 30 tendrían que ser otros que los del 20"
+
+
+def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
+    """`FullHeal` es `SetHp(GetMaxHp())`, y el máximo es el del nivel que el
+    actor tiene. Es el camino de `test_curar.py`, con un nivel que no es el
+    de arranque."""
+    from test_curar import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
+    una = partida(caso="pelea-82-curar")
+    base = db()
+    sin_hp(una)
+    actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
+    poner_exp(una, actor, experiencia.lista_de(base.actors[actor])[29], 30)
+    una.correr(DESPUES_DE_PERDER)
+    en_30 = modelo.actor_de(base, actor, nivel=30)
+    assert (palabra_de(una, "FAR_HP", actor),
+            palabra_de(una, "FAR_SP", actor)) == (en_30.hp_max, en_30.sp_max)
+    assert en_30.hp_max != modelo.actor_de(base, actor).hp_max

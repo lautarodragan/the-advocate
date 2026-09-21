@@ -443,16 +443,20 @@ def nivel_de(actor):
     return actor.initial_level
 
 
-def parametro_de(actor, cual):
+def parametro_de(actor, cual, nivel=None):
     """Un parámetro del actor a su nivel: `maxhp`, `maxsp`, `attack`,
     `defense`, `spirit` o `agility`.
 
     La tabla del LDB va desde el nivel 1, así que el índice es el nivel menos
     uno. Un actor sin la tabla —o con una más corta que su nivel, que no pasa
     en este juego— da cero, que es lo que hacía el código de antes.
+
+    Sin `nivel` es el de arranque; con él, el que haya subido peleando: ver
+    `port.experiencia`.
     """
     valores = actor.params.get(cual) or []
-    nivel = nivel_de(actor)
+    if nivel is None:
+        nivel = nivel_de(actor)
     return valores[nivel - 1] if nivel - 1 < len(valores) else 0
 
 
