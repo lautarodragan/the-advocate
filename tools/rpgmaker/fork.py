@@ -144,7 +144,11 @@ def imagen_del_chipset(datos, buscar):
     if origen is None:
         raise ForkRoto("no está el ChipSet %r, del que sale el %d"
                        % (receta["base"], datos["chipset"]["id"]))
-    imagen = Image.open(origen).convert("RGBA")
+    # Sin convertir a RGBA: los ChipSets son PNG indexados y el color 0 es el
+    # color key. Convertirlos acá tiraba la paleta, y el PNG que salía tenía
+    # los tiles vacíos **opacos**: se ve, y se ve mal.
+    imagen = Image.open(origen)
+    imagen.load()
     for desde, hasta in receta["bloques_bajos"]:
         imagen.paste(imagen.crop(caja_de_terreno(desde)),
                      caja_de_terreno(hasta)[:2])
@@ -157,7 +161,7 @@ def imagen_del_chipset(datos, buscar):
     destino = os.path.join(GENERADO, "ChipSet",
                            datos["chipset"]["chipset_name"] + ".png")
     os.makedirs(os.path.dirname(destino), exist_ok=True)
-    provisorio = "%s.%d.tmp" % (destino, os.getpid())
+    provisorio = "%s.%d.png" % (destino, os.getpid())
     imagen.save(provisorio)
     os.replace(provisorio, destino)
     return destino
