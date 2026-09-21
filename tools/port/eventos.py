@@ -1523,16 +1523,10 @@ COND_ACTOR = 5
 # estadísticas que este port no lleva o que no cambian nunca; medido sobre el
 # juego entero, las cuatro juntas cortan **cero** páginas.
 COND_ACTOR_EN_GRUPO = 0
-# `actor->IsSkillLearned(p[3])`. Lo contesta una tabla del cartucho
-# —`sabe_hab`— que sale de `batalla.aprendidas_de`, la misma función con la que
-# la referencia contesta: las dos leen el LDB y no puede haber dos respuestas.
-#
-# **Lo que este port todavía no tiene es cómo cambiarla**: `ChangeSkills` no
-# compila —20 comandos del juego, y uno de ellos le enseña la 152 a Arden, que
-# es justo la que dos mapas preguntan—. Así que la respuesta es hoy la del
-# LDB y nada la mueve. Es una deuda declarada y no un camino a medias: las
-# páginas que la enseñan no compilan, así que ninguna de las dos partes corre
-# a medias.
+# `actor->IsSkillLearned(p[3])`. Desde el 2026-09-21 es estado: el bit del par
+# (actor, habilidad) en `FAR_HAB`, que arranca con lo que `batalla.aprendidas_de`
+# dice del LDB y que `ChangeSkills` prende y apaga. El operando que viaja es la
+# ranura del par y no la habilidad; ver `HABILIDAD_RANURA`.
 COND_ACTOR_HABILIDAD = 4
 # Los cinco `Get*Id()` de easyrpg comparados contra `p[3]`: arma, escudo,
 # armadura, casco y accesorio. Esto **sí** es estado de verdad —`FAR_EQUIPO`,
@@ -2417,6 +2411,100 @@ def indexar_terminos(game_dir):
     return dict(TERMINOS_POSADA)
 
 
+# --- qué habilidades sabe cada actor, como estado --------------------------
+#
+# `ChangeSkills` le enseña y le hace olvidar habilidades a un actor, y eso es
+# estado del mundo: viaja en la partida, como el equipo. Lo que la ROM guarda
+# es **un bit por par (actor, habilidad)**, y no una lista por actor, porque
+# el juego enseña de a muchas —al actor 14 le pone y le saca setenta en los
+# eventos comunes— y una lista de largo variable en la RAM lejana pediría
+# buscar, insertar ordenado y topar.
+#
+# Los pares son los que el juego entero puede llegar a mirar, y no más: los de
+# la tabla de aprendizaje del LDB **en todos los niveles** —el día que haya
+# subida de nivel, `LearnLevelSkills` prende los que le toquen—, los que algún
+# `ChangeSkills` nombra y los que alguna rama "sabe la habilidad" pregunta.
+# Un par que nadie nombra no puede cambiar ni ser preguntado, así que no hace
+# falta su bit. Se barren todos los mapas del juego y todos los eventos comunes,
+# compilen o no, por lo mismo que las variables: así una página que compile
+# después no le corre la ranura a ninguna otra, y una partida guardada con una
+# ROM vale para otra.
+#
+# El orden es por actor y después por habilidad, y no es cosmético: deja los
+# pares de cada actor seguidos y ordenados por número, que es el orden en que
+# `LearnSkill` los deja y en el que el menú de la pelea los muestra. Así la
+# ROM arma la lista recorriendo un tramo, sin ordenar nada.
+#
+# OP_SKILL: ranura del par (word), aprende (byte: 1 aprende, 0 olvida)
+HABILIDAD_RANURA = {}   # (actor, habilidad) -> ranura
+# El techo: los bits viven en `FAR_HAB`, que tiene 256 bytes en el mapa de la
+# RAM lejana. Hoy el juego usa muchos menos; si algún día no alcanzan, el
+# conversor se corta en vez de pisar al vecino.
+HABILIDAD_RANURAS_MAX = 256 * 8
+CHANGE_SKILLS = 10440
+CHANGE_EQUIPMENT = 10450
+GAME_OVER = 12420
+
+
+def pares_de_habilidad_de_comandos(comandos):
+    """Los pares (actor, habilidad) que nombran estos comandos: el barrido de
+    `pares_de_habilidad`, que es también el de las páginas de prueba.
+
+    Sólo las formas que compilan —el actor fijo y la habilidad constante—:
+    un par que viene en una variable no se puede indexar, y esos comandos no
+    compilan. Ninguno del juego lo hace."""
+    pares = set()
+    for cmd in comandos:
+        p = cmd.parameters
+        if cmd.code == CHANGE_SKILLS and len(p) >= 5 \
+                and p[0] == 1 and p[3] == 0:
+            pares.add((p[1], p[4]))
+        elif cmd.code == COND_RAMA and len(p) >= 4 and p[0] == COND_ACTOR \
+                and p[2] == COND_ACTOR_HABILIDAD:
+            pares.add((p[1], p[3]))
+    return pares
+
+
+def pares_de_habilidad(game_dir, extra=()):
+    """Cada par (actor, habilidad) que el juego puede mirar, con su ranura.
+
+    Ver `HABILIDAD_RANURA`. Los que nombran un actor o una habilidad que el
+    LDB no tiene se descartan: RM2k los ignora con un aviso, y acá no
+    compilan."""
+    from rpgmaker import lcf
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    pares = set(extra)
+    for numero, actor in db.actors.items():
+        pares |= {(numero, s) for _nivel, s in actor.skills if s}
+    for map_id in mapas_del_juego(game_dir):
+        game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                pares |= pares_de_habilidad_de_comandos(page.commands)
+    for comandos in db.common_events.values():
+        pares |= pares_de_habilidad_de_comandos(comandos)
+    pares = {(a, s) for a, s in pares if a in db.actors and s in db.skills}
+    return {par: ranura for ranura, par in enumerate(sorted(pares))}
+
+
+def indexar_habilidades(game_dir, extra=()):
+    """Deja en `HABILIDAD_RANURA` el índice del juego entero. Lo llama el
+    conversor antes de compilar nada, como `indexar_variables`."""
+    HABILIDAD_RANURA.clear()
+    HABILIDAD_RANURA.update(pares_de_habilidad(game_dir, extra))
+    if len(HABILIDAD_RANURA) > HABILIDAD_RANURAS_MAX:
+        raise SystemExit("los pares de habilidad son %d y `FAR_HAB` lleva %d"
+                         % (len(HABILIDAD_RANURA), HABILIDAD_RANURAS_MAX))
+    return dict(HABILIDAD_RANURA)
+
+
+def ranura_de_habilidad(actor, habilidad):
+    if (actor, habilidad) not in HABILIDAD_RANURA:
+        raise NoSePuede("el par actor %d, habilidad %d no tiene ranura"
+                        % (actor, habilidad))
+    return HABILIDAD_RANURA[(actor, habilidad)]
+
+
 def indexar_variables(game_dir, extra=()):
     """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
     conversor y la referencia antes de compilar nada; tarda un tercio de
@@ -2585,6 +2673,11 @@ def bytes_de_rama(cmd):
                 # llamar a `indexar_actores`.
                 raise NoSePuede("el actor %d no está en el LDB" % numero)
             dato = p[3]
+            if p[2] == COND_ACTOR_HABILIDAD:
+                # La habilidad viaja como la ranura de su par: es el bit que
+                # la ROM mira, y así no tiene que buscar. Ver
+                # `HABILIDAD_RANURA`.
+                dato = ranura_de_habilidad(numero, dato)
             if not 0 <= dato <= 0xFFFF:
                 raise NoSePuede("una rama de actor contra %d, que no entra en "
                                 "una palabra" % dato)
@@ -2900,7 +2993,8 @@ def fondo_de_encuentro(cmd):
 
 
 def actor_de_blanco(p, que):
-    """El operando de actor de OP_HEAL, desde el `[tipo, id]` de RM2k.
+    """El operando de actor de OP_HEAL y de OP_EQUIPMENT, desde el `[tipo, id]`
+    de RM2k.
 
     Es `GetActors` de easyrpg (`game_interpreter.cpp:1539`): 0 el grupo, 1 un
     actor fijo, 2 el actor que diga una variable. El operando es el actor, con
@@ -2908,7 +3002,8 @@ def actor_de_blanco(p, que):
     nadie.
 
     La forma 2 no la usa ningún `FullHeal` ni ningún `ChangeHP` que sume
-    —medido el 2026-09-19 sobre los 328 mapas y los eventos comunes—, así que
+    —medido el 2026-09-19 sobre los 328 mapas y los eventos comunes—, ni
+    ningún `ChangeEquipment` —el 2026-09-21—, así que
     no compila en vez de resolverse en la ROM sin nada que la ejercite.
     """
     if p[0] == 0:
@@ -3431,6 +3526,54 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             return b""
         return bytes([OP_HEAL, actor_de_blanco(p, "ChangeHP"),
                       p[4] & 0xFF, p[4] >> 8])
+    if cmd.code == CHANGE_SKILLS:
+        # [tipo, id, olvida, habilidad por variable, habilidad]. Es
+        # `CommandChangeSkills` de easyrpg: `LearnSkill` o `UnlearnSkill`
+        # sobre cada actor del blanco, sin pedir el refresco de páginas —allá
+        # tampoco lo pide— y sin mensaje: el "aprendió tal cosa" lo escribe la
+        # página con un `ShowMessage`.
+        #
+        # Los 898 del juego son todos de actor fijo y habilidad constante, así
+        # que el operando es directamente el bit: ver `HABILIDAD_RANURA`. El
+        # grupo, el actor por variable y la habilidad por variable no
+        # compilan.
+        if len(p) < 5:
+            raise NoSePuede("ChangeSkills sin operandos")
+        if p[0] != 1:
+            raise NoSePuede("ChangeSkills sobre el grupo o un actor por "
+                            "variable")
+        if p[3] != 0:
+            raise NoSePuede("ChangeSkills con la habilidad en una variable")
+        ranura = ranura_de_habilidad(p[1], p[4])
+        return bytes([OP_SKILL, ranura & 0xFF, ranura >> 8,
+                      0 if p[2] else 1])
+    if cmd.code == CHANGE_EQUIPMENT:
+        # [tipo, id, operación, a, b]. La operación 1 es sacarse lo de la
+        # ranura `a` —0 a 4, arma a accesorio; 5 es todo— y es
+        # `Game_Actor::ChangeEquipment(ranura, 0)`: la ranura queda vacía y lo
+        # que tenía vuelve al inventario, topado en ITEM_MAX. Tampoco pide el
+        # refresco: `CommandChangeEquipment` no lo pide.
+        #
+        # Los 35 que el juego corre fuera de pelea son todos de sacar una
+        # ranura; los 560 que equipan son de las tropas, que este port no
+        # corre. Así que equipar no compila, y sacarse todo tampoco: no lo usa
+        # nadie.
+        if len(p) < 4:
+            raise NoSePuede("ChangeEquipment sin operandos")
+        if p[2] != 1:
+            raise NoSePuede("ChangeEquipment que equipa")
+        from port import pantallas      # que importa este módulo
+        if not 0 <= p[3] < pantallas.RANURAS_EQUIPO:
+            raise NoSePuede("ChangeEquipment que saca todo el equipo")
+        actor = actor_de_blanco(p, "ChangeEquipment")
+        if _ACTORES_INDEXADOS and actor and actor not in ACTOR_EQUIPO:
+            raise NoSePuede("el actor %d no está en el LDB" % actor)
+        return bytes([OP_EQUIPMENT, actor, p[3]])
+    if cmd.code == GAME_OVER:
+        # `CommandGameOver`: la pantalla de Game Over y, al apretar, el título.
+        # Acá es volver al arranque, igual que perder una pelea sin manejador
+        # —ver `BATALLA_PERDER`—, y la imagen no se dibuja.
+        return bytes([OP_GAME_OVER])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")
@@ -4673,11 +4816,9 @@ class Estado:
         """Las cinco ranuras de este actor, como las tiene ahora.
 
         Es `FAR_EQUIPO` del otro lado: arranca del `initial_equipment` del LDB
-        —que la ROM copia en el reset— y **nadie las mueve todavía desde el
-        intérprete**, porque `ChangeEquipment` no compila. La pantalla de
-        equipo sí las mueve en la ROM, pero el menú no se abre en ninguna
-        comparación de la tanda; el día que se abra, esto es lo que hay que
-        hacerle seguir.
+        —que la ROM copia en el reset— y **de este lado no las mueve nadie**:
+        la pantalla de equipo y, desde el 2026-09-21, `ChangeEquipment` las
+        mueven en la ROM, que es la única que corre el bytecode.
 
         Se copia en vez de devolver la tupla del índice para que nadie le
         escriba encima al LDB sin querer.
