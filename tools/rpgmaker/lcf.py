@@ -523,7 +523,7 @@ class Item:
             else True
 
 
-ENEMY_CAMPOS = ("name", "battler_name", "max_hp", "max_sp", "attack",
+ENEMY_CAMPOS = ("name", "battler_name", "battler_hue", "max_hp", "max_sp", "attack",
                 "defense", "spirit", "agility", "exp", "gold", "critical_hit",
                 "miss")
 
@@ -795,6 +795,12 @@ class TreeMap:
             rect = sub(f, "area_rect")
             self.area_rect[i] = tuple(campo(rect, c) for c in "ltrb")
 
+        # El fondo de batalla de cada nodo: `background_type` 0 es "el del
+        # padre", 1 "el del terreno" y 2 "éste", con el nombre al lado.
+        self.background = {i: (campo(f, "background_type"),
+                               campo(f, "background_name"))
+                           for i, f in infos.items()}
+
         self.music = {}
         for i, f in infos.items():
             musica = sub(f, "music")
@@ -809,6 +815,24 @@ class TreeMap:
         self.start_map_id = campo(start, "party_map_id")
         self.start_x = campo(start, "party_x")
         self.start_y = campo(start, "party_y")
+
+    def map_background(self, map_id):
+        """El fondo de batalla de un encuentro en este mapa, o "".
+
+        Es `Game_Map::SetupBattle` de easyrpg-player: se sube por el árbol
+        mientras el nodo diga "el del padre", y sólo el 2 trae nombre. El 1 es
+        el fondo del terreno que se pisa, que este port no tiene, así que da lo
+        mismo que nada. Lo que se mira es **el mapa y no el área**: las áreas
+        de ABL son todas "el del padre", y easyrpg arranca de `GetMapInfo()`.
+        """
+        seen = set()
+        while map_id and map_id not in seen:
+            seen.add(map_id)
+            tipo, nombre = self.background.get(map_id, (0, ""))
+            if tipo != 0:
+                return nombre if tipo == 2 else ""
+            map_id = self.map_parents.get(map_id, 0)
+        return ""
 
     def map_music(self, map_id):
         """El tema de un mapa, siguiendo la herencia hacia el padre.

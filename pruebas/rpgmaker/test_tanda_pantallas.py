@@ -182,7 +182,7 @@ BATALLAS = (
     # los Lazer Teeth.
     ("batalla-droide", "batalla-droide", 200, (), None),
     # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
-    # **dos** tropas y dos escenas, para que `tropa_id` y `escena_de` se
+    # **dos** tropas y dos fondos, para que `tropa_id` y `escena_tropa_fondo` se
     # indexaran de verdad en vez de acertar siempre con el primer renglón.
     # Desde el 9f el cartucho de pruebas lleva todas las tropas y eso lo
     # cumplen todas; se deja por la golden.

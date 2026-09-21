@@ -3203,32 +3203,104 @@ def experiencia_asm(db, actores, actores_n):
     return "\n".join(out) + "\n"
 
 
-def escenas_asm(escenas, tropas):
-    """Las escenas de batalla del cartucho, listas para el `.inc`.
+def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
+    """Qué fondos y qué battlers lleva el cartucho, y quién usa cada uno.
 
-    Una escena es **el fondo con los battlers ya encima**, horneada: el porqué
-    y lo que cuesta están en tools/port/escena.py. Lo que se emite:
+    Es la otra mitad de tools/port/escena.py: allá está cómo se convierte un
+    fondo o un battler, acá **cuáles**. Un fondo entra si está en
+    `escena.FONDOS` y alguna pelea del cartucho lo pide, que es de dos maneras:
 
-      `escena_de`      por índice de tropa —el orden de `tropa_id`—, qué escena
-                       le toca, o $FF si esa tropa no tiene fondo.
-      `escena_trozo`   por escena y trozo, el puntero de 24 bits a sus 8 KB de
-                       tiles. Cuatro trozos y no un bloque seguido por lo mismo
-                       que las animaciones: 32 KB son un banco entero y no hay
-                       bloque que entre al lado de nada.
-      `escena_cgram`   sus 96 colores, que van a la CGRAM desde la entrada 32.
+    * **un `EnemyEncounter` que lo nombra**, y entonces es de la tropa —así
+      funcionaba la escena horneada—. Si dos lo pidieran distinto para la
+      misma tropa gana el primero, como en `Tropas.pedir`;
+    * **un encuentro al azar en un mapa que lo hereda**, que es
+      `TreeMap.map_background`: las áreas de los Back Alleys no traen fondo y
+      lo sacan de su mapa.
+
+    Un battler entra si lo usa alguna tropa del cartucho, **una vez** aunque lo
+    usen cuatro, y es la imagen con su tono: la GiantRat y la HairyVermin son
+    el mismo `BLmouse` y dos battlers.
+    """
+    E = escena_mod
+    datos = {"fondos": [], "battlers": [], "battler_de": {},
+             "tropa_fondo": {}, "mapa_fondo": []}
+    fondo_de = {}
+
+    def pedir_fondo(nombre):
+        if nombre not in E.FONDOS:
+            return 0xFF
+        if nombre not in fondo_de:
+            info = E.fondo(nombre, game_dir)
+            if info is None:
+                print("  el fondo %r no está en el juego" % nombre)
+                fondo_de[nombre] = 0xFF
+            else:
+                fondo_de[nombre] = len(datos["fondos"])
+                datos["fondos"].append(info)
+        return fondo_de[nombre]
+
+    for numero in tropas.ids:
+        fondo = tropas.fondos.get(numero)
+        datos["tropa_fondo"][numero] = pedir_fondo(fondo) if fondo else 0xFF
+    por_mapa = (encuentros or {}).get("por_mapa") or [0xFF] * len(mapas)
+    for mapa, registro in zip(mapas, por_mapa):
+        nombre = tree.map_background(mapa["id"]) if registro != 0xFF else ""
+        datos["mapa_fondo"].append(pedir_fondo(nombre) if nombre else 0xFF)
+    battler_k = {}
+    for numero in tropas.ids:
+        if numero not in db.troops:
+            continue
+        for enemigo in db.troops[numero].members[:batalla_mod.ENEMIGOS_MAX]:
+            if enemigo in datos["battler_de"] or enemigo not in db.enemies:
+                continue
+            e = db.enemies[enemigo]
+            nombre = e.battler_name or ""
+            tono = getattr(e, "battler_hue", 0) or 0
+            k = E.clave(nombre, tono)
+            if k not in battler_k:
+                info = E.battler(nombre, tono, game_dir) if nombre else None
+                battler_k[k] = 0xFF if info is None else len(datos["battlers"])
+                if info is not None:
+                    datos["battlers"].append(info)
+            datos["battler_de"][enemigo] = battler_k[k]
+    return datos
+
+
+def escenas_asm(datos, tropas, db):
+    """La escena de batalla del cartucho, lista para el `.inc`.
+
+    Los fondos y los battlers **por separado**, que la ROM compone al empezar
+    la pelea: el porqué y el formato están en tools/port/escena.py. Lo que se
+    emite:
+
+      `escena_tropa_fondo`  por índice de tropa —el orden de `tropa_id`—, el
+                            fondo que nombra su `EnemyEncounter`, o $FF.
+      `escena_mapa_fondo`   por índice de mapa, el de sus encuentros al azar.
+      `fondo_trozo`         por fondo y trozo, el puntero de 24 bits a sus
+                            8 KB de tiles. Cuatro trozos y no un bloque seguido
+                            porque 32 KB son un banco entero y no hay bloque
+                            que entre al lado de nada.
+      `fondo_cgram`         sus 96 colores, que van a la CGRAM desde la 32.
+      `battler_*`           por battler: cuántos bytes mide una fila de un
+                            plano, cuántas filas, cuánto mide un plano, dónde
+                            están sus bytes y sus quince colores.
+      `miembro_*`           por miembro de tropa —el orden de `tropa_miembro`—,
+                            qué battler es y dónde cae su esquina.
 
     El tilemap no se emite: son los 512 tiles en orden y la ROM lo arma con un
-    lazo. Emitirlo serían 2 KB de cartucho por escena para escribir 0, 1, 2...
+    lazo. Emitirlo serían 2 KB de cartucho para escribir 0, 1, 2...
     """
     E = escena_mod
     trozos = E.TILES * 64 // ESCENA_TROZO
+    fondos, battlers = datos["fondos"], datos["battlers"]
     out = [
-        "\n; --- la escena de la batalla: el fondo y los monstruos ---",
+        "\n; --- la escena de la batalla: los fondos y los battlers ---",
         ";",
-        "; Van horneados juntos en una capa de 8bpp de 256x128, que son los",
-        "; siete renglones de texto de arriba. El porqué está en",
-        "; tools/port/escena.py; acá sólo viajan los bytes.",
-        "ESCENA_N        = %d" % len(escenas),
+        "; Van por separado y la ROM los compone en una capa de 8bpp de",
+        "; 256x128, que son los siete renglones de texto de arriba. El porqué",
+        "; está en tools/port/escena.py; acá sólo viajan los bytes.",
+        "ESCENA_FONDOS   = %d" % len(fondos),
+        "ESCENA_BATTLERS = %d" % len(battlers),
         "ESCENA_ANCHO    = %d" % E.ANCHO,
         "ESCENA_ALTO     = %d" % E.ALTO,
         "ESCENA_TILES    = %d" % E.TILES,
@@ -3240,6 +3312,7 @@ def escenas_asm(escenas, tropas):
         "ESCENA_MAPA     = $%04X" % E.VRAM_MAPA,
         "ESCENA_TROZO    = %d" % ESCENA_TROZO,
         "ESCENA_TROZOS   = %d" % trozos,
+        "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETA,
         "; El tile con el que se tapa lo que queda abajo de la escena. Cae",
         "; **fuera** del bloque de tiles: 512 tiles de 8bpp son las 16.384",
         "; palabras que van de ESCENA_VRAM al final de la VRAM, así que el 512",
@@ -3247,42 +3320,76 @@ def escenas_asm(escenas, tropas):
         "; VRAM del mapa y no la usa nadie.",
         "ESCENA_BLANCO   = %d" % E.TILES,
     ]
-    out.append(bloque("escena_de",
-                      bytes(escenas_de(escenas, tropas)) or b"\xFF"))
-    punteros = [".bloque %d" % (4 * max(1, len(escenas) * trozos)),
-                "escena_trozo:"]
-    for k in range(len(escenas)):
+    usadas = [n for n in tropas if n in db.troops]
+    out.append(bloque("escena_tropa_fondo", bytes(
+        datos["tropa_fondo"].get(n, 0xFF) for n in usadas) or b"\xFF"))
+    out.append(bloque("escena_mapa_fondo",
+                      bytes(datos["mapa_fondo"]) or b"\xFF"))
+    punteros = [".bloque %d" % (4 * max(1, len(fondos) * trozos)),
+                "fondo_trozo:"]
+    for k in range(len(fondos)):
         for t in range(trozos):
-            punteros.append("    .dword escena_%d_%d" % (k, t))
-    if not escenas:
+            punteros.append("    .dword fondo_%d_%d" % (k, t))
+    if not fondos:
         punteros.append("    .dword 0")
     out.append("\n".join(punteros))
     cgram = bytearray()
-    for info in escenas:
+    for info in fondos:
         colores = list(info["paleta"])
         colores += [(0, 0, 0)] * (E.COLORES - len(colores))
         for color in colores:
             cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(bloque("escena_cgram", bytes(cgram) or b"\x00\x00"))
-    # El tile transparente con el que se tapa lo que queda abajo de la escena.
-    # Sesenta y cuatro ceros: un tile de 8bpp entero en el color 0.
+    out.append(bloque("fondo_cgram", bytes(cgram) or b"\x00\x00"))
+    # Sesenta y cuatro ceros: el tile transparente con el que se tapa lo que
+    # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
+    # cero el fondo liso.
     out.append(bloque("escena_cero", bytes(64)))
-    for k, info in enumerate(escenas):
-        datos = bytearray()
-        for celda in escena_mod.tiles(info):
-            datos += pack_tile(celda, planes=8)
+    for k, info in enumerate(fondos):
+        tiles_ = bytearray()
+        for celda in E.tiles(info["indices"]):
+            tiles_ += pack_tile(celda, planes=8)
         for t in range(trozos):
-            out.append(bloque("escena_%d_%d" % (k, t),
-                              bytes(datos[t * ESCENA_TROZO:
-                                          (t + 1) * ESCENA_TROZO])))
+            out.append(bloque("fondo_%d_%d" % (k, t),
+                              bytes(tiles_[t * ESCENA_TROZO:
+                                           (t + 1) * ESCENA_TROZO])))
+    # Los battlers: sus tablas y después sus bytes, cada uno en un bloque que
+    # no cruza de banco porque la ROM lo lee con `[puntero], y`.
+    out.append(bloque("battler_n", bytes(
+        E.columnas(b) for b in battlers) or b"\x00"))
+    out.append(bloque("battler_alto", bytes(
+        b["alto"] for b in battlers) or b"\x00"))
+    planos = bytearray()
+    for b in battlers:
+        planos += ((E.columnas(b) + 1) * b["alto"]).to_bytes(2, "little")
+    out.append(bloque("battler_plano", bytes(planos) or b"\x00\x00"))
+    punteros = [".bloque %d" % (4 * max(1, len(battlers))), "battler_dir:"]
+    punteros += ["    .dword battler_%d" % k for k in range(len(battlers))]
+    if not battlers:
+        punteros.append("    .dword 0")
+    out.append("\n".join(punteros))
+    cgram = bytearray()
+    for b in battlers:
+        colores = [(0, 0, 0)] + list(b["paleta"])
+        colores += [(0, 0, 0)] * (16 - len(colores))
+        for color in colores:
+            cgram += cgram_word(color).to_bytes(2, "little")
+    out.append(bloque("battler_cgram", bytes(cgram) or b"\x00\x00"))
+    miembro_b, miembro_x, miembro_y = [], [], []
+    for numero in usadas:
+        tropa = db.troops[numero]
+        for enemigo, centro in list(zip(tropa.members,
+                                        tropa.posiciones))[:batalla_mod.ENEMIGOS_MAX]:
+            k = datos["battler_de"].get(enemigo, 0xFF)
+            miembro_b.append(k)
+            x, y = (E.posicion(centro, battlers[k]) if k != 0xFF else (0, 0))
+            miembro_x.append(x)
+            miembro_y.append(y)
+    out.append(bloque("miembro_battler", bytes(miembro_b) or b"\xFF"))
+    out.append(bloque("miembro_x", bytes(miembro_x) or b"\x00"))
+    out.append(bloque("miembro_y", bytes(miembro_y) or b"\x00"))
+    for k, b in enumerate(battlers):
+        out.append(bloque("battler_%d" % k, E.battler_bytes(b)))
     return "\n".join(out) + "\n"
-
-
-def escenas_de(escenas, tropas):
-    """Por índice de tropa, qué escena le toca. $FF: esa tropa pelea sin
-    fondo, que es lo que pasa cuando el `EnemyEncounter` no nombra ninguno."""
-    cual = {info["tropa"]: k for k, info in enumerate(escenas)}
-    return [cual.get(numero, 0xFF) for numero in tropas]
 
 
 def bloque(label, data, per_line=16, alinear=None, acomodar=True):
@@ -3634,7 +3741,7 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
-         animaciones=None, tropas=(), audio_batalla=None, escenas=(),
+         animaciones=None, tropas=(), audio_batalla=None, escenas=None,
          encuentros=None, paginas_tropa=None):
     """El .inc que se ensambla junto con main.s.
 
@@ -5126,9 +5233,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             (100 // (db.enemies[e].critical_hit_chance or 30))
             if db.enemies[e].critical_hit else 0 for e in enemigos_rom])
         words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom])
-        # Y la escena de cada tropa: el fondo con los battlers encima. `usadas`
-        # es el mismo orden que `tropa_id`, que es lo que `escena_de` indexa.
-        handle.write(escenas_asm(list(escenas), usadas))
+        # Y la escena de la pelea: los fondos y los battlers por separado.
+        # `usadas` es el mismo orden que `tropa_id`, que es lo que
+        # `escena_tropa_fondo` indexa, y el de `tropa_miembro`.
+        handle.write(escenas_asm(escenas or {"fondos": [], "battlers": [],
+                                             "battler_de": {},
+                                             "tropa_fondo": {},
+                                             "mapa_fondo": [0xFF] * len(mapas)},
+                                 usadas, db))
         handle.write('.segment "TABLAS"\n')
         # El producto de la cuenta del acierto tiene que entrar en dieciséis
         # bits: (100 - acierto) por la suma de las dos agilidades. Con el
@@ -6347,7 +6459,7 @@ def main():
     # cartucho se numeran por los mapas y la inventada va última, que es lo
     # mismo que hace `temas_de_la_rom` con el tema del mapa. Pedirla antes le
     # daba siempre el índice 0, y con eso ningún caso de la tanda ejercitaba
-    # que `escena_de` y `tropa_id` se indexen de verdad. Por eso
+    # que `escena_tropa_fondo` y `tropa_id` se indexen de verdad. Por eso
     # `pagina_de_caso` compila sin `Tropas`.
     encuentros = encuentros_de_la_rom(mapas, renderer.tree,
                                       args.encuentros_de_prueba, tropas)
@@ -6365,26 +6477,22 @@ def main():
     # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
     # al de ningún mapa.
     audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
-    # La escena de cada tropa que pelea con fondo: el fondo de batalla del
-    # `EnemyEncounter` con los battlers de la tropa horneados encima. Ver
+    # Los fondos y los battlers que las peleas del cartucho piden, cada uno
+    # una vez: la ROM los compone al empezar cada pelea. Ver
     # tools/port/escena.py, que es donde está el porqué y el presupuesto.
-    escenas = []
-    for numero in tropas.ids:
-        fondo = tropas.fondos.get(numero)
-        info = (escena_mod.convertir(renderer.database, numero, fondo,
-                                     args.game_dir) if fondo else None)
-        if info is None:
-            if fondo:
-                print("  la tropa %d pelea sin fondo: no encontré %r"
-                      % (numero, fondo))
-            continue
-        escenas.append(info)
-        datos = escena_mod.informe(info)
-        print("  escena de la tropa %d sobre %r: %dx%d, %d tiles de 8bpp "
-              "(%d B), %d colores desde la entrada %d de la CGRAM"
-              % (datos["tropa"], datos["fondo"], escena_mod.ANCHO,
-                 escena_mod.ALTO, datos["tiles"], datos["bytes"],
-                 datos["colores"], escena_mod.CGRAM_BASE))
+    escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
+                               encuentros, args.game_dir)
+    for info in escenas["fondos"]:
+        print("  fondo de batalla %r: %dx%d, %d tiles de 8bpp (%d B), %d "
+              "colores desde la entrada %d de la CGRAM"
+              % (info["nombre"], escena_mod.ANCHO, escena_mod.ALTO,
+                 escena_mod.TILES, escena_mod.TILES * 64, len(info["paleta"]),
+                 escena_mod.CGRAM_BASE))
+    for info in escenas["battlers"]:
+        d = escena_mod.informe_battler(info)
+        print("  battler %r: %dx%d, %d B, %d colores de %d"
+              % (d["clave"], d["ancho"], d["alto"], d["bytes"], d["quedan"],
+                 d["colores"]))
     # Las páginas de evento de las tropas que alguna pelea del cartucho pide,
     # con **todas** las tropas ya pedidas: las de los mapas, las de los
     # encuentros al azar y las de las páginas de prueba. Ver
