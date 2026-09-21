@@ -9,7 +9,7 @@ nombre = "Auditorium"
 [capas.fondo]
 # Cuántos colores distintos traía el dibujo y cuántas entradas
 # de CGRAM le dejó la capa de encima.
-colores = 21
+colores = 64
 presupuesto = 103
 # Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
 # y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:

@@ -1,0 +1,2571 @@
+{
+  "chipset_id": 54,
+  "events": [
+    {
+      "id": 1,
+      "name": "Director",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 4,
+          "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 4,
+          "character_name": "People3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 88,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 9,
+      "y": 3
+    },
+    {
+      "id": 9,
+      "name": "WalkIn2",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 7,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 77,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 6,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 87,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 6,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 6,
+      "y": 8
+    },
+    {
+      "id": 16,
+      "name": "WalkIn1",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 7,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 77,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 6,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 86,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 6,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 13,
+      "y": 10
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 2,
+          "character_name": "BLPeople",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 14,
+      "y": 12
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 77,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10860,
+              "indent": 0,
+              "parameters": [
+                16,
+                0,
+                10,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                86,
+                86,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                16,
+                8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10860,
+              "indent": 0,
+              "parameters": [
+                9,
+                0,
+                8,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                87,
+                87,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                9,
+                8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                3,
+                3,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'd better find a seat - this place is"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "filling up!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                0,
+                0,
+                3,
+                3,
+                3,
+                12,
+                23,
+                23,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "How'd you get here before me, Dess?"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                13
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 11520,
+              "indent": 0,
+              "parameters": [
+                2000
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DESSEN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I dunno - I just did. Quiet, it's about to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "start!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [
+                100,
+                100,
+                100,
+                100,
+                10,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                0,
+                2,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "VOICE"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Ladies and gentlemen of Delcentric"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Factory #2072, Lashe City..."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "VOICE"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Director of the Agency!"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                40,
+                100,
+                50
+              ],
+              "string": "Wind1"
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                88,
+                88,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [
+                1000,
+                40,
+                70,
+                50
+              ],
+              "string": "Astpgmarch"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Greetings, workers of Delcentric Factory"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "#2072, Lashe City. It is an honor and a"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "privilege to speak to you today."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Delcentric is one of the most valuable"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "subsidiary corporations in the world"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "today, and we owe it all to you."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Without your hard work and dedication,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the energy we obtain from the Catch"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Colony would be useless!"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You deserve congratulations, and that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "is one of the reasons I am here today."
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                13
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "See - good news so far!"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DESSEN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sshhh!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                0,
+                2,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "As a reward for your hard work, I"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and the rest of Agency High Command"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "have made a decision."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "From this day forth, all Delcentric"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Employees will have permission to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "stay at Agency Houses."
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "As I am sure you all know, Agency"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Houses are luxurious abodes that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "were previously only for the wealthy."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But now - they are open to you, the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "valuable workers of Delcentric Factory"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "#2072, Lashe City."
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                70,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                30
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I remember the stories my Granddad"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "told me when I was just a boy, of the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "terrible time of the Shortage."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Our natural resources had been"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "depleted. Something needed to be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "done."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My Granddad, I am proud to say, was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "part of the solution. He and a team"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of scientists began an epic project."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Since our reservoirs of natural gas and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "crude oil had been used up, we would"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "need a new form of power."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For that power, we turned to the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "heavens."
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We know all this already!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                13
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DESSEN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Quiet, Talan!"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                0,
+                2,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Thus, the Catch Colony was born."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "A tremendous space station that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "would serve to collect cosmic energy"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and relay it down to earth where it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "could be converted into the power"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "needed to run our society."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The thousands of men and women who"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "live on the Catch Colony deserve"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "our utmost thanks... but so do you."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Without Delcentric and its fellow"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "companies, their sacrifices would be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in vain."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My Granddad's vision has come to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "pass. And I, as leader of the Agency,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "supreme governing body of our"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "society, will continue to make the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "RIGHT decisions, for you and your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "families."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Workers of Delcentric Factory #2072,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you have made me proud. Let me now"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "make you proud. Thank you."
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                90,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                1,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                1,
+                8,
+                0,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                20
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "One more thing. I would like to meet"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with... is there a worker here named"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "\"Talan?\""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "Earth7"
+            },
+            {
+              "code": 11520,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                0,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                4,
+                9,
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                89,
+                89,
+                0
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                88,
+                88,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [
+                100,
+                100,
+                100,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [
+                1000,
+                40,
+                70,
+                50
+              ],
+              "string": "Astpgmarch"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh oh... I'd better find a seat quick!"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                0,
+                0,
+                3,
+                3,
+                3,
+                12,
+                23,
+                23,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                13
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DESSEN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, where have you been?!"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll tell you about it later, Dess."
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                0,
+                2,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Our natural resources had been"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "depleted. Something needed to be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "done."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My Granddad, I am proud to say, was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "part of the solution. He and a team"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "of scientists began an epic project."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Since our reservoirs of natural gas and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "crude oil had been used up, we would"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "need a new form of power."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "For that power, we turned to the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "heavens."
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "We know all this already! Has it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "all been like this?"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                13
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                5
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DESSEN"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Quiet, Talan!"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                37,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 10120,
+              "indent": 0,
+              "parameters": [
+                0,
+                2,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Thus, the Catch Colony was born."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "A tremendous space station that"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "would serve to collect cosmic energy"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and relay it down to earth where it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "could be converted into the power"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "needed to run our society."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The thousands of men and women who"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "live on the Catch Colony deserve"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "our utmost thanks... but so do you."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Without Delcentric and its fellow"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "companies, their sacrifices would be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in vain."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "My Granddad's vision has come to"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "pass. And I, as leader of the Agency,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "supreme governing body of our"
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "society, will continue to make the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "RIGHT decisions, for you and your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "families."
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Workers of Delcentric Factory #2072,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you have made me proud. Let me now"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "make you proud. Thank you."
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                90,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                1,
+                8,
+                0,
+                0,
+                12
+              ],
+              "string": ""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "clap"
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                1,
+                8,
+                0,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 11410,
+              "indent": 0,
+              "parameters": [
+                20
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "DIRECTOR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "One more thing. I would like to meet"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "with... is there a worker here named"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "\"Talan?\""
+            },
+            {
+              "code": 11550,
+              "indent": 0,
+              "parameters": [
+                70,
+                100,
+                50
+              ],
+              "string": "Earth7"
+            },
+            {
+              "code": 11520,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                0,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                4,
+                9,
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                89,
+                89,
+                0
+              ],
+              "string": ""
+            }
+          ],
+          "id": 2,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 89,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        }
+      ],
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 37,
+      "name": "Dessen",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 6,
+          "character_name": "Future2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 68,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 5,
+      "y": 12
+    }
+  ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "id": 18,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 45,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
+}
