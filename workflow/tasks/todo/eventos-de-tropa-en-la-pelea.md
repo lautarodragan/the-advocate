@@ -17,7 +17,6 @@ Medido en el LDB el 2026-09-21:
   `TerminateBattle`), y aparecen `ChangePartyMembers` (5040 veces) y la forma de
   equipar de `ChangeEquipment`, que hoy no compila.
 
-Primer paso: el sistema de Talan de punta a punta. Si anda, los otros 31 son
-completar comandos sobre el mismo mecanismo.
+El primer tramo, acotado a Talan, es `el-sistema-de-batalla-de-talan.md`.
 
 Referencia: `Game_Battle::UpdateEvents` y `Game_Interpreter_Battle` de EasyRPG.
