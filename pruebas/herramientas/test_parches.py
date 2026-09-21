@@ -13,7 +13,12 @@ y el diff va al commit, que es donde alguien lo mira.
 No arranca ninguna ROM: compara lo que dejaron escrito los cartuchos que armó
 `just cartuchos` contra lo commiteado. Y los compara **todos**, que es lo que
 sostiene que el cartucho no entre en la clave —medido el 2026-09-21: los tres
-cartuchos deciden lo mismo para los mapas que comparten—.
+cartuchos de prueba y `abl` emiten los mismos 29 archivos byte por byte—.
+
+Lo versionado son los 29 mapas de `abl`, el ROM jugable. Los once que los
+cartuchos de prueba llevan de más no se versionan: son situaciones que el juego
+no tiene, así que ahí el cartucho decide solo y esto no le pide nada. Por eso
+no hace falta que la tanda arme `abl` para que esto valga.
 """
 
 import os
@@ -40,5 +45,5 @@ def test_los_parches_versionados_son_los_que_decide_el_conversor():
     assert armados, (
         "ningún cartucho de %s dejó parches: se arman con `just cartuchos`"
         % cartuchos.DESTINO)
-    quejas = parches.revisar(RAIZ, armados)
+    quejas, _propios = parches.revisar(RAIZ, armados)
     assert not quejas, "\n\n".join(quejas)

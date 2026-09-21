@@ -41,15 +41,33 @@ por su valor —RGB de 15 bits, que es la profundidad real de la consola— y no
 por su índice en ninguna paleta, por lo mismo: el índice se corre con cualquier
 cosa y el valor identifica al color para siempre.
 
-Y el cartucho **no entra en la clave**, que es la decisión que más se pensó.
-Las fusiones de las capas dependen del mapa y de su ChipSet y de nada más —es
-la misma razón por la que `capas_convertidas` las puede cachear en disco con
-una clave que no sabe qué cartucho se está armando—, así que meter el cartucho
-adentro repetiría la misma decisión tres veces y dejaría tres lugares donde
-editarla en la fase 2. Que eso sea cierto **no se supone**: cada cartucho
-escribe su copia en `rom/build/<cartucho>/parches/` y `--check` compara todas
-contra la única versionada, así que si alguna vez un cartucho decidiera
-distinto, la tanda lo dice con el nombre del cartucho puesto.
+Y el cartucho **no entra en la clave**: la regla es de taro, del 2026-09-21, y
+dice que *la decisión versionada es siempre la del ROM jugable, `abl`*. Lo
+versionado es lo que perdió **el juego**, que es lo único que le importa a
+alguien que mire el repo; un cartucho de prueba la reusa cuando aplica, y
+cuando no aplica decide por su cuenta y eso no se versiona. Por eso acá están
+los 29 mapas de `abl` y no los 40 que arman los cartuchos de prueba: los once
+que sobran son situaciones que sólo existen en la tanda.
+
+Lo que pasa **cuando la decisión de `abl` no se puede aplicar** en un cartucho
+de prueba es, entonces, un camino previsto y no una excepción: ese cartucho
+decide solo, escribe lo que decidió al lado de su ROM —en
+`rom/build/<cartucho>/parches/`, que no se versiona— y `--check` no le pide
+nada. En esta clase de decisión, encima, la pregunta no se llega a hacer: las
+fusiones de las capas dependen del mapa y de su ChipSet y de nada más —es la
+misma razón por la que `capas_convertidas` las puede cachear con una clave que
+no sabe qué cartucho se está armando—. Que eso sea cierto **no se supone**:
+`--check` compara contra lo versionado **todos** los cartuchos que lleven un
+mapa versionado, así que si alguno decidiera distinto, la tanda lo dice con su
+nombre puesto. Medido el 2026-09-21: los tres cartuchos de prueba y `abl`
+emiten los mismos 29 archivos byte por byte.
+
+Y una cosa que el formato deja abierta a propósito. El rumbo es que qué mapas
+entran, dónde arranca la ROM y con qué grupo dejen de ser argumentos sueltos de
+una receta y pasen a ser **una descripción** que el que reparte paletas pueda
+leer. Una clave que nombra la situación del juego —el mapa, y mañana el
+gráfico o el tema— no le estorba: el día que exista, lo que cambia es de dónde
+sale la lista de situaciones, no cómo se identifica cada una.
 
 Lo que **todavía no está acá**, y es lo que queda para más adelante: las
 paletas de los personajes —que sí dependen del cartucho, porque quién le paga
@@ -195,16 +213,37 @@ def diferencias(viejo, nuevo):
     return salida
 
 
-def revisar(raiz, builds):
-    """Los parches de los builds contra los versionados. Lista de quejas.
+def versionados(raiz):
+    """Los mapas que tienen parche versionado, o sea los del ROM jugable."""
+    carpeta = os.path.join(raiz, DIRECTORIO)
+    if not os.path.isdir(carpeta):
+        return []
+    return sorted(int(n[:-5]) for n in os.listdir(carpeta)
+                  if n.endswith(".toml"))
+
+
+def revisar(raiz, builds, jugable="abl"):
+    """Los parches de los builds contra los versionados: (quejas, propios).
 
     `builds` son directorios de cartuchos armados —los que tienen adentro
-    `parches/mapas/`—. Se comparan **todos**, y no sólo uno: que dos cartuchos
-    decidan lo mismo para el mismo mapa es lo que sostiene que el cartucho no
-    entre en la clave, y acá se mide en vez de suponerse.
+    `parches/mapas/`—, y se miran **todos**. Un mapa que no está versionado no
+    es una queja: es un mapa que `abl` no lleva, así que el cartucho de prueba
+    decidió solo y eso no se versiona; sale en `propios`, que es información
+    sobre cuánto se parecen los cartuchos al juego y no un error.
+
+    Un mapa que **sí** está versionado se compara contra lo commiteado en cada
+    cartucho que lo lleve. Para las capas eso no puede dar distinto —la
+    decisión no mira el cartucho— y por eso da queja: si diera, lo que se
+    rompió es esa independencia, y conviene enterarse ahí y no en la fase 2.
     """
-    quejas = []
-    emitidos = {}
+    quejas, propios = [], {}
+    tengo = set(versionados(raiz))
+    vistos = set()
+    # Una queja por mapa **y por juego de diferencias**: cuatro cartuchos que
+    # llevan el mismo mapa dicen todos lo mismo, y repetirlo cuatro veces tapa
+    # a las de los demás mapas. Si uno decidiera distinto que los otros, sus
+    # diferencias son otras y su queja sale igual, con su nombre.
+    dichas = set()
     for build in builds:
         carpeta = os.path.join(build, EN_BUILD)
         if not os.path.isdir(carpeta):
@@ -215,55 +254,47 @@ def revisar(raiz, builds):
                 continue
             doc = _leer(os.path.join(carpeta, nombre))
             map_id = doc["mapa"]
-            antes = emitidos.get(map_id)
-            if antes is not None and diferencias(antes[1], doc):
-                quejas.append(
-                    "el mapa %d sale distinto en los cartuchos «%s» y «%s», "
-                    "así que la decisión depende del cartucho y este formato "
-                    "no la puede guardar:\n    %s"
-                    % (map_id, antes[0], cartucho,
-                       "\n    ".join(diferencias(antes[1], doc))))
-            if antes is not None:
-                # Contra lo versionado se compara **una vez por mapa**: los
-                # tres cartuchos decidieron lo mismo —lo acaba de comprobar el
-                # bloque de arriba—, así que repetir la queja sólo tapa a las
-                # de los otros mapas.
+            if map_id not in tengo:
+                if cartucho == jugable:
+                    # Un mapa del ROM jugable **tiene** que estar versionado:
+                    # si no, el juego pierde colores en algún lado y no queda
+                    # escrito. En un cartucho de prueba, en cambio, es lo
+                    # normal y no se dice nada.
+                    quejas.append(
+                        "el mapa %d entró en «%s», el ROM jugable, y no tiene "
+                        "parche versionado: corré `just parches`."
+                        % (map_id, cartucho))
+                else:
+                    propios.setdefault(map_id, []).append(cartucho)
                 continue
-            emitidos[map_id] = (cartucho, doc)
-            versionado = ruta(raiz, map_id)
-            if not os.path.exists(versionado):
-                quejas.append(
-                    "el mapa %d no tiene parche versionado y el cartucho «%s» "
-                    "decide sobre él: falta %s. Corré `just parches`."
-                    % (map_id, cartucho, os.path.relpath(versionado, raiz)))
-                continue
-            cambios = diferencias(_leer(versionado), doc)
-            if cambios:
+            vistos.add(map_id)
+            cambios = diferencias(_leer(ruta(raiz, map_id)), doc)
+            if cambios and (map_id, tuple(cambios)) not in dichas:
+                dichas.add((map_id, tuple(cambios)))
                 quejas.append(
                     "%s quedó viejo (lo dice el cartucho «%s»):\n    %s\n"
                     "  Si el cambio es el que se buscaba, `just parches` y al "
                     "commit; si no, algo movió lo que se ve."
-                    % (os.path.relpath(versionado, raiz), cartucho,
+                    % (os.path.relpath(ruta(raiz, map_id), raiz), cartucho,
                        "\n    ".join(cambios)))
-    carpeta = os.path.join(raiz, DIRECTORIO)
-    sobrantes = sorted(
-        int(n[:-5]) for n in os.listdir(carpeta) if n.endswith(".toml")
-    ) if os.path.isdir(carpeta) else []
-    for map_id in sobrantes:
-        if map_id not in emitidos:
-            quejas.append(
-                "el mapa %d tiene parche versionado y ningún cartucho lo "
-                "convierte: o sobra el archivo, o falta el mapa en algún "
-                "cartucho." % map_id)
-    return quejas
+    for map_id in sorted(tengo - vistos):
+        quejas.append(
+            "el mapa %d tiene parche versionado y ninguno de los cartuchos "
+            "armados lo convierte: o el juego dejó de llevarlo —y entonces "
+            "sobra el archivo— o falta armar el cartucho que lo tiene."
+            % map_id)
+    return quejas, propios
 
 
 def main(argv=None):
     raiz = os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))))
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("builds", nargs="+",
-                        help="los directorios de los cartuchos armados")
+    parser.add_argument(
+        "builds", nargs="+",
+        help="los directorios de los cartuchos armados. Sin --check tiene que "
+             "ser el del ROM jugable y nada más: lo versionado es lo que "
+             "decide `abl`")
     parser.add_argument("--check", action="store_true",
                         help="no escribe: falla si lo versionado quedó viejo")
     args = parser.parse_args(argv)
@@ -278,33 +309,42 @@ def main(argv=None):
         sys.exit("no encontré ningún cartucho armado con parches adentro: %s"
                  % ", ".join(args.builds))
     if args.check:
-        quejas = revisar(raiz, builds)
+        quejas, propios = revisar(raiz, builds)
         for queja in quejas:
             print("  " + queja, file=sys.stderr)
         if quejas:
             sys.exit("%d parche(s) no coinciden con lo que decide el conversor"
                      % len(quejas))
-        print("los parches de %d cartucho(s) coinciden con lo versionado"
-              % len(builds))
+        print("los %d parche(s) del juego coinciden con lo que decidieron %d "
+              "cartucho(s)" % (len(versionados(raiz)), len(builds)))
+        if propios:
+            # No es una queja: son mapas que `abl` no lleva, así que el
+            # cartucho de prueba decidió solo y eso no se versiona. Se imprime
+            # porque dice cuánto se parece la tanda al juego.
+            print("  y %d mapa(s) que sólo existen en los cartuchos de "
+                  "prueba, que deciden solos: %s"
+                  % (len(propios), ", ".join(str(m) for m in sorted(propios))))
         return
+    if len(builds) != 1:
+        sys.exit("lo versionado es lo que decide **un** ROM, el jugable: "
+                 "pasame `rom/build/abl` y no %d cartuchos" % len(builds))
     destino = os.path.join(raiz, DIRECTORIO)
     os.makedirs(destino, exist_ok=True)
+    carpeta = os.path.join(builds[0], EN_BUILD)
     vistos, bytes_ = set(), 0
-    for build in builds:
-        carpeta = os.path.join(build, EN_BUILD)
-        for nombre in sorted(os.listdir(carpeta)):
-            if not nombre.endswith(".toml") or nombre in vistos:
-                continue
-            with open(os.path.join(carpeta, nombre)) as f:
-                contenido = f.read()
-            with open(os.path.join(destino, nombre), "w") as f:
-                f.write(contenido)
-            vistos.add(nombre)
-            bytes_ += len(contenido.encode("utf-8"))
+    for nombre in sorted(os.listdir(carpeta)):
+        if not nombre.endswith(".toml"):
+            continue
+        with open(os.path.join(carpeta, nombre)) as f:
+            contenido = f.read()
+        with open(os.path.join(destino, nombre), "w") as f:
+            f.write(contenido)
+        vistos.add(nombre)
+        bytes_ += len(contenido.encode("utf-8"))
     for nombre in sorted(os.listdir(destino)):
         if nombre.endswith(".toml") and nombre not in vistos:
             os.remove(os.path.join(destino, nombre))
-            print("  %s: ningún cartucho convierte ese mapa, lo saco" % nombre)
+            print("  %s: el juego ya no lleva ese mapa, lo saco" % nombre)
     print("%d parche(s) en %s, %d B" % (len(vistos), DIRECTORIO, bytes_))
 
 

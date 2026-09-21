@@ -185,14 +185,21 @@ cartuchos *args:
 
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
 # fusionó con cuál en cada mapa porque la CGRAM no daba para los dos. Los
-# escribe el conversor al lado de cada cartucho y esto los copia a `parches/`,
-# que es lo que va a git; `--check` es lo que corre la tanda y falla diciendo
-# **qué decisión cambió**. Ver `tools/port/parches.py`.
+# escribe el conversor al lado de cada ROM que arma, y esto copia a `parches/`
+# —que es lo que va a git— **los de `abl` y de ningún otro**: la decisión
+# versionada es la del ROM jugable, y los cartuchos de prueba se adaptan como
+# puedan. Regla de taro, 2026-09-21; el porqué está en `tools/port/parches.py`.
 #
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
-parches *args: cartuchos
-  python3 tools/port/parches.py rom/build/pruebas-unico {{args}}
+parches: demo
+  python3 tools/port/parches.py rom/build/abl
+
+# Y la verificación, que es lo que corre la tanda: falla diciendo **qué
+# decisión cambió**, no que el archivo difiere. Mira todos los cartuchos que
+# haya armados, porque un mapa versionado tiene que salir igual en todos.
+parches-check *builds="rom/build/pruebas-unico rom/build/abl":
+  python3 tools/port/parches.py {{builds}} --check
 
 # **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
 # con pantalla de título, en `rom/build/abl/abl.sfc`, que es donde él la busca.
