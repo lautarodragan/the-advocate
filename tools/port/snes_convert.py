@@ -5946,10 +5946,23 @@ def main():
     # pero es otra cosa: las imágenes son para mirar y esto es para leer de
     # vuelta y para que el diff avise. Lo versionado está en `parches/`, y
     # `just parches --check` compara. Ver tools/port/parches.py.
-    cuantos, pesan = parches_mod.escribir(
-        os.path.dirname(os.path.abspath(args.output)), mapas)
+    destino_parches = os.path.dirname(os.path.abspath(args.output))
+    cuantos, pesan = parches_mod.escribir(destino_parches, mapas)
     print("parches de %d mapa(s) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD, pesan))
+    # Y la otra decisión que ya está escrita: **a qué tamaño se dibuja cada
+    # animación de batalla**. Sale de la misma vuelta de arriba; acá se junta
+    # con el nombre y la hoja que la animación tiene en el LDB, que no los mira
+    # nadie para dibujar y están para que el diff diga de cuál se habla.
+    cuantos, pesan = parches_mod.escribir_animaciones(
+        destino_parches,
+        [dict(animacion_mod.informe(numero, animaciones[numero]),
+              nombre=eventos.ANIMACIONES[numero].get("nombre", ""),
+              hoja=eventos.ANIMACIONES[numero].get("imagen", ""),
+              lado=animacion_mod.CAJA)
+         for numero in sorted(animaciones)])
+    print("parches de %d animación(es) -> %s (%d B)"
+          % (cuantos, parches_mod.EN_BUILD_ANIM, pesan))
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:

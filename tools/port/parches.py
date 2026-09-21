@@ -77,6 +77,7 @@ dibujadas a otro tamaño y `DECORAR_TRANSLUCIDO`.
 """
 
 import argparse
+import collections
 import os
 import sys
 import tomllib
@@ -160,11 +161,90 @@ def escribir(destino, mapas):
     return len(mapas), bytes_
 
 
+# --- las animaciones de batalla, que se dibujan a otro tamaño ---------------
+
+# Igual que los mapas: versionadas acá, y cada cartucho deja las suyas al lado
+# de su ROM. La clave es **el número de animación de RM2k**, que es del juego:
+# el mismo 82 en cualquier cartucho que la muestre.
+DIRECTORIO_ANIM = os.path.join("parches", "animaciones")
+EN_BUILD_ANIM = DIRECTORIO_ANIM
+
+
+def ruta_animacion(raiz, numero):
+    return os.path.join(raiz, DIRECTORIO_ANIM, "%04d.toml" % numero)
+
+
+def texto_animacion(datos):
+    """El archivo de una animación, tal cual va a disco.
+
+    `datos` es lo que arma `snes_convert` con `animacion.informe` y el nombre
+    que la animación tiene en el LDB.
+    """
+    ancho, alto = datos["original"]
+    ta, tal = datos["caja"]
+    return "\n".join([
+        "# La decisión artística de la animación %d: **a qué tamaño se dibuja**"
+        % datos["animacion"],
+        "# en la consola. Lo escribe el conversor y lo regenera `just parches`,",
+        "# que es lo que hay que correr cuando un cambio lo mueve; `just parches",
+        "# --check` —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.",
+        "",
+        "animacion = %d" % datos["animacion"],
+        "nombre = %s" % _cadena(datos["nombre"]),
+        "hoja = %s" % _cadena(datos["hoja"]),
+        "",
+        "# Lo decidido: el rectángulo, en pixeles de la consola, al que se",
+        "# achica la animación entera para entrar en la caja de %d x %d. Es lo"
+        % (datos["lado"], datos["lado"]),
+        "# que la fase 2 va a leer en vez de volver a calcularlo.",
+        "tamano = [%d, %d]" % (ta, tal),
+        "",
+        "# De qué venía: la unión de todas las celdas de todos sus cuadros en",
+        "# pixeles de RM2k, y cuántos cuadros son. No se decide, se mide, y",
+        "# está para que el diff diga por qué cambió el tamaño.",
+        "original = [%d, %d]" % (ancho, alto),
+        "cuadros = %d" % datos["cuadros"],
+        "",
+    ])
+
+
+def escribir_animaciones(destino, animaciones):
+    """Los parches de las animaciones de un cartucho, en
+    `<destino>/parches/animaciones/`.
+
+    Devuelve cuántos archivos escribió y cuántos bytes ocupan.
+    """
+    carpeta = os.path.join(destino, EN_BUILD_ANIM)
+    os.makedirs(carpeta, exist_ok=True)
+    bytes_ = 0
+    for datos in animaciones:
+        contenido = texto_animacion(datos)
+        with open(os.path.join(carpeta, "%04d.toml" % datos["animacion"]),
+                  "w") as f:
+            f.write(contenido)
+        bytes_ += len(contenido.encode("utf-8"))
+    return len(animaciones), bytes_
+
+
 # --- la verificación --------------------------------------------------------
 
 def _leer(ruta_):
     with open(ruta_, "rb") as f:
         return tomllib.load(f)
+
+
+def leer(raiz, map_id):
+    """Lo decidido y versionado para un mapa, parseado.
+
+    Es la puerta de entrada de la fase 2 y la usa la verificación, que es lo
+    que la mantiene viva mientras la fase 2 no exista.
+    """
+    return _leer(ruta(raiz, map_id))
+
+
+def leer_animacion(raiz, numero):
+    """Lo decidido y versionado para una animación de batalla, parseado."""
+    return _leer(ruta_animacion(raiz, numero))
 
 
 def _fusiones(doc, capa):
@@ -213,9 +293,57 @@ def diferencias(viejo, nuevo):
     return salida
 
 
-def versionados(raiz):
-    """Los mapas que tienen parche versionado, o sea los del ROM jugable."""
-    carpeta = os.path.join(raiz, DIRECTORIO)
+def diferencias_animacion(viejo, nuevo):
+    """Qué cambió entre dos parches de animación, en castellano.
+
+    Lo que importa es la primera línea: **a qué tamaño se dibuja**. Las otras
+    dos dicen por qué cambió —la animación mide otra cosa en RM2k, o tiene
+    otros cuadros—, y pueden salir solas: que la caja no se mueva no quiere
+    decir que la animación sea la misma.
+    """
+    salida = []
+    if viejo.get("tamano") != nuevo.get("tamano"):
+        salida.append("se dibujaba a %s y ahora se dibuja a %s"
+                      % (_lados(viejo.get("tamano")),
+                         _lados(nuevo.get("tamano"))))
+    if viejo.get("original") != nuevo.get("original"):
+        salida.append("venía de %s en RM2k y ahora viene de %s"
+                      % (_lados(viejo.get("original")),
+                         _lados(nuevo.get("original"))))
+    if viejo.get("cuadros") != nuevo.get("cuadros"):
+        salida.append("tenía %s cuadro(s) y ahora tiene %s"
+                      % (viejo.get("cuadros"), nuevo.get("cuadros")))
+    if viejo.get("hoja") != nuevo.get("hoja"):
+        salida.append("salía de la hoja %r y ahora sale de %r"
+                      % (viejo.get("hoja"), nuevo.get("hoja")))
+    return salida
+
+
+def _lados(par):
+    return "%dx%d" % tuple(par) if par else "nada"
+
+
+# Las clases de decisión que hay escritas, cada una con su directorio, la
+# clave con que se identifica —que es siempre algo **del juego**— y cómo se
+# cuenta qué cambió. Agregar una clase es agregar una fila acá y su `texto`:
+# la verificación, el copiado a `parches/` y los mensajes salen de ésta.
+Clase = collections.namedtuple(
+    "Clase", "nombre articulo directorio clave leer diferencias")
+
+CLASES = (
+    Clase("mapa(s)", "el mapa", DIRECTORIO, "mapa", leer, diferencias),
+    Clase("animación(es)", "la animación", DIRECTORIO_ANIM, "animacion",
+          leer_animacion, diferencias_animacion),
+)
+
+
+def versionados(raiz, clase=None):
+    """Los que tienen parche versionado, o sea los del ROM jugable.
+
+    Sin `clase`, los mapas: es lo que pedían los llamadores cuando ésta era la
+    única clase que había.
+    """
+    carpeta = os.path.join(raiz, (clase or CLASES[0]).directorio)
     if not os.path.isdir(carpeta):
         return []
     return sorted(int(n[:-5]) for n in os.listdir(carpeta)
@@ -225,27 +353,41 @@ def versionados(raiz):
 def revisar(raiz, builds, jugable="abl"):
     """Los parches de los builds contra los versionados: (quejas, propios).
 
-    `builds` son directorios de cartuchos armados —los que tienen adentro
-    `parches/mapas/`—, y se miran **todos**. Un mapa que no está versionado no
-    es una queja: es un mapa que `abl` no lleva, así que el cartucho de prueba
-    decidió solo y eso no se versiona; sale en `propios`, que es información
-    sobre cuánto se parecen los cartuchos al juego y no un error.
+    `builds` son directorios de cartuchos armados, y se miran **todos**. Lo que
+    no está versionado no es una queja: es una situación que `abl` no tiene
+    —un mapa que no lleva, una animación que no muestra—, así que el cartucho
+    de prueba decidió solo y eso no se versiona; sale en `propios`, que es
+    información sobre cuánto se parecen los cartuchos al juego y no un error.
 
-    Un mapa que **sí** está versionado se compara contra lo commiteado en cada
-    cartucho que lo lleve. Para las capas eso no puede dar distinto —la
-    decisión no mira el cartucho— y por eso da queja: si diera, lo que se
-    rompió es esa independencia, y conviene enterarse ahí y no en la fase 2.
+    Lo que **sí** está versionado se compara contra lo commiteado en cada
+    cartucho que lo lleve. Para las dos clases de hoy eso no puede dar distinto
+    —ni las fusiones de las capas ni el tamaño de una animación miran el
+    cartucho— y por eso da queja: si diera, lo que se rompió es esa
+    independencia, y conviene enterarse ahí y no en la fase 2.
+
+    `propios` va por clase: `{"mapa": {7: ["chico"]}, ...}`, con la clave de
+    cada una.
     """
     quejas, propios = [], {}
-    tengo = set(versionados(raiz))
+    for clase in CLASES:
+        suyas, mios = _revisar_clase(clase, raiz, builds, jugable)
+        quejas += suyas
+        if mios:
+            propios[clase.clave] = mios
+    return quejas, propios
+
+
+def _revisar_clase(clase, raiz, builds, jugable):
+    quejas, propios = [], {}
+    tengo = set(versionados(raiz, clase))
     vistos = set()
-    # Una queja por mapa **y por juego de diferencias**: cuatro cartuchos que
-    # llevan el mismo mapa dicen todos lo mismo, y repetirlo cuatro veces tapa
-    # a las de los demás mapas. Si uno decidiera distinto que los otros, sus
+    # Una queja por situación **y por juego de diferencias**: cuatro cartuchos
+    # que llevan el mismo mapa dicen todos lo mismo, y repetirlo cuatro veces
+    # tapa a las de los demás. Si uno decidiera distinto que los otros, sus
     # diferencias son otras y su queja sale igual, con su nombre.
     dichas = set()
     for build in builds:
-        carpeta = os.path.join(build, EN_BUILD)
+        carpeta = os.path.join(build, clase.directorio)
         if not os.path.isdir(carpeta):
             continue
         cartucho = os.path.basename(os.path.normpath(build))
@@ -253,36 +395,38 @@ def revisar(raiz, builds, jugable="abl"):
             if not nombre.endswith(".toml"):
                 continue
             doc = _leer(os.path.join(carpeta, nombre))
-            map_id = doc["mapa"]
-            if map_id not in tengo:
+            cual = doc[clase.clave]
+            if cual not in tengo:
                 if cartucho == jugable:
-                    # Un mapa del ROM jugable **tiene** que estar versionado:
-                    # si no, el juego pierde colores en algún lado y no queda
-                    # escrito. En un cartucho de prueba, en cambio, es lo
-                    # normal y no se dice nada.
+                    # Lo que el ROM jugable convierte **tiene** que estar
+                    # versionado: si no, el juego pierde algo en algún lado y
+                    # no queda escrito. En un cartucho de prueba, en cambio, es
+                    # lo normal y no se dice nada.
                     quejas.append(
-                        "el mapa %d entró en «%s», el ROM jugable, y no tiene "
+                        "%s %d entró en «%s», el ROM jugable, y no tiene "
                         "parche versionado: corré `just parches`."
-                        % (map_id, cartucho))
+                        % (clase.articulo, cual, cartucho))
                 else:
-                    propios.setdefault(map_id, []).append(cartucho)
+                    propios.setdefault(cual, []).append(cartucho)
                 continue
-            vistos.add(map_id)
-            cambios = diferencias(_leer(ruta(raiz, map_id)), doc)
-            if cambios and (map_id, tuple(cambios)) not in dichas:
-                dichas.add((map_id, tuple(cambios)))
+            vistos.add(cual)
+            versionado = os.path.join(raiz, clase.directorio, nombre)
+            cambios = clase.diferencias(clase.leer(raiz, cual), doc)
+            if cambios and (cual, tuple(cambios)) not in dichas:
+                dichas.add((cual, tuple(cambios)))
                 quejas.append(
-                    "%s quedó viejo (lo dice el cartucho «%s»):\n    %s\n"
+                    "%s quedó viejo (lo dice el cartucho «%s»), y lo que "
+                    "cambió de %s %d es esto:\n    %s\n"
                     "  Si el cambio es el que se buscaba, `just parches` y al "
                     "commit; si no, algo movió lo que se ve."
-                    % (os.path.relpath(ruta(raiz, map_id), raiz), cartucho,
-                       "\n    ".join(cambios)))
-    for map_id in sorted(tengo - vistos):
+                    % (os.path.relpath(versionado, raiz), cartucho,
+                       clase.articulo, cual, "\n    ".join(cambios)))
+    for cual in sorted(tengo - vistos):
         quejas.append(
-            "el mapa %d tiene parche versionado y ninguno de los cartuchos "
-            "armados lo convierte: o el juego dejó de llevarlo —y entonces "
-            "sobra el archivo— o falta armar el cartucho que lo tiene."
-            % map_id)
+            "%s %d tiene parche versionado y ninguno de los cartuchos armados "
+            "lo convierte: o el juego dejó de llevarlo —y entonces sobra el "
+            "archivo— o falta armar el cartucho que lo tiene."
+            % (clase.articulo, cual))
     return quejas, propios
 
 
@@ -300,11 +444,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     builds = []
     for build in args.builds:
-        if os.path.isdir(os.path.join(build, EN_BUILD)):
+        if _tiene_parches(build):
             builds.append(build)
         else:
             builds += [os.path.join(build, n) for n in sorted(os.listdir(build))
-                       if os.path.isdir(os.path.join(build, n, EN_BUILD))]
+                       if _tiene_parches(os.path.join(build, n))]
     if not builds:
         sys.exit("no encontré ningún cartucho armado con parches adentro: %s"
                  % ", ".join(args.builds))
@@ -315,24 +459,38 @@ def main(argv=None):
         if quejas:
             sys.exit("%d parche(s) no coinciden con lo que decide el conversor"
                      % len(quejas))
-        print("los %d parche(s) del juego coinciden con lo que decidieron %d "
-              "cartucho(s)" % (len(versionados(raiz)), len(builds)))
-        if propios:
-            # No es una queja: son mapas que `abl` no lleva, así que el
-            # cartucho de prueba decidió solo y eso no se versiona. Se imprime
-            # porque dice cuánto se parece la tanda al juego.
-            print("  y %d mapa(s) que sólo existen en los cartuchos de "
-                  "prueba, que deciden solos: %s"
-                  % (len(propios), ", ".join(str(m) for m in sorted(propios))))
+        for clase in CLASES:
+            print("los %d parche(s) de %s del juego coinciden con lo que "
+                  "decidieron %d cartucho(s)"
+                  % (len(versionados(raiz, clase)), clase.nombre, len(builds)))
+            mios = propios.get(clase.clave)
+            if mios:
+                # No es una queja: son situaciones que `abl` no tiene, así que
+                # el cartucho de prueba decidió solo y eso no se versiona. Se
+                # imprime porque dice cuánto se parece la tanda al juego.
+                print("  y %d que sólo existe(n) en los cartuchos de prueba, "
+                      "que deciden solos: %s"
+                      % (len(mios), ", ".join(str(m) for m in sorted(mios))))
         return
     if len(builds) != 1:
         sys.exit("lo versionado es lo que decide **un** ROM, el jugable: "
                  "pasame `rom/build/abl` y no %d cartuchos" % len(builds))
-    destino = os.path.join(raiz, DIRECTORIO)
+    for clase in CLASES:
+        _copiar(raiz, builds[0], clase)
+
+
+def _tiene_parches(build):
+    return any(os.path.isdir(os.path.join(build, c.directorio))
+               for c in CLASES)
+
+
+def _copiar(raiz, build, clase):
+    """Lo que decidió el ROM jugable, a `parches/`, y afuera lo que ya no está."""
+    destino = os.path.join(raiz, clase.directorio)
     os.makedirs(destino, exist_ok=True)
-    carpeta = os.path.join(builds[0], EN_BUILD)
+    carpeta = os.path.join(build, clase.directorio)
     vistos, bytes_ = set(), 0
-    for nombre in sorted(os.listdir(carpeta)):
+    for nombre in sorted(os.listdir(carpeta) if os.path.isdir(carpeta) else []):
         if not nombre.endswith(".toml"):
             continue
         with open(os.path.join(carpeta, nombre)) as f:
@@ -344,8 +502,9 @@ def main(argv=None):
     for nombre in sorted(os.listdir(destino)):
         if nombre.endswith(".toml") and nombre not in vistos:
             os.remove(os.path.join(destino, nombre))
-            print("  %s: el juego ya no lleva ese mapa, lo saco" % nombre)
-    print("%d parche(s) en %s, %d B" % (len(vistos), DIRECTORIO, bytes_))
+            print("  %s: el juego ya no lo lleva, lo saco"
+                  % os.path.join(clase.directorio, nombre))
+    print("%d parche(s) en %s, %d B" % (len(vistos), clase.directorio, bytes_))
 
 
 if __name__ == "__main__":

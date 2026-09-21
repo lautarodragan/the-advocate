@@ -1,0 +1,19 @@
+# La decisión artística de la animación 1: **a qué tamaño se dibuja**
+# en la consola. Lo escribe el conversor y lo regenera `just parches`,
+# que es lo que hay que correr cuando un cambio lo mueve; `just parches
+# --check` —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+animacion = 1
+nombre = "Hit A"
+hoja = "hit"
+
+# Lo decidido: el rectángulo, en pixeles de la consola, al que se
+# achica la animación entera para entrar en la caja de 64 x 64. Es lo
+# que la fase 2 va a leer en vez de volver a calcularlo.
+tamano = [56, 64]
+
+# De qué venía: la unión de todas las celdas de todos sus cuadros en
+# pixeles de RM2k, y cuántos cuadros son. No se decide, se mide, y
+# está para que el diff diga por qué cambió el tamaño.
+original = [112, 128]
+cuadros = 15

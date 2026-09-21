@@ -2172,6 +2172,11 @@ def indexar_animaciones(game_dir):
         ANIMACIONES[numero] = {"cuadros": [cuadros[k].get("cells") or {}
                                            for k in sorted(cuadros)],
                                "timings": timings,
+                               # El nombre que la animación tiene en el editor
+                               # —"Whole Magic Flame C"—: no lo mira nadie para
+                               # dibujar, lo escribe su parche para que el que
+                               # lea el diff sepa de cuál se habla.
+                               "nombre": anim.get("name", ""),
                                "imagen": anim.get("animation_name", ""),
                                "grande": bool(anim.get("large")),
                                "alcance": anim.get("scope", 0),

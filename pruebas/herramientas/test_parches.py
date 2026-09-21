@@ -27,6 +27,7 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
+from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402
 
 import cartuchos                                              # noqa: E402
@@ -47,3 +48,25 @@ def test_los_parches_versionados_son_los_que_decide_el_conversor():
         % cartuchos.DESTINO)
     quejas, _propios = parches.revisar(RAIZ, armados)
     assert not quejas, "\n\n".join(quejas)
+
+
+def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
+    """Lo versionado de una animación se lee como lo va a leer la fase 2.
+
+    Y de paso sostiene lo que hace que el número de animación alcance como
+    clave: el tamaño es función de la caja que la animación ocupa en RM2k y de
+    la caja de la consola, que es una sola para toda la ROM. Si algún día
+    dependiera del mapa —de la VRAM que le quede—, dos cartuchos con los
+    mismos mapas podrían decidir distinto y esta cuenta dejaría de dar.
+    """
+    clase = dict((c.clave, c) for c in parches.CLASES)["animacion"]
+    numeros = parches.versionados(RAIZ, clase)
+    assert numeros, "no hay ninguna animación versionada en %s" % clase.directorio
+    for numero in numeros:
+        doc = parches.leer_animacion(RAIZ, numero)
+        assert doc["animacion"] == numero
+        assert tuple(doc["tamano"]) == animacion.tamano(*doc["original"]), (
+            "la animación %d dice que se dibuja a %s y su caja de %s da %s"
+            % (numero, doc["tamano"], doc["original"],
+               animacion.tamano(*doc["original"])))
+        assert max(doc["tamano"]) <= animacion.CAJA
