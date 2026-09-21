@@ -360,6 +360,43 @@ def pasabilidad_del_tile(game_map, charset, layer):
 
 
 UPPER_BASE = 10000      # el primer tile de la capa alta, en el mapa y en la tabla
+# Y el primero de los tiles sueltos de la capa de abajo: el "bloque E" del
+# formato, los 144 que la paleta del editor muestra debajo de los autotiles.
+# Son los dos rangos con los que habla `TileSubstitution`, que numera desde el
+# primero de cada uno. Los autotiles quedan afuera: no los sustituye ni RM2k.
+LOWER_BASE = 5000
+TILES_POR_CAPA = 144
+
+# Los seis bloques de ids de tile del formato, como `map_data.h` de easyrpg:
+# (primer id, cuántos, cuánto ocupa cada uno, primer índice). El **índice** es
+# con lo que se lee la tabla de terrenos y la de pasabilidad del ChipSet, y no
+# es el id: los autotiles ocupan 50 o 1000 ids cada uno —las combinaciones de
+# bordes— y un solo índice.
+BLOQUES_DE_CHIP = ((0, 2, 1000, 0), (2000, 1, 1000, 2), (3000, 3, 50, 3),
+                   (4000, 12, 50, 6), (LOWER_BASE, 144, 1, 18),
+                   (UPPER_BASE, 144, 1, 162))
+# Cuántas entradas tiene la tabla de terrenos: las de la capa de abajo.
+TERRENOS_POR_CHIPSET = 162
+
+
+def indice_de_chip(chip_id):
+    """`ChipIdToIndex`: de un id de tile del mapa a su entrada del ChipSet."""
+    for base, cuantos, paso, indice in BLOQUES_DE_CHIP:
+        if base <= chip_id < base + cuantos * paso:
+            return indice + (chip_id - base) // paso
+    return 0
+
+
+def terreno_de(chipset, chip_id):
+    """El terreno de un tile de la capa de abajo, como `GetTerrainTag`.
+
+    Un ChipSet cuyo terreno es todo 1 **no guarda la tabla**: es una
+    optimización de RPG_RT que el formato deja ver, y la respuesta entonces es
+    1. Todos los ChipSets de este juego son así.
+    """
+    if not chipset.terrain:
+        return 1
+    return chipset.terrain[indice_de_chip(chip_id)]
 
 # Los `animation_type` que piden animación continua: "Continuous" y "Fixed
 # Dir/Continuous". El save point de Lashe City es del segundo tipo.

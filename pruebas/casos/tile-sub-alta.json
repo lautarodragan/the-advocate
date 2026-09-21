@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [6, 32, 13]},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "TileSubstitution", "parameters": [1, 121, 52]},
+    {"code": "Wait", "parameters": [30]},
+    {"code": "TileSubstitution", "parameters": [1, 52, 121]}
+  ]
+}

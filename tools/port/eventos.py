@@ -51,6 +51,16 @@ MOVE_EVENT = 11330
 # veces para traer a Core, a Manta y al droide a escena.
 CHANGE_EVENT_LOCATION = 10860
 TRADE_EVENT_LOCATIONS = 10870
+# Cambiar un tile del mapa por otro, en todas las celdas donde esté:
+# `CommandTileSubstitution`. Es por **número de tile** y no por celda, y por
+# eso en la ROM es una tabla chica que traduce bloques mientras se dibuja, y no
+# una escritura sobre la grilla —que vive en la ROM y no se puede escribir—.
+# Cuál bloque va a cuál lo resuelve el conversor: ver `Sustituciones`.
+TILE_SUBSTITUTION = 11750
+# El terreno de una celda a una variable: `CommandStoreTerrainID`. El terreno
+# sale del tile de la capa de **abajo** —"RPG_RT always uses the terrain of the
+# first lower tile"— así que la capa alta no lo cambia.
+STORE_TERRAIN_ID = 10910
 SHAKE_SCREEN = 11050
 FLASH_SCREEN = 11040
 # Correr la cámara sin el héroe: `CommandPanScreen`. De sus cuatro operaciones
@@ -1202,6 +1212,12 @@ class Eventos:
         # De qué mapa es, para saber cuándo una página se va de él: ver
         # `afuera`.
         self.map_id = getattr(game_map, "map_id", None)
+        # Cómo se traduce una `TileSubstitution` a pares de bloques de la ROM.
+        # Lo pone el conversor sobre el mapa, porque depende de cómo quedaron
+        # los bloques —que es cosa de la consola— y no de RM2k. Sin él el
+        # comando no compila, que es lo que pasa en cualquier ROM armada sin
+        # pasar por `snes_convert`.
+        self.sustituciones = getattr(game_map, "sustituciones", None)
         self.mio = mio
 
     def comparte_grafico(self, quien):
@@ -1217,6 +1233,7 @@ class Eventos:
         otro.paginas = self.paginas
         otro.vars_observadas = self.vars_observadas
         otro.map_id = self.map_id
+        otro.sustituciones = self.sustituciones
         return otro
 
     def afuera(self):
@@ -1231,6 +1248,9 @@ class Eventos:
         """
         otro = self.para(self.mio)
         otro.vars_observadas = None
+        # Y los bloques de allá no son éstos: una sustitución después del
+        # salto hablaría de tiles del mapa nuevo y la traducción es del viejo.
+        otro.sustituciones = None
         return otro
 
     def blanco(self, quien):
@@ -2311,6 +2331,10 @@ def variables_de_comandos(comandos):
         elif cmd.code == CHANGE_EVENT_LOCATION and len(p) >= 4 \
                 and p[1] == LUGAR_POR_VARIABLE:
             ids.update((p[2], p[3]))
+        elif cmd.code == STORE_TERRAIN_ID and len(p) >= 4:
+            ids.add(p[3])
+            if p[0] == 1:
+                ids.update((p[1], p[2]))
     return ids
 
 
@@ -3882,6 +3906,48 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede()
         return bytes([OP_PLACE, blanco, p[2] & 0xFF, p[2] >> 8,
                       p[3] & 0xFF, p[3] >> 8])
+
+    if cmd.code == TILE_SUBSTITUTION:
+        # `[capa alta?, tile viejo, tile nuevo]`, con los tiles numerados desde
+        # el primero de su capa, que es como los numera `DoSubstitute`.
+        if len(p) < 3:
+            raise NoSePuede("TileSubstitution sin operandos")
+        if eventos_mapa is None or eventos_mapa.sustituciones is None:
+            # Sin el conversor de por medio no hay bloques contra los cuales
+            # traducir. Ver `Sustituciones` en snes_convert.py.
+            raise NoSePuede("TileSubstitution sin los bloques del mapa")
+        pares = eventos_mapa.sustituciones.pares(bool(p[0]), p[1], p[2])
+        if pares is None:
+            raise NoSePuede("TileSubstitution que no se puede traducir a "
+                            "bloques: ver `Sustituciones`")
+        if not pares:
+            # Ninguna celda del mapa dibuja el tile viejo, así que no hay nada
+            # que cambiar. En RM2k la sustitución igual queda anotada, pero lo
+            # que anota no lo mira nadie: no hay celda que la pueda usar.
+            return b""
+        out = bytearray([OP_TILE_SUB, len(pares)])
+        for viejo, nuevo in pares:
+            out += bytes([viejo & 0xFF, viejo >> 8, nuevo & 0xFF, nuevo >> 8])
+        return bytes(out)
+
+    if cmd.code == STORE_TERRAIN_ID:
+        # `[modo, x, y, variable]`, con `ValueOrVariable`: en modo 0 la celda
+        # viene escrita y en modo 1 los dos números son ids de variable. Los
+        # dos se resuelven **al correr**, así que van los dos en el mismo
+        # opcode con el modo puesto: leerlos acá en modo 1 sería contestar con
+        # lo que las variables valían al compilar.
+        if len(p) < 4 or p[0] not in (0, 1):
+            raise NoSePuede("StoreTerrainID con un modo que no es 0 ni 1")
+        destino = ranura_de_variable(p[3]) \
+            | escritura_pide_refresco(p[3], eventos_mapa)
+        if p[0]:
+            x, y = ranura_de_variable(p[1]), ranura_de_variable(p[2])
+        else:
+            if not (0 <= p[1] <= 0xFFFF and 0 <= p[2] <= 0xFFFF):
+                raise NoSePuede("StoreTerrainID fuera de los 16 bits")
+            x, y = p[1], p[2]
+        return bytes([OP_TERRAIN, p[0], x & 0xFF, x >> 8, y & 0xFF, y >> 8,
+                      destino])
 
     if cmd.code == SHAKE_SCREEN:
         # `CommandShakeScreen`, en su forma de RM2k: fuerza, velocidad,

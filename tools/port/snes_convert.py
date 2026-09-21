@@ -2422,23 +2422,42 @@ def fuente_prerender(fuente, colores, sombra):
     return tablas
 
 
-def build_blocks(tilemap, above_tilemap, passable, width, height):
+def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
+                 chipset=None):
     """El mapa como índices a bloques de 16x16, con su tabla.
 
-    Devuelve (celdas, tabla de bloques, pasabilidad por bloque). Las celdas van
-    fila por fila, que es como las recorre la ROM.
+    Devuelve (celdas, tabla de bloques, pasabilidad por bloque, combinaciones).
+    Las celdas van fila por fila, que es como las recorre la ROM.
+
+    Las **combinaciones** son `(tile de abajo, tile de arriba) -> bloque`, con
+    los ids de RM2k y no con nada de la consola. No participan de la clave del
+    bloque, así que no cambian un solo byte de lo que sale: son lo que
+    `TileSubstitution` necesita para saber a qué bloque va a dar un tile que se
+    sustituye por otro, porque el bytecode habla de tiles y la ROM de bloques.
+    Un bloque es exactamente una celda de 16x16 de RM2k, así que la
+    correspondencia existe.
     """
-    blocks, cells = {}, []
+    blocks, cells, combos = {}, [], {}
     for by in range(height):
         for bx in range(width):
+            abajo = game_map.lower_layer[by * width + bx]
             key = (tuple(tilemap[by * 2 + dy][bx * 2 + dx]
                          for dy in (0, 1) for dx in (0, 1)),
                    tuple(above_tilemap[by * 2 + dy][bx * 2 + dx]
                          for dy in (0, 1) for dx in (0, 1)),
-                   passable[by * width + bx])
+                   passable[by * width + bx],
+                   # El terreno entra en la clave por lo mismo que la
+                   # pasabilidad: dos celdas que se dibujan igual pueden venir
+                   # de tiles con distinto terreno, y la ROM lo lee por bloque.
+                   # No parte un bloque de más en este juego, donde el terreno
+                   # de todos los ChipSets es 1.
+                   rm2k.terreno_de(chipset, abajo) if chipset else 1)
             if key not in blocks:
                 blocks[key] = len(blocks)
             cells.append(blocks[key])
+            combos.setdefault((abajo,
+                               game_map.upper_layer[by * width + bx]),
+                              blocks[key])
 
     if len(blocks) > MAX_BLOCKS:
         raise SystemExit("el mapa usa %d bloques distintos y la tabla no puede "
@@ -2446,13 +2465,196 @@ def build_blocks(tilemap, above_tilemap, passable, width, height):
 
     table = bytearray(BLOCK_BYTES * len(blocks))
     pass_bytes = bytearray(len(blocks))
-    for (base, above, permisos), number in blocks.items():
+    terreno_bytes = bytearray(len(blocks))
+    for (base, above, permisos, terreno), number in blocks.items():
         entries = list(base) + list(above)
         for i, cell in enumerate(entries):
             table[number * BLOCK_BYTES + i * 2:
                   number * BLOCK_BYTES + i * 2 + 2] = cell.to_bytes(2, "little")
         pass_bytes[number] = permisos
-    return cells, bytes(table), bytes(pass_bytes)
+        if not 0 <= terreno <= 0xFF:
+            raise SystemExit("un tile con terreno %d y la tabla de la ROM "
+                             "lleva un byte por bloque" % terreno)
+        terreno_bytes[number] = terreno
+    return cells, table, pass_bytes, terreno_bytes, combos
+
+
+# Cuántos pares de bloques puede tener puestos a la vez la tabla de
+# sustituciones de la ROM. Es `SUB_MAX` en main.s y está escrito de los dos
+# lados a propósito —el conversor tiene que poder negarse **antes** de emitir
+# un mapa que no entre—; la prueba `test_sustitucion.py` compara los dos.
+SUB_MAX = 8
+
+
+class Sustituciones:
+    """`TileSubstitution` traducido de tiles de RM2k a bloques de la ROM.
+
+    RM2k sustituye por **número de tile**: todas las celdas del mapa que
+    dibujen el tile viejo pasan a dibujar el nuevo. En la ROM no hay tiles de
+    RM2k, hay bloques de 16x16 que llevan las dos capas y la pasabilidad
+    juntas, así que una sustitución de RM2k son tantos pares de bloques como
+    combinaciones de (abajo, arriba) del mapa lleven ese tile. Cuáles son se
+    sabe al convertir, que es por qué esto vive acá y no en `eventos.py`.
+
+    El bloque de destino puede no existir —nadie dibujó esa combinación en
+    ningún lado del mapa— y entonces se arma: las cuatro celdas de 8x8 de la
+    capa que cambia salen de otro bloque que ya dibuje el tile nuevo, las de
+    la otra capa salen del bloque de origen, y la pasabilidad se recalcula con
+    las mismas reglas de RM2k. De ahí sale el único límite de verdad que esto
+    tiene: **el tile nuevo tiene que estar dibujado en alguna celda del mapa**,
+    en su capa. Si no está, sus 8x8 no entraron en la VRAM y no hay con qué
+    dibujarlo; la página no compila y se dice por qué.
+
+    Los bloques se arman todos **antes** de compilar ninguna página, y no a
+    medida que aparecen los comandos: las sustituciones se encadenan —prender
+    es 80→80A y apagar es 80A→80— así que el bloque que necesita una lo crea
+    otra, y en qué orden se compilan las páginas no puede decidir qué compila.
+    """
+
+    def __init__(self, mapa, flags, chipset):
+        self.mapa = mapa
+        self.flags = flags
+        self.chipset = chipset
+        self.combos = mapa["combos"]
+        # Las cuatro celdas de 8x8 con que se dibuja cada tile de RM2k, por
+        # capa. Salen de los bloques que ya hay: un tile que el mapa no dibuja
+        # en ningún lado no está acá y no se puede sustituir hacia él.
+        self.celdas = ({}, {})
+        for (bajo, alto), bloque in self.combos.items():
+            for capa, tile in ((0, bajo), (1, alto)):
+                self.celdas[capa].setdefault(tile, self._mitad(bloque, capa))
+        # Los bloques que alguna sustitución del mapa usa como clave, que es
+        # lo que va a ocupar lugar en la tabla de la RAM.
+        self.claves = set()
+        # Y los bloques por contenido, para deduplicar los que se arman igual
+        # que `build_blocks` deduplica los del mapa. No es por ahorrar lugar:
+        # dos combinaciones que ya comparten bloque —los dos autotiles de agua
+        # del mapa 6 dibujan lo mismo— tienen que seguir compartiéndolo después
+        # de sustituir, o la sustitución mandaría un solo bloque a dos lados y
+        # no se podría expresar.
+        self.por_bytes = {}
+        for bloque in range(len(mapa["pass"])):
+            self.por_bytes.setdefault(self._huella(bloque), bloque)
+
+    def _mitad(self, bloque, capa):
+        desde = bloque * BLOCK_BYTES + capa * 8
+        return bytes(self.mapa["bloques"][desde:desde + 8])
+
+    def _huella(self, bloque):
+        desde = bloque * BLOCK_BYTES
+        return (bytes(self.mapa["bloques"][desde:desde + BLOCK_BYTES]),
+                self.mapa["pass"][bloque], self.mapa["terreno"][bloque])
+
+    def _combo(self, capa_alta, viejo, nuevo):
+        """Los ids de RM2k del tile que sale y del que entra."""
+        base = rm2k.UPPER_BASE if capa_alta else rm2k.LOWER_BASE
+        return base + viejo, base + nuevo
+
+    def pares(self, capa_alta, viejo, nuevo):
+        """Los `(bloque viejo, bloque nuevo)` de una sustitución, o None.
+
+        None es "esta página no compila", que es lo que `eventos.py` espera de
+        un comando que no se puede hacer.
+        """
+        if not (0 <= viejo < rm2k.TILES_POR_CAPA
+                and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+            return None
+        capa = 1 if capa_alta else 0
+        viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
+        salida, vistos = [], {}
+        for combinacion, bloque in sorted(self.combos.items()):
+            if combinacion[capa] != viejo_id:
+                continue
+            destino = list(combinacion)
+            destino[capa] = nuevo_id
+            nuevo_bloque = self.combos.get(tuple(destino))
+            if nuevo_bloque is None:
+                return None     # lo tenía que haber creado `cerrar`
+            if vistos.setdefault(bloque, nuevo_bloque) != nuevo_bloque:
+                # Dos combinaciones distintas que dibujan igual y tienen los
+                # mismos permisos comparten bloque, y ahí la sustitución no se
+                # puede expresar: el bloque tendría que ir a dos lados. No
+                # pasa con ningún ChipSet del juego —dibujar igual quiere decir
+                # ser el mismo tile— pero si pasara, sustituir sería cambiar
+                # celdas que RM2k no toca.
+                return None
+            salida.append((bloque, nuevo_bloque))
+        if len(salida) > 0xFF:
+            return None         # el operando de la cuenta es de un byte
+        self.claves.update(par[0] for par in salida)
+        return salida
+
+    def cerrar(self, triples):
+        """Arma los bloques que van a hacer falta, y devuelve qué no se pudo.
+
+        `triples` son los `(capa alta, viejo, nuevo)` de todas las
+        `TileSubstitution` del mapa. Se repite hasta que ninguna crea un bloque
+        nuevo, porque el bloque que crea una es el origen de la siguiente.
+        """
+        faltan = []
+        while True:
+            antes = len(self.combos)
+            for capa_alta, viejo, nuevo in triples:
+                if not (0 <= viejo < rm2k.TILES_POR_CAPA
+                        and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+                    continue
+                capa = 1 if capa_alta else 0
+                viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
+                if nuevo_id not in self.celdas[capa]:
+                    if (capa_alta, viejo, nuevo) not in faltan:
+                        faltan.append((capa_alta, viejo, nuevo))
+                    continue
+                for combinacion in sorted(self.combos):
+                    if combinacion[capa] != viejo_id:
+                        continue
+                    destino = list(combinacion)
+                    destino[capa] = nuevo_id
+                    self._crear(tuple(destino))
+            if len(self.combos) == antes:
+                return faltan
+
+    def _crear(self, combinacion):
+        """El bloque de una combinación que el mapa no dibuja en ningún lado."""
+        if combinacion in self.combos:
+            return self.combos[combinacion]
+        bajo, alto = combinacion
+        huella = (self.celdas[0][bajo] + self.celdas[1][alto],
+                  rm2k.pasa_de_celda(self.flags, bajo, alto),
+                  rm2k.terreno_de(self.chipset, bajo))
+        numero = self.por_bytes.get(huella)
+        if numero is None:
+            numero = len(self.mapa["pass"])
+            if numero >= MAX_BLOCKS:
+                raise SystemExit(
+                    "el mapa %d se pasa de %d bloques armando los que "
+                    "`TileSubstitution` necesita"
+                    % (self.mapa["id"], MAX_BLOCKS))
+            self.mapa["bloques"] += huella[0]
+            self.mapa["pass"].append(huella[1])
+            self.mapa["terreno"].append(huella[2])
+            self.por_bytes[huella] = numero
+        self.combos[combinacion] = numero
+        return numero
+
+
+def triples_de_sustitucion(game_map, casos, map_id):
+    """Los `(capa alta, viejo, nuevo)` de todas las `TileSubstitution` que
+    pueden llegar a correr en este mapa: las de sus eventos y las de los casos
+    de prueba que arrancan acá —que viven en el mapa de arranque pero se
+    compilan con el contexto de éste, ver `mapa_del_caso`—."""
+    triples = []
+    listas = [pagina.commands
+              for evento in game_map.events for pagina in evento.pages]
+    listas += [caso.comandos for caso in casos if caso.mapa == map_id]
+    for comandos in listas:
+        for cmd in comandos:
+            if cmd.code != eventos.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
+                continue
+            triple = (bool(cmd.parameters[0]),
+                      cmd.parameters[1], cmd.parameters[2])
+            if triple not in triples:
+                triples.append(triple)
+    return triples
 
 
 # El registro de un mapa en la tabla. El paso es potencia de dos para que pasar
@@ -2500,10 +2702,15 @@ MAPA_BYTES = [
     # Un byte y no un escalar porque el registro está en sus 128 justos. El
     # tile de un bloque es siempre múltiplo de cuatro y menor que 512.
     ("GIRO_TILE4", "el tile de la ranura de giro sobre cuatro, o $FF"),
+    # El terreno, que es lo que `StoreTerrainID` contesta. Los dos son bytes
+    # porque el terreno de RM2k es un índice de `Data.terrains` y no pasa de
+    # 255, y porque el registro de mapa está en sus 128 justos.
+    ("TERRENO_FUERA", "el terreno de una celda fuera del mapa"),
+    ("TERRENO_PLANO", "el terreno de todo el mapa, o 0 si hay tabla"),
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "npc_table", "actor_table",
+                 "bloque_pass", "bloque_terreno", "npc_table", "actor_table",
                  "paginas", "ev_pos", "npc_poses", "ruta_grafico",
                  # La animación del ChipSet: las dos corridas de tiles y sus
                  # dibujos. Ver `anim_bytes`.
@@ -2595,6 +2802,8 @@ def campos_del_mapa(mapa):
         "LLUVIA_PAL": sprite[11] if sprite else 0,
         "GIRO_TILE4": (sprite[12] // 4 if sprite and sprite[12] != GIRO_NINGUNO
                        else 0xFF),
+        "TERRENO_FUERA": mapa["terreno_fuera"],
+        "TERRENO_PLANO": terreno_plano(mapa),
     }
 
 
@@ -3190,6 +3399,23 @@ class Materiales:
                sum(self.ahorro.values()) / 1024.0)]
 
 
+def terreno_plano(mapa):
+    """El terreno que tiene todo el mapa, o 0 si tiene más de uno.
+
+    El 0 no es un terreno: los de RM2k son índices de `Data.terrains` y
+    empiezan en 1, así que sirve de "acá hay tabla" sin gastar otro campo. Un
+    mapa con el terreno en 0 —que no existe— cae en la rama de la tabla, que
+    contesta lo mismo.
+    """
+    unicos = set(mapa["terreno"])
+    return unicos.pop() if len(unicos) == 1 else 0
+
+
+def terreno_del_mapa(mapa):
+    return (bytes([terreno_plano(mapa)]) if terreno_plano(mapa)
+            else bytes(mapa["terreno"]))
+
+
 def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
@@ -3207,6 +3433,13 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         ("sprite_cgram", sprite_colors_bytes(sprite)),
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
+        # El terreno por bloque. Un mapa cuyo terreno es el mismo en todos
+        # lados —los 328 de este juego, que lo tienen en 1— emite **un byte**
+        # y `TERRENO_PLANO` dice cuál: la tabla entera serían unos ocho
+        # kilobytes de la nada repartidos entre los cuarenta mapas. El byte lo
+        # deduplica `materiales`, así que todos los mapas planos con el mismo
+        # terreno comparten el mismo.
+        ("bloque_terreno", terreno_del_mapa(mapa)),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
         # Dos bytes por gráfico de la orden 34: su entrada en `npc_poses` —o
         # $FF, que es esconder— y su paleta. Ver `Graficos` en eventos.py.
@@ -5510,6 +5743,29 @@ def main():
     # final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
 
+    # Los bloques que las `TileSubstitution` del mapa van a necesitar, armados
+    # **antes** de compilar ninguna página: ver `Sustituciones`. Un mapa sin
+    # ese comando no arma nada y no crece un byte, que es el caso de los 328
+    # mapas del juego al día de hoy.
+    for mapa in mapas:
+        chipset = renderer.database.chipsets[mapa["game_map"].chipset_id]
+        mapa["sustituciones"] = Sustituciones(
+            mapa, build_passability(chipset), chipset)
+        # Le cuelga al mapa para que llegue a `eventos.Eventos`, que es lo que
+        # el compilador ya se pasa de mano en mano.
+        mapa["game_map"].sustituciones = mapa["sustituciones"]
+        triples = triples_de_sustitucion(mapa["game_map"], args.casos,
+                                         mapa["id"])
+        for faltante in mapa["sustituciones"].cerrar(triples):
+            # No corta la conversión: la página que lo pide no compila, que es
+            # lo que hace cualquier comando que no se puede ejecutar. Pero se
+            # dice, porque desde afuera se ve como un evento que no hace nada.
+            print("  mapa %d: TileSubstitution hacia el tile %d de la capa de "
+                  "%s, que el mapa no dibuja en ninguna celda: sus 8x8 no "
+                  "entraron en la VRAM, así que la página no compila"
+                  % (mapa["id"], faltante[2],
+                     "arriba" if faltante[0] else "abajo"))
+
     # El bloque de textos es de la ROM entera y se arma mientras se compilan las
     # páginas: cada `ShowMessage` deja su texto acá y se lleva un
     # desplazamiento, que es lo que va en el bytecode. La referencia arma el
@@ -5733,6 +5989,17 @@ def main():
                              0xFF if pagina.get("tile_pasa") is None
                              else pagina["tile_pasa"])
         mapa["evcodigo"] = bytes(codigo)
+        # La tabla de sustituciones de la ROM es de tope fijo y **no avisa** si
+        # se le pasa: los pares que no entren no se aplicarían y el mapa
+        # dibujaría de más. Cuántas entradas puede llegar a tener se sabe acá,
+        # y es la cantidad de bloques distintos que alguna sustitución del mapa
+        # usa como clave, porque una clave nunca se pisa: la segunda vuelta
+        # cambia su valor. Ver `op_tile_sub` en main.s.
+        claves = len(mapa["sustituciones"].claves)
+        if claves > SUB_MAX:
+            sys.exit("el mapa %d sustituye %d bloques distintos y la tabla de "
+                     "la RAM lleva %d: ver SUB_MAX"
+                     % (mapa["id"], claves, SUB_MAX))
         # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
         # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
         # descarta **sin decir nada**, que es la clase de diferencia que ninguna
@@ -6959,8 +7226,9 @@ def convertir(renderer, map_id, args, inicio=None):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    celdas, bloques, block_pass = build_blocks(tilemap, above_data[2], passable,
-                                               game_map.width, game_map.height)
+    celdas, bloques, block_pass, block_terreno, combos = build_blocks(
+        game_map, tilemap, above_data[2], passable,
+        game_map.width, game_map.height, chipset)
     print("  el mapa entra en %d bloques de 16x16 para %d celdas: %d B de "
           "grilla más %d B de tabla, contra los %d B del tilemap expandido"
           % (len(bloques) // BLOCK_BYTES, len(celdas), 2 * len(celdas),
@@ -6989,7 +7257,15 @@ def convertir(renderer, map_id, args, inicio=None):
         "graficos_de_ruta": graficos_de_ruta,
         "collision": collision, "celdas": bytes(words),
         "ev_pos": ev_pos_bytes(game_map),
-        "bloques": bloques, "pass": block_pass,
+        # Los dos crecen mientras se compilan las páginas, si alguna sustituye
+        # tiles: ver `Sustituciones`. Por eso son mutables y se congelan recién
+        # al emitirlos.
+        "bloques": bloques, "pass": block_pass, "terreno": block_terreno,
+        "combos": combos,
+        # El terreno de una celda **fuera del mapa**: `GetTerrainTag` usa el
+        # índice 0 del ChipSet, o sea el primer autotile, y no el de ninguna
+        # celda. Ver `op_terrain`.
+        "terreno_fuera": rm2k.terreno_de(chipset, 0),
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0),

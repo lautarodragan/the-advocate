@@ -48,3 +48,17 @@ Eso lo cobra `just parches-check`, que incluye a `abl` y **sí** falla diciendo
 qué entró sin parche. Hacer que lo cobre la tanda cuesta armar `abl` antes
 de cada corrida, que hoy son veinte segundos que ninguna prueba usa para nada
 más.
+
+## Que una `TileSubstitution` le cambie el terreno a la celda
+
+`GetTerrainTag` pasa por `map_info.lower_tiles` antes de leer la tabla de
+terrenos, así que sustituir un tile le cambia el terreno a todas sus celdas.
+Acá sale gratis —el terreno viaja adentro del bloque, y `op_terrain` lee el
+bloque **ya sustituido**— pero no hay con qué probarlo: `TileSubstitution` sólo
+habla de los 144 tiles sueltos de cada capa, y **ningún ChipSet del juego tiene
+dos de ésos con terrenos distintos** (medido sobre los 52). El mapa 5, que es
+el único del cartucho de pruebas con más de un terreno, los tiene todos en sus
+autotiles.
+
+El día que el fork del mapa 11 traiga su ChipSet propio con un terreno por
+cono, ése es el caso que falta.

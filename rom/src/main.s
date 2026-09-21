@@ -1574,6 +1574,12 @@ anim_continua:
 .a8
     jsr giro_limpiar            ; las filas van a ser otras
     jsr animacion_limpiar       ; y la animación de batalla no sigue
+    rep #$20
+.a16
+    stz sub_n                   ; y las sustituciones de tiles se pierden al
+    stz sub_refresco            ; cargar un mapa, como en RM2k: ver `sub_n`
+    sep #$20
+.a8
     lda #0                      ; y el cartel se borra: es el
     sta f:CARTEL_ACTIVA         ; `erase_on_map_change` de Game_Pictures, y
     sta f:CARTEL_LISTO          ; además sus tiles son de un solo mapa
@@ -4220,6 +4226,12 @@ otro:
 :   cmp #OP_HEAL
     bne :+
     jmp op_heal
+:   cmp #OP_TILE_SUB
+    bne :+
+    jmp op_tile_sub
+:   cmp #OP_TERRAIN
+    bne :+
+    jmp op_terrain
 :   stz ev_activo              ; OP_DONE, o algo que no conocemos: se corta
     rts
 
@@ -5851,6 +5863,186 @@ graf_no_lidera:
 ; con Y en la mano.
 op_heal:
     jsl f:curar
+    jmp otro
+
+; `TileSubstitution`: de ahora en más, donde la grilla diga tal bloque se
+; dibuja tal otro. La instrucción trae **varios** pares porque RM2k sustituye
+; por número de tile y acá la unidad es el bloque de 16x16, que lleva las dos
+; capas juntas: un tile de RM2k puede estar en tantos bloques como
+; combinaciones tenga con la otra capa. Cuáles son lo resolvió el conversor,
+; ver `Sustituciones` en snes_convert.py.
+;
+; La tabla se aplica como `DoSubstitute` de easyrpg, que recorre la traducción
+; entera y cambia **los valores** que sean el bloque viejo, no las claves:
+;
+;   * todo par que hoy apunte al que sale pasa a apuntar al que entra, que es
+;     lo que hace que sustituir A→B y después B→A deshaga la primera en vez de
+;     dejar dos reglas peleándose;
+;   * y si ninguna clave es el que sale, se agrega el par, que es la entrada
+;     identidad que la tabla no guarda por no ocupar lugar.
+op_tile_sub:
+.a8
+.i16
+    lda [cod_ptr], y            ; cuántos pares trae la instrucción
+    iny
+    sta sub_quedan
+otro_par:
+    sep #$20
+.a8
+    lda sub_quedan
+    beq sub_listo
+    dec a
+    sta sub_quedan
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el bloque que sale
+    sta sub_de
+    iny
+    iny
+    lda [cod_ptr], y            ; y el que entra
+    sta sub_a
+    iny
+    iny
+    stz sub_hay
+    ldx #$0000
+recorrer_sub:
+    cpx sub_n
+    beq agregar_sub
+    lda sub_clave, x
+    cmp sub_de
+    bne no_es_clave
+    inc sub_hay
+no_es_clave:
+    lda sub_valor, x
+    cmp sub_de
+    bne sigue_sub
+    lda sub_a
+    sta sub_valor, x
+sigue_sub:
+    inx
+    inx
+    bra recorrer_sub
+agregar_sub:
+    lda sub_hay
+    bne otro_par                ; la clave ya estaba, y el lazo le puso el valor
+    lda sub_n
+    cmp #(SUB_MAX * 2)
+    bcs otro_par                ; no entra. El conversor se niega a emitir un
+    tax                         ; mapa que pueda llegar acá: ver SUB_MAX
+    lda sub_de
+    sta sub_clave, x
+    lda sub_a
+    sta sub_valor, x
+    txa
+    inc a
+    inc a
+    sta sub_n
+    bra otro_par
+sub_listo:
+    rep #$20
+.a16
+    lda #WINDOW_COLS            ; y la ventana se rehace de a una columna por
+    sta sub_refresco            ; cuadro: ver `sub_refresco`
+    sep #$20
+.a8
+    jmp otro
+
+; `StoreTerrainID`: el terreno de una celda a una variable.
+;
+; **El terreno sale del tile de la capa de abajo**, no de la alta —"RPG_RT
+; always uses the terrain of the first lower tile"—, así que acá sale del
+; bloque, que es lo que la ROM tiene: el conversor ya metió el terreno en la
+; clave del bloque, y emitió un byte por bloque. Y como sale del bloque, una
+; `TileSubstitution` puesta lo cambia, que es lo que hace `GetTerrainTag` al
+; pasar por `map_info.lower_tiles`.
+;
+; Un mapa con un solo terreno —los 328 de este juego— no lleva tabla: la
+; contesta `TERRENO_PLANO`. Fuera del mapa contesta `TERRENO_FUERA`, que es el
+; terreno del **primer tile del ChipSet** y no el de ninguna celda.
+op_terrain:
+.a8
+.i16
+    lda [cod_ptr], y            ; el modo: 0 la celda escrita, 1 por variable
+    iny
+    sta temp
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    sta celda_x
+    iny
+    iny
+    lda [cod_ptr], y
+    sta celda_y
+    iny
+    iny
+    sep #$20
+.a8
+    lda [cod_ptr], y            ; la ranura donde se guarda, con VAR_REFRESCO
+    iny
+    sta temp + 1
+    phy
+    lda temp
+    beq terreno_celda
+    ; Por variable: lo que vino en el opcode son dos ranuras, y se leen ahora
+    ; —es el `ValueOrVariable` de `CommandStoreTerrainID`—.
+    lda celda_x
+    jsr var_leer                ; vuelve con M en dieciséis
+.a16
+    sta celda_x
+    sep #$20
+.a8
+    lda celda_y
+    jsr var_leer
+.a16
+    sta celda_y
+    sep #$20
+.a8
+terreno_celda:
+    rep #$20
+.a16
+    lda celda_x                 ; `IsValid`: fuera del mapa contesta el del
+    bmi terreno_afuera          ; primer tile, no el de la celda de al lado
+    cmp mapa_ancho
+    bcs terreno_afuera
+    lda celda_y
+    bmi terreno_afuera
+    cmp mapa_alto
+    bcs terreno_afuera
+    sep #$20
+.a8
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_TERRENO_PLANO, x
+    bne terreno_puesto          ; un solo terreno en todo el mapa
+    jsr ptr_de_celda
+    rep #$20
+.a16
+    lda [celdas_ptr]            ; qué bloque es la celda, ya sustituido
+    jsr celda_sustituida
+    sta temp + 2
+    ; La tabla vive fuera del banco 0, así que se lee con un puntero de 24
+    ; bits, y el único que hay libre acá es `celdas_ptr` —que ya se usó y es
+    ; de todos modos temporario: cada quien lo reposiciona antes de leer—.
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
+    sta celdas_ptr + 2
+    ldy temp + 2
+    lda [celdas_ptr], y
+    bra terreno_puesto
+terreno_afuera:
+    sep #$20
+.a8
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_TERRENO_FUERA, x
+terreno_puesto:
+    sta temp + 2                ; de acá lo saca `var_escribir`
+    stz temp + 3
+    lda temp + 1
+    jsr var_escribir            ; con su refresco, si la ranura lo pide
+    ply
     jmp otro
 
 ; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
@@ -18446,6 +18638,37 @@ guarda:
     rts
 .endproc
 
+; A = el bloque que dice la grilla; vuelve con el que hay que usar, que es otro
+; sólo si alguna `TileSubstitution` lo cambió. Pasa por acá **todo** el que lea
+; una celda: las dos tiras y la pasabilidad, que en este port viaja adentro del
+; bloque. Que la pasabilidad siga a la sustitución es lo que hace RM2k:
+; `IsPassableLowerTile` mira `map_info.lower_tiles` antes de `passages_down`.
+;
+; Usa Y, que en los tres llamadores está libre: los dos que arman tiras la
+; cargan justo después con el desplazamiento del bloque, y `pass_del_ptr`
+; también. X no se toca, y ahí sí importa: es la ranura de la tira.
+;
+; Sin sustituciones puestas —los 328 mapas del juego de hoy— son cuatro ciclos
+; y una rama, que es lo que costó ponerla en el camino caliente.
+.proc celda_sustituida
+.a16
+.i16
+    ldy sub_n
+    beq listo
+buscar:
+    dey
+    dey
+    cmp sub_clave, y
+    beq hallado
+    cpy #$0000
+    bne buscar
+    rts
+hallado:
+    lda sub_valor, y
+listo:
+    rts
+.endproc
+
 ; Arma la columna X del mapa —en celdas de 8x8— y deja en col_addr dónde va.
 ;
 ; Se llenan las 32 filas de la ventana, no las 29 que se ven. La ranura de cada
@@ -18523,6 +18746,7 @@ corta:
     ; lee con un puntero de 24 bits, y ese modo sólo indexa por Y.
 fila:
     lda [celdas_ptr]            ; el bloque de esta celda
+    jsr celda_sustituida
     asl a
     asl a
     asl a
@@ -18652,6 +18876,7 @@ corta:
     beq vacias_der              ; toda la fila cae fuera del mapa
 columna:
     lda [celdas_ptr]
+    jsr celda_sustituida
     asl a
     asl a
     asl a
@@ -18774,6 +18999,22 @@ guarda_col:
     sta win_col
     jsr build_column
 sin_columna:
+    ; Lo que dejó pendiente una `TileSubstitution`: una columna de la ventana,
+    ; y sólo si la cámara no se llevó la de este cuadro —`col_addr` en cero es
+    ; que no hay ninguna armada—. Ver `sub_refresco`.
+    lda sub_refresco
+    beq sin_refresco
+    lda col_addr
+    bne sin_refresco
+    dec sub_refresco
+    lda win_col
+    sec
+    sbc #MARGEN_COLS            ; el mismo rango que arma `fill_window`
+    clc
+    adc sub_refresco
+    tax
+    jsr build_column
+sin_refresco:
     sep #$20
 .a8
     rts
@@ -20801,6 +21042,7 @@ positivo:
 .a16
 .i16
     lda [celdas_ptr]            ; qué bloque es esta celda
+    jsr celda_sustituida
     tay
     sep #$20
 .a8
@@ -22563,6 +22805,43 @@ tira_col:   .res WINDOW_ROWS * 2
 tira_col2:  .res WINDOW_ROWS * 2
 tira_row:   .res WINDOW_COLS * 2
 tira_row2:  .res WINDOW_COLS * 2
+
+; La tabla de `TileSubstitution`: qué bloque se dibuja en lugar de cuál. Es lo
+; único del mapa que se puede cambiar corriendo —la grilla vive en el cartucho—
+; y por eso la sustitución no se escribe en ningún lado sino que se consulta al
+; leer cada celda: ver `celda_sustituida`.
+;
+; **Vive lo que vive el mapa cargado, no lo que vive la ventana del tilemap.**
+; Se limpia al cargar un mapa y no al rellenar la ventana. Así queda igual a lo
+; que hace RM2k —la sustitución se aplica al spriteset de la escena, o sea que
+; se pierde al recargar el mapa— y además correcta al volver de una pelea, que
+; rellena la ventana sin cargar nada.
+;
+; `SUB_MAX` está escrito también en `tools/port/snes_convert.py`, que es quien
+; puede negarse a emitir un mapa que no entre. `test_sustitucion.py` compara
+; los dos: acá no hay forma de avisar que se pasó.
+SUB_MAX = 8
+sub_n:      .res 2      ; cuántos pares hay puestos, **en bytes**
+sub_clave:  .res SUB_MAX * 2
+sub_valor:  .res SUB_MAX * 2
+; Lo que `op_tile_sub` necesita mientras aplica una instrucción. No va en
+; `temp`, que mide cuatro bytes y ya lo usa medio intérprete.
+sub_quedan: .res 1      ; pares que faltan de esta instrucción
+sub_de:     .res 2      ; el bloque que sale y el que entra, del par en curso
+sub_a:      .res 2
+sub_hay:    .res 2      ; si alguna clave ya era el que sale
+; Cuántas columnas de la ventana faltan rehacer después de una sustitución.
+;
+; Hace falta porque **el tilemap de la VRAM no se reescribe solo**: `stream_map`
+; sólo arma la columna y la fila que la cámara destapa, así que una sustitución
+; con la cámara quieta no se vería hasta caminar. Se rehace **una columna por
+; cuadro**, y sólo en los cuadros en que la cámara no se llevó la suya: dos
+; columnas por cuadro no entran, porque `push_strips` sube una sola y el resto
+; del vblank ya está vendido. O sea que la ventana entera tarda `WINDOW_COLS`
+; cuadros en ponerse al día, contra el "en el acto" de RM2k —que redibuja el
+; spriteset—; el tramo que se ve son las de la pantalla, y las del margen van
+; detrás. Está medido en `test_sustitucion.py`.
+sub_refresco: .res 2
 
 ; La tabla de NPCs del mapa cargado. Es la única de las tablas del mapa que se
 ; copia a RAM en vez de leerse con un puntero, y por una razón concreta:
