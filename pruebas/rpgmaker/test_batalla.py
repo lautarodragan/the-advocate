@@ -153,7 +153,7 @@ class Pelea:
         `("habilidad", k, blanco)`, donde `k` es el lugar en la lista de
         habilidades del actor —la misma que `batalla.habilidades_de` arma— y
         `blanco` el lugar del enemigo o del actor al que apunta, según su
-        `scope`.
+        `scope`. Una de switch va sin blanco, `("habilidad", k)`: no lo pide.
         """
         self.esperar(ORDEN, tope)
         cual = que[0]
@@ -178,6 +178,13 @@ class Pelea:
                 self.tocar("right")
             assert self.byte("BA_HAB_SEL") == que[1]
             self.tocar()
+            if len(que) == 2:
+                # Una de switch no pide blanco: `Scene_Battle::AssignSkill`
+                # la anota sobre el que la usa. El cursor ya está en el que
+                # sigue, o el turno ya arrancó.
+                assert self.modo() not in (BLANCO, ACTOR), \
+                    "una habilidad de switch pidió blanco"
+                return self
         # El blanco: los enemigos se eligen con el cursor hacia abajo desde el
         # primero vivo, y el grupo igual.
         for _ in range(tope):
@@ -534,7 +541,7 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
         "caso no distinguiría nada"
     pelea.ordenar(("defender",))
     pelea.ordenar(("defender",))
-    pelea.ordenar(("habilidad", 1, 0))
+    pelea.ordenar(("habilidad", 1))
     pelea.correr_turno()
     assert pelea.switch(switch), \
         "MindShield tenía que prender el switch %d" % switch

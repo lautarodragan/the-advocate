@@ -29039,6 +29039,21 @@ h_mira_a:
     jsr ba_ax
     lda BA_S0
     sta BA_ACC_HAB, x
+    ; Una de switch **no pide blanco**, apunte a donde apunte su `scope`:
+    ; `Scene_Battle::AssignSkill` la anota sobre el que la usa y sigue. Sin
+    ; esto, Detect Aura —`scope` 0, un enemigo— pedía elegir uno, y si ése se
+    ; moría antes del turno la habilidad se perdía, que en RM2k no pasa.
+    lda BA_S0
+    jsr ba_ax
+    lda f:hab_tipo, x
+    cmp #BA_HAB_TIPO_SWITCH
+    bne h_con_blanco
+    lda BA_ACTOR
+    sta BA_T0
+    lda #BA_HABILIDAD
+    jsr ba_anotar
+    jmp siguiente_actor
+h_con_blanco:
     ; A quién apunta: el bit 6 de `hab_afecta` es `SkillTargetsEnemies`.
     lda BA_S0
     jsr ba_ax

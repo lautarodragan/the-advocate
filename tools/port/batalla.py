@@ -137,7 +137,8 @@ def habilidad_usable(skill):
 
     * el tipo tiene que ser `normal` o `switch`. `teleport` y `escape` no
       existen acá, y `subskill` es de RM2k3;
-    * el alcance tiene que ser **de a uno**: `enemy` o `ally`. Los de a muchos
+    * el alcance tiene que ser **de a uno**: `enemy` o `ally`, salvo en una de
+      switch, que no pide blanco. Los de a muchos
       —`enemies`, `party`, `self`— pedirían repetir el efecto sobre cada
       blanco, y con eso el orden del azar de los dos lados;
     * y el costo tiene que entrar en dos cifras, que es lo que la lista
@@ -148,7 +149,11 @@ def habilidad_usable(skill):
     alcance `enemies` y queda afuera, y por eso Arden aparece sin ninguna.
     """
     from rpgmaker import lcf
-    return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
+    if skill.type == lcf.SKILL_TIPO_SWITCH:
+        # Una de switch no pide blanco —ver `jugar_turno`—, así que su alcance
+        # no importa. Son 6 de las 52 del juego las que no son de a uno.
+        return skill.sp_cost <= 99
+    return (skill.type == lcf.SKILL_TIPO_NORMAL
             and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
                                 lcf.SKILL_SCOPE_ALIADO)
             and skill.sp_cost <= 99)
@@ -671,7 +676,12 @@ class Batalla:
                 skill, quien = blanco
                 lado = (self.enemigos if skill.apunta_a_enemigos
                         else self.actores)
-                acciones.append((actor, orden, (skill, lado[quien])))
+                # Una de switch no pide blanco: `Scene_Battle::AssignSkill` la
+                # anota sobre el que la usa, apunte a donde apunte su `scope`.
+                from rpgmaker import lcf
+                destino = (actor if skill.type == lcf.SKILL_TIPO_SWITCH
+                           else lado[quien])
+                acciones.append((actor, orden, (skill, destino)))
                 continue
             acciones.append((actor, orden,
                              self.enemigos[blanco] if orden == ORDEN_ATACAR
