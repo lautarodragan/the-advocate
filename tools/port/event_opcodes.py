@@ -48,6 +48,9 @@ OP_PLACE_VAR     = 0x27
 OP_HEAL          = 0x28
 OP_TILE_SUB      = 0x29
 OP_TERRAIN       = 0x2A
+OP_EQUIPMENT     = 0x2B
+OP_SKILL         = 0x2C
+OP_GAME_OVER     = 0x2D
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -91,6 +94,9 @@ OPCODE_SIZE = {
     OP_PLACE_VAR: 4,
     OP_HEAL: 4,
     OP_TERRAIN: 7,
+    OP_EQUIPMENT: 3,
+    OP_SKILL: 4,
+    OP_GAME_OVER: 1,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -148,6 +154,9 @@ LAYOUT = {
     OP_HEAL: (("actor", 1, False), ("amount", 2, False)),
     OP_TILE_SUB: (("pairs", 1, False),),
     OP_TERRAIN: (("mode", 1, False), ("x", 2, False), ("y", 2, False), ("slot", 1, False)),
+    OP_EQUIPMENT: (("actor", 1, False), ("slot", 1, False)),
+    OP_SKILL: (("pair", 2, False), ("learn", 1, False)),
+    OP_GAME_OVER: (),
 }
 
 

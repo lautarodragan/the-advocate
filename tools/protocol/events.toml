@@ -401,3 +401,24 @@ args = [
   { name = "y", type = "word" },
   { name = "slot", type = "byte" },
 ]
+
+[[opcode]]
+name = "OP_EQUIPMENT"
+code = 0x2B
+args = [
+  { name = "actor", type = "byte" },
+  { name = "slot", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_SKILL"
+code = 0x2C
+args = [
+  { name = "pair", type = "word" },
+  { name = "learn", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_GAME_OVER"
+code = 0x2D
+args = []

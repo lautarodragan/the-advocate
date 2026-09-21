@@ -1,0 +1,16 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [6, 22, 12]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "ChangeSkills", "parameters": [1, 15, 0, 0, 152]},
+    {"code": "ChangeSkills", "parameters": [1, 15, 1, 0, 147]},
+    {"code": "ConditionalBranch", "parameters": [5, 15, 4, 152, 0, 0]},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 136, 136, 0]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"},
+    {"code": "ConditionalBranch", "parameters": [5, 15, 4, 147, 0, 0]},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 138, 138, 0]},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"}
+  ]
+}

@@ -4478,22 +4478,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_enemigo = {e: texto_nuevo(titulo_mod.texto_de_item(
             db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
         # Y los de las habilidades: las que sabe algún actor que puede entrar
-        # al grupo **hasta el último nivel al que puede llegar** —ver
-        # `batalla.habilidades_de`—, ordenadas por número, que es el orden en
-        # que el menú las pone. Desde el 2026-09-21 los actores suben de nivel
-        # peleando, así que ya no alcanza con las de su nivel del LDB: la ROM
-        # las filtra por el nivel de ahora. Ver `nivel_tope`.
-        def nivel_tope(a):
-            """Hasta qué nivel puede llegar el actor en este cartucho: el
-            tope del LDB si tiene ranura de experiencia —los que pueden entrar
-            al grupo, `experiencia_ranuras`— y el de arranque si no, que es el
-            que va a tener siempre."""
-            if a in ranuras["actores"] and a in db.actors:
-                return X.nivel_max(db.actors[a])
-            return None
-        habilidades_rom = sorted({h for a in ranuras["actores"]
-                                  for h in B.habilidades_de(db, a,
-                                                            nivel_tope(a))})
+        # al grupo, **a su nivel del LDB** —ver `batalla.habilidades_de`—,
+        # ordenadas por número, que es el orden en que el menú las pone. Con el
+        # grupo de la intro son siete: 129, 130, 131, 143, 144, 146 y 150.
+        #
+        # **Todas las que pueden llegar a saber**, y no sólo las del LDB: un
+        # `ChangeSkills` le enseña al actor lo que la tabla de aprendizaje no
+        # tiene, y desde el 2026-09-21 eso se ve en la pelea. Son las de sus
+        # pares de `eventos.HABILIDAD_RANURA` que la pelea sabe ofrecer.
+        habilidades_rom = sorted({h for (a, h) in eventos.HABILIDAD_RANURA
+                                  if a in ranuras["actores"]
+                                  and B.habilidad_usable(db.skills[h])})
         texto_hab = {h: texto_nuevo(titulo_mod.texto_de_item(
             db.skills[h].name, P.BA_HAB_NOMBRE_ANCHO))
             for h in habilidades_rom}
@@ -4826,39 +4821,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
             for a in range(actores_n) for r in range(P.RANURAS_EQUIPO)))
-        # Y qué habilidades sabe cada actor, para la rama 4 de
-        # `ConditionalBranch`: dónde arranca su lista y cuántas tiene, y las
-        # listas pegadas una detrás de otra. Salen de `batalla.aprendidas_de`,
-        # que es de donde las saca también la referencia —ver
-        # `eventos.indexar_actores`—, así que los dos lados no pueden contestar
-        # distinto.
-        #
-        # Va aparte de `actor_hab`, que es la lista del **menú de la pelea**:
-        # ésa lleva sólo las que este port sabe ejecutar y sólo de los actores
-        # que pueden entrar al grupo, y `IsSkillLearned` no filtra ninguna de
-        # las dos cosas. Con los 60 actores del LDB son 81 habilidades
-        # aprendidas, o sea 162 bytes más los 122 del índice.
-        #
-        # Desde el 2026-09-21 la lista llega hasta `nivel_tope`, y cada una
-        # lleva en `sabe_hab_nivel` el nivel en que se aprende: la ROM las
-        # filtra contra el nivel de ahora, `sabe_habilidad`.
-        sabe_hab, sabe_hab_ini, sabe_hab_n, sabe_hab_nivel = [], [], [], []
-        for a in range(actores_n):
-            suyas = (B.aprendidas_de(db, a, nivel_tope(a))
-                     if a in db.actors else [])
-            sabe_hab_ini.append(len(sabe_hab))
-            sabe_hab_n.append(len(suyas))
-            sabe_hab += suyas
-            sabe_hab_nivel += [B.nivel_en_que_aprende(db, a, h)
-                               for h in suyas]
-        if len(sabe_hab) > 255:
-            raise SystemExit("las habilidades aprendidas del LDB son %d y "
-                             "`sabe_hab_ini` es de un byte" % len(sabe_hab))
-        handle.write('.segment "RODATA"\n')
-        words_asm("sabe_hab", sabe_hab or [0], declarar=True)
-        bytes_asm("sabe_hab_ini", sabe_hab_ini, declarar=True)
-        bytes_asm("sabe_hab_n", sabe_hab_n, declarar=True)
-        bytes_asm("sabe_hab_nivel", sabe_hab_nivel or [0], declarar=True)
         handle.write('\n.segment "TABLAS"\n')
         words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
                                 for a in range(actores_n)], "$%04X")
@@ -4998,43 +4960,55 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (64 if db.skills[h].apunta_a_enemigos else 0)
             | (128 if db.skills[h].ignore_defense else 0)
             for h in habilidades_rom], "$%02X", declarar=True)
-        # Y por actor: dónde arranca su lista en `actor_hab`, cuántas tiene, y
-        # cómo se llama su orden en el menú. Un actor que no puede entrar al
-        # grupo no tiene ninguna: la lista se arma con `ranuras["actores"]`.
+        # Y qué sabe cada actor, que desde el 2026-09-21 es estado: un bit por
+        # par (actor, habilidad) en `FAR_HAB`, con las ranuras de
+        # `eventos.HABILIDAD_RANURA`. Lo contestan la rama 4 de
+        # `ConditionalBranch` —que ya trae la ranura en el bytecode— y la lista
+        # de la pelea, que recorre los pares del actor: dónde arrancan
+        # —`hab_par_ini`, de a palabra porque son más de 255—, cuántos son, y
+        # el `k` de cada uno en las tablas `hab_*` de arriba, o $FF si ésta no
+        # la sabe ofrecer. Como los pares de un actor van seguidos y por
+        # número, la lista sale ordenada como la de `LearnSkill`.
         #
-        # Llega hasta `nivel_tope`, como `sabe_hab`, y por lo mismo: la ROM
-        # filtra contra el nivel de ahora con `actor_hab_nivel`, el nivel en
-        # que se aprende cada una. `actor_hab_desde` es el más bajo de ésos
-        # —255 si no tiene ninguna—, que es lo que le deja al menú decir "en
-        # gris" sin recorrer la lista.
-        actor_hab, actor_hab_ini, actor_hab_n = [], [], []
-        actor_hab_nivel, actor_hab_desde = [], []
+        # Los bits arrancan con `batalla.aprendidas_de`, que es lo que el LDB
+        # dice a su nivel inicial: `hab_inicial_poner` los copia en el reset.
+        pares = sorted(eventos.HABILIDAD_RANURA.items(), key=lambda x: x[1])
+        hab_par_ini, hab_par_n = [], []
         for a in range(actores_n):
-            suyas = (B.habilidades_de(db, a, nivel_tope(a))
-                     if a in ranuras["actores"] else [])
-            # Las que la lista de la pelea puede mostrar. Una de más no se
-            # vería nunca, y eso con más actores o más niveles puede pasar.
-            if len(suyas) > P.BA_HAB_FILAS * P.BA_HAB_COLUMNAS:
-                raise SystemExit("el actor %d llega a saber %d habilidades y "
-                                 "la lista de la pelea tiene lugar para %d"
-                                 % (a, len(suyas),
-                                    P.BA_HAB_FILAS * P.BA_HAB_COLUMNAS))
-            actor_hab_ini.append(len(actor_hab))
-            actor_hab_n.append(len(suyas))
-            actor_hab += [lugar_hab[h] for h in suyas]
-            niveles = [B.nivel_en_que_aprende(db, a, h) for h in suyas]
-            actor_hab_nivel += niveles
-            actor_hab_desde.append(min(niveles) if niveles else 255)
-        if len(actor_hab) > 255 or len(habilidades_rom) > 255:
-            raise SystemExit("las habilidades del cartucho no entran en las "
-                             "tablas de un byte: %d habilidades, %d "
-                             "aprendidas" % (len(habilidades_rom),
-                                             len(actor_hab)))
-        bytes_asm("actor_hab", actor_hab, declarar=True)
-        bytes_asm("actor_hab_ini", actor_hab_ini, declarar=True)
-        bytes_asm("actor_hab_n", actor_hab_n, declarar=True)
-        bytes_asm("actor_hab_nivel", actor_hab_nivel or [0], declarar=True)
-        bytes_asm("actor_hab_desde", actor_hab_desde, declarar=True)
+            suyos = [r for (actor, _s), r in pares if actor == a]
+            hab_par_ini.append(suyos[0] if suyos else 0)
+            hab_par_n.append(len(suyos))
+            if suyos and suyos != list(range(suyos[0], suyos[0] + len(suyos))):
+                raise SystemExit("los pares de habilidad del actor %d no van "
+                                 "seguidos" % a)
+        if max(hab_par_n, default=0) > 255:
+            raise SystemExit("un actor tiene más de 255 pares de habilidad y "
+                             "`hab_par_n` es de un byte")
+        hab_bytes = max(1, (len(pares) + 7) // 8)
+        sabe_de = {a: set(B.aprendidas_de(db, a)) for a in db.actors}
+        bits = [0] * hab_bytes
+        for (a, h), r in pares:
+            if h in sabe_de.get(a, ()):
+                bits[r >> 3] |= 1 << (r & 7)
+        handle.write("; Cuántos bytes ocupan los bits de las habilidades en `FAR_HAB`.\n"
+                     "HAB_BYTES = %d\n" % hab_bytes)
+        words_asm("hab_par_ini", hab_par_ini, declarar=True)
+        bytes_asm("hab_par_n", hab_par_n, declarar=True)
+        bytes_asm("hab_par_k", [lugar_hab.get(h, 0xFF)
+                                if a in ranuras["actores"] else 0xFF
+                                for (a, h), _r in pares], declarar=True)
+        bytes_asm("hab_inicial", bits, "$%02X", declarar=True)
+        # Y en qué nivel enseña cada par la tabla de aprendizaje del LDB, o 0
+        # si no lo enseña —los que sólo da un `ChangeSkills`—: al subir de
+        # nivel, `exp_sumar` prende los bits de los pares cuyo nivel acaba de
+        # pasar, que es `LearnLevelSkills(old_level + 1, new_level)`.
+        bytes_asm("hab_par_nivel", [B.nivel_en_que_aprende(db, a, h)
+                                    if a in db.actors else 0
+                                    for (a, h), _r in pares], declarar=True)
+        if len(habilidades_rom) > 255:
+            raise SystemExit("las habilidades del cartucho son %d y `hab_par_k` "
+                             "es de un byte" % len(habilidades_rom))
+        # Y cómo se llama la orden de habilidades de cada actor en el menú.
         words_asm("actor_hab_txt", [texto_hab_orden.get(a, 0xFFFF)
                                     for a in range(actores_n)], "$%04X",
                   declarar=True)
@@ -5847,6 +5821,11 @@ def main():
     # misma función. **Antes de `lideres_posibles`**, que compila páginas: ver
     # su comentario.
     eventos.indexar_actores(args.game_dir)
+    # Y los pares (actor, habilidad) del juego entero, con los de las páginas
+    # de prueba: es el operando de `ChangeSkills` y de la rama que pregunta si
+    # sabe una, así que va antes de compilar nada, igual que las variables.
+    eventos.indexar_habilidades(
+        args.game_dir, eventos.pares_de_habilidad_de_comandos(de_archivo))
     args.lideres = lideres_posibles(renderer, todos, grupo)
     # Y los del grupo con que sigue cada página de prueba, detrás: la prueba
     # puede arrancar con él en cualquier mapa del cartucho.

@@ -52,7 +52,7 @@ def poner_exp(una, actor, exp, nivel):
                              [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
 
 
-def ganar_al_droide(una, caidos=(), niveles=None):
+def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
     """La pelea del droide entera, atacando, y cerrada. Devuelve el modelo
     ya jugado, para saber quién quedó vivo.
 
@@ -66,7 +66,7 @@ def ganar_al_droide(una, caidos=(), niveles=None):
     niveles = niveles or {}
     base = db()
     esperado = modelo.Batalla(
-        [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in GRUPO],
+        [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in grupo],
         [modelo.enemigo_de(base, e, n)
          for n, e in enumerate(base.troops[TROPA_DROIDE].members)])
     for quien in esperado.actores:
@@ -258,79 +258,48 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
 
 # --- las habilidades del nivel ----------------------------------------------
 #
-# `LearnLevelSkills` no es un paso de la ROM: la lista de cada actor llega hasta
-# el último nivel al que puede subir, cada renglón con el nivel en que se
-# aprende, y se filtra contra el de ahora cada vez que se la mira. Así que lo
-# que se cobra es que las dos que miran —el menú de la pelea y la rama de
-# `ConditionalBranch`— filtren.
+# Lo que un actor sabe es un bit por par (actor, habilidad) en `FAR_HAB` —ver
+# `test_equipo_y_habilidades.py`—, y subir de nivel prende los de los pares que
+# la tabla de aprendizaje del LDB enseña en cada nivel que pasa:
+# `LearnLevelSkills(old_level + 1, new_level)`.
 #
-# El que sirve es Arden, el actor 15: arranca en el 3, y el 3 le da sólo
-# `Gamble for Credits`, que la pelea no sabe ofrecer; en el 4 aprende
-# Pickpocket, la 148, y en el 6 Taunt, la 139. De los tres de la intro ninguno
-# aprende nada nuevo después de su nivel de arranque.
+# El que sirve es Arden, el actor 15: arranca en el 3 y aprende la 148 en el 4,
+# la 140 en el 5, la 139 en el 6 y la 255 en el 7. De los tres de la intro
+# ninguno aprende nada nuevo después de su nivel de arranque.
 ARDEN = 15
-PICKPOCKET = 148
-# El switch que prende la página `experiencia-rama-hab` cuando la rama se
-# toma. Ningún mapa del juego ni ningún otro caso lo nombra.
-SWITCH_RAMA = 218
 
 
-def test_la_rama_de_habilidad_mira_el_nivel_de_ahora(partida):
-    """`IsSkillLearned`: Pickpocket se aprende en el 4, así que en el 3 no la
-    sabe y en el 4 sí. Las dos mitades en el mismo caso, porque sólo la
-    segunda distingue algo: una rama que contestara siempre que no pasaría la
-    primera."""
+def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
+    """Arden entra en el 3 a 50 de lo que pide el 6 y el droide da 90: sube
+    **tres niveles de una vez** y aprende lo del 4, el 5 y el 6, y no lo del
+    7. Kersh pelea al lado para que la pelea se gane; que Arden quede en pie lo
+    dice el modelo."""
+    from test_equipo_y_habilidades import sabe
     base = db()
-    assert experiencia.nivel_inicial(base.actors[ARDEN]) == 3
-    assert modelo.nivel_en_que_aprende(base, ARDEN, PICKPOCKET) == 4
-    for nivel, sabe in ((3, False), (4, True)):
-        una = partida(caso="experiencia-rama-hab")
-        poner_exp(una, ARDEN, experiencia.lista_de(base.actors[ARDEN])[nivel - 1],
-                  nivel)
-        una.correr(40)
-        assert Pelea(una).switch(SWITCH_RAMA) == sabe, \
-            "en el nivel %d la rama tendría que contestar %s" % (nivel, sabe)
-
-
-def habilidades_en_la_pelea(una, nivel):
-    """Abre la pelea con Kersh y Arden, con Arden en `nivel`, le da la orden a
-    Kersh y le abre a Arden la lista de habilidades. Devuelve los números de
-    RM2k que la lista ofrece, o None si la orden no la abre."""
-    from test_batalla import HAB, ORDEN, O_HABILIDAD, hab_id
-    base = db()
-    una.poner_grupo(GRUPO[0], ARDEN)
-    poner_exp(una, ARDEN, experiencia.lista_de(base.actors[ARDEN])[nivel - 1],
-              nivel)
-    pelea = Pelea(una).abrir()
-    pelea.ordenar(("atacar", 0))
-    pelea.esperar(ORDEN)
-    for _ in range(5):
-        pelea.tocar("left")
-    for _ in range(O_HABILIDAD):
-        pelea.tocar("right")
-    pelea.tocar()
-    for _ in range(30):
-        if pelea.modo() == HAB:
-            break
-        una.consola.correr(1)
-    else:
-        return None
-    n = pelea.byte("BA_HAB_N")
-    lista = una.consola.ram(una.simbolos["BA_HAB_LISTA"], n)
-    return [hab_id(una, k) for k in lista]
-
-
-def test_la_pelea_ofrece_las_habilidades_del_nivel_de_ahora(partida):
-    """El menú de la pelea: `batalla.habilidades_de` con el nivel de ahora, en
-    el mismo orden. En el 3 Arden no tiene ninguna que ofrecer y la orden no
-    abre nada; en el 4 tiene Pickpocket; en el 9, las cinco."""
-    base = db()
-    for nivel in (3, 4, 9):
-        esperado = modelo.habilidades_de(base, ARDEN, nivel) or None
-        una = en_el_droide(partida)
-        assert habilidades_en_la_pelea(una, nivel) == esperado, \
-            "en el nivel %d" % nivel
-    assert len(modelo.habilidades_de(base, ARDEN, 9)) > 2
+    arden = base.actors[ARDEN]
+    assert experiencia.nivel_inicial(arden) == 3
+    ensena = {nivel: s for nivel, s in arden.skills}
+    assert {4, 5, 6, 7} <= set(ensena)
+    lista = experiencia.lista_de(arden)
+    una = en_el_droide(partida)
+    grupo = (GRUPO[0], ARDEN)
+    una.poner_grupo(*grupo)
+    poner_exp(una, ARDEN, lista[5] - 50, 3)
+    for nivel in (4, 5, 6, 7):
+        assert not sabe(una, ARDEN, ensena[nivel]), \
+            "Arden no tendría que saber todavía la %d" % ensena[nivel]
+    esperado = ganar_al_droide(una, grupo=grupo, niveles={ARDEN: 3})
+    assert ARDEN in {c.numero for c in esperado.actores if c.vivo}
+    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    assert experiencia.sumar(arden, 3, lista[5] - 50, ganada) \
+        == (6, lista[5] - 50 + ganada)
+    assert exp_y_nivel(una, ARDEN) == (lista[5] - 50 + ganada, 6)
+    for nivel in (4, 5, 6):
+        assert sabe(una, ARDEN, ensena[nivel]), \
+            "al pasar el %d Arden tendría que haber aprendido la %d" % (
+                nivel, ensena[nivel])
+    assert not sabe(una, ARDEN, ensena[7]), \
+        "la %d es del 7, y Arden quedó en el 6" % ensena[7]
 
 
 # --- lo que se ve -----------------------------------------------------------

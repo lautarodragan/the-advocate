@@ -196,8 +196,10 @@ def aprendidas_de(db, numero, nivel=None):
 def nivel_en_que_aprende(db, numero, skill):
     """En qué nivel aprende este actor esta habilidad: el más bajo de los
     renglones de su tabla que la nombran. `LearnLevelSkills` la aprende en el
-    primero que alcanza y `LearnSkill` no la repite."""
-    return min(nivel for nivel, s in db.actors[numero].skills if s == skill)
+    primero que alcanza y `LearnSkill` no la repite. 0 si la tabla no la
+    nombra: ésa sólo la enseña un `ChangeSkills`."""
+    return min((nivel for nivel, s in db.actors[numero].skills if s == skill),
+               default=0)
 
 
 def nombre_de_orden_habilidad(db, numero):

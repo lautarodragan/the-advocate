@@ -436,7 +436,8 @@ class Actor:
         # dice el formato: es el único dato del juego que cambió al mudarse a
         # Ditto. Alex —el actor 1, del RTP, que este juego no usa— aprende la
         # habilidad 1 en el nivel 1, y antes eso llegaba como la 0 y se caía.
-        # Son dos bytes en `sabe_hab`; sin eso el `mapdata.inc` es idéntico.
+        # Es un par más de `eventos.HABILIDAD_RANURA`; sin eso el `mapdata.inc`
+        # es idéntico.
         self.skills = [(campo(l, "level"),
                         campo(l, "skill_id"))
                        for _, l in sorted(por_id(lista(datos, "skills")).items())]

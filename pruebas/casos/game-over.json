@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [5, 39, 34]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "GameOver"}
+  ]
+}

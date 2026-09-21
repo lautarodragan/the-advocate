@@ -245,6 +245,17 @@ FAR_SP = $3780
 FAR_ACTOR_GRAF = $3800
 ACTOR_GRAF_NINGUNO = $FF
 
+; Y qué habilidades sabe cada actor, desde el 2026-09-21: un bit por par (actor,
+; habilidad), con la ranura que el conversor le dio a cada par —ver
+; `HABILIDAD_RANURA` en eventos.py—. Arranca con lo que el LDB dice a su nivel
+; inicial, que `hab_inicial_poner` copia en el reset, `ChangeSkills` lo prende y
+; lo apaga, y viaja en la partida. Cuántos bytes son lo dice `HAB_BYTES`, y el
+; conversor se corta si pasan de 256.
+;
+; **$6000 a $60FF es de esto**: el tramo se reservó de antemano, al repartir
+; entre tres trabajos que corrían a la vez y tocaban la RAM lejana.
+FAR_HAB = $6000
+
 ; --- los encuentros al azar: su estado en la RAM lejana ----------------------
 ;
 ; Nueve bytes en $3900, que es el hueco que queda entre `FAR_ACTOR_GRAF` —61
@@ -1154,6 +1165,7 @@ grupo_listo:
     jsr limpiar_variables
     jsr equipo_inicial_poner
     jsl f:hp_inicial_poner
+    jsl f:hab_inicial_poner
     jsr actor_graf_limpiar
     jsr clima_limpiar
     jsr se_limpiar
@@ -4346,6 +4358,15 @@ otro:
 :   cmp #OP_TERRAIN
     bne :+
     jmp op_terrain
+:   cmp #OP_EQUIPMENT
+    bne :+
+    jmp op_equipment
+:   cmp #OP_SKILL
+    bne :+
+    jmp op_skill
+:   cmp #OP_GAME_OVER
+    bne :+
+    jmp op_game_over
 :   stz ev_activo              ; OP_DONE, o algo que no conocemos: se corta
     rts
 
@@ -4636,10 +4657,12 @@ sia_eq_otra:
     bra sia_no
 
     ; --- la habilidad ---
-    ; `Game_Actor::IsSkillLearned`, que vive fuera del banco 0 desde que mira
-    ; el nivel: ver `sabe_habilidad`. `sia_no` queda justo abajo.
+    ; `Game_Actor::IsSkillLearned`: el bit del par (actor, habilidad) en
+    ; `FAR_HAB`. El conversor ya puso la ranura del par donde las otras
+    ; preguntas llevan el ítem, así que `temp + 2` la trae y el actor no hace
+    ; falta. Ver `HABILIDAD_RANURA` en eventos.py.
 sia_habilidad:
-    jsl f:sabe_habilidad        ; Z: no la sabe
+    jsl f:hab_sabe
     bne sia_si
 sia_no:
     rep #$20
@@ -5946,6 +5969,37 @@ graf_no_lidera:
 op_heal:
     jsl f:curar
     jmp otro
+
+; `ChangeEquipment` y `ChangeSkills`: como `op_heal`, sólo la entrada. Los
+; cuerpos son `equipo_quitar` y `habilidad_cambiar`, fuera del banco 0.
+op_equipment:
+    jsl f:equipo_quitar
+    jmp otro
+op_skill:
+    jsl f:habilidad_cambiar
+    jmp otro
+
+; `GameOver`: volver al arranque, igual que perder una pelea sin manejador de
+; derrota —ver `op_battle_destination`—, y por lo mismo con `jml`: no hay a
+; dónde volver.
+;
+; Antes, lo que `CommandGameOver` pide: **que no haya un mensaje abierto**. Si
+; lo hay, espera, como `op_message` con el de otro. El primer plano no llega
+; acá con uno abierto —`eventos_tick` no lo llama—; un paralelo sí, y sin esto
+; el reinicio se comería el mensaje que otro está mostrando.
+op_game_over:
+    lda par_ev
+    cmp #$FF
+    beq game_over_ya            ; primer plano
+    lda msg_abierto
+    ora msg_estado
+    ora eleg_activo
+    beq game_over_ya
+    dey                         ; el cursor vuelve a este mismo opcode
+    sty ev_cur
+    rts
+game_over_ya:
+    jml f:reset
 
 ; `TileSubstitution`: de ahora en más, donde la grilla diga tal bloque se
 ; dibuja tal otro. La instrucción trae **varios** pares porque RM2k sustituye
@@ -10719,7 +10773,7 @@ SRAM_DATOS = $0106
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + EXP_K * 4
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + HAB_BYTES + EXP_K * 4
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -23934,7 +23988,13 @@ partida_tabla:
     ; Y a qué gráfico le cambió el sprite un `ChangeSpriteAssociation`: un byte
     ; por actor. Viaja en la partida como en RM2k, y cruza el teletransporte.
     .word FAR_ACTOR_GRAF, ACTORES_N
-    ; Y la experiencia y el nivel de cada actor que puede pelear.
+    ; Y qué habilidades sabe cada actor: un bit por par (actor, habilidad), que
+    ; `ChangeSkills` prende y apaga. Ver `FAR_HAB`.
+    .word FAR_HAB, HAB_BYTES
+    ; Y la experiencia y el nivel de cada actor que puede pelear. **Va
+    ; última a propósito**: la pantalla de ranuras lee el nivel del líder de
+    ; la SRAM contando desde el final de la partida —`EXP_NIVEL_EN_SRAM`—, y
+    ; un renglón que se agregue detrás lo correría.
     .word FAR_EXP, EXP_K * 4
     .word 0, 0
 
@@ -24068,10 +24128,9 @@ cero:
 .endproc
 
 ; El nivel de ahora del actor A, en A: el cuarto byte de su ranura de
-; `FAR_EXP`. Un actor sin ranura contesta $FF, que no filtra nada: las listas
-; de lo que sabe uno de ésos llegan sólo hasta su nivel de arranque, que es el
-; que va a tener siempre. Se lleva X; lee con `f:`, así que el banco de datos
-; da igual.
+; `FAR_EXP`. Un actor sin ranura contesta $FF, y el que pregunta sabe que para
+; ése vale lo del cartucho, que es su nivel de arranque para siempre. Se lleva
+; X; lee con `f:`, así que el banco de datos da igual.
 .proc actor_nivel_de
 .a8
 .i16
@@ -24338,70 +24397,6 @@ completo:
     jmp apuntar_texto
 .endproc
 
-; `Game_Actor::IsSkillLearned` para el actor de `temp + 1` y la habilidad de
-; `temp + 2`, que es como los deja `op_if_actor`: la lista de `sabe_hab` que
-; arranca en `sabe_hab_ini[actor]` y dura `sabe_hab_n[actor]`, contando sólo las
-; que se aprenden en un nivel que ya tiene —`sabe_hab_nivel`—, que es lo que
-; `LearnLevelSkills` dejó aprendido. **No es `actor_hab`**, que es la lista
-; del menú de la pelea: ésa lleva sólo las que este port sabe ejecutar y sólo
-; de los actores que pueden entrar al grupo, y esta pregunta no filtra ninguna
-; de las dos cosas. Ver `sabe_hab` en el conversor y `batalla.aprendidas_de`.
-;
-; Vuelve con A en 1 si la sabe y en 0 si no, y Z de eso. Deja Y como estaba
-; —ahí está el bytecode— y se lleva X y `temp`, el sub, que ya no hace falta.
-; Vivía en el banco 0 hasta que tuvo que mirar el nivel.
-.proc sabe_habilidad
-.a8
-.i16
-    phy
-    lda temp + 1
-    jsr actor_nivel_de
-    sta temp                    ; el nivel, que es contra lo que se filtra
-    rep #$20
-.a16
-    lda temp + 1
-    and #$00FF
-    tax                         ; el actor
-    lda f:sabe_hab_n, x
-    and #$00FF
-    beq no                      ; no sabe ninguna
-    tay                         ; cuántas quedan por mirar
-    lda f:sabe_hab_ini, x
-    and #$00FF
-    tax                         ; la primera, en entradas
-otra:
-    phx
-    txa
-    asl a                       ; `sabe_hab` es de palabras
-    tax
-    lda f:sabe_hab, x
-    plx
-    cmp temp + 2
-    bne sigue
-    sep #$20
-.a8
-    lda f:sabe_hab_nivel, x
-    cmp temp
-    beq si
-    bcc si                      ; se aprende en un nivel que ya pasó
-    rep #$20
-.a16
-sigue:
-    inx
-    dey
-    bne otra
-no:
-    sep #$20
-.a8
-    ply
-    lda #0
-    rtl
-si:
-    ply
-    lda #1
-    rtl
-.endproc
-
 ; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
 ; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
 ; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
@@ -24602,6 +24597,181 @@ listo:
 .a8
     pla
     rts
+.endproc
+
+; --- el equipo y las habilidades desde un evento ----------------------------
+;
+; Los cuerpos de OP_EQUIPMENT y OP_SKILL, y lo que la rama "sabe la habilidad"
+; pregunta. Viven acá por lo mismo que `curar`: se entra con `jsl` desde el
+; intérprete, con Y en el operando y **el banco de datos del bytecode**, así que
+; todo lo que tocan va con `f:` o es de la página directa.
+
+; `ChangeEquipment` que saca lo de una ranura: el actor —o 0 por todo el grupo,
+; como en `curar`— y la ranura, de 0 a 4. Se vuelve con Y después de ella. Se
+; lleva A, X y `temp`.
+.proc equipo_quitar
+.a8
+.i16
+    lda [cod_ptr], y            ; el actor
+    iny
+    sta temp + 2
+    lda [cod_ptr], y            ; la ranura
+    iny
+    sta temp + 3
+    phy
+    lda temp + 2
+    bne uno
+    ; Hasta `grupo_n`: ver `curar`, que tuvo el mismo cuidado.
+    ldx #0
+ranura:
+    cpx grupo_n
+    bcs listo
+    lda grupo, x
+    phx
+    jsr equipo_quitar_actor
+    plx
+    inx
+    bra ranura
+uno:
+    jsr equipo_quitar_actor
+listo:
+    ply
+    rtl
+.endproc
+
+; El actor A, la ranura `temp + 3`. Es `Game_Actor::ChangeEquipment(ranura, 0)`
+; de easyrpg (`game_actor.cpp:335`): la ranura queda vacía y lo que tenía vuelve
+; al inventario —`Game_Party::AddItem`, topado en ITEM_MAX—. Lo de las armas a
+; dos manos no aplica: sacar nunca deja dos cosas donde entra una. Se lleva X y
+; `temp`.
+.proc equipo_quitar_actor
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    sta temp                    ; el actor por dos
+    asl a
+    asl a
+    clc
+    adc temp                    ; por diez, que es lo que mide una fila
+    sta temp
+    lda temp + 3
+    and #$00FF
+    asl a                       ; la ranura es una palabra
+    clc
+    adc temp
+    tax
+    lda f:FAR_LARGO + FAR_EQUIPO, x
+    beq listo                   ; no tenía nada
+    sta temp
+    lda #0
+    sta f:FAR_LARGO + FAR_EQUIPO, x
+    lda temp
+    cmp #ITEMS_N
+    bcs listo                   ; un ítem que el inventario no lleva
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_ITEMS, x
+    cmp #ITEM_MAX
+    bcs listo8
+    inc a
+    sta f:FAR_LARGO + FAR_ITEMS, x
+listo8:
+    rts
+.a16
+listo:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; `ChangeSkills`: la ranura del par (actor, habilidad) y si la aprende. Es
+; prender o apagar su bit en `FAR_HAB`: `LearnSkill` no hace nada si ya la
+; sabía y `UnlearnSkill` tampoco si no, y con un bit las dos cosas salen solas.
+; Se vuelve con Y después de los operandos. Se lleva A, X y `temp`.
+.proc habilidad_cambiar
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; la ranura del par
+    iny
+    iny
+    sta temp + 2
+    jsr hab_apuntar
+    sep #$20
+.a8
+    lda [cod_ptr], y            ; 1 aprende, 0 olvida
+    iny
+    cmp #0
+    beq olvidar
+    lda f:FAR_LARGO + FAR_HAB, x
+    ora temp
+    bra poner
+olvidar:
+    lda temp
+    eor #$FF
+    and f:FAR_LARGO + FAR_HAB, x
+poner:
+    sta f:FAR_LARGO + FAR_HAB, x
+    rtl
+.endproc
+
+; `IsSkillLearned` para la rama de `ConditionalBranch`: la ranura del par en
+; `temp + 2`, y vuelve con Z=0 si la sabe. Se lleva A, X y `temp`.
+.proc hab_sabe
+.a8
+.i16
+    jsr hab_apuntar
+    lda f:FAR_LARGO + FAR_HAB, x
+    and temp
+    rtl                         ; `rtl` no toca las banderas: vale el `and`
+.endproc
+
+; La ranura del par en `temp + 2` → X en su byte de `FAR_HAB`, y su bit en
+; `temp`. Vuelve con A de ocho bits.
+.proc hab_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    lda temp + 2
+    and #$0007
+    tax
+    sep #$20
+.a8
+    lda f:mascara, x
+    sta temp
+    rep #$20
+.a16
+    lda temp + 2
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Los bits de las habilidades a lo que el LDB dice que cada actor sabe a su
+; nivel inicial: la tabla `hab_inicial` del conversor copiada a `FAR_HAB`. Corre
+; en el reset, antes de cargar la partida, que la pisa. Son pocos bytes y va de
+; a uno: un DMA costaría más código que el lazo.
+.proc hab_inicial_poner
+.a8
+.i16
+    ldx #0
+otro:
+    lda f:hab_inicial, x
+    sta f:FAR_LARGO + FAR_HAB, x
+    inx
+    cpx #HAB_BYTES
+    bne otro
+    rtl
 .endproc
 
 ; Los HP de ahora de un actor, en su fila del panel del grupo: tres cifras
@@ -26851,14 +27021,15 @@ falla_dice:
 ; --- las habilidades en la pelea -------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Skill` con lo que este port sabe hacer. Qué sabe cada
-; actor, cuánto cuesta y cuánto hace **no se decide acá**: sale de
+; actor al empezar, cuánto cuesta y cuánto hace **no se decide acá**: sale de
 ; `batalla.habilidades_de`, `batalla.costo_de` y `batalla.efecto_habilidad`,
 ; que es el modelo con el que `pruebas/rpgmaker/test_batalla.py` predice el número
-; exacto, y el conversor lo emite en `actor_hab*` y `hab_*`.
+; exacto, y el conversor lo emite en `hab_par_*` y `hab_*`. Lo que sabe
+; **ahora** es `FAR_HAB`, que `ChangeSkills` mueve.
 
 ; A8 = el número de actor del LDB del combatiente `BA_ACTOR`. Es lo que indexa
-; `actor_hab_ini`, `actor_hab_n` y `actor_hab_txt`, que son por número de
-; actor y no por lugar en el grupo.
+; `hab_par_ini`, `hab_par_n` y `actor_hab_txt`, que son por número de actor y
+; no por lugar en el grupo.
 .proc ba_actor_ldb
 .a8
 .i16
@@ -26869,54 +27040,73 @@ falla_dice:
 .endproc
 
 ; La lista de habilidades del actor que está ordenando, a `BA_HAB_LISTA`, con
-; cuántas en `BA_HAB_N`. Son los `k` de `actor_hab`, que el conversor ya dejó
-; ordenados por número de RM2k: ver `batalla.habilidades_de`.
+; cuántas en `BA_HAB_N`. Son sus pares de `FAR_HAB` con el bit prendido —lo que
+; sabe **ahora**, que `ChangeSkills` mueve— y que la pelea sabe ofrecer, o sea
+; con un `k` en `hab_par_k`. Los pares de un actor van seguidos y por número de
+; habilidad, así que la lista sale en el orden de `LearnSkill`. Se lleva
+; `BA_S1`, `BA_S2`, `BA_T0` y X.
 .proc ba_hab_lista
 .a8
 .i16
     lda #0
     sta BA_HAB_N
     jsr ba_actor_ldb
-    jsr actor_nivel_de
-    sta BA_S4                   ; su nivel: las de más arriba no las sabe
-    jsr ba_actor_ldb
     jsr ba_ax
-    lda f:actor_hab_n, x
+    lda f:hab_par_n, x
     beq listo
-    sta BA_S1                   ; cuántas
-    lda f:actor_hab_ini, x
-    sta BA_S2                   ; dónde arrancan
-    lda #0
-    sta BA_S3
-otra:
-    lda BA_S3
-    cmp BA_S1
-    bcs listo
+    sta BA_S1                   ; cuántos pares le quedan por mirar
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:hab_par_ini, x
+    sta BA_S2                   ; la ranura del par que se mira
+    sep #$20
+.a8
+otro:
     lda BA_HAB_N
     cmp #BA_HAB_MAX
     bcs listo
-    lda BA_S3
-    clc
-    adc BA_S2
-    jsr ba_ax
-    ; `LearnLevelSkills`: la que se aprende en un nivel que todavía no tiene
-    ; no está. Que la lista siga ordenada por número lo da el conversor: se
-    ; saltean algunas, no se reordena ninguna.
-    lda f:actor_hab_nivel, x
-    cmp BA_S4
-    beq la_sabe
-    bcs no_la_sabe
-la_sabe:
-    lda f:actor_hab, x
+    rep #$20
+.a16
+    lda BA_S2
+    and #$0007
+    tax
+    sep #$20
+.a8
+    lda f:mascara, x
+    sta BA_T0                   ; su bit
+    rep #$20
+.a16
+    lda BA_S2
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_HAB, x
+    and BA_T0
+    beq siguiente               ; no la sabe
+    ldx BA_S2
+    lda f:hab_par_k, x
+    cmp #$FF
+    beq siguiente               ; la sabe y la pelea no la ofrece
     pha
     lda BA_HAB_N
     jsr ba_ax
     pla
     sta BA_HAB_LISTA, x
     inc BA_HAB_N
-no_la_sabe:
-    inc BA_S3
-    bra otra
+siguiente:
+    rep #$20
+.a16
+    inc BA_S2
+    sep #$20
+.a8
+    dec BA_S1
+    bne otro
 listo:
     rts
 .endproc
@@ -27104,19 +27294,9 @@ hay_orden:
     lda BA_S0
     cmp #BA_ORDEN_HABILIDAD
     bne sin_gris_orden
-    jsr ba_actor_ldb
-    jsr ba_ax
-    lda f:actor_hab_n, x
-    cmp #0
+    jsr ba_hab_lista            ; lo que sabe ahora: ver `FAR_HAB`
+    lda BA_HAB_N
     beq en_gris
-    ; Y si todavía no llegó al nivel de la primera que aprende, tampoco.
-    lda f:actor_hab_desde, x
-    pha
-    jsr ba_actor_ldb
-    jsr actor_nivel_de
-    cmp 1, s                    ; C si ya la aprendió
-    pla                         ; `pla` no toca C
-    bcc en_gris
 sin_gris_orden:
     lda #0
     bra pone_variante
@@ -27897,9 +28077,8 @@ listo:
 ; pelea. Se lleva A, X, Y, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así
 ; el que reparte la puede sumar a varios.
 ;
-; Aprender las habilidades del nivel nuevo —`LearnLevelSkills`— no es un paso
-; de acá: la lista de cada actor se filtra por su nivel cada vez que se la
-; mira, así que alcanza con que el nivel suba.
+; Y por cada nivel que sube, `LearnLevelSkills` de ese nivel: ver
+; `aprender_del_nivel`.
 .proc exp_sumar
 .a8
 .i16
@@ -27914,6 +28093,7 @@ listo:
     bne tiene
     rts
 tiene:
+    phx                         ; el actor, para lo que aprenda al subir
     rep #$20
 .a16
     and #$00FF
@@ -28002,8 +28182,80 @@ alto_distinto:
     bcs listo                   ; C: el alto que pide es más que el que hay
 sube:
     inc FAR_EXP + EXP_NIVEL, x
+    lda FAR_EXP + EXP_NIVEL, x
+    ply                         ; el actor, sin sacarlo de la pila
+    phy
+    jsr aprender_del_nivel
     bra subir
 listo:
+    plx
+    rts
+.endproc
+
+; `LearnLevelSkills` de un solo nivel, el A, para el actor Y: prende en
+; `FAR_HAB` el bit de cada par suyo que la tabla de aprendizaje del LDB enseña
+; en ese nivel —`hab_par_nivel`—. Si ya lo sabía no cambia nada, que es
+; `LearnSkill`; y lo que un `ChangeSkills` le hizo olvidar vuelve sólo si se
+; enseña en un nivel que recién pasa, como en RM2k. Corre en la pelea, pero
+; todo lo que toca va con `f:` o por la pila. Se lleva A, X e Y.
+.proc aprender_del_nivel
+.a8
+.i16
+    pha                         ; el nivel
+    rep #$20
+.a16
+    tya
+    asl a
+    tax
+    lda f:hab_par_ini, x
+    pha                         ; la ranura del par que se mira: pila = ranura, nivel
+    tyx
+    lda f:hab_par_n, x
+    and #$00FF
+    beq fin
+    tay                         ; cuántos pares le quedan
+otro:
+    lda 1, s
+    tax
+    sep #$20
+.a8
+    lda f:hab_par_nivel, x
+    cmp 3, s
+    bne siguiente
+    rep #$20
+.a16
+    txa
+    and #$0007
+    tax
+    sep #$20
+.a8
+    lda f:mascara, x
+    pha                         ; su bit: pila = bit, ranura, nivel
+    rep #$20
+.a16
+    lda 2, s
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    pla
+    ora f:FAR_LARGO + FAR_HAB, x
+    sta f:FAR_LARGO + FAR_HAB, x
+siguiente:
+    rep #$20
+.a16
+    lda 1, s
+    inc a
+    sta 1, s
+    dey
+    bne otro
+fin:
+    pla
+    sep #$20
+.a8
+    pla
     rts
 .endproc
 
