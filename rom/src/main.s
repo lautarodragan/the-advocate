@@ -6493,8 +6493,16 @@ op_teleport:
     phb
     phk
     plb
+    ; **El MSU-1 primero.** Con una pista de CD sonando, `music_start` deja el
+    ; SPC700 callado a propósito —`music_apagada` en 1— y mirar sólo eso
+    ; anotaba $FF: al terminar la pelea `batalla_bgm` callaba la música del
+    ; mapa en vez de reponerla. Es la misma pregunta que `mapa_tema_callar`, y
+    ; se contesta igual.
+    lda f:MSU_SUENA
+    bne sonaba_antes
     lda music_apagada
     bne callado_antes
+sonaba_antes:
     lda tema_actual
     bra anotado
 callado_antes:
