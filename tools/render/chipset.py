@@ -28,6 +28,30 @@ LOWER = 0x1388      # 5000
 UPPER = 0x2710      # 10000
 
 
+def caja_de_terreno(n):
+    """Dónde vive, en la imagen del ChipSet, el bloque del autotile de terreno
+    `n` —0 a 11, el que el mapa nombra con los ids 4000 + n * 50—.
+
+    Son 48x64 píxeles con las piezas que `_terrain_tile` combina. Está acá y no
+    en quien lo use porque los offsets son de lmu2png y no tienen por qué
+    escribirse dos veces: `_terrain_tile` calcula su esquina con esta misma
+    cuenta.
+    """
+    terrain = n + 4
+    sx = (terrain % 2) * 48 + (terrain // 8) * 96
+    sy = ((terrain // 2) % 4) * 64
+    return (sx, sy, sx + 48, sy + 64)
+
+
+def caja_de_comun(i):
+    """Dónde vive el tile común `i` —0 a 287, las tres páginas de 96 de la
+    mitad derecha—. Los 144 primeros son la capa baja (ids 5000 + i) y los 144
+    de atrás la alta (ids 10000 + i - 144)."""
+    x = 192 + (i % 6) * TILE + (i // 96) * 96
+    y = ((i // 6) % TILE) * TILE
+    return (x, y, x + TILE, y + TILE)
+
+
 def blit(dst, dx, dy, src, sx, sy, w, h):
     """Copia respetando el color key: los píxeles transparentes no pisan nada.
 
@@ -81,9 +105,8 @@ class ChipsetAtlas:
 
         # Tiles comunes: las 3 páginas de 96 de la mitad derecha, sin combinar.
         for i in range(288):
-            self._draw_full(tile,
-                            192 + (i % 6) * TILE + (i // 96) * 96,
-                            ((i // 6) % TILE) * TILE)
+            x, y, _, _ = caja_de_comun(i)
+            self._draw_full(tile, x, y)
             tile += 1
 
     # --- helpers de dibujo sobre el atlas ---------------------------------
@@ -206,9 +229,7 @@ class ChipsetAtlas:
         self._draw_edges(t, frame * 16, 64 + depth * 16, number % 16)
 
     def _terrain_tile(self, t, terrain, comb):
-        terrain += 4
-        sx = (terrain % 2) * 48 + (terrain // 8) * 96
-        sy = ((terrain // 2) % 4) * 64
+        sx, sy, _, _ = caja_de_terreno(terrain)
 
         # Fondo: el relleno liso del terreno.
         self._draw_full(t, sx + 16, sy + 32)
