@@ -87,6 +87,16 @@ ya nadie discute no necesita renglón.
   tarjeta y su firmware como sospechosos. Anda perfecto.
 * Antes: la ROM de 1 MB, y después la de 2 MB con FastROM.
 
+**Esperando que taro las mire:** las **cinco goldens `18-*`** —`test_heroe` en
+el Auditorio— se movieron al hornear el público y **quedaron sin regenerar a
+propósito**, así que la tanda está en rojo en esos cinco. Lo que cambió está
+mirado pixel por pixel y va hacia el lado bueno: aparece gente que el port
+venía **descartando** por falta de paletas de sprite, y el resto son cambios de
+tono de un paso de los 15 bits, porque el público dejó de pasar por la fusión
+de las paletas de sprite y va al fondo, donde entra sin fusionar. Contra el
+render de RM2k del mismo cuadro, el nuevo tiene **152 pixeles de delta grande y
+la golden 552**. Las capturas están en `/extras/capturas/auditorio/`.
+
 **Probado en emulador:**
 
 * **Mesen** tiene MSU-1 y **mednafen no**, lo cual resultó útil: mednafen es el
@@ -211,8 +221,11 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   crecimiento sigue: cada personaje que cambia de pose son 6 KB.
 
   Las dos ideas de taro para apretar assets que vivían adentro de este límite
-  están en `wishlist/paletas-sobre-todas-las-imagenes.md` y
-  `wishlist/hornear-la-decoracion-en-un-chipset.md`.
+  están en `wishlist/paletas-sobre-todas-las-imagenes.md` y en
+  `done/hornear-la-decoracion-en-un-chipset.md`, que se hizo el 2026-09-21 en
+  el Auditorio: el público del mapa 18 son tiles y no 31 eventos, y el mapa se
+  bajó de 8 de 8 paletas de sprite a 6. Lo que sigue abierto de ésa es a qué
+  otros mapas aplicarla.
 * **El cartucho es de 4 MB**: `ROM_BANKS` es 128 y la cabecera dice `$0C`. Es
   el techo de LoROM, así que de acá no se crece: lo que siga pidiendo cartucho
   tiene que recuperar acolchado o compartir tiles entre mapas.
