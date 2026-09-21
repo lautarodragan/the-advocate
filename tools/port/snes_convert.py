@@ -4869,6 +4869,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                      for n in items], declarar=True)
         words_asm("item_cura_hp", [min(db_items[n].recover_hp, 0xFFFF)
                                    for n in items], declarar=True)
+        # Y lo que una medicina hace fuera de la pelea, que es
+        # `Game_Battler::UseItem` entero: los SP, como los HP, y
+        # `item_medicina` con tres bits —1 si es `ko_only`, 2 si saca el
+        # estado de muerto, que es el primero de `state_set` y lo que levanta
+        # a un caído, 4 si usarla gasta uno, que es `uses` distinto de cero—.
+        # Los demás estados de `state_set` no van: fuera de la pelea este port
+        # no tiene estados, así que sacarlos nunca sirve. Ver `medicina_usar`.
+        bytes_asm("item_cura_sp_rate", [db_items[n].recover_sp_rate
+                                        for n in items], declarar=True)
+        words_asm("item_cura_sp", [min(db_items[n].recover_sp, 0xFFFF)
+                                   for n in items], declarar=True)
+        bytes_asm("item_medicina", [
+            (1 if db_items[n].ko_only else 0)
+            | (2 if db_items[n].state_set[:1] == [True] else 0)
+            | (4 if db_items[n].uses else 0)
+            for n in items], declarar=True)
         handle.write('.segment "TABLAS"\n')
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
         # por lo mismo: ahí no entran. Con los diez mapas de `abl` el

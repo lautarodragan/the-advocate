@@ -2,6 +2,7 @@
   "event_commands": [
     {"code": "Teleport", "parameters": [5, 39, 34]},
     {"code": "ChangeItems", "parameters": [0, 0, 97, 0, 2]},
+    {"code": "ChangeItems", "parameters": [0, 0, 103, 0, 1]},
     {"code": "ChangeItems", "parameters": [0, 0, 115, 0, 1]},
     {"code": "ChangeItems", "parameters": [0, 0, 262, 0, 1]}
   ]

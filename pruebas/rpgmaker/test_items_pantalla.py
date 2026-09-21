@@ -100,9 +100,10 @@ def test_un_item_en_gris_no_hace_nada(partida):
 
 
 def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
-    """La poción va en blanco y abre `Scene_ActorTarget`. A no tiene efecto
-    —nadie tiene los HP por debajo del máximo fuera de batalla— y la poción
-    no se gasta; B vuelve a la lista con el cursor donde estaba."""
+    """La poción va en blanco y abre `Scene_ActorTarget`. Los dos tienen los
+    HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
+    verdad es `test_curar_menu.py`—; B vuelve a la lista con el cursor donde
+    estaba."""
     from rpgmaker import lcf
     from port import ventana
     from render.render_map import GAME_DIR
