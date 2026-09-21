@@ -318,6 +318,7 @@ def battler(nombre, tono, game_dir):
                 for x in range(ancho)] for y in range(alto)]
     return {"clave": clave(nombre, tono), "imagen": nombre, "tono": tono,
             "ancho": ancho, "alto": alto, "pixeles": pixeles,
+            "alto_rm": imagen.height,
             "paleta": paleta, "colores": len(cuenta), "fusiones": fusiones}
 
 
@@ -374,12 +375,27 @@ def posicion(centro, info):
     return px, py
 
 
+def orden_de_dibujo(centros, infos):
+    """En qué orden se ponen los enemigos de una tropa: el que va después tapa.
+
+    Es `Sprite_Battler::ResetZ` de easyrpg: la profundidad es el borde de abajo
+    del battler en RM2k —el centro del LDB más la mitad del alto del PNG— y, a
+    igual borde, queda arriba el de menor lugar en la tropa. `infos` puede
+    traer None para un enemigo sin battler: no se dibuja, y da igual dónde
+    caiga.
+    """
+    def z(k):
+        alto = infos[k]["alto_rm"] if infos[k] else 0
+        return (centros[k][1] + alto // 2, -k)
+    return sorted(range(len(centros)), key=z)
+
+
 def componer(fondo_indices, puestos):
     """La escena como la compone la consola, en índices de CGRAM.
 
     `fondo_indices` es la grilla de un fondo, o None para el fondo liso.
     `puestos` son `(info, paleta, x, y)` en el orden en que la ROM los pone,
-    que es el de la tropa: el que va después tapa al de antes. No lo usa el
+    que es `orden_de_dibujo`: el que va después tapa al de antes. No lo usa el
     conversor —la ROM compone sola— sino las pruebas, para saber qué tiene que
     haber en cada pixel.
     """

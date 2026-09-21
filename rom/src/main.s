@@ -28948,6 +28948,10 @@ ESC_CLIP_Y0  = $6640
 ESC_CLIP_Y1  = $6642
 ESC_CLIP_C0  = $6644
 ESC_CLIP_C1  = $6646
+; Por cuál va el recorrido en el orden de dibujo, y dónde empieza la tropa en
+; las tablas `miembro_*`. Ver `esc_por_orden`.
+ESC_K        = $6648
+ESC_INI      = $6649
 ; Lo que había en la página directa que se toma prestada: ver `esc_dp_tomar`.
 ESC_DP_GUARDA = $6680
 ESC_DP_BYTES = 48
@@ -29181,6 +29185,27 @@ esc_lazos:
 esc_bits:
     .byte $01, $02, $04, $08, $10, $20, $40, $80
 .a8
+
+; `ESC_E` = el enemigo que va `ESC_K`-ésimo en el orden de dibujo, que es el
+; de RM2k y no el de la tropa: `Sprite_Battler::ResetZ` de easyrpg ordena por
+; el borde de abajo del battler, y a igual borde queda arriba el de menor
+; lugar. El orden lo calcula el conversor: `miembro_orden`. Se lleva X.
+.proc esc_por_orden
+.a8
+.i16
+    rep #$20
+.a16
+    lda ESC_K
+    clc
+    adc ESC_INI
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:miembro_orden, x
+    sta ESC_E
+    rts
+.endproc
 
 ; A8: el bit de `ESC_E` en `ESC_VIS`. Se lleva X.
 .proc esc_bit
@@ -29479,6 +29504,7 @@ con_tropa:
 .a8
     lda f:tropa_ini, x
     sta ESC_I                   ; el primer miembro
+    sta ESC_INI                 ; y de nuevo, para `esc_por_orden`
 otro_enemigo:
     lda ESC_E
     cmp BA_NENE
@@ -29551,7 +29577,7 @@ hay_escena:
     lda #$80
     jsr esc_llenar
 
-    ; --- los battlers, en el orden de la tropa: el de después tapa ---
+    ; --- los battlers, en el orden de dibujo: el de después tapa ---
     rep #$20
 .a16
     lda #0
@@ -29565,13 +29591,14 @@ hay_escena:
 .a8
     jsr esc_dp_tomar
     lda #0
-    sta ESC_E
+    sta ESC_K
 poner:
-    lda ESC_E
+    lda ESC_K
     cmp BA_NENE
     bcs puestos
+    jsr esc_por_orden
     jsr escena_poner
-    inc ESC_E
+    inc ESC_K
     bra poner
 puestos:
     jsr esc_dp_devolver
@@ -29823,7 +29850,7 @@ trozo:
 ; subir, sube las que entran y vuelve. Si no, busca uno muerto que todavía se
 ; vea y lo borra: las celdas que tapaba vuelven a ser las del fondo limpio, se
 ; le vuelven a poner encima los que siguen vivos —recortados a esas celdas y
-; en el orden de la tropa, para que no cambie quién tapa a quién— y queda
+; en el orden de dibujo, para que no cambie quién tapa a quién— y queda
 ; encolado para los vblanks que siguen. Uno por cuadro: dos que mueren en el
 ; mismo turno se borran uno detrás del otro.
 ;
@@ -29988,16 +30015,17 @@ copia:
     pha
     jsr esc_dp_tomar
     lda #0
-    sta ESC_E
+    sta ESC_K
 reponer:
-    lda ESC_E
+    lda ESC_K
     cmp BA_NENE
     bcs repuestos
+    jsr esc_por_orden
     jsr esc_bit
     and ESC_VIS
     beq :+
     jsr escena_poner
-:   inc ESC_E
+:   inc ESC_K
     bra reponer
 repuestos:
     jsr esc_dp_devolver

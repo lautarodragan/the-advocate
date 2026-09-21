@@ -3285,7 +3285,8 @@ def escenas_asm(datos, tropas, db):
                             plano, cuántas filas, cuánto mide un plano, dónde
                             están sus bytes y sus quince colores.
       `miembro_*`           por miembro de tropa —el orden de `tropa_miembro`—,
-                            qué battler es y dónde cae su esquina.
+                            qué battler es, dónde cae su esquina y cuál de la
+                            tropa va en ese lugar del orden de dibujo.
 
     El tilemap no se emite: son los 512 tiles en orden y la ROM lo arma con un
     lazo. Emitirlo serían 2 KB de cartucho para escribir 0, 1, 2...
@@ -3374,19 +3375,26 @@ def escenas_asm(datos, tropas, db):
         for color in colores:
             cgram += cgram_word(color).to_bytes(2, "little")
     out.append(bloque("battler_cgram", bytes(cgram) or b"\x00\x00"))
-    miembro_b, miembro_x, miembro_y = [], [], []
+    miembro_b, miembro_x, miembro_y, miembro_orden = [], [], [], []
     for numero in usadas:
         tropa = db.troops[numero]
-        for enemigo, centro in list(zip(tropa.members,
-                                        tropa.posiciones))[:batalla_mod.ENEMIGOS_MAX]:
+        suyos = list(zip(tropa.members,
+                         tropa.posiciones))[:batalla_mod.ENEMIGOS_MAX]
+        infos = []
+        for enemigo, centro in suyos:
             k = datos["battler_de"].get(enemigo, 0xFF)
             miembro_b.append(k)
+            infos.append(battlers[k] if k != 0xFF else None)
             x, y = (E.posicion(centro, battlers[k]) if k != 0xFF else (0, 0))
             miembro_x.append(x)
             miembro_y.append(y)
+        # Y en qué orden se dibujan, que no es el de la tropa: ver
+        # `escena.orden_de_dibujo`. Va por miembro, con el lugar en la tropa.
+        miembro_orden += E.orden_de_dibujo([c for _e, c in suyos], infos)
     out.append(bloque("miembro_battler", bytes(miembro_b) or b"\xFF"))
     out.append(bloque("miembro_x", bytes(miembro_x) or b"\x00"))
     out.append(bloque("miembro_y", bytes(miembro_y) or b"\x00"))
+    out.append(bloque("miembro_orden", bytes(miembro_orden) or b"\x00"))
     for k, b in enumerate(battlers):
         out.append(bloque("battler_%d" % k, E.battler_bytes(b)))
     return "\n".join(out) + "\n"

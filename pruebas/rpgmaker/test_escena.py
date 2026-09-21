@@ -93,7 +93,12 @@ def _esperada(una, base, tropa, vivos):
         paleta = escena.BATTLER_PALETA + claves.index(info["clave"])
         if k in vivos:
             x, y = escena.posicion(centro, info)
-            puestos.append((info, paleta, x, y))
+            # El orden de dibujo de `Sprite_Battler::ResetZ`, escrito acá de
+            # nuevo y no pedido a `escena.orden_de_dibujo`: el borde de abajo
+            # en RM2k y, a igual borde, arriba el de menor lugar.
+            z = (centro[1] + info["alto_rm"] // 2, -k)
+            puestos.append((z, (info, paleta, x, y)))
+    puestos = [p for _z, p in sorted(puestos, key=lambda zp: zp[0])]
     return limpio, escena.componer(limpio, puestos)
 
 
