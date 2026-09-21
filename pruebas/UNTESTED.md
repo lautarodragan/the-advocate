@@ -34,16 +34,17 @@ demos— lleva esos mapas, así que ninguna prueba mira que cerrar un mensaje
 ahí no dispare la ráfaga. Si entran en un cartucho, ésa es la prueba que
 falta.
 
-## Un mapa nuevo en `abl` sin su parche
+## Un mapa o una animación nueva en `abl` sin su parche
 
 `pruebas/herramientas/test_parches.py` compara los parches —qué color se
-fusionó con cuál— contra lo versionado, y lo hace sobre los cartuchos que arma
-`just cartuchos`. **La tanda no arma `abl`**, así que lo que ahí se mira es que
-ningún mapa versionado haya cambiado de decisión; lo que no puede ver es que
-alguien le sume un mapa al ROM jugable y no corra `just parches`, porque
-`rom/build/abl` no existe mientras la tanda corre.
+fusionó con cuál, y a qué tamaño se dibuja cada animación— contra lo
+versionado, y lo hace sobre los cartuchos que arma `just cartuchos`. **La tanda
+no arma `abl`**, así que lo que ahí se mira es que nada versionado haya
+cambiado de decisión; lo que no puede ver es que alguien le sume un mapa al ROM
+jugable —o una animación, que entra sola con la página que la muestre— y no
+corra `just parches`, porque `rom/build/abl` no existe mientras la tanda corre.
 
 Eso lo cobra `just parches-check`, que incluye a `abl` y **sí** falla diciendo
-qué mapa entró sin parche. Hacer que lo cobre la tanda cuesta armar `abl` antes
+qué entró sin parche. Hacer que lo cobre la tanda cuesta armar `abl` antes
 de cada corrida, que hoy son veinte segundos que ninguna prueba usa para nada
 más.

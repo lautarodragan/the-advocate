@@ -12,12 +12,14 @@ RPG Maker"*.
 Decidido el 2026-09-20, en dos fases. La fase 2 **está decidida**, no es una
 posibilidad.
 
-**La fase 1 está hecha para una de las cuatro clases**: los colores que se
-fusionan en las dos capas de un mapa. Salen a `parches/mapas/<id>.toml`, los
-escribe el conversor al lado de cada ROM que arma, `just parches` copia a git
-los del ROM jugable, y `just parches-check` —y `test_parches.py`, adentro de la
-tanda— fallan diciendo **qué decisión cambió**. Las otras tres siguen sin dejar
-rastro; al final está qué cuesta cada una.
+**La fase 1 está hecha para dos de las cuatro clases**: los colores que se
+fusionan en las dos capas de un mapa, y el tamaño al que se dibuja cada
+animación de batalla. Salen a `parches/mapas/<id>.toml` y a
+`parches/animaciones/<n>.toml`, los escribe el conversor al lado de cada ROM
+que arma, `just parches` copia a git los del ROM jugable, y
+`just parches-check` —y `test_parches.py`, adentro de la tanda— fallan diciendo
+**qué decisión cambió**. Las otras dos siguen sin dejar rastro; al final está
+qué cuesta cada una.
 
 # La distinción que lo ordena
 
@@ -29,13 +31,15 @@ Al pasar de RM2k a la SNES hay dos clases de transformación:
 * **Lossy, o "decisiones artísticas"**: algo se pierde y alguien eligió qué.
   **Ésas son los parches.**
 
-Las que hay hoy, todas automáticas y sin dejar rastro:
+Las cuatro que hay hoy, todas automáticas; las dos primeras ya dejan rastro
+escrito y las dos últimas todavía no:
 
 * los **colores que se fusionan** cuando una imagen no entra en las paletas
-  (`tools/port/asignador.py`);
+  (`tools/port/asignador.py`) — escritas, por mapa;
+* las **animaciones dibujadas a otro tamaño**, como la del Emitter Room
+  (`tools/port/animacion.py`) — escritas, por número de animación;
 * las **voces que se caen de un MIDI** y las **muestras recortadas** cuando no
   entran en la ARAM (`tools/audio/snes_music.py`);
-* las **animaciones dibujadas a otro tamaño**, como la del Emitter Room;
 * **`DECORAR_TRANSLUCIDO`**: un CharSet translúcido reemplazado por otro
   gráfico.
 
@@ -98,6 +102,46 @@ qué grupo dejen de ser argumentos sueltos: una clave que nombra la situación
 del juego sigue sirviendo, y lo que cambiaría es de dónde sale la lista de
 situaciones, no cómo se identifica cada una.
 
+## Las animaciones, que fueron la segunda
+
+Hecha el 2026-09-21, y salió como estaba previsto: la nota de arriba decía que
+el tamaño es función de la caja y de nada más, y al mirarlo resultó cierto.
+`animacion.tamano(ancho, alto)` mira la caja que la animación ocupa en RM2k
+—la unión de todas las celdas de todos sus cuadros— y la caja de la consola,
+que es **una sola para toda la ROM** y no del mapa: el porqué está en
+`animacion.py` y es que los `ShowBattleAnimation` de todos los mapas comparten
+los cuadros ya convertidos. Así que la clave es el número de animación de RM2k
+y nada más, igual que el id del mapa en la otra clase.
+
+**Lo que sí depende del mapa es otra decisión**, y quedó afuera a propósito: si
+la animación se dibuja o no. `animacion_de_mapa` devuelve "no va" cuando el
+mapa ya se llevó las ocho paletas de sprite, y eso sí mira el cartucho. Meterlo
+en el archivo de la animación sería volver a mezclar el cartucho con el juego;
+es una clase aparte, y de las que no están escritas.
+
+El archivo dice **a qué rectángulo va** —`tamano = [64, 49]`, que es lo que la
+fase 2 lee en vez de volver a calcularlo, con `parches.leer_animacion`— y, para
+que el diff se entienda, de qué venía: la caja en pixeles de RM2k y cuántos
+cuadros son. El porcentaje no se escribe: es para leer y no para aplicar, y
+sale de los otros dos.
+
+Que el cartucho no entre en la clave **no se supone**, como con las capas:
+`--check` compara todos los cartuchos que muestren una animación versionada, y
+una prueba de la tanda rehace `tamano(*original)` desde lo escrito, que es lo
+que cobraría el día que el tamaño empiece a depender de algo más.
+
+Lo medido el 2026-09-21, para no volver a medirlo: `abl` muestra trece
+animaciones y lo emitido ocupa 10.435 B; la 91 la muestra sólo un caso de la
+tanda, así que no se versiona y `--check` la informa; los cuatro cartuchos
+emiten lo mismo byte por byte, y las ROMs no se movieron ni con caché ni con
+`SIN_CACHE=1`.
+
+Lo que queda de esta clase sin escribir son **los quince colores** a los que se
+reduce cada animación: es una decisión artística de las de verdad —se pierden
+colores y alguien eligió cuáles—, tiene la misma clave, y es casi el mismo
+formato que las fusiones de las capas. No se hizo acá porque la tarea era el
+tamaño.
+
 ## Lo que falta, con lo que cuesta
 
 * **Las paletas de los personajes.** La que más se parece a lo que viene:
@@ -116,10 +160,9 @@ situaciones, no cómo se identifica cada una.
   `abl` como única situación versionada se puede hacer, pero el archivo tendría
   que describir el reparto entero y no una pérdida por tema, y eso es otro
   formato.
-* **Las animaciones dibujadas a otro tamaño.** Barata y bien acotada: el tamaño
-  sale de `animacion.tamano(ancho, alto)`, que es función pura de la caja de la
-  animación, así que la clave es el número de animación de RM2k y no hace falta
-  nada del cartucho. Es la candidata obvia para la próxima.
+* **Los quince colores de cada animación.** La barata que quedó servida: misma
+  clave que el tamaño —el número de animación—, mismo formato que las fusiones
+  de las capas, y la decisión también se ve. Está descrita arriba.
 * **`DECORAR_TRANSLUCIDO`.** Mirado, y rinde poco: la decisión ya está
   versionada y se edita a mano, en la lista `SIN_TRAMA` de `rpgmaker/rm2k.py`,
   y lo otro que hace —hornear el gráfico contra el fondo de su celda— es de lo

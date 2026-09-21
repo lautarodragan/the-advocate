@@ -1,9 +1,10 @@
 """Los parches versionados dicen lo mismo que el conversor acaba de decidir.
 
 Un parche es una **decisión artística**: qué color se fusionó con cuál porque
-la CGRAM no daba para los dos. Se toman solas, cambian lo que se ve, y hasta
-que existió `parches/` no dejaban rastro: si un cambio hacía que un mapa
-perdiera dos colores más, la única forma de enterarse era mirar la ROM.
+la CGRAM no daba para los dos, o a qué tamaño se achicó una animación de
+batalla para entrar en la caja de la consola. Se toman solas, cambian lo que se
+ve, y hasta que existió `parches/` no dejaban rastro: si un cambio hacía que un
+mapa perdiera dos colores más, la única forma de enterarse era mirar la ROM.
 
 Esto es a las decisiones lo que las goldens son a los pixeles, y por eso falla
 diciendo **qué decisión cambió** y no "el archivo difiere": ver `diferencias`
@@ -12,13 +13,15 @@ y el diff va al commit, que es donde alguien lo mira.
 
 No arranca ninguna ROM: compara lo que dejaron escrito los cartuchos que armó
 `just cartuchos` contra lo commiteado. Y los compara **todos**, que es lo que
-sostiene que el cartucho no entre en la clave —medido el 2026-09-21: los tres
-cartuchos de prueba y `abl` emiten los mismos 29 archivos byte por byte—.
+sostiene que el cartucho no entre en la clave —medido el 2026-09-21, con las
+capas y con las animaciones: los tres cartuchos de prueba y `abl` emiten los
+mismos archivos byte por byte—.
 
-Lo versionado son los 29 mapas de `abl`, el ROM jugable. Los once que los
-cartuchos de prueba llevan de más no se versionan: son situaciones que el juego
-no tiene, así que ahí el cartucho decide solo y esto no le pide nada. Por eso
-no hace falta que la tanda arme `abl` para que esto valga.
+Lo versionado es lo que decide `abl`, el ROM jugable. Lo que los cartuchos de
+prueba llevan de más —mapas que el juego no tiene, y una animación que sólo
+muestra un caso de la tanda— no se versiona: ahí el cartucho decide solo y esto
+no le pide nada; cuáles son los imprime `just parches-check`. Por eso no hace
+falta que la tanda arme `abl` para que esto valga.
 """
 
 import os

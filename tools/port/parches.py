@@ -18,9 +18,12 @@ Lo que se escribe es **el estado deseado y no un informe**, porque la fase 2
 —ya decidida— es que el conversor lea estos archivos en vez de volver a
 decidir. Por eso cada fusión se escribe como "este color se va a este otro" y
 en el orden en que se aplicaron: replayar la lista reconstruye el mapeo entero,
-que es exactamente lo que devuelve `asignador.merge_least_visible`.
+que es exactamente lo que devuelve `asignador.merge_least_visible`. Y por eso
+una animación escribe el rectángulo al que se dibuja y no cuánto se achicó: el
+porcentaje es para leer y el rectángulo es para aplicar.
 
-Un ejemplo de cómo se leería de vuelta, que es lo que guió el formato::
+Dos ejemplos de cómo se leería de vuelta, que es lo que guió el formato. El
+mapeo de colores de una capa::
 
     mapping = {}
     for f in parches.leer(RAIZ, 7)["capas"]["fondo"]["fusiones"]:
@@ -30,11 +33,17 @@ Un ejemplo de cómo se leería de vuelta, que es lo que guió el formato::
                 mapping[viejo] = a
         mapping[de] = a
 
+Y el tamaño al que se dibuja una animación de batalla, que es una sola línea
+porque la decisión es un rectángulo::
+
+    ta, tal = parches.leer_animacion(RAIZ, 82)["tamano"]
+
 La clave
 --------
 
-Un archivo por mapa, ``parches/mapas/<id>.toml``, y adentro una sección por
-capa. **El id del mapa es del juego y no del cartucho**: no se mueve cuando
+Un archivo por situación del juego: ``parches/mapas/<id>.toml`` para las capas
+de un mapa, con una sección por capa, y ``parches/animaciones/<n>.toml`` para
+las animaciones de batalla. **El id del mapa es del juego y no del cartucho**: no se mueve cuando
 cambia la lista de mapas de la ROM, ni cuando cambia el orden interno del
 conversor, ni cuando cambia el algoritmo del asignador. Los colores se escriben
 por su valor —RGB de 15 bits, que es la profundidad real de la consola— y no
@@ -69,11 +78,35 @@ leer. Una clave que nombra la situación del juego —el mapa, y mañana el
 gráfico o el tema— no le estorba: el día que exista, lo que cambia es de dónde
 sale la lista de situaciones, no cómo se identifica cada una.
 
+Las animaciones de batalla
+--------------------------
+
+La segunda clase que dejó de decidirse en silencio, y la más barata de las que
+quedaban: **a qué tamaño se dibuja cada animación**. Una que no entra en la
+caja de la consola se achica entera, con su proporción, y eso se ve —la 82 de
+la intro mide 536x416 en RM2k y se dibuja en 64x49, el 11%—.
+
+Su clave es **el número de animación de RM2k**, y alcanza sola porque el
+tamaño sale de `animacion.tamano`, que mira la caja que la animación ocupa en
+RM2k y la caja de la consola, que es **una sola para toda la ROM** —el porqué
+está en `animacion.py`: que no dependa del mapa es lo que deja que los
+`ShowBattleAnimation` de todos los mapas compartan los cuadros ya
+convertidos—. Ni el cartucho ni el mapa entran, y no se supone: lo mismo que
+con las capas, `--check` compara todos los cartuchos que muestren una
+animación versionada, y
+`test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas`
+rehace la cuenta desde lo escrito.
+
+Lo que **sí** depende del mapa es otra cosa y no está acá: si la animación se
+dibuja, que es lo que decide `animacion_de_mapa` cuando el mapa ya se llevó
+las ocho paletas de sprite. Es otra decisión —y otra clase—, y meterla en este
+archivo sería volver a mezclar el cartucho con el juego.
+
 Lo que **todavía no está acá**, y es lo que queda para más adelante: las
 paletas de los personajes —que sí dependen del cartucho, porque quién le paga
 la entrada al cronómetro lo decide `npcs_dibujables` mirando el mapa entero—,
-las voces que se caen de un MIDI, las muestras recortadas, las animaciones
-dibujadas a otro tamaño y `DECORAR_TRANSLUCIDO`.
+las voces que se caen de un MIDI, las muestras recortadas, los quince colores
+a los que se reduce cada animación y `DECORAR_TRANSLUCIDO`.
 """
 
 import argparse

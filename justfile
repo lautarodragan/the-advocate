@@ -184,7 +184,8 @@ cartuchos *args:
   python3 pruebas/arnes/cartuchos.py {{args}}
 
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
-# fusionó con cuál en cada mapa porque la CGRAM no daba para los dos. Los
+# fusionó con cuál en cada mapa porque la CGRAM no daba para los dos, y a qué
+# tamaño se dibuja cada animación de batalla para entrar en la caja. Los
 # escribe el conversor al lado de cada ROM que arma, y esto copia a `parches/`
 # —que es lo que va a git— **los de `abl` y de ningún otro**: la decisión
 # versionada es la del ROM jugable, y los cartuchos de prueba se adaptan como
@@ -196,8 +197,9 @@ parches: demo
   python3 tools/port/parches.py rom/build/abl
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
-# decisión cambió**, no que el archivo difiere. Mira todos los cartuchos que
-# haya armados, porque un mapa versionado tiene que salir igual en todos.
+# decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
+# 64x49"—, no que el archivo difiere. Mira todos los cartuchos que haya
+# armados, porque lo versionado tiene que salir igual en todos.
 parches-check *builds="rom/build/pruebas-unico rom/build/abl":
   python3 tools/port/parches.py {{builds}} --check
 
