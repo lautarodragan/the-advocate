@@ -7,11 +7,6 @@ eliminar todo lo que ya no aplica, y extraer a tareas o documentación lo que s�
 
 ---------------------------------------
 
-**Todas las ramas de sub-agente están mergeadas** y sus worktrees borrados
-—eran 18 y ocupaban 7,1 GB—. Lo único que no se mergeó nunca son los
-translúcidos con el color math del PPU, que taro probó y rechazó el 2026-09-12:
-está en el tag `color-math` y el porqué en el README.
-
 ## El objetivo, y dónde estamos
 
 Las ROMs que taro va probando a mano quedan en `pruebas-manuales/<nombre>/`,
@@ -145,18 +140,6 @@ entera del Emitter Room. Lo que la tanda no mira:
   estable**: cada comando nuevo hace compilar más páginas automáticas y las
   cadenas pueden crecer. Conviene volver a medirlo de vez en cuando.
 
-* **El brillo del fundido, según el core.** Medido el 2026-09-06 sobre los
-  dieciséis niveles: en 0 y 15 los tres coinciden; entre 1 y 14 snes9x y bsnes
-  coinciden exactamente y **mesen-s difiere en 30% a 48% de los pixeles**, un
-  paso para abajo. O sea que difiere exactamente mientras dura un fundido y en
-  ningún otro momento. La trampa práctica: las recetas que capturan toman el
-  core de `CORE`, así que sacar una captura con `CORE=mesen-s` y compararla
-  contra una golden pondría en rojo todo cuadro que caiga en un fundido **sin
-  que haya ningún bug**. taro miró un fundido en la
-  SNES y le pareció bien, así que se da por bueno el redondeo de snes9x y bsnes;
-  lo que se cerró es la decisión, no el número —nunca se comparó contra una
-  captura del hardware—.
-
 * **La guarda de la paleta vacía** en `tenir_paleta` protege una condición que
   el conversor no puede producir hoy: siempre emite al menos una paleta de
   sprites y una de la capa de encima. Se deja —el error que arregló fue real y
@@ -165,51 +148,13 @@ entera del Emitter Room. Lo que la tanda no mira:
   la lista.
 
 
-### El cartel del "One year previously"
-
-Es el único `ShowPicture` que el port hace, y el caso fácil del sistema de
-imágenes: aparece una sola vez, entre dos fundidos, sobre un mapa de un solo
-tile, así que no le pelea VRAM ni colores a ningún ChipSet ni CharSet. El cómo
-está en el README. Lo que hay que tener a mano para tocarlo:
-
-* **Un cartel por ROM**, y quién se queda con la ranura lo decide
-  `Imagenes.elegir` mirando todos los mapas en el orden de la tabla, antes de
-  compilar nada. Con "el primero que pase" los dos lados podían elegir
-  distinto, porque los mapas se compilan en un orden que depende de si la ROM
-  lleva ventana.
-* **El fundido es de tono y no de transparencia.** Los dos `MovePicture` dejan
-  `top_trans` en cero y mueven (r, g, b). Y **la duración viene en décimas**:
-  los 35 del primero son 210 cuadros. Eso subió la página del "1 year earlier"
-  de 105 décimas a 160, y por eso `test_un_ano_antes.py` pasó de 900 cuadros a
-  1200.
-* **Quince colores de los 226 del PNG**, y el degradé del resplandor se
-  escalona. Es lo cosmético declarado de esta vuelta; falta que taro lo
-  confirme jugando.
-* **El estado vive en `$7E30E8`, en la RAM lejana**, porque en el banco 0 no
-  entraba: la BSS estaba en **7680 de 7680**. Lo que siga pidiendo RAM del
-  banco 0 va a tener que aflojar algo.
-* **`armar_paleta` deja Y en 32.** Llamarla desde un opcode sin `phy` le mueve
-  el cursor al intérprete. Costó el primer rojo y no se veía como un cartel
-  roto: la página seguía corriendo, sólo que otra.
-
 **Lo que no cubre nada**: el cartel sobre una pantalla que destelle. En RM2k las
 imágenes sí reciben el `FlashScreen` —`affected_by_flash` viene prendido— y acá
 no, porque su paleta queda fuera del rango que el destello recorre. Ninguna
 página del juego destella con un cartel puesto, así que es deuda declarada y no
 un camino a medias.
 
-**Lo que costaría el sistema entero** está medido y en el README: 34
-`ShowPicture` en el juego, 20 carteles distintos, 7 comandos de 34 que el
-modelo de hoy sabe hacer, y cinco imágenes de 320x240 exactos que **con objetos
-no se pueden hacer** —serían 56 de los 128 de OAM y 32 de los 34 tiles por
-línea—. Ésas piden prestarle una capa al cartel, y con eso el mapa se recarga
-al borrarlo.
-
 ## Lo que falta del port
-
-Mudado del README el 2026-09-15: es lo que está a medias, o sea de este
-archivo. Lo derivable no está acá y no debería volver: qué comandos se aceptan
-sin hacer lo dice `ACEPTADOS_SIN_HACER` en `tools/port/eventos.py`.
 
 **Lo que quedó acá son los límites medidos que condicionan decisiones**; lo que
 nos gustaría hacer y nadie está haciendo se fue a `wishlist/` el 2026-09-20 —el
@@ -229,12 +174,6 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   acomode los bloques en los huecos los recuperaría. No se hizo porque el
   crecimiento sigue: cada personaje que cambia de pose son 6 KB.
 
-  Las dos ideas de taro para apretar assets que vivían adentro de este límite
-  están en `wishlist/paletas-sobre-todas-las-imagenes.md` y en
-  `done/hornear-la-decoracion-en-un-chipset.md`, que se hizo el 2026-09-21 en
-  el Auditorio: el público del mapa 18 son tiles y no 31 eventos, y el mapa se
-  bajó de 8 de 8 paletas de sprite a 6. Lo que sigue abierto de ésa es a qué
-  otros mapas aplicarla.
 * **El cartucho es de 4 MB**: `ROM_BANKS` es 128 y la cabecera dice `$0C`. Es
   el techo de LoROM, así que de acá no se crece: lo que siga pidiendo cartucho
   tiene que recuperar acolchado o compartir tiles entre mapas.
@@ -271,15 +210,7 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   pueden hornear. Ojo al medirlo: `cuadros_perdidos` **satura en 255**, así que
   hay que leerlo y ponerlo en cero cada pocas decenas de cuadros.
 
-  **Rediseñado el 2026-09-21, y cerrado**: la celda donde el minijuego de las
-  piedras se juega seguía en 30 fps clavados, y en vez de optimizar el motor se
-  rediseñó el minijuego —ver `done/el-mapa-11-se-rediseno.md`—. Las 52 baldosas
-  de luz dejaron de ser eventos y son tiles del mapa, con el mapa forkeado en
-  `juego/` —los eventos dibujados pasan de 69 a 17—, y el motor aprendió
-  `TileSubstitution` y `StoreTerrainID`. **La celda del minijuego pasó de 1141
-  cuadros perdidos de 1200 a 11**, y las otras cuatro medidas a cero o dos.
-
-  Y una divergencia del motor que sale de ahí y vale para cualquier juego:
+    Y una divergencia del motor que sale de ahí y vale para cualquier juego:
   **una sustitución de tiles no se ve en el acto**. El tilemap de la VRAM no se
   reescribe solo, así que la ventana se rehace de a una columna por cuadro y
   tarda `WINDOW_COLS` cuadros en ponerse al día; RM2k redibuja el spriteset y
@@ -287,70 +218,7 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   sustituidas. El techo de cuántas columnas por cuadro lo pone `push_strips`,
   que sube una sola.
 
-  Lo que esto bloqueaba **se destrabó solo el 2026-09-16**, cuando la golden
-  pasó a ser una captura de la propia ROM: darle caso propio a la escena del
-  ascensor del mapa 2 es gratis y está en
-  `wishlist/caso-propio-para-la-escena-del-ascensor.md`.
-* **Los teletransportes que siguen sin resolverse.** Los que están adentro de
-  cinemáticas con variables y condiciones que todavía no modelamos. El del
-  mapa donde el juego arranca ya no: es automático, entra con los cinco
-  comandos que la ROM entiende, y `Blank (Leave START here)` ahora se sale
-  solo.
-* **El techo de resolución del banco de muestras.** El cartucho lleva
-  **varios** temas: los que pidan los `PlayBGM` compilados, compartiendo un
-  solo banco de muestras —ver `decisiones/un-solo-banco-de-muestras.md`—. El
-  techo no es la cantidad de temas —el banco se achica solo— sino la
-  resolución: con los treinta y pico del juego entero **cada instrumento
-  quedaría en una miga, y sin aviso**. Ver "Varios temas en el cartucho".
-
-  Lo que subiría ese techo es repartir el presupuesto por paquete:
-  `wishlist/presupuesto-de-muestras-por-paquete.md`.
-* **La cinemática de apertura, entera.** La corre el caso `cinematica`
-  —`test_cinematica` en `pruebas/abl/test_tanda_escenas.py`, que es donde está
-  lo que el arnés tiene que saber de ella—, y la compara hasta el final con los
-  quince toques de A que la cierran: el tinte se apaga, Core y
-  Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
-  con dos `ChangeEventLocation` y un switch. De ahí el juego sigue con el
-  jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
-  **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
-  el toque de A resincroniza los dos lados.
-* **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
-  4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
-  probable es compartir los tiles entre los mapas que usan el mismo chipset:
-  son 43 chipsets para 328 mapas.
-* **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
-  hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
-  Village once, así que no convierten. Los dos venían tapados detrás del
-  problema de las paletas de la capa de encima, que ya está resuelto. Los
-  eventos dibujados con un tile del chipset se empaquetan
-  y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
-  eventos dibujados con un tile del chipset".
-
 ## Lo que el juego golden condiciona hoy
-
-La idea entera —dos capas de pruebas y dos repos— está en
-`wishlist/un-juego-golden-y-dos-repos.md`. **No se hace ahora.** Lo que se queda
-acá es lo único que cambia una decisión de hoy: hacia dónde tiene que empujar
-cada cosa que se toque para no alejarnos de ella.
-
-* **El paso 9d cambia de forma**: las páginas de prueba no van a una tabla
-  especial de la ROM sino que pasan a ser **eventos de RM2k**, datos que el
-  conversor lee como cualquier otro. Son el embrión del juego golden, y así
-  se mudan moviendo archivos; el conversor pierde los veinte flags que existen
-  sólo para las pruebas. Generarlos con Ditto, desde JSON, evita depender de
-  RM2k en una máquina virtual. **Hecho** el 2026-09-18: son
-  `pruebas/casos/`, en el JSON de Ditto.
-* **El conversor no sabe nada de ABL**: lo propio del juego —el grupo inicial,
-  qué mapas van— vive en recetas o en un manifiesto, no en `tools/`.
-* **Las pruebas nombran por símbolo o por comportamiento**, no por número de
-  mapa de ABL, donde se pueda.
-
-Cada una tiene su receta —`just pruebas-rpgmaker`, `pruebas-abl`,
-`pruebas-herramientas`— y `just pruebas` sigue corriendo todo. Lo que no se
-movió, a propósito: `conftest.py` queda en `pruebas/`, que es donde pytest lo
-carga para las tres carpetas, y `golden/` y `casos/` son de las dos clases;
-moverlos es de cuando existan los dos repos. `retro.py` sigue en `tools/`, en
-`tools/emulador/`.
 
 Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
 
@@ -369,26 +237,4 @@ Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
   símbolos del cartucho armado, sin correrlo. Si van "con su herramienta",
   el lugar natural es al lado de `tools/`, y eso se decide cuando `tools/`
   se reparta entre los dos repos.
-
-**`tools/` quedó repartido en carpetas por responsabilidad** el 2026-09-19,
-pedido de taro, sin reescribir código: los proyectos de Rust bajaron de la
-raíz, y cada `.py` fue a un paquete de Python de verdad, que se importa por su
-nombre (`from rpgmaker import lcf`). De abajo hacia arriba, y ninguna importa
-de una de más arriba:
-
-    rpgmaker/    lcf, event_codes, rm2k
-    comun/       cache_disco
-    ensamblado/  bancos, ensamblar
-    emulador/    retro, bsnes-wram.patch
-    render/      render_map, chipset, charset
-    audio/       snes_music, midi, musica, sdsp, spc700, muestras_brr,
-                 snes_samples, music_opcodes, msu
-    port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
-                 ventana, fuente, escena, animacion, asignador, tiles_bin,
-                 snes_convert
-    ditto/, voodoo/, gunter/, protocol/  los proyectos de Rust
-
-**`port/` no está partido todavía**: tiene tres ciclos de imports adentro
-—`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
-partirlo es trabajo de criterio. Ver `tools/README.md`.
 

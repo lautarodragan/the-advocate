@@ -1,5 +1,37 @@
 ### El cartel de "One year previously"
 
+Es el único `ShowPicture` que el port hace, y el caso fácil del sistema de
+imágenes: aparece una sola vez, entre dos fundidos, sobre un mapa de un solo
+tile, así que no le pelea VRAM ni colores a ningún ChipSet ni CharSet. El cómo
+está en el README. Lo que hay que tener a mano para tocarlo:
+
+* **Un cartel por ROM**, y quién se queda con la ranura lo decide
+  `Imagenes.elegir` mirando todos los mapas en el orden de la tabla, antes de
+  compilar nada. Con "el primero que pase" los dos lados podían elegir
+  distinto, porque los mapas se compilan en un orden que depende de si la ROM
+  lleva ventana.
+* **El fundido es de tono y no de transparencia.** Los dos `MovePicture` dejan
+  `top_trans` en cero y mueven (r, g, b). Y **la duración viene en décimas**:
+  los 35 del primero son 210 cuadros. Eso subió la página del "1 year earlier"
+  de 105 décimas a 160, y por eso `test_un_ano_antes.py` pasó de 900 cuadros a
+  1200.
+* **Quince colores de los 226 del PNG**, y el degradé del resplandor se
+  escalona. Es lo cosmético declarado de esta vuelta; falta que taro lo
+  confirme jugando.
+* **El estado vive en `$7E30E8`, en la RAM lejana**, porque en el banco 0 no
+  entraba: la BSS estaba en **7680 de 7680**. Lo que siga pidiendo RAM del
+  banco 0 va a tener que aflojar algo.
+* **`armar_paleta` deja Y en 32.** Llamarla desde un opcode sin `phy` le mueve
+  el cursor al intérprete. Costó el primer rojo y no se veía como un cartel
+  roto: la página seguía corriendo, sólo que otra.
+
+**Lo que costaría el sistema entero** está medido y en el README: 34
+`ShowPicture` en el juego, 20 carteles distintos, 7 comandos de 34 que el
+modelo de hoy sabe hacer, y cinco imágenes de 320x240 exactos que **con objetos
+no se pueden hacer** —serían 56 de los 128 de OAM y 32 de los 34 tiles por
+línea—. Ésas piden prestarle una capa al cartel, y con eso el mapa se recarga
+al borrarlo.
+
 Es lo único que este port dibuja de `ShowPicture`, y el alcance está elegido a
 propósito: **un cartel por ROM**. El de la intro aparece una sola vez, entre un
 fundido y otro, sobre el mapa 4 —"Blank (Leave START here)", un mapa de un solo
