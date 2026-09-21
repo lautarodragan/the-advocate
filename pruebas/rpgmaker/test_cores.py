@@ -184,3 +184,31 @@ def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():
                 "%s: dos valores del canal %s caen en el mismo tramo de ocho, "
                 "así que recortar a 15 bits los confunde: %s"
                 % (nombre, cual, sorted(vistos)))
+
+
+def test_escena_de_la_pelea():
+    """La escena de la pelea compuesta en la consola, y un enemigo borrado.
+
+    Es lo que más memoria nueva estrena: los dos búferes de 32 KB del banco $7F
+    —que bsnes enciende con basura— y el estado de `ESC_*`. Si la ROM leyera
+    un byte de ahí sin haberlo escrito, el fondo, un battler o las celdas del
+    borrado saldrían distintos. Es el encuentro de la tropa 100 de
+    `test_escena.py`, con el del medio muerto a mano.
+    """
+    from consola import en_la_wram
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        una = partida("en-5", nucleo=nucleo)
+        una.ir_al_mapa(28, 20, 30)
+        s = una.simbolos
+        una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]), [22, 0])
+        una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
+        una.consola.correr(120)
+        assert una.byte("menu_abierto"), "la pelea no se abrió"
+        donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + 1) * s["BA_BYTES"]
+        una.consola.escribir_ram(en_la_wram(donde), [0, 0])
+        una.consola.correr(60)
+        assert una.consola.ram(en_la_wram(s["ESC_VIS"]), 1)[0] == 0b101, \
+            "el enemigo del medio no se borró: la prueba no mide lo que dice"
+        imagenes.append(una.imagen())
+    iguales("escena", *imagenes)
