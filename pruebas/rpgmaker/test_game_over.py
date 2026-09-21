@@ -106,7 +106,7 @@ def pagina_de(map_id, evento_id, numero):
     evento = [e for e in game_map.events if e.id == evento_id][0]
     for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
                     eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
-                    eventos.indexar_actores):
+                    eventos.indexar_actores, eventos.indexar_habilidades):
         indexar(GAME_DIR)
     del_mapa = eventos.Eventos(game_map).para(evento.id)
     return eventos.compilar_pagina(
@@ -294,3 +294,27 @@ def test_ganar_encuentros_al_azar_no_reinicia(partida):
     una = con_encuentros(partida)
     assert caminar(una, 900) is None, (
         "la ROM se reinició ganando encuentros al azar")
+
+
+# --- y el `GameOver` de una página -----------------------------------------
+#
+# Desde el 2026-09-21 compila a OP_GAME_OVER, que es el mismo `jml reset` que
+# el destino `BATALLA_PERDER`. La página de prueba `game-over` espera 18 ticks
+# y lo llama; el control es `pelea-82`, que tampoco reinicia —ver
+# `test_perder_con_manejador_no_reinicia`— y el de `nada`, abajo.
+
+def test_game_over_vuelve_al_arranque(partida):
+    una = partida(caso="game-over")
+    assert cuadros_hasta_reiniciar(una) is not None, (
+        "la página llamó a GameOver y la ROM siguió en el mapa")
+    assert cuadros_hasta_volver(una) is not None, (
+        "después del GameOver el arranque no volvió a correr en %d cuadros"
+        % VOLVER_TOPE)
+    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+    assert una.palabra("mapa_actual") == 0
+
+
+def test_sin_game_over_no_reinicia(partida):
+    """El control: el mismo mapa y la misma espera, sin el comando."""
+    una = partida(caso="curar-sumar")
+    assert cuadros_hasta_reiniciar(una, tope=300) is None
