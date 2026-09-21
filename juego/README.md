@@ -58,11 +58,10 @@ celdas que ya estaban.
 El **mapa 11**, el HQ de los Lazer Teeth, con el minijuego de las piedras
 rediseñado: sus 52 baldosas de luz dejaron de ser eventos y pasaron a ser tiles
 del mapa. El porqué, con todo lo medido, está en
-`workflow/tareas/el-mapa-11-no-entra-en-el-cuadro.md`.
+`workflow/done/el-mapa-11-se-rediseno.md`.
 
 Y lo que el rediseño **no** conserva, que es una sola cosa y conviene tenerla
 escrita: las baldosas atrapaban al héroe con un trigger de **contacto**, que
 dispara en el paso, y ahora lo atrapa un **proceso paralelo**, que mira en qué
 celda está. Es un cuadro de diferencia en cuándo salta, no en si salta. No está
-medido: se ve jugando, y hasta que `TileSubstitution` y `StoreTerrainID` estén
-en el motor no se puede jugar.
+medido: se ve jugando. Que salte lo cuida `pruebas/abl/test_luces.py`.

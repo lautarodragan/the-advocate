@@ -5,7 +5,7 @@ derivado y se regenera entero con `just datos`—. Un **fork** es un archivo
 nuestro que el pipeline usa **en lugar** del de `data/`: no describe cambios,
 es el archivo entero. Hoy lo pide el mapa 11, al que le rediseñamos el
 minijuego de las piedras; el porqué está en
-`workflow/tareas/el-mapa-11-no-entra-en-el-cuadro.md` y el qué, en
+`workflow/done/el-mapa-11-se-rediseno.md` y el qué, en
 `juego/README.md`.
 
 Tres cosas que este módulo hace cumplir, y las tres son el mismo miedo:

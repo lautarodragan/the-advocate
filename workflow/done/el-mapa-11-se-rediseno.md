@@ -1,83 +1,41 @@
 # Qué
 
-El HQ de los Lazer Teeth —el mapa 11— **no entra en el cuadro donde se juega el
-minijuego de las piedras**, y lo que lo saca son sus **52 baldosas de luz**:
-52 eventos dibujados con el mismo tile opaco del ChipSet, el charco de luz en
-el piso. Hornear los 18 que caían en la regla de los eventos opacos bajó el lag
-a la mitad **en una zona vacía del mapa**, que no es donde se juega.
+El HQ de los Lazer Teeth —el mapa 11— **no entraba en el cuadro donde se juega
+el minijuego de las piedras**, y lo que lo sacaba eran sus **52 baldosas de
+luz**: 52 eventos dibujados con el mismo tile opaco del ChipSet, el charco de
+luz en el piso.
+
+Se arregló **rediseñando el minijuego**, no optimizando el motor: las baldosas
+dejaron de ser eventos. La decisión, y los dos caminos de optimización que se
+descartaron para llegar a ella, están abajo.
 
 # Status
 
-**Los dos caminos baratos están hechos**, y con ellos tres de las cinco celdas
-medidas entran en el cuadro. **La celda donde el minijuego se juega sigue sin
-entrar**, y **el camino que la atacaba —el 3— se descartó el 2026-09-21**:
-ver "Por qué no se optimiza".
+**Hecho el 2026-09-21.** Las 52 baldosas de luz dejaron de ser eventos: el
+charco es un tile del mapa, apagar un cono es un `TileSubstitution` y atrapar
+al héroe es un paralelo que mira el terreno de la celda. El mapa vive forkeado
+en `juego/mapas/Map0011.json`, con ChipSet propio.
 
-Lo que queda es **rediseñar el minijuego para que no haya nada que optimizar**:
-las 52 baldosas dejan de ser eventos y pasan a ser tiles del mapa. El reparto
-está en "El rediseño", y al 2026-09-21 **las dos mitades están hechas**:
+Cuadros perdidos caminando 1200 cuadros, medidos con
+`/extras/scratch/mapa11-cierre/perdidos.py`:
 
-* la data: el mecanismo del fork (`juego/`, con sus pruebas), el ChipSet propio
-  del mapa 11 y el mapa rediseñado. Los eventos dibujados del mapa pasan de
-  **69 a 17**;
-* el motor: `TileSubstitution`, `StoreTerrainID` y la tabla de terrenos, con
-  sus casos en `pruebas/rpgmaker/test_sustitucion.py` y
-  `pruebas/rpgmaker/test_terreno.py`. Con ellos compilan las seis páginas del
-  mapa que no compilaban —las cuatro fuentes de luz que se rompen, el
-  `ResetPuzzle` y el paralelo nuevo—.
+    celda     diagnóstico   los dos caminos   rediseñado
+    (50,50)       231             153              0
+    (26,47)       625             475              2
+    (18,50)      1200               9              0
+    (19,46)      1196            1141             11
+    ( 5,50)      1200              19              0
 
-**Pero el minijuego todavía no se juega, y lo que falta es data.** Las cinco
-sustituciones del mapa no compilan, y el conversor dice por qué: **los tiles
-apagados no están dibujados en ninguna celda del mapa**. Son los altos 85, 86,
-87, 88 y 90 —el estado "cono apagado"—, y el mapa sólo dibuja los prendidos,
-81 a 84 y 89. Un tile que no está en ninguna celda no tiene sus 8x8 en la
-VRAM, así que no hay con qué dibujarlo y la página se cae entera. Se arregla
-poniendo **una celda de cada uno** en algún rincón del mapa; el costo en
-tiles es cero, porque Voodoo deduplica.
+**La celda donde el minijuego se juega pasó de 30 fps clavados a once cuadros
+perdidos de 1200**, por debajo del techo que el diagnóstico había medido —23—.
+Los eventos dibujados del mapa pasan de 69 a 17.
 
-Y hay una segunda condición que conviene mirar al mismo tiempo, porque las dos
-se arreglan de una: **un tile alto sin el bit `Above` no se dibuja en BG2 sino
-horneado en el fondo**, y entonces las dos capas del bloque dejan de ser
-independientes y la combinación tampoco se puede armar. En el ChipSet 53 los
-apagados 85 a 88 tienen el bit y los prendidos 81 a 84 no, así que **prender
-se puede armar y apagar no**. Lo más barato es darle a todos los diez el mismo
-tratamiento; cuál, es decisión artística —el bit dice si el charco se dibuja
-por encima del héroe—.
+Y se juega: `pruebas/abl/test_luces.py` mide que pararse en una baldosa
+iluminada abra el mensaje del "me atraparon", y que la piedra en `Light5`
+apague su cono y deje puesto el switch de la lámpara rota.
 
-Lo que hace que esto se vea y no se lo trague el silencio es que el conversor
-lo dice por línea, nombrando los dos tiles, y la página no compila en vez de
-compilar y dibujar cualquier cosa.
-
-**Y una cosa del motor que no es canónica**, para tenerla antes de mirarlo:
-**la sustitución no se ve en el acto**. El tilemap de la VRAM no se reescribe
-solo —`stream_map` sólo arma la columna que la cámara destapa— así que la
-ventana se rehace de a una columna por cuadro y tarda `WINDOW_COLS` cuadros en
-ponerse al día. Prendiendo o apagando un cono con la cámara quieta, el charco
-tarda hasta un segundo en cambiar; caminando se disimula, porque la cámara trae
-las columnas nuevas ya sustituidas. Si molesta, lo que hay que tocar es cuántas
-columnas por cuadro, y el techo es `push_strips`, que sube una sola.
-
-Y tres cosas que aparecieron al mirar las 52 antes de borrarlas, que corrigen
-lo que este documento daba por sentado más abajo: **los conos son cinco y sólo
-cuatro se apagan** —el grupo B, 22 baldosas, no lo reubica nadie—, **no todas
-atrapan** —del cono A atrapa una sola y los conos D y E ninguna, así que los
-terrenos son tres y no seis— y **cuatro de las 22 del grupo B no son
-copy-paste**: tienen páginas propias según los switches 46 y 51.
-
-Después de los dos caminos, caminando 1200 cuadros:
-
-    celda     diagnóstico   con los dos
-    (50,50)       231           153
-    (26,47)       625           475
-    (18,50)      1200             9
-    (19,46)      1196          1141
-    ( 5,50)      1200            19
-
-El build con que se midió el diagnóstico es descartable y **no va a `main`**: es
-una variable de entorno en `snes_convert.py` que le apaga el dibujo a un grupo
-de eventos, con el mismo mecanismo con que nacen escondidas las filas de los
-horneados. Está en el commit marcado `DESCARTABLE` de la rama
-`worktree-agent-af33fbcd7a65c7dd1`, revertido en el commit siguiente.
+**Lo que se descartó**, y es la decisión que abrió todo esto: los caminos 3 y
+4, que eran optimizaciones del motor. Ver "Por qué no se optimiza" más abajo.
 
 # Lo medido
 
@@ -226,6 +184,8 @@ Cuesta 21 bytes de banco 0 y **gana en todos los mapas**, no sólo en el 11.
 **No arregla el caso que importa**, como estaba previsto: con el cono prendido
 las baldosas están en pantalla y siguen costando. En (19,46) baja de 1150 a
 1141.
+
+# Por qué no se optimiza
 
 ## 3. Hornear cada posición conocida y prender/apagar el tilemap — DESCARTADO
 
@@ -418,6 +378,39 @@ documento no preveía —el porqué de cada una, en `juego/README.md`—:
 * **su imagen no se versiona: se arma.** El arte del juego no es nuestro para
   redistribuir —vive en `/extras`—, así que lo commiteado es la receta —qué
   bloque y qué tile se copian adónde— y el PNG sale a `rom/build/juego/`.
+
+## La trampa que apareció al armarlo: el bloque de destino
+
+`TileSubstitution` cambia un tile por otro, pero la ROM dibuja **bloques de
+16x16 con las dos capas juntas**. Si el mapa ya dibuja en alguna celda la
+combinación que la sustitución va a dejar, el bloque existe y no hay nada que
+armar; si no, el conversor lo arma, y **no puede cuando alguno de los dos tiles
+se hornea en el fondo** —un tile alto sin el bit `Above` no va a BG2, y ahí las
+dos mitades del bloque dejan de ser independientes—.
+
+Los charcos de luz son exactamente ese caso: van **debajo** del héroe, así que
+no llevan `Above`. Darles el bit para que el bloque se pueda armar los pondría
+por encima, y el charco es opaco: **el jugador desaparecería al pararse en la
+luz**.
+
+La salida no toca cómo se ve: se le **dibujan al mapa las combinaciones que
+faltan**, una celda cada una, en la última fila. El mapa es de 100x100 y todo
+su contenido entra en x 1..28, y 35..58, así que ahí no llega ni el héroe ni la
+cámara —es donde el propio juego estaciona los eventos que apaga—. Son quince,
+y no son una lista escrita a mano: las deduce
+`/extras/scratch/mapa11-cierre/faltantes.py` del mapa y de sus propias
+sustituciones, y después de aplicarlas contesta cero.
+
+**Le va a pasar a cualquier fork que sustituya un tile que no lleve `Above`.**
+
+## Lo que queda distinto del original, y taro lo tiene que juzgar
+
+* **El cono tarda en apagarse.** El tilemap se rehace de a una columna por
+  cuadro, así que la sustitución no se ve en el acto como en RM2k: quieto puede
+  tardar hasta `WINDOW_COLS` = 64 cuadros. Caminando se disimula. Subir dos
+  columnas por cuadro no entra: `push_strips` sube una sola.
+* **Cuándo salta el "me atraparon"**: antes era contacto —dispara en el paso—,
+  ahora es un paralelo que mira la celda. Un cuadro de diferencia.
 
 ## El reparto
 
