@@ -380,3 +380,24 @@ args = [
   { name = "actor", type = "byte" },
   { name = "amount", type = "word" },
 ]
+
+[[opcode]]
+name = "OP_TILE_SUB"
+code = 0x29
+args = [
+  { name = "pairs", type = "byte", count = "substitutions" },
+]
+repeated = { name = "substitutions", args = [
+  { name = "old_cell", type = "word" },
+  { name = "new_cell", type = "word" },
+] }
+
+[[opcode]]
+name = "OP_TERRAIN"
+code = 0x2A
+args = [
+  { name = "mode", type = "byte" },
+  { name = "x", type = "word" },
+  { name = "y", type = "word" },
+  { name = "slot", type = "byte" },
+]
