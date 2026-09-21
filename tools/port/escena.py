@@ -81,7 +81,7 @@ sale porque abajo tiene otros ochenta pixeles de pantalla.
 
 ## Qué fondos lleva el cartucho
 
-Por ahora, **dos**: es un PoC. `FONDOS` dice cuáles; una pelea que pida otro
+Por ahora, **tres**. `FONDOS` dice cuáles; una pelea que pida otro
 va sobre fondo liso, con los mismos battlers compuestos encima. Es el mismo
 código con el fondo en cero, y no un parche: es también lo que pasa sin fondo
 —un `EnemyEncounter` que no nombra ninguno, o un mapa que hereda el del
@@ -118,10 +118,11 @@ TILES = TILES_X * TILES_Y                       # 512, la grilla entera
 VRAM_MAPA = 0x3800
 VRAM_TILES = 0x4000
 
-# Los fondos que el cartucho lleva, **por nombre del juego**. Es el PoC del
-# 2026-09-21: el de la pelea del droide y el de los Back Alleys, que son las
-# dos peleas que taro juega. Cualquier otro va sobre fondo liso.
-FONDOS = ("SJBackdropABL04", "ABLBackdropSJ03")
+# Los fondos que el cartucho lleva, **por nombre del juego**. Nacieron con el
+# PoC del 2026-09-21 —el de la pelea del droide y el de los Back Alleys— y el
+# mismo día taro sumó el de los Rat Tracks, que es donde siguen los encuentros
+# al azar. Cualquier otro va sobre fondo liso.
+FONDOS = ("SJBackdropABL04", "ABLBackdropSJ03", "ABLBackdropSJ08")
 
 # Cuántos planos guarda el cartucho por fila de un battler: la máscara y los
 # cuatro de su dibujo. Los otros cuatro los pone la ROM según la paleta.
