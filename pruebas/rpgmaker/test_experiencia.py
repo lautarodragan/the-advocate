@@ -272,8 +272,9 @@ ARDEN = 15
 def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     """Arden entra en el 3 a 50 de lo que pide el 6 y el droide da 90: sube
     **tres niveles de una vez** y aprende lo del 4, el 5 y el 6, y no lo del
-    7. Kersh pelea al lado para que la pelea se gane; que Arden quede en pie lo
-    dice el modelo."""
+    7. Kersh pelea al lado para que la pelea se gane, y **detrás** de Arden:
+    con el orden al revés el droide le pega a Arden hasta tirarlo, y lo que
+    decide eso es el azar de la pelea, que el modelo juega igual."""
     from test_equipo_y_habilidades import sabe
     base = db()
     arden = base.actors[ARDEN]
@@ -282,7 +283,7 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     assert {4, 5, 6, 7} <= set(ensena)
     lista = experiencia.lista_de(arden)
     una = en_el_droide(partida)
-    grupo = (GRUPO[0], ARDEN)
+    grupo = (ARDEN, GRUPO[0])
     una.poner_grupo(*grupo)
     poner_exp(una, ARDEN, lista[5] - 50, 3)
     for nivel in (4, 5, 6, 7):
