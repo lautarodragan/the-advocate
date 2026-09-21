@@ -10,10 +10,14 @@ Lo tenían `tema_asegurar` (la música del título), el `ConditionalBranch` por 
 —que entraba **siempre**, medido—, el `IsActorInParty` y el `SetTimer` desde
 una variable negativa. 
 
-Los dos últimos **no los mide nadie todavía**: ninguna
-página de prueba los emite y ningún caso de la tanda los ejercita, así que el
-arreglo es lectura del manual del 65816 y no medición. Si aparece una página
-que use `IsActorInParty`, es el primer lugar donde mirar.
+El `SetTimer` **no lo mide nadie todavía**: ninguna página de prueba lo emite,
+así que su arreglo es lectura del manual del 65816 y no medición.
+
+El `IsActorInParty` tampoco lo medía nadie, y el 2026-09-21 se vio por qué eso
+importa: **seguía roto**. El `cmp #0` iba después del `ply`, pero después venían
+dos `iny` que volvían a pisar la Z, y la rama contestaba que sí siempre —en el
+techo del Warehouse aparecía Arden sin haberlo sumado—. Lo mide ahora
+`pruebas/rpgmaker/test_rama_grupo.py`.
 
 ## Audio
 

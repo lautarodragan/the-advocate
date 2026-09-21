@@ -4525,18 +4525,17 @@ si_polaridad:
 si_actor:
     lda [cod_ptr], y            ; el id, que entra en un byte
     phy
-    jsr en_el_grupo             ; Z=0 si está
+    jsr en_el_grupo             ; A=1 si está, A=0 si no
     ply
-    cmp #0                      ; la Z de `en_el_grupo`, que `ply` acaba de
-                                ; pisar con el cursor: ver `tema_asegurar`
-    beq si_actor_no
-    lda #$01
-    bra si_actor_listo
-si_actor_no:
-    lda #$00
-si_actor_listo:
     iny
     iny                         ; Y -> la polaridad, que vale cero
+    ; **La Z se arma acá, pegada al salto.** `si_decide` decide con un `beq`,
+    ; y `ply` y los dos `iny` le dejaban la Z del cursor, que nunca es cero:
+    ; "está en el grupo" daba que sí siempre, y en el techo del Warehouse
+    ; aparecía Arden sin haberlo sumado. El 2026-09-12 el `cmp #0` iba
+    ; después del `ply` y antes de los `iny`, que era arreglar la mitad: ver
+    ; `test_rama_grupo`.
+    cmp #0
     bra si_decide
 
     ; --- el oro ---
