@@ -102,6 +102,16 @@ dibuja, que es lo que decide `animacion_de_mapa` cuando el mapa ya se llevó
 las ocho paletas de sprite. Es otra decisión —y otra clase—, y meterla en este
 archivo sería volver a mezclar el cartucho con el juego.
 
+Los battlers
+------------
+
+La tercera, del 2026-09-21: desde que la escena de la pelea se compone en la
+consola, cada battler tiene **quince colores y el transparente**, y cuáles se
+pierden es una decisión nueva. Se escribe la paleta que quedó y cuántas
+fusiones hicieron falta —ver `texto_battler`—, con la clave del battler:
+su imagen y su tono, que es lo que `escena.clave` arma. No mira la tropa ni el
+cartucho: la reducción es del dibujo ya achicado y de nada más.
+
 Lo que **todavía no está acá**, y es lo que queda para más adelante: las
 paletas de los personajes —que sí dependen del cartucho, porque quién le paga
 la entrada al cronómetro lo decide `npcs_dibujables` mirando el mapa entero—,
@@ -259,6 +269,119 @@ def escribir_animaciones(destino, animaciones):
     return len(animaciones), bytes_
 
 
+# --- los battlers, que se reducen a quince colores --------------------------
+
+# La tercera clase, desde el 2026-09-21: con la escena de la pelea compuesta en
+# la consola cada battler lleva **quince colores y el transparente**, y cuáles
+# se pierden es una decisión que antes no existía —la escena horneada repartía
+# 96 entre el fondo y todos los battlers juntos—. Ver tools/port/escena.py.
+#
+# La clave es **el battler**: la imagen de RM2k y su tono, `escena.clave`. Es
+# del juego y no depende del cartucho ni de la tropa, porque la reducción mira
+# el dibujo ya achicado y nada más.
+DIRECTORIO_BAT = os.path.join("parches", "battlers")
+EN_BUILD_BAT = DIRECTORIO_BAT
+
+
+def _archivo(clave):
+    """El nombre de archivo de una clave: los battlers de RM2k pueden tener
+    espacios —`sentry drone`—, y un archivo con espacios en el repo es una
+    molestia en cada comando que lo nombre."""
+    return "%s.toml" % str(clave).replace(" ", "_")
+
+
+def ruta_battler(raiz, clave):
+    return os.path.join(raiz, DIRECTORIO_BAT, _archivo(clave))
+
+
+def texto_battler(info):
+    """El archivo de un battler, tal cual va a disco. `info` es el que devuelve
+    `escena.battler`."""
+    lineas = [
+        "# La decisión artística del battler %s: **qué colores se pierden** al"
+        % info["clave"],
+        "# llevarlo a quince, que es lo que la escena de la pelea le deja a cada",
+        "# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo",
+        "# que hay que correr cuando un cambio lo mueve; `just parches --check`",
+        "# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.",
+        "",
+        "battler = %s" % _cadena(info["clave"]),
+        "imagen = %s" % _cadena(info["imagen"]),
+        "tono = %d" % info["tono"],
+        "",
+        "# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y",
+        "# cuántos colores distintos de 15 bits traía. No se decide, se mide.",
+        "tamano = [%d, %d]" % (info["ancho"], info["alto"]),
+        "colores = %d" % info["colores"],
+        "",
+        "# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.",
+        "paleta = [",
+    ]
+    for color in info["paleta"]:
+        lineas.append("  %s," % _color(color))
+    # **La forma mínima, a propósito**: la paleta que quedó y no la lista de
+    # fusiones que llevó a ella. Un battler ya achicado trae cientos de colores
+    # —los grises intermedios que deja el LANCZOS en cada borde— y la lista
+    # medía 179 KB para los once de `abl`; lo que se ve es qué quince quedan, y
+    # eso es lo que el diff tiene que mostrar. El día que la fase 2 quiera leer
+    # esto en vez de decidir, la lista vuelve: es `info["fusiones"]`.
+    lineas += [
+        "]",
+        "",
+        "# Cuántas fusiones hicieron falta para llegar ahí, con",
+        "# `asignador.merge_least_visible`: cada una manda al color que menos",
+        "# se nota a su vecino más cercano.",
+        "fusiones = %d" % len(info["fusiones"]),
+    ]
+    return "\n".join(lineas) + "\n"
+
+
+def escribir_battlers(destino, battlers):
+    """Los parches de los battlers de un cartucho, en
+    `<destino>/parches/battlers/`. Devuelve cuántos y cuántos bytes."""
+    carpeta = os.path.join(destino, EN_BUILD_BAT)
+    os.makedirs(carpeta, exist_ok=True)
+    for viejo in os.listdir(carpeta):
+        if viejo.endswith(".toml"):
+            os.remove(os.path.join(carpeta, viejo))
+    bytes_ = 0
+    for info in battlers:
+        contenido = texto_battler(info)
+        with open(os.path.join(carpeta, _archivo(info["clave"])), "w") as f:
+            f.write(contenido)
+        bytes_ += len(contenido.encode("utf-8"))
+    return len(battlers), bytes_
+
+
+def leer_battler(raiz, clave):
+    return _leer(ruta_battler(raiz, clave))
+
+
+def diferencias_battler(viejo, nuevo):
+    """Qué cambió entre dos parches de battler, en castellano: primero si se
+    pierde otro color, después por qué."""
+    salida = []
+    antes = [tuple(c) for c in viejo.get("paleta", [])]
+    ahora = [tuple(c) for c in nuevo.get("paleta", [])]
+    for c in ahora:
+        if c not in antes:
+            salida.append("se queda con %s, que antes se fusionaba"
+                          % _color(c))
+    for c in antes:
+        if c not in ahora:
+            salida.append("pierde %s, que antes se quedaba" % _color(c))
+    if not salida and antes != ahora:
+        salida.append("los mismos colores en otro orden de paleta")
+    for campo in ("tamano", "colores", "imagen", "tono"):
+        if viejo.get(campo) != nuevo.get(campo):
+            salida.append("%s pasó de %s a %s"
+                          % (campo, viejo.get(campo), nuevo.get(campo)))
+    if viejo.get("fusiones") != nuevo.get("fusiones"):
+        salida.append("hacían falta %s fusiones y ahora %s"
+                      % (viejo.get("fusiones"), nuevo.get("fusiones")))
+    return salida
+
+
 # --- la verificación --------------------------------------------------------
 
 def _leer(ruta_):
@@ -367,6 +490,8 @@ CLASES = (
     Clase("mapa(s)", "el mapa", DIRECTORIO, "mapa", leer, diferencias),
     Clase("animación(es)", "la animación", DIRECTORIO_ANIM, "animacion",
           leer_animacion, diferencias_animacion),
+    Clase("battler(s)", "el battler", DIRECTORIO_BAT, "battler",
+          leer_battler, diferencias_battler),
 )
 
 
@@ -376,11 +501,14 @@ def versionados(raiz, clase=None):
     Sin `clase`, los mapas: es lo que pedían los llamadores cuando ésta era la
     única clase que había.
     """
-    carpeta = os.path.join(raiz, (clase or CLASES[0]).directorio)
+    clase = clase or CLASES[0]
+    carpeta = os.path.join(raiz, clase.directorio)
     if not os.path.isdir(carpeta):
         return []
-    return sorted(int(n[:-5]) for n in os.listdir(carpeta)
-                  if n.endswith(".toml"))
+    # La clave se lee de adentro del archivo y no del nombre: la de un battler
+    # es un texto, y su nombre de archivo no lleva los espacios. Ver `_archivo`.
+    return sorted(_leer(os.path.join(carpeta, n))[clase.clave]
+                  for n in os.listdir(carpeta) if n.endswith(".toml"))
 
 
 def revisar(raiz, builds, jugable="abl"):
@@ -436,7 +564,7 @@ def _revisar_clase(clase, raiz, builds, jugable):
                     # no queda escrito. En un cartucho de prueba, en cambio, es
                     # lo normal y no se dice nada.
                     quejas.append(
-                        "%s %d entró en «%s», el ROM jugable, y no tiene "
+                        "%s %s entró en «%s», el ROM jugable, y no tiene "
                         "parche versionado: corré `just parches`."
                         % (clase.articulo, cual, cartucho))
                 else:
@@ -449,14 +577,14 @@ def _revisar_clase(clase, raiz, builds, jugable):
                 dichas.add((cual, tuple(cambios)))
                 quejas.append(
                     "%s quedó viejo (lo dice el cartucho «%s»), y lo que "
-                    "cambió de %s %d es esto:\n    %s\n"
+                    "cambió de %s %s es esto:\n    %s\n"
                     "  Si el cambio es el que se buscaba, `just parches` y al "
                     "commit; si no, algo movió lo que se ve."
                     % (os.path.relpath(versionado, raiz), cartucho,
                        clase.articulo, cual, "\n    ".join(cambios)))
     for cual in sorted(tengo - vistos):
         quejas.append(
-            "%s %d tiene parche versionado y ninguno de los cartuchos armados "
+            "%s %s tiene parche versionado y ninguno de los cartuchos armados "
             "lo convierte: o el juego dejó de llevarlo —y entonces sobra el "
             "archivo— o falta armar el cartucho que lo tiene."
             % (clase.articulo, cual))

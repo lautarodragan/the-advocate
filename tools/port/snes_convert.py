@@ -6554,6 +6554,12 @@ def main():
          for numero in sorted(animaciones)])
     print("parches de %d animación(es) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD_ANIM, pesan))
+    # Y **a qué quince colores se reduce cada battler**, que es la decisión que
+    # trajo la escena compuesta en la consola: ver tools/port/escena.py.
+    cuantos, pesan = parches_mod.escribir_battlers(destino_parches,
+                                                   escenas["battlers"])
+    print("parches de %d battler(s) -> %s (%d B)"
+          % (cuantos, parches_mod.EN_BUILD_BAT, pesan))
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:

@@ -1,0 +1,38 @@
+# La decisión artística del battler dshambler-340: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "dshambler-340"
+imagen = "dshambler"
+tono = 340
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [45, 70]
+colores = 236
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [11, 9, 8],
+  [16, 13, 11],
+  [16, 14, 13],
+  [19, 16, 14],
+  [18, 15, 13],
+  [14, 12, 11],
+  [21, 18, 16],
+  [13, 11, 10],
+  [26, 23, 20],
+  [23, 20, 18],
+  [8, 6, 6],
+  [31, 28, 25],
+  [29, 26, 23],
+  [7, 3, 4],
+  [22, 0, 7],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 221

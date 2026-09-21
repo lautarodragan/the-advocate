@@ -1,0 +1,38 @@
+# La decisión artística del battler Salleym-280: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "Salleym-280"
+imagen = "Salleym"
+tono = 280
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [86, 72]
+colores = 188
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [20, 13, 0],
+  [0, 0, 0],
+  [17, 11, 0],
+  [18, 12, 0],
+  [15, 10, 0],
+  [14, 9, 0],
+  [12, 8, 0],
+  [5, 3, 0],
+  [6, 4, 0],
+  [11, 7, 0],
+  [9, 6, 0],
+  [3, 2, 0],
+  [8, 5, 0],
+  [2, 1, 0],
+  [23, 15, 0],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 173

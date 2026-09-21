@@ -1,0 +1,38 @@
+# La decisión artística del battler sentry drone: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "sentry drone"
+imagen = "sentry drone"
+tono = 0
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [56, 56]
+colores = 171
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [0, 0, 0],
+  [11, 11, 11],
+  [22, 22, 22],
+  [27, 27, 27],
+  [15, 15, 15],
+  [20, 20, 20],
+  [2, 2, 2],
+  [4, 4, 4],
+  [6, 6, 6],
+  [8, 8, 8],
+  [17, 17, 17],
+  [13, 21, 31],
+  [31, 27, 7],
+  [23, 11, 7],
+  [3, 15, 29],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 156
