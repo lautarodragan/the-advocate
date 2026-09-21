@@ -497,7 +497,8 @@ ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
 
 ITEM_CAMPOS = ("name", "description", "type", "uses", "switch_id",
                "occasion_field2", "price", "two_handed", "recover_hp_rate",
-               "recover_hp", "occasion_field1", "ko_only")
+               "recover_hp", "occasion_field1", "ko_only",
+               "recover_sp_rate", "recover_sp")
 # Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
 ITEM_PUNTOS = ("atk_points1", "def_points1", "spi_points1", "agi_points1")
 
@@ -505,9 +506,12 @@ ITEM_PUNTOS = ("atk_points1", "def_points1", "spi_points1", "agi_points1")
 class Item:
     """Un ítem: lo que el menú muestra de él y lo poco que hace hoy.
 
-    `recover_hp_rate` es por ciento del máximo y `recover_hp` es a secas;
-    `occasion_field1` es "sólo fuera de batalla" y `ko_only` "sólo sobre un
-    muerto". Ver `batalla.item_usable_en_batalla`.
+    `recover_hp_rate` es por ciento del máximo y `recover_hp` es a secas, y
+    lo mismo los de SP; `occasion_field1` es "sólo fuera de batalla" y
+    `ko_only` "sólo sobre un muerto". `state_set` son los estados que saca,
+    uno por estado del LDB desde el 1, que es el de muerto: es lo que decide
+    si levanta a un caído. Ver `batalla.item_usable_en_batalla` y
+    `medicina_usar` en main.s.
     """
 
     def __init__(self, datos):
@@ -515,6 +519,7 @@ class Item:
             setattr(self, nombre, campo(datos, nombre))
         self.puntos = [campo(datos, p) for p in ITEM_PUNTOS]
         self.actor_set = campo(datos, "actor_set") or []
+        self.state_set = campo(datos, "state_set") or []
 
     def equipable_por(self, actor):
         """`actor_set`, con los que no alcanza la lista en sí: es lo que
