@@ -580,6 +580,18 @@ ganadores eran 15 variantes del mismo tono de piel. Ahora usan el mismo
 en la de Core. La pantalla de título sigue con `reducir`: son 240 colores de
 369 y ahí la diferencia no existe.
 
+**Y queda escrito qué se fusionó con qué.** Fusionar dos colores no es una
+optimización: se pierde algo y alguien eligió qué, así que es una *decisión
+artística* y no puede tomarse sin dejar rastro —si mañana un cambio le hace
+perder dos colores más a un mapa, hay que verlo en un diff y no mirando la
+ROM—. Las de las dos capas de cada mapa salen a `parches/mapas/<id>.toml`, y
+la tanda falla si lo commiteado no coincide, como `just protocolo --check` con
+los opcodes. Lo versionado es lo que decide **`abl`**, el ROM jugable; los
+cartuchos de prueba deciden solos para los mapas que el juego no lleva. Se
+escribe el estado deseado —qué color se va a cuál, en orden— y no un informe,
+porque el paso siguiente es que el conversor **lea** esos archivos en vez de
+volver a decidir. Ver `tools/port/parches.py`.
+
 **Contar sólo las poses que se ven.** `sprite_colors` recorría siempre el
 bloque de doce poses, aunque el evento muestre una. La deduplicación ya existía
 en tiles y en VRAM y nunca había bajado al conteo de
