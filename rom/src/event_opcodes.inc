@@ -47,3 +47,6 @@ OP_PLACE_VAR     = $27
 OP_HEAL          = $28
 OP_TILE_SUB      = $29
 OP_TERRAIN       = $2A
+OP_EQUIPMENT     = $2B
+OP_SKILL         = $2C
+OP_GAME_OVER     = $2D
