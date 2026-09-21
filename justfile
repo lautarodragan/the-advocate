@@ -183,6 +183,17 @@ _xdist:
 cartuchos *args:
   python3 pruebas/arnes/cartuchos.py {{args}}
 
+# **Las decisiones artísticas del conversor, versionadas**: qué color se
+# fusionó con cuál en cada mapa porque la CGRAM no daba para los dos. Los
+# escribe el conversor al lado de cada cartucho y esto los copia a `parches/`,
+# que es lo que va a git; `--check` es lo que corre la tanda y falla diciendo
+# **qué decisión cambió**. Ver `tools/port/parches.py`.
+#
+# Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
+# lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
+parches *args: cartuchos
+  python3 tools/port/parches.py rom/build/pruebas-unico {{args}}
+
 # **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
 # con pantalla de título, en `rom/build/abl/abl.sfc`, que es donde él la busca.
 #

@@ -1,0 +1,84 @@
+# Las decisiones artísticas del mapa 119: qué se pierde al pasarlo a la
+# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+mapa = 119
+nombre = "Weapons and Armor"
+
+[capas.fondo]
+# Cuántos colores distintos traía el dibujo y cuántas entradas
+# de CGRAM le dejó la capa de encima.
+colores = 163
+presupuesto = 103
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = [
+  { de = [3, 3, 3], a = [3, 3, 4], pixeles = 1 },
+  { de = [7, 4, 3], a = [7, 4, 4], pixeles = 1 },
+  { de = [29, 27, 25], a = [29, 27, 24], pixeles = 1 },
+  { de = [9, 5, 3], a = [9, 5, 2], pixeles = 2 },
+  { de = [2, 3, 4], a = [3, 3, 4], pixeles = 1 },
+  { de = [2, 2, 4], a = [2, 2, 5], pixeles = 3 },
+  { de = [4, 2, 2], a = [4, 2, 1], pixeles = 3 },
+  { de = [5, 0, 0], a = [5, 0, 1], pixeles = 3 },
+  { de = [6, 3, 3], a = [5, 3, 2], pixeles = 1 },
+  { de = [10, 4, 1], a = [10, 4, 0], pixeles = 4 },
+  { de = [5, 2, 0], a = [5, 2, 1], pixeles = 5 },
+  { de = [17, 11, 5], a = [16, 11, 5], pixeles = 2 },
+  { de = [16, 16, 17], a = [16, 16, 16], pixeles = 6 },
+  { de = [13, 8, 0], a = [12, 8, 1], pixeles = 2 },
+  { de = [19, 11, 5], a = [18, 11, 6], pixeles = 2 },
+  { de = [10, 2, 0], a = [9, 3, 0], pixeles = 1 },
+  { de = [2, 1, 1], a = [3, 1, 1], pixeles = 3 },
+  { de = [21, 12, 5], a = [21, 13, 3], pixeles = 1 },
+  { de = [29, 24, 18], a = [29, 25, 20], pixeles = 1 },
+  { de = [11, 3, 0], a = [11, 4, 0], pixeles = 2 },
+  { de = [7, 0, 0], a = [6, 0, 0], pixeles = 4 },
+  { de = [4, 3, 3], a = [4, 3, 2], pixeles = 11 },
+  { de = [11, 5, 2], a = [10, 5, 1], pixeles = 3 },
+  { de = [3, 3, 4], a = [4, 3, 4], pixeles = 5 },
+  { de = [11, 6, 0], a = [10, 6, 1], pixeles = 4 },
+  { de = [11, 6, 2], a = [10, 6, 1], pixeles = 4 },
+  { de = [6, 4, 11], a = [7, 5, 12], pixeles = 2 },
+  { de = [4, 0, 0], a = [3, 0, 1], pixeles = 5 },
+  { de = [6, 5, 2], a = [7, 5, 2], pixeles = 8 },
+  { de = [15, 11, 6], a = [16, 11, 6], pixeles = 8 },
+  { de = [1, 0, 1], a = [0, 0, 0], pixeles = 6 },
+  { de = [8, 2, 3], a = [7, 2, 2], pixeles = 6 },
+  { de = [9, 4, 3], a = [8, 4, 2], pixeles = 6 },
+  { de = [21, 13, 7], a = [20, 14, 7], pixeles = 3 },
+  { de = [15, 11, 0], a = [16, 11, 0], pixeles = 9 },
+  { de = [16, 11, 5], a = [16, 11, 6], pixeles = 32 },
+  { de = [10, 8, 5], a = [9, 8, 7], pixeles = 5 },
+  { de = [10, 6, 6], a = [10, 6, 3], pixeles = 4 },
+  { de = [19, 12, 12], a = [20, 12, 16], pixeles = 2 },
+  { de = [25, 24, 21], a = [25, 25, 19], pixeles = 4 },
+  { de = [6, 5, 8], a = [6, 4, 7], pixeles = 6 },
+  { de = [3, 1, 1], a = [3, 1, 0], pixeles = 39 },
+  { de = [2, 2, 5], a = [3, 2, 3], pixeles = 6 },
+  { de = [9, 3, 0], a = [8, 3, 0], pixeles = 15 },
+  { de = [6, 0, 0], a = [5, 0, 1], pixeles = 13 },
+  { de = [6, 2, 0], a = [6, 2, 1], pixeles = 50 },
+  { de = [6, 4, 3], a = [5, 4, 4], pixeles = 14 },
+  { de = [14, 8, 1], a = [15, 8, 1], pixeles = 20 },
+  { de = [8, 4, 2], a = [9, 4, 1], pixeles = 15 },
+  { de = [10, 6, 1], a = [10, 6, 3], pixeles = 14 },
+  { de = [6, 1, 0], a = [5, 1, 0], pixeles = 21 },
+  { de = [18, 10, 5], a = [18, 11, 6], pixeles = 9 },
+  { de = [6, 2, 3], a = [7, 2, 2], pixeles = 18 },
+  { de = [21, 18, 14], a = [20, 18, 15], pixeles = 20 },
+  { de = [23, 14, 1], a = [21, 13, 3], pixeles = 4 },
+  { de = [3, 0, 1], a = [3, 1, 0], pixeles = 13 },
+  { de = [5, 1, 3], a = [4, 1, 1], pixeles = 13 },
+  { de = [5, 2, 1], a = [4, 2, 1], pixeles = 35 },
+  { de = [0, 0, 3], a = [0, 0, 0], pixeles = 11 },
+  { de = [4, 2, 6], a = [4, 3, 4], pixeles = 12 },
+]
+
+[capas.encima]
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = []

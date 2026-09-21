@@ -1,0 +1,37 @@
+# Las decisiones artísticas del mapa 2: qué se pierde al pasarlo a la
+# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+mapa = 2
+nombre = "Linkage Block"
+
+[capas.fondo]
+# Cuántos colores distintos traía el dibujo y cuántas entradas
+# de CGRAM le dejó la capa de encima.
+colores = 60
+presupuesto = 71
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = []
+
+[capas.encima]
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = [
+  { de = [5, 5, 5], a = [4, 4, 4], pixeles = 6 },
+  { de = [3, 8, 9], a = [3, 8, 10], pixeles = 56 },
+  { de = [6, 12, 13], a = [6, 13, 14], pixeles = 13 },
+  { de = [13, 13, 13], a = [12, 12, 12], pixeles = 30 },
+  { de = [1, 3, 7], a = [3, 3, 3], pixeles = 13 },
+  { de = [3, 6, 2], a = [4, 7, 3], pixeles = 60 },
+  { de = [3, 3, 3], a = [2, 2, 2], pixeles = 175 },
+  { de = [6, 6, 6], a = [7, 7, 7], pixeles = 196 },
+  { de = [6, 13, 14], a = [5, 11, 12], pixeles = 65 },
+  { de = [14, 14, 14], a = [12, 12, 12], pixeles = 70 },
+  { de = [3, 8, 10], a = [4, 9, 10], pixeles = 588 },
+  { de = [22, 10, 7], a = [20, 9, 6], pixeles = 333 },
+  { de = [7, 7, 7], a = [8, 8, 8], pixeles = 644 },
+]

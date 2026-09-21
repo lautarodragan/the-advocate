@@ -66,6 +66,7 @@ lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
 from port import animacion as animacion_mod
 from port import imagen
 from port import asignador
+from port import parches as parches_mod
 from port import titulo as titulo_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
@@ -1825,9 +1826,19 @@ def _convert_layers(base, above_img, variantes=None):
                  for line in tile for p in line if p is not None})
     palette, base_grid, otras, merged = build_palette(base_grid, presupuesto,
                                                       otras)
-    return (convert(base_grid, palette, grillas, otras,
+    fondo = convert(base_grid, palette, grillas, otras,
                     {"colores": antes, "presupuesto": presupuesto,
-                     "fusionados": len(merged)}), above)
+                     "fusionados": len(merged)})
+    # Qué color se fusionó con cuál, en el orden en que se decidió, para que
+    # `port/parches.py` lo escriba. Va **junto al resumen del fondo y no
+    # adentro de la tupla de la capa de encima** aunque la mitad sea de ella:
+    # `_mismo_reparto_de_cgram` compara esa tupla entera, así que meterle un
+    # campo le cambiaría el criterio con que se decide el horneado, y esto no
+    # puede cambiar ni un byte de la ROM. Del resumen, en cambio, compara
+    # campo por campo, así que una clave más es inerte —y `fusionados`, que es
+    # uno de los que compara, sigue siendo el número de siempre—.
+    fondo[3]["fusiones"] = {"fondo": list(merged), "encima": list(fusionados)}
+    return fondo, above
 
 
 def paleta_de_la_ventana(primeras=None):
@@ -5930,6 +5941,15 @@ def main():
             with open(os.path.join(asignador, "%04d-%s.png"
                                    % (mapa["id"], nombre)), "wb") as handle:
                 handle.write(png)
+    # Y **lo que decidió perder**, escrito: qué color se fusionó con cuál en
+    # cada capa. Va al lado de las imágenes porque sale de la misma decisión,
+    # pero es otra cosa: las imágenes son para mirar y esto es para leer de
+    # vuelta y para que el diff avise. Lo versionado está en `parches/`, y
+    # `just parches --check` compara. Ver tools/port/parches.py.
+    cuantos, pesan = parches_mod.escribir(
+        os.path.dirname(os.path.abspath(args.output)), mapas)
+    print("parches de %d mapa(s) -> %s (%d B)"
+          % (cuantos, parches_mod.EN_BUILD, pesan))
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:

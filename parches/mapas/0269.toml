@@ -1,0 +1,29 @@
+# Las decisiones artísticas del mapa 269: qué se pierde al pasarlo a la
+# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+mapa = 269
+nombre = "Surl Ruins 1 Rightside"
+
+[capas.fondo]
+# Cuántos colores distintos traía el dibujo y cuántas entradas
+# de CGRAM le dejó la capa de encima.
+colores = 59
+presupuesto = 71
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = []
+
+[capas.encima]
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = [
+  { de = [17, 15, 10], a = [19, 16, 10], pixeles = 30 },
+  { de = [21, 16, 12], a = [19, 16, 10], pixeles = 36 },
+  { de = [12, 7, 0], a = [11, 6, 7], pixeles = 12 },
+  { de = [11, 6, 7], a = [9, 7, 6], pixeles = 54 },
+  { de = [8, 6, 4], a = [9, 7, 6], pixeles = 96 },
+]
