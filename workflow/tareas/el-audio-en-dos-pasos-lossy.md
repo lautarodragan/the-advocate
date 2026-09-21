@@ -54,6 +54,29 @@ después el MIDI.
 * **De qué conjunto de temas sale la decisión**: los de `abl`, siguiendo la
   regla de que lo versionado es lo del ROM jugable.
 
+# Para qué sirve el artefacto: iterar sin armar la ROM
+
+El MIDI reducido y la SoundFont reducida **se cargan en un DAW**, y ahí se
+prueban ajustes sin pedir un build. Es el equivalente de los PNG que deja el
+asignador en `rom/build/<cartucho>/asignador/`: se juzga el paso lossy mirando
+—u oyendo— su salida.
+
+Eso lo hace taro, así que el artefacto tiene que abrirse con herramientas de
+todos los días, y **esa es la razón de que las envolventes salgan del
+SoundFont** —`ataque-y-decaimiento-desde-el-soundfont.md`—: si la ROM usa las
+ocho familias de `sdsp.py` y el DAW usa las del SoundFont, los ataques suenan
+distinto y el artefacto miente donde más se nota.
+
+**No reemplaza probar la ROM**, y hay dos diferencias que van a quedar siempre,
+porque no son decisiones nuestras: el SPC700 interpola con su filtro gaussiano,
+que redondea los agudos, y el DSP tiene eco por hardware que el driver no usa.
+
+**La SoundFont reducida no pasa por BRR**, y es una decisión, no un olvido.
+Meter un `encode` + `decode` para que el DAW reproduzca la pérdida de los 4 bits
+dejaría **dos pasadas lossy** —la del artefacto y la del paso final—, que no
+tienen por qué dar lo mismo. Vale más que el artefacto sea exactamente lo que
+el paso final consume.
+
 # Lo que no es una decisión
 
 La codificación a BRR. Pierde señal —16 bits a 4— pero no hay nada que
