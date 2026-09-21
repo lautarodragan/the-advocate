@@ -370,7 +370,7 @@ de una de más arriba:
     port/        eventos, event_opcodes, batalla, pantallas, imagen, titulo,
                  ventana, fuente, escena, animacion, asignador, tiles_bin,
                  snes_convert
-    ditto/, tiles/, gunter/, protocol/   los proyectos de Rust
+    ditto/, voodoo/, gunter/, protocol/  los proyectos de Rust
 
 **`port/` no está partido todavía**: tiene tres ciclos de imports adentro
 —`eventos` ↔ `batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y
