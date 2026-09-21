@@ -11,8 +11,8 @@ Los siguientes sub-directorios tienen la misma estructura:
 Estos son:
 - `divergencias/` es dónde la ROM no hace lo que RM2k hace, con lo medido y cómo reproducirlo; 
 - `decisiones/` decisiones tomadas que no son "obvias" o no se pueden inferir del código y tareas
-- `tareas/` son las tareas que aún quedan pendientes de tomar, o que están en progreso
-- `tareas/todo/` tareas no empezadas
-- `tareas/wip/` tareas en progreso
-- `tareas/done/` tareas terminadas
-- `tareas/wishlist/` es lo que nos gustaría hacer y nadie está haciendo
+- `tasks/` son las tareas que aún quedan pendientes de tomar, o que están en progreso
+- `tasks/todo/` tareas no empezadas
+- `tasks/wip/` tareas en progreso
+- `tasks/done/` tareas terminadas
+- `tasks/wishlist/` es lo que nos gustaría hacer y nadie está haciendo

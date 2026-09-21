@@ -1,3 +1,12 @@
+# ESTADO
+
+!!ESTE DOCUMENTO ESTÁ DEPRECADO!!
+
+Taro lo está trabajando manualmente. Está en proceso de ser revisado manualmente,
+eliminar todo lo que ya no aplica, y extraer a tareas o documentación lo que sí.
+
+---------------------------------------
+
 **Todas las ramas de sub-agente están mergeadas** y sus worktrees borrados
 —eran 18 y ocupaban 7,1 GB—. Lo único que no se mergeó nunca son los
 translúcidos con el color math del PPU, que taro probó y rechazó el 2026-09-12:
