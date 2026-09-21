@@ -3635,7 +3635,7 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=(),
-         encuentros=None):
+         encuentros=None, paginas_tropa=None):
     """El .inc que se ensambla junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -5042,6 +5042,52 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas])
         bytes_asm("tropa_miembro", miembros)
+        # Y las páginas de evento de cada tropa, en el orden del LDB —que es el
+        # orden en que `ScheduleNextPage` las prueba—, sin las que no
+        # compilaron: saltearlas no le cambia el orden a las demás. Por tropa,
+        # dónde arrancan y cuántas son; por página, su disparador y dónde está
+        # su código adentro de `tropa_codigo`, que las deduplica. Ver
+        # `eventos.PaginasDeTropa` y `ba_pag_probar` en main.s.
+        #
+        # **Van al banco 1, `FAR`, y no a RODATA**, y es por lugar: con estas
+        # tablas el cartucho `juego` se pasaba de los 4 MB —medido el
+        # 2026-09-21, el acomodo de bancos quería un `BANK7E`, que es la WRAM—,
+        # y el banco 1 tenía libre más del doble de lo que esto ocupa. Allá no
+        # hay `.bloque`: el segmento es un banco solo, y lo que no entre lo
+        # corta `ld65`.
+        pt = paginas_tropa or eventos.PaginasDeTropa()
+        entradas, pag_ini, pag_n = [], [], []
+        for numero in usadas:
+            suyas = pt.por_tropa.get(numero, [])
+            pag_ini.append(len(entradas))
+            pag_n.append(len(suyas))
+            entradas += suyas
+        if max(pag_n, default=0) > eventos.TROPA_PAGINAS_MAX:
+            raise SystemExit("una tropa trae %d páginas y la pelea anota %d"
+                             % (max(pag_n), eventos.TROPA_PAGINAS_MAX))
+        handle.write('.segment "FAR"\n')
+        words_asm("tropa_pag_ini", pag_ini)
+        bytes_asm("tropa_pag_n", pag_n)
+        bytes_asm("tpag_flags", [e[0] for e in entradas], "$%02X")
+        words_asm("tpag_sw_a", [e[1] for e in entradas])
+        words_asm("tpag_cod", [".loword(tropa_codigo + %d)" % e[5]
+                               for e in entradas], "%s")
+        # Las tres del `switch_b` y la variable sólo si alguna página las usa:
+        # los 32 sistemas de los personajes miran sólo el `switch_a`, y sin
+        # ninguna la ROM no las lee nunca —el bit de `tpag_flags` está en
+        # cero—, así que alcanza con la etiqueta.
+        for nombre, k, bit in (
+                ("tpag_sw_b", 2, eventos.TROPA_DISPARO_SWITCH_B),
+                ("tpag_var", 3, eventos.TROPA_DISPARO_VARIABLE),
+                ("tpag_valor", 4, eventos.TROPA_DISPARO_VARIABLE)):
+            usa = any(e[0] & bit for e in entradas)
+            words_asm(nombre, [e[k] & 0xFFFF for e in entradas] if usa
+                      else [])
+        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00",
+                            acomodar=False) + "\n")
+        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes(),
+                            acomodar=False) + "\n")
+        handle.write('.segment "RODATA"\n')
         # Y los encuentros al azar, que también hablan de tropas por su número
         # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
         # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
@@ -5123,12 +5169,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_BARRA_DX       = %d\n"
             "BA_HPMAX_DX       = %d\n"
             "BA_MSG_DX         = %d\n"
+            "BA_PAG_MSG_POS0   = %d\n"
+            "BA_PAG_MSG_DX     = %d\n"
+            "BA_PAG_MSG_ANCHO  = %d\n"
+            "TROPA_PAG_MAX     = %d\n"
+            "TPAG_SWITCH_A     = $%02X\n"
+            "TPAG_SWITCH_B     = $%02X\n"
+            "TPAG_VARIABLE     = $%02X\n"
             % (len(usadas), B.BATALLA_SEMILLA, texto_batalla,
                pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
                pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
                P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,
                P.BA_HP_COL * 2, P.BA_HP_NUM * 2, P.BA_BARRA_COL * 2,
-               P.BA_HP_MAX_NUM * 2, 1 * 2))
+               P.BA_HP_MAX_NUM * 2, 1 * 2,
+               pos(P.BA_PAG_MSG_FILA0, 0), P.BA_PAG_MSG_COL * 2,
+               P.BA_PAG_MSG_ANCHO, eventos.TROPA_PAGINAS_MAX,
+               eventos.TROPA_DISPARO_SWITCH_A, eventos.TROPA_DISPARO_SWITCH_B,
+               eventos.TROPA_DISPARO_VARIABLE))
         # El audio: el tema de la pelea, el de la victoria y los cinco efectos,
         # con el índice que sacaron de `Temas`. $FF y $FFFF quieren decir "el
         # LDB lo tiene apagado", que es el caso de `battle_se` en este juego.
@@ -6328,10 +6385,25 @@ def main():
               % (datos["tropa"], datos["fondo"], escena_mod.ANCHO,
                  escena_mod.ALTO, datos["tiles"], datos["bytes"],
                  datos["colores"], escena_mod.CGRAM_BASE))
+    # Las páginas de evento de las tropas que alguna pelea del cartucho pide,
+    # con **todas** las tropas ya pedidas: las de los mapas, las de los
+    # encuentros al azar y las de las páginas de prueba. Ver
+    # `eventos.PaginasDeTropa`, que es también por qué sus mensajes van a un
+    # bloque aparte.
+    paginas_tropa = eventos.PaginasDeTropa()
+    for numero in tropas.ids:
+        if numero in renderer.database.troops:
+            paginas_tropa.compilar(numero, renderer.database.troops[numero])
+    print("  páginas de tropa: %d de %d en %d cuerpo(s) distinto(s), %d B de "
+          "código y %d B en %d mensaje(s)"
+          % (paginas_tropa.paginas - paginas_tropa.afuera,
+             paginas_tropa.paginas, len(paginas_tropa.donde),
+             len(paginas_tropa.cuerpos), len(paginas_tropa.mensajes.datos),
+             len(paginas_tropa.mensajes.textos)))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
-                   escenas, encuentros)
+                   escenas, encuentros, paginas_tropa)
     if len(args.casos) > 1:
         # Dónde escribe el arnés el número de caso: ver `--caso`.
         with open(args.output, "a") as handle:

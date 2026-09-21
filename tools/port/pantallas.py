@@ -430,6 +430,22 @@ BA_HAB_COSTO_CIFRAS = 2
 # usar, los enemigos no hacen falta y el grupo sí, que es a quién se cura.
 BA_ITEM_CUENTA_COL = 18
 
+# El `ShowMessage` de una página de tropa. En RM2k la ventana de mensaje de la
+# pelea **tapa la del grupo**: es la misma de 320x80 del mapa, abajo, encima del
+# estado y de las órdenes. Acá eso son los cuatro renglones del grupo, que se
+# dejan de dibujar mientras el mensaje está en pantalla; los dos del mensaje de
+# la pelea quedan vacíos debajo.
+#
+# El renglón se corta en **treinta y un caracteres**, que es lo que entra
+# desde la columna 1 de las 32 de esta pantalla; la ventana del mapa lleva
+# treinta y nueve. De los mensajes de los sistemas de Talan hay renglones de
+# hasta cuarenta —dos técnicas en uno, "     RainDrop...       GatheringWaves...",
+# que ya en la ventana del mapa pierde la última letra— y ésos pierden acá su
+# segunda técnica. Es deuda declarada.
+BA_PAG_MSG_FILA0 = BA_GRUPO_FILA0
+BA_PAG_MSG_COL = 1
+BA_PAG_MSG_ANCHO = 31
+
 # Los términos del LDB que la pantalla usa, en el orden en que el conversor los
 # emite. Los nombres son los de liblcf —`fields.csv`, struct `Terms`— y no de
 # memoria: ver data/README.md. Hasta el 2026-09-20 eran los números de chunk

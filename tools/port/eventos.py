@@ -2290,7 +2290,33 @@ def variables_de(game_dir, map_ids=None, extra=()):
                 if "variable" in page.condition.active:
                     ids.add(page.condition.ids["variable"])
                 ids |= variables_de_comandos(page.commands)
+    if map_ids is None:
+        # Y las de las páginas de las tropas, que son del juego entero y no de
+        # un mapa. Suman **cuarenta**, medido el 2026-09-21: los sistemas de
+        # los personajes llevan cada uno sus contadores —la 81 y la 106 de
+        # Talan cuentan cuántas veces absorbió cada técnica—, y ningún mapa
+        # los nombra.
+        db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+        for tropa in db.troops.values():
+            for pagina in tropa.pages:
+                if "variable" in pagina.activos:
+                    ids.add(pagina.condicion["variable_id"])
+        for comandos in comandos_de_las_tropas(db):
+            ids |= variables_de_comandos(comandos)
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
+
+
+def comandos_de_las_tropas(db):
+    """Los comandos de cada página de tropa del LDB, con las ramas de la pelea
+    traducidas a las del mapa —ver `RAMA_DE_PELEA`—, para los barridos que
+    buscan variables y pares de habilidad. **No filtra**: el barrido es un
+    superconjunto, como el de los mapas, compile la página o no."""
+    from rpgmaker import lcf
+    for tropa in db.troops.values():
+        for pagina in tropa.pages:
+            yield [lcf.EventCommand(RAMA_DE_PELEA.get(c.code, c.code),
+                                    c.indent, c.string, c.parameters)
+                   for c in pagina.commands]
 
 
 def variables_de_comandos(comandos):
@@ -2482,6 +2508,11 @@ def pares_de_habilidad(game_dir, extra=()):
             for page in evento.pages:
                 pares |= pares_de_habilidad_de_comandos(page.commands)
     for comandos in db.common_events.values():
+        pares |= pares_de_habilidad_de_comandos(comandos)
+    # Y las páginas de las tropas, que desde el 2026-09-21 corren en la pelea.
+    # Hoy no suman ningún par —los que enseñan los sistemas ya los nombra
+    # algún mapa—, pero sin esto el primero que no lo esté no compilaría.
+    for comandos in comandos_de_las_tropas(db):
         pares |= pares_de_habilidad_de_comandos(comandos)
     pares = {(a, s) for a, s in pares if a in db.actors and s in db.skills}
     return {par: ranura for ranura, par in enumerate(sorted(pares))}
@@ -2732,6 +2763,161 @@ class Tropas:
         if fondo and numero not in self.fondos:
             self.fondos[numero] = fondo
         return numero
+
+
+# --- las páginas de evento de las tropas ---------------------------------------
+#
+# `Game_Interpreter_Battle`: cada tropa trae sus páginas, y la pelea las corre
+# **con el mismo intérprete que los mapas**, `correr_codigo`, así que se
+# compilan con el mismo `compilar_pagina`. Lo único que cambia es qué se
+# acepta: ver `TROPA_COMANDOS`.
+#
+# Cuándo corre cada una lo decide la ROM y está copiado de
+# `Scene_Battle_Rpg2k`; ver `ba_pag_probar` en main.s.
+
+# Los tres comandos de rama de la pelea, con su gemelo del mapa. De las seis
+# preguntas de `CommandConditionalBranchBattle` el juego usa **sólo dos** —el
+# switch y la variable, en 1108 ramas de 295 cuerpos distintos, medido el
+# 2026-09-21— y ésas tienen los operandos en el mismo lugar que las del mapa:
+# `[clase, número, polaridad o clase del valor, valor, comparación, else]`.
+# Así que se traducen al código del mapa y compilan a OP_IF y OP_IF_VAR sin
+# un opcode nuevo. Las otras cuatro —si un actor o un enemigo puede actuar, a
+# quién apunta, qué orden dio— piden estado de la pelea y no compilan.
+RAMA_DE_PELEA = {13310: COND_RAMA, 23310: COND_SINO, 23311: COND_FIN}
+RAMA_DE_PELEA_CLASES = (COND_SWITCH, COND_VARIABLE)
+
+# Lo que una página de tropa puede hacer en este port. **Es una lista de los que
+# sí, no de los que no**, a propósito: casi todo lo que compila en un mapa
+# supone el mapa —un teletransporte, una ruta, un tinte, una elección, que abre
+# la ventana del mapa— y adentro de la pelea haría otra cosa sin avisar.
+#
+# Los que quedan afuera y el juego usa, por si alguien los quiere sumar:
+# `ChangeHP` y `FullHeal` —en la pelea los HP viven en `BA_UNO` y `FAR_HP`
+# se pisa al cerrarla—, `ChangePartyMembers`, `ChangeEquipment`, `PlaySound`,
+# `Wait`, `TintScreen` y los seis que sólo existen en la pelea.
+TROPA_COMANDOS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
+                   CONTROL_VARS, CHANGE_SKILLS, CHANGE_GOLD, CHANGE_ITEMS,
+                   COND_RAMA, COND_SINO, COND_FIN} | IGNORABLES)
+
+# Qué disparadores sabe mirar la ROM, con su bit en `tpag_flags`. Los demás
+# —el turno, los HP de un actor o de un enemigo— dejan la página afuera: el
+# 2026-09-21 son 173 de las 4588 páginas del juego, y ninguna de los 32
+# sistemas de los personajes, que dependen sólo de `switch_a`.
+TROPA_DISPARO_SWITCH_A = 0x01
+TROPA_DISPARO_SWITCH_B = 0x02
+TROPA_DISPARO_VARIABLE = 0x04
+TROPA_DISPAROS = {"switch_a": TROPA_DISPARO_SWITCH_A,
+                  "switch_b": TROPA_DISPARO_SWITCH_B,
+                  "variable": TROPA_DISPARO_VARIABLE}
+# Cuántas páginas de una tropa anota la pelea como "ya corrió este turno", un
+# byte cada una en `BA_PAG_HECHA`. Es un tope de la RAM lejana y no del juego:
+# el conversor se corta si alguna tropa pasa.
+TROPA_PAGINAS_MAX = 32
+
+
+def comandos_de_tropa(comandos):
+    """Los comandos de una página de tropa como si fueran de un mapa, o
+    `NoSePuede` si alguno no está en `TROPA_COMANDOS`.
+
+    Devuelve copias: los de la base los comparten todas las tropas que tienen
+    la misma página, y traducirlos en el lugar los dejaría traducidos para
+    quien los lea después."""
+    from rpgmaker import lcf
+    salida = []
+    for cmd in comandos:
+        codigo = RAMA_DE_PELEA.get(cmd.code, cmd.code)
+        if cmd.code == 13310 and (not cmd.parameters
+                                  or cmd.parameters[0]
+                                  not in RAMA_DE_PELEA_CLASES):
+            raise NoSePuede("una rama de pelea que pregunta por la pelea")
+        if codigo not in TROPA_COMANDOS:
+            raise NoSePuede("el comando %d no corre en una página de tropa"
+                            % cmd.code)
+        salida.append(lcf.EventCommand(codigo, cmd.indent, cmd.string,
+                                       cmd.parameters))
+    return salida
+
+
+def disparo_de_tropa(pagina):
+    """`(flags, switch_a, switch_b, ranura, valor)` de la condición de una
+    página de tropa, o None si mira algo que la ROM no sabe mirar.
+
+    Una página **sin ningún disparador no corre nunca** —`AreConditionsMet`
+    devuelve false de entrada— y también da None: no tiene sentido llevarla.
+    La de variable es `>=`, siempre: RM2k no le da operador."""
+    if not pagina.activos:
+        return None
+    if any(a not in TROPA_DISPAROS for a in pagina.activos):
+        return None
+    c = pagina.condicion
+    flags = 0
+    for a in pagina.activos:
+        flags |= TROPA_DISPAROS[a]
+    switch_a = c["switch_a_id"] if "switch_a" in pagina.activos else 0
+    switch_b = c["switch_b_id"] if "switch_b" in pagina.activos else 0
+    for s in (switch_a, switch_b):
+        if not 0 <= s < SWITCH_MAX:
+            return None
+    ranura, valor = 0, 0
+    if "variable" in pagina.activos:
+        valor = c["variable_value"]
+        if not -0x8000 <= valor <= 0x7FFF:
+            return None
+        try:
+            ranura = ranura_de_variable(c["variable_id"])
+        except NoSePuede:
+            return None
+    return flags, switch_a, switch_b, ranura, valor
+
+
+class PaginasDeTropa:
+    """Las páginas de las tropas del cartucho, compiladas y deduplicadas.
+
+    `cuerpos` es el código de todas, uno detrás del otro y **cada cuerpo
+    distinto una sola vez**: el juego copia las páginas de sus sistemas en
+    cada tropa —4588 páginas y 295 cuerpos distintos—, así que la clave es el
+    bytecode ya compilado, igual que `Materiales` con los bloques del mapa.
+
+    Los mensajes van a **su propio bloque**, `mensajes_tropa`, y no al de los
+    mapas: `OP_MESSAGE` lleva un desplazamiento de dieciséis bits y el bloque
+    de los mapas del cartucho de pruebas ya anda por los 65 KB. La pelea los
+    dibuja en su pantalla y no en la ventana del mapa, así que leerlos de otro
+    lado no le cuesta nada.
+    """
+
+    def __init__(self):
+        self.mensajes = Mensajes()
+        self.cuerpos = bytearray()
+        self.donde = {}             # bytecode -> desplazamiento en `cuerpos`
+        self.por_tropa = {}         # tropa -> [(flags, a, b, ranura, valor, ofs)]
+        self.paginas = 0            # cuántas se miraron
+        self.afuera = 0             # y cuántas no entraron
+
+    def compilar(self, numero, tropa):
+        suyas = []
+        for pagina in tropa.pages:
+            self.paginas += 1
+            disparo = disparo_de_tropa(pagina)
+            codigo = None
+            if disparo is not None:
+                try:
+                    comandos = comandos_de_tropa(pagina.commands)
+                except NoSePuede:
+                    comandos = None
+                if comandos is not None:
+                    codigo = compilar_pagina(_Comandos(comandos),
+                                             lambda _mapa: None,
+                                             self.mensajes)
+            if codigo is None:
+                self.afuera += 1
+                continue
+            codigo = bytes(codigo)
+            if codigo not in self.donde:
+                self.donde[codigo] = len(self.cuerpos)
+                self.cuerpos += codigo
+            suyas.append(disparo + (self.donde[codigo],))
+        self.por_tropa[numero] = suyas
+        return suyas
 
 
 # --- los encuentros al azar -------------------------------------------------

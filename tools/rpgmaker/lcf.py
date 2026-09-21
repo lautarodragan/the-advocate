@@ -558,8 +558,8 @@ class Troop:
     """Una tropa: qué enemigos la forman y dónde va cada uno.
 
     Las posiciones (x, y) son del **centro** de cada battler en la pantalla de
-    320x240 de RM2k. Las páginas de eventos de batalla no se leen: ver "lo que
-    falta" de la batalla en README.md.
+    320x240 de RM2k. Las páginas de evento de la tropa van en `pages`, en el
+    orden del LDB, que es el orden en que `ScheduleNextPage` las prueba.
     """
 
     def __init__(self, datos):
@@ -570,6 +570,31 @@ class Troop:
         self.posiciones = [(campo(m, "x"),
                             campo(m, "y"))
                            for _, m in miembros]
+        self.pages = [TroopPage(p) for _, p in
+                      sorted(por_id(lista(datos, "pages")).items())]
+
+
+# Los disparadores de una página de tropa, con los nombres de liblcf
+# (`TroopPageCondition::Flags`). Los de 2003 —`turn_enemy`, `turn_actor`,
+# `command_actor`— no están en el volcado de un juego de 2000.
+TROPA_DISPARADORES = ("switch_a", "switch_b", "variable", "turn", "fatigue",
+                      "enemy_hp", "actor_hp")
+
+
+class TroopPage:
+    """Una página de evento de tropa: cuándo corre y qué hace.
+
+    `activos` son los disparadores prendidos; los números con que se contesta
+    cada uno quedan en `condicion`, que es el objeto del volcado tal cual: son
+    muchos campos y cada uno lo lee sólo quien lo necesita.
+    """
+
+    def __init__(self, datos):
+        condicion = sub(datos, "condition")
+        flags = sub(condicion, "flags")
+        self.activos = [n for n in TROPA_DISPARADORES if flags.get(n)]
+        self.condicion = condicion
+        self.commands = comandos(datos)
 
 
 # Las quince secciones del LDB, cada una en su archivo. Los nombres son los
