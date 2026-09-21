@@ -207,6 +207,37 @@ ya se hace con las 22; lo nuevo es poder volver atrás.
 
 Mueve goldens sólo si se equivoca. Si acierta, se ve igual.
 
+### Cuántos eventos del juego entero califican
+
+Medido el 2026-09-21 sobre los 328 mapas, con
+`/extras/scratch/horneado-movil/contar.py`. La regla ampliada —dibujo fijo de
+un tile del ChipSet, capa de abajo, sin animación continua, que no camina, y
+cuyos únicos movimientos son `ChangeEventLocation` con celda **constante**—
+da **59 eventos en 6 mapas**, de 123 con dibujo fijo de ChipSet en todo el
+juego:
+
+    mapa   eventos   posiciones por evento
+      11      30       3
+       3      24       2
+      28       2       2
+       2       1       2
+      17       1       3
+      83       1       3
+
+Es la **cota de arriba**: el script no mira opacidad, ni si la celda tiene
+lugar, ni si hornear la abriría, que son las condiciones caras.
+
+Así que la regla es general pero **la ganancia está concentrada**: 54 de los 59
+están en dos mapas. El segundo es el **mapa 3**, con 24 —`Black*`, `Broke*`,
+`BustedConsole*`, `Link*` y `CoreBlood`—, casi todos entre x 59 y 73, o sea del
+orden de veinte en pantalla a la vez. Con los siete cuadros por evento dibujado
+que están medidos, eso es del orden de 140 cuadros de 1200: molesta, pero no es
+el caso del mapa 11. **No está medido en la ROM**, y conviene medirlo antes de
+usarlo como argumento: el mapa 3 está en `abl` y dibuja 35 eventos contra los
+69 del 11.
+
+Los otros cuatro mapas no justifican nada por sí solos.
+
 ## 4. Un caso especial del conversor para las baldosas
 
 Emitir las 52 como una estructura propia —un mapa de bits de "esta celda está
