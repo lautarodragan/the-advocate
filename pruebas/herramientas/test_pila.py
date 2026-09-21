@@ -157,6 +157,38 @@ def _titulo():
     return correr_hardware(consola, 20, toques=A_LAS_RANURAS_DEL_TITULO)
 
 
+def _tropa():
+    """Una página de tropa corriendo adentro de la pelea: la de Detect Aura.
+
+    Es la cadena más honda desde el 2026-09-21, y por construcción: la pelea
+    se abre desde adentro de `correr_codigo` —`op_battle`—, cruza al banco 1,
+    y desde ahí vuelve al banco 0 por `ba_t_pagina` a correr **otra vez**
+    `correr_codigo`, con el contexto del mapa guardado en la pila. Ver
+    `pruebas/rpgmaker/test_tropa.py`, que recorre lo mismo mirando qué hace.
+    """
+    una = partida("tropa-talan-aura", pila=True)
+    una.poner_grupo(14)                 # Talan, que sabe Detect Aura
+    consola = una.consola
+    for _ in range(600):
+        if una.menu_abierto():
+            break
+        consola.correr(1)
+    assert una.menu_abierto(), "la página no abrió la pelea"
+    # La segunda orden es la de habilidades, y Detect Aura es la única que
+    # sabe: A, A, y el turno arranca. Después, A hasta pasar la página.
+    # Cuáles corrieron se mira en cada toque, porque se borra al empezar el
+    # turno siguiente.
+    corrio = False
+    for boton in ("right", "a", "a") + ("a",) * 40:
+        _tocar(consola, boton)
+        corrio = corrio or any(consola.ram(una.simbolos["BA_PAG_HECHA"],
+                                           una.simbolos["TROPA_PAG_MAX"]))
+    assert corrio, (
+        "no corrió ninguna página de la tropa, así que esto mediría la pelea "
+        "y no la página")
+    return consola
+
+
 # Los caminos hondos, cada uno con lo que baja. Un `CallEvent` anidado **no está
 # acá y no falta**: desde el 2026-09-12 se compila en línea —ver
 # `_compilar_llamada` en `tools/port/eventos.py`— así que el cuerpo del llamado
@@ -170,6 +202,7 @@ CAMINOS = (
     ("tienda", _tienda),
     ("ranuras", _ranuras),
     ("titulo", _titulo),
+    ("tropa", _tropa),
 )
 
 

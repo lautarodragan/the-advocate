@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "ChangeSkills", "parameters": [1, 14, 0, 0, 133]},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "EnemyEncounter", "parameters": [0, 121, 0, 0, 1, 0]}
+  ]
+}

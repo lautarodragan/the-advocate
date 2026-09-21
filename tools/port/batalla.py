@@ -38,10 +38,12 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
   mismo que restarle el techo de `x`, así que la cuenta entera da exactamente
   lo mismo que la flotante. Ver `acierto_por_agilidad`.
 
-* **Lo que no está.** Estados, atributos, filas, el ataque doble y las páginas
-  de evento de la tropa. Está todo en el informe de "lo que falta" del README;
-  acá lo que importa es que las fórmulas que sí están son las de verdad y no
-  una aproximación.
+* **Lo que no está.** Estados, atributos, filas y el ataque doble. Y las
+  páginas de evento de la tropa, que la ROM corre desde el 2026-09-21, **no
+  están en este modelo**: lo que hacen lo cobra `pruebas/rpgmaker/test_tropa.py`
+  leyendo la página del LDB, y ninguna de las que compilan tira azar de la
+  pelea. Acá lo que importa es que las fórmulas que sí están son las de verdad
+  y no una aproximación.
 """
 
 from port import eventos

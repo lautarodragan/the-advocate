@@ -302,6 +302,33 @@ EXP_TEXTO   = $7E63F8
 EXP_TOPE_HI = $0F
 EXP_TOPE_LO = $423F
 
+; --- las páginas de tropa: su estado en la RAM lejana -------------------------
+;
+; $6400 a $65FF es el lugar que se le dio a esto el 2026-09-21. **No viaja en
+; la partida**, como nada de la pelea. Se nombra con dirección de dieciséis
+; bits, igual que `FAR_BATALLA`, porque lo lee el código de la pelea con el
+; banco de datos en $7E; el puente del banco 0 le pone `BAT_LARGO` adelante.
+FAR_PAG       = $6400
+BA_PAG_N      = FAR_PAG + 0     ; cuántas páginas trae la tropa de esta pelea
+BA_PAG_INI    = FAR_PAG + 1     ; palabra: la primera, en las tablas `tpag_*`
+BA_PAG_COD    = FAR_PAG + 3     ; palabra: dónde empieza la que corre, en el
+                                ; banco de `tropa_codigo`
+BA_PAG_CUR    = FAR_PAG + 5     ; palabra: su cursor, el `ev_cur` de ella
+BA_PAG_ACT    = FAR_PAG + 7     ; si todavía no terminó: su `ev_activo`
+BA_PAG_MSG    = FAR_PAG + 8     ; palabra: el mensaje que pidió y está en
+                                ; pantalla, en `mensajes_tropa`, o $FFFF
+BA_PAG_VUELTA = FAR_PAG + 10    ; por dónde sigue la pelea cuando no quedan:
+                                ; 0 la acción que sigue, 1 pedir las órdenes
+BA_PAG_I      = FAR_PAG + 11    ; por cuál va el barrido
+BA_PAG_G      = FAR_PAG + 12    ; palabra: esa misma, en las tablas `tpag_*`
+BA_PAG_HECHA  = FAR_PAG + 16    ; TROPA_PAG_MAX bytes: ya corrió este turno
+
+; Lo que `par_ev` vale mientras corre una página de tropa: ni el primer plano
+; ($FF) ni un evento del mapa, que son menos de EV_MAX. Es lo que le dice a
+; `op_message` que el mensaje es de la pelea. Ver `ba_t_pagina`.
+PAR_PELEA = $FE
+.assert EV_MAX < PAR_PELEA, error, "PAR_PELEA tiene que no ser un evento"
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3A00
@@ -454,6 +481,9 @@ BA_M_ACTOR  = 3
 BA_M_HAB    = 4
 BA_M_MENSAJE = 5
 BA_M_FIN    = 6
+; Corriendo una página de tropa, con su mensaje en pantalla o sin él: ver
+; `modo_pagina`. Va detrás de los de mensaje porque no elige nada.
+BA_M_PAGINA = 7
 ; Qué dice el mensaje.
 BA_MSG_ATAQUE = 0
 BA_MSG_DEFIENDE = 1
@@ -4390,11 +4420,29 @@ op_message:
     lda par_ev
     cmp #$FF
     beq abrir                   ; primer plano
+    cmp #PAR_PELEA
+    beq en_la_pelea
     lda msg_abierto
     ora msg_estado
     ora eleg_activo
     beq abrir
     dey                         ; el cursor vuelve a este mismo opcode
+    sty ev_cur
+    rts
+en_la_pelea:
+    ; Una página de tropa: el mensaje no va a la ventana del mapa —la pantalla
+    ; es la de la pelea, y `texto_buf` es suyo— sino que se le deja anotado a
+    ; la pelea, que lo dibuja en sus renglones y espera la A. La página queda
+    ; frenada detrás de él igual que en el mapa: `ev_activo` sigue en uno y el
+    ; cursor, en el comando que viene. Ver `ba_pag_paso`.
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    sta f:BAT_LARGO + BA_PAG_MSG
+    iny
+    iny
+    sep #$20
+.a8
     sty ev_cur
     rts
 abrir:
@@ -13285,6 +13333,74 @@ ba_t_armar:
     phk
     plb
     jsr items_armar_lista
+    plb
+    rtl
+
+; Un tramo de la página de tropa que la pelea tiene a medio correr: hasta que
+; pide un mensaje o termina. Es `Game_Interpreter_Battle`, y **es el mismo
+; intérprete de los mapas**, `correr_codigo`: lo que cambia es de dónde sale el
+; contexto.
+;
+; El del mapa se guarda en la pila y vuelve al final, como en `paralelos_tick`,
+; y no es una precaución: una pelea se abre desde **adentro** de
+; `correr_codigo` —`op_battle`— y al volver sigue leyendo la página del mapa con
+; el `cod_ptr` y el Y que tenía. El de la tropa vive en la RAM lejana entre un
+; tramo y otro, porque un mensaje la frena varios cuadros.
+;
+; `par_ev` en `PAR_PELEA` es lo que le dice a `op_message` que el mensaje es de
+; la pelea. Los opcodes que corren acá son sólo los de `TROPA_COMANDOS`, en
+; eventos.py: ningún otro sabe que no hay mapa.
+ba_t_pagina:
+    phb
+    phk
+    plb
+    rep #$20
+.a16
+    lda ev_cur
+    pha
+    lda cod_ptr
+    pha
+    lda f:BAT_LARGO + BA_PAG_CUR
+    sta ev_cur
+    lda f:BAT_LARGO + BA_PAG_COD
+    sta cod_ptr
+    sep #$20
+.a8
+    lda cod_ptr + 2
+    pha
+    lda ev_activo
+    pha
+    lda par_ev
+    pha
+    lda #^tropa_codigo
+    sta cod_ptr + 2
+    lda #PAR_PELEA
+    sta par_ev
+    lda #1
+    sta ev_activo
+    jsr correr_codigo
+    lda ev_activo
+    sta f:BAT_LARGO + BA_PAG_ACT
+    rep #$20
+.a16
+    lda ev_cur
+    sta f:BAT_LARGO + BA_PAG_CUR
+    sep #$20
+.a8
+    pla
+    sta par_ev
+    pla
+    sta ev_activo
+    pla
+    sta cod_ptr + 2
+    rep #$20
+.a16
+    pla
+    sta cod_ptr
+    pla
+    sta ev_cur
+    sep #$20
+.a8
     plb
     rtl
 
@@ -27218,6 +27334,22 @@ sin_cursor_ene:
     bra enemigo
 enemigos_listos:
     ; --- el grupo ---
+    ;
+    ; Salvo que haya un mensaje de una página de tropa, que va en sus renglones:
+    ; en RM2k la ventana de mensaje de la pelea tapa la del grupo. Ver
+    ; `ba_pag_mensaje`.
+    lda BA_MODO
+    cmp #BA_M_PAGINA
+    bne con_grupo
+    rep #$20
+.a16
+    lda BA_PAG_MSG
+    cmp #$FFFF
+    sep #$20
+.a8
+    beq con_grupo
+    jmp ba_pag_mensaje
+con_grupo:
     lda #0
     sta BA_S0
 actor:
@@ -27254,7 +27386,14 @@ sin_cursor_act:
     bra actor
 actores_listos:
     ; --- el último renglón ---
+    ;
+    ; Que corriendo una página queda vacío: el mensaje de la acción anterior
+    ; ya se leyó, y el de la página va arriba.
     lda BA_MODO
+    cmp #BA_M_PAGINA
+    bne no_es_pagina
+    rts
+no_es_pagina:
     cmp #BA_M_MENSAJE
     bcc ordenes
     jmp ba_mensaje
@@ -28004,6 +28143,9 @@ del_enemigo:
 .proc ba_empezar_turno
 .a8
 .i16
+    ; `NextTurn`: con las órdenes del grupo dadas, las páginas pueden volver a
+    ; correr —`ResetPagesExecuted`—.
+    jsr ba_pag_turno
     lda #0
     sta BA_S0
 limpia:
@@ -28298,6 +28440,16 @@ otro_turno:
     sta BA_ORDEN
     lda #BA_M_ORDEN
     sta BA_MODO
+    ; Y antes de pedir las órdenes, otra vez: el `eCheckEvents` de
+    ; `ProcessSceneActionFightAutoEscape`. Lo que ya corrió en el turno no
+    ; vuelve —las anotadas se borran recién al empezar el que viene—, así que
+    ; esto sólo encuentra lo que se cumplió después de la última acción.
+    jsr ba_pag_probar
+    beq sin_pagina
+    lda #1
+    sta BA_PAG_VUELTA
+    jmp ba_pag_paso
+sin_pagina:
     jsr ba_componer
     rts
 .endproc
@@ -28306,6 +28458,20 @@ otro_turno:
 .proc ba_ejecutar
 .a8
 .i16
+    ; Antes de cada acción, y también después de la última, las páginas de la
+    ; tropa que se cumplan: es el `ePreAction` de
+    ; `ProcessSceneActionBattle`, con su `CheckBattleEndAndScheduleEvents`.
+    ; Así es como la página de Detect Aura corre apenas Talan termina de usarla
+    ; y antes de que actúe el que sigue. Cuando terminan, `ba_pag_paso` vuelve
+    ; acá, y lo que ya corrió en el turno no vuelve a correr.
+    ;
+    ; Va antes de `otra` y no adentro: saltear a uno que murió no cambia nada
+    ; de lo que una página mira, que es también por qué easyrpg saca a los
+    ; muertos de la lista antes de probar y no después.
+    jsr ba_pag_probar
+    beq otra
+    stz BA_PAG_VUELTA
+    jmp ba_pag_paso
 otra:
     lda BA_I
     cmp BA_NACC
@@ -28415,6 +28581,327 @@ no_huyo:
     lda #BA_MSG_NO_HUYO
     sta BA_MTIPO
     jmp ba_mostrar
+.endproc
+
+; --- las páginas de evento de la tropa ----------------------------------------
+;
+; `Game_Interpreter_Battle`: cada tropa trae sus páginas, y una corre cuando
+; se cumple su disparador. Es lo que hace andar los sistemas de batalla de los
+; personajes —Detect Aura prende el switch 134 y la página de la tropa que lo
+; mira dice de qué color es el aura—. El código es el de los mapas y corre en
+; el mismo intérprete, por el puente `ba_t_pagina`; lo de acá decide **cuándo**.
+;
+; La regla sale de easyrpg y no de memoria: `ScheduleNextPage` prueba las
+; páginas en orden y arranca la primera que se cumpla y **no haya corrido en
+; este turno**; cuando termina, prueba de nuevo, hasta que no quede ninguna. Lo
+; de "este turno" lo borra `NextTurn`, que es cuando el grupo terminó de dar
+; las órdenes. Y los momentos son tres: antes de pedir las órdenes, antes de
+; cada acción y después de la última —ver los que llaman a `ba_pag_probar`—.
+
+; Las páginas de la tropa de esta pelea, desde `BA_TROPA_K`. Una tropa que el
+; cartucho no lleva no tiene ninguna.
+.proc ba_pag_armar
+.a8
+.i16
+    stz BA_PAG_N
+    lda BA_TROPA_K
+    cmp #$FF
+    beq listo
+    jsr ba_ax
+    lda f:tropa_pag_n, x
+    sta BA_PAG_N
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:tropa_pag_ini, x
+    sta BA_PAG_INI
+    sep #$20
+.a8
+    jsr ba_pag_turno
+listo:
+    rts
+.endproc
+
+; `ResetPagesExecuted`: ninguna corrió todavía en este turno.
+.proc ba_pag_turno
+.a8
+.i16
+    ldx #0
+otra:
+    stz BA_PAG_HECHA, x
+    inx
+    cpx #TROPA_PAG_MAX
+    bne otra
+    rts
+.endproc
+
+; Si hay una página para correr, la deja lista —su código, el cursor en cero,
+; anotada como corrida— con la pelea en `BA_M_PAGINA`, y vuelve con A8 en 1.
+; Si no, en 0. **La Z vale lo mismo que A**: sale de un `lda` explícito.
+;
+; Primero `CheckBattleEndConditions`: con un lado entero caído la pelea se
+; termina y no corre ninguna. Se lleva `BA_S0`, `BA_T*`, A, X e Y.
+.proc ba_pag_probar
+.a8
+.i16
+    lda BA_PAG_N
+    beq no
+    jsr ba_enemigo_vivo
+    cmp #$FF
+    beq no
+    lda #0
+    sta BA_PAG_I
+alguien:
+    lda BA_PAG_I
+    cmp BA_NACT
+    bcs no                      ; nadie del grupo en pie
+    jsr ba_vivo
+    bne hay_grupo
+    inc BA_PAG_I
+    bra alguien
+hay_grupo:
+    lda #0
+    sta BA_PAG_I
+otra:
+    lda BA_PAG_I
+    cmp BA_PAG_N
+    bcs no
+    jsr ba_ax
+    lda BA_PAG_HECHA, x
+    bne siguiente
+    jsr ba_pag_cumple
+    bne esta
+siguiente:
+    inc BA_PAG_I
+    bra otra
+esta:
+    lda BA_PAG_I
+    jsr ba_ax
+    lda #1
+    sta BA_PAG_HECHA, x
+    rep #$20
+.a16
+    lda BA_PAG_G
+    asl a
+    tax
+    lda f:tpag_cod, x
+    sta BA_PAG_COD
+    stz BA_PAG_CUR
+    lda #$FFFF
+    sta BA_PAG_MSG
+    sep #$20
+.a8
+    lda #1
+    sta BA_PAG_ACT
+    lda #BA_M_PAGINA
+    sta BA_MODO
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; Si la página `BA_PAG_I` de la tropa se cumple: `AreConditionsMet`, con los
+; tres disparadores que la ROM sabe mirar —los demás no llegan acá: el
+; conversor no emite esas páginas—. Deja en `BA_PAG_G` su lugar en las tablas
+; `tpag_*` y vuelve con Z=0 si se cumple.
+.proc ba_pag_cumple
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_PAG_I
+    and #$00FF
+    clc
+    adc BA_PAG_INI
+    sta BA_PAG_G
+    tax
+    sep #$20
+.a8
+    lda f:tpag_flags, x
+    sta BA_T2                   ; los disparadores, que sobreviven a los `jsr`
+    and #TPAG_SWITCH_A
+    beq sin_a
+    rep #$20
+.a16
+    lda BA_PAG_G
+    asl a
+    tax
+    lda f:tpag_sw_a, x
+    jsr ba_pag_switch
+.a8
+    beq no
+sin_a:
+    lda BA_T2
+    and #TPAG_SWITCH_B
+    beq sin_b
+    rep #$20
+.a16
+    lda BA_PAG_G
+    asl a
+    tax
+    lda f:tpag_sw_b, x
+    jsr ba_pag_switch
+.a8
+    beq no
+sin_b:
+    lda BA_T2
+    and #TPAG_VARIABLE
+    beq si
+    ; La variable, `>=` con signo: `Get(variable_id) >= variable_value`.
+    rep #$20
+.a16
+    lda BA_PAG_G
+    asl a
+    tax
+    lda f:tpag_valor, x
+    sta BA_T0
+    lda f:tpag_var, x
+    asl a
+    tax
+    lda FAR_VARIABLES, x
+    sec
+    sbc BA_T0
+    bvc sin_desborde
+    eor #$8000                  ; con desborde, el signo es el contrario
+sin_desborde:
+    sep #$20                    ; `sep` no toca N
+.a8
+    bmi no
+si:
+    lda #1
+    rts
+no:
+.a8
+    sep #$20
+    lda #0
+    rts
+.endproc
+
+; A16 el número de switch; vuelve con A8 y Z=0 si está prendido. Es el mismo
+; bitmap que mira el mapa, `switches`, en la RAM baja, que con el banco de
+; datos en $7E está en su lugar de siempre. Se lleva X e Y.
+.proc ba_pag_switch
+.a16
+.i16
+    pha
+    lsr a
+    lsr a
+    lsr a
+    tay                         ; qué byte
+    pla
+    and #$0007
+    tax                         ; y qué bit
+    sep #$20
+.a8
+    lda f:mascara, x
+    and switches, y
+    rts
+.endproc
+
+; Un tramo de la página que está corriendo, y lo que sigue: si pidió un
+; mensaje, a la pantalla; si terminó, la que siga; y si no queda ninguna, la
+; pelea sigue por donde estaba —`BA_PAG_VUELTA`—.
+.proc ba_pag_paso
+.a8
+.i16
+otro_tramo:
+    jsl f:ba_t_pagina
+    rep #$20
+.a16
+    lda BA_PAG_MSG
+    cmp #$FFFF
+    sep #$20
+.a8
+    bne a_la_pantalla
+    lda BA_PAG_ACT
+    bne a_la_pantalla           ; no terminó y no pidió nada: no pasa con los
+                                ; comandos de `TROPA_COMANDOS`, pero si pasara
+                                ; sigue el cuadro que viene
+    jsr ba_pag_probar
+    bne otro_tramo              ; la que sigue, en este mismo cuadro
+    lda BA_PAG_VUELTA
+    bne a_las_ordenes
+    jmp ba_ejecutar
+a_las_ordenes:
+    lda #BA_M_ORDEN
+    sta BA_MODO
+a_la_pantalla:
+    jmp ba_componer
+.endproc
+
+; El mensaje de la página, en los renglones del grupo: ver `BA_PAG_MSG_FILA0`
+; en pantallas.py. Lo lee de `mensajes_tropa` con el formato de siempre —la
+; cabecera con los renglones y cada renglón con su largo, un byte por letra con
+; el ASCII menos 32— y lo escribe con los glifos de la pantalla, cortado a
+; `BA_PAG_MSG_ANCHO`. El bloque entra en un banco —lo garantiza el
+; conversor—, así que el puntero se avanza con Y y el banco queda fijo.
+.proc ba_pag_mensaje
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_PAG_MSG
+    clc
+    adc #.loword(mensajes_tropa)
+    sta msg_ptr
+    lda #BA_PAG_MSG_POS0
+    sta BA_T1
+    sep #$20
+.a8
+    lda #^mensajes_tropa
+    sta msg_ptr + 2
+    stz temp + 1                ; en blanco
+    lda [msg_ptr]
+    and #CABECERA_LINEAS
+    sta BA_PAG_I                ; los renglones que quedan
+    ldy #1
+renglon:
+    lda BA_PAG_I
+    beq listo
+    rep #$20
+.a16
+    lda #BA_PAG_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda [msg_ptr], y            ; el largo
+    iny
+    sta BA_T0                   ; las letras que le quedan
+    stz BA_T2                   ; y las que ya se escribieron
+letra:
+    lda BA_T0
+    beq fin_renglon
+    dec BA_T0
+    lda BA_T2
+    cmp #BA_PAG_MSG_ANCHO
+    bcs no_entra                ; se consume y no se dibuja
+    inc BA_T2
+    lda [msg_ptr], y
+    clc
+    adc #ITEM_PRIMER_CARACTER
+    phy
+    jsl f:ba_t_glifo
+    ply
+no_entra:
+    iny
+    bra letra
+fin_renglon:
+    rep #$20
+.a16
+    lda BA_T1
+    clc
+    adc #BA_FILA_BYTES
+    sta BA_T1
+    sep #$20
+.a8
+    dec BA_PAG_I
+    bra renglon
+listo:
+    rts
 .endproc
 
 ; --- la escena de la pelea --------------------------------------------------
@@ -28672,6 +29159,7 @@ hay_tropa:
     rtl
 hay_grupo:
     jsr ba_chance_huir
+    jsr ba_pag_armar
     ; Apagar la pantalla, desde acá: los tres registros van con `f:` porque el
     ; banco de datos es $7E y absolutos caerían en la RAM.
     lda #$80
@@ -28686,6 +29174,14 @@ hay_grupo:
     jsr escena_subir
     lda #BA_M_ORDEN
     sta BA_MODO
+    ; Antes de la primera orden, las páginas que ya se cumplen: es el
+    ; `eCheckEvents` de `ProcessSceneActionFightAutoEscape`. Corren desde el
+    ; cuadro que viene, con la pantalla ya prendida.
+    jsr ba_pag_probar
+    beq sin_pagina_al_empezar
+    lda #1
+    sta BA_PAG_VUELTA
+sin_pagina_al_empezar:
     jsr ba_componer
     jsl f:ba_t_subir
     jsl f:ba_t_ppu
@@ -28720,6 +29216,9 @@ espera:
 :   cmp #BA_M_MENSAJE
     bne :+
     jmp modo_mensaje
+:   cmp #BA_M_PAGINA
+    bne :+
+    jmp modo_pagina
 :   jmp modo_fin
 
     ; --- eligiendo la orden ---
@@ -29127,6 +29626,31 @@ sin_segundo:
 pasa:
     jsr ba_ejecutar
 espera3:
+    jmp espera
+
+    ; --- una página de tropa ---
+    ;
+    ; Con un mensaje suyo en pantalla, se espera la A **sin tope de tiempo**:
+    ; es un `ShowMessage`, que en RM2k no se cierra solo, y no uno de los de la
+    ; pelea, que sí. Sin mensaje, la página sigue.
+modo_pagina:
+    rep #$20
+.a16
+    lda BA_PAG_MSG
+    cmp #$FFFF
+    sep #$20
+.a8
+    beq p_sigue
+    jsr ba_flanco_a
+    beq espera3
+    rep #$20
+.a16
+    lda #$FFFF
+    sta BA_PAG_MSG
+    sep #$20
+.a8
+p_sigue:
+    jsr ba_pag_paso
     jmp espera
 
     ; --- la pelea terminó ---
