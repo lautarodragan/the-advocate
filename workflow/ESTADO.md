@@ -1,8 +1,7 @@
-**Ramas sin mergear**, para que no se pierdan de vista: `color-math-translucidos`
-y `worktree-agent-a1910a15fe409b9b6` (la misma idea, del 2026-09-12: hacer los
-translúcidos con el color math del PPU en vez de con trama). Todas las demás
-ramas de sub-agente están mergeadas y sus worktrees borrados —eran 18 y ocupaban
-7,1 GB—.
+**Todas las ramas de sub-agente están mergeadas** y sus worktrees borrados
+—eran 18 y ocupaban 7,1 GB—. Lo único que no se mergeó nunca son los
+translúcidos con el color math del PPU, que taro probó y rechazó el 2026-09-12:
+está en el tag `color-math` y el porqué en el README.
 
 ## El objetivo, y dónde estamos
 
@@ -289,28 +288,12 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
   eventos dibujados con un tile del chipset".
 
-## Hacia dónde va: un juego de prueba, y ABL en su propio repo
+## Lo que el juego golden condiciona hoy
 
-Idea de taro, el 2026-09-17. **No se hace ahora**, pero las decisiones de hoy no
-tienen que alejarnos de ella.
-
-**Dos capas de pruebas en vez de una:**
-
-* **Conformidad del motor**, contra un juego de RM2k hecho a propósito —el
-  "juego golden"—: un mapa por funcionalidad, chico y determinista, y el juego
-  entero es el golden. Es la regla del cartucho único resuelta de raíz, y es
-  la especificación de qué soporta el port. Portar otro juego lo reusa entero.
-* **Aceptación de ABL**: que sus primeros minutos se jueguen y se vean así.
-  Sigue haciendo falta, porque los errores más caros salieron de contenido
-  real que nadie escribiría a propósito. **El juego golden crece con esos**:
-  cada error que aparezca en un juego real se abstrae y se suma como un caso.
-
-**Y dos repos**: lo que no depende de ABL —el motor, las herramientas, el juego
-golden— se puede publicar, porque el juego golden usa material de dominio
-público o con licencia que lo permita. ABL queda en el suyo, y si alguna vez
-hay que bajarlo, se baja sin arrastrar lo valioso.
-
-**Lo que esto pide hoy:**
+La idea entera —dos capas de pruebas y dos repos— está en
+`wishlist/un-juego-golden-y-dos-repos.md`. **No se hace ahora.** Lo que se queda
+acá es lo único que cambia una decisión de hoy: hacia dónde tiene que empujar
+cada cosa que se toque para no alejarnos de ella.
 
 * **El paso 9d cambia de forma**: las páginas de prueba no van a una tabla
   especial de la ROM sino que pasan a ser **eventos de RM2k**, datos que el
@@ -323,11 +306,6 @@ hay que bajarlo, se baja sin arrastrar lo valioso.
   qué mapas van— vive en recetas o en un manifiesto, no en `tools/`.
 * **Las pruebas nombran por símbolo o por comportamiento**, no por número de
   mapa de ABL, donde se pueda.
-* **Lo que el juego golden no puede heredar sin revisar**: el RTP de Don Miguel
-  es de Enterbrain; las muestras salen de los SoundFonts de
-  `/extras/soundfonts`, cuya licencia hay que mirar una por una; y la fuente
-  del sistema de RM2k tiene dueño. Los MIDIs de ABL son música de otros
-  juegos: quedan del lado de ABL.
 
 Cada una tiene su receta —`just pruebas-rpgmaker`, `pruebas-abl`,
 `pruebas-herramientas`— y `just pruebas` sigue corriendo todo. Lo que no se

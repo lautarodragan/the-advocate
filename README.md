@@ -507,8 +507,8 @@ una de ésas. Lo cobra `fuego` en la tanda.
 #### El color math, implementado y descartado
 
 La consola sabe hacer transparencia de verdad —suma y mitad entre la pantalla
-principal y la subpantalla— y **está implementado y verificado**, en la rama
-`color-math-translucidos` (commit `6e0e355`). No se usa: taro lo probó el
+principal y la subpantalla— y **está implementado y verificado**, en el tag
+`color-math` (commit `6e0e355`). No se usa: taro lo probó el
 2026-09-12 y lo rechazó por dos cosas que no tienen vuelta, ninguna de ellas un
 defecto de la implementación.
 
