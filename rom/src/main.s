@@ -1395,8 +1395,21 @@ al_dia:
     sep #$20
 .a8
     pha
+    ; **El banco de datos, fijado acá y no heredado.** `boot_cuadros` y
+    ; `RDNMI` se leen con direccionamiento absoluto, así que van al banco de
+    ; datos que tenga el código al que la NMI interrumpió. Guardar y cargar
+    ; corren con el banco en la SRAM, y una NMI que cayera ahí le sumaba uno a
+    ; `$70:1C07` —el byte 769 de la cuarta ranura— en vez de a `boot_cuadros`:
+    ; la suma de control dejaba de dar y la ranura 4 cargaba como vacía. Las
+    ; otras tres no pasan por esa dirección, que es por qué fallaba una sola.
+    ; `phk` da el banco 0, porque los vectores corren ahí, y en el 0 están la
+    ; WRAM baja y los registros.
+    phb
+    phk
+    plb
     inc boot_cuadros
     lda RDNMI
+    plb
     pla
     rti
 .endproc

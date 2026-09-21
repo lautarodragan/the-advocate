@@ -17,6 +17,7 @@ que estas pruebas arrancan donde arranca el jugador.
 
 import os
 import sys
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
@@ -253,6 +254,27 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     una.reiniciar(SEGUIR, ranura=0)
     assert not una.switch(7), (
         "se eligió la ranura 0, que está vacía, y se cargó la partida de otra")
+
+
+@pytest.mark.parametrize("ranura", range(4))
+def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
+    """Las cuatro, una por una: guardar en ella y cargarla desde el título.
+
+    Hasta el 2026-09-21 las pruebas guardaban sólo en la 0 y la 1, y la cuarta
+    no cargaba nunca —taro la encontró jugando—. La NMI escribía `boot_cuadros`
+    en el banco de datos que tuviera el código interrumpido, y guardar corre con
+    el banco en la SRAM: le sumaba uno a un byte que sólo cae adentro de la
+    cuarta ranura, y la suma de control dejaba de dar. Ver `nmi_boot`.
+
+    Sin el arreglo, la 3 de este caso da rojo y las otras tres no.
+    """
+    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una.prender(7)
+    una.guardar_en(ranura)
+    una.reiniciar(SEGUIR, ranura=ranura)
+    assert una.switch(7), (
+        "se guardó en la ranura %d —la %da de la pantalla— y al elegirla desde "
+        "el título no volvió la partida" % (ranura, ranura + 1))
 
 
 # `test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso` estuvo acá hasta el
