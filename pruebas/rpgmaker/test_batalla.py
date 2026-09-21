@@ -1131,3 +1131,30 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     assert pelea.modo() == ORDEN, \
         "sin ninguna habilidad, A no tiene que llevar a ningún lado"
     assert pelea.byte("BA_HAB_N") == 0
+
+
+def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida):
+    """Con MSU-1, el tema del mapa también tiene que volver al terminar.
+
+    Con una pista de CD sonando, `music_start` deja el SPC700 callado a
+    propósito —`music_apagada` en 1— y hasta el 2026-09-21 la pelea miraba sólo
+    eso: anotaba $FF, "no sonaba nada", y al volver al mapa lo callaba en vez
+    de reponerlo. Ninguna prueba lo veía porque el core de la tanda no emula
+    el MSU-1; el agente del tema de cada mapa lo encontró leyendo.
+
+    Así que acá se pone el estado que deja una pista sonando —las dos banderas,
+    escritas a mano— y se mira qué anota la pelea. Sin el arreglo de
+    `pelea_arrancar` anota $FF.
+    """
+    una = en_el_droide(partida, con_tema=True)
+    tema = una.palabra("tema_actual")
+    assert tema < 0xFF, "el mapa tenía que arrancar con su tema: no mide nada"
+    # `MSU_SUENA` se declara con el banco adelante, y la RAM del core se
+    # direcciona desde $7E:0000.
+    una.consola.escribir_ram(una.simbolos["MSU_SUENA"] & 0xFFFF, [1])
+    una.poner_byte("music_apagada", 1)
+    pelea = Pelea(una).abrir()
+    assert pelea.byte("BA_TEMA_ANT") == tema, (
+        "con una pista de MSU-1 sonando la pelea anotó $%02X como el tema del "
+        "mapa, y era el %d: al volver lo va a callar"
+        % (pelea.byte("BA_TEMA_ANT"), tema))
