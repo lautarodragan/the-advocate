@@ -33,6 +33,12 @@ porque un fork que pisa una entrada de la base envejece sin avisar el día que
 nuestro para redistribuir —vive en `/extras`, ver `assets/README.md`—, así que
 el fork guarda la *receta* —qué bloque se copia adónde— y `imagen_del_chipset`
 la aplica sobre el PNG original dejando el resultado en `rom/build/juego/`.
+
+La receta tiene tres operaciones, y la tercera **trae pixeles de afuera del
+ChipSet**: `desde_charset` mete una pose de un CharSet en dos tiles altos, que
+es cómo un NPC que no hace nada más que estar parado deja de ser un sprite y
+pasa a ser mapa. Lo pide el público del Auditorio —el mapa 18—; el porqué está
+en `workflow/done/el-publico-del-auditorio-se-horneo.md`.
 """
 
 import json
@@ -126,21 +132,80 @@ def chipsets():
     return nuevos
 
 
+def _paleta(imagen):
+    """Los colores de un PNG indexado, como tuplas RGB y por índice."""
+    crudo = imagen.getpalette() or []
+    return [tuple(crudo[i * 3:i * 3 + 3]) for i in range(len(crudo) // 3)]
+
+
+class _Paleta:
+    """La paleta del ChipSet mientras se le agregan colores de un CharSet.
+
+    Los dos PNG son indexados y **sus índices no quieren decir lo mismo**:
+    copiar los bytes de uno adentro del otro da un sprite con los colores del
+    ChipSet, que es basura que se ve. Así que se copia por color, y el que no
+    esté se agrega en un índice que el ChipSet no use.
+
+    El índice 0 queda afuera de la búsqueda **en las dos puntas**: es el color
+    key, y un color del sprite que dé igual al del índice 0 del ChipSet tiene
+    que ocupar un índice propio o el sprite saldría con un agujero.
+    """
+
+    def __init__(self, imagen):
+        self.colores = _paleta(imagen)
+        while len(self.colores) < 256:
+            self.colores.append((0, 0, 0))
+        usados = set(imagen.tobytes())
+        self.donde = {}
+        for indice in sorted(usados):
+            if indice:
+                self.donde.setdefault(self.colores[indice], indice)
+        self.libres = [i for i in range(1, 256) if i not in usados]
+
+    def indice(self, color):
+        if color not in self.donde:
+            if not self.libres:
+                raise ForkRoto(
+                    "el ChipSet se quedó sin índices de paleta: los 256 ya "
+                    "están usados y el CharSet trae colores que no tiene")
+            self.donde[color] = self.libres.pop(0)
+            self.colores[self.donde[color]] = color
+        return self.donde[color]
+
+    def aplicar(self, imagen):
+        imagen.putpalette([canal for color in self.colores for canal in color])
+
+
+def _pose(imagen, receta):
+    """El cuadro de 24x32 de una pose, recortado del CharSet.
+
+    Un CharSet son 8 personajes de 4x2, cada uno con sus 12 poses: 3 patrones
+    de caminata por 4 direcciones. Ver `render/charset.py`.
+    """
+    from render.charset import SPRITE_HEIGHT, SPRITE_WIDTH
+
+    x = (receta["personaje"] % 4) * 72 + receta["patron"] * SPRITE_WIDTH
+    y = (receta["personaje"] // 4) * 128 + receta["direccion"] * SPRITE_HEIGHT
+    return imagen.crop((x, y, x + SPRITE_WIDTH, y + SPRITE_HEIGHT))
+
+
 def imagen_del_chipset(datos, buscar):
     """Arma el PNG de un ChipSet forkeado y devuelve su ruta.
 
-    `buscar(nombre)` es quien encuentra el ChipSet original; el resultado cae
-    en `rom/build/juego/ChipSet/` con el nombre que la entrada de la base
-    pide. Se reescribe siempre —armarlo son dos copias de rectángulos— y se
-    mueve al lugar de una, así que dos builds a la vez no se dejan un PNG a
-    medio escribir.
+    `buscar(carpeta, nombre)` es quien encuentra los originales —el ChipSet
+    del que sale, y los CharSets que se hornean—; el resultado cae en
+    `rom/build/juego/ChipSet/` con el nombre que la entrada de la base pide.
+    Se reescribe siempre —armarlo son copias de rectángulos— y se mueve al
+    lugar de una, así que dos builds a la vez no se dejan un PNG a medio
+    escribir.
     """
     from PIL import Image
 
-    from render.chipset import caja_de_comun, caja_de_terreno
+    from render.charset import OFFSET_X, SPRITE_WIDTH
+    from render.chipset import TILE, caja_de_comun, caja_de_terreno
 
     receta = datos["imagen"]
-    origen = buscar(receta["base"])
+    origen = buscar("ChipSet", receta["base"])
     if origen is None:
         raise ForkRoto("no está el ChipSet %r, del que sale el %d"
                        % (receta["base"], datos["chipset"]["id"]))
@@ -149,14 +214,44 @@ def imagen_del_chipset(datos, buscar):
     # los tiles vacíos **opacos**: se ve, y se ve mal.
     imagen = Image.open(origen)
     imagen.load()
-    for desde, hasta in receta["bloques_bajos"]:
+    for desde, hasta in receta.get("bloques_bajos", []):
         imagen.paste(imagen.crop(caja_de_terreno(desde)),
                      caja_de_terreno(hasta)[:2])
-    for desde, hasta in receta["tiles_altos"]:
+    for desde, hasta in receta.get("tiles_altos", []):
         # El tile alto `u` es el común 144 + u: los 144 primeros son la capa
         # baja. Ver `caja_de_comun`.
         imagen.paste(imagen.crop(caja_de_comun(144 + desde)),
                      caja_de_comun(144 + hasta)[:2])
+
+    if receta.get("desde_charset"):
+        paleta = _Paleta(imagen)
+        for una in receta["desde_charset"]:
+            hoja = buscar("CharSet", una["charset"])
+            if hoja is None:
+                raise ForkRoto("no está el CharSet %r, que el ChipSet %d "
+                               "hornea" % (una["charset"],
+                                           datos["chipset"]["id"]))
+            fuente = Image.open(hoja)
+            fuente.load()
+            desde = _paleta(fuente)
+            pose = list(_pose(fuente, una).tobytes())
+            # El sprite se dibuja en `(x*16 - 4, y*16 - 16)`, así que sus
+            # columnas 4 a 19 caen clavadas en la celda y su mitad de arriba
+            # cae en la celda de arriba: de ahí salen los dos tiles.
+            columna = -OFFSET_X
+            for mitad, ranura in (("cabeza", una["cabeza"]),
+                                  ("cuerpo", una["cuerpo"])):
+                alto = 0 if mitad == "cabeza" else TILE
+                pixeles = []
+                for fila in range(alto, alto + TILE):
+                    for x in range(columna, columna + TILE):
+                        indice = pose[fila * SPRITE_WIDTH + x]
+                        pixeles.append(0 if not indice
+                                       else paleta.indice(desde[indice]))
+                tile = Image.new("P", (TILE, TILE))
+                tile.putdata(pixeles)
+                imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
+        paleta.aplicar(imagen)
 
     destino = os.path.join(GENERADO, "ChipSet",
                            datos["chipset"]["chipset_name"] + ".png")

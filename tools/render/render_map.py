@@ -243,7 +243,8 @@ class Renderer:
         # arte del juego no es nuestro para versionar, ver `fork.py`— y van
         # primero en la búsqueda: son las que mandan cuando existen.
         self.search_dirs.insert(0, fork.imagenes(
-            lambda nombre: find_resource(self.search_dirs, "ChipSet", nombre)))
+            lambda carpeta, nombre: find_resource(self.search_dirs, carpeta,
+                                                  nombre)))
         self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre,
                                  self.fondo_de_mapa)
         self.atlases = {}
