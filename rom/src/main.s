@@ -11590,6 +11590,15 @@ sin_grupo:
 ; bloque en `ranura_bloque_lo/hi/bk`, Y la dirección de VRAM de su primera
 ; celda, `temp` cuántos bytes tiene cada fila y `temp + 2` cuántas filas son.
 ;
+; **`temp` es un byte**, y el alto del DMA se pone en cero acá: una fila del
+; tilemap son 32 celdas, 64 bytes. Hasta el 2026-09-21 se leía de a dieciséis
+; bits, y los dos llamadores de `menu_grupo_pintar` le escriben sólo el bajo:
+; el alto quedaba con lo que hubiera, que viniendo de la pantalla de ítems es
+; la variante de su última letra —`temp + 1`, 1 si es gris—. Con un ítem en
+; gris al final de la lista, la primera fila del panel subía 256 bytes de más
+; encima del tilemap: es el "se rompen los gráficos al volver a entrar" de
+; taro. Lo cobra `test_la_eleccion_se_ve_igual_al_volver_a_entrar`.
+;
 ; Un solo puntero de origen para todas las filas: el DMA deja `A1T0` apuntando
 ; a donde terminó, así que la fila siguiente arranca de ahí sin volver a
 ; cargarlo. Lo que cambia por fila es el destino, que baja 32 celdas.
@@ -11610,10 +11619,11 @@ sin_grupo:
     sta BBAD0
 fila:
     sty VMADDL
-    rep #$20
-.a16
     lda temp
     sta DAS0L
+    stz DAS0L + 1
+    rep #$20
+.a16
     tya
     clc
     adc #32
