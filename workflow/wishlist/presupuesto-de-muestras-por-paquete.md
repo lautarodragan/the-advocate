@@ -4,19 +4,29 @@ Que el presupuesto de ARAM se reparta **por paquete y no por banco**: darle a
 cada programa lo que su peor paquete puede pagar, en vez de una parte del banco
 entero.
 
-# Status
+Hoy los 40 KB de `ARAM_BUDGET` se reparten entre **todos** los programas del
+cartucho, así que sumar temas le baja la tasa a los que ya sonaban bien: con
+diecinueve temas en vez de once, la mediana pasa de 12,5 a 8,4 kHz. Y los temas
+que no alcanzan a aportar programas suenan incompletos —en `abl` son nueve, con
+entre el 12% y el 72% de sus notas.
 
-Anotado, sin empezar. Estaba en "Lo que falta del port" de `ESTADO.md`.
+# Blockers
 
-# Por qué
+* **El tiempo de transferencia.** Subir un banco de 32 KB por el protocolo del
+  IPL es del orden de medio segundo, o sea unos treinta cuadros de juego
+  frenado. Hoy se paga en cada cambio de mapa, adentro del fundido; en un
+  `PlayBGM` a mitad de una escena se vería.
+* **Los efectos de sonido comparten la ARAM** y tienen que sobrevivir al
+  cambio de paquete.
 
-El banco compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el
-límite de verdad **antes** del paquete de audio por mapa: ahora en la ARAM viven
-el directorio y un paquete, no el banco, y con todos los temas de la demo
-aportando el hardware entra de sobra —lo dice el informe del conversor—.
+No es un blocker, aunque estuvo escrito como tal: **el mecanismo ya existe**.
+`paquete_cargar` manda el SPC700 de vuelta al IPL (`APU_CMD_IPL`) y sube el
+paquete de audio del mapa.
 
-Lo que no entra es la calidad: repartir los 40 KB de `ARAM_BUDGET` entre casi el
-doble de programas **baja la tasa mediana a la mitad para todos**, incluidos los
-que hoy suenan bien. Mientras esto no esté, los temas que no aportan suenan
-incompletos y el recorte va por prioridad: ver "Varios temas en el cartucho" en
-`README.md`.
+# Decisiones a tomar
+
+* **Cuál es la unidad del paquete**: el mapa, como hoy, o el tema.
+* **Dónde se paga el freno**, y si hay `PlayBGM` fuera de un fundido que no lo
+  tolere.
+* **Qué pasa con un tema que suena en varios paquetes**: se duplica su muestra
+  o se comparte un piso común.

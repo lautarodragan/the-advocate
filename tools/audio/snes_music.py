@@ -386,14 +386,10 @@ class Banco:
     """Las muestras que comparten **todos** los temas de la ROM.
 
     Es uno solo, y no por ahorrar cartucho —de ése sobra— sino por ARAM: las
-    muestras viven en los 64 KB del SPC700 y se suben una sola vez al arrancar,
-    con el protocolo del IPL, que después de saltar al driver ya no está. Un
-    banco por tema pediría un driver que sepa recibir datos y, con 32 KB por
-    banco, del orden de medio segundo de transferencia en cada `PlayBGM`. Eso
-    último es lo que lo decide y no el trabajo: la ROM se compara cuadro contra
-    cuadro con la referencia, y un freno de treinta cuadros a mitad de una
-    escena habría que modelarlo en Python, que es justo lo que no se puede
-    medir honestamente.
+    muestras viven en los 64 KB del SPC700. Un banco por tema pediría subirlo
+    en cada `PlayBGM`, y con 32 KB por banco eso es del orden de medio segundo:
+    treinta cuadros de juego frenado. Hoy ese costo se paga en el fundido de un
+    cambio de mapa, que es donde no se ve; ver `paquete_cargar` en `main.s`.
 
     Compartirlo sale casi gratis porque el banco es por **programa** de General
     MIDI: dos temas que tocan piano usan la misma muestra. Lo que crece es la

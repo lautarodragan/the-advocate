@@ -132,14 +132,12 @@ que después de saltar al driver ya no está. De streams sobra lugar —tres tem
 son 95 KB de los 480 que quedan— pero de bancos de muestras entra uno solo, y
 el de `escape_newyork` son 32 KB.
 
-Las dos salidas eran un driver que sepa recibir datos —o sea rebootear el
-SPC700 y volver a subir— o **un solo banco compartido**. Gana el compartido, y
-lo que lo decide no es el trabajo: subir 32 KB byte a byte con acuse es del
-orden de medio segundo, o sea que cada `PlayBGM` frenaría el juego treinta
-cuadros. Mientras hubo referencia en Python eso además había que modelarlo para
-que la comparación cuadro a cuadro siguiera valiendo, y modelar cuánto tarda una
-transferencia es exactamente lo que no se puede medir honestamente. La
-referencia ya no está, así que hoy lo que decide es sólo el medio segundo.
+Gana **un solo banco compartido**, y lo que lo decide es el tiempo: subir
+32 KB byte a byte con acuse es del orden de medio segundo, o sea que un
+`PlayBGM` frenaría el juego treinta cuadros. Volver a subir se puede —la ROM
+manda el SPC700 de vuelta al IPL en cada cambio de mapa, ver
+`paquete_cargar`—, así que lo que queda por resolver es dónde se paga ese
+freno: `workflow/wishlist/presupuesto-de-muestras-por-paquete.md`.
 
 Compartir sale casi gratis porque **el banco es por programa de General MIDI**:
 dos temas que tocan piano usan la misma muestra. Lo que crece es la cantidad de

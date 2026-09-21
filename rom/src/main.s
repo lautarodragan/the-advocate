@@ -565,9 +565,8 @@ MARGEN_COLS = 4
 ; la ROM llega al lazo en el cuadro 101. 112 lo cubre con margen, y de paso hace
 ; que llenar la ARAM no cueste nada: el arranque ya está pagado.
 ;
-; Lo que compraría los 48 cuadros de vuelta es un driver que sepa recibir datos
-; por los cuatro puertos en vez de por el protocolo del IPL, que manda uno.
-; Está anotado en "Lo que falta".
+; Lo que compraría los 48 cuadros de vuelta es subir por los cuatro puertos en
+; vez de por el protocolo del IPL, que manda uno.
 BOOT_CUADROS = 112
 VIEW_ROWS = 29
 

@@ -266,13 +266,8 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   resolución: con los treinta y pico del juego entero **cada instrumento
   quedaría en una miga, y sin aviso**. Ver "Varios temas en el cartucho".
 
-  Lo que subiría ese techo es un **driver que sepa recibir datos**: hoy las
-  muestras se suben una sola vez al arrancar con el protocolo del IPL, que manda
-  un byte por acuse y desaparece al saltar al driver. Con un banco por tema el
-  costo sería medio segundo de transferencia en cada `PlayBGM` —lo que lo
-  descartó fue eso más tener que modelarlo en la referencia, y esa mitad ya no
-  está—; con los cuatro puertos en vez de uno, en cambio, se acorta el arranque,
-  que hoy es `BOOT_CUADROS`, dimensionado para una ARAM llena.
+  Lo que subiría ese techo es repartir el presupuesto por paquete:
+  `wishlist/presupuesto-de-muestras-por-paquete.md`.
 * **La cinemática de apertura, entera.** La corre el caso `cinematica`
   —`test_cinematica` en `pruebas/abl/test_tanda_escenas.py`, que es donde está
   lo que el arnés tiene que saber de ella—, y la compara hasta el final con los
