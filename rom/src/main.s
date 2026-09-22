@@ -632,6 +632,25 @@ VIEW_COLS = 33
 ; del toro que nadie escribió. Cuatro son 32 pixeles, y el toro tiene 64
 ; columnas para 33 visibles, así que sobran.
 MARGEN_COLS = 4
+
+; --- las tiras de repuesto, en la RAM lejana --------------------------------
+;
+; La cámara destapa hasta **dos** filas o dos columnas por vuelta —ver
+; `stream_map`—, así que hay que tener dos tiras armadas a la vez y el vblank
+; sube las dos. El segundo juego vive acá y no en el banco 0 porque ahí no
+; entra: a la BSS le quedan 84 bytes y esto pide 384.
+;
+; $6A00 a $6B7F es de esto, reservado el 2026-09-22. **No viaja en la
+; partida**: dura lo que dura un cuadro.
+FAR_TIRA_ROW  = $7E6A00         ; WINDOW_COLS * 2
+FAR_TIRA_ROW2 = $7E6A80         ; y la capa de encima, pegada como en el banco 0
+FAR_TIRA_COL  = $7E6B00         ; WINDOW_ROWS * 2
+FAR_TIRA_COL2 = $7E6B40
+; Pegadas, que es de lo que se aprovecha `push_una_fila` para llegar a la de la
+; capa de encima sumando el largo de la otra, igual que con las del banco 0.
+.assert FAR_TIRA_ROW2 = FAR_TIRA_ROW + WINDOW_COLS * 2, error, "tiras de fila separadas"
+.assert FAR_TIRA_COL2 = FAR_TIRA_COL + WINDOW_ROWS * 2, error, "tiras de columna separadas"
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el banco al SPC700— tarda lo que tarda, y eso cambiaba
 ; con cada cambio de código o de datos: un bucle más y el lazo principal
@@ -19259,11 +19278,29 @@ listo:
     rts
 .endproc
 
-; Qué hay que redibujar este cuadro. La cámara se mueve como mucho dos pixeles
-; por vuelta y sólo por un eje, así que cruza a lo sumo el borde de una celda:
-; alcanza con mirar si la esquina de la ventana cambió de celda. Si algún día
-; la cámara pudiera saltar —un teleport, un cambio de mapa— eso no es un ajuste
-; de esta rutina sino un fill_window entero, con la pantalla apagada.
+; Qué hay que redibujar este cuadro: las filas y las columnas que la cámara
+; acaba de destapar.
+;
+; **Son hasta dos de cada eje por vuelta, y eso está medido.** En el mismo eje
+; se suman dos cosas: el héroe a velocidad 6 camina 8 px por cuadro
+; —`paso_medio_por_vel` llega a 64 octavos— y un `PanScreen` a velocidad 6
+; corre la cámara otros 8 —`2 << 6` dieciseisavos—. Dieciséis pixeles son dos
+; celdas de 8. El salto del héroe no llega: el más largo del juego es de cinco
+; celdas en once cuadros, 7,3 px por cuadro.
+;
+; Hasta el 2026-09-22 esto dibujaba **una sola** y anotaba `win_row` como si
+; hubiera dibujado todas las que la cámara saltó, con un comentario que decía
+; que la cámara no se movía más de dos pixeles. La fila salteada quedaba mal
+; **para siempre**, porque la ventana es un toro y nadie vuelve a pisar esa
+; ranura hasta 32 filas después: el mapa se veía corrido una o dos celdas
+; respecto de la colisión, y cualquier teletransporte lo arreglaba porque
+; rellena la ventana entera. taro lo encontró jugando, después de la cinemática
+; de los Neon Vipers.
+;
+; Y si la cámara llegara a saltar más de dos —hoy no pasa—, `win_row` **se
+; queda atrás** en vez de mentir: lo que falta se dibuja en las vueltas
+; siguientes y el desfase se cura solo. Lo que se ve mientras tanto es el borde
+; de la pantalla atrasado, que dura lo que dure el salto y no para siempre.
 .proc stream_map
 .a8
 .i16
@@ -19271,26 +19308,72 @@ listo:
 .a16
     stz col_addr
     stz row_addr
+    stz col_addr_b
+    stz row_addr_b
+    ; Dos llamadas y no un lazo con contador: `build_row` y `build_column` usan
+    ; Y para leer los bloques, así que el contador tendría que vivir en la RAM,
+    ; y "dos por vuelta" se lee mejor acá que en una constante.
+    jsr una_fila
+    jsr una_fila
+    jsr una_columna
+    jsr una_columna
+    ; Lo que dejó pendiente una `TileSubstitution`: una columna de la ventana,
+    ; y sólo si la cámara no se llevó ninguna de este cuadro —las dos
+    ; direcciones en cero es que no hay ninguna armada—. Ver `sub_refresco`.
+    lda sub_refresco
+    beq sin_refresco
+    lda col_addr
+    ora col_addr_b
+    bne sin_refresco
+    dec sub_refresco
+    lda win_col
+    sec
+    sbc #MARGEN_COLS            ; el mismo rango que arma `fill_window`
+    clc
+    adc sub_refresco
+    tax
+    jsr build_column
+sin_refresco:
+    sep #$20
+.a8
+    rts
+.endproc
 
+; Una fila más, si la cámara dejó alguna sin dibujar. `win_col` y `win_row`
+; avanzan **de a una** aunque la cámara haya saltado más: así el ancla de
+; bloques de `build_row` sigue valiendo paso a paso, y lo que no se alcanzó a
+; dibujar queda pendiente en vez de perderse.
+.proc una_fila
+.a16
+.i16
     lda camara_y
     lsr a
     lsr a
     lsr a
     cmp win_row
-    beq sin_fila
+    beq listo
+    ; El `jsr` va **después** del `bcs` y en las dos ramas: puesto antes, la
+    ; rama miraría un acarreo que pasó por una llamada. Es barato no tener que
+    ; demostrar que `guardar_fila` no lo toca.
     bcs bajando
+    jsr guardar_fila            ; la tira de antes, si hay, al repuesto
+    lda win_row
+    dec a
+    sta win_row
     tax                         ; sube: entra la fila de arriba de la pantalla
-    bra guarda_fila
+    bra con_fila
 bajando:
-    pha
+    jsr guardar_fila
+    lda win_row
+    inc a
+    sta win_row
     clc
     adc #(VIEW_ROWS - 1)
     tax                         ; baja: entra la del pie
-    pla
-guarda_fila:
-    sta win_row
-
+con_fila:
     ; El ancla de bloques sigue a la fila de arriba de la ventana.
+    phx
+    lda win_row
     lsr a
     cmp win_block
     beq mismo_bloque
@@ -19310,50 +19393,86 @@ guarda_bloque:
     pla
     sta win_block
 mismo_bloque:
-    jsr build_row               ; X sigue siendo la fila que entra
+    plx
+    jsr build_row               ; X es la fila que entra
+listo:
+    rts
+.endproc
 
-sin_fila:
+; La imagen espejada, para el otro eje.
+.proc una_columna
+.a16
+.i16
     lda camara_x
     lsr a
     lsr a
     lsr a
     cmp win_col
-    beq sin_columna
-    bcs derecha
-    pha
+    beq listo
+    bcs derecha                 ; el `jsr` después del salto: ver `una_fila`
+    jsr guardar_columna
+    lda win_col
+    dec a
+    sta win_col
     sec
     sbc #MARGEN_COLS            ; sube: entra la del margen de la izquierda
     tax
-    pla
-    bra guarda_col
+    bra armar
 derecha:
-    pha
+    jsr guardar_columna
+    lda win_col
+    inc a
+    sta win_col
     clc
     adc #(VIEW_COLS - 1 + MARGEN_COLS)
     tax
-    pla
-guarda_col:
-    sta win_col
+armar:
     jsr build_column
-sin_columna:
-    ; Lo que dejó pendiente una `TileSubstitution`: una columna de la ventana,
-    ; y sólo si la cámara no se llevó la de este cuadro —`col_addr` en cero es
-    ; que no hay ninguna armada—. Ver `sub_refresco`.
-    lda sub_refresco
-    beq sin_refresco
+listo:
+    rts
+.endproc
+
+; La tira de fila que quedó armada, al repuesto de la RAM lejana, para que
+; `build_row` pueda volver a usar el buffer en esta misma vuelta.
+;
+; Se copia en vez de tener dos juegos de tiras y que `build_row` elija: el lazo
+; de `build_row` escribe con `sta tira_row, x` y `stz tira_row, x`, y `stz` no
+; tiene modo largo indexado, así que mudarlas a la RAM lejana le costaría un
+; `lda #0` por celda en el lazo caliente. El `mvn` son 256 bytes a siete ciclos
+; y se paga **sólo** cuando la cámara saltó dos filas, que es raro.
+.proc guardar_fila
+.a16
+.i16
+    lda row_addr
+    beq listo                   ; no hay ninguna armada
+    sta row_addr_b
+    ; Las dos tiras de la fila son contiguas —ver su `.res`—, así que van en un
+    ; solo `mvn`, que copia A + 1 bytes y deja el banco de datos en el destino.
+    ldx #.loword(tira_row)
+    ldy #.loword(FAR_TIRA_ROW)
+    lda #(WINDOW_COLS * 2 * 2 - 1)
+    phb
+    mvn #$00, #^FAR_TIRA_ROW    ; la BSS se ve desde el banco 0: es el espejo
+    plb                         ; de la WRAM de abajo del $2000
+    stz row_addr                ; el buffer queda libre
+listo:
+    rts
+.endproc
+
+.proc guardar_columna
+.a16
+.i16
     lda col_addr
-    bne sin_refresco
-    dec sub_refresco
-    lda win_col
-    sec
-    sbc #MARGEN_COLS            ; el mismo rango que arma `fill_window`
-    clc
-    adc sub_refresco
-    tax
-    jsr build_column
-sin_refresco:
-    sep #$20
-.a8
+    beq listo
+    sta col_addr_b
+    ldx #.loword(tira_col)
+    ldy #.loword(FAR_TIRA_COL)
+    lda #(WINDOW_ROWS * 2 * 2 - 1)
+    phb
+    mvn #$00, #^FAR_TIRA_COL
+    plb
+    stz col_addr
+listo:
     rts
 .endproc
 
@@ -19419,6 +19538,8 @@ tiras:
 .a16
     stz col_addr
     stz row_addr
+    stz col_addr_b              ; y las de repuesto: acá se llena todo de cero,
+    stz row_addr_b              ; así que lo que quedara a medio armar no sirve
     lda mapa_ancho
     asl a
     sta tira_paso_col           ; lo que mide una fila de bloques, en bytes
@@ -20415,7 +20536,8 @@ prender:
 .a8
 .i16
     stx A1T0L
-    stz A1B0                    ; las tiras viven en el banco 0
+    lda tira_banco              ; 0 la tira de esta vuelta, $7E la de repuesto
+    sta A1B0
     sty DAS0L
     lda #$01
     sta DMAP0                   ; dos registros, de a palabras
@@ -20428,93 +20550,154 @@ prender:
 
 ; Las tiras que dejó armadas stream_map. Van acá y no donde se arman porque la
 ; VRAM sólo se puede escribir en el vblank; armarlas adentro no entraría.
-;
-; Una columna sale de un DMA por capa: el PPU puede avanzar de a 32 palabras
-; tras cada escritura, que es justo lo que mide una fila del tilemap. Una fila
-; sale de dos, porque las dos pantallas de 32x32 no son contiguas.
 .proc push_strips
 .a8
 .i16
+    ; Cuatro tiras como mucho: la columna y la fila que armó esta vuelta, y las
+    ; de repuesto que dejó guardadas si la cámara destapó dos de un eje. Cada
+    ; una sube sola, y una dirección en cero es que no hay ninguna.
+    ldx col_addr_b
+    beq sin_columna_b
+    stx tira_vram
+    ldx #.loword(FAR_TIRA_COL)
+    stx tira_de
+    lda #^FAR_TIRA_COL
+    sta tira_banco
+    jsr push_una_columna
+sin_columna_b:
     ldx col_addr
     beq sin_columna
-    lda #$81                    ; avanzar 32 palabras tras el byte alto
-    sta VMAIN
-    stx VMADDL
+    stx tira_vram
     ldx #.loword(tira_col)
-    ldy #(WINDOW_ROWS * 2)
-    jsr dma_a_vram
-
-    rep #$20
-.a16
-    lda col_addr
-    clc
-    adc #(VRAM_ABOVE_MAP - VRAM_MAP)
-    sta temp
-    sep #$20
-.a8
-    ldx temp
-    stx VMADDL
-    ldx #.loword(tira_col2)
-    ldy #(WINDOW_ROWS * 2)
-    jsr dma_a_vram
-    stz col_addr
-    stz col_addr + 1
+    stx tira_de
+    stz tira_banco
+    jsr push_una_columna
 sin_columna:
 
+    ldx row_addr_b
+    beq sin_fila_b
+    stx tira_vram
+    ldx #.loword(FAR_TIRA_ROW)
+    stx tira_de
+    lda #^FAR_TIRA_ROW
+    sta tira_banco
+    jsr push_una_fila
+sin_fila_b:
     ldx row_addr
     beq sin_fila
-    lda #$80                    ; avanzar una palabra: la fila es contigua
-    sta VMAIN
-    stx VMADDL
+    stx tira_vram
     ldx #.loword(tira_row)
-    ldy #(WINDOW_COLS)          ; las ranuras 0 a 31, la pantalla izquierda
-    jsr dma_a_vram
-
+    stx tira_de
+    stz tira_banco
+    jsr push_una_fila
+sin_fila:
+    ; Las cuatro consumidas, tirando también las que no se subieron por estar
+    ; en cero: lo que no se armó en esta vuelta no se arma en la siguiente.
     rep #$20
 .a16
-    lda row_addr
-    clc
-    adc #1024                   ; la pantalla de la derecha vive acá
-    sta temp
+    stz col_addr
+    stz col_addr_b
+    stz row_addr
+    stz row_addr_b
     sep #$20
 .a8
-    ldx temp
+    rts
+.endproc
+
+; Una columna del tilemap a la VRAM: a la palabra `tira_vram`, desde `tira_de`
+; en el banco `tira_banco`. Sale de un DMA por capa, porque el PPU puede
+; avanzar de a 32 palabras tras cada escritura, que es justo lo que mide una
+; fila del tilemap.
+;
+; Las dos variables **avanzan a medida que la tira se consume**, y no se usa
+; `temp` para eso aunque esté a mano: `fill_window` guarda ahí el número de
+; columna por la que va y lo lee **después** de llamar a `push_strips`, así que
+; pisarlo le rompe el lazo. Costó una tanda entera con las 957 celdas visibles
+; distintas, el 2026-09-22.
+.proc push_una_columna
+.a8
+.i16
+    lda #$81                    ; avanzar 32 palabras tras el byte alto
+    sta VMAIN
+    ldx tira_vram
     stx VMADDL
-    ldx #.loword(tira_row + WINDOW_COLS)
-    ldy #(WINDOW_COLS)
+    ldx tira_de
+    ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
 
-    ; Y lo mismo para la capa de encima, media ventana más adelante.
+    ; La capa de encima: media ventana más adelante en la VRAM, y su tira
+    ; pegada a la otra en la RAM.
     rep #$20
 .a16
-    lda row_addr
+    lda tira_vram
     clc
     adc #(VRAM_ABOVE_MAP - VRAM_MAP)
-    sta temp
+    sta tira_vram
+    lda tira_de
+    clc
+    adc #(WINDOW_ROWS * 2)
+    sta tira_de
     sep #$20
 .a8
-    ldx temp
+    ldx tira_vram
     stx VMADDL
-    ldx #.loword(tira_row2)
-    ldy #(WINDOW_COLS)
+    ldx tira_de
+    ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
+    rts
+.endproc
 
+; Y una fila, que sale de cuatro: las dos pantallas de 32x32 no son contiguas
+; —la de la derecha vive 1024 palabras más adelante— y la capa de encima vive
+; media ventana más allá. El orden es: fondo izquierda, fondo derecha, encima
+; izquierda, encima derecha, y cada paso avanza las dos variables.
+.proc push_una_fila
+.a8
+.i16
+    lda #$80                    ; avanzar una palabra: la fila es contigua
+    sta VMAIN
+    ldx tira_vram
+    stx VMADDL
+    ldx tira_de
+    ldy #WINDOW_COLS            ; las ranuras 0 a 31, la pantalla izquierda
+    jsr dma_a_vram
     rep #$20
 .a16
-    lda temp
-    clc
-    adc #1024
-    sta temp
+    lda #1024                   ; la pantalla de la derecha vive acá
+    jsr fila_siguiente
+    ; Y la capa de encima, media ventana más adelante: se descuenta el 1024 que
+    ; el paso anterior ya sumó.
+    lda #(VRAM_ABOVE_MAP - VRAM_MAP - 1024)
+    jsr fila_siguiente
+    lda #1024                   ; y su mitad derecha
+    jsr fila_siguiente
     sep #$20
 .a8
-    ldx temp
+    rts
+.endproc
+
+; La media fila que sigue: corre la VRAM lo que diga A —en palabras— y la
+; fuente los 64 bytes que mide media fila, y la sube. Entra y sale con A de
+; dieciséis bits, que es lo que deja encadenar las tres llamadas de arriba.
+.proc fila_siguiente
+.a16
+.i16
+    clc
+    adc tira_vram
+    sta tira_vram
+    lda tira_de
+    clc
+    adc #WINDOW_COLS
+    sta tira_de
+    sep #$20
+.a8
+    ldx tira_vram
     stx VMADDL
-    ldx #.loword(tira_row2 + WINDOW_COLS)
-    ldy #(WINDOW_COLS)
+    ldx tira_de
+    ldy #WINDOW_COLS
     jsr dma_a_vram
-    stz row_addr
-    stz row_addr + 1
-sin_fila:
+    rep #$20
+.a16
     rts
 .endproc
 
@@ -23137,11 +23320,26 @@ pose_heroe:     .res 1
 ; Una columna son las 32 celdas de la ventana; una fila, las 64. Se indexan por
 ; la ranura, no por la celda del mapa: así el orden del buffer es exactamente el
 ; orden en que la VRAM las quiere y cada tira sale de un DMA.
-; Las cuatro seguidas y en este orden: `limpiar_tilemaps` las borra de corrido.
+; Las cuatro seguidas y en este orden: `limpiar_tilemaps` las borra de corrido,
+; y `push_una_fila` y `push_una_columna` llegan a la de la capa de encima
+; sumándole el largo de la otra, en vez de llevar dos punteros.
 tira_col:   .res WINDOW_ROWS * 2
 tira_col2:  .res WINDOW_ROWS * 2
 tira_row:   .res WINDOW_COLS * 2
 tira_row2:  .res WINDOW_COLS * 2
+
+; La tira que `push_strips` está subiendo, mientras dura: de dónde sale y a
+; dónde va. Existen porque son **dos** por eje y no una —ver `stream_map`— y
+; escribir el bloque de DMA cuatro veces con las direcciones distintas era
+; cuatro copias del mismo código.
+tira_vram:  .res 2      ; la palabra de la VRAM donde arranca
+tira_de:    .res 2      ; y de dónde sale, los dieciséis bits bajos
+tira_banco: .res 1      ; en qué banco: 0 la de esta vuelta, $7E la de repuesto
+; Y dónde van las de repuesto, que es lo mismo que `col_addr` y `row_addr` para
+; las otras. En la BSS y no en la página directa como sus gemelas porque ahí
+; quedan tres bytes, medidos con un `.res` en el segmento.
+col_addr_b: .res 2
+row_addr_b: .res 2
 
 ; La tabla de `TileSubstitution`: qué bloque se dibuja en lugar de cuál. Es lo
 ; único del mapa que se puede cambiar corriendo —la grilla vive en el cartucho—
