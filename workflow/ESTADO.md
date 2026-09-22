@@ -13,9 +13,9 @@ Las ROMs que taro va probando a mano quedan en `pruebas-manuales/<nombre>/`,
 cada una con su `LEEME.txt` diciendo qué mirar y con qué limitaciones se chocó.
 
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
-byte por byte iguales a las de antes de cada corte. `tools/voodoo/` tiene la suya de
-que **podría** enchufarse —455 PNG idénticos a los del Python— y lo único que lo
-frena es el desempate de `try_pack`: ver `wishlist/desempate-try-pack.md`.
+byte por byte iguales a las de antes de cada corte. `tools/voodoo/` está
+enchufado desde el paso 8c, el 2026-09-17: convierte la capa de encima desde la
+imagen del asignador (`tools/port/tiles_bin.py`).
 
 ### Defectos de los originales, anotados y no arreglados
 

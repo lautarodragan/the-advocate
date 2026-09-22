@@ -1,6 +1,6 @@
 ---
 name: "El desempate de try_pack"
-description: "Lo único que frena enchufar Voodoo en lugar del Python"
+description: "Que el reparto de colores no dependa del orden de hash de CPython"
 ---
 
 # Qué
@@ -11,9 +11,10 @@ entrada, y no por el orden de iteración de una tabla de hash de CPython.
 # Status
 
 Anotado y sin empezar. **Es una decisión del asignador**, `tools/port/asignador.py`,
-desde el paso 8: `tools/voodoo/` ya no empaqueta. Se toma cuando el asignador
-pase a Rust —ahí el orden de hash de CPython no existe— o antes, cambiando el
-desempate en Python.
+desde el paso 8: `tools/voodoo/` ya no empaqueta, y **no frena enchufar a
+Voodoo**, que está enchufado desde el paso 8c —hasta el 2026-09-22 esta tarea
+decía lo contrario—. Se arregla cambiando el desempate en Python, o cuando el
+asignador pase a Rust, donde el orden de hash de CPython no existe.
 
 # Por qué
 
