@@ -1,3 +1,8 @@
+---
+name: "Ataque y Decaimiento"
+description: blablab
+---
+
 # Qué
 
 Leer el **ataque y el decaimiento** de cada instrumento del SoundFont, en vez de
