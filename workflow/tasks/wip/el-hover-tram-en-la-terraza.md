@@ -95,6 +95,33 @@ fusiones caen entre vecinos. Las capturas están en `/extras/capturas/hovertram/
 `tram-comparado.png` es el antes y el después a 3x, y `port-320x240.png` tiene el
 mismo encuadre que la captura 1 de EasyRPG.
 
+# Cómo quedó
+
+**El tram se ve**, al **56%** y corrido **2 px a la derecha**, en 42 celdas de
+la capa de encima del ChipSet 55. La captura sacada de la ROM está en
+`/extras/capturas/hovertram/rom/`.
+
+Lo que costó, medido: **cero bytes de banco 0** —2825 libres en `abl` con y sin
+el tram— y cero de extensión de la ROM. Lo que sí pagó es color: la capa de
+encima se lleva una paleta más, el fondo baja de 103 a 87 entradas sin fusionar
+ninguna, y las cuatro goldens `32-*` se mueven de 30 a 48 pixeles en una línea
+de baranda. Están **sin regenerar**, esperando que taro las mire.
+
+Lo que queda libre en `TABLAS`, que depende de qué cartucho se arme:
+`pruebas` 2455 B —el más apretado—, `juego` 2568, `abl` 2825, `chico` 3149.
+
+# Lo que se aprendió y no es de este caso
+
+**`huella()` no miraba `juego/`**, así que tocar un fork no rearmaba los
+cartuchos de prueba y la tanda corría contra la ROM de antes. Costó dar por
+buena una divergencia de la ROM que no existía. Arreglado en su commit aparte.
+
+**Una prueba nueva hay que verla fallar.** Las dos primeras versiones de la que
+mira que el héroe quede detrás del tram no servían —una comparaba un conjunto
+contra su propia diferencia, vacío por construcción; la otra corría sin grupo,
+así que no había héroe que dibujar— y las dos pasaban. Se arreglaron rompiendo
+a propósito el bit de "por encima del héroe" hasta que la prueba lo cazó.
+
 # Dónde quedó
 
 Hecho y verificado:
