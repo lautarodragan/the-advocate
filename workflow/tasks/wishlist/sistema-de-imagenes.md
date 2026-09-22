@@ -15,8 +15,8 @@ comandos que no entran se siguen aceptando sin hacerse.
 
 # Por qué
 
-La ROM dibuja **un** `ShowPicture` por cartucho, que es el caso fácil: ver "El
-cartel del 'One year previously'" en `ESTADO.md`, y el cómo en `README.md`.
+La ROM dibuja **un** `ShowPicture` por cartucho, que es el caso fácil: ver
+`done/show-picture-phase-1.md`, y el cómo en `README.md`.
 
 Lo que costaría el resto está medido, y el detalle está en "Lo que costaría el
 sistema de imágenes entero" del README: **34 `ShowPicture` en el juego, 20

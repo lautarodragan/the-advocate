@@ -1,12 +1,13 @@
 ---
 name: "Partir main.s"
-description: "Las 30.300 líneas de main.s en varios archivos"
+description: "main.s, que es un solo archivo de más de treinta mil líneas, en varios"
 ---
 
-**Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. **
+**Partir `rom/src/main.s`**, que son más de treinta mil líneas en un
+archivo —cuántas, `wc -l`—.
 
 Probado en chico —una sección afuera con `.include`, mismo md5—; 
-las fronteras ya existen, 82 marcas de sección y 450 `.proc`. 
+las fronteras ya existen: marcas de sección y `.proc`. 
 
 Tres trampas: 
 - el `.segment` cruza el `.include`, 
