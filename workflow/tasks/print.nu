@@ -8,7 +8,7 @@ ls | where type == dir | each {
     (ansi reset)
   ] | str join); 
   # print ''; 
-  ls $in.name | sort-by modified | where type == file | get name | each {
+  ls $in.name | sort-by name | where type == file | get name | each {
     let file = $in | path basename
 
     let yml = open $in
