@@ -1,5 +1,5 @@
 none 0 9
-right 24 201
-left 25 209
-up 5 49
-down 1 17
+right 19 161
+left 4 41
+up 6 57
+down 3 33
