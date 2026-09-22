@@ -1,3 +1,8 @@
+---
+name: "El juego golden y dos repos"
+description: "Un juego de prueba para el motor, y ABL en su propio repo"
+---
+
 # Qué
 
 **Un juego de RM2k hecho a propósito —el "juego golden"— que pruebe el motor**,

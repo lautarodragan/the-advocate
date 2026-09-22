@@ -1,3 +1,8 @@
+---
+name: "El audio en dos pasos lossy"
+description: "MIDI y SoundFont reducidos y versionados, para escucharlos en un DAW"
+---
+
 # Qué
 
 Partir la conversión de audio en **dos pasos lossy explícitos y versionados**,

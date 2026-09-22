@@ -1,3 +1,8 @@
+---
+name: "Música por MSU-1"
+description: "Las pistas de CD que reemplazan a la música sintetizada"
+---
+
 ### El MSU-1
 
 La música sintetizada suena fea, y la causa está medida: los ocho temas de la

@@ -1,3 +1,8 @@
+---
+name: "El Elixir en la pelea"
+description: "Usar en la pelea un ítem que sólo sirve sobre un caído"
+---
+
 **Usar en la pelea un ítem que sólo sirve sobre un caído.**
 
 El `Pungent Elixir-LIFE` (`ko_only`) ya levanta a un caído desde el menú, pero

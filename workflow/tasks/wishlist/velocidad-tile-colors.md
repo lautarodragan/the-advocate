@@ -1,3 +1,8 @@
+---
+name: "Velocidad: colores por tile"
+description: "Guardar los colores de cada tile en vez de recalcularlos"
+---
+
 # Qué
 
 Guardar los colores de cada tile del primer recorrido en vez de recalcularlos

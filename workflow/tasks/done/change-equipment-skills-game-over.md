@@ -1,3 +1,8 @@
+---
+name: "Equipo, habilidades y Game Over"
+description: "ChangeEquipment, ChangeSkills y GameOver, que trababan el techo y el Workshop"
+---
+
 **Implementar `ChangeEquipment` (10450), `ChangeSkills` (10440) y `GameOver` (12420).**
 
 Hoy ninguno compila, así que la página entera que los usa no corre:

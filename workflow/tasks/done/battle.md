@@ -1,3 +1,8 @@
+---
+name: "La pelea"
+description: "EnemyEncounter abre una pelea por turnos"
+---
+
 ### La batalla por turnos
 
 `EnemyEncounter` abre una pelea. El alcance elegido fue la mecánica —turnos,

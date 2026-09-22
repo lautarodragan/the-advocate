@@ -1,3 +1,8 @@
+---
+name: "ShowPicture, fase 1"
+description: "El cartel de One year previously"
+---
+
 ### ShowPicture
 
 El cartel de "One year previously" es el único `ShowPicture` que el port hace.

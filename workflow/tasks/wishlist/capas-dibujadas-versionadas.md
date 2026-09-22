@@ -1,3 +1,8 @@
+---
+name: "Capas dibujadas versionadas"
+description: "Las capas de cada mapa como artefacto que se mira en git"
+---
+
 # Qué
 
 Que las capas dibujadas de los mapas sean un artefacto versionado, como

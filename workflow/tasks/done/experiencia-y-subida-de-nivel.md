@@ -1,3 +1,8 @@
+---
+name: "Experiencia y subida de nivel"
+description: "Ganar experiencia, subir de nivel y crecer según las curvas del LDB"
+---
+
 **Experiencia y subida de nivel.**
 
 Hoy no existen: cada actor queda en el `initial_level` del LDB y aprende las

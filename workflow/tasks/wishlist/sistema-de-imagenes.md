@@ -1,3 +1,8 @@
+---
+name: "El sistema de imágenes"
+description: "ShowPicture entero, más allá del cartel"
+---
+
 # Qué
 
 El sistema de imágenes más allá del cartel: que la ROM dibuje más de un

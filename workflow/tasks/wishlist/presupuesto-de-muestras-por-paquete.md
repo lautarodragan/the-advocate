@@ -1,3 +1,8 @@
+---
+name: "Muestras por paquete"
+description: "Repartir la ARAM por paquete de mapa y no por banco"
+---
+
 # Qué
 
 Que el presupuesto de ARAM se reparta **por paquete y no por banco**: darle a

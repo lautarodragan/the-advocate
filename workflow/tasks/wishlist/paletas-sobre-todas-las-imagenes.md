@@ -1,3 +1,8 @@
+---
+name: "Paletas sobre todo el juego"
+description: "Calcular las paletas con todas las imágenes a la vez"
+---
+
 # Qué
 
 Calcular las paletas **sobre todas las imágenes del juego a la vez** —CharSets,

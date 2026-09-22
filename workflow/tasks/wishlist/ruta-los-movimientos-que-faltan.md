@@ -1,3 +1,8 @@
+---
+name: "Ruta: los movimientos que faltan"
+description: "Las nueve órdenes de movimiento que la ROM no hace"
+---
+
 # Qué
 
 Las **otras nueve órdenes de movimiento** de una ruta forzada que la ROM no

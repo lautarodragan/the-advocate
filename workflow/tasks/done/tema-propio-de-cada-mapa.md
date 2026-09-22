@@ -1,3 +1,8 @@
+---
+name: "El tema de cada mapa"
+description: "Al entrar a un mapa suena el tema que trae en sus propiedades"
+---
+
 **Que al entrar a un mapa suene su tema propio.**
 
 RM2k guarda un tema por mapa en `maps.json` (`music_type`: 0 hereda del padre, 1 lo

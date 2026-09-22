@@ -1,3 +1,8 @@
+---
+name: "Pruebas declarativas"
+description: "Un ejecutor de pruebas escritas como datos"
+---
+
 # Qué
 
 Un ejecutor con pruebas declarativas

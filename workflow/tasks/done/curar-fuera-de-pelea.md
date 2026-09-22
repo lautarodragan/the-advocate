@@ -1,3 +1,8 @@
+---
+name: "Curar fuera de la pelea"
+description: "Las medicinas desde el menú, y la selección que se rompía"
+---
+
 **Usar un ítem de curación desde el menú, fuera de la pelea.**
 
 Reporte de taro del 2026-09-21: el `Cold Sandwich-HP` (medicina, recupera 30 HP)

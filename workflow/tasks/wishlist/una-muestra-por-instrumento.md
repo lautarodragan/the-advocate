@@ -1,3 +1,8 @@
+---
+name: "Varias muestras por instrumento"
+description: "Multimuestrear como un piano de verdad"
+---
+
 # Qué
 
 Más de una muestra por instrumento: multi-muestrear como lo hace un piano de

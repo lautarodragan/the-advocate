@@ -1,3 +1,8 @@
+---
+name: "El desempate de try_pack"
+description: "Lo único que frena enchufar Voodoo en lugar del Python"
+---
+
 # Qué
 
 Que el reparto de colores de `try_pack` desempate por algo que sea parte de la

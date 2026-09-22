@@ -1,3 +1,8 @@
+---
+name: "Velocidad: percusión"
+description: "El presupuesto de percusión por búsqueda binaria"
+---
+
 # Qué
 
 Buscar el presupuesto del banco de percusión por búsqueda binaria en vez de

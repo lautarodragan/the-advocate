@@ -1,3 +1,8 @@
+---
+name: "Menú de pausa"
+description: "B abre el menú, que es Scene_Menu de RM2k"
+---
+
 # El menú de pausa
 
 **B abre el menú**, que es `Scene_Menu` de RM2k: las cinco

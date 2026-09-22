@@ -1,3 +1,8 @@
+---
+name: "La escena del ascensor"
+description: "Un caso propio en la tanda para la escena del ascensor del mapa 2"
+---
+
 # Qué
 
 Darle **caso propio** en la tanda a la escena del ascensor del mapa 2.

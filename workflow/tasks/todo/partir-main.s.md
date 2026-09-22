@@ -1,3 +1,8 @@
+---
+name: "Partir main.s"
+description: "Las 30.300 líneas de main.s en varios archivos"
+---
+
 **Partir `rom/src/main.s`**, que son 30.300 líneas en un archivo. **
 
 Probado en chico —una sección afuera con `.include`, mismo md5—; 

@@ -1,3 +1,8 @@
+---
+name: "La paleta del cronómetro"
+description: "Reservarla sólo mientras el cronómetro corre"
+---
+
 # Qué
 
 Mejora timer: reservar la paleta sólo cuando el timer está corriendo, liberarla cuando no.

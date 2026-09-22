@@ -1,3 +1,8 @@
+---
+name: "Eventos opacos al mapa"
+description: "Un evento que es un tile opaco fijo se hornea en el mapa"
+---
+
 # Qué
 
 Un evento que se dibuja con **un tile opaco del ChipSet**, siempre el mismo y

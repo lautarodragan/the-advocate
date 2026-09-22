@@ -1,3 +1,8 @@
+---
+name: "El mapa 11 rediseñado"
+description: "Las 52 baldosas de luz pasan a ser tiles: de 30 fps a fluido"
+---
+
 # Qué
 
 El HQ de los Lazer Teeth —el mapa 11— **no entraba en el cuadro donde se juega

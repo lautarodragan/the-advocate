@@ -1,3 +1,8 @@
+---
+name: "La escena de pelea en la consola"
+description: "Fondo y enemigos compuestos al empezar la pelea; los muertos desaparecen"
+---
+
 **La escena de la pelea, compuesta en la consola y no en el conversor.**
 
 Hoy `tools/port/escena.py` hornea fondo y monstruos en una imagen por tropa, a

@@ -1,3 +1,8 @@
+---
+name: "Ruta: transparencia"
+description: "Las órdenes 40 y 41, que suben y bajan la transparencia"
+---
+
 # Qué
 
 Las órdenes de ruta **40 y 41**, subir y bajar la transparencia de a un octavo.

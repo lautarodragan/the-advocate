@@ -1,3 +1,8 @@
+---
+name: "Parches de decisiones artísticas"
+description: "Lo que se pierde al convertir, como archivos versionados"
+---
+
 # Qué
 
 Las **decisiones artísticas** —lo que se pierde al pasar de RPG Maker a la

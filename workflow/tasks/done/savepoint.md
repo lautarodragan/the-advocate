@@ -1,3 +1,8 @@
+---
+name: "El save point"
+description: "Guardar desde el save point, con su animación"
+---
+
 ### El save point: anima quieto y guarda a disco
 
 **La animación de un evento quieto no tiene dónde guardar su contador.** Los que

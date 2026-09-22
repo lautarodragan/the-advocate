@@ -1,3 +1,8 @@
+---
+name: "El sistema de batalla de Talan"
+description: "Detect Aura y Absorb Aura corren las páginas de su tropa"
+---
+
 **El sistema de batalla de Talan: `Detect Aura` y `Absorb Aura` en la pelea.**
 
 Es el primer tramo de `eventos-de-tropa-en-la-pelea.md`, acotado a Talan: si anda,

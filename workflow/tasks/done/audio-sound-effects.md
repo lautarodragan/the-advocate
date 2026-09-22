@@ -1,3 +1,8 @@
+---
+name: "Efectos de sonido"
+description: "PlaySound suena, con sus muestras en el paquete del mapa"
+---
+
 ### Los efectos de sonido
 
 `PlaySound` suena. Compila a `OP_SOUND` con el índice del

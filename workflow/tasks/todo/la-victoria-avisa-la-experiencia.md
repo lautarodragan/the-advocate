@@ -1,3 +1,8 @@
+---
+name: "La victoria avisa la experiencia"
+description: "Que la pelea diga N EXP received y Level up"
+---
+
 **Que la victoria diga la experiencia ganada y quién subió de nivel.**
 
 La experiencia y la subida de nivel ya andan (`done/experiencia-y-subida-de-nivel.md`),

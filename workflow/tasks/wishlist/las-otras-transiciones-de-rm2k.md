@@ -1,3 +1,8 @@
+---
+name: "Las otras transiciones"
+description: "Bloques, persianas y demás transiciones que no son el fundido"
+---
+
 # Qué
 
 Las transiciones de RM2k que no son el fundido: las de bloques, persianas y

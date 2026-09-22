@@ -1,3 +1,8 @@
+---
+name: "El público del Auditorio"
+description: "Los NPCs que son decoración, horneados en un ChipSet propio"
+---
+
 # Qué
 
 Hornear en un ChipSet propio a los sprites que son **decoración**: el público

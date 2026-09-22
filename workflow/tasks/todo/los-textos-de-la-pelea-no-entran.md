@@ -1,3 +1,8 @@
+---
+name: "Los textos de la pelea"
+description: "Mensajes de pelea cortados a 31 caracteres o pasados del borde"
+---
+
 **Los textos de la pelea que no entran en el ancho de la pantalla.**
 
 Dos casos, los dos de la pantalla de pelea:

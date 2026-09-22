@@ -1,3 +1,8 @@
+---
+name: "La tienda"
+description: "OpenShop abre la tienda de RM2k"
+---
+
 ### La tienda
 
 `OpenShop` abre `Scene_Shop`. Compila a `OP_SHOP` —el

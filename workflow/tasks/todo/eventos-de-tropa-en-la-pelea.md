@@ -1,3 +1,8 @@
+---
+name: "Los eventos de tropa"
+description: "Los 32 sistemas de batalla de los personajes, además del de Talan"
+---
+
 **Correr las páginas de evento de las tropas durante la pelea.**
 
 Es lo que hace andar los sistemas de cada personaje: una habilidad de tipo switch

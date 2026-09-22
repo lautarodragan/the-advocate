@@ -1,3 +1,8 @@
+---
+name: "Tiles animados"
+description: "Las dos familias de tiles animados del ChipSet"
+---
+
 ### El agua se mueve, y cuesta un DMA de 1664 bytes
 
 RM2k anima dos familias de tiles del ChipSet, con relojes distintos y sin que

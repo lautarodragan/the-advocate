@@ -1,3 +1,8 @@
+---
+name: "Música por el SPC700"
+description: "Los temas por el SPC700, con el banco de muestras compartido"
+---
+
 ### El paquete de audio de cada mapa
 
 La ARAM son 64 KB, y los instrumentos de los ocho temas de la demo son 53: los

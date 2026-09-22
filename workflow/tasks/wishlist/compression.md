@@ -1,3 +1,8 @@
+---
+name: "Compresión"
+description: "Comprimir lo que viaja en la ROM: medido, un 75% menos"
+---
+
 Lo que se puede esperar de comprimir, medido: la parte usada de
 `abl` —3,12 MB— deflatea a **791 KB, un 75% menos**. El grueso del
 cartucho son gráficos, que es lo compresible, y descomprimir al cargar un

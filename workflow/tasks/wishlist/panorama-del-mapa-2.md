@@ -1,3 +1,8 @@
+---
+name: "El panorama del mapa 2"
+description: "Los puntitos sobre azul que se desplazan en diagonal"
+---
+
 # Qué
 
 El panorama del mapa 2: los puntitos sobre azul que se desplazan en diagonal

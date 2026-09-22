@@ -1,3 +1,8 @@
+---
+name: "Animaciones de batalla"
+description: "El sonido, la luz y los cuadros de ShowBattleAnimation"
+---
+
 ### Las animaciones de batalla: el sonido y la luz
 
 `ShowBattleAnimation` son dos mitades, y ésta es la del **sonido y la luz**: sus

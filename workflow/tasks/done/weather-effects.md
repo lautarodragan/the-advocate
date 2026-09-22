@@ -1,3 +1,8 @@
+---
+name: "El clima"
+description: "La lluvia de la apertura"
+---
+
 ### La lluvia
 
 `WeatherEffects` dibuja la lluvia —la apertura llueve, primero débil y después
