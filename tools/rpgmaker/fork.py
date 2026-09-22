@@ -411,6 +411,12 @@ def imagen_del_chipset(datos, buscar):
         # imagen no tiene por qué estar alineada a la grilla de 16, y la del
         # tram no lo está.
         dx, dy = una.get("desfase", (0, 0))
+        # Colores del dibujo que se tratan como transparentes además del
+        # índice 0. Existe para los defectos del arte original: un pixel
+        # pintado **casi** del color de la clave pero no igual, que RM2k dibuja
+        # y se ve como un punto suelto. Es una divergencia declarada, así que
+        # va escrita en la receta y no escondida acá.
+        transparentes = {tuple(c) for c in una.get("transparentes", [])}
         for entrada in una["celdas"]:
             columna, fila, ranura = entrada[:3]
             # El cuarto elemento, si está, es la ranura de la que sale el
@@ -426,7 +432,7 @@ def imagen_del_chipset(datos, buscar):
                     if not (0 <= px < ancho and 0 <= py < alto):
                         continue
                     indice = chica[px, py]
-                    if indice:
+                    if indice and desde[indice] not in transparentes:
                         pixeles[x, y] = paleta.indice(_a_quince(desde[indice]))
             imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
 

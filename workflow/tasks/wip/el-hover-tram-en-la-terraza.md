@@ -42,6 +42,15 @@ Los scripts que las sacan están en `/extras/scratch/hover-tram/`.
 
 ## 1. No se ve fuera de la cinemática: va fijo, sin `TileSubstitution`
 
+**Y taro cree que eso no es de este caso sino la regla**: en el mapa 32 todo es
+cinemática, y le parece que pasa en casi todos los `ShowPicture` del juego. Si
+es así, "la imagen no convive con caminar libremente" deja de ser una
+casualidad afortunada y pasa a ser lo que hace que **hornear las imágenes en el
+mapa sea un camino y no un truco**: no hay que prenderlas y apagarlas porque
+nadie ve esa zona sin ellas. Está sin medir sobre los demás mapas; medirlo es
+barato —los `ShowPicture` son 11110 y el trigger de la página está al lado— y
+decidiría si esto se puede repetir.
+
 La terraza es una región **cerrada de 224 celdas** —`conecta.py`, con la misma
 pasabilidad que usa el conversor, `rm2k.passability_map`—: desde la planta baja
 no se llega caminando, y desde la terraza no se sale.
@@ -98,6 +107,45 @@ Hecho y verificado:
 * el **redondeo a 15 bits**, que es lo que hace entrar los colores.
 
 Falta **una decisión sobre la VRAM**, que es lo que frena el dibujo.
+
+# Los dos ejes para entrar en 128 tiles, medidos
+
+## Alinearlo: vale 3 tiles, y arregla la pared gratis
+
+Correr el dibujo por la grilla lo baja de **166 a 163** tiles y nada más —el
+mejor de 221 corrimientos probados—. **Alinearlo a la grilla no es el óptimo**:
+`(320,48)`, que sería la esquina de celda, no entra entre los quince mejores.
+
+Pero correrlo **2 px a la derecha** sí sirve para otra cosa: con `x0 = 310` los
+9 pixeles de la punta **dejan de caer en la columna 19**, que es la pared de la
+terraza. Pasan de 9 a 4 a 0 con +1 y +2. Así que desaparece la decisión sobre
+esos 9 pixeles: no hay que elegir entre perder la pared y perder la punta.
+
+## Fusionar colores: no mueve nada
+
+Es el experimento que taro quería primero, y la curva lo cierra:
+
+    colores   tiles
+       17      165     <- lo que el reparto da hoy
+       13      165
+       10      165
+        8      165
+        6      164
+        4      164
+        3      163
+        2      130     <- y acá ya es una silueta
+
+De 17 colores a 3 se ganan **dos tiles**. La razón es que **los tiles del tram
+se diferencian en la forma y no en el color**: es un render 3D detallado, y dos
+celdas de 8x8 casi nunca son iguales ni en blanco y negro. Ni siquiera con dos
+colores entra.
+
+Y los primeros escalones dan todos 17 porque el tope real no es el que se pide
+sino **el empaquetado en 3 paletas**: pedir 45, 36, 28 o 22 da lo mismo, el
+asignador fusiona hasta 17 igual.
+
+Las capturas de cada escalón están en `/extras/capturas/hovertram/escalones/`.
+La de 6 colores ya pierde el panel rojo del costado, y gana un tile.
 
 # Lo que frena hoy: la capa de encima entra en 128 tiles y el tram pide 165
 

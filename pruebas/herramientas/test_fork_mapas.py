@@ -434,3 +434,43 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
     # donde el dibujo es transparente tiene que seguir el color de la 5.
     assert color(7, 0, 0)[1] == (248, 128, 64), "no compuso encima"
     assert color(7, 12, 12)[1] == (7, 7, 7), "componer borró la base"
+
+
+def test_los_colores_declarados_transparentes_no_llegan_al_chipset():
+    """Un color que la receta declara transparente no puede quedar en el PNG.
+
+    Es una **divergencia declarada**: el arte original del Hover Tram trae dos
+    pixeles pintados casi del color de la clave pero no igual, que RM2k dibuja
+    y se ven rosas. Taro decidió que en el port van transparentes.
+
+    Y la prueba existe porque el error ya se cometió: cuál de los dos pixeles
+    sobrevive **depende de la escala** —al 65% es uno y al 56% el otro—, así
+    que la receta llegó a nombrar uno solo y el otro se coló igual. El PNG
+    salió con el rosa adentro y nada lo dijo.
+    """
+    from PIL import Image
+
+    mirados = 0
+    for numero, datos in fork.chipsets().items():
+        declarados = {tuple(c) for c in
+                      (datos["imagen"].get("desde_imagen") or {})
+                      .get("transparentes", [])}
+        if not declarados:
+            continue
+        mirados += 1
+        ruta = os.path.join(fork.GENERADO, "ChipSet",
+                            datos["chipset"]["chipset_name"] + ".png")
+        if not os.path.isfile(ruta):
+            pytest.skip("el PNG del ChipSet %d no está armado" % numero)
+        imagen = Image.open(ruta)
+        imagen.load()
+        paleta = imagen.getpalette() or []
+        usados = set(imagen.tobytes())
+        # A 15 bits, porque `desde_imagen` redondea los colores al entrar.
+        prohibidos = {tuple((c >> 3) << 3 for c in d) for d in declarados}
+        for indice in usados:
+            color = tuple(paleta[indice * 3:indice * 3 + 3])
+            assert color not in prohibidos, (
+                "el ChipSet %d declara transparentes %s y uno quedó en el PNG, "
+                "en el índice %d" % (numero, sorted(declarados), indice))
+    assert mirados, "ninguna receta declara colores transparentes"
