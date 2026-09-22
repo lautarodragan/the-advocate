@@ -169,12 +169,21 @@ def huella():
     recompilarlo cambiaba la ROM sin cambiar el sello. No se notó porque el
     caché de muestras sí lo miraba —`muestras_brr.version()`— y el `.py` que lo
     llama se tocaba casi siempre en el mismo cambio.
+
+    **Y `juego/` faltaba hasta el 2026-09-22**, que es el mismo agujero otra
+    vez y el que más caro salió: un fork cambia el mapa y su ChipSet, o sea lo
+    que se dibuja, sin tocar ni `main.s` ni un `.py`. Tocar la receta del Hover
+    Tram y volver a correr la tanda daba el cartucho **de antes**, en silencio,
+    y eso mandó a documentar como divergencia de la ROM algo que era
+    simplemente una ROM vieja. `data/` no entra: lo regenera `just datos` y no
+    lo editamos a mano.
     """
     h = hashlib.sha256()
     partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
               + ensamblar.binarios()
               + [tiles_bin.binario(), muestras_brr.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
+    partes += sorted(glob.glob(os.path.join(RAIZ, "juego", "*", "*")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:
             h.update(archivo.read())
