@@ -247,6 +247,11 @@ def _destinos_altos(receta):
     destinos = [hasta for _, hasta in receta.get("tiles_altos", [])]
     for una in receta.get("desde_charset", []):
         destinos += [una["cabeza"], una["cuerpo"]]
+    # `desde_imagen` compone **sobre** la ranura que nombra su cuarto
+    # elemento, así que ésa no se pisa: se conserva y se le dibuja encima.
+    for entrada in (receta.get("desde_imagen") or {}).get("celdas", []):
+        if len(entrada) <= 3:
+            destinos.append(entrada[2])
     return destinos
 
 
@@ -297,3 +302,135 @@ def test_fork_un_tile_duplicado_hereda_la_pasabilidad_de_su_origen():
                 == entrada["passable_data_lower"][6 + desde], (
                     "ChipSet %d: el bloque bajo %d copia al %d y no se pisa "
                     "igual" % (numero, hasta, desde))
+
+
+def test_podar_conserva_las_ranuras_que_solo_nombra_un_evento():
+    """Podar el ChipSet borra lo que el mapa no dibuja, y **un evento sin
+    CharSet dibuja con un tile de la página alta** que no está en ninguna capa.
+
+    Es el que se escapó: el mapa 32 perdía la ranura 13 —la de una página de
+    `EV0023`— y la ROM salía con 78 bytes de gráficos en cero. No lo cobró
+    ninguna prueba, lo cobró comparar la ROM byte por byte, y por eso esta
+    prueba existe.
+    """
+    forkeados = fork.mapas()
+    chipsets = fork.chipsets()
+    mirados = 0
+    for map_id, (ruta_json, _) in forkeados.items():
+        datos = json.load(open(ruta_json, encoding="utf-8"))
+        receta = chipsets.get(datos["chipset_id"], {}).get("imagen", {})
+        if "podar" not in receta:
+            continue
+        mirados += 1
+        _, _, comunes = fork._lo_que_dibuja(map_id)
+        mapa = lcf.Map(os.path.join(RAIZ, "data", "maps",
+                                    "Map%04d.json" % map_id))
+        for evento in mapa.events:
+            for pagina in evento.pages:
+                if not pagina.character_name:
+                    assert 144 + pagina.character_index in comunes, (
+                        "el mapa %d dibuja un evento con el tile alto %d y el "
+                        "podado no lo conserva"
+                        % (map_id, pagina.character_index))
+    assert mirados, "ningún ChipSet forkeado poda: la prueba no miró nada"
+
+
+def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
+    """Con `ChangeMapTileset` o `TileSubstitution` adentro, las capas dejan de
+    decir qué dibuja el mapa, así que el podado no puede saber qué guardar.
+
+    Se planta en vez de adivinar: perder arte en silencio es justo lo que este
+    archivo existe para evitar. Ningún mapa forkeado los usa, así que el camino
+    se ejercita metiéndole el comando a un fork de mentira.
+    """
+    map_id = next(iter(fork.mapas()))
+    ruta_json, ruta_tiles = fork.mapas()[map_id]
+    datos = json.load(open(ruta_json, encoding="utf-8"))
+    codigo, nombre = sorted(fork.COMANDOS_QUE_ELIGEN_TILES.items())[0]
+    datos["events"][0]["pages"][0].setdefault("event_commands", []).append(
+        {"code": codigo, "indent": 0, "string": "", "parameters": [0]})
+
+    mapas_antes = fork.MAPAS
+    fork.MAPAS = str(tmp_path)
+    try:
+        with open(os.path.join(tmp_path, "Map%04d.json" % map_id), "w",
+                  encoding="utf-8") as handle:
+            json.dump(datos, handle)
+        shutil.copy(ruta_tiles, os.path.join(tmp_path,
+                                             "Map%04d.tiles" % map_id))
+        with pytest.raises(fork.ForkRoto) as caida:
+            fork._lo_que_dibuja(map_id)
+    finally:
+        fork.MAPAS = mapas_antes
+    assert nombre in str(caida.value)
+
+
+def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path):
+    """`desde_imagen` mete un PNG que no es un ChipSet en las ranuras altas.
+
+    Las tres cosas que tiene que hacer bien, y que si se rompen no dan error:
+
+    * **escalar con vecino más cercano**, que es lo que hace RM2k;
+    * **redondear a 15 bits**, que es lo que la consola muestra y lo que hace
+      entrar el dibujo en los 256 índices del PNG indexado;
+    * **componer sobre la ranura que se le nombre** en vez de pisarla, que es
+      lo que deja viva una pared donde el dibujo sólo apoya unos pixeles.
+    """
+    from PIL import Image
+    from render.chipset import caja_de_comun
+
+    # Un ChipSet de mentira, con la ranura alta 5 pintada de su único color.
+    base = Image.new("P", (480, 256))
+    base.putpalette([0, 0, 0] + [7, 7, 7] + [0, 0, 0] * 254)
+    base.paste(Image.new("P", (16, 16), 1), caja_de_comun(144 + 5)[:2])
+    ruta_chip = tmp_path / "base.png"
+    base.save(ruta_chip)
+
+    # Y un dibujo de 32x32 cuya mitad de arriba a la izquierda tiene un color
+    # que **no** es múltiplo de 8, para que el redondeo a 15 bits se note.
+    dibujo = Image.new("P", (32, 32))
+    dibujo.putpalette([255, 0, 255] + [250, 130, 66] + [0, 0, 0] * 254)
+    dibujo.paste(Image.new("P", (16, 16), 1), (0, 0))
+    ruta_dibujo = tmp_path / "dibujo.png"
+    dibujo.save(ruta_dibujo)
+
+    datos = {
+        "chipset": {"id": 999, "chipset_name": "salida"},
+        "imagen": {
+            "base": "base",
+            "desde_imagen": {
+                "carpeta": "Picture", "imagen": "dibujo", "escala": 50,
+                "desfase": [0, 0],
+                # La 6 se pisa entera; la 7 compone sobre el dibujo de la 5.
+                "celdas": [[0, 0, 6], [0, 0, 7, 5]],
+            },
+        },
+    }
+
+    def buscar(carpeta, nombre):
+        return str(ruta_chip if carpeta == "ChipSet" else ruta_dibujo)
+
+    anterior = fork.GENERADO
+    fork.GENERADO = str(tmp_path / "build")
+    try:
+        salida = Image.open(fork.imagen_del_chipset(datos, buscar))
+        salida.load()
+    finally:
+        fork.GENERADO = anterior
+    paleta = salida.getpalette()
+
+    def color(ranura, x, y):
+        indice = salida.crop(caja_de_comun(144 + ranura)).load()[x, y]
+        return indice, tuple(paleta[indice * 3:indice * 3 + 3])
+
+    # Al 50% el dibujo de 32x32 queda de 16x16: sus 8x8 de arriba a la
+    # izquierda pintados y el resto transparente.
+    indice, rgb = color(6, 0, 0)
+    assert indice, "el dibujo cayó en el índice 0, que es el transparente"
+    assert rgb == (248, 128, 64), "no redondeó a 15 bits: %s" % (rgb,)
+    assert color(6, 12, 12)[0] == 0, "lo transparente del dibujo pintó algo"
+
+    # La 7 arranca del dibujo de la 5 y el nuevo la tapa **sólo donde pinta**:
+    # donde el dibujo es transparente tiene que seguir el color de la 5.
+    assert color(7, 0, 0)[1] == (248, 128, 64), "no compuso encima"
+    assert color(7, 12, 12)[1] == (7, 7, 7), "componer borró la base"

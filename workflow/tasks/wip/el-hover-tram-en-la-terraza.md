@@ -86,6 +86,53 @@ fusiones caen entre vecinos. Las capturas están en `/extras/capturas/hovertram/
 `tram-comparado.png` es el antes y el después a 3x, y `port-320x240.png` tiene el
 mismo encuadre que la captura 1 de EasyRPG.
 
+# Dónde quedó
+
+Hecho y verificado:
+
+* el **fork del mapa 32 con el ChipSet 55**, podado a lo que el mapa dibuja.
+  Sale byte por byte igual que sin el fork;
+* **`desde_imagen`**, la operación que trae un PNG que no es ChipSet ni
+  CharSet, con su prueba. Está en el árbol pero **ninguna receta la usa
+  todavía**;
+* el **redondeo a 15 bits**, que es lo que hace entrar los colores.
+
+Falta **una decisión sobre la VRAM**, que es lo que frena el dibujo.
+
+# Lo que frena hoy: la capa de encima entra en 128 tiles y el tram pide 165
+
+Con el tram horneado, el conversor se planta:
+
+    mapa 32: con este reparto de VRAM, encima necesita 165 tiles y entran 128
+
+Los tres repartos de VRAM le dan a la capa de encima **128 tiles** —8 KB de
+BG2—, y ninguno es el que aprieta por otro lado: el mapa 32 gasta **213 tiles
+de fondo de 448** y **184 de sprite de 448**. Lugar sobra; lo que no hay es
+lugar **en esa capa**.
+
+Hasta el 2026-09-07 la capa de encima tenía **256 tiles** y alcanzaría. Se
+bajó a 128 a propósito, porque sobre 328 mapas la mediana de uso es **1 tile**
+y 326 entran en 128, y esos 4 KB liberados son 64 tiles de fondo más —que es
+lo que hizo entrar al mapa 8—.
+
+Volver a 256 no es agregar un cuarto reparto y listo, y eso está medido:
+**`VENTANA_TILE_BASE` es una constante global**, sale de `LAYOUT_VENTANA` sola,
+y `ventana_celdas` se emite **una sola vez para toda la ROM**. O sea que la
+ventana de mensaje sabe en qué índice de BG2 empieza y ese índice es el mismo
+para todos los mapas: un mapa con la capa de encima de otro tamaño dibujaría el
+texto con los tiles equivocados. Las salidas son tres, y ninguna es gratis:
+
+* **volver a 256 en todos los repartos**, que le saca 64 tiles de fondo a cada
+  mapa y hay que medir a quién deja afuera;
+* **hacer la ventana por mapa**, que cuesta ROM y complejidad;
+* **bajar el tram a 128 tiles**, que es un 23% menos y es artístico.
+
+Y una cuarta que **está medida y no sirve**: partir el tram entre el fondo y la
+capa de encima, dejando arriba sólo lo que un personaje puede tapar. Las
+**53 de 53** celdas del tram son alcanzables por un sprite parado en la
+terraza —se dibuja en `(x*16-4, y*16-16)`, así que toca las celdas vecinas—,
+así que no se ahorra ni una.
+
 # Lo que no entra en la forma de hoy
 
 La receta del ChipSet **no puede traer esta imagen**, y no por la operación que
@@ -107,7 +154,8 @@ hace, y las dos son decisiones, no detalles —`paleta.py` y `techo.py`—:
   148. Para la consola no pierde nada —el asignador cuantiza con `>>3` igual—,
   pero deja de ser el arte del juego lo que el fork escribe.
 
-Con las dos, 148 ≤ 174 y entra. **Falta que taro diga si van.**
+Con las dos, 148 ≤ 174 y entra. **Las dos se aprobaron el 2026-09-22 y están
+hechas**; el porqué de cada una quedó en el código y en `juego/README.md`.
 
 # Lo demás que quedó medido
 

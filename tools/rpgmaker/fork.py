@@ -34,11 +34,17 @@ nuestro para redistribuir —vive en `/extras`, ver `assets/README.md`—, así 
 el fork guarda la *receta* —qué bloque se copia adónde— y `imagen_del_chipset`
 la aplica sobre el PNG original dejando el resultado en `rom/build/juego/`.
 
-La receta tiene tres operaciones, y la tercera **trae pixeles de afuera del
-ChipSet**: `desde_charset` mete una pose de un CharSet en dos tiles altos, que
-es cómo un NPC que no hace nada más que estar parado deja de ser un sprite y
-pasa a ser mapa. Lo pide el público del Auditorio —el mapa 18—; el porqué está
-en `workflow/done/el-publico-del-auditorio-se-horneo.md`.
+La receta tiene cinco operaciones. Dos copian de adentro del propio ChipSet
+—`bloques_bajos` y `tiles_altos`— y dos **traen pixeles de afuera**:
+`desde_charset` mete una pose de un CharSet en dos tiles altos, que es cómo un
+NPC que no hace nada más que estar parado deja de ser un sprite y pasa a ser
+mapa —el público del Auditorio, el mapa 18—, y `desde_imagen` mete un PNG que
+no es ni ChipSet ni CharSet, escalado y cortado en celdas de 16x16.
+
+La quinta, `podar`, no dibuja: **borra lo que el mapa no usa**. El ChipSet de
+un fork es privado de su mapa, y lo que se gana no son pixeles sino **índices
+de paleta**: el PNG es indexado y tiene 256, que es el techo contra el que
+choca `desde_imagen`.
 """
 
 import json
@@ -258,13 +264,31 @@ class _Paleta:
             if not self.libres:
                 raise ForkRoto(
                     "el ChipSet se quedó sin índices de paleta: los 256 ya "
-                    "están usados y el CharSet trae colores que no tiene")
+                    "están usados y el dibujo que entra trae colores que no "
+                    "tiene. Si el ChipSet no se está podando, `podar` es lo "
+                    "que libera los índices que el mapa no usa")
             self.donde[color] = self.libres.pop(0)
             self.colores[self.donde[color]] = color
         return self.donde[color]
 
     def aplicar(self, imagen):
         imagen.putpalette([canal for color in self.colores for canal in color])
+
+
+def _a_quince(color):
+    """El color redondeado a los 15 bits que la consola muestra de verdad.
+
+    No pierde nada que el cartucho pudiera dibujar —el asignador cuantiza con
+    `>>3` igual— y **es lo que hace entrar el dibujo**: los 206 colores del
+    Hover Tram son 148 a 15 bits, contra los 174 índices que el ChipSet podado
+    deja libres. Sin esto no entra.
+
+    Que el PNG del ChipSet quede con colores que el arte original no tiene no
+    es un problema: esa imagen **no se versiona, se arma** —ver
+    `juego/README.md`—, así que es un intermedio del build y no el arte del
+    juego, que sigue intacto en su `Picture/`.
+    """
+    return tuple((canal >> 3) << 3 for canal in color)
 
 
 def _pose(imagen, receta):
@@ -319,11 +343,24 @@ def imagen_del_chipset(datos, buscar):
         imagen.paste(imagen.crop(caja_de_comun(144 + desde)),
                      caja_de_comun(144 + hasta)[:2])
 
+    # Las ranuras que `desde_imagen` va a pisar se vacían **antes** de mirar la
+    # paleta. Si no, sus colores de hoy siguen contando como usados y se quedan
+    # con los índices que el dibujo nuevo necesita: el podado las conserva
+    # porque el mapa forkeado las nombra, pero lo que el mapa dibuja ahí es el
+    # dibujo que está por entrar, no el que había. Sin esto el Hover Tram se
+    # queda sin índices y el build se planta.
+    for entrada in (receta.get("desde_imagen") or {}).get("celdas", []):
+        if len(entrada) <= 3:      # las que componen sobre otra ranura, no
+            imagen.paste(Image.new("P", (TILE, TILE)),
+                         caja_de_comun(144 + entrada[2])[:2])
+
     # Las dos operaciones que traen pixeles de afuera comparten **una sola**
     # paleta: cada `_Paleta` reparte los índices libres desde cero, así que dos
     # se pisarían los índices y la segunda `aplicar` borraría los colores de la
     # primera.
-    paleta = _Paleta(imagen) if receta.get("desde_charset") else None
+    paleta = (_Paleta(imagen)
+              if receta.get("desde_charset") or receta.get("desde_imagen")
+              else None)
 
     if receta.get("desde_charset"):
         for una in receta["desde_charset"]:
@@ -352,6 +389,46 @@ def imagen_del_chipset(datos, buscar):
                 tile = Image.new("P", (TILE, TILE))
                 tile.putdata(pixeles)
                 imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
+
+    if receta.get("desde_imagen"):
+        una = receta["desde_imagen"]
+        ruta = buscar(una["carpeta"], una["imagen"])
+        if ruta is None:
+            raise ForkRoto("no está %s/%s, que el ChipSet %d hornea"
+                           % (una["carpeta"], una["imagen"],
+                              datos["chipset"]["id"]))
+        fuente = Image.open(ruta)
+        fuente.load()
+        desde = _paleta(fuente)
+        # RM2k escala las imágenes con **vecino más cercano**, y el 65% del
+        # Hover Tram calza así al 97,3% contra la captura del juego original:
+        # ahí se comprobó de una vez el escalado, el anclaje y la posición.
+        escala = una.get("escala", 100)
+        ancho = fuente.width * escala // 100
+        alto = fuente.height * escala // 100
+        chica = fuente.resize((ancho, alto), Image.NEAREST).load()
+        # Dónde cae el pixel (0,0) del dibujo adentro de su primera celda: la
+        # imagen no tiene por qué estar alineada a la grilla de 16, y la del
+        # tram no lo está.
+        dx, dy = una.get("desfase", (0, 0))
+        for entrada in una["celdas"]:
+            columna, fila, ranura = entrada[:3]
+            # El cuarto elemento, si está, es la ranura de la que sale el
+            # fondo: el dibujo se compone **encima** de ella en vez de pisarla.
+            # Lo pide la pared de la terraza del mapa 32, donde nueve pixeles
+            # de la punta del tram caen sobre una celda que ya dibuja algo.
+            tile = (imagen.crop(caja_de_comun(144 + entrada[3]))
+                    if len(entrada) > 3 else Image.new("P", (TILE, TILE)))
+            pixeles = tile.load()
+            for y in range(TILE):
+                for x in range(TILE):
+                    px, py = columna * TILE + x - dx, fila * TILE + y - dy
+                    if not (0 <= px < ancho and 0 <= py < alto):
+                        continue
+                    indice = chica[px, py]
+                    if indice:
+                        pixeles[x, y] = paleta.indice(_a_quince(desde[indice]))
+            imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
 
     if paleta is not None:
         paleta.aplicar(imagen)

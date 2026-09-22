@@ -53,6 +53,26 @@ Duplicar un tile del ChipSet **no cuesta tiles en el cartucho**: Voodoo
 deduplica a nivel 8x8 y reusa el espejado, así que un tile repetido son cuatro
 celdas que ya estaban.
 
+### Y lo que el mapa no dibuja se poda
+
+`podar` es la operación que no dibuja nada: borra del ChipSet todo lo que su
+mapa no usa. Vale porque el ChipSet de un fork es **privado de su mapa**, así
+que no hay otro que pueda pedirle un tile que éste no dibuje.
+
+Lo que se gana no son pixeles sino **índices de paleta**. El PNG es indexado y
+tiene 256, y ése es el techo contra el que choca traer un dibujo de afuera:
+podado, el ChipSet del mapa 32 pasa de 122 índices libres a 174.
+
+Qué guardar sale del mapa **ya forkeado** y no de una lista escrita al lado,
+que es lo que hace que no se puedan desincronizar. Y no alcanza con las dos
+capas: **un evento sin CharSet se dibuja con un tile de la página alta** que no
+aparece en ninguna capa. Podando sin contarlos, el mapa 32 perdía la ranura 13
+y la ROM salía distinta; lo cobró la comparación byte por byte y hoy lo cuida
+`test_podar_conserva_las_ranuras_que_solo_nombra_un_evento`.
+
+Con `ChangeMapTileset` o `TileSubstitution` adentro, las capas dejan de decir
+qué dibuja el mapa y **el podado se planta** en vez de adivinar.
+
 ### Y una pose de CharSet también entra
 
 `desde_charset` es la tercera operación de la receta, y la primera que **trae
@@ -66,6 +86,24 @@ Lo que no se ve venir: **los dos PNG son indexados y sus índices no quieren
 decir lo mismo.** Copiar los bytes da un sprite pintado con la paleta del
 ChipSet, que es basura que se ve; así que se copia por color y el que falta se
 agrega en un índice que el ChipSet no use.
+
+### Y un PNG que no es ni ChipSet ni CharSet también entra
+
+`desde_imagen` es la cuarta operación: escala un PNG cualquiera —una imagen de
+`Picture/`, por ejemplo— y lo corta en celdas de 16x16 que van a ranuras altas.
+Escala con **vecino más cercano**, que es lo que hace RM2k, y `desfase` dice
+dónde cae su pixel (0,0) adentro de la primera celda, porque una imagen del
+juego no tiene por qué estar alineada a la grilla de 16.
+
+Los colores se redondean a **15 bits** antes de entrar. No pierde nada que el
+cartucho pueda dibujar —el asignador cuantiza con `>>3` igual— y es lo que hace
+entrar el dibujo en los 256 índices del PNG: el Hover Tram son 206 colores a 24
+bits y 148 a 15. Que el PNG del ChipSet quede con colores que el arte original
+no tiene no importa, porque **esa imagen no se versiona, se arma**.
+
+Una celda puede llevar un cuarto número: la ranura de la que sale su **fondo**.
+Con él, el dibujo se compone encima en vez de pisarla, que es lo que deja viva
+una pared donde el dibujo sólo apoya unos pixeles.
 
 Y **la pasabilidad del tile es una decisión, no una herencia**: acá no hay un
 tile de origen del que copiarla. Un evento en la capa del héroe es una pared,
