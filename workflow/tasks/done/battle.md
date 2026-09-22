@@ -105,11 +105,15 @@ Lo que hay, y lo que no:
     usar un ítem                    sí: ver abajo
     habilidades                     sí: ver abajo
     los estados                     no
-    experiencia, oro, subir nivel   no: no hay niveles
+    experiencia y subir nivel       sí, desde el 2026-09-21: ver
+                                    `experiencia-y-subida-de-nivel.md`
+    oro al ganar                    no
     la música y los efectos         sí: ver abajo
-    los battlers dibujados          sí, horneados en el fondo: ver abajo
+    los battlers dibujados          sí; desde el 2026-09-21 compuestos en la
+                                    consola: `escena-de-pelea-compuesta-en-runtime.md`
     la imagen de fondo              sí
-    las páginas de evento de tropa  no
+    las páginas de evento de tropa  sí, desde el 2026-09-21, las de switch y
+                                    variable: `el-sistema-de-batalla-de-talan.md`
     los encuentros aleatorios       sí: ver abajo
 
 La pantalla muestra los HP de los enemigos, que RM2k no hace. Es a propósito:
@@ -163,7 +167,9 @@ Qué entra en la lista y cuánto cura sale de easyrpg-player:
   ofrece las que **recuperan HP y no son `ko_only`**: las de SP quedan afuera
   porque la lista todavía sólo sabe curar HP —los SP **sí** son estado, así que
   eso pasó de imposible a deuda—, y las de revivir porque revivir es sacar el
-  estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
+  estado de muerto y los estados no existen. (Eso último no era cierto: EasyRPG
+  decide si alguien está caído por los HP, y así se resolvió en el menú; en la
+  pelea sigue pendiente en `todo/el-elixir-en-la-pelea.md`.) Son 12 de las 22 medicinas del
   juego, de la Potion de 50 a la Miracle Drop, que cura todo.
 * **Cuánto cura**: `Game_BattleAlgorithm::Item::vExecute`, o sea
   `recover_hp_rate * GetMaxHp() / 100 + recover_hp`, topado contra lo que le
@@ -304,8 +310,9 @@ Dos cosas del PPU que no son obvias —el bit de prioridad del texto y el tile
 512 con que se tapa lo que queda abajo— están anotadas arriba de `escena_subir`
 en `main.s`, que es donde muerden.
 
-**Lo que cuesta, declarado**: un enemigo muerto se sigue viendo. En RM2k
-desaparece; acá lo que dice que murió es su renglón —el nombre en gris y los
+**Lo que costaba, declarado** —resuelto el 2026-09-21: la escena se compone en
+la consola y el muerto desaparece, ver `escena-de-pelea-compuesta-en-runtime.md`—:
+un enemigo muerto se seguía viendo. En RM2k desaparece; acá lo que dice que murió es su renglón —el nombre en gris y los
 HP en cero—, que es la misma razón por la que esta pantalla muestra los HP de
 los enemigos y RM2k no. Y una escena es **por tropa** y no por fondo: dos
 tropas con el mismo fondo llevan las dos escenas, a 32 KB cada una.

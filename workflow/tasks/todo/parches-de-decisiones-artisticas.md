@@ -17,10 +17,11 @@ RPG Maker"*.
 Decidido el 2026-09-20, en dos fases. La fase 2 **está decidida**, no es una
 posibilidad.
 
-**La fase 1 está hecha para dos de las cuatro clases**: los colores que se
-fusionan en las dos capas de un mapa, y el tamaño al que se dibuja cada
-animación de batalla. Salen a `parches/mapas/<id>.toml` y a
-`parches/animaciones/<n>.toml`, los escribe el conversor al lado de cada ROM
+**La fase 1 está hecha para tres clases**: los colores que se fusionan en las
+dos capas de un mapa, el tamaño al que se dibuja cada animación de batalla, y
+—desde el 2026-09-21, con la escena de la pelea compuesta en la consola— los
+quince colores de cada battler. Salen a `parches/mapas/<id>.toml`,
+`parches/animaciones/<n>.toml` y `parches/battlers/<nombre>.toml`, los escribe el conversor al lado de cada ROM
 que arma, `just parches` copia a git los del ROM jugable, y
 `just parches-check` —y `test_parches.py`, adentro de la tanda— fallan diciendo
 **qué decisión cambió**. Las otras dos siguen sin dejar rastro; al final está
@@ -36,13 +37,15 @@ Al pasar de RM2k a la SNES hay dos clases de transformación:
 * **Lossy, o "decisiones artísticas"**: algo se pierde y alguien eligió qué.
   **Ésas son los parches.**
 
-Las cuatro que hay hoy, todas automáticas; las dos primeras ya dejan rastro
+Las cinco que hay hoy, todas automáticas; las tres primeras ya dejan rastro
 escrito y las dos últimas todavía no:
 
 * los **colores que se fusionan** cuando una imagen no entra en las paletas
   (`tools/port/asignador.py`) — escritas, por mapa;
 * las **animaciones dibujadas a otro tamaño**, como la del Emitter Room
   (`tools/port/animacion.py`) — escritas, por número de animación;
+* los **quince colores de cada battler** en la escena de la pelea
+  (`tools/port/escena.py`) — escritos, por imagen y tono;
 * las **voces que se caen de un MIDI** y las **muestras recortadas** cuando no
   entran en la ARAM (`tools/audio/snes_music.py`);
 * **`DECORAR_TRANSLUCIDO`**: un CharSet translúcido reemplazado por otro
@@ -147,6 +150,14 @@ colores y alguien eligió cuáles—, tiene la misma clave, y es casi el mismo
 formato que las fusiones de las capas. No se hizo acá porque la tarea era el
 tamaño.
 
+## Los battlers, que fueron la tercera
+
+Salieron el 2026-09-21 con la escena de la pelea compuesta en la consola, que
+lleva cada monstruo a quince colores. Van en su forma mínima: la paleta que
+quedó y cuántas fusiones hicieron falta, no la lista entera de fusiones, que
+medía 179 KB. La clave es la imagen y su tono (`battler_hue`), que es lo que
+distingue a dos battlers con el mismo dibujo.
+
 ## Lo que falta, con lo que cuesta
 
 * **Las paletas de los personajes.** La que más se parece a lo que viene:
@@ -157,7 +168,8 @@ tamaño.
   solo; lo que hay que diseñar es qué pasa cuando **sí** se puede aplicar pero
   la paleta que reserva no está libre. Ése es el caso que taro pidió mirar y en
   las capas no existe, así que ahí se va a decidir de verdad.
-* **Las voces que se caen de un MIDI y las muestras recortadas.** La más cara, y
+* **Las voces que se caen de un MIDI y las muestras recortadas.** Tiene su
+  propia tarea, `el-audio-en-dos-pasos-lossy.md`. La más cara, y
   la que conviene parar antes de forzarla. Lo que se cae no lo decide un tema
   sino el reparto de la ARAM entre **todos** los del cartucho, con una prioridad
   que depende de dónde arranca la ROM: la clave "el tema" no alcanza para

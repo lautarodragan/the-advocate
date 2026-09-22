@@ -22,5 +22,5 @@ muestra algo que el emulador no.
 # Por qué
 
 Hoy la música la toca el 65816 desde una IRQ —ver "La música no espera al lazo"
-en `README.md`— y funciona, pero cuesta **hasta veinte líneas por cuadro** y
+en `docs/events.md`— y funciona, pero cuesta **hasta veinte líneas por cuadro** y
 obliga a las reglas de la interrupción.

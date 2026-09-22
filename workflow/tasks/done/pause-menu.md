@@ -133,8 +133,9 @@ que es el menú propio del juego hecho con imágenes: 568 comandos, y los
 eventos comunes todavía no corren.
 
 **Las medicinas van en blanco y abren la elección de actor**, que es el panel
-del grupo del menú con un cursor al costado —`render_objetivo`—. A no hace
-nada, y eso **sí** es deuda: `UseItem` sólo gasta la medicina si sube algo, y
+del grupo del menú con un cursor al costado —`render_objetivo`—. A no hacía
+nada —**resuelto el 2026-09-21**, ver `curar-fuera-de-pelea.md`—, y eso era
+deuda: `UseItem` sólo gasta la medicina si sube algo, y
 desde que hay peleas los HP bajan, así que usarla tendría algo que hacer.
 Hasta el 2026-09-12 no la tenía, porque fuera de batalla nadie bajaba nunca de
 los máximos y los tres comandos que tocan HP o estados compilaban a nada; hoy
@@ -183,8 +184,9 @@ El equipo es estado: cinco palabras por actor del LDB en `FAR_EQUIPO`, que
 arranca con el equipo inicial de la base —un DMA de la tabla del conversor en
 el reset— y viaja en la partida. Son 610 bytes más, y con ellos la partida
 pasó de los 1024 de la ranura: **la SRAM es de 32 KB** y
-las ranuras van cada 2048. `ChangeEquipment` no compila todavía: el juego lo
-usa en dos mapas que no están en la demo.
+las ranuras van cada 2048. `ChangeEquipment` no compilaba —el juego lo usa en
+dos mapas que hoy están en la demo—: **compila desde el 2026-09-21** la forma de
+sacar una ranura, ver `change-equipment-skills-game-over.md`.
 
 La pantalla de equipo —y la tienda, que sigue— son **pantallas de texto**: no
 llevan bloques dibujados sino la fuente de la pantalla de ítems, y se componen
