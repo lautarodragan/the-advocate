@@ -138,6 +138,97 @@ def _paleta(imagen):
     return [tuple(crudo[i * 3:i * 3 + 3]) for i in range(len(crudo) // 3)]
 
 
+# El agua y los tiles animados comparten este rectángulo del ChipSet; el resto
+# de la mitad izquierda son los doce autotiles de terreno, y la derecha, los
+# tiles comunes. Ver `render/chipset.py`, que es de donde salen los offsets.
+CAJA_AGUA = (0, 0, 96, 128)
+
+
+# Los comandos que eligen un tile **en tiempo de ejecución**: con uno de éstos
+# adentro, las capas del mapa dejan de decir qué se dibuja y el podado no puede
+# saber qué guardar. Ninguno de los dos mapas forkeados de hoy los usa, así que
+# `podar` se planta en vez de adivinar: perder arte en silencio es justo lo que
+# este archivo existe para evitar.
+COMANDOS_QUE_ELIGEN_TILES = {
+    11710: "ChangeMapTileset",
+    11750: "TileSubstitution",
+}
+
+
+def _lo_que_dibuja(map_id):
+    """Qué partes del ChipSet usa ese mapa: agua, autotiles y ranuras comunes.
+
+    Sale del mapa **ya forkeado**, que es lo que lo hace self-checking: si el
+    fork empieza a dibujar una ranura nueva, esta cuenta la ve sola y el podado
+    la respeta sin que haya que acordarse de anotarla en ningún lado.
+
+    Y no alcanza con las dos capas. **Un evento sin CharSet se dibuja con un
+    tile de la página alta** —ver `rm2k.nombre_de_tile`: así están hechas las
+    puertas y buena parte del decorado— y ese tile no aparece en ninguna capa.
+    Podando sin contarlos, el mapa 32 perdía la ranura 13 y la ROM salía con
+    78 bytes distintos: lo cobró la comparación byte por byte, no una prueba.
+    """
+    from rpgmaker import lcf
+
+    mapa = lcf.Map(os.path.join(REPO, "data", "maps", "Map%04d.json" % map_id))
+    agua = False
+    terrenos, comunes = set(), set()
+    for capa in (mapa.lower_layer, mapa.upper_layer):
+        for tile in capa:
+            if tile < 4000:
+                agua = True              # agua (0..2999) y animados (3000..)
+            elif tile < 5000:
+                terrenos.add((tile - 4000) // 50)
+            elif tile < 10000:
+                comunes.add(tile - 5000)
+            else:
+                comunes.add(144 + tile - 10000)
+    for evento in mapa.events:
+        for pagina in evento.pages:
+            if not pagina.character_name:
+                comunes.add(144 + pagina.character_index)
+            for comando in pagina.commands:
+                nombre = COMANDOS_QUE_ELIGEN_TILES.get(comando.code)
+                if nombre:
+                    raise ForkRoto(
+                        "el mapa %d usa %s, que elige un tile en tiempo de "
+                        "ejecución: con eso las capas no dicen qué se dibuja y "
+                        "podar el ChipSet le borraría arte que el mapa sí usa"
+                        % (map_id, nombre))
+    return agua, terrenos, comunes
+
+
+def podar(imagen, map_id):
+    """Borra del ChipSet todo lo que ese mapa no dibuja.
+
+    Un ChipSet del fork es **privado de su mapa** —ver `juego/README.md`—, así
+    que ningún otro puede pedirle un tile que éste no use: lo que no se dibuja
+    es peso muerto. Y el peso que importa no son los pixeles sino los **índices
+    de paleta**: el PNG es indexado y tiene 256, que es el techo contra el que
+    choca `desde_imagen` al traer un dibujo de afuera. Podando el ChipSet 1 se
+    pasa de 122 índices libres a 174, y ésa es la diferencia entre que el Hover
+    Tram entre y no entre.
+
+    No puede cambiar lo que se ve —borra tiles que el mapa no nombra— y eso acá
+    se demuestra, no se supone: la ROM sale byte por byte igual con el ChipSet
+    podado mientras el mapa siga dibujando lo mismo.
+    """
+    from PIL import Image
+
+    from render.chipset import caja_de_comun, caja_de_terreno
+
+    agua, terrenos, comunes = _lo_que_dibuja(map_id)
+    if not agua:
+        imagen.paste(Image.new("P", (CAJA_AGUA[2], CAJA_AGUA[3])),
+                     CAJA_AGUA[:2])
+    for n in range(12):
+        if n not in terrenos:
+            imagen.paste(Image.new("P", (48, 64)), caja_de_terreno(n)[:2])
+    for i in range(288):
+        if i not in comunes:
+            imagen.paste(Image.new("P", (16, 16)), caja_de_comun(i)[:2])
+
+
 class _Paleta:
     """La paleta del ChipSet mientras se le agregan colores de un CharSet.
 
@@ -214,6 +305,11 @@ def imagen_del_chipset(datos, buscar):
     # los tiles vacíos **opacos**: se ve, y se ve mal.
     imagen = Image.open(origen)
     imagen.load()
+    # Primero el podado, porque libera índices de paleta que las operaciones
+    # de abajo van a necesitar, y porque lee el mapa **forkeado**: las ranuras
+    # que el fork estrena ya están en sus capas, así que las respeta.
+    if "podar" in receta:
+        podar(imagen, receta["podar"])
     for desde, hasta in receta.get("bloques_bajos", []):
         imagen.paste(imagen.crop(caja_de_terreno(desde)),
                      caja_de_terreno(hasta)[:2])
@@ -223,8 +319,13 @@ def imagen_del_chipset(datos, buscar):
         imagen.paste(imagen.crop(caja_de_comun(144 + desde)),
                      caja_de_comun(144 + hasta)[:2])
 
+    # Las dos operaciones que traen pixeles de afuera comparten **una sola**
+    # paleta: cada `_Paleta` reparte los índices libres desde cero, así que dos
+    # se pisarían los índices y la segunda `aplicar` borraría los colores de la
+    # primera.
+    paleta = _Paleta(imagen) if receta.get("desde_charset") else None
+
     if receta.get("desde_charset"):
-        paleta = _Paleta(imagen)
         for una in receta["desde_charset"]:
             hoja = buscar("CharSet", una["charset"])
             if hoja is None:
@@ -251,6 +352,8 @@ def imagen_del_chipset(datos, buscar):
                 tile = Image.new("P", (TILE, TILE))
                 tile.putdata(pixeles)
                 imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
+
+    if paleta is not None:
         paleta.aplicar(imagen)
 
     destino = os.path.join(GENERADO, "ChipSet",
