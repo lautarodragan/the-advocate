@@ -49,3 +49,43 @@ Reproducirlo en el arnés —una ruta rápida más un pan, o la secuencia del ma
 14—, arreglarlo y dejar la prueba. El arreglo probable es que `stream_map`
 alcance a la cámara en un lazo en vez de asumir una fila, y que un salto grande
 pida `fill_window`.
+
+# Lo hecho, el 2026-09-22
+
+**La hipótesis de arriba era la correcta, y el pan es el que manda.** Lo que
+faltaba medir era cuánto llega a saltar la cámara en una vuelta, y son **dos
+filas**: 8 px del héroe a velocidad 6 —`paso_medio_por_vel` llega a 64
+octavos— más 8 px de un `PanScreen` a velocidad 6 —`2 << 6` dieciseisavos—, en
+el mismo eje. El salto del héroe **no** alcanza: el más largo del juego es de
+cinco celdas en once cuadros, 7,3 px por cuadro, medido sobre los 410 saltos de
+`data/maps/`.
+
+Reproducido con dos casos, `camara-veloz` y `camara-veloz-x`, y comprobado
+contra la VRAM y no contra la pantalla: de un PNG no se saca, porque la ventana
+es un toro y una fila salteada se ve como un mapa plausible corrido una celda.
+`Partida.ventana` pregunta qué celda tiene cada ranura y lo compara contra lo
+mismo llegando por un teletransporte. Ver `pruebas/rpgmaker/test_camara.py`.
+
+`stream_map` ahora hace hasta dos filas y dos columnas por vuelta, avanzando el
+borde **de a uno**: si algún día la cámara saltara más, `win_row` se queda atrás
+en vez de mentir y lo que falta se dibuja en las vueltas siguientes.
+
+Lo que cuesta, medido con `cuadros_perdidos` y el mapa 11, que es el que menos
+margen tiene: **cero** en el caso que ejercita el arreglo —dos filas por vuelta
+durante 120 cuadros, +44 cuadros perdidos antes y después— y hasta +2 de 120 en
+la caminata normal.
+
+## Lo que apareció de paso, y es otro bug
+
+**Un salto del héroe que es la última orden de su ruta forzada queda colgado
+para siempre**, y el héroe flotando a mitad del arco. `move_hero` sólo llama a
+`paso_de_ruta` mientras `ruta_i < ruta_n`, y `paso_de_ruta` es el único que baja
+`ruta_salto`; cuando el salto es la última orden, la ruta ya está consumida en
+el cuadro siguiente y nadie lo avanza más. Medido con el caso
+`camara-salto-colgado`: `ruta_salto` se queda en 232 y `hero_y` en 323 con la
+celda de destino en `tile_y = 22`, para siempre.
+
+Es lo que taro describe en el mapa 11 —Talan flotando mientras se muestra el
+texto—, y **196 de las 410 rutas con salto del juego terminan en el salto**.
+`hay_rutas` tampoco mira `ruta_salto`, así que un `ProceedWithMovement` pegado
+atrás no espera el salto. No se arregló acá a propósito: va en su propia tarea.
