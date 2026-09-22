@@ -508,6 +508,43 @@ class Partida:
                 "%s" % (indice, len(self.mapas), self.mapas))
         return self.mapas[indice]
 
+    def ventana(self):
+        """Qué celda del mapa hay dibujada en cada lugar de la pantalla.
+
+        La ventana del tilemap es un toro: la celda `(mx, my)` del mapa vive
+        siempre en la ranura `(mx mod 64, my mod 32)` de la VRAM. Así que para
+        saber si lo dibujado corresponde con el mapa no alcanza con mirar la
+        pantalla —dos filas corridas se ven como un mapa plausible—: hay que ir
+        a la VRAM y preguntarle a cada ranura qué celda dice tener.
+
+        Devuelve `{(mx, my): (fondo, encima)}` de las celdas que la pantalla
+        toca y que caen adentro del mapa. Lo de afuera de la vista queda
+        afuera a propósito: ahí el streaming pisa ranuras que nadie mira, y
+        cobrarlas sería cobrar algo que no se ve.
+        """
+        win_col = self.palabra("win_col")
+        win_row = self.palabra("win_row")
+        ancho = self.palabra("mapa_cw")
+        alto = self.palabra("mapa_ch")
+        cols, filas = self.simbolos["WINDOW_COLS"], self.simbolos["WINDOW_ROWS"]
+        # Las dos pantallas de 32x32 del tilemap no son contiguas: la de la
+        # derecha vive 1024 palabras más adelante, que es como las escribe
+        # `push_strips`.
+        fondo = self.consola.vram(self.simbolos["VRAM_MAP"], 32 * 32 * 2)
+        encima = self.consola.vram(self.simbolos["VRAM_ABOVE_MAP"], 32 * 32 * 2)
+        visto = {}
+        for my in range(win_row, win_row + self.simbolos["VIEW_ROWS"]):
+            if my >= alto:
+                break
+            for mx in range(win_col, win_col + self.simbolos["VIEW_COLS"]):
+                if mx >= ancho:
+                    break
+                ranura = (my % filas) * 32 + (mx % 32)
+                if (mx % cols) >= 32:
+                    ranura += 1024
+                visto[(mx, my)] = (fondo[ranura], encima[ranura])
+        return visto
+
     def switch(self, numero):
         """Si el switch está prendido. Es el mismo bitmap que lee la ROM."""
         octeto = self.consola.ram(self.simbolos["switches"] + numero // 8, 1)

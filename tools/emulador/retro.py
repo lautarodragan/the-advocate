@@ -275,6 +275,9 @@ class Consola:
     # el EverDrive tiene con batería. `RETRO_MEMORY_SAVE_RAM` es 0, y a ésta
     # bsnes también la devuelve nula: la lee snes9x, que es el core de la tanda.
     MEMORIA_SRAM = 0
+    # Y la VRAM del PPU, `RETRO_MEMORY_VIDEO_RAM`: 64 KB. La expone snes9x, que
+    # es el core de la tanda; bsnes upstream la devuelve nula igual que la WRAM.
+    MEMORIA_VRAM = 3
 
     def sram(self, direccion=0, largo=None):
         """Bytes de la SRAM del cartucho.
@@ -313,6 +316,29 @@ class Consola:
         if largo is None:
             largo = total - direccion
         return ctypes.string_at(base + direccion, largo)
+
+    def vram(self, palabra=0, palabras=None):
+        """Palabras de la VRAM, desde la **dirección de palabra** del PPU.
+
+        Se pide en palabras y no en bytes porque así es como el 65816 le habla
+        al PPU: `VMADDL` es una dirección de palabra, y los símbolos del `main.s`
+        —`VRAM_MAP`, `VRAM_ABOVE_MAP`— están escritos en esas unidades. Pedirla
+        en bytes obligaría a que cada quien se acuerde del por dos.
+
+        Es lo único que deja comprobar el tilemap sin mirar la pantalla: la
+        ventana del mapa es un toro y de un PNG no se lee qué celda quedó en
+        qué ranura. `RETRO_MEMORY_VIDEO_RAM` es el id 3.
+        """
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORIA_VRAM)
+        total = self.lib.retro_get_memory_size(self.MEMORIA_VRAM)
+        if not base or not total:
+            raise RuntimeError("este core no expone la VRAM")
+        if palabras is None:
+            palabras = total // 2 - palabra
+        crudo = ctypes.string_at(base + palabra * 2, palabras * 2)
+        return [crudo[i] | (crudo[i + 1] << 8) for i in range(0, len(crudo), 2)]
 
     def escribir_ram(self, direccion, datos):
         """Escribe bytes en la WRAM, en la dirección del banco $7E.
