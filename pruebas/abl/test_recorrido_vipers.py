@@ -42,9 +42,20 @@ por vuelta, fuera de los fundidos; el pico son los saltos del caño—. Las dos
 cosas que llegan a los 16 px son el héroe a velocidad 6 y un `PanScreen` a
 velocidad 6 sumados en el mismo eje, y acá no hay ninguno de los dos: ver
 `pruebas/rpgmaker/test_camara.py`, que los arma a mano. La comprobación de la
-ventana se hace igual en los dos hitos donde se puede —es baratísima y es la
+ventana se hace igual en los tres hitos donde se puede —es baratísima y es la
 única que ve esa clase de error— pero **hoy no puede dar rojo**, y eso se dice
 acá para que nadie la cuente como red de algo.
+
+El 2026-09-23 taro propuso que la caminata de después lo destapara: volver a la
+calle y caminar a la izquierda cruzando además una fila. Está agregada —el
+último hito— y **no alcanza, medido**: sobre la ROM de antes del arreglo la
+prueba entera pasa, y muestreando la cámara vuelta por vuelta en esa caminata el
+peor salto es de **2 px**. La cámara sigue al héroe y el héroe camina a
+velocidad normal; sin un `PanScreen` encima no hay con qué llegar a 8. El único
+`PanScreen` de esta parte del mapa 8 es la escena de los chicos y el dueño del
+negocio —los eventos 51 y 53 de (59,23) y (59,24), que piden el switch 33— y la
+otra candidata es la reja del mapa 12, que sale con un salto de cinco celdas:
+las dos están en `workflow/tasks/wishlist/la-otra-rama-de-los-neon-vipers.md`.
 
 Las capturas de los hitos van a `rom/build/pruebas/recorrido/vipers/` y **no
 están bendecidas**: son para que taro las mire. Ver `Recorrido.foto`.
@@ -83,6 +94,12 @@ ADENTRO_DEL_HQ = (9, 1)
 # es la que se toma tocando A sin mover el cursor.
 EL_HOTPLATE = (5, 39)
 DE_VUELTA_EN_LA_CALLE = (44, 13)
+
+# Y adónde se camina después de volver, que es lo que taro pidió mirar: catorce
+# celdas a la izquierda y una para arriba, o sea la cámara moviéndose por los
+# dos ejes con los eventos del HQ ya corridos. Es el pasillo de las filas 12 y
+# 13, que está entero en la misma isla.
+CAMINAR_POR_LA_CALLE = (30, 12)
 
 
 def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
@@ -142,7 +159,27 @@ def ventana_coherente(una):
     return [c for c in antes if antes[c] != despues[c]], antes
 
 
+def quedarse_quieto(p, tope=60):
+    """Corre hasta que la cámara deja de moverse, que es lo que `ventana_coherente`
+    pide para poder comparar.
+
+    Caminar termina apenas cambia la celda —ver `Recorrido._paso`— y ahí el
+    héroe todavía está a mitad de paso: la cámara le queda doce pixeles atrás y
+    el teletransporte de referencia la recentra, así que la comparación se
+    quejaba de que no comparaba lo mismo. No es el defecto que se busca; es que
+    todavía no terminó de caminar.
+    """
+    anterior = None
+    for _ in range(tope):
+        ahora = (p.palabra("camara_x"), p.palabra("camara_y"))
+        if ahora == anterior:
+            return
+        anterior = ahora
+        p.correr(2)
+
+
 def mirar_la_ventana(r):
+    quedarse_quieto(r.p)
     distintas, todas = ventana_coherente(r.p)
     assert not distintas, (
         "%d de las %d celdas que se ven tienen dibujada otra celda del mapa; "
@@ -199,4 +236,16 @@ def test_del_cano_de_lashe_city_al_hq_de_los_neon_vipers(recorrido):
     assert r.celda() == DE_VUELTA_EN_LA_CALLE, r.estado()
     assert r.p.byte("ruta_salto") == 0, r.estado()
     r.foto("de-vuelta-en-la-calle")
+    mirar_la_ventana(r)
+
+    # Y recién acá aparece el otro defecto: **el mapa corrido se ve caminando,
+    # no llegando**. El `Teleport` de la cinemática rellena la ventana entera,
+    # así que el hito de arriba siempre está bien; lo que queda mal es lo que
+    # se dibuja después, mientras la cámara sigue al héroe por una calle donde
+    # los eventos del HQ ya están corriendo. Lo pidió taro el 2026-09-23 y su
+    # sospecha era exacta.
+    r.empezar("caminar por la calle con la cámara siguiendo al héroe")
+    r.caminar_a(CAMINAR_POR_LA_CALLE, tope=8000)
+    assert r.celda() == CAMINAR_POR_LA_CALLE, r.estado()
+    r.foto("caminando-por-la-calle")
     mirar_la_ventana(r)
