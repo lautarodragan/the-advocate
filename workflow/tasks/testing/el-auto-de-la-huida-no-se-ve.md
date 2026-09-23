@@ -33,3 +33,27 @@ Nació en `348cf58` (2026-09-06). Dos líneas más arriba la misma función lee
 
 **No es de este mapa**: le pasa a cualquier refresco con una automática
 corriendo, que en una cinemática es lo normal.
+
+# El arreglo
+
+`solo_auto` se lee con `lda`, antes que la página. Con eso, en el mismo
+arranque de `en-4` con 130 y 132, el evento 1 elige su página (`$A0`) y el 2
+queda escondido (`$FFFD`): **el auto rojo aparece, y anima** —cambia de pose
+cada diez cuadros—. El azul no, que es lo que corresponde.
+
+Y como la página de prueba de cada caso de la tanda **es una automática**,
+todos los refrescos de la tanda corrían con el error puesto: el arreglo puede
+mover goldens que no tienen nada que ver con autos. El primero que apareció es
+`destello-compartido-2`: el héroe ya no destella junto con el evento 4.
+
+**No movió ninguna golden**: `just pruebas` en verde con el arreglo. Lo
+de `destello-compartido-2` que se ve arriba no era esto sino el caso de la otra
+tarea, que destellaba al héroe y le cambiaba al conversor el reparto de paletas
+del mapa 6: ver `dos-destellos-a-la-vez`.
+
+Lo cuida `pruebas/rpgmaker/test_refresco_con_automatica.py`, que arranca en
+`en-4` con 130 y 132 y mira que el rojo se dibuje y el azul no. Se la vio en
+rojo contra el `main.s` de antes del arreglo: las dos filas en cero.
+
+Lo que **no** se corrió: la huida jugada entera, desde el techo. La prueba
+llega al mapa 4 con los switches puestos a mano.

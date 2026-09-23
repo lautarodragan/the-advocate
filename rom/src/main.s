@@ -2732,12 +2732,16 @@ recorrer:
     tay
     sep #$20
 .a8
-    lda [pag_ptr], y
-    ldx solo_auto
+    ; Con A y no con un `ldx`: X está en 16 bits y se llevaría también
+    ; `auto_n`, el byte de al lado, así que con una automática corriendo la
+    ; pasada completa filtraría como la corta.
+    lda solo_auto
     beq filtro_completo
+    lda [pag_ptr], y
     and #$80                    ; la pasada corta: sólo las automáticas
     bra con_filtro
 filtro_completo:
+    lda [pag_ptr], y
     and #$E0
 con_filtro:
     bne mirar_pagina
