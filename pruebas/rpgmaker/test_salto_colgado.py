@@ -99,6 +99,48 @@ def test_un_proceed_with_movement_espera_el_salto_del_heroe(partida):
         "la página no terminó después de que el héroe aterrizara"
 
 
+def test_un_teleport_al_mismo_mapa_no_deja_al_heroe_con_arco(partida):
+    """Un `Teleport` disparado con el héroe en el aire lo deja en su celda y sin
+    arco pendiente.
+
+    Es la única forma que tiene el héroe de cambiar de celda sin pasar por el
+    salto: el atajo del teletransporte al mismo mapa escribe `hero_x`/`hero_y`
+    desde `entrada_x`/`entrada_y` y llama a `fill_window`, pero **no** toca
+    `ruta_salto`. Si quedara arco, `salto_avanzar_heroe` volvería a correr al
+    héroe hasta 29 px desde donde el teletransporte lo puso —dy por lo que
+    quedaba, sobre 16— con la ventana recién llena. En RM2k eso no pasa porque
+    `MoveTo` hace `SetRemainingStep(0)` y `GetSpriteY` deja de restar el arco en
+    el acto.
+
+    Medido: acá no pasa tampoco, y por una razón que no es la de RM2k sino de
+    plazos. Un `Teleport` cuesta el fundido —la celda nueva aparece unos noventa
+    ticks después del comando— y un salto del héroe dura once: `SALTO_PASO`
+    sobre `SALTO_VELOCIDAD`. El salto siempre aterriza antes. La prueba está acá
+    para que se sepa si algún día eso deja de valer, porque el orden es lo único
+    que lo sostiene.
+    """
+    una = partida(caso="salto-teleport-en-el-aire")
+    volo = False
+    llego = False
+    for _ in range(300):
+        una.correr(1)
+        volo = volo or bool(una.byte("ruta_salto"))
+        if una.palabra("tile_x") == 30:         # la celda a la que teletransporta
+            llego = True
+            break
+    assert volo, "el héroe nunca saltó: el caso dejó de reproducir"
+    assert llego, \
+        "el teletransporte al mismo mapa nunca llegó: el caso dejó de reproducir"
+    assert una.byte("ruta_salto") == 0, (
+        "el héroe llegó al destino con %d de arco todavía: los próximos cuadros "
+        "lo van a correr de donde el teletransporte lo puso"
+        % una.byte("ruta_salto"))
+    assert una.palabra("hero_y") == una.palabra("tile_y") * 16, (
+        "llegó a tile_y = %d y su hero_y es %d, que en reposo son %d"
+        % (una.palabra("tile_y"), una.palabra("hero_y"),
+           una.palabra("tile_y") * 16))
+
+
 def test_una_ruta_de_evento_que_termina_en_salto_no_se_cuelga(partida):
     """El mismo agujero en los eventos, que no lo tienen.
 
