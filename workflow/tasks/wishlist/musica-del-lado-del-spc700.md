@@ -12,8 +12,8 @@ también.
 
 # Status
 
-Anotado, sin empezar. Acordado con taro el 2026-09-11 como el paso que sigue;
-estaba en "Lo que falta del port" de `ESTADO.md`. **No** es un secuenciador en
+Anotado, sin empezar. Acordado con taro el 2026-09-11 como el paso que sigue.
+**No** es un secuenciador en
 el SPC700 como los de los juegos comerciales, y el conversor no cambia.
 
 Se encara cuando haga falta el margen del lazo, o si en la consola el audio

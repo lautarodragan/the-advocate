@@ -40,5 +40,5 @@ ve, y el `nobodyhere`, que esconde al héroe como esconde a un evento.
 # Y sobre eventos
 
 Sobre eventos la 34 ya se hacía antes, y lo que valió también está medido:
-**+25 páginas**. Ese número vivía en "Lo que falta del port" de `ESTADO.md`,
-debajo de un título que decía que faltaba.
+**+25 páginas**. Durante un tiempo ese número vivió debajo de un título que
+decía que faltaba.

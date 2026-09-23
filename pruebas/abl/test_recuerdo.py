@@ -13,8 +13,9 @@ lados no hacían nada.
 
 # Los cuadros en que hay que apretar A para que la escena avance sola. Salieron
 # de correr la referencia e ir agregando un toque treinta cuadros después de
-# cada mensaje que la frena; ver `ESTADO.md`, "los primeros veinte cuadros de un
-# mensaje". Es la misma lista que usa el caso `manta`.
+# cada mensaje que la frena: la ROM ignora el botón mientras compone la ventana
+# —medido, de 9 a 19 cuadros según el texto—, así que un toque que caiga ahí no
+# pasa. Es la misma lista que usa el caso `manta`.
 TOQUES = [212, 243, 394, 515, 727, 758, 789, 820, 971, 1517, 1548, 1699, 1790,
           1911, 1942, 2033, 2125, 2156, 2247, 2338, 2399, 2460, 2570, 2674,
           2987, 3018, 3079, 3110, 3141, 3214, 3510, 3541, 3723, 3826]

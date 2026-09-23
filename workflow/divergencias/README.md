@@ -10,10 +10,9 @@ sabemos que la ROM difiere y nada lo cobra. Quedan escritas por eso, y porque
 el día que alguna se arregle hay goldens que se van a mover y alguien va a
 querer saber por qué.
 
-Lo que **no** va acá: lo que la tanda no mira pero nadie dice que esté mal
-—eso es "Lo que la tanda no cubre" en `ESTADO.md`—, lo que falta hacer del
-port —también `ESTADO.md`—, y las diferencias entre emuladores, que no son de
-la ROM. Tampoco una divergencia **decidida y cerrada**, de las que el port se
+Lo que **no** va acá: lo que la tanda no mira pero nadie dice que esté mal, lo
+que falta hacer del port —eso es `tasks/`— y las diferencias entre emuladores,
+que no son de la ROM. Tampoco una divergencia **decidida y cerrada**, de las que el port se
 permite a propósito y no piensa deshacer: ésas viven donde está la decisión,
 con el código o en `decisiones/`. Acá van las que siguen abiertas, aunque
 nadie las esté tocando.

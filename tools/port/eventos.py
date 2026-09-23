@@ -716,7 +716,7 @@ CHANGE_HERO_TITLE = 10620
 #   otros mapas. Lo que queda es el primer punto.
 #
 # O sea: `ChangeEncounterSteps` entra en `ACEPTADOS_SIN_HACER` el día que los
-# encuentros al azar existan, **junto con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
+# encuentros al azar existan, **junto con** ellos y no antes: el juego los ata al mapa y a las
 # *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
 # lista de tropas, y este port no lee ni una cosa ni la otra.
 
@@ -3288,8 +3288,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                     # aproximación declarada: las 24 peleas de esta forma traen
                     # `escape_mode` 0 —huir prohibido—, así que allá la salida
                     # no existe; acá la pelea deja huir igual, porque el
-                    # permiso no viaja en el opcode. Ver `ChangeEscapeAccess`
-                    # en ESTADO.md.
+                    # permiso no viaja en el opcode: `ChangeEscapeAccess` se
+                    # acepta y no se hace.
                     sigue = largo + 9
                     perder = (BATALLA_PERDER if perder_es_game_over
                               else sigue)
@@ -4168,7 +4168,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # Lo que se pierde es el cambio de ritmo: donde RM2k acelera al
                 # héroe, acá camina a la suya. Es visible y está aceptado; lo
                 # que lo arregla de verdad es que su paso deje de ser fijo, y
-                # eso está en ESTADO.md.
+                # eso no está hecho.
                 continue
             if orden in RUTA_DIAGONALES and blanco == 0:
                 # Y el héroe en diagonal: la ROM no lo sabe hacer y ninguna

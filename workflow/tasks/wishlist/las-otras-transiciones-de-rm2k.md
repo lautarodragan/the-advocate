@@ -10,7 +10,7 @@ barridos que un evento puede pedir con `EraseScreen` y `ShowScreen`.
 
 # Status
 
-Anotado, sin empezar. Estaba en "Lo que falta del port" de `ESTADO.md`.
+Anotado, sin empezar.
 
 # Por qué
 

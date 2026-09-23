@@ -6485,7 +6485,7 @@ op_teleport:
     ; salto, hace `index++` y devuelve false. El mapa se carga entre este cuadro
     ; y el siguiente, y la página retoma en el comando de después con el cursor
     ; guardado acá. Ninguna página del juego que hoy compile tiene comandos
-    ; después de un teletransporte —está en la lista de ESTADO.md—; la
+    ; después de un teletransporte —medido sobre el juego entero—; la
     ; cinemática de apertura tiene once.
     sty ev_cur
     rts

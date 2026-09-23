@@ -28,11 +28,7 @@ que bajarlo, se baja sin arrastrar lo valioso.
 
 Idea de taro, el 2026-09-17. Anotada, sin empezar: **hoy lo único hecho es el
 embrión**, `pruebas/casos/`, que son eventos de RM2k en el JSON de Ditto y no
-una tabla especial de la ROM. Vivía adentro de `ESTADO.md` hasta el 2026-09-21.
-
-Lo que esto condiciona de las decisiones de hoy **no está acá**: se queda en
-`ESTADO.md`, porque es lo que hay que mirar al tocar el conversor y las
-pruebas.
+una tabla especial de la ROM.
 
 # Blockers
 
@@ -46,7 +42,25 @@ pruebas.
 # Decisiones a tomar
 
 * **Qué pruebas van con el motor y cuáles con ABL.** El reparto de hoy dejó
-  casos del lado dudoso, y están anotados en `ESTADO.md`.
+  casos del lado dudoso, y son éstos:
+
+  Lo que quedó del lado dudoso, y conviene revisar al armar el juego golden:
+
+  * **`rpgmaker/` es más "motor" que "RM2k"**: `test_cores`, `test_compositor`,
+    `test_paralelos` y `test_musica_paquete` cuidan propiedades del port —la
+    WRAM sin inicializar, el buffer del texto, el presupuesto del cuadro, las
+    muestras en la ARAM— y no comportamiento de RM2k. Van con el motor igual.
+  * **`abl/test_tanda_escenas.py` tiene casos que ejercitan comandos
+    genéricos** —`elegir`, `tienda`, `savepoint-guarda`, las puertas— con
+    páginas del juego, y `factoria`, que es el tercer reparto de VRAM. Partirlo
+    por caso pedía duplicar la función de la familia; se partió sólo por
+    familia: `hablar` se fue a `rpgmaker/test_tanda_hablar.py`.
+  * **`herramientas/` se decidió por la forma** —no corre ROM— y varias miran
+    el conversor sobre mapas de ABL: `test_lideres`, `test_destello_paleta`,
+    `test_timer_paleta`, `test_encuentros`. `test_bancos` lee la tabla de
+    símbolos del cartucho armado, sin correrlo. Si van "con su herramienta",
+    el lugar natural es al lado de `tools/`, y eso se decide cuando `tools/`
+    se reparta entre los dos repos.
 * **Dónde queda `tools/`**, que es de las dos clases: el conversor es del motor,
   pero `port/` todavía sabe cosas de ABL.
 * **Qué pasa con `golden/` y `casos/`**, que hoy sirven a las dos capas.

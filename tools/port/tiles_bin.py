@@ -3,8 +3,8 @@
 Recibe un PNG indexado de 8 bits cuyos índices son entradas de CGRAM —en una
 capa de 4bpp, `índice >> 4` es la paleta— y devuelve tiles, tilemap y CGRAM.
 **No decide nada que se vea**: qué colores quedan y en qué paleta va cada
-celda lo decidió el asignador antes de escribir la imagen. Ver "El asignador
-corre primero" en ESTADO.md.
+celda lo decidió el asignador antes de escribir la imagen: ver
+"`tools/voodoo/` no decide colores" en `AGENTS.md`.
 
 Este módulo se sigue llamando `tiles_bin` porque nombra **lo que produce**
 —tiles— y no quién los produce, igual que `muestras_brr`.

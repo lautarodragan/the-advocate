@@ -12,8 +12,7 @@ diagonales.
 
 # Status
 
-Anotado y **sin plan de hacerse**, por lo medido. Estaba en "Lo que falta del
-port" de `ESTADO.md`.
+Anotado y **sin plan de hacerse**, por lo medido.
 
 # Por qué
 

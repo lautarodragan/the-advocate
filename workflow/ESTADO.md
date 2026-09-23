@@ -1,9 +1,14 @@
 # ESTADO
 
-!!ESTE DOCUMENTO ESTÁ DEPRECADO!!
+> **Congelado el 2026-09-23, y de sólo lectura.** Nadie lo actualiza más: lo que
+> está a medias vive en `tasks/wip/` y `tasks/testing/`, lo decidido en
+> `decisiones/`, lo que diverge de RM2k en `divergencias/`, y lo que nos gustaría
+> en `tasks/wishlist/`. **Ningún archivo del repo lo nombra ya.** Queda mientras
+> tenga algo que todavía no se mudó; el día que no quede nada, se borra.
 
-Taro lo está trabajando manualmente. Está en proceso de ser revisado manualmente,
-eliminar todo lo que ya no aplica, y extraer a tareas o documentación lo que sí.
+
+Taro lo está revisando a mano: sacando lo que ya no aplica y mudando a tareas o
+a documentación lo que sí.
 
 ---------------------------------------
 

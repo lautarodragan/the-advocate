@@ -8,5 +8,5 @@ Mantener super breve. Este archivo no debería superar las 10 o 15 líneas. Nada
 Mencionar qué archivos se generan, en base a qué, y en qué resultan.
 
 ---
-textos relevantes, sacados de README y ESTADO. no dejar completos aquí. revisar y extraer lo mínimo necesario.
+textos relevantes, sacados de README. no dejar completos aquí. revisar y extraer lo mínimo necesario.
 ---

@@ -5,7 +5,7 @@ Todo lo que está acá **cambia lo que se ve**: fusionar un color con otro,
 decidir qué colores van juntos en una paleta, medir cuánto se mueve una imagen
 si se le saca un color. Es la mitad artística del pipeline de gráficos, y por
 eso no está en `tools/voodoo/`, que sólo convierte lo que ya entra y nunca toca un
-pixel. Ver "El asignador corre primero" en ESTADO.md.
+pixel: ver "`tools/voodoo/` no decide colores" en `AGENTS.md`.
 
 Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,
 `build_palette`, `npcs_dibujables`— y en `titulo.py`. El día que el asignador
