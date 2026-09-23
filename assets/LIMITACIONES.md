@@ -8,7 +8,7 @@ otro juego, acá está lo que hay que volver a mirar, con el número que justifi
 cada cosa.
 
 No son deudas ni cosas a medias: son elecciones, medidas, que valen para este
-juego. Lo que está a medias vive en `ESTADO.md`.
+juego. Lo que está a medias vive en `workflow/tasks/`.
 
 
 ## Sólo se lleva a VRAM lo que el mapa dibuja, no el ChipSet entero
@@ -243,7 +243,7 @@ Este port hace la última parte y no las dos primeras: el destino de la derrota
 es `BATALLA_PERDER` y `op_battle` resuelve con un `jml reset`, o sea la
 pantalla de título si el cartucho la lleva, con la partida guardada esperando en
 la SRAM. **La imagen no se dibuja** —una de 320x240 pediría prestarle una capa
-al cartel, ver "Lo que costaría el sistema entero" en ESTADO.md— y **el tema de
+al cartel, ver `workflow/tasks/wishlist/sistema-de-imagenes.md`— y **el tema de
 Game Over no suena**: sería un tema más en la lista de todos los cartuchos con
 pelea, y lo que se gana es el silencio de un segundo antes del arranque.
 

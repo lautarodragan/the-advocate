@@ -9,7 +9,7 @@ Girar sin moverse en una ruta forzada: `turn_90_degree_right` y sus hermanas.
 
 # Status
 
-Anotado, sin empezar. Estaba en "Lo que falta del port" de `ESTADO.md`.
+Anotado, sin empezar.
 
 # Por qué
 

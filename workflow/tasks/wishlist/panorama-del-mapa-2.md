@@ -10,8 +10,7 @@ solos, detrás de la pantalla grande.
 
 # Status
 
-Anotado, sin empezar, y **no es prioridad**. Estaba en "Lo que falta del port"
-de `ESTADO.md`.
+Anotado, sin empezar, y **no es prioridad**.
 
 # Por qué
 

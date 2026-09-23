@@ -3,11 +3,14 @@
 Esto es lo que **no** se deduce leyendo el código. Todo lo demás está en
 fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
-    ESTADO.md        dónde quedamos: lo que está a medias y lo que se supone
+    workflow/        dónde quedamos, y su README explica cada carpeta
+    tasks/todo/      lo decidido y sin empezar; `wip/` lo que se está
+                     haciendo, `testing/` lo hecho que taro tiene que jugar,
+                     `done/` lo terminado
     decisiones/      las decisiones tomadas que siguen valiendo, una por
                      archivo: para no rehacerlas ni contradecirlas
     divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
-    wishlist/        lo que nos gustaría hacer y nadie está haciendo
+    tasks/wishlist/  lo que nos gustaría hacer y nadie está haciendo
     justfile         qué se puede correr; los comentarios explican el porqué
     README.md        el juego original, el volcado a JSON, y el port a SNES
                      entero con sus trampas y "Lo que falta"
@@ -16,8 +19,9 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
                      la idea de que los JSON sean la fuente de verdad
     git log          los mensajes son largos a propósito: son el registro
 
-Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
-trabaja, no al final—.
+Al empezar, mirar `workflow/tasks/wip/` y `testing/`, que es dónde quedamos. La
+tarea se escribe **mientras se trabaja, no al final**, y al terminar se mueve de
+carpeta.
 
 ## Dónde va cada cosa que uno quiere dejar escrita
 
@@ -502,7 +506,7 @@ Y en cualquier caso, al retomar conviene mirar, en este orden:
    `git worktree list`.
 
 Y para el agente nuevo que lo reemplace: pasarle lo que el anterior dejó escrito
-—commits y ESTADO.md— para que no vuelva a medir lo mismo.
+—commits y su tarea— para que no vuelva a medir lo mismo.
 
 ## La trampa que más veces mordió
 

@@ -30,7 +30,7 @@ from render import render_map
 # El tamaño y el lugar de la ventana de mensaje. En RM2k la pantalla es de
 # 320x240 y la ventana ocupa 320x80 abajo; acá la pantalla son 256x224, así que
 # la ventana es de 256x80 y el texto pierde 64 px de ancho. Lo que no entra se
-# trunca: es la decisión de la fase 1, escrita en ESTADO.md.
+# trunca: es la decisión de la fase 1.
 ANCHO, ALTO = 256, 80
 BORDE = 8                       # `border_x` y `border_y` de Window
 ALTO_LINEA = 16                 # `contents_y += 16` de Window_Message
@@ -132,8 +132,7 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
     """Una línea de texto sobre `destino`, con su sombra, como RM2k.
 
     Devuelve en qué x quedó. Lo que se pase del ancho de `destino` se recorta
-    solo: en la fase 1 las líneas que no entran se truncan, que es la decisión
-    escrita en ESTADO.md.
+    solo: en la fase 1 las líneas que no entran se truncan.
     """
     from port import fuente
     if font_id is None:

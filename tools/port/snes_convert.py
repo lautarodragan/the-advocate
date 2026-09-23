@@ -4423,8 +4423,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # el 2026-09-10 salía sólo con `--con-titulo` y sin él quedaba un byte
         # de relleno con `RANURA_TILES` en cero; y un DMA de "cero bytes" son
         # 65536, así que abrirla desde una ROM sin título llenaba la VRAM de
-        # basura. Es la "pantalla negra con basura arriba" que ESTADO.md
-        # describía como un misterio del contexto del intérprete.
+        # basura. Es la "pantalla negra con basura arriba" que durante un
+        # tiempo se anotó como un misterio del contexto del intérprete.
         #
         # Su banco de tiles es propio: comparte la dirección de VRAM con el del
         # menú del título, pero no los tiles, porque las dos pantallas se suben
@@ -5989,8 +5989,8 @@ def main():
     # dos `ControlVars`— no compilaba **en esa pasada** y sí en la de verdad.
     # Los actores que mete al grupo se perdían: `CarRED` no entraba en la tabla
     # de actores del mapa y el héroe de la persecución se dibujaba **sin
-    # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ESTADO.md
-    # ya tenía anotado para las cuentas de páginas, en otro lugar.
+    # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ya
+    # estaba anotado para las cuentas de páginas, en otro lugar.
     #
     # Las variables del juego entero, con su ranura. La referencia arma el
     # mismo índice.

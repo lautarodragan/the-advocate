@@ -10,8 +10,8 @@ El sistema de imágenes más allá del cartel: que la ROM dibuje más de un
 
 # Status
 
-Anotado, sin empezar. Estaba en "Lo que falta del port" de `ESTADO.md`. Los
-comandos que no entran se siguen aceptando sin hacerse.
+Anotado, sin empezar. Los comandos que no entran se siguen aceptando sin
+hacerse.
 
 # Por qué
 

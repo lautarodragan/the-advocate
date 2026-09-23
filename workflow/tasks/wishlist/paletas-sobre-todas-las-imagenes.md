@@ -11,9 +11,9 @@ imagen tiene por su cuenta.
 
 # Status
 
-Idea de taro, anotada para no perderla y **sin encarar**. Vivía adentro de "El
-acolchado de bloques", en `ESTADO.md`, que es el límite que la motiva y que sigue
-ahí.
+Idea de taro, anotada para no perderla y **sin encarar**. Lo que la motiva es el
+límite del cartucho: son 4 MB, que es el techo de LoROM, y el acolchado que
+dejan los bloques llega a 20 KB.
 
 # Por qué
 

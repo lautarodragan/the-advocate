@@ -218,8 +218,7 @@ parches-check *builds="rom/build/pruebas-unico rom/build/abl":
 # de la ROM: sería una demo mal armada. La familia `cinematica` de la tanda usa
 # el 10 por la misma razón.
 #
-# Con cronómetro, para hacerle lugar al rojo de los dígitos; ver "Lashe City" en
-# ESTADO.md. La lista de mapas es **el subárbol de "Lashe City" que entra**: el
+# Con cronómetro, para hacerle lugar al rojo de los dígitos. La lista de mapas es **el subárbol de "Lashe City" que entra**: el
 # camino a la fábrica, el auditorio y el Director, Sector 30 y los Rat Tracks,
 # Sector 27 con sus dos negocios y el galpón, la fuga del 27 y el auto, y la
 # misión de los Neon Viper.

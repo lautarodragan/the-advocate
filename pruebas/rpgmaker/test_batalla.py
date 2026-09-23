@@ -282,8 +282,8 @@ def test_los_hp_viajan_en_la_partida(partida):
 
     La prueba **resetea la consola de verdad**, como `test_guardar.py`: la
     SRAM sobrevive al reset y por eso lo que vuelve salió del cartucho. Se
-    pisan los HP en la RAM antes de reiniciar porque snes9x no la borra —está
-    en ESTADO.md— así que sin eso el 7 podría ser el de antes.
+    pisan los HP en la RAM antes de reiniciar porque snes9x no la borra, así
+    que sin eso el 7 podría ser el de antes.
     """
     una = partida(caso="guardar-198")
     pelea = Pelea(una)
@@ -737,8 +737,8 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
 # --- el audio de la pelea --------------------------------------------------
 #
 # Esto es lo que ninguna prueba de pixeles puede ver: **el silencio no cambia
-# un pixel**, que es el argumento que ESTADO.md ya dejó escrito con los dos
-# defectos de audio del 2026-09-12. El caso `batalla` de la tanda compara la
+# un pixel**, que es el argumento que dejaron escrito los dos defectos de
+# audio del 2026-09-12. El caso `batalla` de la tanda compara la
 # pantalla y da cero con la pelea muda.
 #
 # Lo que se pregunta acá es lo mismo que en `test_musica_paquete.py`: qué dice

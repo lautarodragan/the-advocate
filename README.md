@@ -4,7 +4,7 @@ Un port de *A Blurred Line*, un juego hecho en RPG Maker 2000, a la Super
 Nintendo. Acá está todo: cómo se lee el juego original, cómo se lo vuelca a un
 formato que se pueda mirar, y el port entero con sus trampas y lo que falta.
 
-Lo que **no** está acá: dónde quedamos —eso es `ESTADO.md`— y el relato de cómo
+Lo que **no** está acá: dónde quedamos —eso es `workflow/`— y el relato de cómo
 se llegó, que está en `git log`.
 
 ## Índice

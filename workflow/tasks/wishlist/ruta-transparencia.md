@@ -10,7 +10,7 @@ Hoy se aceptan y se tiran al compilar.
 
 # Status
 
-Anotado, sin empezar. Estaba en "Lo que falta del port" de `ESTADO.md`.
+Anotado, sin empezar.
 
 # Por qué
 
