@@ -1,14 +1,21 @@
 #! /bin/env nu
 
-def main [--status: string = "*"] {
-  ls | where type == dir and name == $status | each { 
-    print ([
-      (ansi green)
-      # '# ' 
-      ($in.name | str uppercase)
-      (ansi reset)
-    ] | str join); 
-    # print ''; 
+def main [] {
+  
+}
+
+def "main ls" [
+  --status (-s): string = "wip"
+] {
+  ls | where { $in.type == dir and ($status == "*" or $in.name == $status) } | each { 
+    if $status == "*" {
+      print ([
+        (ansi green)
+        # '# ' 
+        ($in.name | str uppercase)
+        (ansi reset)
+      ] | str join); 
+    }
     ls $in.name | sort-by name | where type == file | get name | each {
       let file = $in | path basename
 
@@ -25,7 +32,6 @@ def main [--status: string = "*"] {
 
       let name = $yml | get -o name | default "(Not Named)"
       
-      # print $name
       print (['  ' (ansi red) $name (ansi reset)] | str join)
       print (['    ' (ansi green) $file (ansi reset)] | str join)
       if ($yml | get -o description | is-not-empty) {
