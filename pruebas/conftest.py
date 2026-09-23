@@ -61,3 +61,44 @@ def partida():
                              titulo=titulo)
 
     return hacer
+
+
+# Dónde quedan las capturas de cada hito de las pruebas que **juegan**, una
+# carpeta por tramo. Las goldens de `pruebas/golden/recorrido/<tramo>/` se
+# buscan por ese mismo nombre: ver `Recorrido.foto`.
+FOTOS = os.path.join(tanda.RAIZ, "rom", "build", "pruebas", "recorrido")
+
+# "Begin the Story", la primera opción de la pantalla de título, que el
+# cartucho `juego` lleva delante. Una jugada empieza por ahí como la empieza
+# cualquiera.
+EMPEZAR = 0
+
+
+# Las dos que siguen **importan `recorrido` adentro** y no arriba, y no es
+# descuido: ese módulo arrastra el lector de `.lmu` y el renderer, y eso no
+# tiene por qué pagarlo cada prueba que no juega —este conftest lo carga
+# pytest antes que cualquiera—. Vivían en un `conftest.py` de `pruebas/abl/`
+# hasta el 2026-09-23, y eso duró una corrida: acá no hay paquetes, así que los
+# dos conftest se importan los dos como `conftest` y el segundo tapa al
+# primero. `test_batalla.py` hace `from conftest import LINKAGE` y cinco
+# módulos se cayeron con `ImportError`.
+@pytest.fixture(scope="session")
+def mundo():
+    """La colisión y los teletransportes del juego original, una vez por
+    corrida: leer los `.lmu` y resolverles los cuatro bits a cada celda cuesta
+    más que todo el BFS que viene después."""
+    from recorrido import Mundo
+    return Mundo()
+
+
+@pytest.fixture
+def recorrido(partida, mundo):
+    """Una jugada sobre el cartucho `juego`, entrando por la pantalla de
+    título, con sus capturas en `FOTOS/<nombre>`."""
+    from recorrido import Recorrido
+
+    def hacer(nombre, switch=()):
+        return Recorrido(partida(switch=switch, caso="nada", en="juego",
+                                 titulo=EMPEZAR),
+                         mundo, fotos=os.path.join(FOTOS, nombre))
+    return hacer

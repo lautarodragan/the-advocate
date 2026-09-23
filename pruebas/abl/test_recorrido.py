@@ -28,47 +28,15 @@ eligiendo "Begin the Story", que es por donde entra el jugador.
   bendecidas, comparar contra ellas es una línea acá.
 """
 
-import os
-
-import pytest
-
-from consola import RAIZ
-from recorrido import Mundo, Recorrido
-
-# Dónde quedan las capturas de cada hito.
-FOTOS = os.path.join(RAIZ, "rom", "build", "pruebas", "recorrido")
-
 # El switch que prende el final del Emitter Room y que hace que el enrutador del
 # mapa 4 mande a la casa de Talan con el cartel de "One year previously". Es el
 # mismo que usa el caso `cartel` de la tanda.
 UN_ANO_DESPUES = 21
 
-# "Begin the Story", la primera opción de la pantalla de título, que el
-# cartucho `juego` lleva delante. La jugada empieza por ahí como la empieza
-# cualquiera.
-EMPEZAR = 0
-
 # Adónde entra el juego al mapa 16, y de dónde sale el número: el `Teleport` de
 # los eventos 65 y 66 del mapa 8 y de los 28 y 29 del mapa 9, que son las cuatro
 # celdas por las que se entra a la corrida al trabajo. No es una celda elegida.
 CORRIDA_AL_TRABAJO = (16, 53, 7)
-
-
-@pytest.fixture(scope="session")
-def mundo():
-    """La colisión y los teletransportes del juego original, una vez por
-    corrida: leer los `.lmu` y resolverles los cuatro bits a cada celda cuesta
-    más que todo el BFS que viene después."""
-    return Mundo()
-
-
-@pytest.fixture
-def recorrido(partida, mundo):
-    def hacer(nombre, switch=()):
-        return Recorrido(partida(switch=switch, caso="nada", en="juego",
-                                 titulo=EMPEZAR),
-                         mundo, fotos=os.path.join(FOTOS, nombre))
-    return hacer
 
 
 def test_la_apertura_termina_con_kersh_en_el_linkage_block(recorrido):
