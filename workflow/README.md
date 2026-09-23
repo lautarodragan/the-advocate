@@ -14,5 +14,6 @@ Estos son:
 - `tasks/` son las tareas que aún quedan pendientes de tomar, o que están en progreso
 - `tasks/todo/` tareas no empezadas
 - `tasks/wip/` tareas en progreso
+- `tasks/testing/` hechas y a la espera de que taro las pruebe jugando
 - `tasks/done/` tareas terminadas
 - `tasks/wishlist/` es lo que nos gustaría hacer y nadie está haciendo
