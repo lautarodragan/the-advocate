@@ -8141,19 +8141,8 @@ sin_lider:
     ; RUTA_ESPERA cuadros y no uno: es `SetMaxStopCountForWait` de RM2k, que con
     ; la frecuencia 8 da veinte. Valía uno de los dos lados a la vez, así que la
     ; comparación daba cero —el mismo error que el hard light del tinte—.
-    ; Un salto en curso se lleva el cuadro entero: la celda ya se movió al
-    ; empezar y lo único que pasa es que le queda menos arco.
-    lda ruta_salto
-    beq sin_salto
-    sec
-    sbc #SALTO_VELOCIDAD
-    bcs guardar_salto
-    lda #0
-guardar_salto:
-    sta ruta_salto
-    jsr salto_posicion_heroe
-    rts
-sin_salto:
+    ; El salto en curso no se mira acá sino en `move_hero`: ver
+    ; `salto_avanzar_heroe`.
     lda ruta_espera
     beq sin_espera
     dec ruta_espera
@@ -8401,18 +8390,27 @@ vel_guardar:
 ; distinto de cero si la hay. Es `Game_Map::IsAnyMovePending`, que es a lo que
 ; espera `ProceedWithMovement`.
 ;
-; Del héroe cuentan dos cosas, y la segunda no es obvia: que le queden órdenes,
-; y que tenga un paso en curso **que haya arrancado la ruta**. Lo segundo hace
-; falta porque el último paso de una ruta sigue siendo la ruta aunque ya no
-; queden órdenes —sin eso la página seguiría ocho cuadros antes de tiempo—, y
-; tiene que ser sólo el de la ruta porque, terminada ésta, el jugador puede
-; ponerse a caminar mientras otra ruta sigue corriendo, y un paso del pad no es
-; una ruta pendiente.
+; Del héroe cuentan tres cosas, y la última no es obvia: que le queden órdenes,
+; que esté en el aire, y que tenga un paso en curso **que haya arrancado la
+; ruta**. Lo último hace falta porque el último paso de una ruta sigue siendo la
+; ruta aunque ya no queden órdenes —sin eso la página seguiría ocho cuadros
+; antes de tiempo—, y tiene que ser sólo el de la ruta porque, terminada ésta,
+; el jugador puede ponerse a caminar mientras otra ruta sigue corriendo, y un
+; paso del pad no es una ruta pendiente.
+;
+; El salto no necesita ese cuidado y por eso se mira pelado: el único que pone
+; `ruta_salto` en algo distinto de cero es `armar_salto_heroe`, y a ése lo llama
+; sólo `paso_de_ruta`, así que un salto del héroe es siempre de una ruta. Del
+; pad no sale ninguno. Faltaba, y un `ProceedWithMovement` pegado detrás de un
+; salto soltaba la página con el héroe todavía arriba: allá `MoveRouteFinished`
+; se prende adentro de `UpdateMovement`, o sea al aterrizar.
 .proc hay_rutas
 .a8
 .i16
     lda ruta_espera
     bne si                      ; el héroe está en medio de un `wait`
+    lda ruta_salto
+    bne si                      ; o está en el aire
     lda ruta_i
     cmp ruta_n
     bcc si                      ; al héroe le quedan órdenes
@@ -21092,6 +21090,17 @@ quieto:
     ; Sin paso en curso no hay paso de ruta que anotar. Se limpia acá y no al
     ; terminar la ruta porque lo que interesa es el paso, no la ruta.
     stz ruta_paso
+    ; Un salto en el aire se lleva el cuadro entero, y se mira **antes** que el
+    ; contador de órdenes: en RM2k estar saltando no es estar quieto
+    ; —`IsStopping()` es `!(IsMoving() || IsJumping())`— así que `Update` baja el
+    ; salto sin pasar por `UpdateNextMovementAction`. Con esto adentro de
+    ; `paso_de_ruta`, que sólo se llama con `ruta_i < ruta_n`, un salto que era
+    ; la última orden de la ruta no lo bajaba nadie. Ver `salto_avanzar_heroe`.
+    lda ruta_salto
+    beq sin_salto
+    jsr salto_avanzar_heroe
+    rts
+sin_salto:
     ; Una ruta forzada manda sobre el pad: mientras quede, el jugador no mueve
     ; al héroe. Es lo que hace RM2k, y es lo que permite que una cinemática lo
     ; camine sola.
@@ -22213,6 +22222,36 @@ sin_girar:
     ; paso: así la cámara acompaña el arco en vez de saltar de una.
     jsr salto_posicion_heroe
     rts
+.endproc
+
+; Un cuadro de un salto del héroe que está en el aire: le baja el arco que le
+; queda y lo redibuja donde toque. La celda ya se movió al empezar, así que lo
+; único que pasa acá son los pixeles.
+;
+; Vive afuera de `paso_de_ruta` —y la llama `move_hero`— porque en RM2k el que
+; baja el salto es `Game_Character::Update`, que mira `IsJumping()` **antes** de
+; preguntar si quedan órdenes, y el que lo apaga es `UpdateMovement`. Mientras
+; estuvo adentro de `paso_de_ruta`, un salto que era la última orden de la ruta
+; no lo bajaba nadie: `move_hero` sólo entraba ahí con `ruta_i < ruta_n`, y con
+; el salto al final el contador ya estaba al tope en el cuadro siguiente. El
+; héroe quedaba flotando a mitad del arco para siempre, y 196 de las 410 rutas
+; con salto del juego terminan en el salto. Ver `test_salto_colgado.py`.
+;
+; El descuento es fijo porque es el de la velocidad 4, la del héroe: RM2k lo
+; saca de `jump_speed[move_speed - 1]`, que para los eventos es `salto_por_vel`.
+; Un `increase_movement_speed` sobre el héroe le cambia el paso y no el salto;
+; es una divergencia que ya estaba y que no toca este arreglo.
+.proc salto_avanzar_heroe
+.a8
+.i16
+    lda ruta_salto
+    sec
+    sbc #SALTO_VELOCIDAD
+    bcs guardar
+    lda #0
+guardar:
+    sta ruta_salto
+    jmp salto_posicion_heroe
 .endproc
 
 ; `hero_x` y `hero_y` desde la celda de destino y lo que le queda al salto. Es
