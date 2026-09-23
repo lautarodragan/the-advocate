@@ -79,3 +79,8 @@ valer.
   `jump_speed[move_speed - 1]` de RM2k. Un `increase_movement_speed` sobre el
   héroe le cambia el paso y no el salto. Ya estaba, y este arreglo no lo toca.
 * **taro no lo jugó todavía.** Lo que se corrió es `just pruebas`.
+
+# Jugado
+
+taro lo jugó el 2026-09-23 con el build de `3e028a0`: el salto ya no queda
+colgado.

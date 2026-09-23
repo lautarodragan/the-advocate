@@ -252,3 +252,7 @@ hechas**; el porqué de cada una quedó en el código y en `juego/README.md`.
 
 Referencia: `/extras/capturas/hovertram/`, tres capturas de EasyRPG que sacó
 taro (el contador de FPS no es del juego).
+
+# Jugado
+
+taro lo jugó el 2026-09-23 con el build de `3e028a0`: "está perfecto".
