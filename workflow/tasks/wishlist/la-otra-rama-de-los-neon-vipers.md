@@ -35,25 +35,7 @@ son justamente las que quedaron afuera:
   mano;
 * el salto de cinco celdas de la reja, que son 7,3 px por cuadro.
 
-Y de paso, midiendo la reja apareció otra cosa, que **no** es el mapa corrido y
-además parece fiel: al salir por la reja el héroe cae en (40,56) del mapa 8 y la
-cámara queda **48 px —tres celdas— más abajo de donde la dejaría un
-teletransporte**, con `pan_y` en 768 dieciseisavos. Pasa igual con el arreglo de
-`stream_map` y sin él.
-
-De dónde sale, medido el 2026-09-23: la reja termina prendiendo el switch 36, y
-con 36 prendido arranca sola la página 2 del **Bum**, el evento 10 de (38,55)
-—"Woah! Where'd you come from, Mister? You a ghost?"—. Esa página hace un
-`PanScreen` de scroll de tres celdas para abajo y **nunca lo devuelve**: no tiene
-la operación de volver.
-
-Y así es como quedarse: en el modelo de RM2k el pan es un corrimiento que la
-cámara **se sigue llevando mientras el héroe camina** —`Game_Player::UpdateScroll`
-le resta `GetPanX/Y` al objetivo, y sólo lo saltea si el pan está fijado— y lo
-único que lo pone en cero es cambiar de mapa, que es lo que hace
-`PerformTeleport` con `map_changed`. Las dos cosas son las que hace `main.s`. O
-sea que el corrimiento es del juego original, no del port, y explica por qué se
-arregla con cualquier teletransporte.
-
-Lo que falta para cerrarlo es jugar ese camino en EasyRPG y ver la cámara igual
-de baja. Si no lo está, entonces sí es nuestro y hay que mirar `pan_tick`.
+Y lo que apareció midiendo la reja —la cámara que queda tres celdas corrida al
+salir— **ya está contestado y no es nuestro**: lo hace el `PanScreen` del Bum,
+que nadie devuelve, y el RPG_RT original queda igual de corrido. Ver
+`workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.

@@ -18857,7 +18857,14 @@ guardar:
     sec
     sbc #128                    ; media pantalla de ancho
     clc
-    adc pan_px                  ; y la cámara corrida sin el héroe
+    ; Y la cámara corrida sin el héroe. **El pan se suma en cada cuadro, no
+    ; una vez**: en RM2k la cámara se lo sigue llevando mientras el héroe
+    ; camina —`Game_Player::UpdateScroll`— y sólo lo borra un cambio de mapa.
+    ; Por eso un `PanScreen` que nadie devuelve deja la pantalla descentrada
+    ; para siempre, y eso **es fiel**: pasa al salir por la reja del mapa 12 y
+    ; pasa igual en el RPG_RT original. Ver
+    ; `workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.
+    adc pan_px
     bpl limite_x
     lda #0                      ; el héroe está cerca del borde izquierdo
 limite_x:
