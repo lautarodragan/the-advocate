@@ -651,6 +651,18 @@ FAR_TIRA_COL2 = $7E6B40
 .assert FAR_TIRA_ROW2 = FAR_TIRA_ROW + WINDOW_COLS * 2, error, "tiras de fila separadas"
 .assert FAR_TIRA_COL2 = FAR_TIRA_COL + WINDOW_ROWS * 2, error, "tiras de columna separadas"
 
+; --- las paletas de los destellos, en la RAM lejana -------------------------
+;
+; Una por ranura de destello, treinta y dos bytes cada una, y el vblank sube
+; todas las que quedaron pendientes. Tiene que ser una por ranura: con una sola,
+; dos destellos vivos en el mismo cuadro se la pisaban, subía la del último, y
+; el cuadro que apaga al primero no llegaba nunca a CGRAM. En la BSS no entran.
+;
+; $6900 a $69FF es de esto, reservado el 2026-09-23. **No viaja en la
+; partida**: dura lo que dura un cuadro.
+FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
+.assert FLASH_MAX * 32 <= $100, error, "las paletas de destello se salen de su lugar"
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el banco al SPC700— tarda lo que tarda, y eso cambiaba
 ; con cada cambio de código o de datos: un bucle más y el lazo principal
@@ -9091,6 +9103,8 @@ libre:
 sin_flash:
     lda #FLASH_LIBRE
     sta flash_ev, x
+    stz flash_ev + 7, x         ; ninguna paleta pendiente: la RAM arranca con
+                                ; basura y el vblank lee esto
     rep #$20
 .a16
     txa
@@ -9101,7 +9115,6 @@ sin_flash:
     sep #$20
 .a8
     bcc sin_flash
-    stz flash_pend              ; la RAM arranca con basura y esto se lee
     stz ruta_paso
     rts
 .endproc
@@ -10472,18 +10485,27 @@ listo:
     ; acá. Escribir CGRAM en mitad del cuadro deja la mitad de arriba de la
     ; pantalla con la paleta vieja y la de abajo con la nueva: el sprite sale
     ; con un nivel y el resto con otro, y la referencia no modela eso. Es la
-    ; misma razón por la que el tinte apaga la pantalla para aplicarse.
+    ; misma razón por la que el tinte apaga la pantalla para aplicarse. Cada
+    ; ranura en su lugar de FAR_FLASH_PAL: ver ahí.
+    rep #$20
+.a16
+    lda flash_ranura
+    asl a
+    asl a                       ; de ocho bytes por ranura a treinta y dos
+    tax
+    sep #$20
+.a8
     ldy #$0000
 copiar:
     lda pal_buf, y
-    sta flash_buf, y
+    sta f:FAR_FLASH_PAL, x
+    inx
     iny
     cpy #32
     bne copiar
+    ldx flash_ranura
     lda tin_cgadd
-    sta flash_pend_cgadd
-    lda #1
-    sta flash_pend
+    sta flash_ev + 7, x         ; y queda esperando el vblank
 
     ; Y las tablas vuelven a ser las del tinte solo, que es lo que espera todo
     ; el resto. Copiando, no rehaciéndolas: ver `tablas_de_tinte`.
@@ -20366,21 +20388,28 @@ sin_anim_cuadro:
     lda #VQ_POR_CUADRO
     sta vq_tope                 ; el vblank que viene arranca con todo
 
-    ; La paleta de un destello, si quedó una pendiente del cuadro anterior.
-    lda flash_pend
+    ; Las paletas de los destellos que quedaron pendientes del cuadro
+    ; anterior, **todas**: una por ranura. Ver FAR_FLASH_PAL.
+    ldx #$0000
+otro_flash:
+    lda flash_ev + 7, x
     beq sin_flash
-    stz flash_pend
-    lda flash_pend_cgadd
+    stz flash_ev + 7, x
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(flash_buf)
+    txa
+    asl a
+    asl a                       ; de ocho bytes por ranura a treinta y dos
+    clc
+    adc #.loword(FAR_FLASH_PAL)
     sta A1T0L
     lda #32
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0
+    lda #^FAR_FLASH_PAL
+    sta A1B0
     lda #$00
     sta DMAP0
     lda #$22
@@ -20388,6 +20417,16 @@ sin_anim_cuadro:
     lda #$01
     sta MDMAEN
 sin_flash:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FLASH_STRIDE
+    tax
+    cmp #FLASH_MAX * FLASH_STRIDE
+    sep #$20
+.a8
+    bcc otro_flash
 
     ; Y la paleta del cartel, si la rampa la rehizo este cuadro. Son treinta y
     ; dos bytes y van aparte de las tres del mapa: la entrada del cartel cae
@@ -23507,6 +23546,9 @@ ruta_ev_tope: .res 1
 ;   +0 blanco   0 el héroe, o el índice del evento más uno; $FF libre
 ;   +1 r, +2 g, +3 b   el color, de 0 a 31
 ;   +4 potencia, +5 cuadros, +6 k
+;   +7 la entrada de CGRAM de su paleta si está esperando el vblank en
+;      FAR_FLASH_PAL, o 0. Nunca es cero de otra forma: las paletas de
+;      sprite arrancan en la 128
 ;
 ; El paso es ocho para que la ranura se indexe con tres corrimientos.
 FLASH_STRIDE = 8
@@ -23518,10 +23560,6 @@ flash_alfa: .res 1
 flash_slot: .res 2
 flash_ranura: .res 2
 flash_parcial: .res 2
-; La paleta de un destello, esperando el vblank para subirse.
-flash_pend: .res 1
-flash_pend_cgadd: .res 1
-flash_buf: .res 32
 
 ; La celda que se está consultando, para `ptr_de_celda` y `puede_celda`. Va acá
 ; y no en la página directa porque se lee con direccionamiento absoluto, que

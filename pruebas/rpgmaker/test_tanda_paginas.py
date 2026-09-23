@@ -218,6 +218,36 @@ def test_destello(nombre):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
+def test_destellos_encimados():
+    """`destellos-encimados`: un destello que termina mientras otro sigue.
+
+    El evento 1 —el que asoma por el borde izquierdo— destella azul diez
+    décimas, y dos décimas después el 4 destella rojo treinta. En el tick 90
+    el del 1 ya terminó y el del 4 no, así que **el 1 tiene que verse igual
+    que cuando terminaron los dos**. Con una sola paleta de destello para
+    todas las ranuras se quedaba azul: el vblank subía sólo la del 4, y el
+    cuadro que apagaba la del 1 no llegaba nunca. Es Kersh en la terraza del
+    mapa 32.
+
+    Contra el tick de llegada y no contra uno de después de los dos: con el
+    error, el 1 **no vuelve nunca**, así que el final también está azul y la
+    comparación daba igual.
+
+    El segundo es el 4 y no el héroe a propósito, aunque fuera de pantalla: un
+    destello sobre el héroe en el mapa 6 le cambia al conversor el reparto de
+    paletas de sprite de todo el mapa, y mueve las goldens de `grafico` y
+    `sprite-actor`. El 4 ya destella en `destello-compartido`.
+    """
+    evento = (0, 88, 16, 120)
+    capturas = {}
+    for cuadro in (0, 90):
+        p = partida("destellos-encimados")
+        p.correr(cuadro)
+        capturas[cuadro] = p.imagen().crop(evento).tobytes()
+        del p
+    assert capturas[90] == capturas[0]
+
+
 SATURADOS = ("saturar", "saturar-gris", "saturar-brillo")
 
 

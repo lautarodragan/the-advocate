@@ -27,3 +27,30 @@ la siguiente subida entera de paletas, que es el `FlashScreen`.
 Nació así con `FlashSprite`, en `7340b1a` (2026-09-04): la prueba que lo
 acompañó tiene un destello solo, y ningún caso de la tanda tiene dos que se
 pisen.
+
+# El arreglo
+
+**Una paleta por ranura**, en la RAM lejana: `FAR_FLASH_PAL`, $6900 a $69FF,
+reservado el 2026-09-23 —en la BSS quedaban 75 bytes y hacían falta 96 más—.
+Lo que está pendiente de subir va en el byte +7 de cada ranura de `flash_ev`,
+que estaba libre: la entrada de CGRAM de su paleta, que nunca es cero porque
+las de sprite arrancan en la 128. El vblank sube todas las pendientes. Salen de
+la BSS `flash_buf`, `flash_pend` y `flash_pend_cgadd`: 34 bytes.
+
+Lo cuida `test_destellos_encimados`, con el caso `destellos-encimados`: el
+evento 1 destella diez décimas, y dos décimas después el 4 destella treinta. En
+el tick 90 el 1 tiene que verse como en el tick de llegada. Se la vio en rojo
+contra el `main.s` de antes.
+
+Dos cosas que costaron y conviene saber:
+
+* **La comparación tiene que ser contra el tick de llegada**, no contra uno de
+  después de los dos destellos: con el error el primero **no vuelve nunca**, así
+  que el final también está teñido y la primera versión de la prueba pasaba con
+  la ROM rota.
+* **Destellar al héroe en el mapa 6 cambia el reparto de paletas del mapa
+  entero**: la primera versión del caso lo hacía, y se movieron las goldens de
+  `grafico`, `grafico-heroe`, `sprite-actor` y `destello-compartido` —con
+  cualquiera de los dos `main.s`—. Por eso el segundo blanco es el 4.
+
+Con todo, `just pruebas` en verde y ninguna golden se movió.
