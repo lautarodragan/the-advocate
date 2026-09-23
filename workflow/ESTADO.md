@@ -7,10 +7,8 @@
 > tenga algo que todavía no se mudó; el día que no quede nada, se borra.
 
 
-!!ESTE DOCUMENTO ESTÁ DEPRECADO!!
-
-Taro lo está trabajando manualmente. Está en proceso de ser revisado manualmente,
-eliminar todo lo que ya no aplica, y extraer a tareas o documentación lo que sí.
+Taro lo está revisando a mano: sacando lo que ya no aplica y mudando a tareas o
+a documentación lo que sí.
 
 ---------------------------------------
 
