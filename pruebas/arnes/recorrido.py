@@ -389,6 +389,12 @@ class Mundo:
 
 BOTON = {(0, -1): "up", (0, 1): "down", (-1, 0): "left", (1, 0): "right"}
 
+# El mismo paso, visto como lo que le queda en `hero_dir`. Los números no se
+# escriben acá: son `DIR_UP` y sus tres hermanas, y salen de la tabla de
+# símbolos del cartucho. Ver `Recorrido.mirar_a`.
+DIR_DEL_PASO = {(0, -1): "DIR_UP", (0, 1): "DIR_DOWN",
+                (-1, 0): "DIR_LEFT", (1, 0): "DIR_RIGHT"}
+
 
 class Trabado(AssertionError):
     """El recorrido no llegó a donde tenía que llegar.
@@ -517,15 +523,23 @@ class Recorrido:
 
     # --- esperar, que es la mitad del juego --------------------------------
 
-    def esperar(self, que, cond, tope, a_cada=A_CADA):
+    def esperar(self, que, cond, tope, a_cada=A_CADA, mirando=None):
         """Corre tocando A hasta que `cond(partida)` sea verdad.
 
         `a_cada` None es esperar sin tocar nada, para las cinemáticas que
         avanzan solas: tocar A donde el juego no lo pide puede abrir el menú o
         hablarle a un evento de al lado.
+
+        `mirando(partida)` corre en cada muestra, antes de avanzar, y sirve para
+        lo que hay que comprobar **durante** un tramo y no al final: un invariante
+        que se rompe a mitad de una cinemática y se acomoda sola antes del hito
+        siguiente no la ve nadie mirando sólo el hito. Se planta ella misma; acá
+        no se le mira lo que devuelve.
         """
         gastado = 0
         while gastado < tope:
+            if mirando is not None:
+                mirando(self.p)
             if cond(self.p):
                 return self
             paso = min(a_cada or 16, tope - gastado)
@@ -534,10 +548,45 @@ class Recorrido:
             else:
                 self.p.correr(paso)
             gastado += paso
+        if mirando is not None:
+            mirando(self.p)
         if cond(self.p):
             return self
         raise Trabado("esperando %s no pasó nada en %d ticks. %s"
                       % (que, tope, self.estado()))
+
+    def mirar_a(self, paso, tope=PASO_TOPE):
+        """Gira al héroe hacia `paso`, y **comprueba en la RAM que giró**.
+
+        Girar hacia un evento es apretar la dirección contraria: el héroe gira
+        aunque no pueda avanzar, que es `Game_Player::Move` con el paso
+        bloqueado. Lo que no alcanza es **un toque de un tick**: la ROM lee el
+        pad una vez por vuelta y una vuelta puede durar varios cuadros de
+        hardware —ver `Partida.cuadros_perdidos`—, así que el flanco se puede
+        perder entero. Medido el 2026-09-23 recién llegado a la celda: no gira
+        con uno ni con dos ticks apretados, y sí con cuatro.
+
+        Con el toque pelado que había acá, la puerta del HQ de los Neon Vipers
+        —el evento 47 del mapa 8, que es de los que se hablan de al lado— no
+        contestaba nunca: el héroe seguía mirando hacia donde había caminado y
+        `activar` lo daba por muerto después de probar las cinco celdas.
+
+        Si el héroe **camina** en vez de girar, se vuelve sin quejarse: la celda
+        de al lado era pisable, y pararse encima es la otra forma de hablarle a
+        un evento. Quien llamó ya sabe qué hacer con eso.
+        """
+        quiere = self.p.simbolos[DIR_DEL_PASO[paso]]
+        desde = self.celda()
+        try:
+            for _ in range(tope):
+                if self.p.byte("hero_dir") == quiere or self.celda() != desde:
+                    return self
+                self.p.sostener(1, BOTON[paso])
+        finally:
+            self.p.soltar()
+        raise Trabado("el héroe no giró hacia %s en %d vueltas: quedó mirando "
+                      "%d. %s" % (paso, tope, self.p.byte("hero_dir"),
+                                  self.estado()))
 
     def esperar_mapa(self, map_id, tope=3000, a_cada=A_CADA):
         return self.esperar("el mapa %d" % map_id,
@@ -750,10 +799,7 @@ class Recorrido:
             if hasta(self.p):
                 return self
             if mirar is not None:
-                # Mirar hacia el evento es un toque de la dirección contraria:
-                # el héroe gira aunque no pueda avanzar, que es
-                # `Game_Player::Move` con el paso bloqueado.
-                self.p.tocar(BOTON[mirar])
+                self.mirar_a(mirar)
             self.p.tocar("a")
             # Y un rato de paciencia por intento, siguiéndole tocando A: la
             # página que arranca puede ser un diálogo entero —el guardia de la
