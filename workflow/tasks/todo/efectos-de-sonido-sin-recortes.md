@@ -110,10 +110,12 @@ anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
   programa qué efecto se repite y cuál se apaga, pide decidirlo a mano, y eso
   no se encara ahora. Hay que apuntar a que no haga falta.
 * El mapa 3 quedó como tarea aparte: `al-mapa-3-le-falta-un-efecto.md`.
+* **El trueno va entero a 22 kHz, y los efectos van en dos voces**: ver
+  `decisiones/el-trueno-va-entero-a-22-khz.md`.
 
 # Plan, en orden
 
-1. **Dos voces de efectos, la 6 y la 7**, asignando la libre primero, si no la
+1. **Hecho el 2026-09-24, en `main` (8c9c182).** Dos voces de efectos, la 6 y la 7, asignando la libre primero, si no la
    que termina antes, y la misma muestra re-disparada reusa su voz. Arregla el
    corte del trueno por la lluvia. No cuesta ARAM.
    * Costo: mientras suenan dos efectos, la percusión se queda sin voces. En la
@@ -121,13 +123,15 @@ anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
      la 6 durante los 2,4 s de cada trueno. Con MSU-1 no cuesta nada.
    * Toca `dsp_musica` y su sombra, `se_antes`/`se_despues`, `se_callar`, el
      camino del MSU-1 y `BA_SE2_CUADROS`. `test_batalla.py` lee `SE_NUEVO`.
-   * Conviene hacer una receta de la grabación, porque es la única red.
+   * Conviene hacer una receta de la grabación, porque es la única red. Para
+     escuchar ya está `just video`; lo que falta es algo que lo verifique solo.
 2. **Efectos más largos en todos los mapas**, sin el bucle de 0,4 s. Como
    subir el tope para todos no entra en los mapas 2 y 3, esto pide antes
    deduplicar o comprimir muestras. Se acerca a
    `wishlist/presupuesto-de-muestras-por-paquete.md`.
    Para el trueno esto no es opcional: con el bucle suena mal aunque nada lo
-   pise.
+   pise. **Es lo siguiente**, empezando por el trueno a 22 kHz, que hoy vive en
+   un alias de la rama del experimento.
 3. **Plan B, si lo anterior no alcanza:** fundido horneado en vez de bucle para
    los efectos que decaen, con la lluvia todavía en bucle. Sólo si se puede
    decidir por programa cuál es cuál.
