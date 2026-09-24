@@ -632,10 +632,6 @@
     {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 2 ................"},
     {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 3 ................"},
     {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 4 ................"},
-    {"code": "ShowMessage", "string": "EMPUJON 0159 RENGLON 1 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0159 RENGLON 2 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0159 RENGLON 3 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0159 RENGLON 4 ................"},
     {"code": "ShowMessage", "string": "EMPUJON 0160 R1 .................."},
     {"code": "ShowMessage_2", "string": "EMPUJON 0160 R2 ................."},
     {"code": "ShowMessage_2", "string": "EMPUJON 0160 R3 ................."}

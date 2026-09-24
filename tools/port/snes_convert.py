@@ -63,6 +63,10 @@ from rpgmaker import rm2k
 # Los eventos translúcidos llevan su propio gráfico: ver
 # `rm2k.decorar_translucido` —horneado contra el fondo, tramado, u opaco—.
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
+# Y los cuadros de texto, rearmados para la ventana de la SNES: ver
+# `lcf.REAJUSTAR_TEXTOS` y `port/textos.py`.
+from port import textos
+lcf.REAJUSTAR_TEXTOS = textos.reajustar_comandos
 from port import animacion as animacion_mod
 from port import imagen
 from port import asignador
@@ -6107,7 +6111,7 @@ def main():
     # páginas: cada `ShowMessage` deja su texto acá y se lleva un
     # desplazamiento, que es lo que va en el bytecode. La referencia arma el
     # mismo bloque en el mismo orden.
-    mensajes = eventos.Mensajes()
+    mensajes = eventos.Mensajes(paso=eventos.MENSAJES_PASO)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.

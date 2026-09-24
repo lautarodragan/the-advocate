@@ -161,8 +161,9 @@ def cuadro_de_texto(cartucho, renglon):
     """Dónde cayó, en el cartucho, el cuadro de texto que dice ese renglón.
 
     Devuelve `(desplazamiento, byte del archivo, largo)`: el desplazamiento es
-    el que lleva el operando de `OP_MESSAGE`, medido desde el principio del
-    bloque, y el byte del archivo es dónde arranca el cuadro adentro del
+    en bytes desde el principio del bloque —el operando de `OP_MESSAGE` es eso
+    dividido `eventos.MENSAJES_PASO`—, y el byte del archivo es dónde arranca
+    el cuadro adentro del
     `.sfc`. Con los dos se puede preguntar lo que ninguna golden ve: si el
     cuadro cruza un borde de banco, y si su desplazamiento pasa de los 16 bits
     del operando. Ver `test_texto`.
@@ -174,9 +175,11 @@ def cuadro_de_texto(cartucho, renglon):
     El bloque se recorre desde el principio, cuadro por cuadro, con el formato
     que emite `eventos.mensaje_bytes` y que lee `msg_empezar`: un byte de
     cabecera con los renglones en los tres bits de abajo, y cada renglón con
-    su largo delante. Se para al primer byte que no puede ser una cabecera,
-    que es lo que hay detrás del último cuadro.
+    su largo delante. Cada cuadro arranca en un múltiplo del paso, así que
+    entre uno y otro puede haber relleno, y se saltea. Se para al primer byte
+    que no puede ser una cabecera, que es lo que hay detrás del último cuadro.
     """
+    from port.eventos import MENSAJES_PASO
     base = cartucho.simbolos["mensajes"]
     # LoROM sin cabecera: el banco `$XX` se ve en `$8000-$FFFF` y son los
     # 32 KB que arrancan en `XX * $8000` del archivo.
@@ -184,7 +187,7 @@ def cuadro_de_texto(cartucho, renglon):
     with open(cartucho.sfc, "rb") as sfc:
         datos = sfc.read()
     encontrados, desplazamiento = [], 0
-    while desplazamiento < 0x10000:
+    while desplazamiento < 0x10000 * MENSAJES_PASO:
         cabecera = datos[archivo + desplazamiento]
         cuantos, largo = cabecera & 0x07, 1
         if not 1 <= cuantos <= 4:
@@ -202,6 +205,7 @@ def cuadro_de_texto(cartucho, renglon):
             encontrados.append((desplazamiento,
                                 archivo + desplazamiento, largo))
         desplazamiento += largo
+        desplazamiento += -desplazamiento % MENSAJES_PASO
     assert len(encontrados) == 1, (
         "el bloque de textos del cartucho %r tiene %d cuadros con el renglón "
         "%r y la prueba necesita uno solo para saber de cuál habla"

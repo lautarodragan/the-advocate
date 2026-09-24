@@ -1286,7 +1286,12 @@ class Mensajes:
     hacerlo cuando el héroe pisa cada uno.
     """
 
-    def __init__(self):
+    def __init__(self, paso=1):
+        # De a cuántos bytes cuenta el desplazamiento que va en el bytecode.
+        # El bloque del juego va de a dos —ver MENSAJES_PASO— y cada cuadro
+        # arranca en un byte par; los demás, como el de las tropas, de a uno.
+        # Adentro todo es en bytes: el paso se aplica al entrar y al salir.
+        self.paso = paso
         self.datos = bytearray()
         self.donde = {}         # las líneas ya guardadas -> su desplazamiento
         self.textos = {}        # y la vuelta, que es lo que usa la referencia
@@ -1319,20 +1324,23 @@ class Mensajes:
                        for t in list(lineas)[:ventana_mod.LINEAS])
         clave = (lineas, pausas, autocierre)
         if clave not in self.donde:
+            while len(self.datos) % self.paso:
+                self.datos.append(0)
             donde = len(self.datos)
             self.datos += mensaje_bytes(lineas, pausas, autocierre)
-            if len(self.datos) > 0x10000:
+            if donde // self.paso > 0xFFFF:
                 raise SystemExit(
                     "los mensajes de esta ROM son %d bytes y el operando de "
-                    "OP_MESSAGE es de 16 bits" % len(self.datos))
+                    "OP_MESSAGE es de 16 bits, de a %d bytes"
+                    % (len(self.datos), self.paso))
             self.donde[clave] = donde
             self.textos[donde] = lineas
-        return self.donde[clave]
+        return self.donde[clave] // self.paso
 
     def lineas(self, donde):
         """Las líneas que hay en ese desplazamiento. Es lo que dibuja la
         referencia: la ROM lee los mismos bytes del cartucho."""
-        return self.textos[donde]
+        return self.textos[donde * self.paso]
 
     def cola(self, donde):
         """Cuántas pausas lleva ese cuadro y si se cierra solo.
@@ -1342,7 +1350,7 @@ class Mensajes:
         máscaras. Un formato leído de dos maneras distintas es justo la forma
         de falla que este repo ya pagó dos veces.
         """
-        cabecera = self.datos[donde]
+        cabecera = self.datos[donde * self.paso]
         return (cabecera >> 4, bool(cabecera & CABECERA_AUTOCIERRE))
 
     def marca(self):
@@ -1382,6 +1390,14 @@ class Mensajes:
 # nota.
 CABECERA_LINEAS = 0x07
 CABECERA_AUTOCIERRE = 0x08
+
+# El desplazamiento de `OP_MESSAGE` en el bloque del juego cuenta de a dos
+# bytes, así que el bloque puede medir 128 KB con un operando de 16 bits.
+# Hizo falta cuando los textos se rearmaron para la ventana (`port/textos.py`):
+# partir cuadros suma cabeceras y largos, y el cartucho `pruebas` se pasó de
+# 64 KB por once bytes. Cuesta medio byte de relleno por cuadro, en promedio.
+# `msg_empezar` lo multiplica por dos: son los dos lados de la misma cuenta.
+MENSAJES_PASO = 2
 
 
 def mensaje_bytes(lineas, pausas=0, autocierre=False):

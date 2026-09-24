@@ -193,3 +193,20 @@ def test_los_comandos_que_no_cambian_son_los_mismos_objetos():
     assert nuevos[0]["code"] == eventos.SHOW_MESSAGE
     assert all(c["code"] == eventos.SHOW_MESSAGE_2 for c in nuevos[1:])
     assert all(c["indent"] == 2 for c in nuevos)
+
+
+def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
+    """El reajuste es un paso del pipeline: el conversor lo pone en el lector,
+    y un mapa leído después ya no trae renglones que no entren. Sin esto la
+    función podría estar perfecta y no correr nunca, que es el camino que
+    ninguna prueba ejecuta."""
+    from port import snes_convert                       # noqa: F401
+    from rpgmaker import lcf
+    assert lcf.REAJUSTAR_TEXTOS is textos.reajustar_comandos
+    mapa = lcf.Map(os.path.join(RAIZ, "data", "maps", "Map0002.json"))
+    largos = [c.string for evento in mapa.events
+              for pagina in evento.pages for c in pagina.commands
+              if c.code in (eventos.SHOW_MESSAGE, eventos.SHOW_MESSAGE_2)
+              and len(eventos.cola_de_escapes([c.string])[0][0])
+              > ventana.COLUMNAS]
+    assert not largos, largos

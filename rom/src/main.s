@@ -20060,7 +20060,7 @@ listo:
 .a16
 .i16
     ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
-    ; hasta 64 KB, o sea **más que la ventana de un banco de LoROM**: con los
+    ; **más que la ventana de un banco de LoROM**: con los
     ; 29 mapas de `abl` son 48972 bytes y arranca en $46:8000, así que
     ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
     ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
@@ -20069,8 +20069,17 @@ listo:
     ; pasado el primer banco leía de otro lado**: la cabecera y los largos de
     ; renglón salían de cualquier cosa. El lazo suma un banco por vuelta porque
     ; un bloque de 64 KB cruza hasta dos veces.
+    ;
+    ; Y el desplazamiento cuenta de a dos bytes —`MENSAJES_PASO` en
+    ; eventos.py—, así que el bloque llega a 128 KB: el bit que se cae del
+    ; `asl` son 64 KB más, o sea dos bancos de LoROM.
     phx
     ldx #^mensajes
+    asl a
+    bcc mitad_baja
+    inx
+    inx
+mitad_baja:
     clc
     adc #.loword(mensajes)
 otro_banco:

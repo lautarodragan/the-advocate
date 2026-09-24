@@ -142,9 +142,11 @@ CARTUCHOS = {
 FUERA = {"cartel",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12",
-         # Y el empujón, que no entra en el de pruebas porque no cabe: su
-         # bloque de textos ya mide 61.809 bytes y el operando de `OP_MESSAGE`
-         # es de 16 bits, así que sobran 3.727 y el empujón pide 25.703.
+         # Y el empujón, que sólo hace falta en `chico`, donde se mide el
+         # borde de banco. Hasta el 2026-09-24 además no cabía acá: el
+         # operando de `OP_MESSAGE` contaba de a un byte y el bloque llegaba a
+         # 64 KB. Hoy cuenta de a dos —ver `MENSAJES_PASO`—, pero meterlo
+         # correría el bloque de todos los casos de este cartucho.
          "empujon"}
 
 # El que corre sin que nadie lo pida, que es la página 0: el grupo de la tanda

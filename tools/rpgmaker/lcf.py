@@ -184,13 +184,31 @@ class EventCommand:
         self.parameters = parameters
 
 
-def comandos(datos):
-    """La lista de comandos de una página o de un evento común."""
+# Los cuadros de texto rearmados para otra pantalla: una función que recibe
+# los comandos de una página tal como están en el JSON y devuelve otros. El
+# port pone `textos.reajustar_comandos`; el lector no sabe de pantallas, y
+# sin nadie que la ponga el juego se lee tal cual.
+#
+# Es un paso aparte de los forks de `juego/` y de `parches/`, y corre después
+# de ellos: lee lo que sea que haya quedado, y un cuadro que ya entra lo deja
+# como está. Así un texto corregido a mano en un fork gana siempre.
+#
+# Se aplica a las páginas de los mapas y a los eventos comunes, y no a las de
+# las tropas: la ventana de la pelea tiene otro ancho.
+REAJUSTAR_TEXTOS = None
+
+
+def comandos(datos, reajustar=False):
+    """La lista de comandos de una página o de un evento común. Con
+    `reajustar`, pasados por REAJUSTAR_TEXTOS si alguien la puso."""
+    crudos = lista(datos, "event_commands")
+    if reajustar and REAJUSTAR_TEXTOS:
+        crudos = REAJUSTAR_TEXTOS(crudos)
     return [EventCommand(campo(c, "code"),
                          campo(c, "indent"),
                          campo(c, "string"),
                          campo(c, "parameters") or [])
-            for c in lista(datos, "event_commands")]
+            for c in crudos]
 
 
 def comandos_escritos(datos):
@@ -273,7 +291,7 @@ class EventPage:
         self.layer = campo(datos, "layer")
         self.overlap_forbidden = campo(datos, "overlap_forbidden")
         self.animation_type = campo(datos, "animation_type")
-        self.commands = comandos(datos)
+        self.commands = comandos(datos, reajustar=True)
         self.move_route = MoveRoute(sub(datos, "move_route"))
         self.condition = EventPageCondition(sub(datos, "condition"))
         self.unconditional = not self.condition
@@ -674,7 +692,8 @@ class Database:
         # Los eventos comunes, que antes se leían del chunk crudo: acá ya son
         # sus comandos, que es lo único que se les pide.
         self.common_events = {
-            i: comandos(f) for i, f in crudas["commonevents"].items()}
+            i: comandos(f, reajustar=True)
+            for i, f in crudas["commonevents"].items()}
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
         # es el del primero de la lista, así que este dato es el que decide con
