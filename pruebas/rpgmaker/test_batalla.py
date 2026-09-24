@@ -764,8 +764,25 @@ def se_disparado(una):
     y prenden `SE_PENDIENTE`; `irq_musica` lo levanta en el cuadro siguiente y
     a partir de ahí lo que queda es `SE_CUADROS`. Acá se mira `SE_NUEVO`, que
     es lo que sobrevive a leer la RAM entre cuadro y cuadro.
+
+    Hay dos voces de efectos, y el nuevo cae en la que `sonido_tocar` elija,
+    así que se mira el más reciente de las dos: el pendiente, o si no el que
+    lleva menos cuadros sonando —los que pide la fila, en `SE_NUEVO + 5`,
+    menos los que le quedan—. Mirar sólo la primera voz daba rojo cuando la
+    tenía ocupada un efecto anterior.
     """
-    return una.consola.ram(en_la_wram(una.simbolos["SE_NUEVO"]), 1)[0]
+    def estado(prefijo):
+        ram = una.consola.ram
+        nuevo = ram(en_la_wram(una.simbolos[prefijo + "NUEVO"]), 7)
+        quedan = ram(en_la_wram(una.simbolos[prefijo + "CUADROS"]), 2)
+        pendiente = ram(en_la_wram(una.simbolos[prefijo + "PENDIENTE"]), 1)[0]
+        quedan = quedan[0] | quedan[1] << 8
+        sonando = (nuevo[5] | nuevo[6] << 8) - quedan
+        # Una voz callada va última, sonara o no alguna vez; si las dos lo
+        # están, gana la primera, que es la que se miraba con una sola voz.
+        callada = not pendiente and not quedan
+        return callada, (-1 if pendiente else sonando), nuevo[0]
+    return min(estado("SE_"), estado("SE2_"))[-1]
 
 
 def test_la_pelea_prende_el_tema_de_batalla_del_ldb(partida):

@@ -243,6 +243,10 @@ SE_TASA = 6000
 SE_MAX_SEGUNDOS = 0.75           # desde el paquete por mapa: ver `paquete_cargar`
 SE_LOOP_SEGUNDOS = 0.4
 SE_VOZ = 7                      # la que se le roba a la música
+# Y la segunda, para que dos efectos suenen a la vez —la lluvia y el trueno de
+# la apertura—, como en RM2k. También es de percusión: con dos efectos
+# sonando, la batería se queda sin voces.
+SE_VOZ2 = 6
 
 
 class Efecto:
@@ -998,6 +1002,8 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "SE_VOZ           = %d\n"
             "SE_BIT           = $%02X\n"
             "SE_REG           = $%02X\n"
+            "SE2_BIT          = $%02X\n"
+            "SE2_REG          = $%02X\n"
             "SONIDOS_N        = %d\n\n"
             "; Dónde arranca el stream de cada tema, partido en tres tablas\n"
             "; porque se leen con un índice: van en el banco 0 como todo lo\n"
@@ -1012,7 +1018,8 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
                n, silencio, datos, ARAM_FIN, len(paquetes),
-               SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, len(list(sonidos)),
+               SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, 1 << SE_VOZ2, SE_VOZ2 * 16,
+               len(list(sonidos)),
                tabla, tabla_se, tabla_mapa_tema,
                block("spc_driver", driver),
                block("spc_samples", samples),

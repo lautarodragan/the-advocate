@@ -14543,7 +14543,7 @@ listo:
     rts
 .endproc
 
-; Calla el efecto de sonido que esté sonando: sus muestras se van a mover.
+; Calla los efectos de sonido que estén sonando: sus muestras se van a mover.
 .proc se_callar
 .a8
 .i16
@@ -14554,9 +14554,14 @@ listo:
     sta f:SE_CUADROS + 1
     sta f:SE_PENDIENTE
     sta f:SE_BAJAR
+    sta f:SE2_CUADROS
+    sta f:SE2_CUADROS + 1
+    sta f:SE2_PENDIENTE
+    sta f:SE2_BAJAR
     lda #1
-    sta f:SE_DEVOLVER           ; la música recupera la voz
-    lda #SE_BIT
+    sta f:SE_DEVOLVER           ; la música recupera las voces
+    sta f:SE2_DEVOLVER
+    lda #(SE_BIT | SE2_BIT)
     ldx #SE_KOF
     jsr dsp_par
     plp
@@ -14879,28 +14884,37 @@ listo:
 
 ; --- los efectos de sonido -------------------------------------------------------
 ;
-; `PlaySound`, en la voz SE_VOZ, que se le roba a la música mientras dura. Ver
-; `build_efectos` en snes_music.py. El estado vive en la RAM lejana, porque la
-; página directa y la BSS están llenas:
+; `PlaySound`, en dos voces que se le roban a la música mientras duran: SE_VOZ
+; y SE2_VOZ, las dos de percusión. Ver `build_efectos` en snes_music.py. En
+; RM2k los efectos se suman —EasyRPG tiene 31 canales—, y con una sola voz la
+; lluvia de la apertura le cortaba el trueno a la mitad: medido, 73 de sus 144
+; cuadros, y una vez 7.
+;
+; El estado de cada voz vive en la RAM lejana, porque la página directa y la
+; BSS están llenas. El de la segunda está SE2_DESPL más arriba, con la misma
+; forma, así que `sonido_tocar` elige la voz con un desplazamiento:
 ;
 ;   SE_CUADROS   cuántos cuadros le quedan al efecto, dos bytes
 ;   SE_PENDIENTE hay uno pendiente de arrancar
 ;   SE_DEVOLVER  hay que devolverle la voz a la música en este cuadro
 ;   SE_BAJAR     hay que bajar el disparo de KON en este cuadro
 ;   SE_NUEVO     el pendiente: la muestra, la altura (dos), el volumen de
-;                cada lado y los cuadros (dos), siete bytes
+;                cada lado y los cuadros (dos), siete bytes. Después de
+;                arrancar queda ahí, y así se sabe qué muestra suena
 ;   SE_SOMBRA    lo último que la música le escribió a los ocho registros de
-;                la voz, y a KOF en el noveno: con eso se le devuelve la voz
+;                la voz: con eso se le devuelve
+;   SE_KOF_SOMBRA  lo último que la música escribió en KOF, uno para las dos
 ;
-; La música sigue escribiéndole a la voz mientras el efecto suena: se guarda
-; en la sombra y no se manda, y a sus KON y KOF se les saca el bit de la voz.
+; La música sigue escribiéndole a cada voz mientras su efecto suena: se guarda
+; en la sombra y no se manda, y a sus KON y KOF se les sacan los bits de las
+; voces que tienen efecto (`se_mascara`).
 ;
 ; Todo esto corre adentro de `irq_musica`, así que **no usa la ventana de
 ; WMADD ni `temp`**: la interrupción cae en cualquier punto del código
 ; principal, y si ése estaba recorriendo la RAM lejana o usando `temp`, se lo
 ; pisaría. Se llega con el direccionamiento largo, que lleva el banco en la
 ; instrucción. Lo único que escribe acá el código principal es el pendiente,
-; en `op_sound`, y lo hace con las interrupciones cortadas.
+; en `sonido_tocar`, y lo hace con las interrupciones cortadas.
 FAR_SE       = $30A0
 SE_CUADROS   = $7E0000 + FAR_SE
 SE_PENDIENTE = SE_CUADROS + 2
@@ -14908,12 +14922,24 @@ SE_DEVOLVER  = SE_CUADROS + 3
 SE_BAJAR     = SE_CUADROS + 4
 SE_NUEVO     = SE_CUADROS + 5
 SE_SOMBRA    = $7E0000 + $30B0
-; SE_BIT y SE_REG —el bit de la voz en KON y KOF, y su primer registro— los
-; emite snes_music.py junto con SE_VOZ.
+SE_KOF_SOMBRA = SE_SOMBRA + 8
+; La segunda voz, en $3D00: el mapa de la RAM lejana de arriba termina en la
+; pelea, que no pasa de $3CFF, y lo siguiente es `FAR_HAB`, en $6000. Usa
+; $3D00 a $3D17.
+SE2_DESPL    = $3D00 - FAR_SE
+SE2_CUADROS  = SE_CUADROS + SE2_DESPL
+SE2_PENDIENTE = SE_PENDIENTE + SE2_DESPL
+SE2_DEVOLVER = SE_DEVOLVER + SE2_DESPL
+SE2_BAJAR    = SE_BAJAR + SE2_DESPL
+SE2_NUEVO    = SE_NUEVO + SE2_DESPL
+SE2_SOMBRA   = SE_SOMBRA + SE2_DESPL
+SE_BYTES     = 12               ; de SE_CUADROS a SE_NUEVO, inclusive
+; SE_BIT y SE_REG —el bit de la voz en KON y KOF, y su primer registro— y
+; los de la segunda los emite snes_music.py junto con SE_VOZ.
 SE_KON     = $4C
 SE_KOF     = $5C
 
-; Z=0 si hay un efecto sonando, pendiente o devolviendo la voz. No toca B.
+; Z=0 si la voz tiene un efecto sonando, pendiente o devolviéndose. No toca B.
 .proc se_ocupada
 .a8
 .i16
@@ -14921,6 +14947,45 @@ SE_KOF     = $5C
     ora f:SE_CUADROS + 1
     ora f:SE_PENDIENTE
     ora f:SE_DEVOLVER
+    rts
+.endproc
+
+.proc se2_ocupada
+.a8
+.i16
+    lda f:SE2_CUADROS
+    ora f:SE2_CUADROS + 1
+    ora f:SE2_PENDIENTE
+    ora f:SE2_DEVOLVER
+    rts
+.endproc
+
+; A: los bits de KON y KOF de las voces ocupadas. No toca B ni X.
+.proc se_mascara
+.a8
+.i16
+    jsr se_ocupada
+    beq sin_7                   ; A quedó en cero
+    lda #SE_BIT
+sin_7:
+    pha
+    jsr se2_ocupada
+    beq sin_6
+    lda #SE2_BIT
+sin_6:
+    ora 1, s
+    sta 1, s
+    pla                         ; Z según la máscara entera
+    rts
+.endproc
+
+; A: lo que la música dejó en KOF, sin los bits de las voces ocupadas.
+.proc se_kof_musica
+.a8
+.i16
+    jsr se_mascara
+    eor #$FF
+    and f:SE_KOF_SOMBRA
     rts
 .endproc
 
@@ -14943,8 +15008,8 @@ espera:
 .endproc
 
 ; Una escritura del stream de la música: X el registro, A el valor. Si es de
-; la voz del efecto, va a la sombra, y si hay un efecto no se manda; KON y KOF
-; salen sin el bit de la voz mientras dure.
+; una voz de efecto, va a su sombra, y si la voz tiene efecto no se manda; KON
+; y KOF salen sin los bits de las voces ocupadas.
 .proc dsp_musica
 .a8
 .i16
@@ -14952,7 +15017,11 @@ espera:
     txa
     and #$F0
     cmp #SE_REG
-    bne no_voz
+    beq voz_7
+    cmp #SE2_REG
+    beq voz_6
+    bra no_voz
+voz_7:
     txa
     and #$0F
     cmp #8
@@ -14971,59 +15040,81 @@ espera:
     jsr se_ocupada
     beq enviar
     rts                         ; la voz es del efecto
+voz_6:
+    txa
+    and #$0F
+    cmp #8
+    bcs no_voz
+    phx
+    rep #$20
+.a16
+    and #$000F
+    tax
+    sep #$20
+.a8
+    xba
+    sta f:SE2_SOMBRA, x
+    xba
+    plx
+    jsr se2_ocupada
+    beq enviar
+    rts
 no_voz:
     txa
     cmp #SE_KOF
     bne no_kof
-    ; KOF: a la sombra siempre, y sin el bit mientras haya efecto.
+    ; KOF: a la sombra siempre, y sin los bits de las voces ocupadas.
     xba
-    sta f:SE_SOMBRA + 8
+    sta f:SE_KOF_SOMBRA
     xba
     bra mascara
 no_kof:
     cmp #SE_KON
     bne enviar
 mascara:
-    jsr se_ocupada
+    jsr se_mascara
     beq enviar
+    eor #$FF
+    pha                         ; la máscara invertida
     xba
-    and #($FF - SE_BIT)
+    and 1, s                    ; el valor sin esos bits
     xba
+    pla
 enviar:
     xba                         ; A = el valor, y X sigue con el registro
     jmp dsp_par
 .endproc
 
-; Antes de la música, en cada cuadro: bajar el disparo que dejó el efecto, y
-; devolverle la voz a la música si terminó en el cuadro anterior.
-.proc se_antes
-.a8
-.i16
-    lda f:SE_BAJAR
+; Antes de la música, en cada cuadro: bajar el disparo que dejó un efecto, y
+; devolverle su voz a la música si el efecto terminó en el cuadro anterior.
+.macro SE_ANTES_VOZ bajar, devolver, sombra, reg
+    .local sin_bajar, listo, registro
+    lda f:bajar
     beq sin_bajar
     lda #0
-    sta f:SE_BAJAR
+    sta f:bajar
     ldx #SE_KON
     jsr dsp_par
 sin_bajar:
-    lda f:SE_DEVOLVER
+    lda f:devolver
     beq listo
     lda #0
-    sta f:SE_DEVOLVER
-    ; KOF como lo tenía la música, y los ocho registros de la voz.
-    lda f:SE_SOMBRA + 8
+    sta f:devolver
+    ; KOF como lo tenía la música, salvo lo de la otra voz si sigue con su
+    ; efecto, y los ocho registros de esta.
+    jsr se_kof_musica
     ldx #SE_KOF
     jsr dsp_par
     ldy #0
 registro:
     tyx
-    lda f:SE_SOMBRA, x
+    lda f:sombra, x
     pha
     rep #$20
 .a16
     tya
     clc
-    adc #SE_REG
+    adc #reg
     tax
     sep #$20
 .a8
@@ -15033,82 +15124,108 @@ registro:
     cpy #8
     bcc registro
 listo:
+.endmacro
+
+.proc se_antes
+.a8
+.i16
+    SE_ANTES_VOZ SE_BAJAR, SE_DEVOLVER, SE_SOMBRA, SE_REG
+    SE_ANTES_VOZ SE2_BAJAR, SE2_DEVOLVER, SE2_SOMBRA, SE2_REG
     rts
 .endproc
 
-; Después de la música: arrancar el pendiente, o contar el que suena y
-; apagarlo cuando termina.
-.proc se_despues
-.a8
-.i16
-    lda f:SE_PENDIENTE
+; Después de la música, para una voz: arrancar su pendiente, o contar el que
+; suena y apagarlo cuando termina. Deja en A el bit de la voz si hay que
+; dispararla, o cero: el disparo lo hace `se_despues` una sola vez para las
+; dos, porque dos escrituras de KON seguidas pueden caer en la misma muestra
+; del DSP y la segunda borrar a la primera.
+.macro SE_DESPUES_VOZ cuadros, pendiente, devolver, bajar, nuevo, bit, reg
+    .local arrancar, contar, nada, fin
+    lda f:pendiente
     bne arrancar
     jmp contar
 arrancar:
-    lda #0
-    sta f:SE_PENDIENTE          ; ya no está pendiente
-    ; KOF sin el bit de la voz, que la música pudo haber dejado puesto.
-    lda f:SE_SOMBRA + 8
-    and #($FF - SE_BIT)
+    ; KOF sin los bits de las voces ocupadas —esta incluida, que sigue
+    ; pendiente—, que la música pudo haber dejado puestos.
+    jsr se_kof_musica
     ldx #SE_KOF
     jsr dsp_par
+    lda #0
+    sta f:pendiente             ; ya no está pendiente
     ; La muestra, la altura, el volumen y la envolvente, desde el pendiente.
-    lda f:SE_NUEVO + 4
-    ldx #(SE_REG + 1)
+    lda f:nuevo + 4
+    ldx #(reg + 1)
     jsr dsp_par                 ; VOLR
-    lda f:SE_NUEVO + 3
-    ldx #(SE_REG + 0)
+    lda f:nuevo + 3
+    ldx #(reg + 0)
     jsr dsp_par                 ; VOLL
-    lda f:SE_NUEVO + 2
-    ldx #(SE_REG + 3)
+    lda f:nuevo + 2
+    ldx #(reg + 3)
     jsr dsp_par                 ; la altura alta
-    lda f:SE_NUEVO + 1
-    ldx #(SE_REG + 2)
+    lda f:nuevo + 1
+    ldx #(reg + 2)
     jsr dsp_par                 ; y la baja
-    lda f:SE_NUEVO
-    ldx #(SE_REG + 4)
+    lda f:nuevo
+    ldx #(reg + 4)
     jsr dsp_par                 ; SRCN
     lda #$FF                    ; ADSR prendido, ataque y caída al máximo
-    ldx #(SE_REG + 5)
+    ldx #(reg + 5)
     jsr dsp_par
     lda #$E0                    ; sostenido al máximo y sin caer
-    ldx #(SE_REG + 6)
+    ldx #(reg + 6)
     jsr dsp_par
-    lda #SE_BIT
-    ldx #SE_KON
-    jsr dsp_par                 ; y el disparo
     rep #$20
 .a16
-    lda f:SE_NUEVO + 5
-    sta f:SE_CUADROS
+    lda f:nuevo + 5
+    sta f:cuadros
     sep #$20
 .a8
     lda #1
-    sta f:SE_BAJAR              ; el cuadro que viene se baja el disparo
-    rts
+    sta f:bajar                 ; el cuadro que viene se baja el disparo
+    lda #bit
+    bra fin
 contar:
     rep #$20
 .a16
-    lda f:SE_CUADROS
+    lda f:cuadros
     beq nada
     dec a
-    sta f:SE_CUADROS
+    sta f:cuadros
     bne nada
     sep #$20
 .a8
     ; Terminó: KOF con el bit de la voz, y en el cuadro que viene la música
-    ; la recupera.
-    lda f:SE_SOMBRA + 8
-    ora #SE_BIT
+    ; la recupera. Esta ya no cuenta como ocupada, así que `se_kof_musica`
+    ; deja afuera sólo a la otra.
+    jsr se_kof_musica
+    ora #bit
     ldx #SE_KOF
     jsr dsp_par
     lda #1
-    sta f:SE_DEVOLVER
-    rts
+    sta f:devolver
+    lda #0
+    bra fin
 .a16
 nada:
     sep #$20
 .a8
+    lda #0
+fin:
+.endmacro
+
+.proc se_despues
+.a8
+.i16
+    SE_DESPUES_VOZ SE_CUADROS, SE_PENDIENTE, SE_DEVOLVER, SE_BAJAR, SE_NUEVO, SE_BIT, SE_REG
+    pha
+    SE_DESPUES_VOZ SE2_CUADROS, SE2_PENDIENTE, SE2_DEVOLVER, SE2_BAJAR, SE2_NUEVO, SE2_BIT, SE2_REG
+    ora 1, s
+    sta 1, s
+    pla
+    beq listo
+    ldx #SE_KON
+    jsr dsp_par                 ; y el disparo, de las dos juntas
+listo:
     rts
 .endproc
 
@@ -15120,8 +15237,9 @@ nada:
     lda #0
 otro:
     sta f:SE_CUADROS, x
+    sta f:SE2_CUADROS, x
     inx
-    cpx #12
+    cpx #SE_BYTES
     bcc otro
     rts
 .endproc
@@ -16101,7 +16219,9 @@ hay:
 .a8
     lda f:sonido_tabla, x
     cmp #$FF
-    beq listo         ; no hay efecto
+    bne hay_efecto
+    jmp listo         ; no hay efecto
+hay_efecto:
     ; Y sólo si su muestra está en la ARAM: el paquete del mapa puede no
     ; haberla subido. Ver `paquete_cargar`.
     phx
@@ -16119,14 +16239,62 @@ hay:
     xba
     cmp #0
     bne esta
-    bra listo
+    jmp listo
 esta:
     ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
     ; uno a medio escribir arrancaría con la muestra de uno y la altura de
     ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
     php
     sei
+    ; La voz: Y queda en 0 para SE_VOZ o en SE2_DESPL para la otra. Primero la
+    ; que ya está tocando esta misma muestra —la lluvia se vuelve a disparar
+    ; antes de terminar, y así no le roba la otra voz al trueno—, después una
+    ; libre, y si no, la que termina antes. Una pendiente no se pisa si la
+    ; otra se puede: todavía no sonó nada de ella.
     ldy #0
+    lda f:SE_NUEVO
+    cmp f:sonido_tabla, x
+    bne no_misma_7
+    jsr se_ocupada
+    bne elegida
+no_misma_7:
+    ldy #SE2_DESPL
+    lda f:SE2_NUEVO
+    cmp f:sonido_tabla, x
+    bne no_misma_6
+    jsr se2_ocupada
+    bne elegida
+no_misma_6:
+    ldy #0
+    jsr se_ocupada
+    beq elegida
+    ldy #SE2_DESPL
+    jsr se2_ocupada
+    beq elegida
+    ldy #0
+    lda f:SE2_PENDIENTE
+    bne elegida
+    lda f:SE_PENDIENTE
+    bne la_6
+    rep #$20
+.a16
+    lda f:SE_CUADROS
+    cmp f:SE2_CUADROS
+    sep #$20                    ; no toca C
+.a8
+    bcc elegida
+    beq elegida
+la_6:
+    ldy #SE2_DESPL
+elegida:
+    rep #$20
+.a16
+    tya
+    clc
+    adc #7
+    sta temp                    ; dónde termina la copia
+    sep #$20
+.a8
 copiar:
     lda f:sonido_tabla, x
     phx
@@ -16135,10 +16303,18 @@ copiar:
     plx
     inx
     iny
-    cpy #7
+    cpy temp
     bcc copiar
+    rep #$20
+.a16
+    tya
+    sec
+    sbc #7
+    tax
+    sep #$20
+.a8
     lda #1
-    sta f:SE_PENDIENTE
+    sta f:SE_PENDIENTE, x
     plp
 listo:
     plb
