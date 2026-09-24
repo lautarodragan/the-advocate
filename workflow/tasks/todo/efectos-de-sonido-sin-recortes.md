@@ -63,8 +63,13 @@ No son la tasa, ni la música recuperando la voz, ni la ARAM del mapa 1.
 **Confirmado sin la lluvia**, el 2026-09-24: una ROM de `main` en cf1ade0 con
 el `PlaySound` de `Rain1` compilado como "(OFF)", grabada igual, 3000 cuadros.
 Los tres truenos (cuadros 326, 1517 y 2555) suenan sus 144 cuadros y terminan
-solos. Es `pruebas-manuales/2026-09-24-cf1ade0-sin-lluvia/`, para que taro lo
-confirme de oído.
+solos. Es `pruebas-manuales/2026-09-24-cf1ade0-sin-lluvia/`.
+
+**Y de oído, taro, ese mismo día: sin lluvia el trueno suena mal igual.** Lo
+último se repite varias veces en vez de apagarse. Es la causa secundaria:
+0,75 s guardados y un bucle hasta cumplir los 144 cuadros. Así que **arreglar
+la voz no alcanza para el trueno**: también hace falta que suene entero, y eso
+cambia el lugar del bucle en el plan de abajo.
 
 # Por qué se decidió cada límite
 
@@ -121,6 +126,8 @@ anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
    subir el tope para todos no entra en los mapas 2 y 3, esto pide antes
    deduplicar o comprimir muestras. Se acerca a
    `wishlist/presupuesto-de-muestras-por-paquete.md`.
+   Para el trueno esto no es opcional: con el bucle suena mal aunque nada lo
+   pise.
 3. **Plan B, si lo anterior no alcanza:** fundido horneado en vez de bucle para
    los efectos que decaen, con la lluvia todavía en bucle. Sólo si se puede
    decidir por programa cuál es cuál.
