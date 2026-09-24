@@ -18,6 +18,10 @@ Las reglas, y de dónde sale cada una:
 * **Un salto original es un buen lugar para cortar, no uno obligado.**
   Tratarlo como obligado dejaba una palabra sola en un renglón ("it still /
   is.") y hacía que más cuadros no entraran.
+* **Un renglón que parte una oración va lleno**; uno con oraciones enteras
+  puede quedar corto. Lo que taro no quiere ver es un renglón que se
+  interrumpe mucho antes del borde —"Remember," solo, y abajo el resto—, y
+  eso pasa cuando cortar en un punto sale más barato que llenar.
 * **Lo que no entra en un cuadro se parte en varios**, cortando entre
   oraciones si se puede, y **cada uno repite la línea del que habla.** Es lo
   que hace el juego: medido el 2026-09-24, de los cuadros seguidos del mismo
@@ -42,15 +46,44 @@ FIN_DE_ORACION = re.compile(r"""[.!?]["')]*$""")
 # Una pausa menor: cortar ahí cuesta poco.
 PAUSA = re.compile(r"""[,;:\-]["')]*$""")
 
-# Los costos de cortar un renglón después de una palabra. Son gusto y no una
-# medida: con otros valores el mismo cuadro sale de otra forma. Éstos son los
-# que se probaron sobre la introducción y Lashe City el 2026-09-24.
+# Los costos. Son gusto y no una medida: con otros valores el mismo cuadro sale
+# de otra forma. Los primeros se probaron sobre la introducción y Lashe City el
+# 2026-09-24; los del hueco, la cola y el cuadro de más salieron el mismo día de
+# lo que taro jugó hasta los Back Alleys, comparando contra la versión anterior
+# en todos los cuadros del juego.
+#
+# Cortar un renglón después de una palabra:
 COSTO_FIN_DE_ORACION = 0
 COSTO_PAUSA = 15
 COSTO_CUALQUIERA = 40
 DESCUENTO_SALTO_ORIGINAL = 10   # donde cortaba el autor
 COSTO_HUERFANA = 200            # una palabra sola en el último renglón
-PESO_HUECO = 20                 # el hueco de un renglón corto, al cuadrado
+# Entre un nombre propio y su número —"Sector / 33."—. Es casi prohibido: sale
+# más caro que un cuadro de más.
+COSTO_ANTES_DE_NUMERO = 1000
+
+# El hueco que deja un renglón que no es el último. Cuánto pesa depende de dónde
+# corta, y ésa es la regla que más cambia lo que se ve: **un renglón que parte
+# una oración tiene que ir lleno.** Uno que tiene oraciones enteras puede quedar
+# corto —"Time is running out." / "There's no turning back."—, porque se lee
+# como un salto que el autor quiso. Con un solo peso para todos, cortar en un
+# fin de oración era tan barato frente al hueco que el reajuste dejaba
+# "Remember," o "Well," solos en un renglón para que los de abajo terminaran
+# en punto: de eso se quejó taro.
+PESO_HUECO = 20                 # oraciones enteras: el hueco al cuadrado / 20
+PESO_HUECO_PAUSA = 8            # corta en una coma: al cuadrado / 8
+PESO_HUECO_PARTIDO = 1000       # parte una oración: al cubo, relativo al ancho
+
+# El pedazo de oración que queda del otro lado de un corte —"sure." al principio
+# de un renglón, "There" al final—, si es más corto que esto. Es la huérfana
+# generalizada: "in time?" solo abajo se ve tan interrumpido como "Well," arriba.
+COLA_MINIMA = 16
+PESO_COLA = 3                   # lo que le falta, al cuadrado / 3
+
+# Un cuadro de más es una tecla de más para el jugador. Si lo más lindo no entra
+# en un cuadro pero hay una forma que entra y cuesta a lo sumo esto más, gana
+# la que entra.
+COSTO_CUADRO_DE_MAS = 300
 
 
 def ancho(texto):
@@ -122,45 +155,94 @@ def _costo_de_cortar(palabras, cortes, i):
         costo = COSTO_CUALQUIERA
     if i in cortes:
         costo -= DESCUENTO_SALTO_ORIGINAL
+    if (palabra[:1].isupper() and palabra[-1:].isalpha()
+            and i + 1 < len(palabras) and palabras[i + 1][:1].isdigit()):
+        costo += COSTO_ANTES_DE_NUMERO
     return costo
 
 
-def _renglones(palabras, cortes, columnas):
+def _costo_del_renglon(palabras, cortes, i, j, columnas):
+    """Lo que cuesta un renglón con las palabras de `i` a `j`: su hueco, el
+    corte con que termina y los pedazos de oración que deja sueltos.
+
+    El último renglón no paga su hueco —termina donde termina el texto—, pero
+    sí quedar con una sola palabra o con un pedazo corto de la oración de
+    arriba.
+    """
+    n = len(palabras)
+    largo = ancho(" ".join(palabras[i:j]))
+    fines = [k for k in range(i, j) if FIN_DE_ORACION.search(palabras[k])]
+    empieza_oracion = i == 0 or FIN_DE_ORACION.search(palabras[i - 1])
+    costo = 0
+    # El final de una oración que empezó en el renglón de arriba.
+    if not empieza_oracion and (j == n or (fines and fines[0] < j - 1)):
+        hasta = fines[0] + 1 if fines else j
+        costo += _costo_de_fragmento(palabras[i:hasta])
+    if j == n:
+        if j - i == 1 and i > 0:
+            costo += COSTO_HUERFANA
+        return costo
+    # El principio de una oración que sigue en el renglón de abajo.
+    if not FIN_DE_ORACION.search(palabras[j - 1]) and fines:
+        costo += _costo_de_fragmento(palabras[fines[-1] + 1:j])
+    hueco = columnas - largo
+    if FIN_DE_ORACION.search(palabras[j - 1]) and empieza_oracion:
+        costo += hueco * hueco / PESO_HUECO
+    elif PAUSA.search(palabras[j - 1]):
+        costo += hueco * hueco / PESO_HUECO_PAUSA
+    else:
+        costo += PESO_HUECO_PARTIDO * (hueco / columnas) ** 3
+    return costo + _costo_de_cortar(palabras, cortes, j - 1)
+
+
+def _costo_de_fragmento(palabras):
+    """Un pedazo de oración separado del resto por un corte de renglón."""
+    falta = max(0, COLA_MINIMA - ancho(" ".join(palabras)))
+    return falta * falta / PESO_COLA
+
+
+def _renglones(palabras, cortes, columnas, maximo=None):
     """Las palabras en renglones, eligiendo los cortes que cuestan menos.
 
     Es el algoritmo de párrafo de TeX en chico: programación dinámica sobre
-    dónde termina cada renglón. El último renglón no paga su hueco, pero sí
-    paga quedar con una sola palabra.
+    dónde termina cada renglón, llevando la cuenta de cuántos van.
     """
     n = len(palabras)
     if n == 0:
         return []
-    mejor = [None] * (n + 1)          # (costo, desde dónde)
-    mejor[0] = (0, None)
+    # mejor[j][k]: el costo de poner las primeras j palabras en k renglones,
+    # y desde dónde arranca el último.
+    mejor = [dict() for _ in range(n + 1)]
+    mejor[0][0] = (0, None)
     for j in range(1, n + 1):
         for i in range(j - 1, -1, -1):
             renglon = " ".join(palabras[i:j])
             if ancho(renglon) > columnas:
                 break
-            if mejor[i] is None:
+            if not mejor[i]:
                 continue
-            costo = mejor[i][0]
-            if j < n:
-                hueco = columnas - ancho(renglon)
-                costo += hueco * hueco / PESO_HUECO
-                costo += _costo_de_cortar(palabras, cortes, j - 1)
-            elif j - i == 1 and i > 0:
-                costo += COSTO_HUERFANA
-            # `<` y no `<=`: ante un empate gana el renglón más largo, que es
-            # el que se encontró primero. Es lo que lo hace determinístico.
-            if mejor[j] is None or costo < mejor[j][0]:
-                mejor[j] = (costo, i)
+            propio = _costo_del_renglon(palabras, cortes, i, j, columnas)
+            for k, (antes, _desde) in mejor[i].items():
+                costo = antes + propio
+                # `<` y no `<=`: ante un empate gana el renglón más largo,
+                # que es el que se encontró primero. Es lo que lo hace
+                # determinístico.
+                if k + 1 not in mejor[j] or costo < mejor[j][k + 1][0]:
+                    mejor[j][k + 1] = (costo, i)
+    opciones = sorted(mejor[n].items(), key=lambda kv: (kv[1][0], kv[0]))
+    elegido = opciones[0][0]
+    if maximo is not None and elegido > maximo:
+        # Lo más lindo no entra en un cuadro. Si hay una forma que entra y no
+        # es mucho peor, se usa ésa: un cuadro de más es una tecla de más.
+        entran = [kv for kv in opciones if kv[0] <= maximo]
+        if entran and entran[0][1][0] < opciones[0][1][0] + COSTO_CUADRO_DE_MAS:
+            elegido = entran[0][0]
     salida = []
-    j = n
+    j, k = n, elegido
     while j > 0:
-        i = mejor[j][1]
+        i = mejor[j][k][1]
         salida.append(" ".join(palabras[i:j]))
-        j = i
+        j, k = i, k - 1
     return salida[::-1]
 
 
@@ -179,7 +261,7 @@ def _tramos(palabras, cortes, columnas, cuerpo):
 
     def renglones_de(a, b):
         locales = {c - a for c in cortes if a <= c < b}
-        return _renglones(palabras[a:b], locales, columnas)
+        return _renglones(palabras[a:b], locales, columnas, cuerpo)
 
     tramos = []
     inicio = fin = 0

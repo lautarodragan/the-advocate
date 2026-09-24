@@ -65,6 +65,70 @@ def test_la_cola_va_al_final_del_ultimo_cuadro():
     assert not any("\\" in t for c in salida[:-1] for t in c)
 
 
+# Un renglón que no es el último y ocupa menos de esto se ve interrumpido.
+CORTO = 2 * ventana.COLUMNAS // 3
+
+
+@pytest.mark.parametrize("cuadro", [
+    # Los dos que peor se veían en lo que taro jugó el 2026-09-24: "Remember,"
+    # y "Well," solos en su renglón, para que los de abajo terminaran en punto.
+    ["?????", "Remember, my alias for this operation is",
+     '"Kersh." We should have the element of', "surprise."],
+    ["TALAN", "Well, this decision won't get any easier.",
+     "I've got to make up my mind and go!"],
+    # Los otros de sus capturas que tenían el mismo problema.
+    ["?????", "That security droid has been deactivated.",
+     "Its attack mode has been switched off."],
+    ["TALAN", "...but the Hover-Trams don't always run on",
+     "time, and I might get stuck waiting for one."],
+    ["TALAN", "It's Trash Dump 004 - right near my apartment.",
+     "I'm not getting anywhere!"],
+    ["TALAN", "Maybe there'll be another one along",
+     "really soon... at least, I hope there will!"],
+    ["CONDA", "Do you think he's one of the Lazer Teeth?",
+     "Maybe they found out about our spy..."],
+    ["CORE", "Thank you, Manta. And maybe... after all this,",
+     "you'll be able to tell me the answer to the",
+     "question none of my abilities... can."],
+])
+def test_ningun_renglon_se_interrumpe_antes_de_tiempo(cuadro):
+    """Salvo el último de cada cuadro, ningún renglón queda más corto que
+    `CORTO`. Todos éstos tienen una forma de cortarse que lo cumple."""
+    salida = textos.reajustar(cuadro)
+    for c in salida:
+        assert c[0] == cuadro[0]
+        cortos = [t for t in c[1:-1] if len(t) < CORTO]
+        assert not cortos, c
+    assert _palabras(salida, True) == _palabras([cuadro], True)
+
+
+def test_un_renglon_con_oraciones_enteras_puede_quedar_corto():
+    """El otro lado de la regla: cortar entre dos oraciones cortas se lee
+    como un salto del autor, y no se cambia por llenar el renglón."""
+    assert textos.reajustar(
+        ["KERSH", "Time is running out. There's no turning back."]) == [
+        ["KERSH", "Time is running out.", "There's no turning back."]]
+    assert textos.reajustar(
+        ["TALAN", "Ten minutes... I'm not sure I can make it."]) == [
+        ["TALAN", "Ten minutes...", "I'm not sure I can make it."]]
+
+
+def test_no_se_separa_un_nombre_de_su_numero():
+    salida = textos.reajustar(
+        ["TALAN", "I'd better not go back through Sector 33. The Lazer",
+         "Teeth wouldn't be happy to see me..."])
+    renglones = [t for c in salida for t in c]
+    assert not any(t.endswith("Sector") for t in renglones), salida
+
+
+def test_no_se_agrega_un_cuadro_por_gusto():
+    """Si el texto entra en un cuadro, no se parte en dos para que se vea
+    mejor: un cuadro de más es una tecla de más."""
+    cuadro = ["TALAN", "Well... time to get away from the Agency. Now I've",
+              "got an entire world to hide in..."]
+    assert len(textos.reajustar(cuadro)) == 1
+
+
 @pytest.mark.parametrize("linea, es", [
     ("KERSH", True),
     ("TRAM OFFICER", True),
