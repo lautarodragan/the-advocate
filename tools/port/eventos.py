@@ -3665,7 +3665,17 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # vacío es "(OFF)": no toca nada.
         if temas is None or not cmd.string or len(p) < 3:
             return b""
-        k = temas.sonido(cmd.string, p[0], p[1], p[2])
+        # Y el trueno del mapa 1, entero: es otra muestra, con su propio
+        # nombre, para que el mapa 3 —que también lo pide— siga con la de
+        # siempre. Ver `SE_ENTEROS` en snes_music.py.
+        nombre = cmd.string
+        if nombre == "Thunder9" and temas.mapa is not None:
+            try:
+                if temas.mapa == indice_de_mapa(1):
+                    nombre = "Thunder9@entero"
+            except Exception:
+                pass
+        k = temas.sonido(nombre, p[0], p[1], p[2])
         return bytes([OP_SOUND, k & 0xFF, k >> 8])
 
     if cmd.code == WEATHER_EFFECTS:

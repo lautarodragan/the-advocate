@@ -136,3 +136,30 @@ anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
    los efectos que decaen, con la lluvia todavía en bucle. Sólo si se puede
    decidir por programa cuál es cuál.
 4. Más adelante, la tasa: subirla para todos tampoco entra hoy.
+
+# Lo medido del trueno entero, en el mapa 1
+
+Del experimento del 2026-09-24, con `Rain1` apagado. Es `SE_ENTEROS` en
+`tools/audio/snes_music.py` y el alias `Thunder9@entero` en `_compilar`: sólo
+el trueno del mapa 1, porque el mapa 3 pide el mismo y entero no le entra.
+taro eligió **22 kHz** y está en `main`; el alias sigue siendo provisorio.
+
+Medido con `just demo` y grabando 3000 cuadros con snes9x. Los números de
+paquete son sin `Rain1`, y el primer trueno arrancaba en el cuadro 326 con el
+de antes:
+
+| Tasa   | Muestra  | Paquete del mapa 1 | Primer trueno | 3–5,5 kHz (orig −18,7 dB) |
+|--------|----------|--------------------|---------------|---------------------------|
+| antes  |  2.529 B | 12.321 B           | cuadro 326    | −41,5 dB                  |
+| 6 kHz  |  6.462 B | 16.254 B           | 331 (+5)      | −41,1 dB                  |
+| 11 kHz | 11.880 B | 21.672 B           | 338 (+12)     | −29,2 dB                  |
+| 16 kHz | 17.235 B | 27.027 B           | 345 (+19)     | −24,9 dB                  |
+| 22 kHz | 23.760 B | 33.552 B           | 354 (+28)     | −21,5 dB                  |
+
+Los truenos duran sus 144 cuadros, y la grabación baja 7 dB a los 1,40 s,
+igual que el original; la de antes seguía plana hasta el `KOF`. El BRR
+decodificado termina con fin sin loop y sigue al original hasta −59 dB.
+
+Generalizarlo, con la lluvia apagada: todos los efectos enteros a 6 kHz
+entran en todos los mapas menos el 3, que pide 93.519 B, 29.656 de más; el 2
+queda con 188 B libres.

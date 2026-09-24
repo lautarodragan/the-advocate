@@ -247,6 +247,16 @@ SE_VOZ = 7                      # la que se le roba a la música
 # la apertura—, como en RM2k. También es de percusión: con dos efectos
 # sonando, la batería se queda sin voces.
 SE_VOZ2 = 6
+# Los que van enteros, sin tope ni bucle, a su propia tasa: terminan cuando
+# termina la muestra, que es lo que hacen en RM2k. Con el tope, el trueno
+# repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo oyó tartamudear.
+# Hoy es sólo el trueno de la apertura, y a 22 kHz: decidido, ver
+# `decisiones/el-trueno-va-entero-a-22-khz.md`. La regla general —qué efecto
+# va entero, a qué tasa y en qué paquete— todavía no está, y **el alias es
+# provisorio**: lo que va después de la `@` es un nombre aparte para la misma
+# WAV, que `_compilar` pone sólo en el mapa 1, porque el mapa 3 también pide
+# el trueno y con éste entero su paquete no entra en la ARAM.
+SE_ENTEROS = {"Thunder9@entero": 22050}
 
 
 class Efecto:
@@ -291,12 +301,14 @@ def leer_wav(nombre, game_dir=GAME_DIR):
 
 
 def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA):
-    leido = leer_wav(nombre, game_dir)
+    leido = leer_wav(nombre.split("@")[0], game_dir)
     if not leido or not leido[0]:
         return None
     crudo, fuente = leido
     segundos = len(crudo) / float(fuente)
     guardar = min(len(crudo), int(SE_MAX_SEGUNDOS * fuente))
+    if nombre in SE_ENTEROS:
+        tasa, guardar = SE_ENTEROS[nombre], len(crudo)
     salen = max(BLOQUE,
                 int(round(guardar * tasa / float(fuente)))
                 // BLOQUE * BLOQUE)
