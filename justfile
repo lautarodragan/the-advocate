@@ -248,6 +248,18 @@ demo nombre="abl":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
+# del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,
+# `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
+# despacio para que se lean los textos. Por qué `-O`, en `video.py`.
+#
+#     just video abl /shared/apertura.mp4 quieto:6000 apertura
+#     just video abl /shared/textos.mp4 apertura talan --leer 150
+#
+# Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
+video nombre salida +jugadas:
+  python3 -O pruebas/arnes/video.py rom/build/{{nombre}} {{salida}} {{jugadas}}
+
 # La persecución en auto, que no entra en `abl` y no hace falta que
 # entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
 # juega desde el primer cuadro sin tener que recorrer Lashe City.
