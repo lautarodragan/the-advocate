@@ -60,6 +60,12 @@ desde su fade-in, así que la lluvia tiene baches periódicos.
 
 No son la tasa, ni la música recuperando la voz, ni la ARAM del mapa 1.
 
+**Confirmado sin la lluvia**, el 2026-09-24: una ROM de `main` en cf1ade0 con
+el `PlaySound` de `Rain1` compilado como "(OFF)", grabada igual, 3000 cuadros.
+Los tres truenos (cuadros 326, 1517 y 2555) suenan sus 144 cuadros y terminan
+solos. Es `pruebas-manuales/2026-09-24-cf1ade0-sin-lluvia/`, para que taro lo
+confirme de oído.
+
 # Por qué se decidió cada límite
 
 * **6 kHz, voz 7 y el bucle** son de `19e7dcc`, cuando los efectos compartían
@@ -89,22 +95,33 @@ cartuchos. Esto es una estimación: no se implementó.
 `pruebas/UNTESTED.md` lo reconoce. Lo único que lo mide es una grabación
 anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
 
-# Plan propuesto, en orden
+# Lo que decidió taro, el 2026-09-24
+
+* **Todos los mapas tienen que tener todos sus efectos.** Nada de efectos
+  enteros sólo donde entran. Si algo no entra, el camino es deduplicar o
+  comprimir las muestras, con el MSU-1 como expansión opcional si sin él
+  pierden demasiada calidad.
+* **El fundido en vez del bucle es plan B.** Si no se puede decidir por
+  programa qué efecto se repite y cuál se apaga, pide decidirlo a mano, y eso
+  no se encara ahora. Hay que apuntar a que no haga falta.
+* El mapa 3 quedó como tarea aparte: `al-mapa-3-le-falta-un-efecto.md`.
+
+# Plan, en orden
 
 1. **Dos voces de efectos, la 6 y la 7**, asignando la libre primero, si no la
-   que termina antes, y la misma muestra re-disparada reusa su voz. Es lo único
-   que arregla los tres truenos medidos. No cuesta ARAM.
+   que termina antes, y la misma muestra re-disparada reusa su voz. Arregla el
+   corte del trueno por la lluvia. No cuesta ARAM.
    * Costo: mientras suenan dos efectos, la percusión se queda sin voces. En la
      apertura la 7 ya está tomada casi siempre por la lluvia; lo nuevo es perder
      la 6 durante los 2,4 s de cada trueno. Con MSU-1 no cuesta nada.
    * Toca `dsp_musica` y su sombra, `se_antes`/`se_despues`, `se_callar`, el
      camino del MSU-1 y `BA_SE2_CUADROS`. `test_batalla.py` lee `SE_NUEVO`.
    * Conviene hacer una receta de la grabación, porque es la única red.
-2. **Efectos enteros en los paquetes que tienen lugar**, empezando por
-   `Thunder9` y `Rain1` en el mapa 1. Con versiones por paquete —`sonido_tabla`
-   ya indexa por entrada— para no romper los mapas 2 y 3. Se acerca a
+2. **Efectos más largos en todos los mapas**, sin el bucle de 0,4 s. Como
+   subir el tope para todos no entra en los mapas 2 y 3, esto pide antes
+   deduplicar o comprimir muestras. Se acerca a
    `wishlist/presupuesto-de-muestras-por-paquete.md`.
-3. **Fundido horneado en vez de bucle** para los efectos que decaen; la lluvia
-   sigue con bucle. Sólo toca el conversor, pero el criterio de "estacionario"
-   es una decisión artística.
-4. Revisar el mapa 3 y, más adelante, la tasa por paquete.
+3. **Plan B, si lo anterior no alcanza:** fundido horneado en vez de bucle para
+   los efectos que decaen, con la lluvia todavía en bucle. Sólo si se puede
+   decidir por programa cuál es cuál.
+4. Más adelante, la tasa: subirla para todos tampoco entra hoy.
