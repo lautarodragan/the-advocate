@@ -17,8 +17,26 @@ en la línea de `parches-de-decisiones-artisticas.md`.
 
 # Status
 
-Anotada el 2026-09-24. Hay un experimento hecho sólo sobre el texto, abajo; no
-se conectó al conversor ni se armó ninguna ROM con él.
+Anotada el 2026-09-24. Ese mismo día, con taro:
+
+* **Primero una función, y la infraestructura sólo si hace falta.**
+  `tools/port/textos.py` es pura: recibe un cuadro y devuelve uno o más.
+  Está en `main` con sus pruebas, pero todavía no la llama el conversor.
+* **El TOML que mapea texto queda decidido**, y el mapeo tiene que ser
+  determinístico. Es el modelo de gettext: la clave es el original exacto, la
+  traducción puede ser más de un cuadro, y un contexto desambigua el día que
+  el mismo cuadro tenga que salir distinto en dos lugares. Con la función
+  sola ese día no llega: el mismo cuadro da siempre lo mismo.
+* **Un cuadro partido repite la línea del que habla**, porque el juego lo
+  hace así: de los 564 cuadros seguidos del mismo personaje, todos repiten el
+  nombre.
+* La idea de que Ditto extraiga los textos con ids, con ida y vuelta byte por
+  byte, sirve para traducciones de verdad. Hoy no hace falta.
+
+**El experimento está en la rama `textos-experimento`**: forks en
+`juego/mapas/` de los mapas 1 a 16 que cambian, sin el 11. Es temporal y no
+va a `main`, porque un fork tapa a `data/`. La ROM y un antes y después de
+cada cuadro están en `pruebas-manuales/2026-09-24-0aeb917-textos/`.
 
 # Lo que complica, y cómo se resuelve
 
