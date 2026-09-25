@@ -12,6 +12,7 @@ avanza mientras dura.
 from port import batalla as modelo
 
 from consola import en_la_rom, en_la_wram
+import datos
 from tanda import LINKAGE
 
 # El droide del mapa 2 está en (30,55) y se le habla desde abajo.
@@ -272,3 +273,11 @@ def palabra_de(una, simbolo, actor):
 def grupo_de(una):
     """Hasta `grupo_n`: las ranuras de más no se limpian y traen basura."""
     return list(una.consola.ram(una.simbolos["grupo"], una.palabra("grupo_n")))
+
+
+def sabe(una, actor, habilidad):
+    """Si el actor sabe la habilidad: su bit en `FAR_HAB`, con el índice de
+    pares del cartucho de pruebas."""
+    r = datos.ranuras_de_habilidad()[(actor, habilidad)]
+    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
+    return bool(octeto & (1 << (r & 7)))

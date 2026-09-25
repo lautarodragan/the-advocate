@@ -33,6 +33,12 @@ from rpgmaker.rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
                            PASS_UP, TELEPORT, grafico_de_pagina,
                            pasabilidad_del_tile, passability_map)
 
+# El switch que prende el final del Emitter Room y que hace que el enrutador del
+# mapa 4 mande a la casa de Talan con el cartel de "One year previously". Es el
+# mismo que usa el caso `cartel` de la tanda, y con el que arrancan las
+# jugadas que empiezan en la casa de Talan.
+UN_ANO_DESPUES = 21
+
 
 def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     """Si desde (x,y) se puede dar un paso en (dx,dy).

@@ -16,6 +16,7 @@ from port import eventos
 
 import datos
 from datos import pagina_de
+from batalla import sabe
 
 ARDEN, KERSH, CORE, MANTA = 15, 11, 12, 13
 APRENDE, OLVIDA = 152, 147
@@ -29,12 +30,6 @@ DESPUES = 60
 
 def ranura(actor, habilidad):
     return datos.ranuras_de_habilidad()[(actor, habilidad)]
-
-
-def sabe(una, actor, habilidad):
-    r = ranura(actor, habilidad)
-    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
-    return bool(octeto & (1 << (r & 7)))
 
 
 def poner(una, actor, habilidad, valor):
@@ -61,7 +56,8 @@ def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
     que no copiara nada y dejara `FAR_HAB` en cero daría "no la sabe" para la
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")
-    assert una.simbolos["HAB_BYTES"] == (len(datos.ranuras_de_habilidad()) + 7) // 8, (
+    pares = len(datos.ranuras_de_habilidad())
+    assert una.simbolos["HAB_BYTES"] == (pares + 7) // 8, (
         "el cartucho tiene otro índice de pares que el que arma la prueba: "
         "sus ranuras no valen")
     assert sabe(una, ARDEN, OLVIDA), "Arden arranca sin la 147 del LDB"

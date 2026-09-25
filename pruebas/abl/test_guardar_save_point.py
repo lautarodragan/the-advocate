@@ -41,7 +41,7 @@ en mednafen, en mesen y en la SNES.
 import pytest
 
 from recorrido import Mundo, Recorrido
-from test_recorrido import UN_ANO_DESPUES
+from recorrido import UN_ANO_DESPUES
 
 EMPEZAR, SEGUIR = 0, 1
 

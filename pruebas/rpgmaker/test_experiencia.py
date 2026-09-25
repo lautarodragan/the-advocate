@@ -269,7 +269,7 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     7. Kersh pelea al lado para que la pelea se gane, y **detrás** de Arden:
     con el orden al revés el droide le pega a Arden hasta tirarlo, y lo que
     decide eso es el azar de la pelea, que el modelo juega igual."""
-    from test_equipo_y_habilidades import sabe
+    from batalla import sabe
     base = datos.base()
     arden = base.actors[ARDEN]
     assert experiencia.nivel_inicial(arden) == 3

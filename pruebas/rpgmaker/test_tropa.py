@@ -28,7 +28,7 @@ en todos los mapas y le podría mover los colores a más de una golden.
 from port import eventos
 
 from consola import en_la_rom
-from batalla import FIN, ORDEN, Pelea, hab_id
+from batalla import FIN, ORDEN, Pelea, hab_id, sabe
 import datos
 
 CASO = "tropa-talan-aura"
@@ -37,12 +37,6 @@ DETECT_AURA, ABSORB_AURA = 133, 134
 TROPA = 121
 # `BA_M_PAGINA` de rom/src/ram_lejana.s: corriendo una página de tropa.
 PAGINA = 7
-
-
-def sabe(una, habilidad):
-    r = datos.ranuras_de_habilidad()[(TALAN, habilidad)]
-    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
-    return bool(octeto & (1 << (r & 7)))
 
 
 def variable(una, numero):
@@ -189,7 +183,8 @@ def test_el_sistema_de_batalla_de_talan(partida):
     assert pelea.byte("BA_NACT") == 1
 
     # --- Detect Aura ---
-    assert sabe(una, DETECT_AURA) and not sabe(una, ABSORB_AURA)
+    assert (sabe(una, TALAN, DETECT_AURA)
+            and not sabe(una, TALAN, ABSORB_AURA))
     detect, absorb = abrir_la_lista(una, pelea)
     assert detect is not None and absorb is None, (
         "Talan tendría que ofrecer Detect Aura y no Absorb Aura: %r"
@@ -203,7 +198,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
     cerrar_y_esperar_ordenes(una, pelea)
     assert not pelea.switch(s_detecta), "la página tenía que apagar el 134"
     for habilidad, la_sabe in lo_que_enseña(detecta).items():
-        assert sabe(una, habilidad) == la_sabe, (
+        assert sabe(una, TALAN, habilidad) == la_sabe, (
             "después de Detect Aura, la habilidad %d" % habilidad)
     for numero, valor in lo_que_cuenta(detecta).items():
         assert variable(una, numero) == valor, (
@@ -225,7 +220,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
     enseña = lo_que_enseña(absorbe)
     assert len([h for h, si in enseña.items() if si]) >= 1
     for habilidad, la_sabe in enseña.items():
-        assert sabe(una, habilidad) == la_sabe, (
+        assert sabe(una, TALAN, habilidad) == la_sabe, (
             "después de Absorb Aura, la habilidad %d" % habilidad)
     for numero, valor in lo_que_cuenta(absorbe).items():
         assert variable(una, numero) == valor, (

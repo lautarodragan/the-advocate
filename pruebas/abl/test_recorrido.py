@@ -30,10 +30,7 @@ jugador. Hasta el 2026-09-24 corría en `juego`, un cartucho parecido.
   porqué, en `Recorrido.foto`.
 """
 
-# El switch que prende el final del Emitter Room y que hace que el enrutador del
-# mapa 4 mande a la casa de Talan con el cartel de "One year previously". Es el
-# mismo que usa el caso `cartel` de la tanda.
-UN_ANO_DESPUES = 21
+from recorrido import UN_ANO_DESPUES
 
 # Adónde entra el juego al mapa 16, y de dónde sale el número: el `Teleport` de
 # los eventos 65 y 66 del mapa 8 y de los 28 y 29 del mapa 9, que son las cuatro

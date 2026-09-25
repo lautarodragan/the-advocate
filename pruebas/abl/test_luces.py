@@ -24,7 +24,7 @@ from port import eventos
 from rpgmaker import lcf
 from render.render_map import REPO
 
-from test_piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja
+from piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja
 
 MAPA11 = os.path.join(REPO, "parches", "manual", "mapas", "Map0011.json")
 
