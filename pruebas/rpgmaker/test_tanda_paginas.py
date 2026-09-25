@@ -495,8 +495,7 @@ def test_autocierre(nombre, pausas, cuadros):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-VENTANAS = ("ventana", "ventana-1", "ventana-6", "ventana-269", "ventana-348",
-            "ventana-7-y-269")
+VENTANAS = ("ventana", "ventana-1", "ventana-6", "ventana-269", "ventana-348")
 
 
 @pytest.mark.parametrize("nombre", VENTANAS)
@@ -514,9 +513,7 @@ def test_ventana(nombre):
     posible, y otro que no entra en el tilemap de 64x32—. La paleta de la
     ventana es una sola para todo el cartucho —las celdas se emiten una vez
     con la paleta adentro— así que gana la más baja de las que cada mapa
-    pediría. El último caso existía para mirar eso con dos mapas en la ROM;
-    desde el 9f todos corren en el cartucho de los 40, y se deja por la
-    golden.
+    pediría.
     """
     p = partida(nombre)
     p.correr(200)

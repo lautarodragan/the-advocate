@@ -197,8 +197,7 @@ def test_encima():
     golden("encima", p.imagen())
 
 
-@pytest.mark.parametrize("nombre", ("evento", "tabla"))
-def test_evento(nombre):
+def test_evento():
     """`just evento`: la cinemática del mapa 4 vista en su cuadro asentado.
 
     El mapa 4 es una habitación vacía y negra cuyo único trabajo es prender dos
@@ -210,17 +209,13 @@ def test_evento(nombre):
     no entró no compila, y entonces la página no se emite y el evento no hace
     nada. Con el mapa 4 solo la pantalla se queda en negro, y eso es correcto.
 
-    El segundo caso —`tabla`— era el mismo con el destino **último** en la
-    lista de mapas. Desde el 9f los dos corren en el cartucho de pruebas, así
-    que son la misma partida: se deja por la golden.
-
     **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
     ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
     dos cores y compara las dos pantallas entre sí.
     """
     p = partida("grupo-11-en-4")
     p.correr(240)
-    golden(nombre, p.imagen())
+    golden("evento", p.imagen())
 
 
 @pytest.mark.parametrize("caso,nombre", (("en-121", "grupo-121"),
