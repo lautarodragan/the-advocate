@@ -50,11 +50,11 @@ una tabla especial de la ROM.
     `test_paralelos` y `test_musica_paquete` cuidan propiedades del port —la
     WRAM sin inicializar, el buffer del texto, el presupuesto del cuadro, las
     muestras en la ARAM— y no comportamiento de RM2k. Van con el motor igual.
-  * **`abl/test_tanda_escenas.py` tiene casos que ejercitan comandos
+  * **`abl/test_escenas_golden.py` tiene casos que ejercitan comandos
     genéricos** —`elegir`, `tienda`, `savepoint-guarda`, las puertas— con
     páginas del juego, y `factoria`, que es el tercer reparto de VRAM. Partirlo
     por caso pedía duplicar la función de la familia; se partió sólo por
-    familia: `hablar` se fue a `rpgmaker/test_tanda_hablar.py`.
+    familia: `hablar` se fue a `rpgmaker/test_hablar_golden.py`.
   * **`herramientas/` se decidió por la forma** —no corre ROM— y varias miran
     el conversor sobre mapas de ABL: `test_lideres`, `test_destello_paleta`,
     `test_timer_paleta`, `test_encuentros`. `test_bancos` lee la tabla de

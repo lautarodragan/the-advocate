@@ -282,8 +282,9 @@ lo que tocan —el intérprete y la CGRAM, la RAM del control mientras se camina
 la ventana de mensaje, que es lo que más VRAM escribe con la pantalla apagada—.
 
 `test_heroe` camina las cuatro direcciones y se queda parado en un mapa, y la
-lista de cuáles vive en `MAPAS_DE_HEROE`, en `pruebas/rpgmaker/test_tanda.py`. Por qué
-está cada uno, para los que se eligieron por una razón concreta:
+lista de cuáles vive en `MAPAS_DE_HEROE`, en
+`pruebas/rpgmaker/test_caminar_golden.py`. Por qué está cada uno, para los que
+se eligieron por una razón concreta:
 
     73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero
     6             recorre 100 celdas por los dos ejes: la ventana da tres vueltas
@@ -352,8 +353,8 @@ Y no todo se llega caminando. Una caminata termina siempre contra un borde del
 mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
 el medio. Para eso el caso de la prueba empieza con un `Teleport` de RM2k a una
 celda elegida, y se compara sin caminar —lo usa `test_parado` en
-`pruebas/rpgmaker/test_tanda.py`—, sin depender de cuántos ticks se sostenga la
-cruceta. Así se reprodujo el error de la banda de OAM. (Hasta el paso 9e era
+`pruebas/rpgmaker/test_caminar_golden.py`—, sin depender de cuántos ticks se
+sostenga la cruceta. Así se reprodujo el error de la banda de OAM. (Hasta el paso 9e era
 el `--inicio TX TY` del conversor, que sigue existiendo para las recetas.)
 
 ### El personaje

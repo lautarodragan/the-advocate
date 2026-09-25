@@ -3,8 +3,8 @@ name: "La otra rama de la cinemática de los Neon Vipers"
 description: "Lo que el recorrido del mapa 12 dejó sin ejecutar: la rama del `no`, la reja y el mapa 14"
 ---
 
-`pruebas/abl/test_recorrido_vipers.py` juega el tramo entero por la rama de
-**"Yes, I'll do it!"**, que es la que sale de tocar A sin mover el cursor del
+`pruebas/abl/test_recorrido_vipers_golden.py` juega el tramo entero por la
+rama de **"Yes, I'll do it!"**, que es la que sale de tocar A sin mover el cursor del
 `ShowChoice`. Quedaron sin ejecutar tres cosas, y son las tres del mismo lado:
 
 * la rama de **"No, it's a waste of time!"**, que en vez de teletransportar baja
