@@ -2,8 +2,7 @@
 
 El HQ de los Lazer Teeth —el mapa 11— tiene muchos eventos con página
 paralela, y hasta el 2026-09-13 cada uno volvía a resolver su página activa en
-cada cuadro:
-`un_paralelo` llamaba a `pagina_desde_eleg`, que lee del cartucho los
+cada cuadro: `un_paralelo` llamaba a `pagina_desde_eleg`, que lee del cartucho los
 veinticuatro bytes de la cabecera de la página por la ventana de banco. Con el
 décimo paralelo el lazo se pasaba del cuadro y el mapa caía a 30 fps de golpe
 —no hay 45: perder el vblank cuesta el cuadro entero—.
