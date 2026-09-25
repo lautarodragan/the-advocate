@@ -24,10 +24,6 @@ juego, no arrancando en una celda elegida desde afuera.
 
 # Lo que se sabía
 
-La persecución en auto, que no entra en `abl` y no hace falta que
-entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
-juega desde el primer cuadro sin tener que recorrer Lashe City.
-
 Los siete mapas son los de la escena: el 49, el 52 y el 54 son las tres
 vueltas, el 50 es la sala de choque con el "vamos de nuevo", el 51 el puente
 levantado, y el 53 el final.
@@ -64,7 +60,3 @@ camina libre y a la velocidad que le dejó `RaceController1`. Quien la corre es
 `RaceController2`, la única página paralela del 49 que no compila, y lo que la
 corta es el `KeyInputProc` **sin espera**; el porqué de que ese comando siga
 sin aceptarse está en `KEY_INPUT_PROC` en eventos.py.
-
-Aparte de `release` porque el mapa inicial es otro y porque no comparte un solo
-mapa con ella: juntarlas sería un `if` en el medio de una receta que ya tiene
-la lista escrita a mano.
