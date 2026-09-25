@@ -17,7 +17,24 @@ en la línea de `parches-de-decisiones-artisticas.md`.
 
 # Status
 
-Anotada el 2026-09-24. Ese mismo día, con taro:
+**Hecho el 2026-09-24**, en `4c82f2a` y `6ea392e`. taro lo jugó hasta
+después del Director y los textos están bien: "no hace falta que hagamos nada
+más complejo". Cómo quedó:
+
+* **El reajuste es un paso del pipeline, aparte de los parches.** taro pidió
+  que no compita con `parches/` ni con los forks de `juego/`: son dos
+  procesos distintos. El lector tiene un gancho, `lcf.REAJUSTAR_TEXTOS`, que
+  el conversor pone —como `DECORAR_TRANSLUCIDO`—, y corre después de los
+  forks sobre lo que haya quedado. Un cuadro que ya entra no lo toca, así que
+  un texto corregido a mano en un fork gana siempre.
+* **El TOML de abajo no se hizo**, y no hace falta mientras no aparezca un
+  caso: si alguno sale mal, se trata como un bug de ese caso.
+* **El bloque de mensajes cuenta de a dos bytes** (`MENSAJES_PASO`): partir
+  cuadros lo pasó de los 64 KB que alcanza el operando de `OP_MESSAGE`.
+* Los textos de la pelea tienen otro ancho y siguen en
+  `todo/los-textos-de-la-pelea-no-entran.md`.
+
+Lo de abajo es cómo se llegó, el 2026-09-24:
 
 * **Primero una función, y la infraestructura sólo si hace falta.**
   `tools/port/textos.py` es pura: recibe un cuadro y devuelve uno o más.
