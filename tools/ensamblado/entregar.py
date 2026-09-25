@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RELEASE = os.path.join(RAIZ, "rom", "build", "release")
@@ -112,6 +113,14 @@ quiere el fuente). {msu}
 """
 
 
+def renglones(texto):
+    """El texto de qué mirar llega en una sola línea desde la terminal: se
+    reparte en renglones como el resto del LEEME, respetando los párrafos que
+    traiga."""
+    return "\n\n".join(textwrap.fill(p.strip(), 76)
+                       for p in texto.strip().split("\n\n"))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("que_mirar", help="qué cambió y qué mirar: va al LEEME")
@@ -176,7 +185,7 @@ def main():
 
     with open(os.path.join(destino, "LEEME.txt"), "w", encoding="utf-8") as f:
         f.write(LEEME.format(commit=commit, fecha=hoy, asunto=asunto,
-                             que_mirar=args.que_mirar.strip(), msu=msu))
+                             que_mirar=renglones(args.que_mirar), msu=msu))
     # Se dejan dos: éste y el más nuevo de los demás, que sirve para comparar
     # con lo que se venía jugando; los de más atrás se rearman desde su
     # commit. Éste se queda siempre, aunque su nombre lleve una fecha vieja
