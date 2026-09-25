@@ -239,6 +239,25 @@ parches-check *builds="rom/build/tests rom/build/release":
 build cual:
   python3 tools/ensamblado/cartuchos.py {{cual}}
 
+# **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
+# `abl.sfc`, su `.dbg`, un `LEEME.txt` con lo que se le pasa como qué mirar, y
+# el `rom/src/` del commit, que es lo que deja a Mesen2 mostrar el fuente
+# abriendo la ROM desde ahí. Borra los builds viejos menos el anterior. La
+# regla es la de "Sub-agentes" en AGENTS.md; se escribió porque a mano se
+# repetía seguido y se equivocaba.
+#
+# Se niega con cambios sin commitear en lo que entra en la ROM: el build se
+# nombra por commit y tiene que ser ese commit. Y avisa si las pistas de MSU-1
+# no son las de `/shared/msu/`, pero no las copia sin `--actualizar-msu`:
+# pesan medio giga.
+#
+#     just entregar "Qué cambió desde el build anterior y qué mirar."
+#     just entregar "..." --actualizar-msu
+#
+# Entrega el release en /shared/builds/ para que taro lo juegue.
+entregar que_mirar *args: (build "release")
+  python3 tools/ensamblado/entregar.py {{quote(que_mirar)}} {{args}}
+
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido_golden.py`
 # —`apertura`, `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
