@@ -1,6 +1,6 @@
 ---
 name: "Ordenar pruebas/"
-description: "Los bugs de las pruebas, los helpers a arnes/ y una pasada de prosa, en tres trabajos"
+description: "Los bugs de las pruebas, los helpers a arnes/, la organización y una pasada de prosa, en cuatro trabajos"
 ---
 
 **Lo que encontró una revisión de `pruebas/` el 2026-09-25, contra `43bd1aa`.**
@@ -142,24 +142,46 @@ de `43bd1aa`, y el trabajo 2 corrió muchos: buscar por el texto.
 `test_titulo.py:102-105`, `test_game_over.py:88-92`, `consola.py:659-661`,
 `recorrido.py:567-573`.
 
-## 4. Organización — en curso
+## 4. Organización — hecho el 2026-09-25
 
-Cuatro propuestas que taro aprobó el 2026-09-25, cada una en su commit. Es un
-refactor: lo que cubre cada prueba no cambia, salvo el tick repetido de la
-segunda.
+Cuatro propuestas que taro aprobó, cada una en su commit y con `just
+pruebas` en verde; lo medido está en cada mensaje. Hecha **antes** que la 3,
+así que la prosa tiene que tener en cuenta también esto.
 
-- **Un solo `Partida.hp(actor)` / `poner_hp`**, y lo mismo para SP. Hoy se
-  leen de cuatro maneras (`palabra_de`, `Pelea.hp_guardado`, `hp_de` y dos
-  `poner_hp`). Si dos maneras leen lugares distintos —el HP de la partida
-  contra el de la pelea— quedan dos métodos con nombres que lo digan.
-- **`cinematica` y `apertura` capturan las dos el tick 370**, de la misma
-  corrida: si las goldens son byte por byte iguales, el 370 sale de uno de
-  los dos, con su golden.
-- **Una sola lectura de los eventos del mapa 11**: `test_luces` los leía del
-  JSON del fork y `test_piedras` de `GAME_DIR`, que ya aplica el fork.
-- **Una convención de nombres** que distinga las pruebas de pixeles de las de
-  estado, y que arregle los nombres que engañan (`test_tanda_pantallas`
-  contiene la batalla, `test_hp_de_batalla` es sobre el menú). Primero un
-  inventario —qué tipo de prueba es cada archivo y qué sistema cubre—, que
-  le sirve a la 3 para el índice del README; después los renombres, en un
-  commit que sea sólo `git mv` y rutas.
+- **HP y SP de la partida**: `Partida.hp` / `poner_hp` / `sp` / `poner_sp`,
+  sobre `FAR_HP` y `FAR_SP`. Los de la pelea son otra cosa —la ranura
+  `BA_UNO` por puesto de combatiente— y quedan en
+  `Pelea.hp_del_combatiente` / `sp_del_combatiente`. Se fueron
+  `palabra_de`, `hp_guardado`, `sp_guardado`, `hp_de` y los dos `poner_hp`
+  de prueba.
+- **El 370 de `apertura`** era byte por byte el de `cinematica`, de la misma
+  corrida: se fue de `apertura`, con su golden. El porqué de cuál, en el
+  commit.
+- **El mapa 11** se lee en `piedras.mapa11()` / `eventos_del_11()`, de
+  `GAME_DIR`: comparado campo por campo, es lo mismo que leían las dos.
+- **Los nombres**: `test_<sistema>[_<detalle>][_golden|_dibujo].py`. El
+  sufijo dice contra qué se compara la pantalla —las goldens de
+  `pruebas/golden/`, o lo que dibuja `tools/port/`—; sin sufijo, la prueba
+  mira estado o no corre ROM. Por qué sufijo y no prefijo ni carpeta, en el
+  commit de los renombres. `test_tanda_pantallas` se partió en
+  `test_batalla_golden`, `test_menu_golden`, `test_guardar_golden` y
+  `test_titulo_golden`, y su `test_espera` pasó a `test_comandos_golden`.
+
+Para la 3:
+
+- **Las citas en prosa de los nombres viejos no se tocaron**: el commit de
+  los renombres es sólo eso más el import de `video.py`. Se buscan con los
+  nombres viejos —`test_tanda`, `test_tanda_*`, `test_menu`,
+  `test_items_pantalla`, `test_equipo`, `test_curar_menu`,
+  `test_hp_de_batalla`, `test_tienda`, `test_titulo`, `test_experiencia`,
+  `test_escena`, `test_recorrido`, `test_recorrido_vipers`— como palabra
+  entera; el glob `pruebas/*/test_tanda*.py` aparece en `AGENTS.md`, el
+  `justfile` y varias cabeceras, y hoy es `pruebas/*/test_*_golden.py`.
+- `pruebas/README.md` no tiene índice de pruebas; el inventario por tipo y
+  por sistema que armó la 4 sirve para hacerlo.
+- `herramientas/test_pila.py` corre la ROM, y el README dice que
+  `herramientas/` son las que no. No se movió: es una decisión de carpeta,
+  no de nombre.
+- Dos cuentas de goldens quedaron viejas por el 370: "las diecisiete" de la
+  lápida al final de `test_titulo_golden.py`, y "las seis de `apertura`" en
+  `test_escenas_golden.py::test_cinematica`, que ahora son cinco.
