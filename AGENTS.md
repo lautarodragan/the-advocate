@@ -345,7 +345,7 @@ Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
 `git stash create` porque la tanda corría recetas que pisaban
 `rom/src/mapdata.inc`, que entonces era estado global. Desde el 9f las
 pruebas no arman nada: corren contra los cartuchos de
-`rom/build/tests/roms/`, que arma `just cartuchos` antes, y el arnés se
+`rom/build/tests/`, que arma `just cartuchos` antes, y el arnés se
 niega a correr contra uno viejo. Dos corridas a la vez sólo se pisan si las
 dos encuentran un cartucho viejo y lo rearman juntas: con `just cartuchos`
 corrido una vez antes, lo único que se pelean es la CPU.
