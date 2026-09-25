@@ -23,7 +23,7 @@ jugador. Hasta el 2026-09-24 corría en `juego`, un cartucho parecido.
   con el switch 24 puesto —Talan yendo a trabajar— devuelve a Lashe City. Así
   que el recorrido entra al mapa 16 **por donde el juego entra**, con las mismas
   coordenadas que usan el evento 65 del mapa 8 y el 28 del mapa 9: (53,7).
-* **No bendice las capturas.** Se guardan en `rom/build/pruebas/recorrido/` y
+* **No bendice las capturas.** Se guardan en `rom/build/tests/recorrido/` y
   se copian a `pruebas-manuales/` para que taro las mire. El día que estén
   bendecidas, comparar contra ellas es una línea acá.
 """
