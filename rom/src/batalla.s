@@ -1145,3 +1145,200 @@ ancho_listo:
 ; del LDB —`attacking`, `enemy_damaged`, `victory`...— y se arman como
 ; `game_message_terms.cpp`: el nombre pegado al término, y en el de daño el
 ; número en el medio. Ninguna es nuestra.
+.proc ba_mensaje
+.a8
+.i16
+    rep #$20
+.a16
+    lda #0
+    sta BA_T1
+    lda #BA_MSG_POS1
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MTIPO
+    cmp #BA_MSG_ATAQUE
+    beq ataque
+    cmp #BA_MSG_DEFIENDE
+    beq defiende
+    cmp #BA_MSG_NO_HUYO
+    beq no_huyo
+    cmp #BA_MSG_HUYO
+    beq huyo
+    cmp #BA_MSG_VICTORIA
+    beq victoria
+    cmp #BA_MSG_ITEM
+    beq usa_item
+    cmp #BA_MSG_HAB
+    beq usa_hab
+    ldx #BA_TXT_DERROTA
+    jmp solo
+usa_hab:
+    jmp habilidad
+usa_item:
+    jmp item
+victoria:
+    ldx #BA_TXT_VICTORIA
+    jmp solo
+huyo:
+    ldx #BA_TXT_HUYO
+    jmp solo
+no_huyo:
+    ldx #BA_TXT_NO_HUYO
+solo:
+    jsr ba_termino
+    rts
+defiende:
+    lda BA_MQUIEN
+    jsr ba_nombre
+    ldx #BA_TXT_DEFIENDE
+    jsr ba_termino
+    rts
+ataque:
+    lda BA_MQUIEN
+    jsr ba_nombre
+    ldx #BA_TXT_ATACA
+    jsr ba_termino
+    ; El segundo renglón: el resultado sobre el blanco.
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_nombre
+    rep #$20
+.a16
+    lda BA_MDANO
+    cmp #$FFFF
+    sep #$20
+.a8
+    bne pego
+    jmp fallo
+pego:
+    ; `<nombre> <daño> health lost.`
+    lda #$20                    ; el espacio entre el nombre y el número
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda BA_MDANO
+    sta BA_T0
+    sep #$20
+.a8
+    jsr ba_numero_justo
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcs es_enemigo
+    ldx #BA_TXT_DANO_ACTOR
+    bra dice
+es_enemigo:
+    ldx #BA_TXT_DANO_ENEMIGO
+dice:
+    jsr ba_termino
+    rts
+item:
+    ; `<quien> <ítem> used.`, que es
+    ; `source.GetName() + " " + item.name + terms.use_item` de
+    ; `GetItemStartMessage2k`.
+    lda BA_MQUIEN
+    jsr ba_nombre
+    lda #$20
+    jsl f:ba_t_glifo
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_MITEM
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; por tres: `3k` es el nombre del ítem
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    ldx #BA_TXT_USO
+    jsr ba_termino
+    ; `<blanco> HP <n> Recovered`, que es `GetHpSpRecoveredMessage`.
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_nombre
+    lda #$20
+    jsl f:ba_t_glifo
+    ldx #BA_TXT_HP
+    jsr ba_termino
+    lda #$20
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda BA_MCURA
+    sta BA_T0
+    sep #$20
+.a8
+    jsr ba_numero_justo
+    ldx #BA_TXT_RECUPERO
+    jsr ba_termino
+    rts
+habilidad:
+    ; `<quien><using_message1>` arriba y `<using_message2>` abajo, que es
+    ; `GetSkillFirstStartMessage2k` y su hermana. Los dos renglones son del
+    ; LDB, como todo lo que esta pantalla escribe.
+    lda BA_MQUIEN
+    jsr ba_nombre
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_msg1, x
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_msg2, x
+    tax
+    sep #$20
+.a8
+    jsr ba_termino
+    rts
+fallo:
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcs falla_enemigo
+    ldx #BA_TXT_SIN_DANO_ACTOR
+    bra falla_dice
+falla_enemigo:
+    ldx #BA_TXT_SIN_DANO_ENEMIGO
+falla_dice:
+    jsr ba_termino
+    rts
+.endproc
+
