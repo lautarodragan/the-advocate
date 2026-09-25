@@ -16,7 +16,12 @@ el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
 sacar las muestras del SPC700: la idea no es cambiar el arreglo sino dejar de
 sintetizarlo con ocho voces y muestras recortadas.
 
-    python3 tools/audio/msu.py rom/build/release-msu/abl.sfc
+    python3 tools/audio/msu.py rom/build/release/abl.sfc
+
+No hace falta correrlo a mano: `just build release` lo corre siempre —ver
+`pistas` en `cartuchos.py`—, porque la ROM que se juega lleva sus pistas.
+Que estén al lado de la ROM no cambia las pruebas: el arnés le esconde las
+pistas al core, ver `retro.Consola`.
 
 **Una pista puede salir de un archivo de audio en vez del MIDI.** Si en el
 directorio de reemplazos —`/extras/msu` si no se dice otro— hay un
@@ -205,6 +210,63 @@ def pista(wav, salida, loop=0, pico=PICO):
     return con.getnframes(), escala
 
 
+def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
+          ganancia=GANANCIA, reemplazos=REEMPLAZOS, charlar=True):
+    """Deja al lado de `rom` el `.msu` y una pista por tema de `PISTAS_MSU`.
+
+    Devuelve cuántas pistas rehízo y cuántas ya estaban. `charlar` en falso
+    calla las que ya estaban: `cartuchos.py` la llama en cada `just pruebas`.
+    """
+    hechas = estaban = 0
+    base = os.path.splitext(rom)[0]
+    # El archivo que enciende el MSU-1. Vacío alcanza: no leemos datos.
+    abierto = open(base + ".msu", "ab")
+    abierto.close()
+    for nombre, numero in sorted(snes_music.PISTAS_MSU.items(),
+                                 key=lambda par: par[1]):
+        salida = "%s-%d.pcm" % (base, numero)
+        audio = reemplazo(reemplazos, nombre)
+        if audio:
+            clave = clave_del_reemplazo(audio)
+        else:
+            midi = find_resource([game_dir], "Music", nombre, (".mid",))
+            if not midi:
+                sys.exit("no encuentro el MIDI de %s" % nombre)
+            clave = clave_de_la_pista(midi, soundfont, ganancia)
+        # La pista que ya está, si la escribió este mismo código con estas
+        # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
+        # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
+        # pesa decenas de megas— no se da por buena: no coincide y se rehace.
+        guardado = cache_disco.leer("msu", clave)
+        # El `is not None` no sobra: sin caché `leer` da `None`, y un `.pcm`
+        # que no está da `None` también, así que compararlos sin más daría
+        # "ya estaba" justo cuando no hay nada.
+        if guardado is not None and guardado == huella_del_archivo(salida):
+            if charlar:
+                print("pista %d: %-22s ya estaba -> %s"
+                      % (numero, nombre, salida))
+            estaban += 1
+            continue
+        temporal = salida + ".wav"
+        if audio:
+            decodificar(audio, temporal)
+        else:
+            render(midi, temporal, soundfont, ganancia)
+        # Se escribe al lado y se reemplaza, en vez de pisar el `.pcm` en su
+        # lugar: truncarlo le cambiaría el contenido a quien lo tenga abierto
+        # —un emulador tocándolo— o enlazado con otro nombre.
+        muestras, escala = pista(temporal, salida + ".nuevo")
+        os.replace(salida + ".nuevo", salida)
+        os.remove(temporal)
+        cache_disco.guardar("msu", clave, huella_del_archivo(salida))
+        print("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
+              % (numero, nombre, muestras / 44100.0,
+                 os.path.getsize(salida) // (1 << 20), escala, salida,
+                 "  (de %s)" % audio if audio else ""))
+        hechas += 1
+    return hechas, estaban
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -217,45 +279,8 @@ def main():
                         help="dónde buscar un <tema>.mp3 —u .ogg, .flac, "
                              ".wav— que reemplace al MIDI de ese tema")
     args = parser.parse_args()
-
-    base = os.path.splitext(args.rom)[0]
-    # El archivo que enciende el MSU-1. Vacío alcanza: no leemos datos.
-    abierto = open(base + ".msu", "ab")
-    abierto.close()
-    for nombre, numero in sorted(snes_music.PISTAS_MSU.items(),
-                                 key=lambda par: par[1]):
-        salida = "%s-%d.pcm" % (base, numero)
-        audio = reemplazo(args.reemplazos, nombre)
-        if audio:
-            clave = clave_del_reemplazo(audio)
-        else:
-            midi = find_resource([args.game_dir], "Music", nombre, (".mid",))
-            if not midi:
-                sys.exit("no encuentro el MIDI de %s" % nombre)
-            clave = clave_de_la_pista(midi, args.soundfont, args.ganancia)
-        # La pista que ya está, si la escribió este mismo código con estas
-        # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
-        # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
-        # pesa decenas de megas— no se da por buena: no coincide y se rehace.
-        guardado = cache_disco.leer("msu", clave)
-        # El `is not None` no sobra: sin caché `leer` da `None`, y un `.pcm`
-        # que no está da `None` también, así que compararlos sin más daría
-        # "ya estaba" justo cuando no hay nada.
-        if guardado is not None and guardado == huella_del_archivo(salida):
-            print("pista %d: %-22s ya estaba -> %s" % (numero, nombre, salida))
-            continue
-        temporal = salida + ".wav"
-        if audio:
-            decodificar(audio, temporal)
-        else:
-            render(midi, temporal, args.soundfont, args.ganancia)
-        muestras, escala = pista(temporal, salida)
-        os.remove(temporal)
-        cache_disco.guardar("msu", clave, huella_del_archivo(salida))
-        print("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
-              % (numero, nombre, muestras / 44100.0,
-                 os.path.getsize(salida) // (1 << 20), escala, salida,
-                 "  (de %s)" % audio if audio else ""))
+    armar(args.rom, args.game_dir, args.soundfont, args.ganancia,
+          args.reemplazos)
 
 
 if __name__ == "__main__":

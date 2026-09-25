@@ -44,7 +44,10 @@ bancan y sólo se pierden mensajes de diagnóstico.
 """
 import ctypes
 import os
+import shutil
 import sys
+import tempfile
+import weakref
 
 from PIL import Image
 
@@ -111,9 +114,16 @@ class GameInfo(ctypes.Structure):
                 ("size", ctypes.c_size_t), ("meta", ctypes.c_char_p)]
 
 
+class AvInfo(ctypes.Structure):
+    _fields_ = [("base_width", ctypes.c_uint), ("base_height", ctypes.c_uint),
+                ("max_width", ctypes.c_uint), ("max_height", ctypes.c_uint),
+                ("aspect_ratio", ctypes.c_float),
+                ("fps", ctypes.c_double), ("sample_rate", ctypes.c_double)]
+
+
 class Consola:
 
-    def __init__(self, rom, core=CORE, opciones=None):
+    def __init__(self, rom, core=CORE, opciones=None, msu=False):
         self.lib = ctypes.CDLL(core)
         self._forzadas = dict(opciones or {})
         self.formato = 0
@@ -137,10 +147,34 @@ class Consola:
         self._forzadas = dict(OPCIONES.get(info.library_name.decode(), {}),
                               **self._forzadas)
 
-        # Adonde el core guarda partidas y busca BIOS. Al lado de la ROM, que
-        # es un directorio que ya es descartable; mesen-s no carga sin esto.
-        self._directorio = ctypes.c_char_p(
-            os.path.dirname(os.path.abspath(rom)).encode())
+        datos = open(rom, "rb").read()
+        # **El MSU-1 lo decide quien crea la consola, no el directorio.** Los
+        # cores buscan `<rom>.msu` y `<rom>-N.pcm` al lado del path que se les
+        # da —bsnes en `program.cpp`, con `Location::notsuffix` del path—, y
+        # ninguno tiene una opción de libretro para no hacerlo. Como `release/`
+        # lleva las pistas, cargar su `abl.sfc` tal cual hacía que la tanda
+        # corriera con el SPC700 callado o no según si estaban armadas: con
+        # ellas, 1200 cuadros del título dan otro audio en snes9x y en bsnes.
+        # Así que por omisión el core recibe una **copia** en un directorio
+        # propio, vacío. Una copia y no un symlink: snes9x y bsnes no siguen el
+        # enlace —medido—, pero la copia no depende de lo que haga cada core
+        # y sale gratis, porque los bytes ya están leídos.
+        #
+        # Y el directorio de sistema y partidas —mesen-s no carga sin él— es
+        # ése mismo: si fuera el de la ROM, un core que buscara ahí también
+        # encontraría las pistas.
+        if msu:
+            ruta = os.path.abspath(rom)
+        else:
+            propio = tempfile.mkdtemp(prefix="retro-")
+            # Se borra cuando la consola se recolecta, o al salir: no hay un
+            # `retro_deinit` que marque el final. Cada consola tiene el suyo,
+            # así que dos a la vez no se pisan.
+            weakref.finalize(self, shutil.rmtree, propio, True)
+            ruta = os.path.join(propio, os.path.basename(rom))
+            with open(ruta, "wb") as archivo:
+                archivo.write(datos)
+        self._directorio = ctypes.c_char_p(os.path.dirname(ruta).encode())
 
         # Los callbacks se guardan en self: si se los deja como temporales, el
         # recolector de Python los libera y el core llama a memoria muerta.
@@ -167,9 +201,8 @@ class Consola:
         self.lib.retro_set_input_poll(self._poll)
         self.lib.retro_set_input_state(self._state)
 
-        datos = open(rom, "rb").read()
         self._buf = ctypes.create_string_buffer(datos, len(datos))
-        juego = GameInfo(os.path.abspath(rom).encode(),
+        juego = GameInfo(ruta.encode(),
                          None if pide_archivo
                          else ctypes.cast(self._buf, ctypes.c_void_p),
                          len(datos), None)
@@ -255,6 +288,18 @@ class Consola:
     def correr(self, cuadros=1):
         for _ in range(cuadros):
             self.lib.retro_run()
+
+    def tasa(self):
+        """A cuántas muestras por segundo entrega el audio el core.
+
+        No es una constante de la consola sino de cada core y de cada carga:
+        bsnes da 48000, y snes9x da 32040 sin MSU-1 y **44100 con él**, porque
+        entonces mezcla al ritmo de las pistas. Quien escriba `audio` a un wav
+        tiene que preguntarlo, o el sonido se corre del video.
+        """
+        info = AvInfo()
+        self.lib.retro_get_system_av_info(ctypes.byref(info))
+        return info.sample_rate
 
     # La WRAM del emulador, que es la única forma de mirar adentro sin un
     # depurador. libretro la expone con `retro_get_memory_data(2)`, que es

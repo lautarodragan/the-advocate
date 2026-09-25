@@ -20,6 +20,11 @@ algunas verifican cosas que sólo valen a la velocidad del recorrido: con
 `--leer` el cronómetro de Talan ya bajó de 10:00 cuando la prueba lo mira, y el
 `assert` cortaba el video ahí. `-O` saca los `assert`; un atasco de verdad
 —`Trabado`— se sigue levantando, porque no es un `assert`.
+
+**Suena con el MSU-1, si el build tiene pistas**, al revés que las pruebas: el
+video es para escuchar la ROM como se juega, y `release/` las lleva al lado
+del `.sfc`. `--sin-msu` es para oír lo que toca el SPC700 solo, que es lo que
+suena en una consola sin la extensión y lo que miden las pruebas.
 """
 
 import argparse
@@ -40,10 +45,10 @@ import consola                                          # noqa: E402
 from recorrido import Mundo, Recorrido                  # noqa: E402
 import test_recorrido                                   # noqa: E402
 
-# Los cuadros por segundo de la SNES NTSC, y la tasa a la que entrega el audio
-# snes9x: si no coinciden con los de la consola, el sonido se corre del video.
+# Los cuadros por segundo de la SNES NTSC: si no coinciden con los de la
+# consola, el sonido se corre del video. La tasa del audio no va acá: la dice
+# el core, y snes9x la cambia con el MSU-1. Ver `retro.Consola.tasa`.
 CUADROS_POR_SEGUNDO = "60.0988"
-TASA = 32040
 ANCHO, ALTO = 256, 224
 ESCALA = 3                      # con vecino más cercano: se ven los pixeles
 
@@ -73,7 +78,7 @@ def leer_despacio(ticks):
     Recorrido.esperar = esperar
 
 
-def grabar(build, salida, jugadas, leer=None):
+def grabar(build, salida, jugadas, leer=None, msu=True):
     # El único `.sfc` del directorio: el nombre no se deduce del directorio,
     # porque la de release se llama `abl.sfc` adentro de `release/`.
     sfcs = glob.glob(os.path.join(build, "*.sfc"))
@@ -94,10 +99,8 @@ def grabar(build, salida, jugadas, leer=None):
          "-pix_fmt", "rgb24", "-s", "%dx%d" % (ANCHO, ALTO),
          "-r", CUADROS_POR_SEGUNDO, "-i", "-", "-c:v", "ffv1", crudo],
         stdin=subprocess.PIPE)
-    wav = wave.open(audio, "wb")
-    wav.setnchannels(2)
-    wav.setsampwidth(2)
-    wav.setframerate(TASA)
+    # Se abre con la primera consola, que es la que sabe a qué tasa entrega.
+    wav = []
     cuadros = [0]
 
     # De a un cuadro aunque pidan más: si no, se graba un cuadro de video
@@ -111,14 +114,19 @@ def grabar(build, salida, jugadas, leer=None):
             if imagen.size != (ANCHO, ALTO):
                 imagen = imagen.resize((ANCHO, ALTO))
             ffmpeg.stdin.write(imagen.tobytes())
-            wav.writeframes(bytes(self.audio))
+            if not wav:
+                wav.append(wave.open(audio, "wb"))
+                wav[0].setnchannels(2)
+                wav[0].setsampwidth(2)
+                wav[0].setframerate(int(round(self.tasa())))
+            wav[0].writeframes(bytes(self.audio))
             self.audio = bytearray()
             cuadros[0] += 1
     retro.Consola.correr = correr_grabando
 
     def recorrido(_nombre, switch=()):
         partida = consola.Partida(sfc, simbolos, mapas, switches=switch,
-                                  titulo=consola.EMPEZAR)
+                                  titulo=consola.EMPEZAR, msu=msu)
         return Recorrido(partida, Mundo(), fotos=None)
 
     try:
@@ -132,7 +140,8 @@ def grabar(build, salida, jugadas, leer=None):
         retro.Consola.correr = correr
         ffmpeg.stdin.close()
         ffmpeg.wait()
-        wav.close()
+        if wav:
+            wav[0].close()
 
     subprocess.run(
         ["ffmpeg", "-loglevel", "error", "-y", "-i", crudo, "-i", audio,
@@ -156,11 +165,15 @@ def main():
     parser.add_argument("--leer", type=int, metavar="TICKS",
                         help="apretar A cada TICKS en vez de cada 8, para "
                              "que se lean los textos")
+    parser.add_argument("--sin-msu", action="store_true",
+                        help="que el core no vea las pistas de MSU-1: suena "
+                             "sólo el SPC700")
     args = parser.parse_args()
     if __debug__:
         raise SystemExit("corré esto con python3 -O: ver el comentario de "
                          "arriba de video.py")
-    grabar(args.build, args.salida, args.jugadas, args.leer)
+    grabar(args.build, args.salida, args.jugadas, args.leer,
+           msu=not args.sin_msu)
 
 
 if __name__ == "__main__":
