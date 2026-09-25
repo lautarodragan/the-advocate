@@ -200,8 +200,7 @@ no:
 ; y sí se pasa si hay por dónde rodear.
 ;
 ; Cada pata es una llamada a `puede_celda`, o sea las mismas dos caras y el
-; mismo chequeo de quién está parado dónde que un paso derecho. Del lado de
-; Python es `puede_en_diagonal`, con la misma forma.
+; mismo chequeo de quién está parado dónde que un paso derecho.
 .proc puede_celda_diag
 .a8
 .i16
@@ -323,13 +322,12 @@ sin_y:
 ; Es `Game_Character::UpdateFacing`, y la respuesta no es "hacia la diagonal":
 ; el charset tiene cuatro poses y ninguna apunta a un rincón. Se conserva la
 ; que ya tenía si es una de las dos componentes del paso, y si no se da vuelta
-; 180°. Del lado de Python es `encarar_en_diagonal`.
+; 180°.
 ;
 ; Lo primero es de dónde sale el giro, y no es sólo leer +8: veinte de las
 ; veintiséis rutas con diagonales de este juego arrancan **con** la diagonal,
 ; sin girar antes, así que ahí todavía está RUTA_EV_SIN_MIRAR y la pose de
-; verdad es la de su página, que vive en la fila del NPC. Del lado de Python
-; es `Ruta.mirando_pagina`.
+; verdad es la de su página, que vive en la fila del NPC.
 .proc encarar_diagonal
 .a8
 .i16

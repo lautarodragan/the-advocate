@@ -111,9 +111,7 @@ listo:
 ; `mover_eventos` corre después en este mismo cuadro y `refrescar_npc` lo deja
 ; sobre la celda nueva, con la pose que venía. Si no la tiene —un evento que
 ; nadie mandó a caminar— no se le da una: no se lleva ranura por esto, y su
-; fila se mueve a mano, sin tocarle el tile, que es la pose de su página. La
-; referencia hace lo mismo: sin `Ruta`, dibuja la pose de la página en la
-; celda de `pos_ev`.
+; fila se mueve a mano, sin tocarle el tile, que es la pose de su página.
 .proc plantar_evento
 .a8
 .i16

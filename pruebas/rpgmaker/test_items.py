@@ -11,12 +11,6 @@ from port import eventos
 
 import datos
 
-# Lo que da la página de prueba `inventario`, de a dos —ítem y cuánto—: tres de
-# la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y cinco
-# menos, que topa en 0; y la 200 queda en cero. Es con lo que se calcula lo que
-# tiene que dar, así que tiene que decir lo mismo que el archivo.
-ITEMS = (151, 3, 151, 1, 90, 120, 17, 2, 17, -5)
-
 
 def test_items_n_es_el_del_ldb():
     """`ITEMS_N` está escrito a mano en eventos.py: que sea el del LDB."""
@@ -25,19 +19,15 @@ def test_items_n_es_el_del_ldb():
 
 
 def test_sumar_y_quitar_topan_como_rm2k(partida):
+    # La página `inventario` da tres de la 151 y uno más (4); 120 de la 90,
+    # que topa en 99; dos de la 17 y le saca cinco, que topa en 0; y la 200
+    # no la toca.
     una = partida(caso="inventario")
     una.correr(30)
     assert una.item(151) == 4
     assert una.item(90) == eventos.ITEM_MAX
     assert una.item(17) == 0
     assert una.item(200) == 0
-    # Y la misma cuenta con el `Estado` de `eventos.py`, con sus topes.
-    estado = eventos.Estado()
-    for k in range(0, len(ITEMS), 2):
-        n, cuanto = ITEMS[k:k + 2]
-        estado.items[n] = max(0, min(eventos.ITEM_MAX,
-                                     estado.item(n) + cuanto))
-    assert (estado.item(151), estado.item(90), estado.item(17)) == (4, 99, 0)
 
 
 def test_el_inventario_viaja_en_la_partida(partida):

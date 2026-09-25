@@ -203,7 +203,7 @@ otra:
 .endproc
 
 ; Cuántos cuadros dura cada frame de la caminata a la velocidad del héroe:
-; `ANIM_PARADO` en eventos.py, `GetStationaryAnimFrames`. Con la velocidad 4
+; `anim_por_vel`, que es `GetStationaryAnimFrames`. Con la velocidad 4
 ; son los seis de siempre.
 .proc anim_cuadros_del_heroe
 .a8

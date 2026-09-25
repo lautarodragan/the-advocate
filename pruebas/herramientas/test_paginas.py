@@ -37,7 +37,6 @@ def test_la_pagina_con_item_lleva_el_item():
     assert tercera["switch_a"] == 53 and tercera["switch_b"] == 37
     assert tercera["item"] == 90
     assert tercera["codigo"], "la tercera compila: un mensaje y un MoveEvent"
-    assert eventos.Estado().item(90) == 0
 
 
 def test_la_condicion_por_variable_va_en_la_pagina():
