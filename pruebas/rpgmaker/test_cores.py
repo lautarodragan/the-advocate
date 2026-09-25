@@ -73,6 +73,7 @@ import os
 
 import pytest
 
+from consola import RAIZ
 from tanda import partida, quince_bits, ticks_de_avance
 
 # Los dos cores, por ruta. bsnes es el preciso y el que enciende con basura;
@@ -90,8 +91,8 @@ NIVELES = 32
 def iguales(nombre, una, otra):
     """Las dos capturas, y tienen que ser idénticas a 15 bits.
 
-    Cuando difieren, las dos quedan en `rom/build/cores/` para poder mirarlas
-    una al lado de la otra. Acá no hay golden que reemplazar: lo único que se
+    Cuando difieren, las dos quedan en `pruebas/snapshots/cores/`, al lado de
+    las de los otros rojos, para poder mirarlas una al lado de la otra. Acá no hay golden que reemplazar: lo único que se
     puede hacer con un rojo es ir a buscar qué lee la ROM sin haberlo escrito.
     """
     assert una.size == otra.size, (
@@ -100,8 +101,7 @@ def iguales(nombre, una, otra):
     if aqui == alla:
         return
     distintos = sum(1 for a, b in zip(aqui, alla) if a != b)
-    donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__)))), "rom", "build", "cores")
+    donde = os.path.join(RAIZ, "pruebas", "snapshots", "cores")
     os.makedirs(donde, exist_ok=True)
     una.save(os.path.join(donde, "%s-snes9x.png" % nombre))
     otra.save(os.path.join(donde, "%s-bsnes.png" % nombre))
