@@ -25,8 +25,8 @@ tell "regenerate" from "you passed me nonsense".
 
 ## What is here
 
-    events.toml   the event bytecode: 40 opcodes, the interpreted one
-    music.toml    the music stream the sound chip's driver reads: 3 opcodes
+    events.toml   the event bytecode, the interpreted one
+    music.toml    the music stream the sound chip's driver reads
     src/          the generator: `cargo build --release`, or `cargo test`
 
 A declaration is refused rather than half-understood: an unknown type, a
@@ -102,7 +102,36 @@ opcode *does* is hand-written and stays hand-written.
 The Python module carries the constants, `OPCODE_SIZE` and `VARIABLE_SIZE`
 —derived from the declared arguments, never written down—, `LAYOUT` with each
 argument's name, size and signedness, and `opcode_size(code, i)` to walk a
-compiled stream. The assembler output is the equates and nothing else.
+compiled stream. The assembler output is the equates and nothing else, unless
+you ask for a jump table.
+
+### `--jump-table`
+
+    protocol events.toml --asm <equates>.inc --jump-table
+
+adds two things to the assembler output: `<NAME>_OPCODE_COUNT`, and a macro,
+`<NAME>_HANDLERS`, that lays down one `.addr` per opcode in the order of their
+numbers —`<NAME>` is the declaration's `name`, in upper case—. Expanded next
+to a dispatch that does `jmp (table, x)` with X = opcode × 2, it is the whole
+dispatch: adding an opcode is its entry in the declaration and its handler,
+and nothing in between.
+
+The handler of `OP_SWITCH` is **`op_switch`**: the opcode's name in lower case.
+It is a rule and not a field, so the declaration still says nothing about the
+reader's code but how to spell a name it already has. A handler that does not
+exist does not assemble, which is the check.
+
+It needs the numbers to run from 0 with **no gaps**: a gap would be an entry
+that jumps anywhere, and guessing what to fill it with is behaviour. It is
+refused, naming the missing numbers. That is why it is a flag and not always
+on: a stream with an end marker at `0xFF` is a fine declaration and a
+pointless table. Whatever reads a byte that is not a declared opcode
+—anything at or above the count— has to check it against the count before
+indexing: the table cannot do that for it.
+
+It is a macro and not the table itself because the equates get included
+wherever the reader keeps its constants, and the table has to land where its
+code is —which segment, which bank—: that is the reader's business.
 
 The language here is English because nothing in this directory knows anything
 about the project that uses it, and that includes the generated files: they are

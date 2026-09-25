@@ -104,6 +104,37 @@ pub struct Declaration {
     pub opcodes: Vec<Opcode>,
 }
 
+impl Declaration {
+    /// The opcodes in the order of their numbers, if those numbers are exactly
+    /// 0, 1, 2… with nothing missing: what a jump table indexed by the opcode
+    /// needs. A gap would be a slot that jumps anywhere, so it is refused and
+    /// named instead of filled with a guess.
+    pub fn in_code_order(&self) -> std::result::Result<Vec<&Opcode>, String> {
+        let mut sorted: Vec<&Opcode> = self.opcodes.iter().collect();
+        sorted.sort_by_key(|o| o.code);
+        let missing: Vec<String> = (0..sorted.last().map_or(0, |o| o.code))
+            .filter(|c| !sorted.iter().any(|o| o.code == *c))
+            .map(|c| format!("0x{c:02X}"))
+            .collect();
+        if missing.is_empty() {
+            Ok(sorted)
+        } else {
+            // A long list is noise: the first few say what is wrong.
+            let shown = missing.iter().take(8).cloned().collect::<Vec<_>>().join(", ");
+            let more = if missing.len() > 8 {
+                format!(" and {} more", missing.len() - 8)
+            } else {
+                String::new()
+            };
+            Err(format!(
+                "a jump table needs the {} opcodes numbered from 0 with no gaps; \
+                 nothing takes {shown}{more}",
+                self.name
+            ))
+        }
+    }
+}
+
 pub fn load(path: &Path) -> Result<Declaration> {
     let shown = path.display();
     let text = std::fs::read_to_string(path)
@@ -295,6 +326,66 @@ mod tests {
     fn a_declaration_with_no_opcodes_is_refused() {
         let e = load_text("name = \"test\"\nopcode = []\n").unwrap_err();
         assert!(e.0.contains("not a single"), "{e}");
+    }
+
+    /// Declared out of order is fine: the table follows the numbers.
+    #[test]
+    fn code_order_sorts_by_number_not_by_declaration() {
+        let d = load_text(
+            r#"
+            name = "test"
+            [[opcode]]
+            name = "OP_B"
+            code = 0x01
+            [[opcode]]
+            name = "OP_A"
+            code = 0x00
+        "#,
+        )
+        .unwrap();
+        let names: Vec<&str> =
+            d.in_code_order().unwrap().iter().map(|o| o.name.as_str()).collect();
+        assert_eq!(names, ["OP_A", "OP_B"]);
+    }
+
+    #[test]
+    fn code_order_names_every_gap() {
+        let d = load_text(
+            r#"
+            name = "test"
+            [[opcode]]
+            name = "OP_A"
+            code = 0x01
+            [[opcode]]
+            name = "OP_B"
+            code = 0x04
+        "#,
+        )
+        .unwrap();
+        let e = d.in_code_order().unwrap_err();
+        assert!(e.contains("nothing takes 0x00, 0x02, 0x03"), "{e}");
+        assert!(e.contains("test opcodes"), "{e}");
+    }
+
+    /// A stream with an end marker at 0xFF is a normal declaration; it just
+    /// cannot be a jump table, and the message should not list 250 numbers.
+    #[test]
+    fn a_long_list_of_gaps_is_cut_short() {
+        let d = load_text(
+            r#"
+            name = "test"
+            [[opcode]]
+            name = "OP_A"
+            code = 0x00
+            [[opcode]]
+            name = "OP_END"
+            code = 0xFF
+        "#,
+        )
+        .unwrap();
+        let e = d.in_code_order().unwrap_err();
+        assert!(e.contains("0x01, 0x02"), "{e}");
+        assert!(e.contains("and 246 more"), "{e}");
     }
 
     #[test]
