@@ -360,6 +360,35 @@ listo:
     rtl
 .endproc
 
+; El nivel de ahora del actor A, en A: el cuarto byte de su ranura de
+; `FAR_EXP`. Un actor sin ranura contesta $FF, y el que pregunta sabe que para
+; ése vale lo del cartucho, que es su nivel de arranque para siempre. Se lleva
+; X; lee con `f:`, así que el banco de datos da igual.
+.proc actor_nivel_de
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    beq listo
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
+listo:
+    rts
+.endproc
+
 ; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
 ; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
 ; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
