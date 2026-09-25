@@ -52,11 +52,6 @@ def test_espera(cuadro):
     golden("espera-%d" % cuadro, p.imagen())
 
 
-# El save point abre su pantalla diez cuadros después de que la espera de la
-# página termina.
-ABRE_LA_DE_RANURAS = 130
-
-
 @pytest.mark.parametrize("nombre,cuantos,toques", (
     ("guardar", 130, ()),
     # El cursor dos ranuras más abajo, que es lo único que ejercita el DMA del
@@ -181,12 +176,6 @@ BATALLAS = (
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
     ("batalla-droide", "batalla-droide", 200, (), None),
-    # La misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
-    # **dos** tropas y dos fondos, para que `tropa_id` y `escena_tropa_fondo` se
-    # indexaran de verdad en vez de acertar siempre con el primer renglón.
-    # Desde el 9f el cartucho de pruebas lleva todas las tropas y eso lo
-    # cumplen todas; se deja por la golden.
-    ("batalla-segunda", "batalla", 200, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
     # inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich—.

@@ -7,15 +7,12 @@ la ROM lo tiene por el mismo camino que el juego. La tanda mira el mapa
 después de usar la consola —`items` en `pruebas/*/test_tanda*.py`—.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import titulo                                 # noqa: E402
+from port import titulo
 
 from consola import TITULO_AIRE
-from test_menu import abrir, tocar
+import datos
+from dibujo import comparar_pantalla
+from menu import abrir, tocar
 
 # Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
 # que da la página de prueba `items-pantalla`, y `MUCHOS` lo que da
@@ -42,21 +39,11 @@ def entrar(una):
 
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
-    from rpgmaker import lcf
-    from port import ventana
-    from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
-    captura = una.imagen().convert("RGB")
+    db, skin = datos.base(), datos.skin()
     esperada = titulo.render_items(skin, db, inventario, elegida, arriba,
                                    db.font_id)
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "la pantalla de ítems con el cursor en %d difiere de la referencia en "
-        "%d pixeles; están en %s" % (elegida, distintos, donde))
+    comparar_pantalla(una, esperada, nombre,
+                      "la pantalla de ítems con el cursor en %d" % elegida)
 
 
 def test_la_pantalla_se_ve_como_la_referencia(partida):
@@ -98,26 +85,19 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
     verdad es `test_curar_menu.py`—; B vuelve a la lista con el cursor donde
     estaba."""
-    from rpgmaker import lcf
-    from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
     una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
     entrar(una)
     tocar(una, "a", TITULO_AIRE)        # la poción
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
-        captura = una.imagen().convert("RGB")
         esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
                                           db.font_id, None, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quince_bits(captura),
-                                          quince_bits(esperada)) if x != y)
-        assert distintos == 0, (
-            "la elección de actor con el cursor en %d difiere de la "
-            "referencia en %d pixeles" % (elegida, distintos))
+        comparar_pantalla(una, esperada,
+                          que="la elección de actor con el cursor en %d"
+                          % elegida)
         tocar(una, "down")
     tocar(una, "a", 20)
     assert una.item(1) == 13, "la poción se gastó sin tener efecto"

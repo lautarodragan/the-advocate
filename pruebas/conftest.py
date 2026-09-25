@@ -18,27 +18,17 @@ es la clase de error que este repo ya cobró con `mapdata.inc`.
 """
 
 import os
-import sys
 
 import pytest
 
-# El arnés vive en `arnes/` y las pruebas en una carpeta por lo que prueban,
-# así que ninguna lo tiene al lado: este archivo es el que queda arriba de
-# todas, y pytest lo carga antes que a cualquiera de ellas.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "arnes"))
-
-import tanda                                                 # noqa: E402
-from ensamblado import cartuchos                             # noqa: E402
+import tanda
+from consola import EMPEZAR
+from ensamblado import cartuchos
 
 # Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
 # grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe
 # caía cuando el 5 era el mapa de arranque de su cartucho.
 ARRANQUE = "en-5"
-# Y el mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
-# jugando pero son el mismo, y se cruzan con teletransportes internos. Ver
-# `test_puerta_misma.py`.
-LINKAGE = "en-2"
 
 
 # Las pruebas cuyas capturas son todas la misma pantalla **a propósito**, con
@@ -131,11 +121,6 @@ def partida():
 # buscan por ese mismo nombre: ver `Recorrido.foto`.
 FOTOS = os.path.join(tanda.RAIZ, "pruebas", "snapshots", "playthrough")
 
-# "Begin the Story", la primera opción de la pantalla de título, que
-# `release` lleva delante. Una jugada empieza por ahí como la empieza
-# cualquiera.
-EMPEZAR = 0
-
 
 # Las dos que siguen **importan `recorrido` adentro** y no arriba, y no es
 # descuido: ese módulo arrastra el lector de `.lmu` y el renderer, y eso no
@@ -143,7 +128,7 @@ EMPEZAR = 0
 # pytest antes que cualquiera—. Vivían en un `conftest.py` de `pruebas/abl/`
 # hasta el 2026-09-23, y eso duró una corrida: acá no hay paquetes, así que los
 # dos conftest se importan los dos como `conftest` y el segundo tapa al
-# primero. `test_batalla.py` hace `from conftest import LINKAGE` y cinco
+# primero. `test_batalla.py` hacía `from conftest import LINKAGE` y cinco
 # módulos se cayeron con `ImportError`.
 @pytest.fixture(scope="session")
 def mundo():
@@ -161,6 +146,7 @@ def recorrido(partida, mundo):
     from recorrido import Recorrido
 
     def hacer(nombre, switch=()):
+        # "Begin the Story": una jugada empieza por ahí como cualquiera.
         return Recorrido(partida(switch=switch, titulo=EMPEZAR),
                          mundo, fotos=os.path.join(FOTOS, nombre))
     return hacer

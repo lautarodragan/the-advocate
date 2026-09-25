@@ -25,69 +25,20 @@ pasa a ser un líder posible del cartucho de pruebas, que le pondría su sprite
 en todos los mapas y le podría mover los colores a más de una golden.
 """
 
-import functools
-import json
-import os
-import sys
+from port import eventos
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "arnes"))
-
-from rpgmaker import lcf                                    # noqa: E402
-from port import eventos                                    # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from consola import en_la_rom                               # noqa: E402
-from test_batalla import Pelea, ORDEN, FIN, hab_id          # noqa: E402
+from consola import en_la_rom
+from batalla import Pelea, hab_id, sabe
+import datos
 
 CASO = "tropa-talan-aura"
 TALAN = 14
 DETECT_AURA, ABSORB_AURA = 133, 134
 TROPA = 121
-# `BA_M_PAGINA` de rom/src/ram_lejana.s: corriendo una página de tropa.
-PAGINA = 7
-
-
-def db():
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
-def casos_del_cartucho():
-    from ensamblado import cartuchos
-    comandos = []
-    for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
-        with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
-                  encoding="utf-8") as archivo:
-            comandos += lcf.comandos_escritos(json.load(archivo))
-    return comandos
-
-
-@functools.lru_cache(maxsize=None)
-def ranuras_de_variable():
-    """El índice de variables del cartucho de pruebas: el del juego, con las
-    de sus casos y la que elige el caso, que es lo que le pasa el conversor."""
-    extra = eventos.variables_de_comandos(casos_del_cartucho())
-    extra.add(eventos.VARIABLE_DE_CASO)
-    return eventos.variables_de(GAME_DIR, None, extra)
-
-
-@functools.lru_cache(maxsize=None)
-def ranuras_de_habilidad():
-    return eventos.pares_de_habilidad(
-        GAME_DIR, eventos.pares_de_habilidad_de_comandos(casos_del_cartucho()))
-
-
-def sabe(una, habilidad):
-    r = ranuras_de_habilidad()[(TALAN, habilidad)]
-    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
-    return bool(octeto & (1 << (r & 7)))
 
 
 def variable(una, numero):
-    return una.variable(ranuras_de_variable()[numero])
+    return una.variable(datos.ranuras_de_variable()[numero])
 
 
 def pagina_del_switch(base, switch):
@@ -163,10 +114,10 @@ def mensaje_en_pantalla(una, pelea):
 def hasta_el_mensaje(una, pelea, tope=1500):
     """Pasa los mensajes de la pelea hasta que una página muestre el suyo."""
     for n in range(tope):
-        if (pelea.modo() == PAGINA
+        if (pelea.modo() == "PAGINA"
                 and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
             return
-        if pelea.modo() in (ORDEN, FIN):
+        if pelea.modo() in ("ORDEN", "FIN"):
             raise AssertionError("el turno terminó sin que corriera ninguna "
                                  "página de la tropa")
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
@@ -176,9 +127,9 @@ def hasta_el_mensaje(una, pelea, tope=1500):
 
 def cerrar_y_esperar_ordenes(una, pelea, tope=1500):
     for n in range(tope):
-        if pelea.modo() == ORDEN:
+        if pelea.modo() == "ORDEN":
             return
-        assert pelea.modo() != FIN, "la pelea terminó"
+        assert pelea.modo() != "FIN", "la pelea terminó"
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
         una.consola.correr(1)
     raise AssertionError("la pelea no volvió a pedir órdenes")
@@ -195,7 +146,7 @@ def lugar_en_la_lista(una, pelea, habilidad):
 def abrir_la_lista(una, pelea):
     """Entra a la lista de habilidades de Talan y vuelve a las órdenes, para
     que la ROM la arme: `BA_HAB_LISTA` se arma al entrar."""
-    pelea.esperar(ORDEN)
+    pelea.esperar("ORDEN")
     for _ in range(5):
         pelea.tocar("left")
     pelea.tocar("right")
@@ -207,7 +158,7 @@ def abrir_la_lista(una, pelea):
 
 
 def test_el_sistema_de_batalla_de_talan(partida):
-    base = db()
+    base = datos.base()
     detecta = pagina_del_switch(base, base.skills[DETECT_AURA].switch_id)
     absorbe = pagina_del_switch(base, base.skills[ABSORB_AURA].switch_id)
     s_detecta = base.skills[DETECT_AURA].switch_id
@@ -230,7 +181,8 @@ def test_el_sistema_de_batalla_de_talan(partida):
     assert pelea.byte("BA_NACT") == 1
 
     # --- Detect Aura ---
-    assert sabe(una, DETECT_AURA) and not sabe(una, ABSORB_AURA)
+    assert (sabe(una, TALAN, DETECT_AURA)
+            and not sabe(una, TALAN, ABSORB_AURA))
     detect, absorb = abrir_la_lista(una, pelea)
     assert detect is not None and absorb is None, (
         "Talan tendría que ofrecer Detect Aura y no Absorb Aura: %r"
@@ -244,7 +196,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
     cerrar_y_esperar_ordenes(una, pelea)
     assert not pelea.switch(s_detecta), "la página tenía que apagar el 134"
     for habilidad, la_sabe in lo_que_enseña(detecta).items():
-        assert sabe(una, habilidad) == la_sabe, (
+        assert sabe(una, TALAN, habilidad) == la_sabe, (
             "después de Detect Aura, la habilidad %d" % habilidad)
     for numero, valor in lo_que_cuenta(detecta).items():
         assert variable(una, numero) == valor, (
@@ -266,7 +218,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
     enseña = lo_que_enseña(absorbe)
     assert len([h for h, si in enseña.items() if si]) >= 1
     for habilidad, la_sabe in enseña.items():
-        assert sabe(una, habilidad) == la_sabe, (
+        assert sabe(una, TALAN, habilidad) == la_sabe, (
             "después de Absorb Aura, la habilidad %d" % habilidad)
     for numero, valor in lo_que_cuenta(absorbe).items():
         assert variable(una, numero) == valor, (
@@ -298,9 +250,9 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
     # sigue y lo apaga, así que se prende después, con el mensaje cerrado.
     vistos = 1
     for n in range(1500):
-        if pelea.modo() == ORDEN:
+        if pelea.modo() == "ORDEN":
             break
-        if (pelea.modo() != PAGINA
+        if (pelea.modo() != "PAGINA"
                 or pelea.palabra(una.simbolos["BA_PAG_MSG"]) == 0xFFFF):
             s = una.simbolos["switches"] + 134 // 8
             octeto = una.consola.ram(s, 1)[0] | (1 << (134 % 8))
@@ -308,9 +260,9 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
         antes = pelea.palabra(una.simbolos["BA_PAG_MSG"])
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
         una.consola.correr(1)
-        if (pelea.modo() == PAGINA and antes == 0xFFFF
+        if (pelea.modo() == "PAGINA" and antes == 0xFFFF
                 and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
             vistos += 1
-    assert pelea.modo() == ORDEN
+    assert pelea.modo() == "ORDEN"
     assert vistos == 1, "la página de Detect Aura corrió %d veces en el " \
         "turno" % vistos

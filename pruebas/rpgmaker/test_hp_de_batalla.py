@@ -19,14 +19,9 @@ y Core queda en 79 de 127. Que el número esté escrito acá no es adorno: si
 alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from test_menu import abrir                                  # noqa: E402
+from menu import abrir
+import datos
+from dibujo import comparar_pantalla, pixeles_distintos
 
 # La pelea es la de la página de prueba `pelea-82-grupo-11-12`: la tropa del
 # droide del mapa 2, la misma que usan las demás pruebas de pelea, 18 ticks
@@ -86,35 +81,25 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
     abrir(una)
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
-    oro = int.from_bytes(una.consola.ram(una.simbolos["oro"], 3), "little")
-    captura = una.imagen().convert("RGB")
+    db, skin = datos.base(), datos.skin()
+    oro = una.oro()
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo)
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta("menu-tras-pelea", captura, esperada, distintos)
-    assert distintos == 0, (
-        "el menú después de la pelea difiere de la referencia en %d pixeles; "
-        "están en %s" % (distintos, donde))
+    comparar_pantalla(una, esperada, "menu-tras-pelea",
+                      "el menú después de la pelea")
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
     # dibuja **otra** imagen. Sin esto, una ROM que volviera a hornear el
     # máximo pasaría el caso el día que la referencia se equivocara igual.
     llena = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                GRUPO, oro, 0, True, db.font_id, None,
                                GAME_DIR, MAXIMOS)
-    assert sum(1 for x, y in zip(quince_bits(llena), quince_bits(esperada))
-               if x != y) > 20, (
+    assert pixeles_distintos(llena, esperada) > 20, (
         "la referencia dibuja lo mismo con Core en 79 que con Core en 127")
 
 
@@ -132,7 +117,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 
-from test_game_over import con_encuentros                    # noqa: E402
+from batalla import con_encuentros                    # noqa: E402
 
 
 def enemigos_de(una):

@@ -25,17 +25,14 @@ escribir el caso sin inventar datos.
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import eventos                                 # noqa: E402
-from rpgmaker import lcf, rm2k                           # noqa: E402
-from render.render_map import GAME_DIR                   # noqa: E402
+from rpgmaker import lcf, rm2k
+from render.render_map import GAME_DIR
 
-from tanda import partida                                # noqa: E402
+import datos
+from tanda import partida
 
 MAPA = 5
 # Qué celda pregunta el caso y en qué variable de RM2k deja la respuesta. Las
@@ -52,7 +49,7 @@ POR_VARIABLE = (23, 25), 40
 
 
 def ranuras():
-    return eventos.variables_de(GAME_DIR, None, ())
+    return datos.ranuras_de_variable()
 
 
 @pytest.fixture(scope="module")

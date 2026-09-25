@@ -16,14 +16,12 @@ porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
 `juego`, un cartucho parecido con una página que abría la pantalla de guardar.
 """
 
-import os
-import sys
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
+from consola import EMPEZAR, SEGUIR
+import datos
+from dibujo import comparar_pantalla
 
-EMPEZAR, SEGUIR = 0, 1
 
 # El mapa donde arranca `release`: el 4, el del juego de verdad.
 MAPA_DE_ARRANQUE = 4
@@ -84,7 +82,7 @@ def test_seguir_la_historia_carga_la_partida(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     una.reiniciar(SEGUIR)
     assert una.switch(7), (
@@ -107,7 +105,7 @@ def test_empezar_ignora_la_partida_guardada(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     una.reiniciar(EMPEZAR)
     assert una.mapa() == MAPA_DE_ARRANQUE, (
@@ -139,7 +137,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     # Las dos entradas de la música en `partida_tabla`, en su orden:
     # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
@@ -165,7 +163,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
              - una.simbolos["ACTORES_N"]
              - una.simbolos["HAB_BYTES"]
              - 4 * una.simbolos["EXP_K"])
-    cola = una.sram(0x106 + largo - 3, 3)
+    cola = una.sram(una.simbolos["SRAM_DATOS"] + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"
         % (cola[0], una.byte("music_apagada")))
@@ -185,12 +183,10 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     """
     una = con_musica()
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
 
-    una.consola.reset()
-    una.cuadro = 0
-    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    una._resetear()
     una.poner_byte("tema_actual", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
     una.poner_byte("music_apagada", 1)
     una.pasar_el_titulo(SEGUIR)
@@ -214,8 +210,7 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu(1)                   # se elige la segunda en la pantalla
-    base = una.simbolos["SRAM_MAGIA"] + una.simbolos["SRAM_STRIDE"]
-    assert una.sram(base, 4) == b"ABLS", "no quedó nada en la ranura 1"
+    assert una.hay_partida(1), "no quedó nada en la ranura 1"
 
     # La ranura 1 tiene la partida: elegirla la carga.
     una.reiniciar(SEGUIR, ranura=1)
@@ -268,38 +263,24 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     estar en el grupo con los mapas de esta ROM—: Talan tiene cara y nombre,
     DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
     """
-    import os
-    import sys
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__)))), "tools"))
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
     una.guardar_por_el_menu(1)
     una.abrir_ranuras_desde_el_titulo()
 
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     ranuras = una.simbolos["SRAM_RANURAS"]
 
     def comparar(elegida):
-        captura = una.imagen().convert("RGB")
         esperada = titulo.render_ranuras(skin, db, ranuras, [False] * ranuras,
                                          elegida, 0, db.font_id,
                                          {1: [14, 10]}, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quince_bits(captura),
-                                          quince_bits(esperada)) if x != y)
-        donde = pantalla_distinta("ranuras-grupo-%d" % elegida, captura,
-                                  esperada, distintos)
-        assert distintos == 0, (
-            "la pantalla de ranuras con la partida de Talan y el cursor en la "
-            "%d difiere de la referencia en %d pixeles; están en %s"
-            % (elegida, distintos, donde))
+        comparar_pantalla(una, esperada, "ranuras-grupo-%d" % elegida,
+                          "la pantalla de ranuras con la partida de Talan y "
+                          "el cursor en la %d" % elegida)
 
     # Como se entra, y con el cursor sobre la fila de Talan: bajar el cursor
     # repinta la fila entera adentro del vblank, cara y nombre incluidos, y

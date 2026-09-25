@@ -38,23 +38,11 @@ no tiene nada que ver: taro confirmó el 2026-09-13 que el save point guarda bie
 en mednafen, en mesen y en la SNES.
 """
 
-import pytest
-
-from recorrido import Mundo, Recorrido
-from test_recorrido import UN_ANO_DESPUES
-
-EMPEZAR, SEGUIR = 0, 1
+from consola import EMPEZAR, SEGUIR
+from recorrido import UN_ANO_DESPUES, Recorrido
 
 # El save point de al lado del pad de Talan, y el mapa donde está.
 MAPA, CELDA = 8, (9, 56)
-
-
-@pytest.fixture(scope="session")
-def mundo():
-    """La colisión del juego original, una vez por corrida. Es el mismo objeto
-    que usa `test_recorrido`, y se declara acá otra vez porque las fixtures de
-    sesión no se heredan entre módulos."""
-    return Mundo()
 
 
 def caminar_hasta_el_save_point(p, mundo):
@@ -82,7 +70,7 @@ def guardar(r, ranura=0):
     de uno que pase en vacío: sin eso, "quedó la magia" lo cumpliría cualquier
     otra cosa que hubiera guardado por el camino.
     """
-    assert r.p.sram(0x100, 4) != b"ABLS", (
+    assert not r.p.hay_partida(), (
         "la SRAM ya tenía una partida antes de tocar el save point: este caso "
         "no probaría nada. %s" % r.estado())
     r.guardar_en_el_save_point(ranura)
@@ -102,7 +90,7 @@ def test_el_save_point_guarda_sin_titulo(partida, mundo):
     r = caminar_hasta_el_save_point(
         partida(caso="en-4", en="test-main", switch=[UN_ANO_DESPUES]), mundo)
     p = guardar(r)
-    assert p.sram(0x100, 4) == b"ABLS", (
+    assert p.hay_partida(), (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
     assert not p.byte("menu_abierto"), (
         "la pantalla de ranuras no se cerró al elegir. %s" % r.estado())
@@ -128,7 +116,7 @@ def test_el_save_point_guarda_con_titulo_y_tras_cambiar_de_mapa(partida,
     r = caminar_hasta_el_save_point(
         partida(switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
     p = guardar(r)
-    assert p.sram(0x100, 4) == b"ABLS", (
+    assert p.hay_partida(), (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
     assert p.mapa() == MAPA, (
         "guardar tiene que devolver al mapa donde está el save point, y quedó "
@@ -169,8 +157,7 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
     r = caminar_hasta_el_save_point(
         partida(switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
     p = guardar(r, ranura=2)
-    base = p.simbolos["SRAM_MAGIA"] + 2 * p.simbolos["SRAM_STRIDE"]
-    assert p.sram(base, 4) == b"ABLS", (
+    assert p.hay_partida(2), (
         "no quedó nada en la ranura 2. %s" % r.estado())
 
     p.reiniciar(SEGUIR, ranura=2)

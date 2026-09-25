@@ -74,36 +74,48 @@ Lo que quedó sin cubrir: las siete fotos del recorrido `vipers` no tienen
 golden, así que pasan siempre hasta que taro las bendiga; y las goldens
 nuevas de `ev41` y `varios-18-down` las tiene que mirar él.
 
-## 2. Los helpers a `arnes/` (mecánico, lo verifica `just pruebas`)
+## 2. Los helpers a `arnes/` — hecho el 2026-09-25
 
-- Pruebas que sirven de biblioteca: `test_menu.abrir/tocar`,
-  `test_batalla.Pelea`, `test_game_over.sin_hp/pagina_de`,
-  `test_curar.maximos/palabra_de`, `test_piedras.hablarle_a_la_reja`,
-  `test_recorrido.UN_ANO_DESPUES`, `conftest.LINKAGE`. A `arnes/menu.py`,
-  `arnes/batalla.py`, `arnes/lcf.py`.
-- La comparación contra un dibujo de Python, copiada en `test_menu`,
-  `test_equipo`, `test_tienda`, `test_items_pantalla`, `test_curar_menu`,
-  `test_hp_de_batalla`, `test_titulo`, `test_experiencia`, `test_escena`: una
-  `comparar_pantalla` y una fixture de sesión con la base de datos y el skin.
-- Los `sys.path.insert` repetidos: `pythonpath` en `pytest.ini`.
-- Constantes copiadas que el `.sym` tiene: `test_batalla.py:49`,
-  `test_tropa.py:51`, `test_piedras.py:245`, los offsets de `pelea.hp`, el
-  `b"ABLS"` en lugar de `SRAM_MAGIA`.
-- Duplicados: `EMPEZAR` (seis definiciones), el reset + `BOOT_CUADROS`,
-  `celda`, `DEMO`, `heroe`, la traducción LoROM de `tanda.py:191`,
-  `coherente`, las tres maneras de calcular la ranura de una variable, y
-  `tocar` con tres relojes distintos.
-- La fixture `mundo` redefinida en `abl/test_guardar_save_point.py:52-57`.
-- Las capturas de un rojo en tres lugares: falta mudar `rom/build/cores/`
-  (`test_cores.py:103-104`).
-- `herramientas/test_teleport.py` es la prueba de opcodes: va con
-  `test_protocolo.py`.
-- Código muerto: `tanda.correr_ticks`, `ABRE_LA_DE_RANURAS`, el campo `mapa`
-  de `SACUDIDAS`, `REJA`, casos que corren lo mismo que otro.
+Un commit por tema, cada uno con `just pruebas` en verde; el detalle y lo
+medido está en cada mensaje. Lo que quedó y dónde buscarlo:
+
+- **Ninguna prueba importa de otra.** El arnés creció: `menu.py` (abrir y
+  tocar el menú, `GRUPO`, `ORO`), `batalla.py` (`Pelea`, el droide, perder
+  sin pelear, `sabe`), `datos.py` (lo que se lee del juego original: la base,
+  el System, `maximos`, `pagina_de`, `DEMO` y los índices de variables y de
+  habilidades del cartucho), `dibujo.py` (`comparar_pantalla` contra
+  `titulo.render_*`) y `piedras.py`. `LINKAGE` está en `tanda.py`,
+  `UN_ANO_DESPUES` en `recorrido.py`, `EMPEZAR` y `SEGUIR` en `consola.py`.
+  La única excepción es `video.py`, que importa `test_recorrido` para correr
+  sus jugadas, a propósito.
+- **`arnes/lcf.py` se llama `datos.py`**: `import lcf` suelto tiene que
+  fallar —`tools/README.md`, "Cómo se importa"— y un `lcf` en el arnés lo
+  haría andar con otro módulo.
+- **No hay fixture de sesión para la base y el skin**: son `datos.base()` y
+  `datos.skin()`, con caché, porque casi todas las lecturas estaban adentro de
+  funciones de ayuda que no pueden pedir fixtures.
+- **Las ranuras de variable se contaban de cinco maneras** y no eran la misma
+  cuenta; queda la del conversor. Antes de unificar se comparó número por
+  número lo que pide cada prueba: daban lo mismo.
+- **`Pelea.modo()` contesta el nombre** del modo (`"ORDEN"`, `"FIN"`), de la
+  tabla de símbolos. La marca `b"ABLS"` se queda escrita, una vez
+  (`consola.MAGIA`): la ROM no la tiene como símbolo.
+- **`tocar` sigue teniendo tres relojes** —`Partida.tocar` en ticks,
+  `menu.tocar` y `Pelea.tocar` en cuadros con distinto aire—: unificarlos
+  cambia cuándo cae cada toque. El docstring de `menu.tocar` lo dice.
+- **Nuevos métodos de `Partida`** para lo que estaba copiado: `evento`,
+  `oro`/`poner_oro`, `equipo`, `hay_partida`/`magia`,
+  `celdas_mal_dibujadas`.
+- **Se borraron tres casos** que corrían lo mismo que otro —`batalla-segunda`,
+  `tabla` y `ventana-7-y-269`, con sus goldens y el caso JSON del último—:
+  las goldens eran byte por byte las del caso que queda.
+- `test_teleport.py` vive ahora al final de `test_protocolo.py`; las capturas
+  de `test_cores` van a `pruebas/snapshots/cores/`.
 
 ## 3. La pasada de prosa (su propio commit)
 
-Guiada por el diff de las dos anteriores y por esto:
+Guiada por el diff de las dos anteriores y por esto. Los números de línea son
+de `43bd1aa`, y el trabajo 2 corrió muchos: buscar por el texto.
 
 - Rutas que se mudaron: `test_luces.py:6`, `test_hover_tram.py:6`,
   `test_tanda_paginas.py:275`, `test_tanda_rutas.py:19`,
@@ -119,7 +131,8 @@ Guiada por el diff de las dos anteriores y por esto:
   `test_tanda.py:27-31`, `test_condicional.py:29-33`, `test_tanda_paginas.py:11`
   y `:490-491`, `pruebas/README.md`.
 - Números del estado del trabajo: `golden/tanda/LEEME.md:3`,
-  `test_teleport.py:5`, `test_recorrido.py:9-11`, `tanda.py:18`,
+  `test_teleport.py:5` (ahora en la sección "los largos, contra el juego"
+  de `test_protocolo.py`), `test_recorrido.py:9-11`, `tanda.py:18`,
   `test_parches.py:17`.
 - Lápidas: `test_tanda_pantallas.py:360-376`, `test_titulo.py:252-257` y
   `:145-156`, `test_tanda.py` (varias), `test_tanda_escenas.py:19-32`,

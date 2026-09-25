@@ -365,21 +365,20 @@ def test_pan(nombre, cuadros):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-# `ShakeScreen`: nombre —el de su caso—, el mapa donde arranca y los ticks.
-# Sin mapa, el caso llega a su lugar con un `Teleport`.
+# `ShakeScreen`: nombre —el de su caso— y los ticks.
 SACUDIDAS = (
-    ("sacudir", 7, (3, 6, 9, 11, 13, 60)),
-    ("sacudir-fuerte", 6, (2, 5, 9, 14, 17, 60)),
+    ("sacudir", (3, 6, 9, 11, 13, 60)),
+    ("sacudir-fuerte", (2, 5, 9, 14, 17, 60)),
     # Contra el borde del mapa, que es donde la sacudida no puede correr la
     # cámara para los dos lados.
-    ("sacudir-borde", None, (3, 6, 9, 11, 13, 60)),
-    ("sacudir-lluvia", 6, (2, 5, 9, 14, 17, 60)),
+    ("sacudir-borde", (3, 6, 9, 11, 13, 60)),
+    ("sacudir-lluvia", (2, 5, 9, 14, 17, 60)),
 )
 
 
-@pytest.mark.parametrize("nombre,mapa,cuadros",
+@pytest.mark.parametrize("nombre,cuadros",
                          SACUDIDAS, ids=[caso[0] for caso in SACUDIDAS])
-def test_sacudir(nombre, mapa, cuadros):
+def test_sacudir(nombre, cuadros):
     """`sacudir`: `ShakeScreen`, la pantalla temblando."""
     for cuadro in cuadros:
         p = partida(nombre)
@@ -496,8 +495,7 @@ def test_autocierre(nombre, pausas, cuadros):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-VENTANAS = ("ventana", "ventana-1", "ventana-6", "ventana-269", "ventana-348",
-            "ventana-7-y-269")
+VENTANAS = ("ventana", "ventana-1", "ventana-6", "ventana-269", "ventana-348")
 
 
 @pytest.mark.parametrize("nombre", VENTANAS)
@@ -515,9 +513,7 @@ def test_ventana(nombre):
     posible, y otro que no entra en el tilemap de 64x32—. La paleta de la
     ventana es una sola para todo el cartucho —las celdas se emiten una vez
     con la paleta adentro— así que gana la más baja de las que cada mapa
-    pediría. El último caso existía para mirar eso con dos mapas en la ROM;
-    desde el 9f todos corren en el cartucho de los 40, y se deja por la
-    golden.
+    pediría.
     """
     p = partida(nombre)
     p.correr(200)

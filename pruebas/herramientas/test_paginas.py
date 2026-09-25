@@ -6,15 +6,11 @@ no cambian un pixel por sí solas pero deciden qué página está activa.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-
-from port import eventos                                # noqa: E402
-from rpgmaker import lcf                                # noqa: E402
-from rpgmaker import rm2k                               # noqa: E402
-from render.render_map import GAME_DIR                         # noqa: E402
+from port import eventos
+from rpgmaker import lcf
+from rpgmaker import rm2k
+from render.render_map import GAME_DIR
 
 
 def paginas_de(map_id, evento_id):

@@ -31,26 +31,15 @@ El orden de los toques importa y es el del juego: A primero, y la dirección
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
+from port import eventos
+from rpgmaker import lcf
+from render.render_map import GAME_DIR
 
-from port import eventos                                     # noqa: E402
-from rpgmaker import lcf                                     # noqa: E402
-from render.render_map import GAME_DIR                              # noqa: E402
-
-# El mapa del minijuego, con el grupo del juego: no sale de ahí.
-MAPAS = "en-11"
-# Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
-# mirando hacia arriba, que es como se juega el minijuego.
-DEBAJO_DE_LA_REJA = (26, 52)
-REJA = (26, 51)
-# El evento que hace de piedra, y dónde lo deja el mapa antes de que nadie lo
-# mueva: lejos, en (45,75).
-STONE = 18
+from piedras import (DEBAJO_DE_LA_REJA, MAPAS, STONE, celda_de,
+                     hablarle_a_la_reja, ranura)
 
 
 @pytest.fixture(scope="session")
@@ -58,37 +47,6 @@ def mapa11():
     """Los eventos del mapa 11, para traducir el id de RM2k al índice de la
     tabla de la ROM con la misma función que usó el conversor."""
     return eventos.Eventos(lcf.Map(os.path.join(GAME_DIR, "Map0011.lmu")))
-
-
-def ranura(numero):
-    if numero not in eventos.VARIABLE_SLOT:
-        eventos.indexar_variables(GAME_DIR)
-    return eventos.VARIABLE_SLOT[numero]
-
-
-def celda_de(p, mapa11, evento):
-    """En qué celda tiene la ROM al evento `evento` de RM2k, ahora mismo."""
-    indice = mapa11.para(1).blanco(evento) - 1
-    base = p.simbolos["ev_pos_buf"] + 4 * indice
-    bytes_ = p.consola.ram(base, 4)
-    return (bytes_[0] | (bytes_[1] << 8), bytes_[2] | (bytes_[3] << 8))
-
-
-def hablarle_a_la_reja(p):
-    """Los cuatro cuadros de texto de `Grate1`, hasta que Talan tiene tres
-    piedras. Devuelve la partida con el minijuego ya andando."""
-    p.ir_al_mapa(11, *DEBAJO_DE_LA_REJA)
-    p.tocar("up")           # gira sin moverse: la reja no se pisa
-    assert (p.palabra("tile_x"), p.palabra("tile_y")) == DEBAJO_DE_LA_REJA, (
-        "tocar arriba contra la reja no tendría que mover al héroe")
-    for _ in range(40):
-        p.correr(1)
-        p.tocar("a")
-        if p.switch(43):
-            return p
-    raise AssertionError(
-        "después de cuarenta toques de A el switch 43 sigue apagado: nadie le "
-        "dio las piedras. La variable 4 quedó en %d" % p.variable(ranura(4)))
 
 
 def test_la_reja_da_tres_piedras(partida):
@@ -242,7 +200,6 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
 # mirar al evento mientras la piedra vuela.
 AL_LADO_DE_EV0060 = (21, 44)
 EV0060 = 60
-DERECHA = 1                     # `hero_dir`: 0 arriba, 1 derecha, 2 abajo
 
 
 def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
@@ -267,7 +224,8 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
     p.correr(20)
     p.tocar("right")
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
-    assert p.byte("hero_dir") == DERECHA, "el héroe tendría que mirar a EV0060"
+    assert p.byte("hero_dir") == p.simbolos["DIR_RIGHT"], (
+        "el héroe tendría que mirar a EV0060")
     assert mapa11.para(1).blanco(EV0060)
     for _ in range(TOPE_HASTA_EL_MENSAJE):
         if p.byte("msg_abierto"):

@@ -35,16 +35,13 @@ Tres cosas que este archivo hace y conviene tener a la vista:
 """
 
 import os
-import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     mapas_de, marcar_la_pila, toques_de)
+                     en_la_rom, mapas_de, marcar_la_pila, toques_de)
 
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
+from emulador import retro
 
-from emulador import retro                               # noqa: E402
-
-from ensamblado import cartuchos                             # noqa: E402
+from ensamblado import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden",
@@ -74,6 +71,12 @@ class Cartucho:
         self.simbolos = Simbolos(self.sfc + ".sym")
         self.mapas = mapas_de(os.path.join(self.dir, "mapdata.inc"))
         self.casos, self.saltan = cartuchos.manifiesto(nombre)
+
+
+# El mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
+# jugando pero son el mismo, y se cruzan con teletransportes internos. Ver
+# `test_puerta_misma.py`. Lo usan también las peleas contra el droide.
+LINKAGE = "en-2"
 
 
 _CARGADOS = {}
@@ -186,9 +189,7 @@ def cuadro_de_texto(cartucho, renglon):
     """
     from port.eventos import MENSAJES_PASO
     base = cartucho.simbolos["mensajes"]
-    # LoROM sin cabecera: el banco `$XX` se ve en `$8000-$FFFF` y son los
-    # 32 KB que arrancan en `XX * $8000` del archivo.
-    archivo = ((base >> 16) << 15) | (base & 0x7FFF)
+    archivo = en_la_rom(base)
     with open(cartucho.sfc, "rb") as sfc:
         datos = sfc.read()
     encontrados, desplazamiento = [], 0
@@ -292,60 +293,10 @@ def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
     return consola
 
 
-def correr_ticks(consola, simbolos, ticks, sosteniendo=()):
-    """El lazo de ticks de `Reloj.avanzar`, sobre una consola sin `Partida`.
-
-    Hace falta para el único par de casos que arranca en el cuadro **cero**:
-    la ROM con pantalla de título contra la misma sin ella. Ahí no se puede
-    pasar un arranque fijo —la mitad del arranque es el título— así que el
-    reloj se lee desde el primer cuadro. `Reloj` corre uno antes de mirar,
-    porque con cero cuadros corridos la WRAM es todavía la basura con que el
-    emulador enciende y el contador leería 21845.
-    """
-    consola.correr(1)
-    sosteniendo = tuple(sosteniendo)
-    if sosteniendo:
-        consola.apretar(*sosteniendo)
-    direccion = simbolos["vueltas"]
-    tope = (ticks + 2) * 240
-    while True:
-        bajo, alto = consola.ram(direccion, 2)
-        if (bajo | (alto << 8)) - 1 >= ticks:
-            return consola
-        consola.correr(1)
-        tope -= 1
-        if tope <= 0:
-            raise RuntimeError("la ROM no llegó al tick %d" % ticks)
-
-
 def quince_bits(imagen):
     """La imagen a 15 bits, que es lo que la consola puede mostrar."""
     return [(r >> 3, g >> 3, b >> 3)
             for r, g, b in imagen.convert("RGB").get_flattened_data()]
-
-
-# Las pantallas que se comparan contra un dibujo de Python y no contra una
-# golden: el menú, la tienda, los ítems. Cuando difieren, la captura y la
-# esperada quedan acá para mirarlas, como las de la tanda en snapshots/tanda.
-PANTALLAS = os.path.join(RAIZ, "pruebas", "snapshots", "pantallas")
-
-
-def pantalla_distinta(nombre, captura, esperada, distintos):
-    """Si difieren, deja la captura y la esperada en PANTALLAS; si no, borra
-    las que haya dejado una corrida anterior, así el directorio tiene sólo lo
-    que está en rojo ahora. Devuelve el patrón de los dos archivos, para el
-    mensaje de la prueba."""
-    base = os.path.join(PANTALLAS, nombre)
-    rutas = (base + ".png", base + ".esperado.png")
-    if distintos:
-        os.makedirs(PANTALLAS, exist_ok=True)
-        captura.save(rutas[0])
-        esperada.save(rutas[1])
-    else:
-        for ruta in rutas:
-            if os.path.exists(ruta):
-                os.remove(ruta)
-    return os.path.relpath(base, RAIZ) + "*.png"
 
 
 # Las goldens que dieron verde en la prueba en curso, con un hash de sus

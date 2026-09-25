@@ -8,64 +8,21 @@ por la página de prueba, guardar desde el menú, y el pedido de menú hecho a
 mitad de un paso.
 """
 
-import os
-import sys
-
-import pytest
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-
 from consola import TITULO_AIRE
-
-GRUPO = (14, 11)
-ORO = 1234
-
-
-def tocar(una, boton, cuadros=4):
-    """Un toque en cuadros de hardware: el menú no cuenta ticks."""
-    una.consola.apretar(boton)
-    una.consola.correr(2)
-    una.consola.apretar()
-    una.consola.correr(cuadros)
-
-
-def abrir(una, tope=60):
-    tocar(una, "b", 0)
-    for _ in range(tope):
-        if una.menu_abierto():
-            una.consola.correr(3)
-            return una
-        una.consola.correr(1)
-    raise AssertionError("B no abrió el menú en %d cuadros" % tope)
+import datos
+from dibujo import comparar_pantalla, pixeles_distintos
+from menu import GRUPO, ORO, abrir, con_grupo, tocar
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
-    captura = una.imagen().convert("RGB")
+    db, skin = datos.base(), datos.skin()
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "el menú con el cursor en la %d difiere de la referencia en %d "
-        "pixeles; están en %s" % (elegida, distintos, donde))
-
-
-def con_grupo(una):
-    una.correr(5)
-    una.poner_grupo(*GRUPO)
-    una.consola.escribir_ram(una.simbolos["oro"],
-                             list(ORO.to_bytes(3, "little")))
-    return una
+    comparar_pantalla(una, esperada, nombre,
+                      "el menú con el cursor en la %d" % elegida)
 
 
 def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
@@ -99,7 +56,7 @@ def test_guardar_desde_el_menu(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
     tocar(una, "a", TITULO_AIRE)        # la primera ranura
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    assert una.hay_partida(), "la partida no se guardó"
     assert una.menu_abierto(), "después de guardar se cerró el menú"
     comparar(una, 3, nombre="menu-guardado")
 
@@ -115,7 +72,7 @@ def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)
     comparar(una, 3, guardar=False, nombre="menu-sin-guardar")
-    assert una.sram(0x100, 4) != b"ABLS"
+    assert not una.hay_partida()
 
 
 def test_menu_prohibido_b_no_lo_abre(partida):
@@ -232,19 +189,14 @@ def test_los_hp_del_menu_cambian_de_verdad():
     arriba el día que la referencia se equivocara igual, que es la forma de
     falla que AGENTS.md nombra primero.
     """
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)
     herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                 None, GAME_DIR, HP_DE_PELEA)
-    distintos = sum(1 for x, y in zip(quince_bits(llena), quince_bits(herida))
-                    if x != y)
+    distintos = pixeles_distintos(llena, herida)
     assert distintos > 50, (
         "la referencia dibuja lo mismo con el grupo entero y con el grupo "
         "herido: %d pixeles de diferencia" % distintos)

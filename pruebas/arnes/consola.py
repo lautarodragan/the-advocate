@@ -22,13 +22,11 @@ mano se desfasaría en silencio y leería la dirección de al lado.
 
 import os
 import re
-import sys
+
+from emulador import retro
+from ensamblado import bancos
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
-
-from emulador import retro                              # noqa: E402
-from ensamblado import bancos                           # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.
@@ -48,6 +46,12 @@ RETRASO_DE_PANTALLA = 1
 
 # Los bytes de WRAM de la consola.
 WRAM = 0x20000
+
+# La marca de una ranura con partida. **No sale de la tabla de símbolos porque
+# la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
+# `cmp #$41`... inmediatos, y `guardar_partida` la escribe igual. Lo que sí
+# es símbolo es dónde va, `SRAM_MAGIA`.
+MAGIA = b"ABLS"
 
 
 class SimboloDesconocido(KeyError):
@@ -80,8 +84,9 @@ class Simbolos:
 # aprieta, así que pasarse no cuesta nada.
 TITULO_AIRE = 30
 
-# La primera opción del menú del título, "Begin the Story". La segunda carga.
-EMPEZAR = 0
+# Las dos opciones del menú del título: "Begin the Story" y "Resume the
+# Story", que abre la pantalla de ranuras y carga.
+EMPEZAR, SEGUIR = 0, 1
 
 
 def toques_de(pares, flag):
@@ -435,6 +440,15 @@ class Partida:
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
         return self.consola.sram(direccion, largo)
 
+    def magia(self, ranura=0):
+        """Los cuatro bytes de la marca de la ranura, en la SRAM."""
+        return self.sram(self.simbolos["SRAM_MAGIA"]
+                         + ranura * self.simbolos["SRAM_STRIDE"], 4)
+
+    def hay_partida(self, ranura=0):
+        """Si la ranura tiene una partida guardada: si lleva la marca."""
+        return self.magia(ranura) == MAGIA
+
     def correr(self, cuadros, apretar_a=(), sosteniendo=(), toques=(),
                toques_hardware=(), tocar=()):
         """Avanza `cuadros` **ticks**. `apretar_a` son toques de A, por número.
@@ -570,6 +584,51 @@ class Partida:
         """La celda donde está el héroe, (x, y). A mitad de un paso es la de
         los pixeles, o sea la de salida hasta que llega."""
         return (self.palabra("hero_x") // 16, self.palabra("hero_y") // 16)
+
+    def evento(self, indice):
+        """La celda (x, y) donde la ROM tiene ahora al evento `indice` de su
+        tabla: desde cero, en el orden de los ids del mapa."""
+        base = self.simbolos["ev_pos_buf"] + indice * self.simbolos["EV_STRIDE"]
+        b = self.consola.ram(base, 4)
+        return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
+
+    def oro(self):
+        b = self.consola.ram(self.simbolos["oro"], 3)
+        return b[0] | (b[1] << 8) | (b[2] << 16)
+
+    def poner_oro(self, cuanto):
+        self.consola.escribir_ram(self.simbolos["oro"],
+                                  [cuanto & 0xFF, (cuanto >> 8) & 0xFF,
+                                   (cuanto >> 16) & 0xFF])
+        return self
+
+    def equipo(self, actor):
+        """Las cinco ranuras de equipo del actor, leídas de `FAR_EQUIPO`."""
+        datos = self.consola.ram(self.simbolos["FAR_EQUIPO"] + actor * 10, 10)
+        return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
+
+    def celdas_mal_dibujadas(self):
+        """Las celdas de la ventana que no coinciden con lo que dibuja un
+        `fill_window` en el mismo lugar, y la foto de antes.
+
+        Teletransporta a la partida a la celda donde ya está, que es lo que
+        hace que la ROM rearme la ventana entera por su propio camino —y por
+        eso **repara** lo que encuentre: adentro de una jugada, lo que venga
+        después ya no lo ve—. Vale sólo con la cámara quieta y el pan de
+        vuelta en cero: si no, el teletransporte la deja en otro lado y la
+        comparación no compararía lo mismo. Eso se cobra acá.
+        """
+        antes = self.ventana()
+        camara = (self.palabra("camara_x"), self.palabra("camara_y"))
+        self.ir_al_mapa(self.mapa(), self.palabra("tile_x"),
+                        self.palabra("tile_y"))
+        self.correr(10)
+        assert (self.palabra("camara_x"), self.palabra("camara_y")) == camara, (
+            "el teletransporte dejó la cámara en %s y antes estaba en %s: la "
+            "referencia no sirve" % ((self.palabra("camara_x"),
+                                      self.palabra("camara_y")), camara))
+        despues = self.ventana()
+        return [c for c in antes if antes[c] != despues[c]], antes
 
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""

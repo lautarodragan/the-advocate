@@ -23,19 +23,16 @@ este juego y es el único que se puede saber al convertir.
 
 import collections
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from render import render_map
+from port import snes_convert
 
-from render import render_map                                # noqa: E402
-from port import snes_convert                                # noqa: E402
+from datos import DEMO
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = render_map.GAME_DIR
-DEMO = [4, 1, 2, 3, 5, 6, 7]
 GRUPO = [10]
 
 # El Emitter Room, que es donde taro lo vio, y los dos mapas grandes de la

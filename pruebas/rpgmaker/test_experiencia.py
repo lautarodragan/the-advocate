@@ -8,19 +8,13 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-import os
-import sys
+from port import batalla as modelo
+from port import experiencia
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from port import batalla as modelo                          # noqa: E402
-from port import experiencia                                # noqa: E402
-
-from consola import en_la_rom                               # noqa: E402
-from test_batalla import (GRUPO, TROPA_DROIDE, Pelea, db,   # noqa: E402
-                          en_el_droide)
+from consola import en_la_rom
+from batalla import GRUPO, TROPA_DROIDE, Pelea, en_el_droide
+import datos
+from dibujo import diferencia
 
 
 def rom_de(una):
@@ -64,7 +58,7 @@ def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
     que la ROM no necesita porque nunca baja a nadie de nivel.
     """
     niveles = niveles or {}
-    base = db()
+    base = datos.base()
     esperado = modelo.Batalla(
         [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in grupo],
         [modelo.enemigo_de(base, e, n)
@@ -94,7 +88,7 @@ def test_cada_actor_arranca_con_la_experiencia_de_su_nivel(partida):
     tabla corrida, o la del nivel 1, esto se ve.
     """
     una = partida()
-    base = db()
+    base = datos.base()
     for actor in GRUPO:
         esperado = (experiencia.exp_inicial(base.actors[actor]),
                     experiencia.nivel_inicial(base.actors[actor]))
@@ -113,7 +107,7 @@ def test_ganar_da_la_experiencia_de_la_tropa_a_los_vivos(partida):
     los vivos".
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     antes = {a: exp_y_nivel(una, a) for a in GRUPO}
     esperado = ganar_al_droide(una, caidos=(GRUPO[1],))
     ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
@@ -139,7 +133,7 @@ def test_la_experiencia_se_topa_en_la_de_rm2k(partida):
     equivoca por uno. Se arranca a menos de lo que da el droide del tope.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     actor = GRUPO[0]
     nivel = experiencia.nivel_max(base.actors[actor])
     poner_exp(una, actor, experiencia.EXP_MAX - 10, nivel)
@@ -177,7 +171,7 @@ def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
     coincidirían con los del modelo.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     kersh, manta = GRUPO[0], GRUPO[2]
     lista = experiencia.lista_de(base.actors[kersh])
     nivel_k = experiencia.nivel_inicial(base.actors[kersh])
@@ -200,7 +194,7 @@ def test_en_el_tope_no_sube_mas(partida):
     """`GetMaxLevel()`: con el `final_level` del LDB alcanzado, la experiencia
     se suma y el nivel no se mueve."""
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     actor = GRUPO[0]
     tope = experiencia.nivel_max(base.actors[actor])
     lista = experiencia.lista_de(base.actors[actor])
@@ -221,7 +215,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     pasan por `eq_parametro`, que es también la de la pantalla de equipo.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     kersh = GRUPO[0]
     poner_exp(una, kersh, experiencia.lista_de(base.actors[kersh])[29], 30)
     pelea = Pelea(una).abrir()
@@ -243,9 +237,9 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     """`FullHeal` es `SetHp(GetMaxHp())`, y el máximo es el del nivel que el
     actor tiene. Es el camino de `test_curar.py`, con un nivel que no es el
     de arranque."""
-    from test_curar import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
+    from batalla import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
     una = partida(caso="pelea-82-curar")
-    base = db()
+    base = datos.base()
     sin_hp(una)
     actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
     poner_exp(una, actor, experiencia.lista_de(base.actors[actor])[29], 30)
@@ -275,8 +269,8 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     7. Kersh pelea al lado para que la pelea se gane, y **detrás** de Arden:
     con el orden al revés el droide le pega a Arden hasta tirarlo, y lo que
     decide eso es el azar de la pelea, que el modelo juega igual."""
-    from test_equipo_y_habilidades import sabe
-    base = db()
+    from batalla import sabe
+    base = datos.base()
     arden = base.actors[ARDEN]
     assert experiencia.nivel_inicial(arden) == 3
     ensena = {nivel: s for nivel, s in arden.skills}
@@ -313,23 +307,14 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
 NIVELES_DEL_MENU = {14: 9, 11: 30}
 
 
-def diferencia(una, esperada):
-    from tanda import quince_bits
-    captura = una.imagen().convert("RGB")
-    return sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-               if x != y)
-
-
 def referencias():
-    from port import ventana
     from render.render_map import GAME_DIR
-    base = db()
-    return base, ventana.skin(GAME_DIR, base.system_name), GAME_DIR
+    return datos.base(), datos.skin(), GAME_DIR
 
 
 def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
     from port import titulo
-    from test_menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
+    from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
     base, skin, game_dir = referencias()
     assert set(NIVELES_DEL_MENU) == set(GRUPO_MENU)
     una = con_grupo(partida())
@@ -354,7 +339,7 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     pantalla, así que un 9 en la ranura sólo puede haber salido de la SRAM."""
     from port import titulo
     from consola import TITULO_AIRE
-    from test_menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
+    from menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
     base, skin, game_dir = referencias()
     lider = GRUPO_MENU[0]
     una = con_grupo(partida())
@@ -364,7 +349,7 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
     tocar(una, "a", TITULO_AIRE)        # guarda en la primera
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    assert una.hay_partida(), "la partida no se guardó"
     poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[4], 5)
     tocar(una, "a", TITULO_AIRE)        # y la vuelve a abrir
     ranuras = una.simbolos["SRAM_RANURAS"]

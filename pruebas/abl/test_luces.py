@@ -17,18 +17,14 @@ El compañero que mide que el mapa **entra en el cuadro** es
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
+from port import eventos
+from rpgmaker import lcf
+from render.render_map import REPO
 
-from port import eventos                                     # noqa: E402
-from rpgmaker import lcf                                     # noqa: E402
-from render.render_map import REPO                           # noqa: E402
-
-from test_piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja  # noqa: E402
+from piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja
 
 MAPA11 = os.path.join(REPO, "parches", "manual", "mapas", "Map0011.json")
 

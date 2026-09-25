@@ -49,11 +49,6 @@ def indice_de(nombre):
 
     La tabla va en el orden de los ids, que es como la emite el conversor.
     """
-    import os
-    import sys
-    raiz = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))))
-    sys.path.insert(0, os.path.join(raiz, "tools"))
     from rpgmaker import lcf
     game_map = lcf.Map("Map0011.lmu")
     for indice, evento in enumerate(game_map.events):

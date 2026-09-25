@@ -29,18 +29,13 @@ ejecuta. Lo que se mide es la cadena más honda de las que se corren acá, no la
 más honda que existe en la ROM. Por eso el umbral no está pegado al tope.
 """
 
-import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
+from ensamblado import bancos
 
-from ensamblado import bancos                              # noqa: E402
-
-from consola import hondura_de_la_pila                     # noqa: E402
-from tanda import consola_cruda, correr_hardware, encender, partida  # noqa: E402
+from consola import hondura_de_la_pila
+from tanda import consola_cruda, correr_hardware, encender, partida
 
 # Cuándo avisar. **La mitad de lo reservado**, y el porqué es que una prueba que
 # esperara el desborde no serviría de nada: cuando la pila llega a la BSS ya
@@ -110,7 +105,7 @@ def _items():
 def _tocar(consola, boton, cuadros=8):
     """Un flanco del botón y `cuadros` de hardware de espera.
 
-    Es `test_menu.tocar` a mano, en cuadros de hardware: adentro de un menú el
+    Es `menu.tocar` a mano, en cuadros de hardware: adentro de un menú el
     reloj del juego no corre, así que `Partida.correr` no termina nunca.
     """
     consola.apretar(boton)

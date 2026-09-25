@@ -21,13 +21,7 @@ pueden prender. O sea que es el único tema de la ROM que depende de que
 `tema_asegurar` lo cargue en caliente, y por eso es el que delata el camino.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-
-EMPEZAR, SEGUIR = 0, 1
+from consola import EMPEZAR, SEGUIR
 
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):

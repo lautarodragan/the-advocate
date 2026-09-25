@@ -20,12 +20,7 @@ página de contacto cuyo único comando es el teletransporte— y ése recargaba
 siempre. Al volver, las franjas reaparecían.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from conftest import LINKAGE                                 # noqa: E402
+from tanda import LINKAGE
 
 MAPA = 2
 PUERTA_X, PUERTA_Y = 4, 54      # la celda de abajo de la puerta
@@ -33,20 +28,10 @@ EV_TOP, EV_BOTTOM, EV_MOVIN = 4, 1, 20      # índices, desde cero
 LEJOS = (94, 97)                # a donde va el `LBDoorTop` al abrirse
 
 
-def celda(una, indice):
-    base = una.simbolos["ev_pos_buf"] + indice * una.simbolos["EV_STRIDE"]
-    b = una.consola.ram(base, 4)
-    return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
-
-
-def heroe(una):
-    return (una.palabra("hero_x") // 16, una.palabra("hero_y") // 16)
-
-
 def caminar(una, tecla, destino, vueltas=80):
     """Camina apretando `tecla` hasta llegar, pasando los mensajes con A."""
     for _ in range(vueltas):
-        if heroe(una) == destino:
+        if una.heroe() == destino:
             return True
         una.consola.apretar(tecla)
         una.consola.correr(8)
@@ -56,7 +41,7 @@ def caminar(una, tecla, destino, vueltas=80):
         una.cuadro += 2
         if una.byte("msg_abierto"):
             una.tocar("a")
-    return heroe(una) == destino
+    return una.heroe() == destino
 
 
 def abierta(partida):
@@ -80,9 +65,9 @@ def abierta(partida):
 def test_abrirla_mueve_los_eventos(partida):
     """Primero lo que tiene que pasar al abrirla, o el resto no prueba nada."""
     una = abierta(partida)
-    assert celda(una, EV_TOP) == LEJOS, \
+    assert una.evento(EV_TOP) == LEJOS, \
         "el `LBDoorTop` no se fue: las franjas de arriba no desaparecen"
-    assert celda(una, EV_MOVIN) == (PUERTA_X, PUERTA_Y - 1), \
+    assert una.evento(EV_MOVIN) == (PUERTA_X, PUERTA_Y - 1), \
         "el `MovinDoor` no vino a la puerta"
 
 
@@ -90,9 +75,9 @@ def test_cruzarla_y_volver_la_deja_abierta(partida):
     """El caso de taro, entero."""
     una = abierta(partida)
     assert caminar(una, "up", (87, 88)), "no se pudo cruzar la puerta"
-    assert celda(una, EV_TOP) == LEJOS, \
+    assert una.evento(EV_TOP) == LEJOS, \
         "cruzar ya resetea los eventos; el `Teleport` de ida debería conservarlos"
     assert caminar(una, "down", (PUERTA_X, PUERTA_Y)), "no se pudo volver"
-    assert celda(una, EV_TOP) == LEJOS, \
+    assert una.evento(EV_TOP) == LEJOS, \
         "volver por la puerta recargó el mapa: el `LBDoorTop` volvió a %s y la " \
-        "puerta se ve a medio abrir" % (celda(una, EV_TOP),)
+        "puerta se ve a medio abrir" % (una.evento(EV_TOP),)

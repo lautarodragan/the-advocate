@@ -25,10 +25,8 @@ cambio, exige que todo lo que convierte esté versionado.
 """
 
 import os
-import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402

@@ -7,14 +7,9 @@ está. Acá se le pregunta a la ROM por la RAM lejana, que es donde vive la
 cuenta de cada ítem, con la página de prueba dando y quitando.
 """
 
-import os
-import sys
+from port import eventos
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import eventos                                # noqa: E402
-from rpgmaker import lcf                                # noqa: E402
-from render.render_map import GAME_DIR                         # noqa: E402
+import datos
 
 # Lo que da la página de prueba `inventario`, de a dos —ítem y cuánto—: tres de
 # la 151, uno más (4); 120 de la 90, que topa en 99; dos de la 17 y cinco
@@ -25,7 +20,7 @@ ITEMS = (151, 3, 151, 1, 90, 120, 17, 2, 17, -5)
 
 def test_items_n_es_el_del_ldb():
     """`ITEMS_N` está escrito a mano en eventos.py: que sea el del LDB."""
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    db = datos.base()
     assert eventos.ITEMS_N == db.items_max + 1, (db.items_max, eventos.ITEMS_N)
 
 

@@ -35,6 +35,7 @@ valen también para ella.
 import pytest
 
 from ensamblado.cartuchos import RELEASE
+from consola import EMPEZAR
 from tanda import golden, partida
 
 # Cada caso es: nombre —que es también el de su página de prueba, con el
@@ -146,14 +147,6 @@ def test_escena(nombre, cuadros, apretar, toques):
 TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
                    2259, 2380, 2489, 2683, 2743)
 
-# "Begin the Story", que es por donde se entra a `release`, la ROM que se
-# juega. Las seis goldens de `cinematica`, las seis de `apertura` y las cinco
-# de `cartel` se congelaron en un cartucho sin pantalla de título y salen byte
-# por byte iguales a través de ella: el título no cambia lo que se dibuja
-# adentro del mapa. Medido al fundir el título con el cartucho del juego, el
-# 2026-09-20, y otra vez al pasarlas de ése a `release`, el 2026-09-24.
-EMPEZAR = 0
-
 # Las cinemáticas: nombre, los ticks, los toques de A, cómo arranca y el
 # cartucho. Las que arrancan en el 4 van en `release`, la ROM que se juega,
 # que arranca ahí como el juego de verdad: llegar al 4 con un `Teleport` no da
@@ -231,6 +224,14 @@ def test_cinematica(nombre, cuadros, apretar, caso, en):
     """
     for cuadro in cuadros:
         if en == RELEASE:
+            # "Begin the Story", que es por donde se entra a `release`, la
+            # ROM que se juega. Las seis goldens de `cinematica`, las seis de
+            # `apertura` y las cinco de `cartel` se congelaron en un cartucho
+            # sin pantalla de título y salen byte por byte iguales a través
+            # de ella: el título no cambia lo que se dibuja adentro del mapa.
+            # Medido al fundir el título con el cartucho del juego, el
+            # 2026-09-20, y otra vez al pasarlas de ése a `release`, el
+            # 2026-09-24.
             p = partida(None, en=en, switches=caso, titulo=EMPEZAR)
         else:
             p = partida(caso, en=en)

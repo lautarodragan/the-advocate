@@ -23,14 +23,10 @@ Las dos cosas que mira son las dos que la tarea pide que no se rompan:
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
-
-from tanda import partida                                      # noqa: E402
+from tanda import partida
 
 # Dónde cae el tram en el mapa y a qué escala, que es lo que dice la receta de
 # `parches/manual/chipsets/0055.json`. Está acá repetido a propósito: si la

@@ -11,10 +11,8 @@ lo que queda es compararlos.
 
 import os
 import re
-import sys
 
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-sys.path.insert(0, os.path.join(REPO, "tools"))
 
 from port import snes_convert                            # noqa: E402
 from ensamblado import ensamblar  # noqa: E402

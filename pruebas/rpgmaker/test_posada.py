@@ -18,16 +18,9 @@ no cobre cuando no, y que "No" no toque nada.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "tools"))
-
-from test_curar import grupo_de, maximos, palabra_de          # noqa: E402
-from test_game_over import sin_hp                             # noqa: E402
-from test_oro import leer as leer_oro, poner as poner_oro     # noqa: E402
+from batalla import grupo_de, palabra_de, sin_hp
+from datos import maximos
 
 # El bum y su precio, del `ShowInn [0, 5, 0]` de la página. La celda es la de
 # abajo: desde ahí se le habla mirando hacia arriba.
@@ -90,13 +83,13 @@ def hp_del_grupo(una):
 
 def test_con_oro_de_sobra_cobra_y_cura(partida):
     una = frente_al_bum(partida)
-    poner_oro(una, 3 * PRECIO)
+    una.poner_oro(3 * PRECIO)
     sin_hp(una)
     hasta_la_eleccion(una)
     elegir(una, 0)
-    assert leer_oro(una) == 2 * PRECIO, (
+    assert una.oro() == 2 * PRECIO, (
         "la posada tendría que haber cobrado %d y el oro quedó en %d"
-        % (PRECIO, leer_oro(una)))
+        % (PRECIO, una.oro()))
     tope = maximos()
     for actor, hp in hp_del_grupo(una).items():
         assert hp == tope[actor][0], (
@@ -108,11 +101,11 @@ def test_con_el_precio_justo_alcanza(partida):
     """La igualdad, que es donde una rama de oro mal escrita se equivoca: en
     RM2k la condición es `oro >= precio` y el `>=` la incluye."""
     una = frente_al_bum(partida)
-    poner_oro(una, PRECIO)
+    una.poner_oro(PRECIO)
     sin_hp(una)
     hasta_la_eleccion(una)
     elegir(una, 0)
-    assert leer_oro(una) == 0
+    assert una.oro() == 0
     tope = maximos()
     for actor, hp in hp_del_grupo(una).items():
         assert hp == tope[actor][0]
@@ -122,29 +115,29 @@ def test_sin_oro_no_cobra_ni_cura(partida):
     """La deuda declarada: acá "Yes" se puede elegir aunque no alcance, y
     elegirlo equivale a "No". En RM2k el cursor no lo deja seleccionar."""
     una = frente_al_bum(partida)
-    poner_oro(una, PRECIO - 1)
+    una.poner_oro(PRECIO - 1)
     sin_hp(una)
     antes = hp_del_grupo(una)
     assert antes, "el grupo quedó vacío: la prueba no mide nada"
     hasta_la_eleccion(una)
     elegir(una, 0)
-    assert leer_oro(una) == PRECIO - 1, (
+    assert una.oro() == PRECIO - 1, (
         "la posada cobró sin que alcanzara: el oro quedó en %d"
-        % leer_oro(una))
+        % una.oro())
     assert hp_del_grupo(una) == antes, "curó sin cobrar"
 
 
 def test_con_no_no_pasa_nada(partida):
     una = frente_al_bum(partida)
-    poner_oro(una, 3 * PRECIO)
+    una.poner_oro(3 * PRECIO)
     sin_hp(una)
     antes = hp_del_grupo(una)
     assert antes, "el grupo quedó vacío: la prueba no mide nada"
     hasta_la_eleccion(una)
     elegir(una, 1)
-    assert leer_oro(una) == 3 * PRECIO, (
+    assert una.oro() == 3 * PRECIO, (
         "decir que no le costó %d créditos"
-        % (3 * PRECIO - leer_oro(una)))
+        % (3 * PRECIO - una.oro()))
     assert hp_del_grupo(una) == antes, "curó al que dijo que no"
 
 

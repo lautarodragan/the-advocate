@@ -12,19 +12,11 @@ que nombren las páginas de prueba del cartucho**, así que la prueba rearma el
 la 152 —se la enseña el mapa 48— y le hace olvidar la 147, que el LDB le da.
 """
 
-import functools
-import json
-import os
-import sys
+from port import eventos
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from port import eventos                                    # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from test_game_over import pagina_de                        # noqa: E402
+import datos
+from datos import pagina_de
+from batalla import sabe
 
 ARDEN, KERSH, CORE, MANTA = 15, 11, 12, 13
 APRENDE, OLVIDA = 152, 147
@@ -36,29 +28,8 @@ SABE_LA_NUEVA, SABE_LA_VIEJA = 136, 138
 DESPUES = 60
 
 
-@functools.lru_cache(maxsize=None)
-def indice():
-    """El índice de pares del cartucho de pruebas: el del juego con los que
-    nombran sus casos, que es lo que le pasa el conversor."""
-    from ensamblado import cartuchos
-    from rpgmaker import lcf
-    extra = set()
-    for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
-        with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
-                  encoding="utf-8") as archivo:
-            extra |= eventos.pares_de_habilidad_de_comandos(
-                lcf.comandos_escritos(json.load(archivo)))
-    return eventos.pares_de_habilidad(GAME_DIR, extra)
-
-
 def ranura(actor, habilidad):
-    return indice()[(actor, habilidad)]
-
-
-def sabe(una, actor, habilidad):
-    r = ranura(actor, habilidad)
-    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
-    return bool(octeto & (1 << (r & 7)))
+    return datos.ranuras_de_habilidad()[(actor, habilidad)]
 
 
 def poner(una, actor, habilidad, valor):
@@ -69,20 +40,6 @@ def poner(una, actor, habilidad, valor):
     una.consola.escribir_ram(donde, [octeto])
 
 
-def equipo(una, actor):
-    datos = una.consola.ram(una.simbolos["FAR_EQUIPO"] + actor * 10, 10)
-    return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
-
-
-def item(una, numero):
-    return una.consola.ram(una.simbolos["FAR_ITEMS"] + numero, 1)[0]
-
-
-def db():
-    from rpgmaker import lcf
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
 # --- las habilidades --------------------------------------------------------
 
 def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
@@ -90,7 +47,8 @@ def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
     que no copiara nada y dejara `FAR_HAB` en cero daría "no la sabe" para la
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")
-    assert una.simbolos["HAB_BYTES"] == (len(indice()) + 7) // 8, (
+    pares = len(datos.ranuras_de_habilidad())
+    assert una.simbolos["HAB_BYTES"] == (pares + 7) // 8, (
         "el cartucho tiene otro índice de pares que el que arma la prueba: "
         "sus ranuras no valen")
     assert sabe(una, ARDEN, OLVIDA), "Arden arranca sin la 147 del LDB"
@@ -132,7 +90,7 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     """El grupo —Kersh y Core— sin arma, y Manta sin casco. Lo que tenían puesto
     vuelve al inventario, que es `Game_Actor::ChangeEquipment(ranura, 0)`."""
     una = partida(caso="equipo-quitar")
-    base = db()
+    base = datos.base()
     arma_k = base.actors[KERSH].initial_equipment[0]
     arma_c = base.actors[CORE].initial_equipment[0]
     casco_m = base.actors[MANTA].initial_equipment[3]
@@ -141,22 +99,22 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + arma_c,
                              [eventos.ITEM_MAX])
     una.correr(DESPUES)
-    assert equipo(una, KERSH)[0] == 0 and equipo(una, CORE)[0] == 0, (
-        "el grupo sigue armado: %s, %s" % (equipo(una, KERSH), equipo(una, CORE)))
-    assert equipo(una, MANTA)[3] == 0, "Manta sigue con el casco"
-    assert item(una, arma_k) == 1, "el arma de Kersh no volvió al inventario"
-    assert item(una, arma_c) == eventos.ITEM_MAX, "el inventario pasó del tope"
-    assert item(una, casco_m) == 1, "el casco de Manta no volvió al inventario"
+    assert una.equipo(KERSH)[0] == 0 and una.equipo(CORE)[0] == 0, (
+        "el grupo sigue armado: %s, %s" % (una.equipo(KERSH), una.equipo(CORE)))
+    assert una.equipo(MANTA)[3] == 0, "Manta sigue con el casco"
+    assert una.item(arma_k) == 1, "el arma de Kersh no volvió al inventario"
+    assert una.item(arma_c) == eventos.ITEM_MAX, "el inventario pasó del tope"
+    assert una.item(casco_m) == 1, "el casco de Manta no volvió al inventario"
 
 
 def test_change_equipment_no_toca_lo_demas(partida):
     """El control: Manta no está en el grupo, así que su arma sigue; y de Kersh
     sólo se va el arma."""
     una = partida(caso="equipo-quitar")
-    base = db()
+    base = datos.base()
     una.correr(DESPUES)
-    assert equipo(una, MANTA)[0] == base.actors[MANTA].initial_equipment[0]
-    assert equipo(una, KERSH)[1:] == base.actors[KERSH].initial_equipment[1:]
+    assert una.equipo(MANTA)[0] == base.actors[MANTA].initial_equipment[0]
+    assert una.equipo(KERSH)[1:] == base.actors[KERSH].initial_equipment[1:]
 
 
 # --- y las páginas que esto destraba ---------------------------------------

@@ -16,21 +16,10 @@ bits en cero—. taro lo reportó el 2026-09-07 como que Core se mueve arriba de
 islita y no salta nunca.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 CORE = 3                # su índice en la tabla de eventos del mapa 5
 DESDE = (31, 14)        # de dónde sale el primer salto
 HASTA = (31, 18)        # y a dónde cae, cuatro celdas abajo
 ESCENA = 16             # el switch que arranca el recuerdo
-
-
-def celda(una, indice):
-    base = una.simbolos["ev_pos_buf"] + indice * una.simbolos["EV_STRIDE"]
-    b = una.consola.ram(base, 4)
-    return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
 
 
 def test_core_salta_a_la_segunda_piedra(partida):
@@ -41,7 +30,7 @@ def test_core_salta_a_la_segunda_piedra(partida):
             una.tocar("a")
         else:
             una.correr(1)
-        c = celda(una, CORE)
+        c = una.evento(CORE)
         if not visto or visto[-1] != c:
             visto.append(c)
         if c == HASTA:

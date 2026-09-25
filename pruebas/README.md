@@ -57,7 +57,9 @@ ABL como material. **Hecho** el 2026-09-19, después del 9f:
     pruebas/abl/           lo propio del juego: el recorrido, las piedras,
                            el recuerdo, el cartel, las escenas y cinemáticas
     pruebas/herramientas/  las que no corren ninguna ROM
-    pruebas/arnes/         consola, tanda, cartuchos y recorrido
+    pruebas/arnes/         consola, tanda, recorrido y video; y lo que
+                           comparten varias pruebas: menu, batalla, datos,
+                           dibujo y piedras
 
 ## Una `Partida` viva por vez
 

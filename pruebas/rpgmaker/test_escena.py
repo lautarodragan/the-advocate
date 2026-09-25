@@ -16,20 +16,13 @@ filas que el texto no toca: arriba de la escena van los renglones de los
 enemigos, uno por enemigo.
 """
 
-import os
-import sys
+from port import escena
+from port import batalla as modelo
+from render.render_map import GAME_DIR
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from rpgmaker import lcf                                    # noqa: E402
-from port import escena                                     # noqa: E402
-from port import batalla as modelo                          # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from consola import en_la_rom, en_la_wram                   # noqa: E402
-from test_batalla import Pelea, en_el_droide, modelo_de     # noqa: E402
+from consola import en_la_rom, en_la_wram
+from batalla import Pelea, en_el_droide, modelo_de
+import datos
 
 # El encuentro al azar de Sector 27: la celda cae adentro del área 31, y con esa
 # semilla sale la tropa 100 —un DecayingShambler y dos AlleyMuck, que se tapan
@@ -42,10 +35,6 @@ SECTOR_27 = (28, 20, 30)
 RENGLON = 16
 SEMILLA_TROPA_100 = 22
 TROPA_100 = 100
-
-
-def db():
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
 
 
 def _byte(una, nombre, k=0):
@@ -209,7 +198,7 @@ def test_escena_compuesta_es_la_del_juego(partida):
     Shambler. Es el camino de los ocho corrimientos y el del orden.
     """
     una = en_sector_27(partida)
-    base = db()
+    base = datos.base()
     n = len(base.troops[TROPA_100].members)
     _limpio, esperada = _esperada(una, base, TROPA_100, set(range(n)))
     compuesta = _bufer(una, "ESC_ESCENA")
@@ -231,7 +220,7 @@ def test_escena_un_enemigo_muerto_desaparece(partida):
     volver a poner a ambos recortados a sus celdas, y en el orden de la tropa.
     """
     una = en_sector_27(partida)
-    base = db()
+    base = datos.base()
     n = len(base.troops[TROPA_100].members)
     muerto = 1
     s = una.simbolos
@@ -262,7 +251,7 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(db())
+    esperado = modelo_de(datos.base())
     while esperado.resultado is None:
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(

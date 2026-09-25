@@ -7,16 +7,11 @@ dibujando basura. La red grande es que la ROM salga byte por byte igual; ésta
 es la chica, y sirve para que un error se vea acá y no en un md5.
 """
 
-import os
 import re
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
-
-from ensamblado import bancos                                # noqa: E402
+from ensamblado import bancos
 
 
 def resolver(texto, tmp_path, segundo=None):
@@ -161,8 +156,6 @@ def test_el_codigo_a_mano_entra_en_el_banco_1():
     mitad del banco 2; si lo generado arranca más lejos, no hay nada en
     `$02:8000`.
     """
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                    "..", "arnes"))
     import tanda
     simbolos = tanda.cartucho().simbolos
     rom = [int(v) for v in simbolos.tabla.values()
