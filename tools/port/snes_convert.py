@@ -5929,11 +5929,6 @@ def parser_de_flags():
                              "para probar un mapa que no sea el primero, que "
                              "es el único caso donde el desplazamiento del "
                              "registro no es cero")
-    parser.add_argument("--inicio", nargs=2, type=int, metavar=("TX", "TY"),
-                        help="dónde plantar al héroe, en celdas de 16x16. Sin "
-                             "esto arranca en el tile abierto más cercano al "
-                             "centro. Sirve para llevar la cámara a un lugar "
-                             "puntual sin tener que caminar hasta él")
     return parser
 
 
@@ -6056,9 +6051,7 @@ def main():
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
 
-    mapas = [convertir(renderer, map_id, args,
-                       inicio=args.inicio if map_id == args.map_id else None)
-             for map_id in todos]
+    mapas = [convertir(renderer, map_id, args) for map_id in todos]
     # Antes acá se reconvertían los mapas cuya capa de encima arrancaba más
     # arriba que la paleta de la ventana, para apretarles el fondo debajo de
     # ella. Con la ventana en la paleta 0 no hay nada que apretar: el fondo de
@@ -7085,8 +7078,8 @@ def mapa_del_caso(caso, orden, inicial):
     si no el mapa donde arranca la ROM.
 
     Es como un caso elige dónde arrancar desde el paso 9e, en vez de un
-    `--map-id` y un `--inicio` por cartucho: con el `Teleport` de RM2k, que
-    es dato y no flag. La página vive igual en el evento 0 del mapa de
+    `--map-id` y una celda de arranque por cartucho: con el `Teleport` de
+    RM2k, que es dato y no flag. La página vive igual en el evento 0 del mapa de
     arranque —ahí la encuentra la ROM y ahí corre primero—, pero lo que viene
     después del salto corre en el otro mapa, así que se compila con su
     contexto: sus eventos, las variables que miran sus páginas, sus gráficos.
@@ -7139,7 +7132,7 @@ def pide_pagina_de_prueba(args):
     """Si hay una página de prueba antes del primer `--caso`."""
     return bool(args.comandos_de_prueba)
 
-def convertir(renderer, map_id, args, inicio=None):
+def convertir(renderer, map_id, args):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = renderer.cargar_mapa(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
@@ -7566,7 +7559,7 @@ def convertir(renderer, map_id, args, inicio=None):
     # Con **todos** los que se dibujan en alguna página, que es lo que mira
     # la referencia: un tile que quedó afuera de las paletas igual ocupa.
     ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
-    start_x, start_y = inicio or inicio_del_mapa(
+    start_x, start_y = inicio_del_mapa(
         renderer, map_id, passable, game_map.width, game_map.height, ocupadas)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
 
