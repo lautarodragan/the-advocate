@@ -20,8 +20,8 @@ mismos archivos byte por byte—.
 Lo versionado es lo que decide `abl`, el ROM jugable. Lo que los cartuchos de
 prueba llevan de más —mapas que el juego no tiene, y una animación que sólo
 muestra un caso de la tanda— no se versiona: ahí el cartucho decide solo y esto
-no le pide nada; cuáles son los imprime `just parches-check`. Por eso no hace
-falta que la tanda arme `abl` para que esto valga.
+no le pide nada; cuáles son los imprime `just parches-check`. De `abl`, en
+cambio, exige que todo lo que convierte esté versionado.
 """
 
 import os
@@ -37,18 +37,25 @@ from ensamblado import cartuchos                             # noqa: E402
 
 
 def _armados():
-    """Los cartuchos que dejó `just cartuchos`, con sus parches adentro."""
-    return [os.path.join(cartuchos.DESTINO, nombre)
-            for nombre in sorted(os.listdir(cartuchos.DESTINO))
-            if os.path.isdir(os.path.join(cartuchos.DESTINO, nombre,
-                                          parches.EN_BUILD))]
+    """Los cartuchos que dejó `just cartuchos`, con sus parches adentro.
+
+    `release` también, y es el que más importa: es el único del que
+    `parches.revisar` exige que todo lo que convierte esté versionado. Vive
+    fuera de `DESTINO`, así que listar ese directorio no lo encontraba.
+    """
+    candidatos = ([os.path.join(cartuchos.DESTINO, nombre)
+                   for nombre in sorted(os.listdir(cartuchos.DESTINO))]
+                  + [cartuchos.directorio(cartuchos.RELEASE)])
+    return [c for c in candidatos
+            if os.path.isdir(os.path.join(c, parches.EN_BUILD))]
 
 
 def test_los_parches_versionados_son_los_que_decide_el_conversor():
     armados = _armados()
-    assert armados, (
-        "ningún cartucho de %s dejó parches: se arman con `just cartuchos`"
-        % cartuchos.DESTINO)
+    assert cartuchos.directorio(cartuchos.RELEASE) in armados, (
+        "`release` no dejó parches en %s: se arma con `just cartuchos`, y sin "
+        "él nada mira que lo que el juego convierte esté versionado"
+        % cartuchos.directorio(cartuchos.RELEASE))
     quejas, _propios = parches.revisar(RAIZ, armados)
     assert not quejas, "\n\n".join(quejas)
 
