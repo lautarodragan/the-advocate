@@ -41,6 +41,66 @@ ARRANQUE = "en-5"
 LINKAGE = "en-2"
 
 
+# Las pruebas cuyas capturas son todas la misma pantalla **a propósito**, con
+# su porqué. Cualquier otra que dé eso no está mirando lo que cree: ver
+# `_capturas_distintas`.
+MISMA_PANTALLA = {
+    # Lo que pasa en el primer tick y después tiene que quedarse quieto: el
+    # último mira que no se deshaga ni llegue tarde, y lo que distingue el caso
+    # es la golden, no la diferencia entre sus ticks.
+    "test_pan[pan-cero]": "cero cuadros: el tinte ya está en el tick 1",
+    "test_tecla[tecla-dir]": "el tinte llega con el toque del 40 y se queda",
+    "test_npc[npc-encara]": "girar hacia el héroe es instantáneo",
+    "test_npc[npc-encara-lado]": "girar hacia el héroe es instantáneo",
+    "test_lugar[lugar-quieto]": "plantado sin ruta, no tiene a dónde ir",
+    "test_escena[bloqueo]": "el droide lo frena en (7,73) antes del 40",
+    "test_escena[ascensor]": "el ascensor abierto con el switch 11, quieto",
+    "test_cinematica[factoria]": "el reparto de VRAM, que no cambia solo",
+    # Las ramas: cada caso es la mitad de un par, contestan en el primer tick,
+    # y lo que cobra la respuesta es la diferencia con su pareja.
+    "test_rama_item[rama-item]": "contesta en el primer tick",
+    "test_rama_item[rama-item-no]": "contesta en el primer tick",
+    "test_rama_actor[rama-equipo]": "contesta en el primer tick",
+    "test_rama_actor[rama-equipo-no]": "contesta en el primer tick",
+    "test_rama_actor[rama-hab]": "contesta en el primer tick",
+    "test_rama_actor[rama-hab-no]": "contesta en el primer tick",
+    # Las que tienen que no hacer nada, o hacer siempre lo mismo.
+    "test_vars[cofre-no]": "sin página activa el cofre no está, ni antes ni "
+                           "después: lo que se ve lo distingue `cofre-30`",
+    "test_vars[cofre-llave]": "la página del ítem no dibuja, igual que ninguna",
+    "test_ruta_pisa[ruta-pasa]": "pasa por encima y no abre nada, nunca",
+    "test_hablar[hablar-sin-switch]": "sin el switch, A no hace nada",
+    "test_hablar[hablar-repetido]": "el mismo mensaje cada vez que le habla",
+}
+
+
+@pytest.fixture(autouse=True)
+def _capturas_distintas(request):
+    """Falla si todas las goldens de una prueba son la misma pantalla.
+
+    Varios ticks idénticos quieren decir que entre el primero y el último no
+    pasó nada: `ev41` estuvo así desde que nació —el evento nunca corría— y
+    `varios-18-down` desde `6cfce1e` —una página automática no dejaba caminar
+    al héroe—, y las dos pasaban en verde porque una golden defiende lo que
+    congeló. Esto no sabe si lo congelado está bien; sabe que tres fotos
+    iguales no prueban tres cosas.
+    """
+    del tanda.CAPTURAS[:]
+    yield
+    capturas = list(tanda.CAPTURAS)
+    if len(capturas) < 2 or len({h for _n, h in capturas}) > 1:
+        return
+    if request.node.name in MISMA_PANTALLA:
+        return
+    pytest.fail(
+        "las %d goldens de %s son la misma pantalla (%s): entre el primer "
+        "tick y el último no cambió nada. O el caso no ejercita lo que dice, "
+        "o sobran ticks; si es a propósito, va en `MISMA_PANTALLA` de "
+        "pruebas/conftest.py con su porqué."
+        % (len(capturas), request.node.name,
+           ", ".join(n for n, _h in capturas)), pytrace=False)
+
+
 @pytest.fixture
 def partida():
     """Una fábrica: `partida()`, o `partida(switch=[16])`.
