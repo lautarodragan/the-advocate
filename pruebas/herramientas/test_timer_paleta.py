@@ -16,15 +16,11 @@ donde está la decisión.
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from render import render_map                                # noqa: E402
-from port import snes_convert                                # noqa: E402
+from render import render_map
+from port import snes_convert
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = render_map.GAME_DIR

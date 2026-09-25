@@ -8,11 +8,8 @@ después de usar la consola —`items` en `pruebas/*/test_tanda*.py`—.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import titulo                                 # noqa: E402
+from port import titulo
 
 from consola import TITULO_AIRE
 from test_menu import abrir, tocar

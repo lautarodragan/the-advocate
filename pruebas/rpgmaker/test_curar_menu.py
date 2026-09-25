@@ -22,16 +22,10 @@ son lo último que la pantalla de ítems pinta antes de abrir la elección.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "tools"))
-
-from consola import TITULO_AIRE                             # noqa: E402
-from test_curar import maximos, palabra_de                  # noqa: E402
-from test_menu import abrir, tocar                          # noqa: E402
+from consola import TITULO_AIRE
+from test_curar import maximos, palabra_de
+from test_menu import abrir, tocar
 
 TALAN, ARDEN = 14, 15
 SANDWICH, VINO, ELIXIR, BOTAS = 97, 103, 115, 262

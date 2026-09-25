@@ -20,12 +20,10 @@ de verdad.
 import json
 import os
 import shutil
-import sys
 
 import pytest
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from render.chipset import UPPER                               # noqa: E402
 from render.render_map import build_passability                # noqa: E402

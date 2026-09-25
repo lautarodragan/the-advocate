@@ -7,14 +7,10 @@ símbolo que falta se nota recién en la prueba que lo pide.
 """
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
-
-from ensamblado import ensamblar                             # noqa: E402
+from ensamblado import ensamblar
 
 
 def test_el_checksum_y_su_complemento_no_mueven_la_suma():

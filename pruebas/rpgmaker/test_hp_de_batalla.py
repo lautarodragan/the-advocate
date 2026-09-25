@@ -20,13 +20,8 @@ alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from test_menu import abrir                                  # noqa: E402
+from test_menu import abrir
 
 # La pelea es la de la página de prueba `pelea-82-grupo-11-12`: la tropa del
 # droide del mapa 2, la misma que usan las demás pruebas de pelea, 18 ticks

@@ -10,12 +10,8 @@ faltan sobre dieciséis, que es lo que `advance_step` hace con `step_left >> 3`
 sobre medias unidades.
 """
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import eventos                                # noqa: E402
+from port import eventos
 
 
 def donde_queda(tile_y, velocidad, cuadros):

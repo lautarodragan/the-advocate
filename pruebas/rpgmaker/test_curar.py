@@ -20,13 +20,8 @@ ningún evento que toque el grupo, y el control necesita las dos cosas.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from test_game_over import cuadros_hasta_reiniciar, sin_hp    # noqa: E402
+from test_game_over import cuadros_hasta_reiniciar, sin_hp
 
 # Cuántos ticks se le dan a la página para perder la pelea y correr el
 # manejador. La pelea sale a los 18 y, perdida sin pelear, no abre pantalla.

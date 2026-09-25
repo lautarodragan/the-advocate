@@ -25,19 +25,14 @@ cuatro enemigos la ejercitan los casos `batalla` de
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from rpgmaker import lcf
+from port import titulo
+from port import batalla as modelo
+from render.render_map import GAME_DIR
 
-from rpgmaker import lcf                                    # noqa: E402
-from port import titulo                                     # noqa: E402
-from port import batalla as modelo                          # noqa: E402
-from render.render_map import GAME_DIR                             # noqa: E402
-
-from conftest import LINKAGE                                # noqa: E402
-from consola import en_la_rom, en_la_wram                  # noqa: E402
+from conftest import LINKAGE
+from consola import en_la_rom, en_la_wram
 
 # El droide del mapa 2 está en (30,55) y se le habla desde abajo.
 DROIDE = (30, 56)

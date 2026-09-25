@@ -20,12 +20,8 @@ página de contacto cuyo único comando es el teletransporte— y ése recargaba
 siempre. Al volver, las franjas reaparecían.
 """
 
-import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from conftest import LINKAGE                                 # noqa: E402
+from conftest import LINKAGE
 
 MAPA = 2
 PUERTA_X, PUERTA_Y = 4, 54      # la celda de abajo de la puerta

@@ -18,16 +18,10 @@ no cobre cuando no, y que "No" no toque nada.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "tools"))
-
-from test_curar import grupo_de, maximos, palabra_de          # noqa: E402
-from test_game_over import sin_hp                             # noqa: E402
-from test_oro import leer as leer_oro, poner as poner_oro     # noqa: E402
+from test_curar import grupo_de, maximos, palabra_de
+from test_game_over import sin_hp
+from test_oro import leer as leer_oro, poner as poner_oro
 
 # El bum y su precio, del `ShowInn [0, 5, 0]` de la página. La celda es la de
 # abajo: desde ahí se le habla mirando hacia arriba.

@@ -13,13 +13,8 @@ al final de la escalera, aparecían Core y Manta pero no Kersh. Kersh es el
 héroe en esa escena, y su gráfico sale de ser el primero del grupo.
 """
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from port import snes_convert                                # noqa: E402
+from port import snes_convert
 
 KERSH, DUMMY_HERO, TALAN = 11, 10, 14
 

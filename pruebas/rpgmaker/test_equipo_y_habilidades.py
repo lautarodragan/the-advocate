@@ -15,16 +15,11 @@ la 152 —se la enseña el mapa 48— y le hace olvidar la 147, que el LDB le da
 import functools
 import json
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from port import eventos
+from render.render_map import GAME_DIR
 
-from port import eventos                                    # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from test_game_over import pagina_de                        # noqa: E402
+from test_game_over import pagina_de
 
 ARDEN, KERSH, CORE, MANTA = 15, 11, 12, 13
 APRENDE, OLVIDA = 152, 147

@@ -29,15 +29,10 @@ cuelgue, una pila que se desborde— pasaría por verde.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-
-from port import eventos                                    # noqa: E402
-from rpgmaker import lcf                                    # noqa: E402
-from render.render_map import GAME_DIR                             # noqa: E402
+from port import eventos
+from rpgmaker import lcf
+from render.render_map import GAME_DIR
 
 # Las páginas de prueba `pelea-82` y `pelea-82-game-over` pelean contra la
 # tropa del droide del mapa 2, que es la que ya viaja en los cartuchos de

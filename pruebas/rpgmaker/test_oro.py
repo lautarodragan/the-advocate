@@ -15,13 +15,8 @@ cumplen las dos. Es lo que hace que la ROM las calcule por separado en vez de
 dar vuelta un bit, y lo que estas pruebas cuidan.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ORO_MAX = 999999
-
 
 
 def leer(una):

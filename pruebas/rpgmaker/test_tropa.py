@@ -28,20 +28,13 @@ en todos los mapas y le podría mover los colores a más de una golden.
 import functools
 import json
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "arnes"))
+from rpgmaker import lcf
+from port import eventos
+from render.render_map import GAME_DIR
 
-from rpgmaker import lcf                                    # noqa: E402
-from port import eventos                                    # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from consola import en_la_rom                               # noqa: E402
-from test_batalla import Pelea, ORDEN, FIN, hab_id          # noqa: E402
+from consola import en_la_rom
+from test_batalla import Pelea, ORDEN, FIN, hab_id
 
 CASO = "tropa-talan-aura"
 TALAN = 14

@@ -8,18 +8,12 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from port import batalla as modelo
+from port import experiencia
 
-from port import batalla as modelo                          # noqa: E402
-from port import experiencia                                # noqa: E402
-
-from consola import en_la_rom                               # noqa: E402
-from test_batalla import (GRUPO, TROPA_DROIDE, Pelea, db,   # noqa: E402
+from consola import en_la_rom
+from test_batalla import (GRUPO, TROPA_DROIDE, Pelea, db,
                           en_el_droide)
 
 

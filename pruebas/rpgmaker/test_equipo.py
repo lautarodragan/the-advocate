@@ -7,11 +7,8 @@ arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import pantallas                              # noqa: E402
+from port import pantallas
 
 from consola import TITULO_AIRE
 from test_menu import abrir, tocar

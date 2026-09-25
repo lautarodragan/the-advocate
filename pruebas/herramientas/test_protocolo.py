@@ -21,10 +21,8 @@ cada opcode: eso es 65816 escrito a mano.
 import os
 import re
 import subprocess
-import sys
 
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-sys.path.insert(0, os.path.join(REPO, "tools"))
 
 import pytest  # noqa: E402
 

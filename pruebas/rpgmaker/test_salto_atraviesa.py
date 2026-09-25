@@ -16,10 +16,6 @@ bits en cero—. taro lo reportó el 2026-09-07 como que Core se mueve arriba de
 islita y no salta nunca.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 CORE = 3                # su índice en la tabla de eventos del mapa 5
 DESDE = (31, 14)        # de dónde sale el primer salto

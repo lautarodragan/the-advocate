@@ -17,10 +17,6 @@ y **capa 2**, y se abre parándose encima y apretando A. Sin esto, del pad no se
 podía salir.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 MAPA, DESTINO = 7, 8
 PUERTA = (9, 12)        # TalDoorTop, capa 2: el héroe se para ahí

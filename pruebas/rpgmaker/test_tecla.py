@@ -17,14 +17,9 @@ toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
 con el número, está en `KEY_INPUT_PROC` en `eventos.py`.
 """
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "tools"))
-
-from port import eventos                                     # noqa: E402
-from render.render_map import GAME_DIR                              # noqa: E402
+from port import eventos
+from render.render_map import GAME_DIR
 
 # La variable de RM2k donde el comando guarda lo que leyó. Cualquiera sirve: el
 # conversor le da ranura porque la nombra la página de prueba.

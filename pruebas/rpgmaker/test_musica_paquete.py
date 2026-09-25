@@ -21,11 +21,6 @@ pueden prender. O sea que es el único tema de la ROM que depende de que
 `tema_asegurar` lo cargue en caliente, y por eso es el que delata el camino.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
 
 EMPEZAR, SEGUIR = 0, 1
 

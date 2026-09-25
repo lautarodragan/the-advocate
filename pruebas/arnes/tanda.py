@@ -35,16 +35,13 @@ Tres cosas que este archivo hace y conviene tener a la vista:
 """
 
 import os
-import sys
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
                      mapas_de, marcar_la_pila, toques_de)
 
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
+from emulador import retro
 
-from emulador import retro                               # noqa: E402
-
-from ensamblado import cartuchos                             # noqa: E402
+from ensamblado import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden",

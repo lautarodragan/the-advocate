@@ -22,13 +22,11 @@ mano se desfasaría en silencio y leería la dirección de al lado.
 
 import os
 import re
-import sys
+
+from emulador import retro
+from ensamblado import bancos
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
-
-from emulador import retro                              # noqa: E402
-from ensamblado import bancos                           # noqa: E402
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.

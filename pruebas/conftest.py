@@ -18,18 +18,11 @@ es la clase de error que este repo ya cobró con `mapdata.inc`.
 """
 
 import os
-import sys
 
 import pytest
 
-# El arnés vive en `arnes/` y las pruebas en una carpeta por lo que prueban,
-# así que ninguna lo tiene al lado: este archivo es el que queda arriba de
-# todas, y pytest lo carga antes que a cualquiera de ellas.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "arnes"))
-
-import tanda                                                 # noqa: E402
-from ensamblado import cartuchos                             # noqa: E402
+import tanda
+from ensamblado import cartuchos
 
 # Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
 # grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe

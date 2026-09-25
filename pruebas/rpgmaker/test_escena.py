@@ -17,19 +17,14 @@ enemigos, uno por enemigo.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from rpgmaker import lcf
+from port import escena
+from port import batalla as modelo
+from render.render_map import GAME_DIR
 
-from rpgmaker import lcf                                    # noqa: E402
-from port import escena                                     # noqa: E402
-from port import batalla as modelo                          # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
-
-from consola import en_la_rom, en_la_wram                   # noqa: E402
-from test_batalla import Pelea, en_el_droide, modelo_de     # noqa: E402
+from consola import en_la_rom, en_la_wram
+from test_batalla import Pelea, en_el_droide, modelo_de
 
 # El encuentro al azar de Sector 27: la celda cae adentro del área 31, y con esa
 # semilla sale la tropa 100 —un DecayingShambler y dos AlleyMuck, que se tapan

@@ -10,15 +10,11 @@ variable, 3 azar, 7 otro) y dos números. Las ranuras las da
 `eventos.indexar_variables`, que es el índice del juego entero.
 """
 
-import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
-from port import eventos                                # noqa: E402
-from render.render_map import GAME_DIR                         # noqa: E402
+from port import eventos
+from render.render_map import GAME_DIR
 
 # La página de prueba `variables` hace: var 17 = 5; var 17 += 7 (12); var 21 =
 # azar entre 0 y 100; var 39 = var 17; var 40 = 3; var 40 -= 10 (-7, con

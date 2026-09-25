@@ -18,16 +18,12 @@ No arranca ninguna ROM: mira al conversor.
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools"))
+from port import snes_convert
+from render.render_map import GAME_DIR, Renderer, build_passability
+from rpgmaker import rm2k
 
-from port import snes_convert                                # noqa: E402
-from render.render_map import GAME_DIR, Renderer, build_passability  # noqa: E402
-from rpgmaker import rm2k                                    # noqa: E402
-
-from ensamblado import cartuchos                             # noqa: E402
+from ensamblado import cartuchos
 
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
 # goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita

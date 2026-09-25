@@ -17,11 +17,8 @@ porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
 """
 
 import os
-import sys
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "tools"))
 
 EMPEZAR, SEGUIR = 0, 1
 
@@ -269,9 +266,6 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
     """
     import os
-    import sys
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__)))), "tools"))
     from rpgmaker import lcf
     from port import titulo
     from port import ventana
