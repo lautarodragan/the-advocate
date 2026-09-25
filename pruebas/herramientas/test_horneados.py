@@ -27,7 +27,7 @@ from port import snes_convert                                # noqa: E402
 from render.render_map import GAME_DIR, Renderer, build_passability  # noqa: E402
 from rpgmaker import rm2k                                    # noqa: E402
 
-import cartuchos                                              # noqa: E402
+from ensamblado import cartuchos                             # noqa: E402
 
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
 # goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita

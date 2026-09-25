@@ -178,10 +178,10 @@ _xdist:
 
 # Los cartuchos de prueba, en `rom/build/pruebas-unico/`: `test-main`, que
 # lleva todos los casos de `pruebas/casos/`, y los demás, que llevan lo que
-# no entra en él. Qué va en cada uno y por qué está en `pruebas/arnes/cartuchos.py`;
+# no entra en él. Qué va en cada uno y por qué está en `tools/ensamblado/cartuchos.py`;
 # `--lista` lo imprime.
 cartuchos *args:
-  python3 pruebas/arnes/cartuchos.py {{args}}
+  python3 tools/ensamblado/cartuchos.py {{args}}
 
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
 # fusionó con cuál en cada mapa porque la CGRAM no daba para los dos, y a qué
@@ -210,12 +210,12 @@ parches-check *builds="rom/build/pruebas-unico rom/build/release":
 #     test-special
 #
 # `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
-# qué, en `pruebas/arnes/cartuchos.py`: los flags de `release` también viven
+# qué, en `tools/ensamblado/cartuchos.py`: los flags de `release` también viven
 # ahí, para que la ROM que se juega y la que prueba la tanda sean la misma.
 #
 # Arma una ROM por nombre: release, test-main o test-special.
 build cual:
-  python3 pruebas/arnes/cartuchos.py {{cual}}
+  python3 tools/ensamblado/cartuchos.py {{cual}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,

@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.join(RAIZ, "tools"))
 from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402
 
-import cartuchos                                              # noqa: E402
+from ensamblado import cartuchos                             # noqa: E402
 
 
 def _armados():

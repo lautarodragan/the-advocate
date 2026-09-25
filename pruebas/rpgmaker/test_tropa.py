@@ -56,7 +56,7 @@ def db():
 
 
 def casos_del_cartucho():
-    import cartuchos
+    from ensamblado import cartuchos
     comandos = []
     for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
         with open(os.path.join(cartuchos.CASOS, nombre + ".json"),

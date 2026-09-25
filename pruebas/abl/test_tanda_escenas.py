@@ -34,7 +34,7 @@ valen también para ella.
 
 import pytest
 
-from cartuchos import RELEASE
+from ensamblado.cartuchos import RELEASE
 from tanda import golden, partida
 
 # Cada caso es: nombre —que es también el de su página de prueba, con el
@@ -149,7 +149,7 @@ TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
 # juega. Las seis goldens de `cinematica`, las seis de
 # `apertura` y las cinco de `cartel` se congelaron cuando no la llevaba y salen
 # byte por byte iguales a través de ella: el título no cambia lo que se dibuja
-# adentro del mapa. Ver `pruebas/arnes/cartuchos.py`.
+# adentro del mapa. Ver `tools/ensamblado/cartuchos.py`.
 EMPEZAR = 0
 
 # Las cinemáticas: nombre, los ticks, los toques de A, cómo arranca y el

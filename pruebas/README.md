@@ -22,7 +22,7 @@ y `just pruebas` los arma solos antes de correr:
 * `release`, la ROM que se juega: las pruebas que juegan —el recorrido, el
   título, las escenas de la apertura— corren sobre ella
 
-Qué lleva cada uno, y por qué, en `pruebas/arnes/cartuchos.py`.
+Qué lleva cada uno, y por qué, en `tools/ensamblado/cartuchos.py`.
 
 ### Notas
 

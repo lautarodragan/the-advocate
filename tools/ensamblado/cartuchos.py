@@ -1,5 +1,8 @@
-"""Los cartuchos de prueba: se arman una vez, antes de la tanda, y las pruebas
-reciben su ruta.
+"""Los cartuchos del juego: `release`, la ROM que se juega, y los de la tanda.
+Se arman una vez, antes de la tanda, y las pruebas reciben su ruta.
+
+Vive en `tools/` desde el 2026-09-24, cuando pasó a armar también `release`:
+hasta ahí estaba en `pruebas/arnes/`, porque nació como parte del arnés.
 
 Es el paso 9f. Hasta ahí cada prueba armaba el suyo con `tanda.cartucho` o
 `consola.armar`, y la tanda convertía unos doscientos cartuchos casi iguales:
@@ -7,8 +10,9 @@ era casi todo el tiempo de una corrida en frío. Desde acá **ninguna prueba
 convierte ni ensambla**: `just pruebas` corre esto primero, en serie, y las
 pruebas buscan su caso por el nombre en lo que dejó —ver `tanda.rom`—.
 
-    python3 pruebas/arnes/cartuchos.py            arma lo que haga falta
-    python3 pruebas/arnes/cartuchos.py --lista    qué caso va en qué cartucho
+    python3 tools/ensamblado/cartuchos.py            arma lo que haga falta
+    python3 tools/ensamblado/cartuchos.py release    sólo ése: `just build`
+    python3 tools/ensamblado/cartuchos.py --lista    qué caso va en qué cartucho
 
 Un cartucho se rearma sólo si cambió algo de lo que lo arma: los fuentes de la
 ROM, las herramientas, los binarios, los flags o lo que dice alguno de sus

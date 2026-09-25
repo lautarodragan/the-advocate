@@ -40,7 +40,7 @@ DESPUES = 60
 def indice():
     """El índice de pares del cartucho de pruebas: el del juego con los que
     nombran sus casos, que es lo que le pasa el conversor."""
-    import cartuchos
+    from ensamblado import cartuchos
     from rpgmaker import lcf
     extra = set()
     for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):

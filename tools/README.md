@@ -14,7 +14,8 @@ una de su misma fila ni de más arriba.
                  (rm2k). Ninguna regla del formato vive acá: data/ viene
                  resuelto. Tiene su propio README
     comun/       el caché en disco del conversor (cache_disco)
-    ensamblado/  el mapa de memoria (bancos) y el que arma la ROM (ensamblar)
+    ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
+                 qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
     emulador/    el core de libretro desde Python (retro), y el parche de
                  bsnes-libretro que le expone la WRAM
 
