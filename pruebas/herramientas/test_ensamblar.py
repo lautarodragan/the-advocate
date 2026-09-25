@@ -7,10 +7,12 @@ símbolo que falta se nota recién en la prueba que lo pide.
 """
 
 import os
+import re
 
 import pytest
 
-from ensamblado import ensamblar
+from ensamblado import cartuchos, ensamblar
+import tanda
 
 
 def test_el_checksum_y_su_complemento_no_mueven_la_suma():
@@ -89,3 +91,20 @@ def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
     (tmp_path / "main.s").write_text('.include "tienda.s"\n')
     (tmp_path / "tienda.s").write_text("")
     assert cubiertas(str(tmp_path)) == []
+
+
+@pytest.mark.parametrize("nombre", sorted(cartuchos.CARTUCHOS))
+def test_el_dbg_nombra_los_fuentes_relativos_a_la_raiz(nombre):
+    """Mesen2 busca cada `file` del `.dbg` al lado del `.dbg` y subiendo de
+    carpeta: con una ruta absoluta del contenedor no lo encuentra en el clon
+    del host, y muestra el desensamblado sin el fuente. Ver "Depurar con
+    Mesen2" en `docs/snes/emulators.md`."""
+    uno = tanda.cartucho(nombre)
+    with open(uno.sfc + ".dbg") as archivo:
+        nombres = re.findall(r'^file\t.*?name="([^"]+)"', archivo.read(), re.M)
+    assert nombres
+    absolutos = [n for n in nombres if os.path.isabs(n)]
+    assert absolutos == []
+    faltan = [n for n in nombres
+              if not os.path.isfile(os.path.join(cartuchos.RAIZ, n))]
+    assert faltan == []
