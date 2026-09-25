@@ -30,7 +30,7 @@ from render.render_map import REPO                           # noqa: E402
 
 from test_piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja  # noqa: E402
 
-MAPA11 = os.path.join(REPO, "juego", "mapas", "Map0011.json")
+MAPA11 = os.path.join(REPO, "parches", "manual", "mapas", "Map0011.json")
 
 # Dónde busca `Light5` a la piedra en su página paralela: la celda es suya y
 # está escrita en la página, así que acá se repite y no se deduce.

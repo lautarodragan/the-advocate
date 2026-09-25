@@ -41,7 +41,7 @@ nada por combinación.
 Que sean quince colores **es una decisión artística**: se pierde color respecto
 de la escena horneada, donde los battlers compartían las 96 entradas con el
 fondo. Qué se fusionó con qué queda escrito por battler en
-`parches/battlers/`, como las capas de los mapas. Ver `tools/port/parches.py`.
+`parches/auto/battlers/`, como las capas de los mapas. Ver `tools/port/parches.py`.
 
 El borde también cambia: antes el battler se mezclaba con el fondo al
 achicarlo —`alpha_composite`— y ahora cada pixel es del battler o del fondo,

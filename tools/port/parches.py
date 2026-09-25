@@ -41,8 +41,8 @@ porque la decisión es un rectángulo::
 La clave
 --------
 
-Un archivo por situación del juego: ``parches/mapas/<id>.toml`` para las capas
-de un mapa, con una sección por capa, y ``parches/animaciones/<n>.toml`` para
+Un archivo por situación del juego: ``parches/auto/mapas/<id>.toml`` para las capas
+de un mapa, con una sección por capa, y ``parches/auto/animaciones/<n>.toml`` para
 las animaciones de batalla. **El id del mapa es del juego y no del cartucho**: no se mueve cuando
 cambia la lista de mapas de la ROM, ni cuando cambia el orden interno del
 conversor, ni cuando cambia el algoritmo del asignador. Los colores se escriben
@@ -126,10 +126,10 @@ import sys
 import tomllib
 
 # Dónde viven los versionados, relativo a la raíz del repo.
-DIRECTORIO = os.path.join("parches", "mapas")
+DIRECTORIO = os.path.join("parches", "auto", "mapas")
 
 # Dónde los deja cada cartucho al armarse, relativo al directorio del build.
-EN_BUILD = os.path.join("parches", "mapas")
+EN_BUILD = DIRECTORIO
 
 
 def ruta(raiz, map_id):
@@ -188,7 +188,7 @@ def _cadena(valor):
 
 
 def escribir(destino, mapas):
-    """Los parches de los mapas de un cartucho, en `<destino>/parches/mapas/`.
+    """Los parches de los mapas de un cartucho, en `<destino>/parches/auto/mapas/`.
 
     `mapas` son los que devuelve `main()` del conversor. Devuelve cuántos
     archivos escribió y cuántos bytes ocupan.
@@ -209,7 +209,7 @@ def escribir(destino, mapas):
 # Igual que los mapas: versionadas acá, y cada cartucho deja las suyas al lado
 # de su ROM. La clave es **el número de animación de RM2k**, que es del juego:
 # el mismo 82 en cualquier cartucho que la muestre.
-DIRECTORIO_ANIM = os.path.join("parches", "animaciones")
+DIRECTORIO_ANIM = os.path.join("parches", "auto", "animaciones")
 EN_BUILD_ANIM = DIRECTORIO_ANIM
 
 
@@ -253,7 +253,7 @@ def texto_animacion(datos):
 
 def escribir_animaciones(destino, animaciones):
     """Los parches de las animaciones de un cartucho, en
-    `<destino>/parches/animaciones/`.
+    `<destino>/parches/auto/animaciones/`.
 
     Devuelve cuántos archivos escribió y cuántos bytes ocupan.
     """
@@ -279,7 +279,7 @@ def escribir_animaciones(destino, animaciones):
 # La clave es **el battler**: la imagen de RM2k y su tono, `escena.clave`. Es
 # del juego y no depende del cartucho ni de la tropa, porque la reducción mira
 # el dibujo ya achicado y nada más.
-DIRECTORIO_BAT = os.path.join("parches", "battlers")
+DIRECTORIO_BAT = os.path.join("parches", "auto", "battlers")
 EN_BUILD_BAT = DIRECTORIO_BAT
 
 
@@ -338,7 +338,7 @@ def texto_battler(info):
 
 def escribir_battlers(destino, battlers):
     """Los parches de los battlers de un cartucho, en
-    `<destino>/parches/battlers/`. Devuelve cuántos y cuántos bytes."""
+    `<destino>/parches/auto/battlers/`. Devuelve cuántos y cuántos bytes."""
     carpeta = os.path.join(destino, EN_BUILD_BAT)
     os.makedirs(carpeta, exist_ok=True)
     for viejo in os.listdir(carpeta):

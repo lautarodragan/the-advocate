@@ -189,7 +189,7 @@ class EventCommand:
 # port pone `textos.reajustar_comandos`; el lector no sabe de pantallas, y
 # sin nadie que la ponga el juego se lee tal cual.
 #
-# Es un paso aparte de los forks de `juego/` y de `parches/`, y corre después
+# Es un paso aparte de los forks de `parches/manual/` y de `parches/`, y corre después
 # de ellos: lee lo que sea que haya quedado, y un cuadro que ya entra lo deja
 # como está. Así un texto corregido a mano en un fork gana siempre.
 #
@@ -363,7 +363,7 @@ class Map:
         self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
         raiz = volcado(path)
         # El fork es sólo de **este** juego: un juego ajeno se lee pasándole su
-        # propio volcado, y ahí `juego/` no pinta nada.
+        # propio volcado, y ahí `parches/manual/` no pinta nada.
         forkeado = fork.mapa(self.map_id) if raiz == DATOS else None
         if forkeado:
             ruta_json, ruta_tiles = forkeado
@@ -667,7 +667,7 @@ class Database:
         self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
         crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
-        # Los ChipSets que agrega `juego/` —hoy uno solo, el propio del mapa
+        # Los ChipSets que agrega `parches/manual/` —hoy uno solo, el propio del mapa
         # 11—. Se **suman**: un id que ya esté en la base es un error, porque
         # un fork que pisa una entrada envejece sin avisar el día que
         # `just datos` la cambie. Ver `fork.py`.

@@ -582,9 +582,9 @@ en la de Core. La pantalla de título sigue con `reducir`: son 240 colores de
 optimización: se pierde algo y alguien eligió qué, así que es una *decisión
 artística* y no puede tomarse sin dejar rastro —si mañana un cambio le hace
 perder dos colores más a un mapa, hay que verlo en un diff y no mirando la
-ROM—. Las de las dos capas de cada mapa salen a `parches/mapas/<id>.toml`, y
+ROM—. Las de las dos capas de cada mapa salen a `parches/auto/mapas/<id>.toml`, y
 **a qué tamaño se dibuja cada animación de batalla** a
-`parches/animaciones/<n>.toml`; la tanda falla si lo commiteado no coincide,
+`parches/auto/animaciones/<n>.toml`; la tanda falla si lo commiteado no coincide,
 como `just protocolo --check` con los opcodes. Lo versionado es lo que decide
 **`abl`**, el ROM jugable; los cartuchos de prueba deciden solos para lo que el
 juego no lleva. Se escribe el estado deseado —qué color se va a cuál y en qué

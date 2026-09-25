@@ -1,4 +1,4 @@
-# `juego/`: lo nuestro, que manda sobre `data/`
+# `parches/manual/`: lo nuestro, que manda sobre `data/`
 
 `data/` es *A Blurred Line* tal como lo escribió su autor: el volcado de Ditto,
 que es **derivado** —`just datos` lo rehace entero— y del que nada de acá sale.
@@ -46,7 +46,7 @@ agregando una entrada nueva no hay nada que pueda quedar viejo.
 **Y su imagen no se versiona: se arma.** El arte del juego no es nuestro para
 redistribuir —vive en `/extras`, ver `assets/README.md`—, así que el fork
 guarda la **receta**: qué bloque de autotile y qué tile alto se copian adónde.
-El PNG sale a `rom/build/juego/ChipSet/`, que es un directorio de build como
+El PNG sale a `rom/build/parches-manual/ChipSet/`, que es un directorio de build como
 cualquier otro.
 
 Duplicar un tile del ChipSet **no cuesta tiles en el cartucho**: Voodoo

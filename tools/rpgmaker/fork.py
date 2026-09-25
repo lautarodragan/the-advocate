@@ -1,4 +1,4 @@
-"""`juego/`: lo nuestro, que manda sobre el volcado de `data/`.
+"""`parches/manual/`: lo nuestro, que manda sobre el volcado de `data/`.
 
 `data/` es el juego tal como lo escribió su autor —el volcado de Ditto, que es
 derivado y se regenera entero con `just datos`—. Un **fork** es un archivo
@@ -6,7 +6,7 @@ nuestro que el pipeline usa **en lugar** del de `data/`: no describe cambios,
 es el archivo entero. Hoy lo pide el mapa 11, al que le rediseñamos el
 minijuego de las piedras; el porqué está en
 `workflow/done/el-mapa-11-se-rediseno.md` y el qué, en
-`juego/README.md`.
+`parches/manual/README.md`.
 
 Tres cosas que este módulo hace cumplir, y las tres son el mismo miedo:
 
@@ -32,7 +32,7 @@ porque un fork que pisa una entrada de la base envejece sin avisar el día que
 **La imagen del ChipSet no se versiona: se arma.** El arte del juego no es
 nuestro para redistribuir —vive en `/extras`, ver `assets/README.md`—, así que
 el fork guarda la *receta* —qué bloque se copia adónde— y `imagen_del_chipset`
-la aplica sobre el PNG original dejando el resultado en `rom/build/juego/`.
+la aplica sobre el PNG original dejando el resultado en `rom/build/parches-manual/`.
 
 La receta tiene cinco operaciones. Dos copian de adentro del propio ChipSet
 —`bloques_bajos` y `tiles_altos`— y dos **traen pixeles de afuera**:
@@ -51,12 +51,12 @@ import json
 import os
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FORK = os.path.join(REPO, "juego")
+FORK = os.path.join(REPO, "parches", "manual")
 MAPAS = os.path.join(FORK, "mapas")
 CHIPSETS = os.path.join(FORK, "chipsets")
 # Dónde caen las imágenes armadas. Es un directorio de build como cualquier
 # otro: se puede borrar, y se rehace solo.
-GENERADO = os.path.join(REPO, "rom", "build", "juego")
+GENERADO = os.path.join(REPO, "rom", "build", "parches-manual")
 
 
 class ForkRoto(Exception):
@@ -80,7 +80,7 @@ def mapas():
     for entrada in sorted(os.listdir(MAPAS)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
-            raise ForkRoto("%s: en juego/mapas/ sólo van .json y .tiles"
+            raise ForkRoto("%s: en parches/manual/mapas/ sólo van .json y .tiles"
                            % entrada)
         if not (base.startswith("Map") and base[3:].isdigit()):
             raise ForkRoto("%s: el nombre tiene que ser MapNNNN" % entrada)
@@ -126,7 +126,7 @@ def chipsets():
     for entrada in sorted(os.listdir(CHIPSETS)):
         base, extension = os.path.splitext(entrada)
         if extension != ".json" or not base.isdigit():
-            raise ForkRoto("%s: en juego/chipsets/ van NNNN.json" % entrada)
+            raise ForkRoto("%s: en parches/manual/chipsets/ van NNNN.json" % entrada)
         with open(os.path.join(CHIPSETS, entrada), encoding="utf-8") as handle:
             datos = json.load(handle)
         if datos["chipset"]["id"] != int(base):
@@ -207,7 +207,7 @@ def _lo_que_dibuja(map_id):
 def podar(imagen, map_id):
     """Borra del ChipSet todo lo que ese mapa no dibuja.
 
-    Un ChipSet del fork es **privado de su mapa** —ver `juego/README.md`—, así
+    Un ChipSet del fork es **privado de su mapa** —ver `parches/manual/README.md`—, así
     que ningún otro puede pedirle un tile que éste no use: lo que no se dibuja
     es peso muerto. Y el peso que importa no son los pixeles sino los **índices
     de paleta**: el PNG es indexado y tiene 256, que es el techo contra el que
@@ -285,7 +285,7 @@ def _a_quince(color):
 
     Que el PNG del ChipSet quede con colores que el arte original no tiene no
     es un problema: esa imagen **no se versiona, se arma** —ver
-    `juego/README.md`—, así que es un intermedio del build y no el arte del
+    `parches/manual/README.md`—, así que es un intermedio del build y no el arte del
     juego, que sigue intacto en su `Picture/`.
     """
     return tuple((canal >> 3) << 3 for canal in color)
@@ -309,7 +309,7 @@ def imagen_del_chipset(datos, buscar):
 
     `buscar(carpeta, nombre)` es quien encuentra los originales —el ChipSet
     del que sale, y los CharSets que se hornean—; el resultado cae en
-    `rom/build/juego/ChipSet/` con el nombre que la entrada de la base pide.
+    `rom/build/parches-manual/ChipSet/` con el nombre que la entrada de la base pide.
     Se reescribe siempre —armarlo son copias de rectángulos— y se mueve al
     lugar de una, así que dos builds a la vez no se dejan un PNG a medio
     escribir.

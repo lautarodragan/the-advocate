@@ -82,7 +82,7 @@ def test_las_ranuras_son_las_del_juego_entero():
 
     Las cuatro de arriba de la 204 son nuestras y no del juego: las usa el
     evento paralelo que reemplazó a las 52 baldosas de luz del mapa 11 —ver
-    `juego/README.md`—. Están elegidas **por encima de la más alta que el juego
+    `parches/manual/README.md`—. Están elegidas **por encima de la más alta que el juego
     nombra** justamente para que no le corran la ranura a ninguna: una partida
     guardada antes del rediseño sigue leyendo las mismas.
     """

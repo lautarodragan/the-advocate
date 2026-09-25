@@ -1,6 +1,6 @@
-"""El fork de `juego/` no se puede quedar a medias ni apuntar al mapa de al lado.
+"""El fork de `parches/manual/` no se puede quedar a medias ni apuntar al mapa de al lado.
 
-Un fork reemplaza un archivo entero de `data/` —ver `juego/README.md`—, y sus
+Un fork reemplaza un archivo entero de `data/` —ver `parches/manual/README.md`—, y sus
 dos modos de falla no dan error por sí solos: se ven bien hasta que no.
 
 * **A medias.** Las capas de tiles viven afuera del JSON, así que un `.json`
@@ -48,7 +48,7 @@ PISABLE = rm2k.PASS_ALL
 
 @pytest.fixture
 def fork_de_mentira(tmp_path, monkeypatch):
-    """Un `juego/` armable a mano, para los casos que el árbol no tiene."""
+    """Un `parches/manual/` armable a mano, para los casos que el árbol no tiene."""
     mapas = tmp_path / "mapas"
     mapas.mkdir()
     monkeypatch.setattr(fork, "MAPAS", str(mapas))
