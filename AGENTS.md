@@ -388,6 +388,12 @@ Lo que hay que hacer siempre:
   anterior sirve para comparar con lo que se venía jugando, y los de más atrás
   se rearman desde su commit. Es de taro, el 2026-09-20, después de que los
   builds llegaran a 4,3 GB en 51 directorios.
+
+  **Las pistas de MSU-1 no van en el build: van a `/shared/msu/`**, un solo
+  directorio que se actualiza sólo cuando cambian —su `LEEME.txt` dice con
+  qué huella se comparan—. Pesan medio giga, y copiarlas en cada build las
+  duplicaría por nada. taro copia el `abl.sfc` al lado. Es de taro, el
+  2026-09-25, cuando `release` pasó a llevarlas siempre.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.
