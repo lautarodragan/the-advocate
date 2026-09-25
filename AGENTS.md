@@ -409,30 +409,38 @@ Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 
 Lo que hay que hacer siempre:
 
-* **Traer los builds a `/shared`.** Los worktrees viven en `/extras`, que no
-  está montado en el host, y `/shared` sí: es donde taro los encuentra. Van a
-  `/shared/builds/<fecha>-<commit>/`, con un `LEEME.txt` que diga qué mirar y
-  con qué limitaciones se chocó. Hasta el 2026-09-24 iban a
-  `pruebas-manuales/`, adentro del repo.
+* **Traer los builds a `/shared`, con `just entregar "<qué mirar>"`.** Los
+  worktrees viven en `/extras`, que no está montado en el host, y `/shared`
+  sí: es donde taro los encuentra. Van a `/shared/builds/<fecha>-<commit>/`, y
+  el texto que se le pasa a la receta va al `LEEME.txt`: qué cambió, qué
+  mirar y con qué limitaciones se chocó. Hasta el 2026-09-24 iban a
+  `pruebas-manuales/`, adentro del repo, y hasta el 2026-09-25 se armaban a
+  mano, que se repetía seguido y se equivocaba.
 
   **Un solo `.sfc` por build, y se llama `abl.sfc`**: el cartucho con pantalla
   de título, que es el que taro juega. Las otras demos no se copian; el que las
   quiera las arma. Y **se dejan los dos últimos directorios y nada más**: el
   anterior sirve para comparar con lo que se venía jugando, y los de más atrás
   se rearman desde su commit. Es de taro, el 2026-09-20, después de que los
-  builds llegaran a 4,3 GB en 51 directorios.
+  builds llegaran a 4,3 GB en 51 directorios. La receta borra los demás y no
+  toca lo que taro deja adentro, como la partida de su emulador.
 
-  **Al lado va `abl.sfc.dbg`**, el de `rom/build/release/`: con él Mesen2
-  muestra nuestros nombres de rutina en el depurador. El fuente no: Mesen2
-  lo busca subiendo de carpeta desde el `.dbg`, y arriba de `/shared/builds/`
-  no hay `rom/src/`. Para verlo, la ROM se abre desde el repo. Ver "Debugging
-  with Mesen2" en `docs/snes/emulators.md`.
+  **Al lado va `abl.sfc.dbg`**, con el que Mesen2 muestra nuestros nombres de
+  rutina en el depurador, **y el `rom/src/` del commit**, sacado con `git
+  archive`: Mesen2 busca el fuente subiendo de carpeta desde el `.dbg`, así
+  que con `rom/src/` al lado lo muestra también desde `/shared/builds/`. Los
+  `.inc` que genera el conversor no van —pesan ~15 MB— y lo que cae en ellos
+  se ve sólo desensamblado. Por eso la receta **se niega con cambios sin
+  commitear** en lo que entra en la ROM: el build se nombra por un commit y
+  tiene que ser ése. Ver "Debugging with Mesen2" en `docs/snes/emulators.md`.
 
   **Las pistas de MSU-1 no van en el build: van a `/shared/msu/`**, un solo
   directorio que se actualiza sólo cuando cambian —su `LEEME.txt` dice con
   qué huella se comparan—. Pesan medio giga, y copiarlas en cada build las
   duplicaría por nada. taro copia el `abl.sfc` al lado. Es de taro, el
-  2026-09-25, cuando `release` pasó a llevarlas siempre.
+  2026-09-25, cuando `release` pasó a llevarlas siempre. `just entregar`
+  avisa si no coinciden con las del build, y las copia sólo con
+  `--actualizar-msu`.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.
