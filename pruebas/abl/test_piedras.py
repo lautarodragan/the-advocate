@@ -30,23 +30,10 @@ El orden de los toques importa y es el del juego: A primero, y la dirección
 ("I'll have to be careful about pressing the OK button...").
 """
 
-import os
-
-import pytest
-
 from port import eventos
-from rpgmaker import lcf
-from render.render_map import GAME_DIR
 
 from piedras import (DEBAJO_DE_LA_REJA, MAPAS, STONE, celda_de,
-                     hablarle_a_la_reja, ranura)
-
-
-@pytest.fixture(scope="session")
-def mapa11():
-    """Los eventos del mapa 11, para traducir el id de RM2k al índice de la
-    tabla de la ROM con la misma función que usó el conversor."""
-    return eventos.Eventos(lcf.Map(os.path.join(GAME_DIR, "Map0011.lmu")))
+                     eventos_del_11, hablarle_a_la_reja, ranura)
 
 
 def test_la_reja_da_tres_piedras(partida):
@@ -63,7 +50,7 @@ def test_la_reja_da_tres_piedras(partida):
         % p.variable(ranura(4)))
 
 
-def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
+def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
     """Lo que taro reportó roto.
 
     Los ticks entre la A y la dirección no son a ojo: entre las dos el
@@ -77,7 +64,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
     p.correr(4)
     assert p.variable(ranura(8)) == 0, (
         "antes de apretar nada la dirección tendría que estar en cero")
-    lejos = celda_de(p, mapa11, STONE)
+    lejos = celda_de(p, STONE)
     assert lejos != DEBAJO_DE_LA_REJA
 
     p.tocar("a")
@@ -92,10 +79,10 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
         "la A que prepara la piedra le habló también a la reja")
     assert (p.variable(ranura(6)), p.variable(ranura(7))) == DEBAJO_DE_LA_REJA, (
         "las variables 6 y 7 tendrían que traer la celda del héroe")
-    assert celda_de(p, mapa11, STONE) == DEBAJO_DE_LA_REJA, (
+    assert celda_de(p, STONE) == DEBAJO_DE_LA_REJA, (
         "la piedra tendría que estar plantada encima del héroe y está en %s. "
         "Es el `ChangeEventLocation` por variables, o sea OP_PLACE_VAR"
-        % (celda_de(p, mapa11, STONE),))
+        % (celda_de(p, STONE),))
 
     p.correr(4)
     p.tocar("left")
@@ -103,7 +90,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
         "el segundo KeyInputProc tendría que haber leído izquierda —2 en "
         "`CheckInput`— y la variable 8 quedó en %d" % p.variable(ranura(8)))
     p.correr(20)
-    x, y = celda_de(p, mapa11, STONE)
+    x, y = celda_de(p, STONE)
     assert y == DEBAJO_DE_LA_REJA[1] and x < DEBAJO_DE_LA_REJA[0] - 2, (
         "la piedra tendría que haberse ido para la izquierda y está en %s"
         % ((x, y),))
@@ -112,7 +99,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida, mapa11):
         "la ruta")
 
 
-def test_una_direccion_sola_no_tira_nada(partida, mapa11):
+def test_una_direccion_sola_no_tira_nada(partida):
     """La otra mitad, y la que hace significar a la de arriba: sin la A antes,
     la dirección camina al héroe y la piedra se queda donde está.
 
@@ -120,15 +107,15 @@ def test_una_direccion_sola_no_tira_nada(partida, mapa11):
     `KeyInputProc` que contestara cualquier cosa."""
     p = hablarle_a_la_reja(partida(caso=MAPAS))
     p.correr(4)
-    lejos = celda_de(p, mapa11, STONE)
+    lejos = celda_de(p, STONE)
     p.tocar("left")
     p.correr(20)
     assert p.variable(ranura(8)) == 0, (
         "sin apretar A antes, la dirección no la tiene que leer nadie: la "
         "variable 8 quedó en %d" % p.variable(ranura(8)))
-    assert celda_de(p, mapa11, STONE) == lejos, (
+    assert celda_de(p, STONE) == lejos, (
         "la piedra se movió sin que nadie la tirara: está en %s"
-        % (celda_de(p, mapa11, STONE),))
+        % (celda_de(p, STONE),))
     assert p.palabra("tile_x") == DEBAJO_DE_LA_REJA[0] - 1, (
         "el héroe sí tiene que haber caminado una celda para la izquierda")
 
@@ -165,7 +152,7 @@ def tirarle_a_la_pc(p):
     return p
 
 
-def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
+def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida):
     """Lo que taro reportó: el A que cierra el mensaje de la PC rota también
     preparaba la piedra siguiente, así que siempre se perdía una.
 
@@ -174,7 +161,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
     el pad mientras haya un mensaje activo, de quien sea
     (`game_interpreter.cpp:470-473` de easyrpg)."""
     p = tirarle_a_la_pc(hablarle_a_la_reja(partida(caso=MAPAS)))
-    lejos = celda_de(p, mapa11, STONE)
+    lejos = celda_de(p, STONE)
     assert lejos != FRENTE_A_LA_PC
 
     p.tocar("a")
@@ -183,7 +170,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
     assert p.variable(ranura(5)) == 0, (
         "el A que cerró el mensaje lo leyó también el motor de las piedras: "
         "la variable 5 quedó en %d" % p.variable(ranura(5)))
-    assert celda_de(p, mapa11, STONE) != FRENTE_A_LA_PC, (
+    assert celda_de(p, STONE) != FRENTE_A_LA_PC, (
         "el A que cerró el mensaje preparó una piedra sobre el héroe")
 
     # El control: sin mensaje, la A siguiente sí es del motor. Sin esto, un
@@ -192,7 +179,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
     assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
         "con el mensaje cerrado, la A siguiente tendría que preparar la "
         "piedra, y la variable 5 quedó en %d" % p.variable(ranura(5)))
-    assert celda_de(p, mapa11, STONE) == FRENTE_A_LA_PC
+    assert celda_de(p, STONE) == FRENTE_A_LA_PC
 
 
 # Al lado de `EV0060`, que es un evento de acción en (22,44): tirando hacia la
@@ -202,8 +189,7 @@ AL_LADO_DE_EV0060 = (21, 44)
 EV0060 = 60
 
 
-def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
-                                                               mapa11):
+def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
     """El A que cierra un mensaje queda consumido: el héroe no lo ve.
 
     El mensaje es de un paralelo —el de la PC rota—, así que al cerrarlo no
@@ -226,7 +212,7 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
     assert p.byte("hero_dir") == p.simbolos["DIR_RIGHT"], (
         "el héroe tendría que mirar a EV0060")
-    assert mapa11.para(1).blanco(EV0060)
+    assert eventos_del_11().para(1).blanco(EV0060)
     for _ in range(TOPE_HASTA_EL_MENSAJE):
         if p.byte("msg_abierto"):
             break
