@@ -422,6 +422,12 @@ Lo que hay que hacer siempre:
   se rearman desde su commit. Es de taro, el 2026-09-20, después de que los
   builds llegaran a 4,3 GB en 51 directorios.
 
+  **Al lado va `abl.sfc.dbg`**, el de `rom/build/release/`: con él Mesen2
+  muestra nuestros nombres de rutina en el depurador. El fuente no: Mesen2
+  lo busca subiendo de carpeta desde el `.dbg`, y arriba de `/shared/builds/`
+  no hay `rom/src/`. Para verlo, la ROM se abre desde el repo. Ver "Debugging
+  with Mesen2" en `docs/snes/emulators.md`.
+
   **Las pistas de MSU-1 no van en el build: van a `/shared/msu/`**, un solo
   directorio que se actualiza sólo cuando cambian —su `LEEME.txt` dice con
   qué huella se comparan—. Pesan medio giga, y copiarlas en cada build las
