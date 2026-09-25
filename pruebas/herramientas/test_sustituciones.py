@@ -25,14 +25,14 @@ MAIN = os.path.join(REPO, "rom", "src", "main.s")
 def de_main(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s\s*=\s*(\d+)\s*$" % nombre, fuente, re.M)
-    assert hallado, "main.s ya no declara %s" % nombre
+    assert hallado, "rom/src/ ya no declara %s" % nombre
     return int(hallado.group(1))
 
 
 def reserva(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s:\s*\.res\s+([^;\n]+)" % nombre, fuente, re.M)
-    assert hallado, "main.s ya no reserva %s" % nombre
+    assert hallado, "rom/src/ ya no reserva %s" % nombre
     return hallado.group(1).strip()
 
 

@@ -5,7 +5,7 @@ Cada página de evento que se puede compilar viaja en el cartucho como
 
     tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
     tools/port/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
-    rom/src/main.s              lo ejecuta: `correr_codigo` y un `op_*` por opcode
+    rom/src/interprete.s        lo ejecuta: `correr_codigo` y un `op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
 `rom/src/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
@@ -56,7 +56,7 @@ como "la definición escrita" de lo que hace la ROM. Es documentación con forma
 de código, no se ejecuta, ninguna prueba la toca, y envejece sin que nadie se
 entere. El porqué de cada mecánica va en el comentario de su rutina.
 
-| Mecánica | en `rom/src/main.s` | quién la compila, o quién la mide |
+| Mecánica | en `rom/src/` | quién la compila, o quién la mide |
 | --- | --- | --- |
 | Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |

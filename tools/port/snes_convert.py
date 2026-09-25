@@ -175,7 +175,7 @@ FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 #
 # Estos dos valores son los únicos del programa: la ROM recibe el del héroe en
 # HERO_PRIORITY y el de cada NPC viene armado en su byte de atributos. Tenerlos
-# escritos también en `main.s` fue lo que dejó que este error sobreviviera a la
+# escritos también en `rom/src/` fue lo que dejó que este error sobreviviera a la
 # primera comparación: los dos lados se equivocaron igual y dio cero.
 OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
 OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
@@ -673,7 +673,7 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # un tile de la capa alta sin el bit de "por encima del héroe",
 # `rm2k.passability_map` resuelve la celda con los bits de ese tile, que son
 # exactamente los que `rm2k.pasabilidad_del_tile` le hacía imponer a la fila del
-# evento; y `pasa_con_evento`, en main.s, saltea las filas escondidas. O sea que
+# evento; y `pasa_con_evento`, en rom/src/heroe.s, saltea las filas escondidas. O sea que
 # el horneado le pasa la misma respuesta de la tabla al mapa. Lo cuida
 # `pruebas/herramientas/test_horneados.py`.
 #
@@ -2107,7 +2107,7 @@ LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
                          "ventana_map": (0x5000, 1),
                          "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 # Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
-# en `main.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
+# en `rom/src/partida.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
 RANURAS = 4
 
@@ -2214,7 +2214,7 @@ def _controlar_ranuras(ranura_tiles):
 # unos 240 tiles de 4bpp, o sea 7,5 KB. El juego tiene 18.808 líneas de texto:
 # emitir una ventana por mensaje no entra ni cerca en un cartucho de 256 KB. La
 # salida es la de FF6 —la fuente en la ROM y el texto armado desde el 65816— y
-# es lo que hace `componer_mensaje` en main.s.
+# es lo que hace `componer_mensaje` en rom/src/.
 #
 # El reparto del banco de 256 tiles que tiene la ventana:
 #
@@ -2485,7 +2485,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
 
 
 # Cuántos pares de bloques puede tener puestos a la vez la tabla de
-# sustituciones de la ROM. Es `SUB_MAX` en main.s y está escrito de los dos
+# sustituciones de la ROM. Es `SUB_MAX` en rom/src/ram_baja.s y está escrito de los dos
 # lados a propósito —el conversor tiene que poder negarse **antes** de emitir
 # un mapa que no entre—; la prueba `test_sustitucion.py` compara los dos.
 SUB_MAX = 8
@@ -2842,7 +2842,7 @@ def campos_del_mapa(mapa):
 
 
 def desplazamientos():
-    """Los nombres de los campos del registro, para que main.s no los repita.
+    """Los nombres de los campos del registro, para que rom/src/ no los repita.
 
     Que el conversor emita los desplazamientos y la ROM sólo los nombre es lo
     que hace imposible que se desincronicen: si acá se agrega un campo, allá no
@@ -2974,7 +2974,7 @@ def anim_tabla(mapas):
     out = ['.segment "RODATA"',
            "; La animación del ChipSet, una entrada de %d bytes por mapa."
            % ANIM_STRIDE,
-           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en main.s.",
+           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en rom/src/animacion_del_chipset.s.",
            ";",
            "; **Vive en RODATA y se lee con `lda f:anim_tabla + campo, x`**, por",
            "; lo mismo que `mapa_tabla`: son 16 bytes por mapa, y con los mapas",
@@ -3459,7 +3459,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # los cinco de abajo son las banderas de la ruta, y el 4 es "la animación
     # sigue quieto"—. Quien los distingue es la ROM, que ya sabe si la fila
     # camina: `npc_buf + 9` vale NPC_QUIETO o el banco de sus doce poses. Ver
-    # `grafico_de_pagina` en main.s.
+    # `grafico_de_pagina` en rom/src/paginas_de_eventos.s.
     aparecen = mapa.get("aparecen", set())
     # Y cuáles tienen alguna página automática que compiló: bit 7. El refresco
     # de la ROM tiene que saber si la página activa de un evento es automática
@@ -3833,7 +3833,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/port/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        "; OP_KEY. Ver `op_key` en main.s.\n"
+        "; OP_KEY. Ver `op_key` en rom/src/interprete.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -4034,7 +4034,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "BYTES_POR_TILE = %d\n"
         "; La pantalla de título. TITULO_TILES en 0 quiere decir que esta ROM\n"
         "; no la lleva y que los bloques de abajo son un byte de relleno; el\n"
-        "; código de main.s se apaga solo con eso. Vive sola en la VRAM —no\n"
+        "; código de rom/src/ se apaga solo con eso. Vive sola en la VRAM —no\n"
         "; comparte con ningún mapa, porque mientras se ve no hay mapa\n"
         "; cargado— así que sus dos direcciones son fijas y no salen del\n"
         "; reparto de `vram_layout`.\n"
@@ -4235,7 +4235,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("\n\n")
         # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con
         # `lda fundido_rampa, x`. Sale de `eventos.rampa_de_fundido()`, que es
-        # la misma que usa la referencia: escribirla también en main.s sería la
+        # la misma que usa la referencia: escribirla también en rom/src/ sería la
         # duplicación de siempre, dos lados que se pueden equivocar igual.
         handle.write('.segment "TABLAS"\n'
                      '; El brillo maestro en cada cuadro de la rampa, de negro\n'
@@ -5024,7 +5024,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)])
         # Y los SP, que son estado desde el 2026-09-13 por lo mismo que los HP:
-        # las habilidades los gastan. Ver `hp_inicial_poner` en main.s.
+        # las habilidades los gastan. Ver `hp_inicial_poner` en rom/src/banco1.s.
         words_asm("actor_spmax", [
             (titulo_mod.parametro_de(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
@@ -5182,7 +5182,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # compilaron: saltearlas no le cambia el orden a las demás. Por tropa,
         # dónde arrancan y cuántas son; por página, su disparador y dónde está
         # su código adentro de `tropa_codigo`, que las deduplica. Ver
-        # `eventos.PaginasDeTropa` y `ba_pag_probar` en main.s.
+        # `eventos.PaginasDeTropa` y `ba_pag_probar` en rom/src/batalla_tropa.s.
         #
         # **Van al banco 1, `FAR`, y no a RODATA**, y es por lugar: con estas
         # tablas el cartucho `juego` se pasaba de los 4 MB —medido el
@@ -5226,7 +5226,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Y los encuentros al azar, que también hablan de tropas por su número
         # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
         # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
-        # Ver `encuentros_de_la_rom` y la sección de `main.s`.
+        # Ver `encuentros_de_la_rom` y `rom/src/encuentros.s`.
         enc = encuentros or {"por_mapa": [0xFF] * len(mapas), "registros": [],
                              "zonas": [], "tropas": []}
         bytes_asm("enc_mapa", enc["por_mapa"], declarar=True)
@@ -5503,7 +5503,7 @@ FLASH_MAX = 4
 # si alguno se pasa.
 #
 # Lo que cuesta: ocho bytes de `FAR_PAR_LISTA` por ranura —RAM lejana, no la
-# BSS; ver `PAR_LISTA_BYTES` en `main.s`, que además del evento guarda la página
+# BSS; ver `PAR_LISTA_BYTES` en `rom/src/ram_lejana.s`, que además del evento guarda la página
 # que el refresco le eligió— y **una vuelta de intérprete por cuadro por cada
 # uno**. Es lo segundo lo que hay que mirar si la carrera se pone lenta: lo
 # primero ya no está, porque la página dejó de resolverse en cada cuadro.
@@ -5771,7 +5771,7 @@ def npc_bytes(table):
         # el bit 7 si es un quieto con animación continua. Van juntos porque la
         # fila no tiene un byte libre —el +11 lo usa el salto— y porque los dos
         # los lee la misma cuenta: cada cuántos cuadros cambia de columna sale
-        # de la velocidad. Ver `animar_quietos` en main.s.
+        # de la velocidad. Ver `animar_quietos` en rom/src/quietos_que_animan.s.
         out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
         # +14: si se dibuja. Un evento cuya página activa no tiene gráfico
         # está en la tabla escondido, para aparecer cuando otra página gane.
@@ -6330,7 +6330,7 @@ def main():
         # dibujaría de más. Cuántas entradas puede llegar a tener se sabe acá,
         # y es la cantidad de bloques distintos que alguna sustitución del mapa
         # usa como clave, porque una clave nunca se pisa: la segunda vuelta
-        # cambia su valor. Ver `op_tile_sub` en main.s.
+        # cambia su valor. Ver `op_tile_sub` en rom/src/interprete.s.
         claves = len(mapa["sustituciones"].claves)
         if claves > SUB_MAX:
             sys.exit("el mapa %d sustituye %d bloques distintos y la tabla de "
@@ -6598,7 +6598,7 @@ def main():
     # Van **todos los temas que quepan**, compartiendo un solo banco de
     # muestras, y suena el del mapa donde la ROM arranca; los demás los prende
     # un `PlayBGM`, o el mapa al que se entra si trae uno propio —ver
-    # `mapa_tema_callar` en main.s—. Lo que decide cuántos entran es la ARAM y
+    # `mapa_tema_callar` en rom/src/cargar_mapa.s—. Lo que decide cuántos entran es la ARAM y
     # no el cartucho: ver `Banco` en snes_music.py, y "Varios temas en el
     # cartucho" en el README.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
@@ -6628,7 +6628,7 @@ def main():
     # temas que sus páginas pueden prender —más, en el de arranque, el que
     # suena desde el principio, y en todos el propio del mapa— y las muestras
     # de sus efectos, en el orden en que aparecen, que es la prioridad con que
-    # la ROM los sube si no entran todos. Ver `paquete_cargar` en main.s.
+    # la ROM los sube si no entran todos. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
     efectos = getattr(banco, "efectos", {})
     paquetes = []
     for i, _mapa in enumerate(mapas):
@@ -7380,7 +7380,7 @@ def convertir(renderer, map_id, args, inicio=None):
                 # el bit 4 y no pisa el tile. Sin separarlos, un evento que
                 # camina y aparece con la página no aparecía nunca, porque la
                 # fila nace escondida cuando al cargar el mapa ninguna página
-                # cumple. Ver `grafico_de_pagina` en main.s.
+                # cumple. Ver `grafico_de_pagina` en rom/src/paginas_de_eventos.s.
                 npc["aparece"] = True
                 npc["cambia"] = False
             ranuras.append((("ev", npc["evento"]), npc["charset"],

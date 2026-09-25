@@ -122,7 +122,7 @@ herramientas:
 #
 # Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
-# `main.s` hace fallar la prueba diciendo qué símbolo falta.
+# `rom/src/` hace fallar la prueba diciendo qué símbolo falta.
 #
 # Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
 # se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después

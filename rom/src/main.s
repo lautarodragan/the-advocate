@@ -1,15 +1,28 @@
 ; ---------------------------------------------------------------------------
-; PoC de audio en Super Nintendo: reproduce un tema en loop, sin dibujar nada.
+; La ROM entera, en un solo ensamblado: esto es lo único que ve `ca65`.
 ;
-; El audio de la SNES lo maneja el SPC700, un procesador aparte con su propia
-; memoria de 64 KB. El 65816 no puede tocar el DSP directamente: sólo puede
-; hablarle al SPC700 por cuatro puertos.
+; Los `.s` de al lado **no se ensamblan solos**: son tramos de un solo texto,
+; y `.include` los pega en este orden. De ahí salen tres cosas que no se ven
+; abriendo uno:
 ;
-; Al encender, el SPC700 corre una ROM interna que implementa un protocolo de
-; carga. Lo usamos para meterle en memoria las muestras y un driver mínimo, y
-; después ese driver se queda esperando pares (registro, valor) del DSP que le
-; manda el 65816. O sea que toda la música la sigue manejando el 65816, igual
-; que en la Mega Drive.
+; * **El orden de la lista es el orden en la ROM.** Mover un `.include`, o un
+;   `.proc` de un archivo a otro, cambia direcciones y bytes; partir no, porque
+;   lo que llega a `ca65` es el mismo texto. Hasta el 2026-09-25 esto era un
+;   solo archivo de treinta y cuatro mil líneas, y se partió sin cambiar un
+;   byte: por eso algunos archivos terminan con una rutina que es de otro
+;   tema, y moverla es un cambio de ROM que se verifica aparte.
+; * **Cada archivo hereda el estado del anterior**: los anchos `.a8`/`.i16` y
+;   el segmento. El `.segment` del principio de cada uno está escrito para el
+;   que lee, y es el mismo que ya traía.
+; * **Las etiquetas anónimas y las locales de un `.proc` se resuelven sobre el
+;   texto pegado**, así que el script que partió se negó a cortar adentro de
+;   un bloque o entre un `:+` y su `:`, y cualquier corte nuevo tiene que
+;   respetar lo mismo.
+;
+; Lo que se queda escrito acá es lo que no es un subsistema: dónde entran los
+; `.inc` generados —los dos bytecodes y los datos del cartucho—. Un archivo
+; nuevo se agrega a la lista en el lugar que le toca en la ROM; la huella de
+; `tools/ensamblado/cartuchos.py` ya cubre todo `rom/src/`.
 ; ---------------------------------------------------------------------------
 
 .p816

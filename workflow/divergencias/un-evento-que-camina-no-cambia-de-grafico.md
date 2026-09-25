@@ -7,7 +7,7 @@ En RM2k el gráfico sigue a la página.
 
 Lo que sí sigue a la página es **si se ve**: la ROM copia de la página todo
 menos el tile y la paleta cuando la fila camina —`+9` vale `NPC_QUIETO` o el
-banco de sus poses—. Ver `grafico_de_pagina` en `rom/src/main.s` y "gana
+banco de sus poses—. Ver `grafico_de_pagina` en `rom/src/paginas_de_eventos.s` y "gana
 caminar" en `tools/port/snes_convert.py`.
 
 # Medido

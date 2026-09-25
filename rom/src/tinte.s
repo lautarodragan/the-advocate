@@ -24,7 +24,7 @@
     ;     valor <= 100:  canal * valor / 100
     ;     valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
     ;
-    ; Así que se arma siempre la de abajo —que es lo que este archivo venía
+    ; Así que se arma siempre la de abajo —que es lo que este código venía
     ; haciendo, o sea que los tintes que oscurecen dan exactamente lo mismo que
     ; antes— y si el valor aclara se espeja la tabla terminada:
     ; `t'[j] = 31 - t[31 - j]`.

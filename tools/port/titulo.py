@@ -1149,7 +1149,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
 # la pantalla es el de las caras y no tiene la fuente. Cosmético y declarado.
 #
 # A usa la medicina sobre la fila marcada y la pantalla se queda, con los HP de
-# esa fila al día: ver `medicina_usar` en main.s. Esto dibuja los HP que se le
+# esa fila al día: ver `medicina_usar` en rom/src/medicina.s. Esto dibuja los HP que se le
 # pasen en `hp`, así que después de curar alcanza con pasarle los nuevos.
 OBJETIVO_CURSOR_COL = MENU_ACTOR_COL - 1
 OBJETIVO_CURSOR_FILA = 2        # adentro de la fila del actor

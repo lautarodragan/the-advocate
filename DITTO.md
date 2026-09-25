@@ -266,7 +266,7 @@ Ese `.inc` mezcla tres cosas y sólo una puede volverse binario opaco:
 
 1. **Datos** —tilemaps, tablas de NPCs, bytecode de eventos—: el 98% de las
    líneas, y candidatos a `.incbin`.
-2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `main.s` usa
+2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `rom/src/` usa
    como símbolos y tienen que seguir siendo texto.
 3. **Referencias a símbolos del ensamblador** (`.loword(fuente_pre0)`), que
    dependen de dónde caiga el código y sólo las resuelve `ld65`.

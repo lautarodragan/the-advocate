@@ -8,7 +8,7 @@ apaga el 134. Después usa `Absorb Aura`, que prende el 135, y la página de és
 le enseña las técnicas del enemigo, cuenta cuántas veces absorbió cada una y
 apaga el 135. Es lo que pasa en RM2k, y lo que cuándo corre cada página está
 copiado de `Scene_Battle_Rpg2k` y `Game_Interpreter_Battle` de easyrpg: ver
-`ba_pag_probar` en main.s.
+`ba_pag_probar` en rom/src/batalla_tropa.s.
 
 **Lo que se espera no se escribe a mano: se lee de la página del LDB**, con
 un recorrido de sus comandos que no comparte nada con el compilador —el texto
@@ -47,7 +47,7 @@ CASO = "tropa-talan-aura"
 TALAN = 14
 DETECT_AURA, ABSORB_AURA = 133, 134
 TROPA = 121
-# `BA_M_PAGINA` de main.s: corriendo una página de tropa.
+# `BA_M_PAGINA` de rom/src/ram_lejana.s: corriendo una página de tropa.
 PAGINA = 7
 
 

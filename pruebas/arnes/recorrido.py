@@ -42,7 +42,7 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     """Si desde (x,y) se puede dar un paso en (dx,dy).
 
     Las dos caras se consultan, la que se deja y la que se entra, que es la
-    regla de RM2k —la misma que `pass_salir`/`pass_entrar` de `main.s`—. Es una
+    regla de RM2k —la misma que `pass_salir`/`pass_entrar` de `rom/src/banco1.s`—. Es una
     función y no está escrita en cada lugar porque acá se camina de dos maneras
     —el BFS que arma la ruta y el paso a paso que la recorre mirando si la
     celda tiene una puerta— y las reglas tienen que ser las mismas, no una

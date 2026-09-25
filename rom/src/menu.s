@@ -9,7 +9,7 @@
 ; no corre mientras se ve —como en la pantalla de ranuras— así que para la
 ; referencia el menú no cuesta ningún tick.
 ;
-; Hoy hacen algo usar ítems —la pantalla de ítems, más abajo— y guardar, que
+; Hoy hacen algo usar ítems —la pantalla de ítems, en `items.s`— y guardar, que
 ; abre la pantalla de ranuras y vuelve al menú. Las otras tres se dibujan en
 ; gris y A no hace nada con ellas.
 

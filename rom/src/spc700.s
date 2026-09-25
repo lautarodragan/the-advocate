@@ -1,6 +1,16 @@
 .segment "CODE"
 
 ; --- carga al SPC700 -------------------------------------------------------
+; El audio de la SNES lo maneja el SPC700, un procesador aparte con su propia
+; memoria de 64 KB. El 65816 no puede tocar el DSP directamente: sólo puede
+; hablarle al SPC700 por cuatro puertos.
+;
+; Al encender, el SPC700 corre una ROM interna que implementa un protocolo de
+; carga. Lo usamos para meterle en memoria las muestras y un driver mínimo, y
+; después ese driver se queda esperando pares (registro, valor) del DSP que le
+; manda el 65816. O sea que toda la música la sigue manejando el 65816, igual
+; que en la Mega Drive.
+;
 ; El protocolo de la ROM interna del SPC700:
 ;
 ;   1. Espera a que salude con $AA en el puerto 0 y $BB en el 1.

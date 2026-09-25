@@ -474,3 +474,44 @@ Sus cambios, que son obligatorios:
    `tienda.s`; el segundo es el que cobra hoy, cuando `main.s` todavía no
    incluye ningún `.s`. Con el `huella()` de antes —sólo `main.s`— en una
    copia, da rojo: `Left contains one more item: '…/tienda.s'`.
+3. El corte es **`391930c`**, y es la salida del script sola: desde su
+   padre, script + `git add -A rom/src` + `git diff --cached --stat
+   391930c` da vacío; `git diff --quiet 391930c^ 391930c -- . ':!rom/src'`
+   también. `just cartuchos` rearmó los tres cartuchos (cambió el sello) y
+   `abl.sfc`, los dos `prueba.sfc` y sus tres `.sym` salieron iguales a los
+   del commit 2. `just pruebas`: 611 pasadas, igual que en el 2.
+4. `.segment` explícito en los 55 que no lo tenían. Quedan sin él
+   `registros.s` y `ram_lejana.s`, que no emiten nada (constantes y
+   `.assert`). Mismas verificaciones, mismos resultados.
+5. Prosa, guiada por el diff del corte: el encabezado de `main.s` (el
+   párrafo del SPC700 que había ahí bajó a `spc700.s`), las seis citas por
+   posición que el corte dejó apuntando a otro archivo, las citas de
+   `main.s` del resto del repo —las que nombran un símbolo pasan a nombrar
+   su archivo; las que hablan de la ROM entera, a `rom/src/`; las
+   históricas ("el `main.s` de antes") y las que hablan de la entrada del
+   ensamblado quedan—, y `AGENTS.md`: cómo está partido, la huella, la
+   trampa del `.inc` y el `blame` con histogram. Y se borra el script.
+
+De las 16 líneas de `--colgadas`, sólo `tinte.s` era de verdad (las demás
+dicen "arriba"/"abajo" de una celda, una pila o una paleta); el grep de
+"archivo|allá abajo|más abajo" sumó cinco: `batalla_puentes.s`,
+`menu.s`, `ventana_del_mapa.s` y dos en `arranque.s`.
+
+**Para una rama de antes del corte**: la receta de "Las ramas abiertas",
+con `CORTE=391930c`. El script ya no está en el árbol: sale de
+`git show 391930c^:tools/ensamblado/partir_main.py`, y se corre con
+`--dir rom/src`. Los `--ver` y `--colgadas` que cita el plan son de ese
+script.
+
+Lo que **no** se hizo, a propósito: la segunda etapa (mover rutinas a su
+archivo, partir `interprete.s`), que cambia la ROM y va aparte.
+`componer_mensaje`, que citaban `tools/port/snes_convert.py` y ya no
+existía antes del corte, sigue citado.
+
+**La receta, probada con el corte de verdad** (antes de entregar, porque
+`main` no se había movido y no hubo un uso real): una rama temporal desde
+`cd4adf8` que cambiaba una línea de la tienda en `main.s`; las cuatro
+guardas pasaron, el `--name-status` dio sólo `M rom/src/tienda.s`, y el
+merge siguiente con la rama entera —con el `.segment` y la prosa, que
+tocan la primera línea de `tienda.s`— entró sin conflictos y dejó
+exactamente esa línea. La rama se borró.

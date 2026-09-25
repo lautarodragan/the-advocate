@@ -529,7 +529,7 @@ class Item:
     `ko_only` "sólo sobre un muerto". `state_set` son los estados que saca,
     uno por estado del LDB desde el 1, que es el de muerto: es lo que decide
     si levanta a un caído. Ver `batalla.item_usable_en_batalla` y
-    `medicina_usar` en main.s.
+    `medicina_usar` en rom/src/medicina.s.
     """
 
     def __init__(self, datos):

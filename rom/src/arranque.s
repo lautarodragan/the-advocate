@@ -622,10 +622,10 @@ scrolls:
 ; con tantos índices distintos que el byte de más por acceso costaría más que
 ; la tabla. Las que se leen con X y se leen poco fueron bajando a RODATA a lo
 ; largo del 2026-09-13, en tres vueltas distintas y por el mismo motivo: hacer
-; lugar. Ahí abajo está el porqué de cada una y lo que todavía se podría bajar.
+; lugar. En `banco1.s` está el porqué de cada una y lo que todavía se podría bajar.
 
 ; `salto_por_vel` bajó a RODATA el 2026-09-14: un solo acceso, y pasarlo por X
-; cuesta cuatro bytes contra los seis de la tabla. Ver allá abajo.
+; cuesta cuatro bytes contra los seis de la tabla. Ver `banco1.s`.
 ; Cada cuántos cuadros cambia el frame de la caminata, por velocidad: caminando
 ; y quieto con la animación continua. ANIM_PARADO y ANIM_CONTINUA de eventos.py.
 anim_parado:

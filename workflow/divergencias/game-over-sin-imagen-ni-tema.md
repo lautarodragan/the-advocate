@@ -6,7 +6,7 @@ tecla la pantalla de título.
 
 La ROM hace la última parte y no las dos primeras: vuelve al arranque con un
 `jml reset` —ver `BATALLA_PERDER` en `tools/port/eventos.py` y `op_battle` en
-`rom/src/main.s`—, o sea a la pantalla de título si el cartucho la lleva, con
+`rom/src/interprete.s`—, o sea a la pantalla de título si el cartucho la lleva, con
 la partida guardada esperando en la SRAM.
 
 * **La imagen no se dibuja**: una de 320x240 pediría prestarle una capa al

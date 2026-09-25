@@ -703,7 +703,7 @@ columna:
 .endproc
 
 ; `hdma_mascara` y `tabla_fila_buf` **vivían acá** y bajaron a RODATA el
-; 2026-09-13, las dos por separado y el mismo día: ver allá abajo. El HDMA lee
+; 2026-09-13, las dos por separado y el mismo día: ver `banco1.s`. El HDMA lee
 ; de donde diga `A1B3`, así que no necesita banco 0, y el compositor la indexa
 ; con X, que sí tiene modo largo.
 

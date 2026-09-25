@@ -15,7 +15,7 @@
 ;
 ; **El código de la pelea no vive en el banco 0**: son unos dos kilobytes y en
 ; el banco 0 quedaban trescientos bytes. Vive en RODATA —ver `batalla_correr`,
-; al final del archivo— y se entra con `jsl`. De allá para acá no se puede
+; en `batalla_correr.s`— y se entra con `jsl`. De allá para acá no se puede
 ; volver con `jsr`, que no cambia el banco de programa, así que las rutinas del
 ; banco 0 que la pelea necesita se llaman por estos puentes de cuatro bytes.
 ; El banco de datos sigue siendo el 0 en los dos lados, así que un puente no

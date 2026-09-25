@@ -12,7 +12,7 @@ hacen lo mismo salvo tres cosas, y son las que viven acá:
 * **La tabla de símbolos, en el formato que leen las pruebas**: una línea por
   símbolo, `nombre valor`, con el valor en decimal. `ld65` la da en su archivo
   de depuración, que trae mucho más.
-* **Negarse a armar con un `.inc` generado al lado de `main.s`.** `ca65` busca
+* **Negarse a armar con un `.inc` generado en `rom/src/`.** `ca65` busca
   los `.include` primero en el directorio del archivo que incluye y recién
   después en los `-I`, así que uno viejo en `rom/src/` taparía al del cartucho
   sin decir nada: la ROM saldría con los datos de otro.

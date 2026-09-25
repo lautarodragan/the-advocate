@@ -17,7 +17,7 @@ porque tiene más agudos, y los nueve cuadros más de fundido al entrar al mapa
 
 Con una sola voz, la lluvia le cortaba el trueno, porque se vuelve a disparar
 cada pocos segundos. Las dos voces ya están en `main`: ver "los efectos de
-sonido" en `main.s`.
+sonido" en `rom/src/efectos_de_sonido.s`.
 
 # Lo que todavía no está
 

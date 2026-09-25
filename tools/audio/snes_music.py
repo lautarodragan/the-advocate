@@ -153,7 +153,7 @@ PISTAS_MSU = {
 # Los tres de la ARAM existen por el paquete de audio de cada mapa: las
 # muestras se suben mientras la música suena, así que el driver tiene que
 # poder recibirlas sin dejar de atender al DSP. Ver `paquete_cargar` en
-# main.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
+# rom/src/paquete_de_audio.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
 # ROM de arranque usa y deja libre.
 #
 # La música sigue mandando comandos 0 sin tocar el puerto 2: quien sube a la
@@ -405,7 +405,7 @@ class Banco:
     muestras viven en los 64 KB del SPC700. Un banco por tema pediría subirlo
     en cada `PlayBGM`, y con 32 KB por banco eso es del orden de medio segundo:
     treinta cuadros de juego frenado. Hoy ese costo se paga en el fundido de un
-    cambio de mapa, que es donde no se ve; ver `paquete_cargar` en `main.s`.
+    cambio de mapa, que es donde no se ve; ver `paquete_cargar` en `rom/src/paquete_de_audio.s`.
 
     Compartirlo sale casi gratis porque el banco es por **programa** de General
     MIDI: dos temas que tocan piano usan la misma muestra. Lo que crece es la
@@ -776,7 +776,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     # el mismo directorio: su `V_SRCN` es el lugar que les toca después de las
     # muestras de la música.
     # Van **todos**: cuáles caben lo decide la ROM mapa por mapa, al armar
-    # su paquete de audio. Ver `paquete_cargar` en main.s.
+    # su paquete de audio. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
     efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
     lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
         e.name) if e.name in efectos else 0)
@@ -882,7 +882,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     detrás los efectos. Ninguna se sube al arrancar: van al SPC700 de a
     **paquetes**, uno por mapa —`paquetes`, en el orden de la tabla de mapas,
     cada uno con sus temas y las muestras de sus efectos—, y el directorio
-    arranca con todas apuntando al silencio. Ver `paquete_cargar` en main.s.
+    arranca con todas apuntando al silencio. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
 
     `tema_de_mapa` es el tema que prende cada mapa al entrar, en el mismo
     orden, o $FF si entrar no cambia lo que suena. Ver `mapa_tema_callar`.
@@ -992,7 +992,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
-            "; vuelve a escribir bajándolos. Escribirlos también en main.s\n"
+            "; vuelve a escribir bajándolos. Escribirlos también en rom/src/\n"
             "; serían dos lados que se pueden equivocar igual.\n"
             "TEMA_VOLUMEN     = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"

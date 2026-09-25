@@ -61,7 +61,7 @@ POCION = 1
 # trama. Va en el inventario a propósito, para que la lista tenga algo que
 # dejar afuera; sin él, ofrecer todo y ofrecer lo correcto dan lo mismo.
 LLAVE = 151
-# Qué dice el mensaje, como `BA_MSG_ATAQUE` en main.s.
+# Qué dice el mensaje, como `BA_MSG_ATAQUE` en rom/src/ram_lejana.s.
 MSG_ATAQUE = 0
 # El nombre de la constante de la ROM para cada caso del reparto.
 PENDIENTE_DE = {"errar": "BA_SE_ERRAR",

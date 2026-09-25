@@ -8,7 +8,7 @@ después del intérprete, y en RM2k avanzan antes.** Son
 # Medido
 
 Quedó afuera al ordenar el cuadro como `Game_Map::Update`, el 2026-09-20 —ver
-el comentario del lazo en `main.s`—. Ninguno de esos ticks decide si algo se
+el comentario del lazo en `rom/src/arranque.s`—. Ninguno de esos ticks decide si algo se
 mueve ni cuándo, así que **la diferencia es de un cuadro en lo que se ve** y
 nada más.
 

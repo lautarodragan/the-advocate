@@ -23,7 +23,7 @@ from rpgmaker import rm2k
 
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
 # salen de `tools/protocol/events.toml`, que es de los dos lados —de esto y del
-# intérprete en main.s— y de ninguno. Ver tools/protocol/README.md.
+# intérprete en rom/src/interprete.s— y de ninguno. Ver tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
@@ -760,7 +760,7 @@ class Temas:
         # Y quién pide qué: el conversor pone en `mapa` el índice del mapa que
         # está compilando, y cada tema y cada efecto quedan anotados en el
         # suyo, en el orden en que aparecen. Es lo que arma el paquete de
-        # audio de cada mapa: ver `paquete_cargar` en main.s.
+        # audio de cada mapa: ver `paquete_cargar` en rom/src/paquete_de_audio.s.
         self.mapa = None
         self.por_mapa = {}
 
@@ -920,11 +920,11 @@ def asociaciones_de(game_maps, extra=()):
 #
 # OP_SHAKE: fuerza (byte), velocidad (byte), cuadros (word):
 #     `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
-#     pantalla vuelve a su lugar. La cuenta es `sacudida_tick` en main.s.
+#     pantalla vuelve a su lugar. La cuenta es `sacudida_tick` en rom/src/camara.s.
 #
 # OP_FLASH_SCREEN: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
 #     (byte): `FlashOnce`, el destello de la pantalla
-#     entera. La cuenta es `destello_tick` en main.s.
+#     entera. La cuenta es `destello_tick` en rom/src/destello_de_pantalla.s.
 #
 # OP_IF: tipo (byte), operando (word), polaridad (byte),
 #     destino (word):
@@ -946,7 +946,7 @@ def asociaciones_de(game_maps, extra=()):
 # OP_SAVE: sin operandos: la partida a la SRAM del cartucho.
 #     Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
 #     y el evento la pisa. Lo que se guarda lo dice
-#     `partida_tabla` en main.s, que es el único lugar donde
+#     `partida_tabla` en rom/src/banco1.s, que es el único lugar donde
 #     está escrito. No cuesta un cuadro: en RM2k el menú
 #     bloquea, y acá no hay nada que mirar.
 #
@@ -1715,7 +1715,7 @@ def lluvia_pixeles(x, y):
 # vez —`Game_Screen::ShowBattleAnimation` reemplaza la anterior— y avanza una
 # vez por cuadro **antes** que los destellos, que es donde `Game_Screen::Update`
 # la pone. Con "esperar", la página espera lo que dura: dos cuadros por cuadro
-# de la animación. Ver `animacion_tick` en main.s.
+# de la animación. Ver `animacion_tick` en rom/src/animacion_de_batalla.s.
 #
 # El destello no es el de RM2k exacto: allá la fuerza es
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` durante diez cuadros, a
@@ -2789,7 +2789,7 @@ class Tropas:
 # acepta: ver `TROPA_COMANDOS`.
 #
 # Cuándo corre cada una lo decide la ROM y está copiado de
-# `Scene_Battle_Rpg2k`; ver `ba_pag_probar` en main.s.
+# `Scene_Battle_Rpg2k`; ver `ba_pag_probar` en rom/src/batalla_tropa.s.
 
 # Los tres comandos de rama de la pelea, con su gemelo del mapa. De las seis
 # preguntas de `CommandConditionalBranchBattle` el juego usa **sólo dos** —el
@@ -3074,7 +3074,7 @@ class Encuentros:
     """El estado de los encuentros de una partida, igual de los dos lados.
 
     Lo usan las pruebas; la ROM hace lo mismo con las tablas que emite el
-    conversor. Quien lo cambie tiene que cambiar `main.s` en el mismo
+    conversor. Quien lo cambie tiene que cambiar `rom/src/` en el mismo
     commit: si no, el modelo y la consola dejan de ser el mismo programa.
     """
 
@@ -4216,7 +4216,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # sale de la tabla de actores, pero las doce poses del actor
                 # están escritas con la misma forma que una entrada de
                 # `npc_poses`, así que la ROM cambia el puntero y listo: ver
-                # `grafico_heroe` en main.s. Son +29 páginas del juego, y entre
+                # `grafico_heroe` en rom/src/ruta_del_heroe.s. Son +29 páginas del juego, y entre
                 # ellas las tres del `EV0047` del mapa 8, con el que no se
                 # podía interactuar.
                 if graficos is None or len(extras) < 2:
@@ -4435,7 +4435,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 #
 # La ROM y la referencia corren el mismo bytecode. Tener el intérprete una sola
 # vez del lado de Python no evita que haya dos implementaciones —la otra está en
-# main.s— pero sí evita que haya dos *lenguajes*: lo que se ejecuta es el mismo
+# rom/src/— pero sí evita que haya dos *lenguajes*: lo que se ejecuta es el mismo
 # programa, y las reglas de selección de página están escritas una vez acá y una
 # vez allá, no una vez por llamador.
 
@@ -4946,7 +4946,7 @@ class Estado:
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
         # El evento que mira al héroe porque él lo disparó: ver `giro_disparar`
-        # en main.s.
+        # en rom/src/giro_hacia_el_heroe.s.
         self.giro = None
         # Dónde está cada evento del mapa, en celdas. La lleva el estado y no el
         # mapa porque una ruta la cambia y la siguiente arranca de ahí: hay una
@@ -4977,11 +4977,11 @@ class Estado:
         self.equipo = {}
         # Cuántos cuadros le quedan al cronómetro. Si corre y si se ve son dos
         # cosas más que RM2k separa y que de este lado no mira nadie: quien las
-        # necesita es el que dibuja, o sea `timer_tick` en main.s. Acá sólo hace
+        # necesita es el que dibuja, o sea `timer_tick` en rom/src/cronometro.s. Acá sólo hace
         # falta la cuenta, que es la que lee la clase "otro" de OP_VAR.
         self.timer_cuadros = 0
         # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
-        # 1/16 de pixel, y cuánto corre por cuadro. Ver `pan_tick` en main.s.
+        # 1/16 de pixel, y cuánto corre por cuadro. Ver `pan_tick` en rom/src/camara.s.
         #
         # **Dónde está no lo escribe nadie**, igual que `heroe` y por lo mismo:
         # el lazo de cuadros se fue con la referencia, y quien la movía era él.
@@ -5428,7 +5428,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "ruta_propia": ruta_propia(page),
                 # Lo que dibuja la página y lo que su tile le impone a la
                 # celda: ver `rm2k.collect_npcs`, y `pasa_con_evento` en
-                # main.s, que es quien los aplica.
+                # rom/src/heroe.s, que es quien los aplica.
                 "grafico": grafico,
                 "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
                                                         page.layer)

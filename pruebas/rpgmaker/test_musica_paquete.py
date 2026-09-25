@@ -9,7 +9,7 @@ eso, y encima tapado: con archivos de MSU-1 al lado de la ROM la pista suena y
 el SPC700 no toca nada, así que el único camino roto era justamente el que
 siempre tiene que andar.
 
-Lo que se pregunta es lo mismo que mira `tema_asegurar` en main.s: para cada
+Lo que se pregunta es lo mismo que mira `tema_asegurar` en rom/src/paquete_de_audio.s: para cada
 muestra que el stream del tema escribe en SRCN —`tema_muestras`, leída del
 cartucho—, que `FAR_ARAM_DE` diga dónde está. Una muestra que no está apunta al
 bloque de silencio, o sea una nota que no se oye.

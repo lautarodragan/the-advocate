@@ -156,6 +156,27 @@ Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
 no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
 `git log -S '<texto>'`, que busca por contenido y por eso ignora el ruido solo.
 
+**`rom/src/` atraviesa el corte de `main.s` sólo con
+`git blame -C --diff-algorithm=histogram <archivo>`.** El 2026-09-25 `main.s`
+se partió en un archivo por subsistema, y el corte **no** está en
+`.git-blame-ignore-revs` porque no sirve: ignorar un commit le pasa la culpa
+al mismo archivo en el padre, y ninguno de los nuevos existía. Sin opciones,
+`blame` contesta "fue el corte" en cada línea; con `-C` solo, casi igual,
+porque el diff por omisión (Myers) aparea las líneas repetidas —`rts`,
+`.endproc`, blancos— con las primeras que encuentra en treinta mil líneas y
+los trozos quedan más cortos que el mínimo de `-C`. Con histogram, que ancla
+en las líneas únicas, **cada línea sale con el mismo commit que daba el
+`main.s` de antes**: medido sobre las treinta y cuatro mil. `git log
+--follow` no cruza el corte; `git log -S` sí, porque busca en todos los
+archivos.
+
+Los IDE que no dejan pasarle opciones a `blame` —el annotate de JetBrains—
+lo hacen sólo si el git del host tiene `diff.algorithm=histogram` en su
+configuración global (`git config --global diff.algorithm histogram`), y
+con su opción de detectar movimientos entre archivos, que es la `-C`. Acá
+adentro `.git/config` es de sólo lectura, así que eso lo configura taro del
+lado del host.
+
 ## La regla que sostiene todo
 
 Nada se da por bueno porque se vea bien: **se compara pixel por pixel, a 15
@@ -294,7 +315,16 @@ y se tira.
 
 ## Trampas del entorno
 
-**Un `.inc` generado nunca va al lado de `main.s`.** `ca65` busca los
+**`rom/src/` es un solo ensamblado partido en muchos `.s`.** `main.s` los
+pega con `.include`, y el orden de esa lista es el orden en la ROM: partir es
+gratis, mover no. Lo que eso implica —cada archivo hereda los anchos y el
+segmento del anterior, las anónimas se resuelven sobre el texto pegado— lo
+dice el encabezado de `main.s`, que es donde lo va a ver quien agregue un
+archivo. Hasta el 2026-09-25 era un solo archivo; se partió byte por byte
+igual, y por eso hay rutinas que quedaron en el archivo del vecino: moverlas
+es un cambio de ROM, y va en su propio commit.
+
+**Un `.inc` generado nunca va en `rom/src/`.** `ca65` busca los
 `.include` primero en el directorio del archivo que incluye y recién después en
 los `-I`, así que un `mapdata.inc` en `rom/src/` taparía al del cartucho sin
 avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
@@ -338,7 +368,7 @@ se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/comun/cache_disco.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
-`rom/src/main.s`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
+todo `rom/src/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
 cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
 dice nada.
 
@@ -526,7 +556,7 @@ Van cuatro veces, y las cuatro se veían como cualquier otra cosa menos como lo
 que eran:
 
 * ninguna ruta se movía nunca, porque la ranura 0 daba "bloqueado" siempre
-  (el `cmp #0` de `main.s:7997`, con su comentario);
+  (el `cmp #0` de `cuadro_de_ruta_ev`, con su comentario);
 * la pantalla de título se quedó sin música un día entero, porque la pregunta
   "¿esta muestra está en la ARAM?" contestaba siempre que sí;
 * `ConditionalBranch` por variable **tomaba siempre la rama**, con la variable

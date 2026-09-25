@@ -19,7 +19,7 @@ ver —`autos9`, `mecanico`, `puerta-8-9` y dos del `tram`—. Eso está medido:
 el cambio de grupo no se mueve ninguna. **Por qué, no**: la explicación probable
 es que `lideres_posibles` mira también las páginas de los casos, así que Arden
 pasa a ser un líder posible y se le reserva sprite y paleta en cada mapa. La rama prende el switch 709, que ningún comando del juego toca. Sin el
-arreglo de `si_actor` en `main.s`, `rama-grupo-no` lo prende igual.
+arreglo de `si_actor` en `rom/src/interprete.s`, `rama-grupo-no` lo prende igual.
 """
 
 import pytest

@@ -11,7 +11,7 @@ imagen de 32 KB **por tropa**, con el fondo y los battlers ya encima. Eso
 multiplicaba imágenes por combinación —seis en `abl`, sobre cuatro fondos— y un
 enemigo muerto se seguía viendo. Desde ese día, idea de taro, el cartucho lleva
 **cada fondo una vez y cada battler una vez**, y la consola los compone al
-empezar la pelea. Ver `escena_subir` en main.s.
+empezar la pelea. Ver `escena_subir` en rom/src/batalla_escena.s.
 
 Sigue siendo una sola capa de 8bpp en BG1, y eso es lo que compra lo mismo que
 compraba antes:

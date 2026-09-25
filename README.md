@@ -784,7 +784,8 @@ Eso deja el mismo reparto que en la Mega Drive: **toda la lógica en Python, y e
 la consola sólo un intérprete de un stream de escrituras.** El driver del SPC700
 son **20 bytes**.
 
-    rom/src/main.s               65816: arranque, carga al SPC700, reproductor
+    rom/src/spc700.s             65816: la carga al SPC700
+    rom/src/musica.s             65816: el reproductor del stream
     tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
     tools/gunter/                Gunter: códec BRR y lector de SoundFont, en Rust
     tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
@@ -1000,7 +1001,7 @@ lo dice `just pruebas`.
 
 Las del 65816 y las del PPU viven en el código, pegadas a la instrucción o al
 registro que muerden: se llega a ellas desde ahí, no desde acá. Lo que queda son
-las dos que no tienen una línea donde vivir, porque valen para `main.s` entero.
+las dos que no tienen una línea donde vivir, porque valen para `rom/src/` entero.
 
 **Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
 llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
@@ -1222,7 +1223,7 @@ lo saque de la lista y que apagarlo lo vuelva a meter.
 
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por
-instrucción en `azar_siguiente` de `main.s` y de `eventos.py`. Por eso una
+instrucción en `azar_siguiente` de `rom/src/variables.s` y de `eventos.py`. Por eso una
 página con azar se compara pixel por pixel: el Tram Officer del mapa 9 tira un
 número de 0 a 100 y dice "It's here!" si sale 90 o más; los dos lados sacan 97.
 No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.

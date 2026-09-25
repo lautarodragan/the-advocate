@@ -91,18 +91,18 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     # Sólo los usos como operando: los nombres sueltos de los comentarios no.
     usados = set(re.findall(r"#(OP_[A-Z_]+)\b", fuente))
-    assert usados, "no se encontró un solo uso de un opcode en main.s"
+    assert usados, "no se encontró un solo uso de un opcode en rom/src/"
     todos = set()
     for _, modulo, _, _ in GENERADOS:
         todos |= set(declarados(modulo))
     # Y que no haya vuelto a aparecer uno escrito a mano en la propia ROM.
     propios = set(re.findall(r"^(OP_[A-Z_]+)\s*=", fuente, re.M))
     assert not propios, (
-        "main.s declara %s a mano: eso va en tools/protocol/"
+        "rom/src/ declara %s a mano: eso va en tools/protocol/"
         % ", ".join(sorted(propios)))
     sin_declarar = usados - todos
     assert not sin_declarar, (
-        "main.s compara contra %s, que no está declarado en tools/protocol/"
+        "rom/src/ compara contra %s, que no está declarado en tools/protocol/"
         % ", ".join(sorted(sin_declarar)))
 
 
