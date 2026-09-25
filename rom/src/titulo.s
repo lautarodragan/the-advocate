@@ -316,15 +316,3 @@ listo_musica:
     rts
 .endproc
 
-; El tilemap del menú que le toca a la opción elegida. Hay uno por opción y
-; están seguidos, así que cuál es sale de multiplicar; mover el cursor es subir
-; el otro y no escribir a mano las dos celdas que cambian, que es la clase de
-; número que se escribe bien de un lado y mal del otro.
-;
-; Corre con la pantalla apagada la primera vez y adentro del vblank las demás:
-; son 2048 bytes por DMA, que entran de sobra en un vblank que no tiene nada más
-; que hacer.
-; `titulo_subir_menu` vive en RODATA desde el 2026-09-14: la demo con
-; pantalla de título se pasaba del banco 0 por cuatro bytes. No llama a nadie,
-; así que mudarla sólo cuesta el `jsl` de sus tres llamadores.
-
