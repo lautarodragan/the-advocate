@@ -367,9 +367,12 @@ BA_MSG_CUADROS = 120
 ; Cuándo sale el segundo efecto del golpe: `Scene_Battle_Rpg2k` pone el del
 ; ataque al empezar la acción y el del daño en el sub-estado del mensaje, con
 ; un `SetWait(4,4)` en el medio. Acá el mensaje dura `BA_MSG_CUADROS` y el
-; segundo efecto sale veinticuatro cuadros más tarde, que es lo que se
-; distingue con una sola voz: los dos juntos serían uno solo, porque el efecto
-; nuevo le pisa la voz al anterior.
+; segundo efecto sale veinticuatro cuadros más tarde. Los veinticuatro se
+; eligieron cuando los efectos tenían una sola voz y el nuevo le pisaba la voz
+; al anterior, así que tenían que quedar separados de oído; desde 8c9c182 son
+; dos voces —ver `efectos_de_sonido.s`— y dos efectos distintos ya no se
+; pisan; el mismo efecto dos veces sí, porque `sonido_tocar` lo vuelve a
+; disparar en la voz que ya lo toca.
 BA_SE2_CUADROS = BA_MSG_CUADROS - 24
 ; El acierto de un actor sin arma que lo cambie: `Game_Actor::GetHitChance`.
 BA_ACIERTO_ACTOR = 90

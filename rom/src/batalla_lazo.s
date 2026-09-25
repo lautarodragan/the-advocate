@@ -264,11 +264,12 @@ ninguno:
 ;
 ; RM2k toca **dos** efectos por golpe: el del ataque al empezar la acción
 ; —`Normal::GetStartSe`, y sólo cuando el que pega es un enemigo— y el del
-; resultado en el sub-estado del mensaje, unos cuadros más tarde. Acá los
-; efectos tienen **una sola voz**, así que los dos juntos serían uno solo: el
-; del resultado queda pendiente en `BA_SE2` y sale a los `BA_MSG_CUADROS -
+; resultado en el sub-estado del mensaje, unos cuadros más tarde. Acá el del
+; resultado queda pendiente en `BA_SE2` y sale a los `BA_MSG_CUADROS -
 ; BA_SE2_CUADROS` cuadros. Cuando el que pega es del grupo no hay primero, así
-; que el del resultado suena ya.
+; que el del resultado suena ya. (Cuando esto se escribió los efectos tenían
+; una sola voz y los dos juntos habrían sido uno solo; desde 8c9c182 son dos,
+; ver `efectos_de_sonido.s`.)
 ;
 ; El del resultado sale de easyrpg y no de memoria: errar es `GetFailureSe`
 ; —dodge_se—, pegarle a un actor es actor_damaged_se y a un enemigo
