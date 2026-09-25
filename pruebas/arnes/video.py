@@ -43,7 +43,7 @@ for ruta in ("tools", "pruebas", os.path.join("pruebas", "arnes"),
 from emulador import retro                              # noqa: E402
 import consola                                          # noqa: E402
 from recorrido import Mundo, Recorrido                  # noqa: E402
-import test_recorrido                                   # noqa: E402
+import test_recorrido_golden                            # noqa: E402
 
 # Los cuadros por segundo de la SNES NTSC: si no coinciden con los de la
 # consola, el sonido se corre del video. La tasa del audio no va acá: la dice
@@ -54,14 +54,15 @@ ESCALA = 3                      # con vecino más cercano: se ven los pixeles
 
 
 def jugada(nombre):
-    """La función de `test_recorrido` que empieza con `test_` y contiene
-    `nombre`. Tiene que ser una sola."""
-    candidatas = [n for n in dir(test_recorrido)
+    """La función de `test_recorrido_golden` que empieza con `test_` y
+    contiene `nombre`. Tiene que ser una sola."""
+    candidatas = [n for n in dir(test_recorrido_golden)
                   if n.startswith("test_") and nombre in n]
     if len(candidatas) != 1:
-        raise SystemExit("la jugada %r no nombra una sola de test_recorrido: %s"
+        raise SystemExit("la jugada %r no nombra una sola de "
+                         "test_recorrido_golden: %s"
                          % (nombre, candidatas or "ninguna"))
-    return getattr(test_recorrido, candidatas[0])
+    return getattr(test_recorrido_golden, candidatas[0])
 
 
 def leer_despacio(ticks):
@@ -161,7 +162,7 @@ def main():
     parser.add_argument("salida", help="el .mp4")
     parser.add_argument("jugadas", nargs="+",
                         help="parte del nombre de una jugada de "
-                             "test_recorrido, o quieto:N")
+                             "test_recorrido_golden, o quieto:N")
     parser.add_argument("--leer", type=int, metavar="TICKS",
                         help="apretar A cada TICKS en vez de cada 8, para "
                              "que se lean los textos")
