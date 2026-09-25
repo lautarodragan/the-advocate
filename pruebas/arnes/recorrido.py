@@ -86,7 +86,7 @@ A_CADA = 8
 
 # Dónde viven las capturas que taro bendijo, y cuánto se les tolera. Ver `foto`.
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden",
-                      "recorrido")
+                      "playthrough")
 GOLDEN_TOLERANCIA = 0.15
 
 

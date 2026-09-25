@@ -67,7 +67,7 @@ def partida():
 
 
 # Dónde quedan las capturas de cada hito de las pruebas que **juegan**, una
-# carpeta por tramo. Las goldens de `pruebas/golden/recorrido/<tramo>/` se
+# carpeta por tramo. Las goldens de `pruebas/golden/playthrough/<tramo>/` se
 # buscan por ese mismo nombre: ver `Recorrido.foto`.
 FOTOS = os.path.join(tanda.RAIZ, "rom", "build", "tests", "snapshots",
                      "playthrough")
