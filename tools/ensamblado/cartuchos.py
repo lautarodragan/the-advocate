@@ -2,7 +2,8 @@
 Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
 
     python3 tools/ensamblado/cartuchos.py            arma lo que haga falta
-    python3 tools/ensamblado/cartuchos.py release    sólo ése: `just build`
+    python3 tools/ensamblado/cartuchos.py release    sólo ése, con sus pistas
+                                                     de MSU-1: `just build`
     python3 tools/ensamblado/cartuchos.py --lista    qué caso va en qué cartucho
 
 Un caso nuevo es un archivo en `pruebas/casos/` y nada más: entra solo en
@@ -246,6 +247,23 @@ def main():
     for nombre in args.nombres or CARTUCHOS:
         print("%s: %s" % (nombre, "armado" if armar(nombre, fuentes)
                           else "al día"))
+        if nombre == RELEASE:
+            pistas()
+
+
+def pistas():
+    """Las pistas de MSU-1 al lado de la ROM que se juega: `release` las lleva
+    siempre, así que no hay otra manera de tener la ROM con pistas.
+
+    Van fuera del sello y se miran aunque la ROM esté al día: no dependen del
+    cartucho sino del MIDI, del soundfont y del sintetizador, y `msu.armar` ya
+    sabe cuáles están —ver `clave_de_la_pista`—. Que estén al lado no cambia
+    la tanda: el arnés le esconde las pistas al core, ver `retro.Consola`.
+    """
+    from audio import msu       # fluidsynth y ffmpeg, sólo para `release`
+    hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
+    print("%s: pistas de MSU-1, %d hechas y %d que ya estaban"
+          % (RELEASE, hechas, estaban))
 
 
 if __name__ == "__main__":

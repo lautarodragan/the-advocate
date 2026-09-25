@@ -213,6 +213,23 @@ parches-check *builds="rom/build/tests rom/build/release":
 # qué, en `tools/ensamblado/cartuchos.py`: los flags de `release` también viven
 # ahí, para que la ROM que se juega y la que prueba la tanda sean la misma.
 #
+# **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
+# `abl.msu` que lo enciende —vacío— y un `abl-N.pcm` por tema de
+# `PISTAS_MSU`. Sin la extensión la ROM suena como siempre, por el SPC700. Las
+# renderiza `tools/audio/msu.py` con fluidsynth, y sólo las que cambiaron: una
+# pista depende del MIDI, del soundfont, del sintetizador y de cómo se
+# normaliza, no del cartucho. Con `SIN_CACHE=1` se rehacen todas.
+#
+# Que estén en `release/` no le cambia nada a la tanda, y fue lo que las tuvo
+# en otro directorio hasta el 2026-09-25: el emulador busca el `.msu` al lado
+# del `.sfc`, y la tanda corría con el SPC700 callado o no según si estaban.
+# Ahora el arnés le da al core una copia de la ROM en un directorio vacío;
+# ver `retro.Consola`.
+#
+# En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
+# nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
+# el MSU-1 no se enciende.
+#
 # Arma una ROM por nombre: release, test-main o test-special.
 build cual:
   python3 tools/ensamblado/cartuchos.py {{cual}}
@@ -220,7 +237,9 @@ build cual:
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,
 # `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
-# despacio para que se lean los textos. Por qué `-O`, en `video.py`.
+# despacio para que se lean los textos. Por qué `-O`, en `video.py`. Suena con
+# el MSU-1 si el build tiene pistas, como se juega; `--sin-msu`, sólo el
+# SPC700.
 #
 #     just video release /shared/apertura.mp4 quieto:6000 apertura
 #     just video release /shared/textos.mp4 apertura talan --leer 150
@@ -228,28 +247,3 @@ build cual:
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
 video cual salida +jugadas:
   python3 -O pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
-
-# La ROM de release con sus pistas de MSU-1, en `rom/build/release-msu/`: una
-# copia de `abl.sfc`, el `.msu` que lo enciende —puede estar vacío— y un
-# `.pcm` por tema de `PISTAS_MSU`. No va adentro de `build` porque no hace
-# falta para jugar: sin estos archivos la ROM suena como siempre, por el
-# SPC700. Y porque es cara —renderiza el MIDI con fluidsynth y normaliza en
-# Python— y pesa: son 10,6 MB por minuto de música.
-#
-# **Va en otro directorio que el de `release` a propósito**: el emulador busca
-# el `.msu` al lado del `.sfc`, así que con las pistas ahí la tanda corría con
-# MSU-1 —el SPC700 callado— o sin él según si alguien había corrido esto. Pasó
-# el 2026-09-24.
-#
-# En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
-# nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
-# el MSU-1 no se enciende.
-#
-# **Correrla de nuevo no rehace lo que no cambió**: una pista depende del MIDI,
-# del soundfont, de fluidsynth y de cómo se normaliza, nada de eso es del
-# cartucho, y todo eso está en la clave. Ver `clave_de_la_pista` en msu.py.
-# Con `SIN_CACHE=1` se rehacen todas.
-msu: (build "release")
-  mkdir -p rom/build/release-msu
-  cp rom/build/release/abl.sfc rom/build/release-msu/abl.sfc
-  python3 tools/audio/msu.py rom/build/release-msu/abl.sfc

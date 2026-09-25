@@ -113,7 +113,7 @@ class Partida:
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None,
-                 nucleo=None, caso=0, salta=False, pila=False):
+                 nucleo=None, caso=0, salta=False, pila=False, msu=False):
         self.simbolos = simbolos
         # El cartucho, para las tablas que no están en la RAM sino en la ROM:
         # ver `muestras_del_tema`.
@@ -127,7 +127,10 @@ class Partida:
         # `nucleo` es para correr la **misma** partida en dos cores y
         # comparar las dos pantallas entre sí: ver `pruebas/rpgmaker/test_cores.py`.
         # Sin él vale el de siempre, que es snes9x.
-        self.consola = retro.Consola(sfc, nucleo or NUCLEO)
+        # `msu` deja que el core encuentre las pistas al lado de la ROM: sólo
+        # lo pide `video.py`, para que el video suene como la ROM que se juega.
+        # Ver `retro.Consola`.
+        self.consola = retro.Consola(sfc, nucleo or NUCLEO, msu=msu)
         # `pila` es sólo para `pruebas/herramientas/test_pila.py`, y va acá
         # porque acá es el único momento en que la marca llega antes del primer
         # cuadro: una línea después la ROM ya corrió el `reset`. Apagado por

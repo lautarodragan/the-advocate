@@ -9,6 +9,5 @@
     rom/src/main.s + esos .inc        --ca65 + ld65 (ensamblar.py)--> abl.sfc + abl.sfc.sym
     abl.sfc + MIDI o /extras/msu      --tools/audio/msu.py-->         abl.msu + abl-N.pcm
 
-    just build release    todo menos el MSU-1, en rom/build/release/
-    just msu              el MSU-1, en rom/build/release-msu/
+    just build release    todo, con las pistas de MSU-1, en rom/build/release/
     just parches          copia las decisiones de release a parches/auto/
