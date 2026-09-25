@@ -1,12 +1,14 @@
-TODO:
+# El pipeline
 
-rellenar este archivo con los pasos del pipeline, de [RTP + ABL] a [.sfc + pcm + .sym]
-mencionar Ditto, etc. 
+    /extras/abl-rm (.lmu .ldb .lmt)   --ditto unpack (just datos)-->  data/ (JSON)
+    data/ + parches/manual/           --tools/rpgmaker/lcf.py-->      el juego leído,
+                                                                      con los textos rearmados
+    + imágenes, MIDI y WAV            --tools/port/snes_convert.py--> rom/build/<rom>/
+      (/extras/abl-rm, /extras/rtp)     (voodoo: tiles, gunter: BRR)    mapdata.inc, musicdata.inc,
+                                                                      parches/ (decisiones)
+    rom/src/main.s + esos .inc        --ca65 + ld65 (ensamblar.py)--> abl.sfc + abl.sfc.sym
+    abl.sfc + MIDI o /extras/msu      --tools/audio/msu.py-->         abl.msu + abl-N.pcm
 
-Mantener super breve. Este archivo no debería superar las 10 o 15 líneas. Nada de prosa.
-
-Mencionar qué archivos se generan, en base a qué, y en qué resultan.
-
----
-textos relevantes, sacados de README. no dejar completos aquí. revisar y extraer lo mínimo necesario.
----
+    just build release    todo menos el MSU-1, en rom/build/release/
+    just msu              el MSU-1, en rom/build/release-msu/
+    just parches          copia las decisiones de release a parches/auto/

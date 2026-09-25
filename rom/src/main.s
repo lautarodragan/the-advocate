@@ -10840,9 +10840,7 @@ listo:
 
 ; --- guardar y cargar la partida -------------------------------------------
 ;
-; El cartucho lleva SRAM con batería y **una sola ranura**. RM2k abre un menú de
-; quince; acá el save point guarda y sigue, que es el alcance que acordamos con
-; taro el 2026-09-09: lo mínimo que se puede jugar y probar de verdad.
+; El cartucho lleva SRAM con batería, con las ranuras de `SRAM_RANURAS`.
 ;
 ; Qué se guarda lo dice `partida_tabla` y nada más: pares de (dirección en la
 ; WRAM del banco 0, cuántos bytes), terminados en un largo cero. Tenerlo en una

@@ -37,8 +37,6 @@ la música y el sprite del héroe. **La comparación no puede ver esa clase de
  error**, porque una lista equivocada compila una ROM equivocada y la golden es
 la captura de esa ROM. Se revisa leyendo contra liblcf, no corriendo.
 
-## Las tres piezas del intérprete de eventos
-
 ## Las mecánicas que no son un opcode
 
 Lo que el intérprete necesita alrededor: quién dispara una página, cuál está
