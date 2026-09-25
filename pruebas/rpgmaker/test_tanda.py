@@ -20,7 +20,7 @@ comentario de la receta, más el porqué del caso, que se mudó con él.
 
 import pytest
 
-from tanda import golden, partida, plan, ticks_de_avance
+from tanda import celdas_del_plan, golden, partida, plan, ticks_de_avance
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
@@ -37,6 +37,40 @@ def grupo_11_en(mapa):
     el héroe caía cuando el mapa era el de arranque de su cartucho. En el 6,
     que es el de arranque, no salta."""
     return "grupo-11" if mapa == 6 else "grupo-11-en-%d" % mapa
+
+
+# Hacia dónde cae la celda siguiente, por dirección del pad.
+PASOS = {"none": (0, 0), "right": (1, 0), "left": (-1, 0), "up": (0, -1),
+         "down": (0, 1)}
+
+
+def caminar(p, nombre_del_plan, direccion):
+    """Sostiene la dirección los ticks del plan, y mira que el héroe haya
+    caminado las celdas del plan.
+
+    Sin esto una caminata que no camina da la misma foto que el héroe
+    parado, y si eso es lo que se congeló, la golden lo defiende. Las celdas
+    en cero —el 8, el 17 y el 73 para abajo— son una pared o un NPC delante:
+    que no se mueva es lo que se prueba ahí.
+    """
+    x, y = p.heroe()
+    mapa = p.mapa()
+    p.correr(plan(nombre_del_plan)[direccion],
+             sosteniendo=() if direccion == "none" else (direccion,))
+    celdas = celdas_del_plan(nombre_del_plan)[direccion]
+    if p.mapa() != mapa:
+        # Pisó una puerta: el 8 para la derecha cae en el 16. El plan lo sacó
+        # la referencia, que no miraba los eventos, así que sus celdas son de
+        # un camino que la ROM no recorre; que haya cambiado de mapa ya dice
+        # que caminó.
+        assert celdas, "el plan dice que no camina y cambió de mapa"
+        return p
+    dx, dy = PASOS[direccion]
+    assert p.heroe() == (x + dx * celdas, y + dy * celdas), (
+        "sosteniendo %s el plan %r camina %d celdas desde %s y el héroe "
+        "está en %s" % (direccion, nombre_del_plan, celdas, (x, y),
+                        p.heroe()))
+    return p
 
 
 @pytest.mark.parametrize("mapa", MAPAS_DE_HEROE)
@@ -65,9 +99,7 @@ def test_heroe(mapa, direccion):
     Una consola nueva por dirección, como hace el corredor: arrancar de cero es
     parte de lo que se compara.
     """
-    ticks = plan(str(mapa))[direccion]
-    p = partida(grupo_11_en(mapa))
-    p.correr(ticks, sosteniendo=() if direccion == "none" else (direccion,))
+    p = caminar(partida(grupo_11_en(mapa)), str(mapa), direccion)
     golden("%d-%s" % (mapa, direccion), p.imagen())
 
 
@@ -116,9 +148,12 @@ def test_varios(direccion):
     regenerar una golden para ahorrar una línea.
     """
     nombre = "varios-18-%s" % direccion
-    p = partida("grupo-11-en-19")
-    p.correr(plan(nombre)[direccion],
-             sosteniendo=() if direccion == "none" else (direccion,))
+    # Caminar pide el 19 **después** de su escena: `RunDirectorScene` es
+    # automática y sin condiciones, así que sin el switch 90 corre desde el
+    # tick 0 y el héroe no se mueve, como en RM2k. Desde que sus mensajes
+    # compilan (`6cfce1e`) `down` fotografiaba lo mismo que `none`.
+    p = caminar(partida("grupo-11-en-19" if direccion == "none"
+                        else "grupo-11-en-19-sin-escena"), nombre, direccion)
     golden(nombre, p.imagen())
 
 

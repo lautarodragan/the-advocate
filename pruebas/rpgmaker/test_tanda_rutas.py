@@ -72,8 +72,32 @@ def test_ruta(nombre, cuadros):
     """
     for cuadro in cuadros:
         p = partida(nombre)
+        x, y = p.heroe()
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
+        if (nombre, cuadro) in BAJO_EN_EL_TICK:
+            abajo, velocidad = BAJO_EN_EL_TICK[nombre, cuadro]
+            assert (p.heroe(), p.velocidad_del_heroe()) == (
+                (x, y + abajo), velocidad), (
+                "%s en el tick %d: el héroe tiene que haber bajado %d celdas "
+                "desde %s y tener velocidad %d, y está en %s con %d"
+                % (nombre, cuadro, abajo, (x, y), velocidad, p.heroe(),
+                   p.velocidad_del_heroe()))
+
+
+# Dónde está el héroe, y a qué velocidad, en los ticks de `ruta-vel` y
+# `ruta-vel-lenta` que la foto no distingue: el mapa 6 es una grilla que se
+# repite y la cámara sigue al héroe, así que parado entre dos pasos se ve
+# **igual que sin ruta** —esos ticks son byte por byte `6-none`—. Las celdas
+# son las de la ruta (5 y 4 para abajo) y la velocidad la que deja: RM2k repone
+# la frecuencia al terminar y no la velocidad, así que `ruta-vel` vuelve a 4
+# con su 29 y `ruta-vel-lenta` queda en 5.
+BAJO_EN_EL_TICK = {
+    ("ruta-vel", 30): (5, 4), ("ruta-vel", 44): (5, 4),
+    ("ruta-vel", 60): (5, 4), ("ruta-vel", 80): (5, 4),
+    ("ruta-vel-lenta", 64): (2, 2), ("ruta-vel-lenta", 90): (4, 5),
+    ("ruta-vel-lenta", 120): (4, 5), ("ruta-vel-lenta", 200): (4, 5),
+}
 
 
 @pytest.mark.parametrize("cuadro", (89, 91))

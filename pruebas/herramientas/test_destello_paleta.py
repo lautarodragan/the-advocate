@@ -33,7 +33,8 @@ sys.path.insert(0, os.path.join(
 from render import render_map                                # noqa: E402
 from port import snes_convert                                # noqa: E402
 
-JUEGO = os.environ.get("GAME_DIR", "/extras/abl-rm")
+# El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
+JUEGO = render_map.GAME_DIR
 DEMO = [4, 1, 2, 3, 5, 6, 7]
 GRUPO = [10]
 

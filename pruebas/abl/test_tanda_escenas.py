@@ -79,9 +79,10 @@ ESCENAS = (
     # EV0041 del mapa 8, que hasta el 2026-09-10 se caía entero por la
     # condición de ítem de su tercera página: con el switch 24 corre la primera
     # —"Well, it's worth a try"— y el héroe salta la reja y se va para arriba.
-    # Verificado que sin hablarle la referencia difiere en miles de pixeles en
-    # el cuadro 200.
-    ("ev41", (60, 120, 200), (10, 40), ()),
+    # El caso lo pone **encima** del evento, que es de la capa de abajo, por
+    # lo mismo que `savepoint-guarda`: de frente la página no corre. Los ticks
+    # son el mensaje, la subida, el salto en el aire y la llegada.
+    ("ev41", (30, 60, 108, 200), (10, 40), ()),
     # El droide del Sector 32 y sus cuatro variantes: bloqueado, roto —con el
     # switch 22—, frenado, en cuadrado, y tapado por la capa de encima.
     ("bloqueo", (40, 60, 100), (), ()),

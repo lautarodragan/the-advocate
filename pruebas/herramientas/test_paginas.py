@@ -107,10 +107,17 @@ def test_el_tram_officer_compila_con_las_variables():
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
     del_mapa = eventos.Eventos(game_map)
     oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
+    # Vaciar el índice es global a todo el proceso: se repone aunque la
+    # aserción falle, o la prueba que corra después en este proceso compila
+    # sin variables.
+    antes = dict(eventos.VARIABLE_SLOT)
     eventos.VARIABLE_SLOT.clear()
-    assert eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
-                                   eventos.Mensajes(),
-                                   del_mapa.para(oficial.id)) is None
+    try:
+        assert eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
+                                       eventos.Mensajes(),
+                                       del_mapa.para(oficial.id)) is None
+    finally:
+        eventos.VARIABLE_SLOT.update(antes)
     ranuras = eventos.indexar_variables(GAME_DIR)
     assert {17, 21, 39, 40, 41, 42} <= set(ranuras), ranuras
     codigo = eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,

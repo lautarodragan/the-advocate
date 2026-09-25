@@ -46,6 +46,9 @@ NUCLEO = os.environ.get(
 # lado da unos 25000 pixeles de diferencia.
 RETRASO_DE_PANTALLA = 1
 
+# Los bytes de WRAM de la consola.
+WRAM = 0x20000
+
 
 class SimboloDesconocido(KeyError):
     """Se pidió un símbolo que la ROM no tiene."""
@@ -279,9 +282,7 @@ class Partida:
         muestra de cada ranura —el nombre y las caras del grupo guardado— sólo
         se puede comprobar con una partida guardada de verdad.
         """
-        self.consola.reset()
-        self.cuadro = 0
-        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self._resetear()
         self.consola.correr(TITULO_AIRE)
         self._bajar_y_elegir(1)
         self.consola.correr(TITULO_AIRE)
@@ -377,6 +378,26 @@ class Partida:
         self.correr(10)
         return self
 
+    def _resetear(self):
+        """El botón de reset y el arranque, con los relojes de la prueba en
+        cero. `llegada` es la del `Teleport` del caso **antes** del reset:
+        restada a un `vueltas` que arranca de nuevo, un `correr(10)` corría
+        ochenta ticks.
+
+        **La WRAM se pisa antes**, con el `$55` con que snes9x la enciende:
+        el reset del core la deja como estaba —igual que el de la consola—, así
+        que un valor que la carga no repusiera seguía ahí y la prueba de "viaja
+        en la partida" pasaba igual. La ROM no la limpia entera al arrancar:
+        inicializa variable por variable. Así lo que sobrevive es lo que vino
+        de la SRAM o lo que el arranque escribió, como al prender la consola.
+        """
+        self.consola.escribir_ram(0, bytes([0x55]) * WRAM)
+        self.consola.reset()
+        self.cuadro = 0
+        self.llegada = 0
+        self.hardware = 0
+        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+
     def reiniciar(self, opcion=None, ranura=0):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
 
@@ -387,9 +408,7 @@ class Partida:
         Con pantalla de título hay que volver a elegir, y `opcion` dice qué:
         sin ella se repite la de la vez anterior.
         """
-        self.consola.reset()
-        self.cuadro = 0
-        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self._resetear()
         elegir = self.titulo if opcion is None else opcion
         if elegir is not None:
             self.pasar_el_titulo(elegir, ranura)
@@ -546,6 +565,11 @@ class Partida:
         """
         self.consola.escribir_ram(self.simbolos[nombre], [valor])
         return self
+
+    def heroe(self):
+        """La celda donde está el héroe, (x, y). A mitad de un paso es la de
+        los pixeles, o sea la de salida hasta que llega."""
+        return (self.palabra("hero_x") // 16, self.palabra("hero_y") // 16)
 
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""
@@ -711,9 +735,7 @@ class Partida:
         `pasar_el_titulo` la atraviesa; acá hace falta lo contrario, porque lo
         que se quiere mirar es el estado mientras la pantalla está puesta.
         """
-        self.consola.reset()
-        self.cuadro = 0
-        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self._resetear()
         self.consola.correr(TITULO_AIRE)
         return self
 

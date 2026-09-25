@@ -44,7 +44,15 @@ def test_un_destino_que_no_entra_en_un_byte_no_se_trunca():
 
 def paginas_del_juego():
     """Todas las páginas disparables de los 328 mapas, ya compiladas."""
-    eventos.indexar_variables(GAME_DIR)
+    # **Todos** los índices que llena el conversor antes de compilar, y no sólo
+    # el de variables: son globales de `eventos`, así que con uno solo las
+    # páginas que compilan dependían de qué otra prueba había corrido antes en
+    # el mismo proceso, y con xdist eso es el reparto.
+    for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
+                    eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
+                    eventos.indexar_terminos, eventos.indexar_actores,
+                    eventos.indexar_habilidades):
+        indexar(GAME_DIR)
     for nombre in sorted(os.listdir(GAME_DIR)):
         if not (nombre.startswith("Map") and nombre.endswith(".lmu")):
             continue
@@ -63,8 +71,6 @@ def paginas_del_juego():
                     yield nombre, ev.id, numero, codigo
 
 
-@pytest.mark.skipif(not os.path.isdir(GAME_DIR),
-                    reason="hace falta el juego original en GAME_DIR")
 def test_ningun_opcode_comparte_numero_con_otro():
     """Dos `OP_*` con el mismo valor son dos programas distintos.
 
@@ -90,6 +96,8 @@ def test_ningun_opcode_comparte_numero_con_otro():
     assert len(numeros) > 30, "no se miró ni un opcode"
 
 
+@pytest.mark.skipif(not os.path.isdir(GAME_DIR),
+                    reason="hace falta el juego original en GAME_DIR")
 def test_los_largos_de_opcode_cuadran_en_todo_el_juego():
     cuantas = 0
     for nombre, evento, numero, codigo in paginas_del_juego():

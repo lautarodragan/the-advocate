@@ -498,8 +498,22 @@ class Recorrido:
 
     def _contra_golden(self, nombre, archivo, imagen):
         """Compara con la golden si la hay. Ver `foto`."""
-        golden = os.path.join(GOLDEN, os.path.basename(self.fotos_dir), archivo)
+        carpeta = os.path.join(GOLDEN, os.path.basename(self.fotos_dir))
+        golden = os.path.join(carpeta, archivo)
         if not os.path.exists(golden):
+            # Sin golden no falla, a propósito; pero la golden se busca por el
+            # número de orden, así que una foto nueva metida antes corre a
+            # todas las de atrás y las deja sin comparar, calladas. Si el hito
+            # tiene golden con otro número, es eso.
+            hito = archivo.split("-", 1)[1]
+            hay = os.listdir(carpeta) if os.path.isdir(carpeta) else ()
+            otras = sorted(n for n in hay if n.split("-", 1)[-1] == hito)
+            if otras:
+                raise AssertionError(
+                    "el hito %r es la foto %s y su golden es %s: se corrió la "
+                    "numeración, y las fotos que siguen quedan sin comparar. "
+                    "Renombrá las goldens de %s."
+                    % (nombre, archivo, ", ".join(otras), carpeta))
             return
         from PIL import Image
         esperada = Image.open(golden).convert("RGB")
