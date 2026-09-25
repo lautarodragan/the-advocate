@@ -417,8 +417,6 @@ class Recorrido:
         self.fotos_dir = fotos
         self.hito = "arranque"
         self.fotos = []
-        if fotos:
-            os.makedirs(fotos, exist_ok=True)
 
     # --- lo que se le dice al mundo ----------------------------------------
 
@@ -487,6 +485,9 @@ class Recorrido:
             self.asentar()
         if not self.fotos_dir:
             return self
+        # La carpeta se crea con la primera foto y no antes: una jugada que no
+        # saca ninguna —la de `con_musica`— dejaba una vacía.
+        os.makedirs(self.fotos_dir, exist_ok=True)
         archivo = "%02d-%s.png" % (len(self.fotos) + 1, nombre)
         ruta = os.path.join(self.fotos_dir, archivo)
         imagen = self.p.imagen()
