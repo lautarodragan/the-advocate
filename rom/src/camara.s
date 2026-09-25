@@ -60,6 +60,63 @@ en_su_lugar:
     rts
 .endproc
 
+; Cuántos cuadros espera la página que pidió el pan: lo que le falta al eje que
+; más falta, dividido por el paso y redondeado para arriba. Es `GetPanWait`.
+; Devuelve el número en A de dieciséis bits.
+;
+; Lo que falta llega hasta quince celdas —3840 dieciseisavos— y el paso no pasa
+; de 128, así que entran justo en el dividendo de dieciséis y el divisor de ocho
+; del hardware.
+.proc pan_cuadros
+.a8
+.i16
+    rep #$20
+.a16
+    lda pan_dest_x
+    sec
+    sbc pan_x
+    bpl falta_x
+    eor #$FFFF
+    inc a
+falta_x:
+    sta temp
+    lda pan_dest_y
+    sec
+    sbc pan_y
+    bpl falta_y
+    eor #$FFFF
+    inc a
+falta_y:
+    cmp temp
+    bcs mayor
+    lda temp
+mayor:
+    ; Redondear para arriba es sumarle el paso menos uno antes de dividir.
+    clc
+    adc pan_paso
+    sec
+    sbc #1
+    sta WRDIVL                  ; el dividendo, en una escritura de dieciséis
+    sep #$20
+.a8
+    lda pan_paso
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDDIVL
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- la cámara -------------------------------------------------------------
 ; Sigue al héroe: lo deja en el centro de la pantalla salvo cerca de los bordes
 ; del mapa, donde se queda pegada para no mostrar el vacío de afuera.

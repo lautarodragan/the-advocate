@@ -362,3 +362,157 @@ otro:
     rts
 .endproc
 
+.proc sonido_de_codigo
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el índice
+    iny
+    iny
+    phy
+    jsr sonido_tocar            ; con A de dieciséis; vuelve con A de ocho
+.a8
+    ply
+    rts
+.endproc
+
+; El efecto cuyo índice en `sonido_tabla` trae A de dieciséis bits, o nada si
+; trae $FFFF. Se separó de `sonido_de_codigo` cuando la batalla empezó a tocar
+; efectos: los suyos no salen del bytecode sino de las constantes `BA_SE_*`
+; que emite el conversor, así que el índice llega en el acumulador.
+;
+; Entra con A de dieciséis bits y sale con A de ocho, que es como la dejaba
+; antes. El banco de datos no importa: todo lo que lee va con `f:`.
+.proc sonido_tocar
+.a16
+.i16
+    cmp #$FFFF
+    bne hay
+    sep #$20
+.a8
+    rts
+hay:
+.a16
+    phb
+    pha
+    sep #$20
+.a8
+    phk
+    plb                         ; la tabla vive en el banco del código
+    rep #$20
+.a16
+    pla
+    sta temp
+    asl a
+    asl a
+    asl a
+    sec
+    sbc temp                    ; por siete
+    tax
+    sep #$20
+.a8
+    lda f:sonido_tabla, x
+    cmp #$FF
+    bne hay_efecto
+    jmp listo         ; no hay efecto
+hay_efecto:
+    ; Y sólo si su muestra está en la ARAM: el paquete del mapa puede no
+    ; haberla subido. Ver `paquete_cargar`.
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    sep #$20
+.a8
+    plx
+    cmp #0
+    bne esta
+    xba
+    cmp #0
+    bne esta
+    jmp listo
+esta:
+    ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
+    ; uno a medio escribir arrancaría con la muestra de uno y la altura de
+    ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
+    php
+    sei
+    ; La voz: Y queda en 0 para SE_VOZ o en SE2_DESPL para la otra. Primero la
+    ; que ya está tocando esta misma muestra —la lluvia se vuelve a disparar
+    ; antes de terminar, y así no le roba la otra voz al trueno—, después una
+    ; libre, y si no, la que termina antes. Una pendiente no se pisa si la
+    ; otra se puede: todavía no sonó nada de ella.
+    ldy #0
+    lda f:SE_NUEVO
+    cmp f:sonido_tabla, x
+    bne no_misma_7
+    jsr se_ocupada
+    bne elegida
+no_misma_7:
+    ldy #SE2_DESPL
+    lda f:SE2_NUEVO
+    cmp f:sonido_tabla, x
+    bne no_misma_6
+    jsr se2_ocupada
+    bne elegida
+no_misma_6:
+    ldy #0
+    jsr se_ocupada
+    beq elegida
+    ldy #SE2_DESPL
+    jsr se2_ocupada
+    beq elegida
+    ldy #0
+    lda f:SE2_PENDIENTE
+    bne elegida
+    lda f:SE_PENDIENTE
+    bne la_6
+    rep #$20
+.a16
+    lda f:SE_CUADROS
+    cmp f:SE2_CUADROS
+    sep #$20                    ; no toca C
+.a8
+    bcc elegida
+    beq elegida
+la_6:
+    ldy #SE2_DESPL
+elegida:
+    rep #$20
+.a16
+    tya
+    clc
+    adc #7
+    sta temp                    ; dónde termina la copia
+    sep #$20
+.a8
+copiar:
+    lda f:sonido_tabla, x
+    phx
+    tyx
+    sta f:SE_NUEVO, x
+    plx
+    inx
+    iny
+    cpy temp
+    bcc copiar
+    rep #$20
+.a16
+    tya
+    sec
+    sbc #7
+    tax
+    sep #$20
+.a8
+    lda #1
+    sta f:SE_PENDIENTE, x
+    plp
+listo:
+    plb
+    rts
+.endproc
+

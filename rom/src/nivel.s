@@ -241,6 +241,154 @@ completo:
     jmp apuntar_texto
 .endproc
 
+; Los HP de ahora de un actor, en su fila del panel del grupo: tres cifras
+; alineadas a la derecha y lo que sobre a la izquierda, en blanco. `temp` trae
+; el número de actor del LDB y `temp + 2` la fila; se lleva A, X, Y y `temp`.
+;
+; **Esto existe porque el bloque de la fila se hornea al convertir.** Hasta el
+; 2026-09-13 los HP iban adentro de ese bloque, así que el menú mostraba
+; siempre el máximo del nivel por más que la pelea los bajara: es lo que taro
+; reportó jugando —"en el menú siempre se muestra en 40", que es el máximo de
+; Talan—. El máximo y la barra siguen horneados, que ésos no cambian.
+;
+; Las cifras son los mismos glifos que el oro —`ranura_glifo_celdas`, una por
+; celda— y caen alineadas sin tocar nada porque las dos líneas se dibujan a
+; dos pixeles del borde de arriba de su celda. `titulo._pegar_hp` es la
+; referencia, con las mismas columnas.
+;
+; Vive fuera del banco 0 por lo mismo que `hp_inicial_poner`: allá quedan
+; decenas de bytes y esto son más de cien. Se entra con `jsl` y con el banco de
+; datos en 0 —el menú corre así— pero se lo pone igual, porque todo lo que toca
+; —`temp`, las tablas de `TABLAS` y los registros del PPU— es absoluto del
+; banco 0 y depender del llamador para eso ya costó un error en este repo.
+.proc menu_hp_escribir
+.a8
+.i16
+    phb
+    lda #0
+    pha
+    plb
+    ; La celda de las unidades: la primera del bloque de la fila, más el
+    ; desplazamiento que emite el conversor, más las cifras que van a la
+    ; izquierda.
+    rep #$20
+.a16
+    lda temp + 2
+    and #$00FF
+    asl a
+    tax
+    lda menu_fila_vram, x
+    clc
+    adc #(MENU_HP_DESPL + MENU_HP_CIFRAS - 1)
+    tay
+    ; Y los HP, de la RAM lejana. Un actor con más de 999 mostraría sus tres
+    ; cifras de abajo; ninguno del juego llega.
+    lda temp
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LARGO + FAR_HP, x
+    sta temp
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #MENU_HP_CIFRAS
+    sta temp + 3
+cifra:
+    rep #$20
+.a16
+    lda temp
+    sta WRDIVL                  ; el dividendo, de dieciséis bits
+    sep #$20
+.a8
+    lda #10
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDDIVL
+    sta temp
+    lda RDMPYL                  ; el resto, que es la cifra
+    and #$00FF
+    asl a
+    asl a                       ; dos palabras por cifra
+    tax
+    sty VMADDL
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
+    sta VMDATAL
+    tya
+    clc
+    adc #32                     ; la celda de abajo
+    sta VMADDL
+    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
+    sta VMDATAL
+    sep #$20
+.a8
+    dey
+    dec temp + 3
+    beq listo
+    lda temp
+    ora temp + 1
+    bne cifra
+    ; Lo que queda a la izquierda, en blanco: la celda 0, que en el bloque del
+    ; actor es la que ya hay debajo de las cifras.
+blanco:
+    rep #$20
+.a16
+    sty VMADDL
+    stz VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    stz VMDATAL
+    sep #$20
+.a8
+    dey
+    dec temp + 3
+    bne blanco
+listo:
+    plb
+    rtl
+.endproc
+
+; El nivel de ahora del actor A, en A: el cuarto byte de su ranura de
+; `FAR_EXP`. Un actor sin ranura contesta $FF, y el que pregunta sabe que para
+; ése vale lo del cartucho, que es su nivel de arranque para siempre. Se lleva
+; X; lee con `f:`, así que el banco de datos da igual.
+.proc actor_nivel_de
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    beq listo
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
+listo:
+    rts
+.endproc
+
 ; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
 ; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
 ; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
@@ -331,6 +479,95 @@ listo:
     tax
     sep #$20
 .a8
+    rtl
+.endproc
+
+; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
+; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
+; pisa.
+;
+; Vive **fuera del banco 0** —se la llama con `jsl`— y por eso sus registros
+; van con `f:`: en el banco 0 quedaban setenta bytes libres y ésta son
+; cuarenta. Es el mismo motivo por el que la batalla entera vive allá.
+;
+; Existe desde que hay batallas. Hasta el 2026-09-12 los HP no eran estado —el
+; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
+; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
+; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+;
+; Desde el 2026-09-13 hace lo mismo con los SP, que son estado por el mismo
+; motivo: una habilidad cuesta su `sp_cost`. Son dos DMA iguales y no un lazo
+; porque escribirlo dos veces cuesta menos que un lazo con tabla, y esto vive
+; en RODATA, donde el cartucho sobra.
+.proc hp_inicial_poner
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_HP
+    sta f:WMADDL
+    lda #<(actor_hpmax)
+    ora #(>(actor_hpmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_hpmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0                 ; de A a B, de a un byte
+    lda #$80                    ; WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    ; y los SP, desde `actor_spmax`
+    rep #$20
+.a16
+    lda #FAR_SP
+    sta f:WMADDL
+    lda #<(actor_spmax)
+    ora #(>(actor_spmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_spmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0
+    lda #$80
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    ; y la experiencia y el nivel, desde `exp_inicial`: `Game_Actor` arranca
+    ; en el `initial_level` con la experiencia justa de ese nivel.
+    rep #$20
+.a16
+    lda #FAR_EXP
+    sta f:WMADDL
+    lda #<(exp_inicial)
+    ora #(>(exp_inicial) * 256)
+    sta f:A1T0L
+    lda #(EXP_K * 4)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(exp_inicial)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0
+    lda #$80
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
     rtl
 .endproc
 
@@ -436,6 +673,194 @@ poner:
     sta f:FAR_LARGO + FAR_HP, x
 listo:
     pla
+    pla
+    sep #$20
+.a8
+    pla
+    rts
+.endproc
+
+; `Game_Actor::ChangeExp(GetExp() + BA_T1)` para el actor A: suma, topa en
+; `MaxExpValue()` y sube de nivel mientras alcance. Un actor sin ranura de
+; experiencia no gana nada. Corre con el banco de datos en $7E, como toda la
+; pelea. Se lleva A, X, Y, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así
+; el que reparte la puede sumar a varios.
+;
+; Y por cada nivel que sube, `LearnLevelSkills` de ese nivel: ver
+; `aprender_del_nivel`.
+.proc exp_sumar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    bne tiene
+    rts
+tiene:
+    phx                         ; el actor, para lo que aprenda al subir
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T2                   ; la ranura
+    asl a
+    asl a
+    sta BA_T0                   ; y su desplazamiento en `FAR_EXP`
+    tax
+    lda FAR_EXP, x
+    clc
+    adc BA_T1
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda FAR_EXP + 2, x          ; el acarreo de la suma de arriba sigue en C
+    adc #0
+    sta FAR_EXP + 2, x
+    cmp #EXP_TOPE_HI
+    bcc sin_tope
+    bne topar
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    cmp #(EXP_TOPE_LO + 1)
+    sep #$20
+.a8
+    bcc sin_tope
+topar:
+    rep #$20
+.a16
+    lda #EXP_TOPE_LO
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda #EXP_TOPE_HI
+    sta FAR_EXP + 2, x
+sin_tope:
+    ; Y sube mientras alcance: el lazo de `ChangeExp`, que mira
+    ; `GetNextExp(nivel)` —la fila `nivel` de `exp_tabla`, lo que pide pasar
+    ; al siguiente— hasta el `GetMaxLevel()`. Una pelea puede subir más de un
+    ; nivel de una vez, y eso es de RM2k. Los HP y los SP no se tocan: subir
+    ; de nivel no cura, sólo sube el máximo.
+subir:
+    ldx BA_T2
+    lda f:exp_nivel_max, x
+    ldx BA_T0
+    cmp FAR_EXP + EXP_NIVEL, x
+    beq listo                   ; en el tope
+    bcc listo                   ; más arriba del tope: no pasa, pero no sube
+    lda FAR_EXP + EXP_NIVEL, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    pha                         ; el nivel por cuatro: su fila en la curva
+    lda BA_T2
+    asl a
+    tax
+    lda f:exp_curva, x
+    clc
+    adc 1, s
+    tax
+    pla
+    ; Lo que pide, en dos mitades: la baja a la pila —`BA_T*` están las tres
+    ; ocupadas— y la alta en A.
+    lda f:exp_tabla, x
+    pha
+    lda f:exp_tabla + 2, x
+    ldx BA_T0
+    sep #$20
+.a8
+    cmp FAR_EXP + 2, x          ; primero el byte alto
+    bne alto_distinto
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    cmp 1, s                    ; C si la experiencia alcanza
+    sep #$20
+.a8
+    ply                         ; `ply` no toca C
+    bcc listo
+    bra sube
+alto_distinto:
+    ply
+    bcs listo                   ; C: el alto que pide es más que el que hay
+sube:
+    inc FAR_EXP + EXP_NIVEL, x
+    lda FAR_EXP + EXP_NIVEL, x
+    ply                         ; el actor, sin sacarlo de la pila
+    phy
+    jsr aprender_del_nivel
+    bra subir
+listo:
+    plx
+    rts
+.endproc
+
+; `LearnLevelSkills` de un solo nivel, el A, para el actor Y: prende en
+; `FAR_HAB` el bit de cada par suyo que la tabla de aprendizaje del LDB enseña
+; en ese nivel —`hab_par_nivel`—. Si ya lo sabía no cambia nada, que es
+; `LearnSkill`; y lo que un `ChangeSkills` le hizo olvidar vuelve sólo si se
+; enseña en un nivel que recién pasa, como en RM2k. Corre en la pelea, pero
+; todo lo que toca va con `f:` o por la pila. Se lleva A, X e Y.
+.proc aprender_del_nivel
+.a8
+.i16
+    pha                         ; el nivel
+    rep #$20
+.a16
+    tya
+    asl a
+    tax
+    lda f:hab_par_ini, x
+    pha                         ; la ranura del par que se mira: pila = ranura, nivel
+    tyx
+    lda f:hab_par_n, x
+    and #$00FF
+    beq fin
+    tay                         ; cuántos pares le quedan
+otro:
+    lda 1, s
+    tax
+    sep #$20
+.a8
+    lda f:hab_par_nivel, x
+    cmp 3, s
+    bne siguiente
+    rep #$20
+.a16
+    txa
+    and #$0007
+    tax
+    sep #$20
+.a8
+    lda f:mascara, x
+    pha                         ; su bit: pila = bit, ranura, nivel
+    rep #$20
+.a16
+    lda 2, s
+    lsr a
+    lsr a
+    lsr a
+    tax
+    sep #$20
+.a8
+    pla
+    ora f:FAR_LARGO + FAR_HAB, x
+    sta f:FAR_LARGO + FAR_HAB, x
+siguiente:
+    rep #$20
+.a16
+    lda 1, s
+    inc a
+    sta 1, s
+    dey
+    bne otro
+fin:
     pla
     sep #$20
 .a8

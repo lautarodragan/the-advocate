@@ -96,6 +96,28 @@ apagar:
     rts
 .endproc
 
+.proc destello_de_codigo
+.a8
+.i16
+    lda [cod_ptr], y            ; r
+    sta destello_rgb
+    iny
+    lda [cod_ptr], y            ; g
+    sta destello_rgb + 1
+    iny
+    lda [cod_ptr], y            ; b
+    sta destello_rgb + 2
+    iny
+    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
+    sta destello_nivel + 1
+    stz destello_nivel
+    iny
+    lda [cod_ptr], y            ; cuadros
+    sta destello_resta
+    iny
+    rts
+.endproc
+
 ; Las tres tablas del destello, una por canal: qué queda de cada valor de
 ; cinco bits con el nivel de este cuadro. Son bytes y no palabras ya corridas
 ; a su lugar del color, que le ahorrarían los corrimientos a
@@ -314,63 +336,6 @@ color:
     cpx dest_fin
     bne color
 nada:
-    sep #$20
-.a8
-    rts
-.endproc
-
-; Cuántos cuadros espera la página que pidió el pan: lo que le falta al eje que
-; más falta, dividido por el paso y redondeado para arriba. Es `GetPanWait`.
-; Devuelve el número en A de dieciséis bits.
-;
-; Lo que falta llega hasta quince celdas —3840 dieciseisavos— y el paso no pasa
-; de 128, así que entran justo en el dividendo de dieciséis y el divisor de ocho
-; del hardware.
-.proc pan_cuadros
-.a8
-.i16
-    rep #$20
-.a16
-    lda pan_dest_x
-    sec
-    sbc pan_x
-    bpl falta_x
-    eor #$FFFF
-    inc a
-falta_x:
-    sta temp
-    lda pan_dest_y
-    sec
-    sbc pan_y
-    bpl falta_y
-    eor #$FFFF
-    inc a
-falta_y:
-    cmp temp
-    bcs mayor
-    lda temp
-mayor:
-    ; Redondear para arriba es sumarle el paso menos uno antes de dividir.
-    clc
-    adc pan_paso
-    sec
-    sbc #1
-    sta WRDIVL                  ; el dividendo, en una escritura de dieciséis
-    sep #$20
-.a8
-    lda pan_paso
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    rep #$20
-.a16
-    lda RDDIVL
     sep #$20
 .a8
     rts
