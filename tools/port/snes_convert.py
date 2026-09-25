@@ -5888,13 +5888,6 @@ def parser_de_flags():
                              "Ninguna página que compile hoy cambia de\n"
                              "gráfico, así que sin esto el camino no lo\n"
                              "corre nada")
-    parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
-                        help="hace que la ROM arranque tocando ese tema en vez\n"
-                             "del que le toca al mapa. Existe para escuchar un\n"
-                             "tema desde el arranque —la receta `musica`— y\n"
-                             "para las pruebas: los mapas donde esto empieza\n"
-                             "no traen música propia y sin el flag la ROM sale\n"
-                             "callada. No cambia el bytecode")
     parser.add_argument("--encuentros-de-prueba", type=int, default=None,
                         metavar="PASOS",
                         help="cada cuántos pasos hay un encuentro al azar, "
@@ -6612,7 +6605,6 @@ def main():
                           "musicdata.inc")
     pedidos, arranque, tema_titulo, tema_de_mapa = temas_de_la_rom(
         mapas[args.inicial]["id"], temas, args.game_dir,
-        args.tema_de_arranque,
         renderer.database.title_music if not args.sin_titulo else None,
         [m["id"] for m in mapas])
     # Los efectos, en el orden en que los piden las páginas compiladas: los
@@ -6725,8 +6717,7 @@ def main():
                               if t not in snes_music.PISTAS_MSU))
 
 
-def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None,
-                    map_ids=()):
+def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
     """Qué temas pide el cartucho, cuál suena al arrancar y cuál prende cada
     mapa al entrar.
 
@@ -6749,7 +6740,7 @@ def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None,
     no entró en la ARAM se pide igual: suena por MSU-1, o con lo que otros
     pusieron en el banco.
     """
-    propio = forzado or snes_music.tema_del_mapa(map_id, game_dir)
+    propio = snes_music.tema_del_mapa(map_id, game_dir)
     if propio:
         temas.indice(propio)            # lo agrega al final si no estaba
     # El de la pantalla de título va después, por lo mismo: agregar al final es
