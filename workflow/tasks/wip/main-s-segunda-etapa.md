@@ -2,7 +2,6 @@
 name: "La segunda etapa de partir main.s"
 description: "Las mudanzas están hechas; falta que taro elija cómo partir interprete.s"
 type: refactor
-assignee: taro
 ---
 
 El corte del 2026-09-25 (`391930c`, ver `done/partir-main.s.md`) partió
