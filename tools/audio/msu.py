@@ -16,7 +16,7 @@ el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
 sacar las muestras del SPC700: la idea no es cambiar el arreglo sino dejar de
 sintetizarlo con ocho voces y muestras recortadas.
 
-    python3 tools/audio/msu.py rom/build/abl/abl.sfc
+    python3 tools/audio/msu.py rom/build/release/abl.sfc
 
 **Una pista que ya está no se vuelve a renderizar.** Cuesta un minuto entero
 para las 22 y no depende del cartucho: depende del MIDI, del soundfont, del

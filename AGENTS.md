@@ -268,7 +268,7 @@ falta algo que no se consigue desde acá, se le pide a taro que lo copie a
 `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen rom/build/abl/abl.sfc`, una
+que se le pida a taro —`mednafen rom/build/release/abl.sfc`, una
 receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 

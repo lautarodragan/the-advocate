@@ -1,7 +1,7 @@
 """Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
 
-    python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/abl \\
-        -o rom/build/abl/abl.sfc --simbolos …/abl.sfc.sym
+    python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/release \\
+        -o rom/build/release/abl.sfc --simbolos …/abl.sfc.sym
 
 Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
 hacen lo mismo salvo tres cosas, y son las que viven acá:

@@ -225,13 +225,13 @@ BATALLAS = (
     # taro jugó: `abl` lleva 57 ítems y los textos de la batalla
     # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
     # otros cuatro uno encima del otro, y con eso el menú era ilegible. El
-    # relleno, en el cartucho chico, lo garantiza sin depender de cuántos
+    # relleno, en `test-special`, lo garantiza sin depender de cuántos
     # ítems y mapas lleve el de pruebas.
     #
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "batalla", 200, (), "chico"),
+    ("batalla-textos-lejos", "batalla", 200, (), "test-special"),
 )
 
 
@@ -302,7 +302,7 @@ def test_encuentro():
     Va en cuadros de hardware por lo de siempre: la pantalla de batalla no
     cuenta ticks.
     """
-    consola = consola_cruda("grupo-11-12-13", en="chico")
+    consola = consola_cruda("grupo-11-12-13", en="test-special")
     correr_hardware(consola, 200, sosteniendo=("up",))
     golden("encuentro", consola.imagen())
 
@@ -319,7 +319,7 @@ def test_encuentro_antes():
     dio paso a la pelea, y el tick sale de la cuenta del avance —`--avance` del
     corredor—, no de un número suelto.
     """
-    p = partida("grupo-11-12-13", en="chico")
+    p = partida("grupo-11-12-13", en="test-special")
     p.correr(ticks_de_avance((PASO_DEL_ENCUENTRO - 1) * 16),
              sosteniendo=("up",))
     golden("encuentro.antes", p.imagen())

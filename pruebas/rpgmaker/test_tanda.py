@@ -157,7 +157,7 @@ def test_encima():
     La celda se eligió midiendo: en (66,40) del mapa 1 la capa de encima parte
     al sprite en dos, así que la silueta tiene que coincidir de los dos lados.
     """
-    p = partida("parado-tapado", en="chico")
+    p = partida("parado-tapado", en="test-special")
     p.correr(240)
     golden("encima", p.imagen())
 
@@ -207,9 +207,9 @@ def test_pagina(caso, nombre):
 
     Del arnés: el grupo lo arma la página de prueba, así que va en `caso`. El
     121 llega con `en-121`, que deja el del juego, y el 74 con
-    `grupo-21-en-74`. Los dos casos van en el cartucho de pruebas: el 21 vivió
-    en el chico hasta que la pantalla de ranuras dejó de hornear un bloque de
-    texto por actor.
+    `grupo-21-en-74`. Los dos casos van en `test-main`: el 21 vivió en
+    `test-special` hasta que la pantalla de ranuras dejó de hornear un bloque
+    de texto por actor.
     """
     p = partida(caso)
     p.correr(240)

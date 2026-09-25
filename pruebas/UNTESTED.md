@@ -46,7 +46,7 @@ versionado, y lo hace sobre los cartuchos que arma `just cartuchos`. **La tanda
 no arma `abl`**, así que lo que ahí se mira es que nada versionado haya
 cambiado de decisión; lo que no puede ver es que alguien le sume un mapa al ROM
 jugable —o una animación, que entra sola con la página que la muestre— y no
-corra `just parches`, porque `rom/build/abl` no existe mientras la tanda corre.
+corra `just parches`, porque `rom/build/release` no existe mientras la tanda corre.
 
 Eso lo cobra `just parches-check`, que incluye a `abl` y **sí** falla diciendo
 qué entró sin parche. Hacer que lo cobre la tanda cuesta armar `abl` antes

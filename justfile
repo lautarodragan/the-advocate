@@ -20,7 +20,7 @@ protocolo-pruebas:
 # de la ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
 # rampa, cuadrada, impulso, saturación— más los mensajes de error, así que no
 # necesitan ni el juego ni un soundfont. Que las muestras de verdad salgan bien
-# lo cobra cualquier demo, porque viajan adentro del `.sfc`.
+# lo cobra cualquier ROM, porque viajan adentro del `.sfc`.
 gunter-pruebas:
   cd tools/gunter && cargo test
 
@@ -176,8 +176,8 @@ _xdist:
   echo "para correrlas en serie sin instalarlo: PROCESOS=0 just pruebas" >&2
   exit 1
 
-# Los cartuchos de prueba, en `rom/build/pruebas-unico/`: el de pruebas, que
-# lleva todos los casos de `pruebas/casos/`, y los chicos, que llevan lo que
+# Los cartuchos de prueba, en `rom/build/pruebas-unico/`: `test-main`, que
+# lleva todos los casos de `pruebas/casos/`, y los demás, que llevan lo que
 # no entra en él. Qué va en cada uno y por qué está en `pruebas/arnes/cartuchos.py`;
 # `--lista` lo imprime.
 cartuchos *args:
@@ -193,18 +193,37 @@ cartuchos *args:
 #
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
-parches: demo
-  python3 tools/port/parches.py rom/build/abl
+parches: (build "release")
+  python3 tools/port/parches.py rom/build/release
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Mira todos los cartuchos que haya
 # armados, porque lo versionado tiene que salir igual en todos.
-parches-check *builds="rom/build/pruebas-unico rom/build/abl":
+parches-check *builds="rom/build/pruebas-unico rom/build/release":
   python3 tools/port/parches.py {{builds}} --check
 
+#     release        la que taro juega, en `rom/build/release/abl.sfc`
+#     carrera        la persecución en auto, en `rom/build/carrera/abl.sfc`
+#     test-main      los cartuchos de la tanda, en `rom/build/pruebas-unico/`;
+#     test-special   `just pruebas` los arma solos. Qué lleva cada uno, en
+#     juego          `pruebas/arnes/cartuchos.py`
+#
+# Las que se juegan se llaman `abl.sfc` aunque el directorio cambie, porque
+# el MSU-1 busca sus pistas por el nombre del `.sfc`: ver `msu`.
+#
+# Arma una ROM por nombre: release, carrera, test-main, test-special o juego.
+build cual:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  case "{{cual}}" in
+    release) just _release ;;
+    carrera) just _carrera ;;
+    *) python3 pruebas/arnes/cartuchos.py "{{cual}}" ;;
+  esac
+
 # **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
-# con pantalla de título, en `rom/build/abl/abl.sfc`, que es donde él la busca.
+# con pantalla de título, en `rom/build/release/abl.sfc`, que es donde él la busca.
 #
 # Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
 # y la de sin no la jugaba nadie —la pantalla de título la cubren por su lado
@@ -215,7 +234,7 @@ parches-check *builds="rom/build/pruebas-unico rom/build/abl":
 # juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
 # Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
 # sin música y sin cámara. La referencia hace lo mismo, así que no sería un bug
-# de la ROM: sería una demo mal armada. La familia `cinematica` de la tanda usa
+# de la ROM: sería una ROM mal armada. La familia `cinematica` de la tanda usa
 # el 10 por la misma razón.
 #
 # Con cronómetro, para hacerle lugar al rojo de los dígitos. La lista de mapas es **el subárbol de "Lashe City" que entra**: el
@@ -231,33 +250,33 @@ parches-check *builds="rom/build/pruebas-unico rom/build/abl":
 #                            hace, y el 49 además tiene un `KeyInputProc`. Sin
 #                            eso el auto no dobla y el tráfico no aparece. De
 #                            paso, sus tres mapas de 500x40 no entraban en los
-#                            2 MB del cartucho. Está aparte, en `demo-carrera`.
+#                            2 MB del cartucho. Está aparte, en `carrera`.
 #   los sectores con auto    a dónde lleva la elección del mapa 36. El **38 no
 #                            entra en ningún reparto de VRAM**: sus tiles de
 #                            fondo y de sprite más la ventana no entran en los
 #                            64 KB. Y la elección del 36 es una sola página: o
 #                            compilan los cuatro destinos o no compila ninguno.
-demo nombre="abl":
-  mkdir -p rom/build/{{nombre}}
+_release:
+  mkdir -p rom/build/release
   python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
-      -o rom/build/{{nombre}}/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+      -o rom/build/release/mapdata.inc
+  {{ensamblar}} rom/src/main.s -I rom/build/release \
+      -o rom/build/release/abl.sfc \
+      --simbolos rom/build/release/abl.sfc.sym
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,
 # `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
 # despacio para que se lean los textos. Por qué `-O`, en `video.py`.
 #
-#     just video abl /shared/apertura.mp4 quieto:6000 apertura
-#     just video abl /shared/textos.mp4 apertura talan --leer 150
+#     just video release /shared/apertura.mp4 quieto:6000 apertura
+#     just video release /shared/textos.mp4 apertura talan --leer 150
 #
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
-video nombre salida +jugadas:
-  python3 -O pruebas/arnes/video.py rom/build/{{nombre}} {{salida}} {{jugadas}}
+video cual salida +jugadas:
+  python3 -O pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
 
 # La persecución en auto, que no entra en `abl` y no hace falta que
 # entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
@@ -300,23 +319,23 @@ video nombre salida +jugadas:
 # corta es el `KeyInputProc` **sin espera**; el porqué de que ese comando siga
 # sin aceptarse está en `KEY_INPUT_PROC` en eventos.py.
 #
-# Aparte de `demo` porque el mapa inicial es otro y porque no comparte un solo
+# Aparte de `release` porque el mapa inicial es otro y porque no comparte un solo
 # mapa con ella: juntarlas sería un `if` en el medio de una receta que ya tiene
 # la lista escrita a mano.
-demo-carrera nombre="demo-carrera":
-  mkdir -p rom/build/{{nombre}}
+_carrera:
+  mkdir -p rom/build/carrera
   python3 tools/port/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
       --sin-titulo --inicio 1 26 \
-      -o rom/build/{{nombre}}/mapdata.inc \
+      -o rom/build/carrera/mapdata.inc \
       --comandos-de-prueba pruebas/casos/switch-171.json
-  {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
-      -o rom/build/{{nombre}}/{{nombre}}.sfc \
-      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+  {{ensamblar}} rom/src/main.s -I rom/build/carrera \
+      -o rom/build/carrera/abl.sfc \
+      --simbolos rom/build/carrera/abl.sfc.sym
 
 # Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
 # —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
-# `demo` porque no hace falta para jugar: sin estos archivos la ROM suena
+# `build` porque no hace falta para jugar: sin estos archivos la ROM suena
 # como siempre, por el SPC700. Y porque es cara —renderiza el MIDI con
 # fluidsynth y normaliza en Python— y pesa: son 10,6 MB por minuto de música.
 #
@@ -328,5 +347,5 @@ demo-carrera nombre="demo-carrera":
 # del soundfont, de fluidsynth y de cómo se normaliza, nada de eso es del
 # cartucho, y todo eso está en la clave. Ver `clave_de_la_pista` en msu.py.
 # Con `SIN_CACHE=1` se rehacen todas.
-msu nombre="abl":
-  python3 tools/audio/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
+msu cual="release":
+  python3 tools/audio/msu.py rom/build/{{cual}}/abl.sfc

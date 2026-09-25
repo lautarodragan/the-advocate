@@ -16,7 +16,7 @@ casos. Es su sello, y es lo mismo que mira el arnés para negarse a correr
 contra un cartucho viejo: ver `viejo`.
 
 **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y nada más. Entra
-solo en el cartucho de pruebas —en el orden alfabético, así que los de atrás
+solo en `test-main` —en el orden alfabético, así que los de atrás
 cambian de página, y eso no le importa a nadie: la prueba lo pide por el
 nombre— y la prueba lo corre con `tanda.partida("<nombre>")`. Si corre en otro
 mapa que el de arranque, empieza con un `Teleport` a su mapa y a su celda.
@@ -44,7 +44,7 @@ CASOS = os.path.join(RAIZ, "pruebas", "casos")
 DESTINO = os.environ.get("CARTUCHOS",
                          os.path.join(RAIZ, "rom", "build", "pruebas-unico"))
 
-# Dónde arranca el cartucho de pruebas: el mapa de la mayoría de los casos, y
+# Dónde arranca `test-main`: el mapa de la mayoría de los casos, y
 # el que se midió en el 9e. Un caso que corre en otro lugar llega con el
 # `Teleport` con que empieza; ver `mapa_del_caso` en snes_convert.py.
 MAPA_DE_ARRANQUE = 6
@@ -62,7 +62,7 @@ MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,
 GRAFICOS = (("Future1", "0"), ("nobodyhere", "0"))
 
 # El cartucho de las pruebas, el que lleva todo lo que entra.
-PRUEBAS = "pruebas"
+PRUEBAS = "test-main"
 
 
 def _con_mapas(arranque, *mas):
@@ -80,10 +80,10 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
 
 CARTUCHOS = {
     PRUEBAS: (_DE_PRUEBAS, None),
-    # Lo que no entra en el de pruebas o cuida una disposición del cartucho y
+    # Lo que no entra en `test-main` o cuida una disposición del cartucho y
     # no una imagen: los casos con los actores 12 y 13 en el grupo —pueden
     # liderar, y sus sprites en todos los mapas le cambiaban los colores al
-    # 13 del de pruebas: decisión de taro, para que el de pruebas no dependa
+    # 13 de `test-main`: decisión de taro, para que `test-main` no dependa
     # de las peleas—, el héroe por encima de la capa, los encuentros cada 8
     # pasos —`ChangeEncounterSteps` no está hecho, así que el caso no lo
     # puede pedir—, el relleno de textos de 200, que corre los índices de la
@@ -107,7 +107,7 @@ CARTUCHOS = {
     # pruebas: caían en la paleta de los dígitos del cronómetro, que
     # `subir_timer_pal` sube sin teñir, y salían grises en una pantalla
     # teñida. Hoy `gotas_de_lluvia` saltea esa paleta.
-    "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
+    "test-special": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--sin-titulo", "--sin-timer",
                "--heroe-encima", "--encuentros-de-prueba", "8",
                "--relleno-de-textos", "200"],
@@ -119,11 +119,11 @@ CARTUCHOS = {
     # jugador y como sale `abl`, la ROM que taro juega. Llegar al 4 con un
     # `Teleport` no es arrancar ahí —la cinemática sale con otra rampa de
     # fundido y otro tinte— y el cronómetro le saca una paleta a cada mapa,
-    # que en el de pruebas movía goldens.
+    # que en `test-main` movía goldens.
     #
     # Hasta el 2026-09-20 el título vivía en un cartucho aparte, `titulo`: el
-    # de pruebas con la pantalla delante, con sus mismos cuarenta mapas y sus
-    # cien casos, para que `test_titulo_es_el_mismo_juego` pudiera compararlo
+    # de pruebas —hoy `test-main`— con la pantalla delante, con sus mismos
+    # cuarenta mapas y sus cien casos, para que `test_titulo_es_el_mismo_juego` pudiera compararlo
     # contra el de pruebas. Los dos se fundieron acá, y lo que lo permitió
     # está medido: **el título no mueve una sola golden**. Las cuatro de la
     # pantalla misma y las diecisiete de `cinematica`, `apertura` y `cartel`
@@ -133,16 +133,16 @@ CARTUCHOS = {
     #
     # El tema de arranque es para las pruebas de música, porque el 4 no trae
     # uno propio. Y los casos son pocos a propósito: lo que pedía los cien era
-    # ser el gemelo del de pruebas, y eso ya no hace falta.
+    # ser el gemelo de `test-main`, y eso ya no hace falta.
     "juego": (_con_mapas(4, "--tema-de-arranque", "escape_newyork"),
               ["nada", "cartel", "en-2", "guardar-198-titulo"]),
 }
 
-# Los casos que no van en el cartucho de pruebas porque viven en otro.
+# Los casos que no van en `test-main` porque viven en otro.
 FUERA = {"cartel",
          "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12",
-         # Y el empujón, que sólo hace falta en `chico`, donde se mide el
+         # Y el empujón, que sólo hace falta en `test-special`, donde se mide el
          # borde de banco. Hasta el 2026-09-24 además no cabía acá: el
          # operando de `OP_MESSAGE` contaba de a un byte y el bloque llegaba a
          # 64 KB. Hoy cuenta de a dos —ver `MENSAJES_PASO`—, pero meterlo
@@ -207,7 +207,7 @@ def casos_de(nombre):
 
 
 def donde_esta(caso):
-    """Los cartuchos que llevan el caso, el de pruebas primero."""
+    """Los cartuchos que llevan el caso, `test-main` primero."""
     return [n for n in CARTUCHOS if caso in casos_de(n)]
 
 
@@ -298,14 +298,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--lista", action="store_true",
                         help="qué caso va en qué cartucho, sin armar nada")
+    parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",
+                        help="sólo éstos; sin nombres, todos. Es lo que usa "
+                             "`just build test-main`")
     args = parser.parse_args()
+    for nombre in args.nombres:
+        if nombre not in CARTUCHOS:
+            sys.exit("no hay un cartucho %r: los que hay son %s"
+                     % (nombre, ", ".join(CARTUCHOS)))
     if args.lista:
         for nombre in CARTUCHOS:
             casos = casos_de(nombre)
             print("%s (%d): %s" % (nombre, len(casos), " ".join(casos)))
         return
     fuentes = huella()
-    for nombre in CARTUCHOS:
+    for nombre in args.nombres or CARTUCHOS:
         print("%s: %s" % (nombre, "armado" if armar(nombre, fuentes)
                           else "al día"))
 

@@ -7,7 +7,7 @@ esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.
 
-    python3 -O pruebas/arnes/video.py rom/build/abl salida.mp4 apertura talan
+    python3 -O pruebas/arnes/video.py rom/build/release salida.mp4 apertura talan
 
 Las jugadas se nombran por lo que tienen después de `test_`, sin tener que
 escribir el nombre entero: `apertura` es `test_la_apertura_termina_...`.
@@ -23,6 +23,7 @@ algunas verifican cosas que sólo valen a la velocidad del recorrido: con
 """
 
 import argparse
+import glob
 import os
 import subprocess
 import sys
@@ -73,8 +74,13 @@ def leer_despacio(ticks):
 
 
 def grabar(build, salida, jugadas, leer=None):
-    nombre = os.path.basename(build.rstrip("/"))
-    sfc = os.path.join(build, nombre + ".sfc")
+    # El único `.sfc` del directorio: el nombre no se deduce del directorio,
+    # porque la de release se llama `abl.sfc` adentro de `release/`.
+    sfcs = glob.glob(os.path.join(build, "*.sfc"))
+    if len(sfcs) != 1:
+        raise SystemExit("en %s tiene que haber un .sfc y hay %d"
+                         % (build, len(sfcs)))
+    sfc = sfcs[0]
     simbolos = consola.Simbolos(sfc + ".sym")
     mapas = consola.mapas_de(os.path.join(build, "mapdata.inc"))
     if leer:
@@ -142,7 +148,7 @@ def grabar(build, salida, jugadas, leer=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("build", help="el directorio de la ROM: rom/build/abl")
+    parser.add_argument("build", help="el directorio de la ROM: rom/build/release")
     parser.add_argument("salida", help="el .mp4")
     parser.add_argument("jugadas", nargs="+",
                         help="parte del nombre de una jugada de "

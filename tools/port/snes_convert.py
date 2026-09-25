@@ -4536,7 +4536,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # siete ítems de `abl`, o sea sus veintinueve mapas y dos minutos y
         # medio de conversor por caso. Tuvo un hermano, `--relleno-de-mensajes`,
         # que hacía lo mismo con el bloque de textos; ése se fue el 2026-09-20
-        # porque el empujón lo puede dar un caso —ver el cartucho `chico` en
+        # porque el empujón lo puede dar un caso —ver el cartucho `test-special` en
         # pruebas/arnes/cartuchos.py— y éste no, porque lo que corre no es un
         # texto sino un índice.
         #

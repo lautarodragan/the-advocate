@@ -101,7 +101,7 @@ def test_el_save_point_guarda_sin_titulo(partida, mundo):
     4 con el caso `en-4`.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="en-4", en="pruebas", switch=[UN_ANO_DESPUES]), mundo)
+        partida(caso="en-4", en="test-main", switch=[UN_ANO_DESPUES]), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())

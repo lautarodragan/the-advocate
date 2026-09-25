@@ -237,7 +237,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 
 # Los encuentros salen cada ocho pasos, en vez de los 80 que dice el árbol:
 # con los de verdad la prueba caminaría minutos. Es el `--encuentros-de-prueba`
-# del cartucho chico, el mismo que usa el caso `encuentro` de la tanda.
+# de `test-special`, el mismo que usa el caso `encuentro` de la tanda.
 #
 # El grupo lo arma la página de prueba `grupo-11-12-13`: el de la intro, que
 # **gana** las peleas de ese mapa en un turno, y es lo que hace que el control
@@ -269,7 +269,7 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
 
 
 def con_encuentros(partida):
-    return partida(caso="grupo-11-12-13", en="chico")
+    return partida(caso="grupo-11-12-13", en="test-special")
 
 
 def test_perder_un_encuentro_al_azar_es_game_over(partida):

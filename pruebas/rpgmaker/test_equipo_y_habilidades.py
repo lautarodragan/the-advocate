@@ -43,7 +43,7 @@ def indice():
     import cartuchos
     from rpgmaker import lcf
     extra = set()
-    for nombre in cartuchos.casos_de("pruebas"):
+    for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
         with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
                   encoding="utf-8") as archivo:
             extra |= eventos.pares_de_habilidad_de_comandos(

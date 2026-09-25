@@ -5,7 +5,7 @@ Las pruebas del ROM. En Python. Usan libretro para correr el rom.
 ## Casos
 
 **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y la prueba lo
-pide por el nombre. Entra solo en el cartucho de pruebas. Si corre en otro
+pide por el nombre. Entra solo en `test-main`. Si corre en otro
 mapa que el 6, empieza con un `Teleport` a su mapa y a su celda; para el
 grupo de la tanda en un mapa sin nada más están los `grupo-11-en-<mapa>`, y
 para el del juego los `en-<mapa>`, con la celda donde el héroe caía cuando
@@ -13,16 +13,20 @@ ese mapa era el de arranque de su cartucho.
 
 ## ROMs
 
-Hay 3 ROMs — una para el juego normal, y dos para tests:
+Se arman con `just build <cual>`. La que se juega es `release`, y la tanda
+corre sobre tres cartuchos, que `just pruebas` arma solo:
 
-* `juego`, fiel al ABL original, pero con las limitaciones actuales de este proyecto
-* `pruebas`, igual que `juego` pero con extras que ayudan el testing y debugging
-* `chico`, pruebas que no entran en `pruebas` o cuida una disposición del cartucho
+* `test-main`, con todos los casos de `pruebas/casos/`: las pruebas normales
+* `test-special`, lo que no entra en `test-main` o cuida una disposición del
+  cartucho
+* `juego`, que arranca como el juego de verdad, con pantalla de título
+
+Qué lleva cada uno, y por qué, en `pruebas/arnes/cartuchos.py`.
 
 ### Notas
 
 `ChangeEncounterSteps` no está implementado, así que los encuentros de
-prueba siguen siendo un flag del cartucho chico.
+prueba siguen siendo un flag de `test-special`.
 
 ## Cosas sin Pruebas
 

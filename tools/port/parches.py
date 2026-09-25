@@ -51,7 +51,7 @@ por su índice en ninguna paleta, por lo mismo: el índice se corre con cualquie
 cosa y el valor identifica al color para siempre.
 
 Y el cartucho **no entra en la clave**: la regla es de taro, del 2026-09-21, y
-dice que *la decisión versionada es siempre la del ROM jugable, `abl`*. Lo
+dice que *la decisión versionada es siempre la del ROM jugable*, hoy `release`. Lo
 versionado es lo que perdió **el juego**, que es lo único que le importa a
 alguien que mire el repo; un cartucho de prueba la reusa cuando aplica, y
 cuando no aplica decide por su cuenta y eso no se versiona. Por eso acá están
@@ -511,7 +511,7 @@ def versionados(raiz, clase=None):
                   for n in os.listdir(carpeta) if n.endswith(".toml"))
 
 
-def revisar(raiz, builds, jugable="abl"):
+def revisar(raiz, builds, jugable="release"):
     """Los parches de los builds contra los versionados: (quejas, propios).
 
     `builds` son directorios de cartuchos armados, y se miran **todos**. Lo que
@@ -526,7 +526,7 @@ def revisar(raiz, builds, jugable="abl"):
     cartucho— y por eso da queja: si diera, lo que se rompió es esa
     independencia, y conviene enterarse ahí y no en la fase 2.
 
-    `propios` va por clase: `{"mapa": {7: ["chico"]}, ...}`, con la clave de
+    `propios` va por clase: `{"mapa": {7: ["test-special"]}, ...}`, con la clave de
     cada una.
     """
     quejas, propios = [], {}
@@ -635,7 +635,7 @@ def main(argv=None):
         return
     if len(builds) != 1:
         sys.exit("lo versionado es lo que decide **un** ROM, el jugable: "
-                 "pasame `rom/build/abl` y no %d cartuchos" % len(builds))
+                 "pasame `rom/build/release` y no %d cartuchos" % len(builds))
     for clase in CLASES:
         _copiar(raiz, builds[0], clase)
 

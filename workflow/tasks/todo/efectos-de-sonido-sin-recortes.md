@@ -144,7 +144,7 @@ Del experimento del 2026-09-24, con `Rain1` apagado. Es `SE_ENTEROS` en
 el trueno del mapa 1, porque el mapa 3 pide el mismo y entero no le entra.
 taro eligió **22 kHz** y está en `main`; el alias sigue siendo provisorio.
 
-Medido con `just demo` y grabando 3000 cuadros con snes9x. Los números de
+Medido con `just build release` y grabando 3000 cuadros con snes9x. Los números de
 paquete son sin `Rain1`, y el primer trueno arrancaba en el cuadro 326 con el
 de antes:
 
