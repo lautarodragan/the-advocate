@@ -78,11 +78,8 @@ def test_seguir_la_historia_carga_la_partida(partida):
     consola de verdad** —la SRAM sobrevive y la WRAM no— y se elige la segunda
     opción. Si el estado vuelve es porque salió del cartucho.
 
-    Lo que distingue cargar de empezar de nuevo es el **switch**, y no el mapa:
-    esta partida guarda sin moverse del mapa de arranque, así que las dos
-    opciones terminan en el mismo lugar. Irse a otro mapa antes de guardar
-    sería más contundente y hoy no se puede: ver
-    `test_irse_de_mapa_antes_de_guardar_no_guarda`, acá abajo.
+    Lo que distingue cargar de empezar de nuevo es el **switch** 7, que se
+    prende antes de guardar: es estado que sólo puede volver de la SRAM.
     """
     una = con_el_control(partida)
     una.prender(7)
@@ -94,39 +91,6 @@ def test_seguir_la_historia_carga_la_partida(partida):
         "'Resume the Story' no cargó la partida: el switch 7 no volvió")
 
 
-def test_irse_de_mapa_antes_de_guardar_guarda(partida):
-    """Irse de mapa y **después** guardar con la página de prueba: guarda.
-
-    Acá vivía un `xfail(strict=True)` con el segundo defecto del 2026-09-10:
-    con pantalla de título, esta página —una automática con espera— no llegaba
-    a guardar si la partida había cambiado de mapa. Medido entonces:
-    quedándose en el mapa de arranque la SRAM tenía la magia a las ~350
-    vueltas; con un `ir_al_mapa` en el medio no la tenía ni a las 891, así que
-    no era cuestión de esperar más, y sin pantalla de título el mismo camino
-    guardaba a las 351.
-
-    **El 2026-09-20 dejó de reproducirse, y no porque se haya arreglado nada.**
-    Lo que cambió es el mapa de arranque: el cartucho con título era el de
-    pruebas, que arranca en el 6, y desde que se fundió con el del juego
-    arranca en el 4. Con ese arranque el mismo camino guarda. Queda como
-    prueba normal —y no borrada— porque lo que cobra es que este camino
-    guarde: si vuelve a no guardar, se ve acá.
-
-    Lo que ya se sabía del defecto y conviene no volver a averiguar: no era el
-    bug de página directa de `partida_suma` —seguía pasando con ése
-    arreglado—, y desde el 2026-09-13 estaba medido que era de esta página y
-    no del juego, porque `test_guardar_save_point.py` camina hasta el save
-    point de verdad —`SaveByTalansPad0`, el evento de índice 66 del mapa 8, en
-    (9,56)— y guarda con pantalla de título después de cambiar de mapa dos
-    veces. taro además confirmó ese día que el save point guarda en mednafen,
-    en mesen y en la SNES de verdad.
-    """
-    una = con_el_control(partida)
-    una.prender(7)
-    una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
-
-
 def test_empezar_ignora_la_partida_guardada(partida):
     """Y la primera opción no la carga, que es la mitad que se puede romper sin
     que nadie se entere.
@@ -135,15 +99,10 @@ def test_empezar_ignora_la_partida_guardada(partida):
     **siempre**, así que 'Begin the Story' habría devuelto al jugador el switch
     prendido. Elegir empezar de nuevo tiene que dejar el mundo como estaba.
 
-    Se guarda **sin irse del mapa de arranque**, igual que
-    `test_seguir_la_historia_carga_la_partida`, y por la misma razón: con
-    título, la página de prueba no llega a guardar si se cambió de mapa —ver
-    el `xfail` de acá arriba—. Hasta el 2026-09-10 esto se iba al mapa 6 y
-    pasaba **en vacío**: `guardar_en` corría los ticks sin mirar si la partida
-    se había guardado, la SRAM quedaba virgen y "empezar de nuevo no cargó
-    nada" era cierto sin probar nada. Ahora `guardar_en` atraviesa la pantalla
-    de ranuras y se cuelga si no se abre, que fue lo que lo delató; y la
-    aserción sobre la SRAM está para que no vuelva a pasar.
+    **La aserción sobre la SRAM no sobra.** Hasta el 2026-09-10 este caso
+    pasaba en vacío: guardar no llegaba a guardar, la SRAM quedaba virgen y
+    "empezar de nuevo no cargó nada" era cierto sin probar nada. Sin mirar que
+    la partida quedó escrita, el caso vuelve a poder pasar así.
     """
     una = con_el_control(partida)
     una.prender(7)

@@ -146,10 +146,11 @@ TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
                    2259, 2380, 2489, 2683, 2743)
 
 # "Begin the Story", que es por donde se entra a `release`, la ROM que se
-# juega. Las seis goldens de `cinematica`, las seis de
-# `apertura` y las cinco de `cartel` se congelaron cuando no la llevaba y salen
-# byte por byte iguales a través de ella: el título no cambia lo que se dibuja
-# adentro del mapa. Ver `tools/ensamblado/cartuchos.py`.
+# juega. Las seis goldens de `cinematica`, las seis de `apertura` y las cinco
+# de `cartel` se congelaron en un cartucho sin pantalla de título y salen byte
+# por byte iguales a través de ella: el título no cambia lo que se dibuja
+# adentro del mapa. Medido al fundir el título con el cartucho del juego, el
+# 2026-09-20, y otra vez al pasarlas de ése a `release`, el 2026-09-24.
 EMPEZAR = 0
 
 # Las cinemáticas: nombre, los ticks, los toques de A, cómo arranca y el

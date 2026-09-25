@@ -23,9 +23,11 @@ jugador. Hasta el 2026-09-24 corría en `juego`, un cartucho parecido.
   con el switch 24 puesto —Talan yendo a trabajar— devuelve a Lashe City. Así
   que el recorrido entra al mapa 16 **por donde el juego entra**, con las mismas
   coordenadas que usan el evento 65 del mapa 8 y el 28 del mapa 9: (53,7).
-* **No bendice las capturas.** Se guardan en `pruebas/snapshots/playthrough/` y
-  se copian a `pruebas-manuales/` para que taro las mire. El día que estén
-  bendecidas, comparar contra ellas es una línea acá.
+* **No compara pixel por pixel.** Cada hito se guarda en
+  `pruebas/snapshots/playthrough/` y se compara con su golden de
+  `pruebas/golden/playthrough/`, que taro bendijo el 2026-09-13, con una
+  tolerancia grande: lo que caza es la pantalla rota, no el detalle. El
+  porqué, en `Recorrido.foto`.
 """
 
 # El switch que prende el final del Emitter Room y que hace que el enrutador del

@@ -53,7 +53,7 @@ DESTINO = os.environ.get("CARTUCHOS",
 # `Teleport` con que empieza; ver `mapa_del_caso` en snes_convert.py.
 MAPA_DE_ARRANQUE = 6
 
-# Los mapas: los de `abl` más los que usan las pruebas, que es la
+# Los mapas: los de `release` más los que usan las pruebas, que es la
 # regla de taro del 2026-09-16 —cada mapa que se suma al proyecto se suma para
 # todos los builds—. Afuera queda el 66: la ventana no le entra en la VRAM.
 MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,
@@ -96,16 +96,14 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
 # por el nombre del `.sfc`.
 #
 # Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
-# y la de sin no la jugaba nadie —la pantalla de título la cubren por su lado
-# los cartuchos de `cartuchos`—. Es la misma decisión que dejó un solo `.sfc` en
-# `pruebas-manuales/`; está en AGENTS.md.
+# y la de sin no la jugaba nadie. Es la misma decisión que dejó un solo `.sfc`
+# en `pruebas-manuales/`; está en AGENTS.md.
 #
 # **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
 # juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
 # Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
 # sin música y sin cámara. La referencia hace lo mismo, así que no sería un bug
-# de la ROM: sería una ROM mal armada. La familia `cinematica` de la tanda usa
-# el 10 por la misma razón.
+# de la ROM: sería una ROM mal armada.
 #
 # Con cronómetro, para hacerle lugar al rojo de los dígitos. La lista de
 # mapas es **el subárbol de "Lashe City" que entra**: el camino a la fábrica, el auditorio y el Director, Sector 30 y los Rat Tracks,

@@ -176,9 +176,9 @@ _xdist:
   echo "para correrlas en serie sin instalarlo: PROCESOS=0 just pruebas" >&2
   exit 1
 
-# Los cartuchos de prueba, en `rom/build/tests/`: `test-main`, que
-# lleva todos los casos de `pruebas/casos/`, y los demás, que llevan lo que
-# no entra en él. Qué va en cada uno y por qué está en `tools/ensamblado/cartuchos.py`;
+# Todos los cartuchos: `release` y los de la tanda. Es lo que corre `just
+# pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
+# Qué va en cada uno y por qué está en `tools/ensamblado/cartuchos.py`;
 # `--lista` lo imprime.
 cartuchos *args:
   python3 tools/ensamblado/cartuchos.py {{args}}
