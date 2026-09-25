@@ -47,6 +47,12 @@ RETRASO_DE_PANTALLA = 1
 # Los bytes de WRAM de la consola.
 WRAM = 0x20000
 
+# La marca de una ranura con partida. **No sale de la tabla de símbolos porque
+# la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
+# `cmp #$41`... inmediatos, y `guardar_partida` la escribe igual. Lo que sí
+# es símbolo es dónde va, `SRAM_MAGIA`.
+MAGIA = b"ABLS"
+
 
 class SimboloDesconocido(KeyError):
     """Se pidió un símbolo que la ROM no tiene."""
@@ -433,6 +439,15 @@ class Partida:
     def sram(self, direccion=0, largo=None):
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
         return self.consola.sram(direccion, largo)
+
+    def magia(self, ranura=0):
+        """Los cuatro bytes de la marca de la ranura, en la SRAM."""
+        return self.sram(self.simbolos["SRAM_MAGIA"]
+                         + ranura * self.simbolos["SRAM_STRIDE"], 4)
+
+    def hay_partida(self, ranura=0):
+        """Si la ranura tiene una partida guardada: si lleva la marca."""
+        return self.magia(ranura) == MAGIA
 
     def correr(self, cuadros, apretar_a=(), sosteniendo=(), toques=(),
                toques_hardware=(), tocar=()):

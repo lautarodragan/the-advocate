@@ -200,7 +200,6 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida, mapa11):
 # mirar al evento mientras la piedra vuela.
 AL_LADO_DE_EV0060 = (21, 44)
 EV0060 = 60
-DERECHA = 1                     # `hero_dir`: 0 arriba, 1 derecha, 2 abajo
 
 
 def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
@@ -225,7 +224,8 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida,
     p.correr(20)
     p.tocar("right")
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
-    assert p.byte("hero_dir") == DERECHA, "el héroe tendría que mirar a EV0060"
+    assert p.byte("hero_dir") == p.simbolos["DIR_RIGHT"], (
+        "el héroe tendría que mirar a EV0060")
     assert mapa11.para(1).blanco(EV0060)
     for _ in range(TOPE_HASTA_EL_MENSAJE):
         if p.byte("msg_abierto"):

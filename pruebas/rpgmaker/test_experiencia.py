@@ -349,7 +349,7 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
     tocar(una, "a", TITULO_AIRE)        # guarda en la primera
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    assert una.hay_partida(), "la partida no se guardó"
     poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[4], 5)
     tocar(una, "a", TITULO_AIRE)        # y la vuelve a abrir
     ranuras = una.simbolos["SRAM_RANURAS"]

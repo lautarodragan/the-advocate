@@ -27,9 +27,7 @@ cuatro enemigos la ejercitan los casos `batalla` de
 from port import titulo
 from port import batalla as modelo
 
-from batalla import (ACTOR, BLANCO, DROIDE, FIN, GRUPO, HAB, ITEM, MENSAJE,
-                     O_HABILIDAD, O_HUIR, O_USAR, ORDEN, Pelea, en_el_droide,
-                     hab_id, modelo_de)
+from batalla import DROIDE, GRUPO, Pelea, en_el_droide, hab_id, modelo_de
 from consola import en_la_rom, en_la_wram
 import datos
 from tanda import LINKAGE
@@ -44,8 +42,6 @@ POCION = 1
 # trama. Va en el inventario a propósito, para que la lista tenga algo que
 # dejar afuera; sin él, ofrecer todo y ofrecer lo correcto dan lo mismo.
 LLAVE = 151
-# Qué dice el mensaje, como `BA_MSG_ATAQUE` en rom/src/ram_lejana.s.
-MSG_ATAQUE = 0
 # El nombre de la constante de la ROM para cada caso del reparto.
 PENDIENTE_DE = {"errar": "BA_SE_ERRAR",
                 "dano_actor": "BA_SE_DANO_ACTOR",
@@ -204,7 +200,8 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
             [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-        de_la_rom = [pelea.hp(k) for k in range(3)] + [pelea.hp(4)]
+        de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
+                     + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
         del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
         assert de_la_rom == del_modelo, \
             "turno %d: la consola dejó %r y el modelo %r" % (
@@ -213,7 +210,7 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
             break
     assert esperado.resultado == modelo.VICTORIA, \
         "la pelea de banco tendría que terminar en victoria"
-    assert pelea.modo() == FIN
+    assert pelea.modo() == "FIN"
     assert pelea.byte("BA_RESULT") == modelo.VICTORIA
 
 
@@ -250,11 +247,11 @@ def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
             % (actor, habilidades(base, actor), cuales))
     # Y la ROM, que arma la lista al entrar al menú de cada actor.
     for k, actor in enumerate(GRUPO):
-        pelea.esperar(ORDEN)
+        pelea.esperar("ORDEN")
         assert pelea.byte("BA_ACTOR") == k
         pelea.tocar("right")
         pelea.tocar()
-        pelea.esperar(HAB)
+        pelea.esperar("HAB")
         assert pelea.byte("BA_HAB_N") == len(esperado[actor]), (
             "la ROM le dio %d habilidades al actor %d y sabe %d"
             % (pelea.byte("BA_HAB_N"), actor, len(esperado[actor])))
@@ -296,7 +293,8 @@ def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
         esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
                               (modelo.ORDEN_HABILIDAD, (fury, 0)),
                               (modelo.ORDEN_DEFENDER, 0)])
-        de_la_rom = [pelea.hp(k) for k in range(3)] + [pelea.hp(4)]
+        de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
+                     + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
         del_modelo = [c.hp for c in esperado.actores] + [
             esperado.enemigos[0].hp]
         assert de_la_rom == del_modelo, \
@@ -343,7 +341,8 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
                                            esperado.actores[2].sp)
     # Y el azar **no se movió**: una de switch vuelve antes de cualquier tiro.
     # Si la ROM tirara un dado de más, los HP del turno siguiente no darían.
-    de_la_rom = [pelea.hp(k) for k in range(3)] + [pelea.hp(4)]
+    de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
+                 + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
     del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
     assert de_la_rom == del_modelo, \
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo)
@@ -399,9 +398,10 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     base = datos.base()
     assert habilidades(base, GRUPO[0])[1] == AGENCY_BADGE
     esperado = modelo_de(base)
-    antes = pelea.palabra(una.simbolos["BA_UNO"]
-                          + 4 * una.simbolos["BA_BYTES"]
-                          + una.simbolos["BA_ATK"])
+    # La ranura del droide: la primera de enemigos, detrás de las del grupo.
+    s = una.simbolos
+    del_droide = s["BA_UNO"] + s["BA_GRUPO_MAX"] * s["BA_BYTES"]
+    antes = pelea.palabra(del_droide + s["BA_ATK"])
     pelea.ordenar(("habilidad", 1, 0))
     pelea.ordenar(("defender",))
     pelea.ordenar(("defender",))
@@ -414,9 +414,7 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     for nombre, campo, valor in (("ataque", "BA_ATK", droide.ataque),
                                  ("defensa", "BA_DEF", droide.defensa),
                                  ("agilidad", "BA_AGI", droide.agilidad)):
-        de_la_rom = pelea.palabra(una.simbolos["BA_UNO"]
-                                  + 4 * una.simbolos["BA_BYTES"]
-                                  + una.simbolos[campo])
+        de_la_rom = pelea.palabra(del_droide + s[campo])
         assert de_la_rom == valor, \
             "el %s del droide: la consola %d y el modelo %d" % (
                 nombre, de_la_rom, valor)
@@ -440,7 +438,7 @@ def test_ganar_sigue_por_el_victory_handler(partida):
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
             [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-    quedaron = [pelea.hp(k) for k in range(3)]
+    quedaron = [pelea.hp(k) for k in range(len(GRUPO))]
     pelea.cerrar()
     assert [pelea.hp_guardado(a) for a in GRUPO] == quedaron, \
         "los HP de la pelea no quedaron en la partida"
@@ -473,11 +471,11 @@ def test_perder_sigue_por_el_defeat_handler(partida):
     # antes de que él mate a nadie, y la pelea terminaba en victoria. Con
     # `Defend` el único que actúa es él.
     for _ in range(12):
-        if pelea.modo() == FIN:
+        if pelea.modo() == "FIN":
             break
         for _ in range(3):
             for _ in range(400):
-                if pelea.modo() != ORDEN:
+                if pelea.modo() != "ORDEN":
                     break
                 # **Dos derechas y no una desde el 2026-09-13**: el menú tiene
                 # el orden del original y `Defend` es la tercera orden.
@@ -485,7 +483,7 @@ def test_perder_sigue_por_el_defeat_handler(partida):
                 pelea.tocar("right")
                 pelea.tocar()
         for _ in range(400):
-            if pelea.modo() in (ORDEN, FIN):
+            if pelea.modo() in ("ORDEN", "FIN"):
                 break
             pelea.tocar()
     assert pelea.byte("BA_RESULT") == modelo.DERROTA, \
@@ -692,9 +690,9 @@ def mirar_los_golpes(una, pelea, esperados):
     """
     vistos = set()
     for _ in range(30):
-        if pelea.modo() != MENSAJE:
+        if pelea.modo() != "MENSAJE":
             break
-        if pelea.byte("BA_MTIPO") != MSG_ATAQUE:
+        if pelea.byte("BA_MTIPO") != una.simbolos["BA_MSG_ATAQUE"]:
             pelea.tocar()
             continue
         dano = pelea.palabra(una.simbolos["BA_MDANO"])
@@ -755,16 +753,16 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     }
     vistos = set()
     for _ in range(8):
-        if pelea.modo() == FIN:
+        if pelea.modo() == "FIN":
             break
-        vivos = len([k for k in range(3) if pelea.hp(k)])
+        vivos = len([k for k in range(len(GRUPO)) if pelea.hp(k)])
         for _ in range(vivos):
             for _ in range(400):
-                if pelea.modo() != ORDEN:
+                if pelea.modo() != "ORDEN":
                     break
                 pelea.tocar()
             for _ in range(400):
-                if pelea.modo() != BLANCO:
+                if pelea.modo() != "BLANCO":
                     break
                 pelea.tocar()
         vistos |= mirar_los_golpes(una, pelea, esperados)
@@ -812,11 +810,11 @@ def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     """
     una = en_el_droide_con_pocion(partida)
     pelea = Pelea(una).abrir()
-    for _ in range(O_USAR):
+    for _ in range(pelea.orden("USAR")):
         pelea.tocar("right")
-    assert pelea.byte("BA_ORDEN") == O_USAR
+    assert pelea.byte("BA_ORDEN") == pelea.orden("USAR")
     pelea.tocar()
-    assert pelea.modo() == ITEM, "A sobre `Use Item` abre la lista"
+    assert pelea.modo() == "ITEM", "A sobre `Use Item` abre la lista"
     base = datos.base()
     esperados = [n for n in sorted(base.items)
                  if modelo.item_usable_en_batalla(base.items[n])]
@@ -847,31 +845,31 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
         quien.hp = quien.hp_max - 20
     antes = una.item(POCION)
     # El primer actor usa la poción sobre sí mismo; los otros dos atacan.
-    for _ in range(O_USAR):
+    for _ in range(pelea.orden("USAR")):
         pelea.tocar("right")
     pelea.tocar()                       # abre la lista
     pelea.tocar()                       # elige el primero
-    assert pelea.modo() == ACTOR
+    assert pelea.modo() == "ACTOR"
     pelea.tocar()                       # sobre el primer actor
     assert una.item(POCION) == antes - 1, (
         "la poción se gasta al elegirla, como en RM2k")
     for _ in range(2):
         for _ in range(400):
-            if pelea.modo() != ORDEN:
+            if pelea.modo() != "ORDEN":
                 break
             pelea.tocar()
         for _ in range(400):
-            if pelea.modo() != BLANCO:
+            if pelea.modo() != "BLANCO":
                 break
             pelea.tocar()
     for _ in range(400):
-        if pelea.modo() in (ORDEN, FIN):
+        if pelea.modo() in ("ORDEN", "FIN"):
             break
         pelea.tocar()
     esperado.jugar_turno(
         [(modelo.ORDEN_ITEM, (base.items[POCION], 0)),
          (modelo.ORDEN_ATACAR, 0), (modelo.ORDEN_ATACAR, 0)])
-    de_la_rom = [pelea.hp(k) for k in range(3)]
+    de_la_rom = [pelea.hp(k) for k in range(len(GRUPO))]
     del_modelo = [c.hp for c in esperado.actores]
     assert de_la_rom == del_modelo, (
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))
@@ -896,19 +894,20 @@ def test_el_menu_va_en_el_orden_del_original(partida):
     pelea = Pelea(una).abrir()
     for _ in range(4):
         pelea.tocar("right")
-    assert pelea.byte("BA_ORDEN") == O_HUIR, \
+    assert pelea.byte("BA_ORDEN") == pelea.orden("HUIR"), \
         "el cursor tiene que llegar hasta `Escape`, que es la quinta"
     pelea.tocar("right")
-    assert pelea.byte("BA_ORDEN") == O_HUIR, "y no pasarse de la quinta"
+    assert pelea.byte("BA_ORDEN") == pelea.orden("HUIR"), \
+        "y no pasarse de la quinta"
     for _ in range(3):
         pelea.tocar("left")
-    assert pelea.byte("BA_ORDEN") == O_HABILIDAD
+    assert pelea.byte("BA_ORDEN") == pelea.orden("HABILIDAD")
     pelea.tocar()
-    assert pelea.modo() == HAB, \
+    assert pelea.modo() == "HAB", \
         "A sobre la habilidad tiene que abrir su lista"
     pelea.tocar("b")
-    assert pelea.modo() == ORDEN, "y B tiene que volver al menú"
-    assert pelea.byte("BA_ORDEN") == O_HABILIDAD, \
+    assert pelea.modo() == "ORDEN", "y B tiene que volver al menú"
+    assert pelea.byte("BA_ORDEN") == pelea.orden("HABILIDAD"), \
         "volviendo con B el cursor se queda donde estaba"
 
 
@@ -930,9 +929,9 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     pelea = Pelea(una).abrir()
     assert pelea.byte("BA_ACTOR") == 0
     pelea.tocar("right")
-    assert pelea.byte("BA_ORDEN") == O_HABILIDAD
+    assert pelea.byte("BA_ORDEN") == pelea.orden("HABILIDAD")
     pelea.tocar()
-    assert pelea.modo() == ORDEN, \
+    assert pelea.modo() == "ORDEN", \
         "sin ninguna habilidad, A no tiene que llevar a ningún lado"
     assert pelea.byte("BA_HAB_N") == 0
 

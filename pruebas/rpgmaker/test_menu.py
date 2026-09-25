@@ -56,7 +56,7 @@ def test_guardar_desde_el_menu(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
     tocar(una, "a", TITULO_AIRE)        # la primera ranura
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    assert una.hay_partida(), "la partida no se guardó"
     assert una.menu_abierto(), "después de guardar se cerró el menú"
     comparar(una, 3, nombre="menu-guardado")
 
@@ -72,7 +72,7 @@ def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
         tocar(una, "down")
     tocar(una, "a", TITULO_AIRE)
     comparar(una, 3, guardar=False, nombre="menu-sin-guardar")
-    assert una.sram(0x100, 4) != b"ABLS"
+    assert not una.hay_partida()
 
 
 def test_menu_prohibido_b_no_lo_abre(partida):

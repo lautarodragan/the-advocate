@@ -35,10 +35,9 @@ def guardada(partida):
 
 def test_la_sram_queda_escrita(guardada):
     """La ranura tiene la magia y no es la basura con la que arranca."""
-    sram = guardada.sram(0, 0x110)
-    assert sram[0x100:0x104] == b"ABLS", (
+    assert guardada.hay_partida(), (
         "la SRAM no lleva la magia de una partida guardada: %r"
-        % sram[0x100:0x104])
+        % guardada.magia())
 
 
 def test_vuelve_donde_estaba(guardada):
@@ -98,11 +97,11 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
         una = partida(caso="guardar-198")
         una.guardar_en(elegida)             # en la pantalla, con el cursor
         simbolos = una.simbolos
-        assert una.sram(_base(simbolos, elegida), 4) == b"ABLS", (
+        assert una.hay_partida(elegida), (
             "se pidió guardar en la ranura %d y ahí no quedó ninguna partida"
             % elegida)
         otra = 1 - elegida
-        assert una.sram(_base(simbolos, otra), 4) != b"ABLS", (
+        assert not una.hay_partida(otra), (
             "guardar en la ranura %d también escribió en la %d: las ranuras se "
             "están pisando" % (elegida, otra))
 
@@ -122,7 +121,7 @@ def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
         "cancelar dejó `ranura` en %d y la partida no venía de ninguna"
         % una.byte("ranura"))
     for n in range(una.simbolos["SRAM_RANURAS"]):
-        assert una.sram(_base(una.simbolos, n), 4) != b"ABLS", (
+        assert not una.hay_partida(n), (
             "se canceló y la ranura %d quedó escrita igual" % n)
 
 

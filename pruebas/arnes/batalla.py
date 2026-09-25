@@ -21,12 +21,13 @@ TROPA_DROIDE = 82
 # El grupo de la escena: Kersh, Core y Manta, que es con quienes se llega.
 GRUPO = (11, 12, 13)
 
-# Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía.
-ORDEN, BLANCO, ITEM, ACTOR, HAB, MENSAJE, FIN = range(7)
-# Las cinco órdenes, como `pantallas.BA_ORDENES`. **El orden cambió el
-# 2026-09-13**: es el del original —Attack / <habilidad> / Defend / Use Item—
-# y `Escape` va quinta, que es la simplificación que `batalla.py` declara.
-(O_ATACAR, O_HABILIDAD, O_DEFENDER, O_USAR, O_HUIR) = range(5)
+# Los modos de la pantalla y las cinco órdenes del menú **se leen de la tabla
+# de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BA_M_*` de
+# la ROM sin el prefijo —"ORDEN", "BLANCO", "FIN"...— y las órdenes son
+# `BA_ORDEN_ATACAR` y compañía. **El orden de las órdenes cambió el
+# 2026-09-13**: es el del original —Attack / <habilidad> / Defend / Use
+# Item— y `Escape` va quinta, que es la simplificación que `batalla.py`
+# declara.
 
 
 class Pelea:
@@ -41,6 +42,9 @@ class Pelea:
     def __init__(self, una):
         self.una = una
         self.s = una.simbolos
+        self._modos = {int(valor): nombre[len("BA_M_"):]
+                       for nombre, valor in self.s.tabla.items()
+                       if nombre.startswith("BA_M_")}
 
     def byte(self, nombre):
         return self.una.consola.ram(self.s[nombre], 1)[0]
@@ -63,7 +67,14 @@ class Pelea:
         return self.palabra(self.s["FAR_SP"] + 2 * actor)
 
     def modo(self):
-        return self.byte("BA_MODO")
+        """El nombre del modo de la pantalla: el de su `BA_M_*` sin el
+        prefijo. Un valor que no es de ninguno vuelve como número."""
+        valor = self.byte("BA_MODO")
+        return self._modos.get(valor, valor)
+
+    def orden(self, nombre):
+        """El número de la orden del menú: `BA_ORDEN_<nombre>`."""
+        return self.s["BA_ORDEN_" + nombre]
 
     def abierta(self):
         return bool(self.una.byte("menu_abierto"))
@@ -98,7 +109,7 @@ class Pelea:
             if self.modo() == modo:
                 return self
             self.una.consola.correr(1)
-        raise AssertionError("la pelea no llegó al modo %d, quedó en %d"
+        raise AssertionError("la pelea no llegó al modo %s, quedó en %s"
                              % (modo, self.modo()))
 
     def ordenar(self, que, tope=400):
@@ -110,10 +121,10 @@ class Pelea:
         `blanco` el lugar del enemigo o del actor al que apunta, según su
         `scope`. Una de switch va sin blanco, `("habilidad", k)`: no lo pide.
         """
-        self.esperar(ORDEN, tope)
+        self.esperar("ORDEN", tope)
         cual = que[0]
-        pasos = {"atacar": O_ATACAR, "defender": O_DEFENDER,
-                 "habilidad": O_HABILIDAD}[cual]
+        pasos = self.orden({"atacar": "ATACAR", "defender": "DEFENDER",
+                            "habilidad": "HABILIDAD"}[cual])
         # El cursor primero a la izquierda del todo: volver de la lista de
         # habilidades con B lo deja donde estaba, así que contar derechas desde
         # donde quedó elegiría otra orden.
@@ -128,7 +139,7 @@ class Pelea:
         if cual == "defender":
             return self
         if cual == "habilidad":
-            self.esperar(HAB, tope)
+            self.esperar("HAB", tope)
             for _ in range(que[1]):
                 self.tocar("right")
             assert self.byte("BA_HAB_SEL") == que[1]
@@ -137,13 +148,13 @@ class Pelea:
                 # Una de switch no pide blanco: `Scene_Battle::AssignSkill`
                 # la anota sobre el que la usa. El cursor ya está en el que
                 # sigue, o el turno ya arrancó.
-                assert self.modo() not in (BLANCO, ACTOR), \
+                assert self.modo() not in ("BLANCO", "ACTOR"), \
                     "una habilidad de switch pidió blanco"
                 return self
         # El blanco: los enemigos se eligen con el cursor hacia abajo desde el
         # primero vivo, y el grupo igual.
         for _ in range(tope):
-            if self.modo() in (BLANCO, ACTOR):
+            if self.modo() in ("BLANCO", "ACTOR"):
                 break
             self.una.consola.correr(1)
         else:
@@ -158,7 +169,7 @@ class Pelea:
         """Con las órdenes ya dadas, pasa los mensajes hasta que el turno
         termina."""
         for _ in range(tope):
-            if self.modo() in (ORDEN, FIN):
+            if self.modo() in ("ORDEN", "FIN"):
                 return self
             self.tocar()
         raise AssertionError("el turno no terminó")
@@ -167,15 +178,15 @@ class Pelea:
         """Un turno entero con `cuantos` actores atacando al primer enemigo."""
         for _ in range(cuantos):
             for _ in range(tope):
-                if self.modo() != ORDEN:
+                if self.modo() != "ORDEN":
                     break
                 self.tocar()
             for _ in range(tope):
-                if self.modo() != BLANCO:
+                if self.modo() != "BLANCO":
                     break
                 self.tocar()
         for _ in range(tope):
-            if self.modo() in (ORDEN, FIN):
+            if self.modo() in ("ORDEN", "FIN"):
                 return self
             self.tocar()
         raise AssertionError("el turno no terminó")
@@ -229,7 +240,8 @@ def hab_id(una, k):
 # de Game Over y de `FullHeal` no dependen de ningún tiro de dado.
 
 # Cuántos ticks se le dan a la página `pelea-82-curar` para perder la pelea y
-# correr el manejador. La pelea sale a los 18 y, perdida sin pelear, no abre pantalla.
+# correr el manejador. La pelea sale a los 18 y, perdida sin pelear, no abre
+# pantalla.
 DESPUES_DE_PERDER = 60
 
 

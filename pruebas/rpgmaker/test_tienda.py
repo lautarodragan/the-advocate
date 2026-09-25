@@ -23,7 +23,7 @@ def entrar(partida):
     una.poner_grupo(KERSH)
     una.poner_oro(ORO)
     una.ir_al_mapa(10, 42, 6)
-    una.poner_byte("hero_dir", 0)       # mirando al vendedor
+    una.poner_byte("hero_dir", una.simbolos["DIR_UP"])  # mirando al vendedor
     una.correr(5)
     una.tocar("a")                      # "Yo. I got weapons."
     una.correr(40)

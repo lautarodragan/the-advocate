@@ -82,7 +82,7 @@ def test_seguir_la_historia_carga_la_partida(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     una.reiniciar(SEGUIR)
     assert una.switch(7), (
@@ -105,7 +105,7 @@ def test_empezar_ignora_la_partida_guardada(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     una.reiniciar(EMPEZAR)
     assert una.mapa() == MAPA_DE_ARRANQUE, (
@@ -137,7 +137,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
 
     # Las dos entradas de la música en `partida_tabla`, en su orden:
     # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
@@ -163,7 +163,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
              - una.simbolos["ACTORES_N"]
              - una.simbolos["HAB_BYTES"]
              - 4 * una.simbolos["EXP_K"])
-    cola = una.sram(0x106 + largo - 3, 3)
+    cola = una.sram(una.simbolos["SRAM_DATOS"] + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"
         % (cola[0], una.byte("music_apagada")))
@@ -183,7 +183,7 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     """
     una = con_musica()
     una.guardar_por_el_menu()
-    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    assert una.hay_partida(), "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
 
     una._resetear()
@@ -210,8 +210,7 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     una = con_el_control(partida)
     una.prender(7)
     una.guardar_por_el_menu(1)                   # se elige la segunda en la pantalla
-    base = una.simbolos["SRAM_MAGIA"] + una.simbolos["SRAM_STRIDE"]
-    assert una.sram(base, 4) == b"ABLS", "no quedó nada en la ranura 1"
+    assert una.hay_partida(1), "no quedó nada en la ranura 1"
 
     # La ranura 1 tiene la partida: elegirla la carga.
     una.reiniciar(SEGUIR, ranura=1)

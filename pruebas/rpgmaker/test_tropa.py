@@ -28,15 +28,13 @@ en todos los mapas y le podría mover los colores a más de una golden.
 from port import eventos
 
 from consola import en_la_rom
-from batalla import FIN, ORDEN, Pelea, hab_id, sabe
+from batalla import Pelea, hab_id, sabe
 import datos
 
 CASO = "tropa-talan-aura"
 TALAN = 14
 DETECT_AURA, ABSORB_AURA = 133, 134
 TROPA = 121
-# `BA_M_PAGINA` de rom/src/ram_lejana.s: corriendo una página de tropa.
-PAGINA = 7
 
 
 def variable(una, numero):
@@ -116,10 +114,10 @@ def mensaje_en_pantalla(una, pelea):
 def hasta_el_mensaje(una, pelea, tope=1500):
     """Pasa los mensajes de la pelea hasta que una página muestre el suyo."""
     for n in range(tope):
-        if (pelea.modo() == PAGINA
+        if (pelea.modo() == "PAGINA"
                 and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
             return
-        if pelea.modo() in (ORDEN, FIN):
+        if pelea.modo() in ("ORDEN", "FIN"):
             raise AssertionError("el turno terminó sin que corriera ninguna "
                                  "página de la tropa")
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
@@ -129,9 +127,9 @@ def hasta_el_mensaje(una, pelea, tope=1500):
 
 def cerrar_y_esperar_ordenes(una, pelea, tope=1500):
     for n in range(tope):
-        if pelea.modo() == ORDEN:
+        if pelea.modo() == "ORDEN":
             return
-        assert pelea.modo() != FIN, "la pelea terminó"
+        assert pelea.modo() != "FIN", "la pelea terminó"
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
         una.consola.correr(1)
     raise AssertionError("la pelea no volvió a pedir órdenes")
@@ -148,7 +146,7 @@ def lugar_en_la_lista(una, pelea, habilidad):
 def abrir_la_lista(una, pelea):
     """Entra a la lista de habilidades de Talan y vuelve a las órdenes, para
     que la ROM la arme: `BA_HAB_LISTA` se arma al entrar."""
-    pelea.esperar(ORDEN)
+    pelea.esperar("ORDEN")
     for _ in range(5):
         pelea.tocar("left")
     pelea.tocar("right")
@@ -252,9 +250,9 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
     # sigue y lo apaga, así que se prende después, con el mensaje cerrado.
     vistos = 1
     for n in range(1500):
-        if pelea.modo() == ORDEN:
+        if pelea.modo() == "ORDEN":
             break
-        if (pelea.modo() != PAGINA
+        if (pelea.modo() != "PAGINA"
                 or pelea.palabra(una.simbolos["BA_PAG_MSG"]) == 0xFFFF):
             s = una.simbolos["switches"] + 134 // 8
             octeto = una.consola.ram(s, 1)[0] | (1 << (134 % 8))
@@ -262,9 +260,9 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
         antes = pelea.palabra(una.simbolos["BA_PAG_MSG"])
         una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
         una.consola.correr(1)
-        if (pelea.modo() == PAGINA and antes == 0xFFFF
+        if (pelea.modo() == "PAGINA" and antes == 0xFFFF
                 and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
             vistos += 1
-    assert pelea.modo() == ORDEN
+    assert pelea.modo() == "ORDEN"
     assert vistos == 1, "la página de Detect Aura corrió %d veces en el " \
         "turno" % vistos
