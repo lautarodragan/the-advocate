@@ -441,7 +441,7 @@ Lo que hay que hacer siempre:
   tardan, y matarlas por impaciencia arruina la corrida.
 * **Repartirles los números de antemano.** Todo lo que se elige tomando "el
   siguiente libre" —un opcode, un índice en una tupla de
-  `pruebas/*/test_tanda*.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  `pruebas/*/test_*_golden.py`, una dirección de la RAM lejana— lo va a elegir cada agente
   mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
