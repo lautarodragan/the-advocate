@@ -9,44 +9,70 @@ Decidido con taro: se hace **después de que se mergee el cambio de MSU-1**
 separados, en este orden. Los números de línea son de ese commit: verificar
 antes de tocar.
 
-## 1. Los bugs (primero, solos)
+## 1. Los bugs — hecho el 2026-09-25
 
-Confirmados:
+Lo que era cada uno y qué se hizo. Las goldens que cambiaron están lado a lado
+en `/shared/goldens/2026-09-25-pruebas-bugs/`, con su `LEEME.txt`.
 
-- **`ev41` no ejercita nada** (`abl/test_tanda_escenas.py:79-84`). El
-  EV0041 nunca corre —héroe quieto en (52,24), `ev_activo=0`— y las tres
-  goldens (60/120/200) tienen el mismo md5. Su "verificado" era contra la
-  referencia de Python.
-- **`varios-18-down` no camina** (`rpgmaker/test_tanda.py:98`): su golden es
-  byte por byte la de `varios-18-none`; hay una página corriendo desde el tick
-  0. Nació en `6cfce1e`; en `571fc59` las dos todavía diferían. Igual
-  `plan-73`, `plan-17` y `plan-8` (`down 0 9`, goldens iguales a `*-none`).
-- **La cobertura de `test_los_largos_de_opcode_cuadran_en_todo_el_juego`
-  depende del orden**: `paginas_del_juego` (`herramientas/test_teleport.py:45`)
-  sólo llama a `indexar_variables`, y los dicts globales de `eventos` quedan
-  llenos o vacíos según qué corrió antes en el worker. `test_paginas.py:110`
-  limpia `VARIABLE_SLOT` y no lo repone.
-- **`test_parches` nunca mira `release`**: `_armados`
-  (`herramientas/test_parches.py:39-44`) lista sólo `cartuchos.DESTINO`.
-  `UNTESTED.md:43-53` dice algo que dejó de ser cierto.
-- **El `skipif` está en el test equivocado** (`test_teleport.py:66`): el que
-  lee el juego es el otro.
-- **`GAME_DIR` y `ABL_GAME_DIR`**: `test_timer_paleta.py:29` y
-  `test_destello_paleta.py:36` leen la primera; todo lo demás, la segunda.
-- **El mapa 6 es una grilla periódica**: en `ruta-vel` y `ruta-vel-lenta`
-  la mayoría de los ticks son idénticos a `6-none`, así que no distinguen si
-  la ruta corrió.
+- **`ev41` estaba mal armado, no la ROM.** El EV0041 es de la capa de abajo, y
+  a esos se les habla **desde su celda** (`CheckEventTriggerHere`); de frente
+  sólo los de la capa del héroe (`CheckEventTriggerThere` pide
+  `Layers_same`, en easyrpg-player). El caso lo ponía en (52,24) mirando al
+  (52,23): medido con un caso temporal, de frente la página no corre nunca,
+  igual que en RM2k, y sus capturas son byte por byte las goldens viejas.
+  Ahora arranca en (52,23), la página corre y la ruta termina en (55,18), que
+  es la cuenta de su `MoveEvent`. Ticks 30/60/108/200: mensaje, subida,
+  salto, llegada (el 120 salía igual que el 200 y se fue).
+- **`varios-18-down` tampoco era la ROM**: `RunDirectorScene` del mapa 19 es
+  automática y sin condiciones, y compila desde que sus mensajes compilan
+  (`6cfce1e`); en RM2k el héroe no camina mientras corre. `down` usa ahora
+  `grupo-11-en-19-sin-escena`, con el switch 90 que deja al mapa después de
+  la escena, y camina las cinco celdas del plan. `none` queda igual.
+- **`plan-73`, `plan-17` y `plan-8` para abajo son correctos**: el plan dice
+  cero celdas y es verdad —pared en el 17 y el 8, la Receptionist en (15,7)
+  del 73—; que la foto sea la de parado es lo que prueba la colisión.
+- **Las caminatas ahora miran la RAM**: `test_heroe` y `test_varios` exigen
+  que el héroe haya caminado las celdas del plan (`tanda.celdas_del_plan`,
+  `Partida.heroe`). Salvo cuando cambia de mapa —el 8 a la derecha pisa la
+  puerta al 16, que la referencia no modelaba—.
+- **`ruta-vel` / `ruta-vel-lenta`**: además de la golden, `BAJO_EN_EL_TICK`
+  pide la celda y la velocidad del héroe en los ticks que son byte por byte
+  `6-none`. No se movieron de mapa: habría cambiado trece goldens.
+- **El chequeo de capturas iguales**: `conftest._capturas_distintas` falla si
+  todas las goldens de una prueba son la misma pantalla. Las que lo eran
+  a propósito y están en `MISMA_PANTALLA` con su porqué.
+- **`test_los_largos_de_opcode_cuadran_en_todo_el_juego`**: `paginas_del_juego`
+  llena todos los índices que llena el conversor, no sólo el de variables.
+  El `skipif` del juego pasó a esa prueba, que es la que lo lee.
+- **`test_paginas`** repone `VARIABLE_SLOT` aunque la aserción falle.
+- **`test_parches` mira `release`**, y exige que esté armado. Se fue la
+  sección de `UNTESTED.md` que decía que no.
+- **`ABL_GAME_DIR`** en `test_timer_paleta` y `test_destello_paleta`, vía
+  `render_map.GAME_DIR`.
 
-Arreglar las goldens de `ev41` y `varios-18-down` es re-congelarlas:
-**se le muestran a taro lado a lado antes del merge.** Y sumar un chequeo
-barato que avise cuando todas las capturas de un caso son idénticas.
+Los sospechosos:
 
-Sospechosos, para mirar en la misma pasada: `Partida.reiniciar` no repone
-`llegada` ni `hardware` (`arnes/consola.py:377-400`); las pruebas de "viaja en
-la partida" dependen de que el arranque reinicialice la WRAM; `test_piedras`
-lee el `.lmu` original y no el fork de `parches/manual/`; las fotos del
-recorrido sin golden pasan siempre y se buscan por número de orden
-(`arnes/recorrido.py:501-503`); siete goldens son la misma pantalla negra.
+- **`Partida.reiniciar` no reponía `llegada` ni `hardware`: confirmado.** Un
+  `correr(10)` después de un reset corría 81 ticks en `guardar-198`. Los tres
+  resets pasan ahora por `_resetear`, que los pone en cero.
+- **"Viaja en la partida" dependía de la WRAM: confirmado a medias.** El
+  reset de snes9x deja la WRAM como estaba y la ROM no la limpia entera, así
+  que un valor que la carga no repusiera seguía ahí. `_resetear` la pisa con
+  `$55` antes. Con eso las pruebas que resetean siguen en verde: hoy no
+  había ninguna pasando por eso.
+- **`test_piedras` y el fork: descartado.** `lcf.Map` sobre `GAME_DIR` lee el
+  volcado de `data/` con el fork encima (34 eventos, el original tiene 84).
+- **Las fotos del recorrido por número de orden: confirmado y cubierto.** Una
+  foto sin golden sigue sin fallar, a propósito; pero si su hito tiene golden
+  con otro número, falla diciendo que se corrió la numeración.
+- **Las siete goldens negras: descartado.** Las cuatro `puerta-*-40` y
+  `manta-2800` están a mitad de un fundido (`fundido` = 1), `cartel-880` es
+  la imagen ya borrada sobre el mapa 4, que es negro, y `saturar-120` es el
+  tinte a negro que el caso pide.
+
+Lo que quedó sin cubrir: las siete fotos del recorrido `vipers` no tienen
+golden, así que pasan siempre hasta que taro las bendiga; y las goldens
+nuevas de `ev41` y `varios-18-down` las tiene que mirar él.
 
 ## 2. Los helpers a `arnes/` (mecánico, lo verifica `just pruebas`)
 
