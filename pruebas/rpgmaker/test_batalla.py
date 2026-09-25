@@ -1158,8 +1158,9 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
     Con una pista de CD sonando, `music_start` deja el SPC700 callado a
     propósito —`music_apagada` en 1— y hasta el 2026-09-21 la pelea miraba sólo
     eso: anotaba $FF, "no sonaba nada", y al volver al mapa lo callaba en vez
-    de reponerlo. Ninguna prueba lo veía porque el core de la tanda no emula
-    el MSU-1; el agente del tema de cada mapa lo encontró leyendo.
+    de reponerlo. Ninguna prueba lo veía porque la tanda corre sin MSU-1 —la
+    consola le esconde las pistas al core, ver `retro.Consola`—; el agente del
+    tema de cada mapa lo encontró leyendo.
 
     Así que acá se pone el estado que deja una pista sonando —las dos banderas,
     escritas a mano— y se mira qué anota la pelea. Sin el arreglo de

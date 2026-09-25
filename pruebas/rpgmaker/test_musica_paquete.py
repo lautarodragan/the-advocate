@@ -38,10 +38,11 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     y `music_apagada` en cero— y las muestras que ese tema pide seguían sin
     subir, así que las ocho voces atacaban el silencio.
 
-    No hace falta apagar el MSU-1 para probar esto: el core no emula el
-    cartucho con la extensión, así que `msu_detectar` no encuentra la firma y
-    `music_start` cae siempre por `sin_pista`, que es el camino que se quiere
-    medir.
+    No hace falta apagar el MSU-1 para probar esto, aunque `release` lleve sus
+    pistas: la consola de las pruebas no se las deja ver al core —ver
+    `retro.Consola` y `test_msu.py`—, así que `msu_detectar` no encuentra la
+    firma y `music_start` cae siempre por `sin_pista`, que es el camino que se
+    quiere medir.
     """
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
 
