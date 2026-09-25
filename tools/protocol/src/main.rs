@@ -43,6 +43,12 @@ struct Args {
     #[arg(long, value_name = "PATH")]
     asm: Option<PathBuf>,
 
+    /// Also put a jump table in the assembler output: a macro with one
+    /// `.addr` per opcode, in number order, each naming the opcode in lower
+    /// case. The numbers have to run from 0 with no gaps.
+    #[arg(long, requires = "asm")]
+    jump_table: bool,
+
     /// Write nothing; exit 1 if an output is out of date
     #[arg(long)]
     check: bool,
@@ -68,7 +74,9 @@ fn run(args: &Args) -> Result<u8, String> {
         wanted.push((p, emit::python(&declaration, &source)));
     }
     if let Some(p) = &args.asm {
-        wanted.push((p, emit::asm(&declaration, &source)));
+        let text = emit::asm(&declaration, &source, args.jump_table)
+            .map_err(|e| format!("{}: {e}", args.declaration.display()))?;
+        wanted.push((p, text));
     }
 
     let mut stale = Vec::new();

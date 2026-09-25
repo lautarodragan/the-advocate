@@ -4,10 +4,15 @@
 # todos commiteados. Hay dos declaraciones: el bytecode de los eventos y el
 # stream de música que lee el SPC700.
 #
+# La de eventos lleva `--jump-table`: de ahí sale la tabla del despacho de
+# `correr_codigo`, así que un opcode nuevo no toca el intérprete más que en su
+# `.proc op_x`. La de música no puede —termina en 0xFF— ni lo necesita.
+#
 # `--check` es lo que corre la tanda: falla si alguno quedó viejo.
 protocolo *args:
   protocol tools/protocol/events.toml \
-      --python tools/port/event_opcodes.py --asm rom/src/event_opcodes.inc {{args}}
+      --python tools/port/event_opcodes.py --asm rom/src/event_opcodes.inc \
+      --jump-table {{args}}
   protocol tools/protocol/music.toml \
       --python tools/audio/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
 

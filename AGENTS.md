@@ -142,6 +142,13 @@ sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
 
+Del de eventos sale también **la tabla del despacho** de `correr_codigo`
+(`--jump-table`), así que un opcode nuevo es su entrada en `events.toml` y su
+`.proc op_x`, con el nombre del opcode en minúsculas; el despacho no se toca.
+Eso pide **números contiguos desde 0**: si se saca un opcode, el hueco hay que
+cerrarlo —renumerando, o dándole el número al próximo que se agregue—, porque
+el generador se niega a emitir una tabla con huecos.
+
 ## `git blame` y los cambios mecánicos
 
 `.git-blame-ignore-revs` lista los commits que `git blame` tiene que saltear:

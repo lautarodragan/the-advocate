@@ -119,14 +119,48 @@ pub fn python(d: &Declaration, source: &str) -> String {
     out.join("\n")
 }
 
-pub fn asm(d: &Declaration, source: &str) -> String {
+/// The equates, and with `jump_table` a macro that lays down one `.addr` per
+/// opcode in the order of their numbers, for an indirect `jmp (table, x)`.
+///
+/// The handler of `OP_SWITCH` is `op_switch`: the opcode's name in lower case.
+/// That is a rule and not a field on purpose. A field would be a second name
+/// to keep in step with the first, and the declaration would start saying
+/// something about the reader's code; the rule says only how to spell one
+/// name the declaration already has.
+///
+/// A macro and not the table itself because the equates are included where
+/// the reader wants its constants, and the table has to land where the reader
+/// puts its code: which segment, next to which dispatch, is the reader's
+/// business.
+pub fn asm(d: &Declaration, source: &str, jump_table: bool) -> Result<String, String> {
     let mut out = header(&d.name, source, ";");
     out.push(String::new());
     for o in &d.opcodes {
         out.push(constant(o, "$"));
     }
     out.push(String::new());
-    out.join("\n")
+    if jump_table {
+        let ordered = d.in_code_order()?;
+        let prefix = d.name.to_uppercase();
+        out.push("; How many opcodes there are: every number below this one is declared,".into());
+        out.push("; so an opcode at or above it is not one, and must not index the table.".into());
+        out.push(format!("{prefix}_OPCODE_COUNT = ${:02X}", ordered.len()));
+        out.push(String::new());
+        out.push("; One `.addr` per opcode, in the order of their numbers, to expand where a".into());
+        out.push("; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is".into());
+        out.push("; named after it, in lower case, and a missing one does not assemble.".into());
+        out.push(format!(".macro {prefix}_HANDLERS"));
+        for o in &ordered {
+            out.push(format!(
+                "    .addr {:<20} ; ${:02X}",
+                o.name.to_lowercase(),
+                o.code
+            ));
+        }
+        out.push(".endmacro".into());
+        out.push(String::new());
+    }
+    Ok(out.join("\n"))
 }
 
 #[cfg(test)]
@@ -203,7 +237,11 @@ mod tests {
     /// regenerates with a different tool.
     #[test]
     fn no_generated_line_ends_in_whitespace() {
-        for text in [python(&sample(), "t.toml"), asm(&sample(), "t.toml")] {
+        for text in [
+            python(&sample(), "t.toml"),
+            asm(&sample(), "t.toml", false).unwrap(),
+            asm(&sample(), "t.toml", true).unwrap(),
+        ] {
             for (n, line) in text.lines().enumerate() {
                 assert_eq!(line, line.trim_end(), "line {} of {text}", n + 1);
             }
@@ -212,8 +250,38 @@ mod tests {
 
     #[test]
     fn the_assembler_output_is_equates_and_nothing_else() {
-        let out = asm(&sample(), "test.toml");
+        let out = asm(&sample(), "test.toml", false).unwrap();
         assert!(out.contains("OP_MANY          = $02"), "{out}");
         assert!(!out.contains("OPCODE_SIZE"), "{out}");
+        assert!(!out.contains(".macro"), "{out}");
+        assert!(!out.contains("COUNT"), "{out}");
+    }
+
+    /// Entry k of the table is the handler of opcode k, whatever order the
+    /// declaration lists them in: that is the whole contract of the table.
+    #[test]
+    fn the_jump_table_follows_the_numbers_and_lowercases_the_names() {
+        let mut d = sample();
+        d.opcodes.reverse();
+        let out = asm(&d, "test.toml", true).unwrap();
+        let addrs: Vec<&str> = out
+            .lines()
+            .filter_map(|l| l.trim_start().strip_prefix(".addr "))
+            .map(|l| l.split_whitespace().next().unwrap())
+            .collect();
+        assert_eq!(addrs, ["op_none", "op_one", "op_many"], "{out}");
+        assert!(out.contains("TEST_OPCODE_COUNT = $03"), "{out}");
+        assert!(out.contains(".macro TEST_HANDLERS"), "{out}");
+        assert!(out.trim_end().ends_with(".endmacro"), "{out}");
+    }
+
+    #[test]
+    fn a_jump_table_with_a_gap_is_refused() {
+        let mut d = sample();
+        d.opcodes[2].code = 0x05;
+        let e = asm(&d, "test.toml", true).unwrap_err();
+        assert!(e.contains("0x02, 0x03, 0x04"), "{e}");
+        // Without the table, the same declaration is fine.
+        assert!(asm(&d, "test.toml", false).is_ok());
     }
 }

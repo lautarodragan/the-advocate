@@ -14,6 +14,16 @@ ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
 git viera nada.
 
+**Del lado de la ROM, un opcode nuevo es su `.proc` y nada más.** El despacho
+de `correr_codigo` es un `jmp (tabla, x)` y la tabla la emite el mismo
+generador —la macro `EVENT_HANDLERS` de `event_opcodes.inc`, con
+`--jump-table`—, con una regla para el nombre: el manejador de `OP_X` se llama
+`op_x`, y si no existe la ROM no ensambla. Eso pide que los números de
+`events.toml` sigan contiguos desde 0, y el generador se niega si quedan huecos.
+Hasta el 2026-09-25 el despacho era una cadena de `cmp`/`bne`/`jmp`, un
+eslabón por opcode, y era el punto donde chocaban dos ramas que agregaban uno
+cada una.
+
 **Una página se emite sólo si todos sus comandos se pueden ejecutar.**
 `compilar_pagina` corta con `NoSePuede` y el evento se queda sin código:
 ejecutar la mitad de un script dejaría al juego en un estado que no existe, y la
