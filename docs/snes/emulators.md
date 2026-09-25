@@ -44,8 +44,10 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
   and source.
 
 This was checked by reimplementing Mesen2's lookup (`DbgImporter.cs`,
-commit `b9fa69d`) and running it against every cartridge. Nobody
-has confirmed it in the Mesen2 UI yet.
+commit `b9fa69d`) and running it against every cartridge. taro confirmed
+the names in the Mesen2 UI on 2026-09-25 —disassembly, RAM variables and
+call stack, stopped on a breakpoint in `espera_boton`—; the source view
+has not been confirmed yet.
 
 ## Reporting a bug
 
