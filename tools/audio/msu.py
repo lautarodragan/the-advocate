@@ -18,6 +18,14 @@ sintetizarlo con ocho voces y muestras recortadas.
 
     python3 tools/audio/msu.py rom/build/release/abl.sfc
 
+**Una pista puede salir de un archivo de audio en vez del MIDI.** Si en el
+directorio de reemplazos —`/extras/msu` si no se dice otro— hay un
+`<tema>.mp3`, `.ogg`, `.flac` o `.wav`, la pista es ese audio, decodificado
+con ffmpeg: por ejemplo `escape_newyork.mp3`. Es sólo para el MSU-1: sin él
+el tema sigue sonando por el SPC700 desde el MIDI. Los reemplazos viven en
+`/extras` y no en el repo por la misma razón que el arte del juego: la música
+no es nuestra para redistribuir.
+
 **Una pista que ya está no se vuelve a renderizar.** Cuesta un minuto entero
 para las 22 y no depende del cartucho: depende del MIDI, del soundfont, del
 sintetizador y de cómo se normaliza, y todo eso entra en la clave —ver
@@ -56,6 +64,11 @@ GANANCIA = 0.6
 PICO = 0.97
 
 _fluidsynth = None
+_ffmpeg = None
+
+# Dónde se buscan los reemplazos, y con qué extensiones, en este orden.
+REEMPLAZOS = "/extras/msu"
+EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 
 def huella_de_fluidsynth():
@@ -87,6 +100,50 @@ def huella_de_fluidsynth():
         h.update(version.stdout.encode("utf-8"))
         _fluidsynth = h.hexdigest()
     return _fluidsynth
+
+
+def huella_de_ffmpeg():
+    """Qué decodificador produjo la pista de un reemplazo: el binario del
+    PATH y su versión, por lo mismo que `huella_de_fluidsynth`."""
+    global _ffmpeg
+    if _ffmpeg is None:
+        ruta = shutil.which("ffmpeg")
+        if ruta is None:
+            sys.exit("falta ffmpeg: en Arch, pacman -S ffmpeg")
+        h = hashlib.sha256()
+        with open(ruta, "rb") as f:
+            for bloque in iter(lambda: f.read(1 << 20), b""):
+                h.update(bloque)
+        version = subprocess.run(["ffmpeg", "-version"],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.DEVNULL, text=True)
+        h.update(version.stdout.encode("utf-8"))
+        _ffmpeg = h.hexdigest()
+    return _ffmpeg
+
+
+def reemplazo(directorio, nombre):
+    """El archivo de audio que reemplaza al MIDI de este tema, o None."""
+    for extension in EXTENSIONES:
+        ruta = os.path.join(directorio, nombre + extension)
+        if os.path.isfile(ruta):
+            return ruta
+    return None
+
+
+def clave_del_reemplazo(audio, pico=PICO):
+    """Como `clave_de_la_pista`, para una pista que sale de un archivo."""
+    with open(audio, "rb") as f:
+        crudo = f.read()
+    return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
+                             huella_de_ffmpeg(), "%.17g" % pico, crudo)
+
+
+def decodificar(audio, salida):
+    """Un archivo de audio a WAV de 44,1 kHz estéreo de 16 bits, con ffmpeg."""
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", audio,
+                    "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", salida],
+                   check=True)
 
 
 def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
@@ -156,6 +213,9 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--soundfont", default=snes_samples.SOUNDFONT)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)
+    parser.add_argument("--reemplazos", default=REEMPLAZOS,
+                        help="dónde buscar un <tema>.mp3 —u .ogg, .flac, "
+                             ".wav— que reemplace al MIDI de ese tema")
     args = parser.parse_args()
 
     base = os.path.splitext(args.rom)[0]
@@ -164,11 +224,15 @@ def main():
     abierto.close()
     for nombre, numero in sorted(snes_music.PISTAS_MSU.items(),
                                  key=lambda par: par[1]):
-        midi = find_resource([args.game_dir], "Music", nombre, (".mid",))
-        if not midi:
-            sys.exit("no encuentro el MIDI de %s" % nombre)
         salida = "%s-%d.pcm" % (base, numero)
-        clave = clave_de_la_pista(midi, args.soundfont, args.ganancia)
+        audio = reemplazo(args.reemplazos, nombre)
+        if audio:
+            clave = clave_del_reemplazo(audio)
+        else:
+            midi = find_resource([args.game_dir], "Music", nombre, (".mid",))
+            if not midi:
+                sys.exit("no encuentro el MIDI de %s" % nombre)
+            clave = clave_de_la_pista(midi, args.soundfont, args.ganancia)
         # La pista que ya está, si la escribió este mismo código con estas
         # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
         # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
@@ -181,13 +245,17 @@ def main():
             print("pista %d: %-22s ya estaba -> %s" % (numero, nombre, salida))
             continue
         temporal = salida + ".wav"
-        render(midi, temporal, args.soundfont, args.ganancia)
+        if audio:
+            decodificar(audio, temporal)
+        else:
+            render(midi, temporal, args.soundfont, args.ganancia)
         muestras, escala = pista(temporal, salida)
         os.remove(temporal)
         cache_disco.guardar("msu", clave, huella_del_archivo(salida))
-        print("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s"
+        print("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
               % (numero, nombre, muestras / 44100.0,
-                 os.path.getsize(salida) // (1 << 20), escala, salida))
+                 os.path.getsize(salida) // (1 << 20), escala, salida,
+                 "  (de %s)" % audio if audio else ""))
 
 
 if __name__ == "__main__":
