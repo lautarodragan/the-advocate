@@ -16,17 +16,9 @@ El compañero que mide que el mapa **entra en el cuadro** es
 `pruebas/rpgmaker/test_paralelos.py`.
 """
 
-import os
-
 import pytest
 
-from port import eventos
-from rpgmaker import lcf
-from render.render_map import REPO
-
-from piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja
-
-MAPA11 = os.path.join(REPO, "parches", "manual", "mapas", "Map0011.json")
+from piedras import MAPAS, STONE, celda_de, hablarle_a_la_reja, mapa11
 
 # Dónde busca `Light5` a la piedra en su página paralela: la celda es suya y
 # está escrita en la página, así que acá se repite y no se deduce.
@@ -47,17 +39,10 @@ def celdas_del_cono_b():
     dan al conversor las combinaciones que las sustituciones necesitan, y no
     son parte del minijuego. Ver el commit que las puso.
     """
-    mapa = lcf.Map(MAPA11)
+    mapa = mapa11()
     return [(i % mapa.width, i // mapa.width)
             for i, tile in enumerate(mapa.upper_layer)
             if tile == TILE_DEL_CONO_B and i // mapa.width < mapa.height - 1]
-
-
-@pytest.fixture(scope="session")
-def eventos_del_11():
-    """Para traducir el id de RM2k de la piedra al índice de la tabla de la
-    ROM, con la misma función que usó el conversor."""
-    return eventos.Eventos(lcf.Map(MAPA11))
 
 
 def test_pararse_en_una_baldosa_iluminada_atrapa(partida, celdas_del_cono_b):
@@ -81,7 +66,7 @@ def test_pararse_en_una_baldosa_iluminada_atrapa(partida, celdas_del_cono_b):
         % (x, y))
 
 
-def test_la_piedra_en_la_lampara_apaga_su_cono(partida, eventos_del_11):
+def test_la_piedra_en_la_lampara_apaga_su_cono(partida):
     """El minijuego entero: la piedra rompe la lámpara y el cono se apaga.
 
     La piedra se planta en la celda del héroe —es lo que hace la A del motor,
@@ -107,7 +92,7 @@ def test_la_piedra_en_la_lampara_apaga_su_cono(partida, eventos_del_11):
     assert una.byte("sub_n"), (
         "con la piedra en %s la página de Light5 tendría que haber apagado su "
         "cono con TileSubstitution, y no hay ninguna puesta. La piedra quedó "
-        "en %s" % (LUZ5, celda_de(una, eventos_del_11, STONE)))
+        "en %s" % (LUZ5, celda_de(una, STONE)))
     assert una.switch(LAMPARA_ROTA), (
         "la lámpara tendría que haber quedado rota: es el switch %d, el mismo "
         "que en el original cambiaba su gráfico" % LAMPARA_ROTA)

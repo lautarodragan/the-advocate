@@ -4,6 +4,13 @@ para que Talan tenga las piedras, y dónde está cada evento.
 Vivía en `test_piedras.py`, y `test_luces.py` lo importaba de ahí.
 """
 
+import functools
+import os
+
+from port import eventos
+from rpgmaker import lcf
+from render.render_map import GAME_DIR
+
 import datos
 
 # El mapa del minijuego, con el grupo del juego: no sale de ahí.
@@ -20,9 +27,24 @@ def ranura(numero):
     return datos.ranuras_de_variable()[numero]
 
 
-def celda_de(p, mapa11, evento):
+@functools.lru_cache(maxsize=None)
+def mapa11():
+    """El mapa 11 por el mismo camino que el conversor: `GAME_DIR`, que
+    `lcf.Map` lee del volcado de `data/` con el fork de `parches/manual/`
+    encima —34 eventos, no los 84 del original—."""
+    return lcf.Map(os.path.join(GAME_DIR, "Map0011.lmu"))
+
+
+@functools.lru_cache(maxsize=None)
+def eventos_del_11():
+    """Para traducir el id de RM2k de un evento al índice de la tabla de la
+    ROM, con la misma función que usó el conversor."""
+    return eventos.Eventos(mapa11())
+
+
+def celda_de(p, evento):
     """En qué celda tiene la ROM al evento `evento` de RM2k, ahora mismo."""
-    return p.evento(mapa11.para(1).blanco(evento) - 1)
+    return p.evento(eventos_del_11().para(1).blanco(evento) - 1)
 
 
 def hablarle_a_la_reja(p):

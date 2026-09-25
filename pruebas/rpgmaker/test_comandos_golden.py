@@ -518,3 +518,23 @@ def test_ventana(nombre):
     p = partida(nombre)
     p.correr(200)
     golden(nombre, p.imagen())
+
+
+@pytest.mark.parametrize("cuadro", (60, 400))
+def test_espera(cuadro):
+    """`espera`: que una espera espere de verdad, con una página inventada.
+
+    El intérprete corre tick a tick desde que dejó de colapsar el tiempo, pero
+    **ninguna página del juego que compile tiene una espera**, así que ese
+    camino —el corazón del cambio— no lo ejercitaba nada. Lo sintético es la
+    entrada y no la comparación.
+
+    Se mira antes y después, no el tick exacto en que cambia: el arranque de la
+    ROM incluye la subida al SPC700 y la referencia no modelaba eso, así que el
+    borde caía en cuadros distintos de cada lado. Con margen a los dos lados la
+    prueba sigue siendo filosa: si la espera no esperara, el tick de antes ya
+    estaría teñido.
+    """
+    p = partida("espera")
+    p.correr(cuadro)
+    golden("espera-%d" % cuadro, p.imagen())

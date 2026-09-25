@@ -60,9 +60,7 @@ def pelear(una, tope=20000):
 
 
 def hp_de(una):
-    return {a: una.consola.ram(una.simbolos["FAR_HP"] + 2 * a, 2)[0]
-            | (una.consola.ram(una.simbolos["FAR_HP"] + 2 * a, 2)[1] << 8)
-            for a in GRUPO}
+    return {a: una.hp(a) for a in GRUPO}
 
 
 def test_la_pelea_baja_los_hp_y_los_deja_en_la_partida(partida):

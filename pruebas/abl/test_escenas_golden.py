@@ -164,7 +164,9 @@ CINEMATICAS = (
     # La cinemática no termina en el teletransporte: el último paso pisa el
     # evento 2, que es la escena de apertura entera, con cuatro personajes
     # caminando en el mismo mapa, o sea las poses en caliente en su caso real.
-    ("apertura", (370, 770, 830, 1210, 1980, 2910),
+    # Es la misma corrida que `cinematica`, así que un tick que ya mira aquélla
+    # acá es la misma golden dos veces: pasó con el 370 hasta el 2026-09-25.
+    ("apertura", (770, 830, 1210, 1980, 2910),
      TOQUES_APERTURA, (), "release"),
     # El recuerdo de CORE y MANTA, que lo destraba el switch 16: lo prende una
     # página de un mapa que no está en el cartucho del caso. Son 3900 ticks y

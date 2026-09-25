@@ -602,6 +602,33 @@ class Partida:
                                    (cuanto >> 16) & 0xFF])
         return self
 
+    # Los HP y los SP **de la partida**: `FAR_HP` y `FAR_SP`, una palabra por
+    # número de actor. Es lo que guarda la SRAM, lo que dibuja el menú y lo que
+    # tocan `FullHeal` y la posada. Los de adentro de una pelea son otros —uno
+    # por puesto de combatiente, `Pelea.hp_del_combatiente`— y llegan acá
+    # recién cuando `modo_fin` los copia al terminar.
+
+    def hp(self, actor):
+        return self._palabra_del_actor("FAR_HP", actor)
+
+    def poner_hp(self, actor, valor):
+        return self._poner_palabra_del_actor("FAR_HP", actor, valor)
+
+    def sp(self, actor):
+        return self._palabra_del_actor("FAR_SP", actor)
+
+    def poner_sp(self, actor, valor):
+        return self._poner_palabra_del_actor("FAR_SP", actor, valor)
+
+    def _palabra_del_actor(self, tabla, actor):
+        bajo, alto = self.consola.ram(self.simbolos[tabla] + 2 * actor, 2)
+        return bajo | (alto << 8)
+
+    def _poner_palabra_del_actor(self, tabla, actor, valor):
+        self.consola.escribir_ram(self.simbolos[tabla] + 2 * actor,
+                                  [valor & 0xFF, valor >> 8])
+        return self
+
     def equipo(self, actor):
         """Las cinco ranuras de equipo del actor, leídas de `FAR_EQUIPO`."""
         datos = self.consola.ram(self.simbolos["FAR_EQUIPO"] + actor * 10, 10)

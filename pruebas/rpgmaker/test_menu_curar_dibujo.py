@@ -22,7 +22,6 @@ son lo último que la pantalla de ítems pinta antes de abrir la elección.
 """
 
 from consola import TITULO_AIRE
-from batalla import palabra_de
 import datos
 from dibujo import comparar_pantalla, diferencia
 from datos import maximos
@@ -35,18 +34,13 @@ FILA_SANDWICH, FILA_VINO, FILA_ELIXIR = 0, 1, 2
 AG7 = 18
 
 
-def poner_hp(una, actor, valor):
-    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
-                             [valor & 0xFF, valor >> 8])
-
-
 def en_los_items(partida, hp_arden):
     """El grupo de Talan y Arden, Arden con `hp_arden`, y la pantalla de
     ítems abierta con el cursor en el sándwich, que es el primero."""
     una = partida(caso="curar-menu")
     una.correr(5)
     una.poner_grupo(TALAN, ARDEN)
-    poner_hp(una, ARDEN, hp_arden)
+    una.poner_hp(ARDEN, hp_arden)
     una.correr(30)
     abrir(una)
     tocar(una, "a", TITULO_AIRE)
@@ -83,9 +77,9 @@ def test_el_sandwich_cura_desde_el_menu_y_se_gasta(partida):
     Visto en rojo sin el arreglo: Arden seguía en 10 y quedaban dos."""
     una = en_los_items(partida, 10)
     usar_sobre_la_segunda(una, FILA_SANDWICH)
-    assert palabra_de(una, "FAR_HP", ARDEN) == 40, (
+    assert una.hp(ARDEN) == 40, (
         "el sándwich dejó a Arden en %d HP desde 10, y cura 30"
-        % palabra_de(una, "FAR_HP", ARDEN))
+        % una.hp(ARDEN))
     assert una.item(SANDWICH) == 1, (
         "quedan %d sándwiches después de usar uno de dos"
         % una.item(SANDWICH))
@@ -99,9 +93,9 @@ def test_el_sandwich_topa_en_el_maximo(partida):
     tope = maximos()[ARDEN][0]
     una = en_los_items(partida, tope - 5)
     usar_sobre_la_segunda(una, FILA_SANDWICH)
-    assert palabra_de(una, "FAR_HP", ARDEN) == tope, (
+    assert una.hp(ARDEN) == tope, (
         "el sándwich dejó a Arden en %d HP y su máximo es %d"
-        % (palabra_de(una, "FAR_HP", ARDEN), tope))
+        % (una.hp(ARDEN), tope))
 
 
 def test_el_sandwich_no_se_gasta_en_quien_esta_lleno(partida):
@@ -118,9 +112,9 @@ def test_el_sandwich_no_levanta_a_un_caido(partida):
     el sándwich no lo tiene en su `state_set`."""
     una = en_los_items(partida, 0)
     usar_sobre_la_segunda(una, FILA_SANDWICH)
-    assert palabra_de(una, "FAR_HP", ARDEN) == 0, (
+    assert una.hp(ARDEN) == 0, (
         "el sándwich levantó a Arden, que estaba caído: quedó en %d"
-        % palabra_de(una, "FAR_HP", ARDEN))
+        % una.hp(ARDEN))
     assert una.item(SANDWICH) == 2
 
 
@@ -130,15 +124,15 @@ def test_el_vino_repone_los_sp(partida):
     una = partida(caso="curar-menu")
     una.correr(5)
     una.poner_grupo(TALAN, ARDEN)
-    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * ARDEN, [0, 0])
+    una.poner_sp(ARDEN, 0)
     una.correr(30)
     abrir(una)
     tocar(una, "a", TITULO_AIRE)
     usar_sobre_la_segunda(una, FILA_VINO)
     esperado = min(20, maximos()[ARDEN][1])
-    assert palabra_de(una, "FAR_SP", ARDEN) == esperado, (
+    assert una.sp(ARDEN) == esperado, (
         "el vino dejó a Arden en %d SP desde cero, y tenía que quedar en %d"
-        % (palabra_de(una, "FAR_SP", ARDEN), esperado))
+        % (una.sp(ARDEN), esperado))
     assert una.item(VINO) == (0 if esperado else 1)
 
 
@@ -148,14 +142,14 @@ def test_el_sandwich_no_sirve_a_quien_no_puede_usarlo(partida):
     una = partida(caso="curar-menu")
     una.correr(5)
     una.poner_grupo(TALAN, AG7)
-    poner_hp(una, AG7, 1)
+    una.poner_hp(AG7, 1)
     una.correr(30)
     abrir(una)
     tocar(una, "a", TITULO_AIRE)
     usar_sobre_la_segunda(una, FILA_SANDWICH)
-    assert palabra_de(una, "FAR_HP", AG7) == 1, (
+    assert una.hp(AG7) == 1, (
         "el sándwich curó a AG7-17, que no lo puede usar: quedó en %d"
-        % palabra_de(una, "FAR_HP", AG7))
+        % una.hp(AG7))
     assert una.item(SANDWICH) == 2
 
 
@@ -173,9 +167,9 @@ def test_el_elixir_levanta_a_un_caido(partida):
     una = en_los_items(partida, 0)
     usar_sobre_la_segunda(una, FILA_ELIXIR)
     esperado = max(1, 25 * tope // 100)
-    assert palabra_de(una, "FAR_HP", ARDEN) == esperado, (
+    assert una.hp(ARDEN) == esperado, (
         "el elixir dejó a Arden en %d HP desde cero, y tenía que quedar en %d"
-        % (palabra_de(una, "FAR_HP", ARDEN), esperado))
+        % (una.hp(ARDEN), esperado))
     assert una.item(ELIXIR) == 0, "el elixir no se gastó"
 
 
@@ -183,9 +177,9 @@ def test_el_elixir_no_sirve_sobre_uno_en_pie(partida):
     """`ko_only`: sobre un vivo, `UseItem` dice que no, y no se gasta."""
     una = en_los_items(partida, 10)
     usar_sobre_la_segunda(una, FILA_ELIXIR)
-    assert palabra_de(una, "FAR_HP", ARDEN) == 10, (
+    assert una.hp(ARDEN) == 10, (
         "el elixir curó a Arden, que estaba en pie: quedó en %d"
-        % palabra_de(una, "FAR_HP", ARDEN))
+        % una.hp(ARDEN))
     assert una.item(ELIXIR) == 1, "el elixir se gastó sobre uno en pie"
 
 

@@ -19,7 +19,7 @@ no cobre cuando no, y que "No" no toque nada.
 
 import os
 
-from batalla import grupo_de, palabra_de, sin_hp
+from batalla import grupo_de, sin_hp
 from datos import maximos
 
 # El bum y su precio, del `ShowInn [0, 5, 0]` de la página. La celda es la de
@@ -78,7 +78,7 @@ def elegir(una, opcion):
 
 
 def hp_del_grupo(una):
-    return {actor: palabra_de(una, "FAR_HP", actor) for actor in grupo_de(una)}
+    return {actor: una.hp(actor) for actor in grupo_de(una)}
 
 
 def test_con_oro_de_sobra_cobra_y_cura(partida):

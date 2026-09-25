@@ -67,8 +67,7 @@ def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
         quien.hp = min(quien.hp_max, modelo.actor_de(base, quien.numero).hp)
         if quien.numero in caidos:
             quien.hp = 0
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * quien.numero,
-                                 [quien.hp & 0xFF, quien.hp >> 8])
+        una.poner_hp(quien.numero, quien.hp)
     pelea = Pelea(una).abrir()
     while esperado.resultado is None:
         pelea.turno(len(esperado.vivos(esperado.actores)))
@@ -237,7 +236,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     """`FullHeal` es `SetHp(GetMaxHp())`, y el máximo es el del nivel que el
     actor tiene. Es el camino de `test_curar.py`, con un nivel que no es el
     de arranque."""
-    from batalla import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
+    from batalla import DESPUES_DE_PERDER, grupo_de, sin_hp
     una = partida(caso="pelea-82-curar")
     base = datos.base()
     sin_hp(una)
@@ -245,8 +244,8 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     poner_exp(una, actor, experiencia.lista_de(base.actors[actor])[29], 30)
     una.correr(DESPUES_DE_PERDER)
     en_30 = modelo.actor_de(base, actor, nivel=30)
-    assert (palabra_de(una, "FAR_HP", actor),
-            palabra_de(una, "FAR_SP", actor)) == (en_30.hp_max, en_30.sp_max)
+    assert (una.hp(actor),
+            una.sp(actor)) == (en_30.hp_max, en_30.sp_max)
     assert en_30.hp_max != modelo.actor_de(base, actor).hp_max
 
 

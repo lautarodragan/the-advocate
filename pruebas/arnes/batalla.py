@@ -53,18 +53,17 @@ class Pelea:
         bajo, alto = self.una.consola.ram(direccion, 2)
         return bajo | (alto << 8)
 
-    def hp(self, k):
+    # Los HP y SP **de la pelea**: la ranura `BA_UNO` del combatiente `k`, que
+    # es el puesto en la pantalla —0 a 2 los actores, desde `BA_GRUPO_MAX` los
+    # enemigos— y no el número de actor. Los de la partida son
+    # `Partida.hp(actor)`, y la pelea los copia ahí recién al terminar.
+
+    def hp_del_combatiente(self, k):
         return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"])
 
-    def sp(self, k):
+    def sp_del_combatiente(self, k):
         return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"]
                             + self.s["BA_SP"])
-
-    def hp_guardado(self, actor):
-        return self.palabra(self.s["FAR_HP"] + 2 * actor)
-
-    def sp_guardado(self, actor):
-        return self.palabra(self.s["FAR_SP"] + 2 * actor)
 
     def modo(self):
         """El nombre del modo de la pantalla: el de su `BA_M_*` sin el
@@ -276,11 +275,6 @@ def con_encuentros(partida):
 
 
 # --- el grupo, leído de la RAM ------------------------------------------------
-
-def palabra_de(una, simbolo, actor):
-    bajo, alto = una.consola.ram(una.simbolos[simbolo] + 2 * actor, 2)
-    return bajo | (alto << 8)
-
 
 def grupo_de(una):
     """Hasta `grupo_n`: las ranuras de más no se limpian y traen basura."""

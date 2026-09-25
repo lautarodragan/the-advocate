@@ -148,14 +148,6 @@ def test_el_permiso_de_escapar_viaja_en_la_partida(partida):
 
 # --- los HP de ahora, que no son los del bloque ------------------------------
 
-def poner_hp(una, cuanto):
-    """Los HP del grupo en la RAM lejana, como los deja una pelea."""
-    for actor, valor in cuanto.items():
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
-                                 [valor & 0xFF, valor >> 8])
-    return una
-
-
 # Talan con dos cifras y Kersh con tres: las tres cifras se escriben alineadas
 # a la derecha, así que un número corto tiene que **borrar** la celda que
 # quedaba a su izquierda. Con un solo largo el caso pasaría igual con la ROM
@@ -176,7 +168,8 @@ def test_el_menu_muestra_los_hp_que_dejo_la_pelea(partida):
     de las tres cifras que la ROM no escribía.
     """
     una = con_grupo(partida())
-    poner_hp(una, HP_DE_PELEA)
+    for actor, valor in HP_DE_PELEA.items():     # como los deja una pelea
+        una.poner_hp(actor, valor)
     abrir(una)
     comparar(una, 0, nombre="menu-hp", hp=HP_DE_PELEA)
 
