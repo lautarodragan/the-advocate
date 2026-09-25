@@ -141,3 +141,25 @@ de `43bd1aa`, y el trabajo 2 corrió muchos: buscar por el texto.
 **Se quedan aunque cuenten historia**, porque protegen una línea:
 `test_titulo.py:102-105`, `test_game_over.py:88-92`, `consola.py:659-661`,
 `recorrido.py:567-573`.
+
+## 4. Organización — en curso
+
+Cuatro propuestas que taro aprobó el 2026-09-25, cada una en su commit. Es un
+refactor: lo que cubre cada prueba no cambia, salvo el tick repetido de la
+segunda.
+
+- **Un solo `Partida.hp(actor)` / `poner_hp`**, y lo mismo para SP. Hoy se
+  leen de cuatro maneras (`palabra_de`, `Pelea.hp_guardado`, `hp_de` y dos
+  `poner_hp`). Si dos maneras leen lugares distintos —el HP de la partida
+  contra el de la pelea— quedan dos métodos con nombres que lo digan.
+- **`cinematica` y `apertura` capturan las dos el tick 370**, de la misma
+  corrida: si las goldens son byte por byte iguales, el 370 sale de uno de
+  los dos, con su golden.
+- **Una sola lectura de los eventos del mapa 11**: `test_luces` los leía del
+  JSON del fork y `test_piedras` de `GAME_DIR`, que ya aplica el fork.
+- **Una convención de nombres** que distinga las pruebas de pixeles de las de
+  estado, y que arregle los nombres que engañan (`test_tanda_pantallas`
+  contiene la batalla, `test_hp_de_batalla` es sobre el menú). Primero un
+  inventario —qué tipo de prueba es cada archivo y qué sistema cubre—, que
+  le sirve a la 3 para el índice del README; después los renombres, en un
+  commit que sea sólo `git mv` y rutas.
