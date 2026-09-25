@@ -18,10 +18,10 @@ porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
 
 import pytest
 
+from consola import EMPEZAR, SEGUIR
 import datos
 from dibujo import comparar_pantalla
 
-EMPEZAR, SEGUIR = 0, 1
 
 # El mapa donde arranca `release`: el 4, el del juego de verdad.
 MAPA_DE_ARRANQUE = 4
@@ -186,9 +186,7 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
 
-    una.consola.reset()
-    una.cuadro = 0
-    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    una._resetear()
     una.poner_byte("tema_actual", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
     una.poner_byte("music_apagada", 1)
     una.pasar_el_titulo(SEGUIR)

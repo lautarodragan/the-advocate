@@ -78,8 +78,9 @@ class Simbolos:
 # aprieta, así que pasarse no cuesta nada.
 TITULO_AIRE = 30
 
-# La primera opción del menú del título, "Begin the Story". La segunda carga.
-EMPEZAR = 0
+# Las dos opciones del menú del título: "Begin the Story" y "Resume the
+# Story", que abre la pantalla de ranuras y carga.
+EMPEZAR, SEGUIR = 0, 1
 
 
 def toques_de(pares, flag):

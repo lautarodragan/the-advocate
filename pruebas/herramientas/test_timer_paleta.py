@@ -22,16 +22,18 @@ import pytest
 from render import render_map
 from port import snes_convert
 
+from datos import DEMO
+
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = render_map.GAME_DIR
 MAPA = 2
 PUERTA = 30 - 1          # `npcs_dibujables` numera los eventos desde cero
 
-# Los mismos que `demo-apertura`, y el mismo grupo inicial. Los líderes posibles
-# no son un detalle: cada uno se lleva su paleta de sprite, así que preguntar
-# con una lista corta da un mapa que entra holgado y una prueba que no mide nada
-# —la primera versión de esto daba "no se descarta ninguno" con siete paletas—.
-DEMO = [4, 1, 2, 3, 5, 6, 7]
+# Los mapas son `DEMO`, los de `demo-apertura`, con el mismo grupo inicial. Los
+# líderes posibles no son un detalle: cada uno se lleva su paleta de sprite,
+# así que preguntar con una lista corta da un mapa que entra holgado y una
+# prueba que no mide nada —la primera versión de esto daba "no se descarta
+# ninguno" con siete paletas—.
 GRUPO = [10]
 
 

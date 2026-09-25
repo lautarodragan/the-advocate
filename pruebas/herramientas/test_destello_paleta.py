@@ -29,9 +29,10 @@ import pytest
 from render import render_map
 from port import snes_convert
 
+from datos import DEMO
+
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = render_map.GAME_DIR
-DEMO = [4, 1, 2, 3, 5, 6, 7]
 GRUPO = [10]
 
 # El Emitter Room, que es donde taro lo vio, y los dos mapas grandes de la

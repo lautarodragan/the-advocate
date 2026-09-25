@@ -22,6 +22,7 @@ import os
 import pytest
 
 import tanda
+from consola import EMPEZAR
 from ensamblado import cartuchos
 
 # Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
@@ -120,11 +121,6 @@ def partida():
 # buscan por ese mismo nombre: ver `Recorrido.foto`.
 FOTOS = os.path.join(tanda.RAIZ, "pruebas", "snapshots", "playthrough")
 
-# "Begin the Story", la primera opción de la pantalla de título, que
-# `release` lleva delante. Una jugada empieza por ahí como la empieza
-# cualquiera.
-EMPEZAR = 0
-
 
 # Las dos que siguen **importan `recorrido` adentro** y no arriba, y no es
 # descuido: ese módulo arrastra el lector de `.lmu` y el renderer, y eso no
@@ -150,6 +146,7 @@ def recorrido(partida, mundo):
     from recorrido import Recorrido
 
     def hacer(nombre, switch=()):
+        # "Begin the Story": una jugada empieza por ahí como cualquiera.
         return Recorrido(partida(switch=switch, titulo=EMPEZAR),
                          mundo, fotos=os.path.join(FOTOS, nombre))
     return hacer

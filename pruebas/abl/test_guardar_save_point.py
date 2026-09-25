@@ -38,23 +38,11 @@ no tiene nada que ver: taro confirmó el 2026-09-13 que el save point guarda bie
 en mednafen, en mesen y en la SNES.
 """
 
-import pytest
-
-from recorrido import Mundo, Recorrido
-from recorrido import UN_ANO_DESPUES
-
-EMPEZAR, SEGUIR = 0, 1
+from consola import EMPEZAR, SEGUIR
+from recorrido import UN_ANO_DESPUES, Recorrido
 
 # El save point de al lado del pad de Talan, y el mapa donde está.
 MAPA, CELDA = 8, (9, 56)
-
-
-@pytest.fixture(scope="session")
-def mundo():
-    """La colisión del juego original, una vez por corrida. Es el mismo objeto
-    que usa `test_recorrido`, y se declara acá otra vez porque las fixtures de
-    sesión no se heredan entre módulos."""
-    return Mundo()
 
 
 def caminar_hasta_el_save_point(p, mundo):

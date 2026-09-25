@@ -37,7 +37,7 @@ Tres cosas que este archivo hace y conviene tener a la vista:
 import os
 
 from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     mapas_de, marcar_la_pila, toques_de)
+                     en_la_rom, mapas_de, marcar_la_pila, toques_de)
 
 from emulador import retro
 
@@ -189,9 +189,7 @@ def cuadro_de_texto(cartucho, renglon):
     """
     from port.eventos import MENSAJES_PASO
     base = cartucho.simbolos["mensajes"]
-    # LoROM sin cabecera: el banco `$XX` se ve en `$8000-$FFFF` y son los
-    # 32 KB que arrancan en `XX * $8000` del archivo.
-    archivo = ((base >> 16) << 15) | (base & 0x7FFF)
+    archivo = en_la_rom(base)
     with open(cartucho.sfc, "rb") as sfc:
         datos = sfc.read()
     encontrados, desplazamiento = [], 0

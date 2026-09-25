@@ -22,6 +22,11 @@ from ensamblado import cartuchos
 from render.render_map import GAME_DIR
 
 
+# Los mapas de la apertura, en el orden en que se le pasan al conversor: el 4,
+# donde arranca, primero.
+DEMO = [4, 1, 2, 3, 5, 6, 7]
+
+
 @functools.lru_cache(maxsize=None)
 def base():
     """`RPG_RT.ldb`, ya leído."""

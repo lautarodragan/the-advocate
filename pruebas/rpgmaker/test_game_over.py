@@ -51,6 +51,12 @@ RAT_TRACKS_B1, COFRE_TRAMPA = 21, 20
 VOLVER_TOPE = 600
 
 
+def pasar_el_arranque(una):
+    """Del otro lado de un reinicio de la ROM, los cuadros del arranque: los
+    mismos que corre `Partida` al encender, `BOOT_CUADROS` y tres."""
+    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+
+
 def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
     """Cuántos cuadros pasan, desde el reinicio, hasta que el lazo vuelve a
     correr. `None` si no volvió: eso es el cuelgue.
@@ -121,7 +127,7 @@ def test_perder_sin_manejador_vuelve_al_arranque(partida):
         "BATALLA_PERDER tendría que haberla mandado a `reset`")
     # Y lo que hay del otro lado del reinicio es el arranque de siempre: la
     # cuenta de cuadros vuelve a empezar y el mapa es el primero de la tabla.
-    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+    pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
 
@@ -233,7 +239,7 @@ def test_perder_un_encuentro_al_azar_es_game_over(partida):
         "se perdió un encuentro al azar y la ROM siguió en el mapa: la "
         "derrota de una pelea que nadie arrancó desde una página también "
         "tiene que ser Game Over")
-    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+    pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
 
@@ -262,7 +268,7 @@ def test_game_over_vuelve_al_arranque(partida):
     assert cuadros_hasta_volver(una) is not None, (
         "después del GameOver el arranque no volvió a correr en %d cuadros"
         % VOLVER_TOPE)
-    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+    pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
 

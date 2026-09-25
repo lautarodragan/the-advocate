@@ -13,13 +13,12 @@ al final de la escalera, aparecían Core y Manta pero no Kersh. Kersh es el
 héroe en esa escena, y su gráfico sale de ser el primero del grupo.
 """
 
-
 from port import snes_convert
+
+from datos import DEMO
 
 KERSH, DUMMY_HERO, TALAN = 11, 10, 14
 
-# Los mapas de `demo-apertura`, en el orden en que se le pasan al conversor.
-DEMO = [4, 1, 2, 3, 5, 6, 7]
 
 
 def test_kersh_puede_liderar_en_la_apertura():
