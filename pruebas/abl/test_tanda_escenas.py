@@ -47,9 +47,13 @@ ESCENAS = (
     # lee. La segunda es la más larga de las dos y la que más mensajes encadena.
     ("puerta-izq", (100, 230, 600, 950),
      (20, 202, 323, 444, 565), ()),
+    # El toque de 978 es del cuadro que se agregó al rearmar los textos para
+    # la ventana: "According to this, the Catch Colony..." ya no entra en uno
+    # y son dos. Sin él la escena queda un cuadro atrasada y 1300 y 1800
+    # capturan otro momento.
     ("pantalla", (60, 200, 450, 930, 1300, 1800),
-     (161, 282, 342, 584, 735, 857, 948, 1008, 1099, 1159, 1219, 1430, 1490,
-      1732), ()),
+     (161, 282, 342, 584, 735, 857, 948, 978, 1008, 1099, 1159, 1219, 1430,
+      1490, 1732), ()),
     # El save point de Lashe City, mirado sin abrirlo: los cuatro ticks son la
     # animación del brillo.
     ("savepoint", (20, 30, 40, 50), (), ()),
