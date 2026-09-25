@@ -1,7 +1,7 @@
 """El inventario: que la ROM sume y quite ítems como `Game_Party::AddItem`,
 los tope en 99 y en 0, y los guarde con la partida.
 
-Lo que se ve de un ítem lo cobra la tanda: `cofre-llave` en `pruebas/*/test_tanda*.py`, el
+Lo que se ve de un ítem lo cobra `cofre-llave` en `test_comandos_golden.py`, el
 KeyChest del mapa 133, cuya tercera página pide la llave 151 y gana cuando
 está. Acá se le pregunta a la ROM por la RAM lejana, que es donde vive la
 cuenta de cada ítem, con la página de prueba dando y quitando.
@@ -31,7 +31,7 @@ def test_sumar_y_quitar_topan_como_rm2k(partida):
     assert una.item(90) == eventos.ITEM_MAX
     assert una.item(17) == 0
     assert una.item(200) == 0
-    # Y la referencia dice lo mismo con el mismo bytecode.
+    # Y la misma cuenta con el `Estado` de `eventos.py`, con sus topes.
     estado = eventos.Estado()
     for k in range(0, len(ITEMS), 2):
         n, cuanto = ITEMS[k:k + 2]

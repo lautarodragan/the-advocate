@@ -1,23 +1,10 @@
-## `plx`/`ply` pisan N y Z
+## `SetTimer` desde una variable negativa
 
-Hubo cuatro lugares que lo ignoraban** (todos arreglados el 2026-09-12). 
-
-El patrón es siempre el mismo: una rutina deja la
-respuesta en las banderas, se restaura el índice con `ply`, y el `beq` que
-sigue mira el índice —que nunca es cero— en vez de la respuesta. 
-
-Lo tenían `tema_asegurar` (la música del título), el `ConditionalBranch` por variable
-—que entraba **siempre**, medido—, el `IsActorInParty` y el `SetTimer` desde
-una variable negativa. 
-
-El `SetTimer` **no lo mide nadie todavía**: ninguna página de prueba lo emite,
-así que su arreglo es lectura del manual del 65816 y no medición.
-
-El `IsActorInParty` tampoco lo medía nadie, y el 2026-09-21 se vio por qué eso
-importa: **seguía roto**. El `cmp #0` iba después del `ply`, pero después venían
-dos `iny` que volvían a pisar la Z, y la rama contestaba que sí siempre —en el
-techo del Warehouse aparecía Arden sin haberlo sumado—. Lo mide ahora
-`pruebas/rpgmaker/test_rama_grupo.py`.
+Tenía la trampa de `plx`/`ply` —ver AGENTS.md, "La trampa que más veces
+mordió"— y se arregló con el `cmp #0` de siempre, pero **no lo mide nadie**:
+ninguna página de prueba lo emite, así que el arreglo es lectura del manual
+del 65816 y no medición. El `IsActorInParty`, que estaba igual, siguió roto
+hasta que una prueba lo midió: es lo que hace falta acá.
 
 ## Audio
 
@@ -33,8 +20,8 @@ suene a lo que tiene que sonar: eso es oído, y es de taro.
 El `EV0001` paralelo que espera la
 A con `KeyInputProc [176,1,0,1,0]`, tiene el mismo patrón que el motor de las
 piedras: medido el 2026-09-19, sus 23 páginas (mapas 281 a 283 y 324 a 344)
-**compilan**, pero ningún cartucho —ni los de las pruebas ni los de las
-demos— lleva esos mapas, así que ninguna prueba mira que cerrar un mensaje
+**compilan**, pero ningún cartucho —ni los de las pruebas ni `release`—
+lleva esos mapas, así que ninguna prueba mira que cerrar un mensaje
 ahí no dispare la ráfaga. Si entran en un cartucho, ésa es la prueba que
 falta.
 

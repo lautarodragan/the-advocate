@@ -1,11 +1,10 @@
 """Hablarle a algo: la familia `hablar` de la tanda.
 
-Estuvo en `test_tanda_escenas.py` hasta que las pruebas se separaron por qué
-prueban. Las escenas y las cinemáticas son de ABL; esto es la regla de RM2k
+Las escenas y las cinemáticas son de ABL; esto es la regla de RM2k
 para disparar una página con A —`Game_Player::CheckActionEvent`—, sus
 condiciones, el giro hacia el héroe y la cola de interacciones, aunque el
 material sean los personajes de ABL. El arnés es el mismo que el de las
-escenas, y está explicado en `pruebas/abl/test_tanda_escenas.py`.
+escenas, y está explicado en `pruebas/abl/test_escenas_golden.py`.
 """
 
 import pytest
@@ -36,17 +35,9 @@ HABLADAS = (
     # teletransportando— porque sin él el Teleport del final no compila y la
     # página se cae con él. La A cae en el tick 900, o sea después de las tres
     # capturas: lo que se compara es el arranque de la escena.
-    #
-    # Verificado en rojo **de un solo lado**, que es lo que hay que hacer con
-    # una pieza que vive entera en el conversor: con `eventos.CHANGE_PBG = -1`
-    # puesto sólo del lado de la referencia, ésta no compilaba la página, la
-    # ROM sí, y el cuadro 10 daba 1,22%. Poco en pixeles y mucho en
-    # significado: la pose de Talan y el corrimiento de la cámara, o sea la
-    # escena entera contra ninguna.
     ("tram-viaje", "hablar-tram-viaje", (900,), (10, 30, 60)),
-    # Los dos de Lashe City que taro no podía usar el 2026-09-08: caminan y
-    # además aparecen con la página, y hasta ese día eso era un solo bit. El
-    # `Mechanic` habla porque su página ya no se frena por el giro.
+    # Los dos de Lashe City que caminan y además aparecen con la página. El
+    # `Mechanic` habla porque su página no se frena por el giro.
     ("mecanico", "hablar-mecanico", (25,), (20, 60)),
     ("bum", "hablar-bum", (25,), (20, 60)),
     # El giro hacia el héroe: el que camina gira en su ranura, y el quieto se
@@ -72,7 +63,7 @@ HABLADAS = (
      (20, 60, 140, 160)),
     # Los fuegos translúcidos de los barriles del mapa 9, con la mezcla
     # horneada en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra
-    # que el conversor y la referencia horneen contra el mismo fondo.
+    # la mezcla horneada.
     ("fuego", "hablar-fuego", (900,), (20, 40)),
     # El Tram Officer del mapa 9 con el 13 adentro: **es el caso de
     # `CallEvent`**, y sin ese mapa el `Teleport` del Hover-Tram no compila,
@@ -81,9 +72,8 @@ HABLADAS = (
      (200, 420, 620, 900, 1200)),
     # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
     # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
-    # `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
-    # se puede mirar todavía: pierde dos cuadros al entrar y la comparación
-    # arranca corrida.
+    # `paralelos_tick`: 232 pixeles en el cuadro 2. Los nueve del mapa 8 no
+    # los mira ningún caso.
     ("autos9", "hablar-autos9", (900,), (2, 20, 60, 120, 240)),
 )
 

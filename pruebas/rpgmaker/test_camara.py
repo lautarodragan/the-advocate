@@ -13,8 +13,7 @@ por un teletransporte, que llena la ventana entera de cero con `fill_window`.
 Si el streaming está bien, las dos fotos son idénticas; si se salteó una fila,
 no.
 
-Lo que lo destapó: taro jugando, el 2026-09-22, después de la cinemática de los
-Neon Vipers. Y lo que lo causa está medido acá abajo, en
+Lo que lo causa está medido acá abajo, en
 `test_la_camara_llega_a_dos_filas_por_vuelta`.
 """
 

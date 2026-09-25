@@ -3,7 +3,7 @@
 Lo que se le pregunta a la ROM es su RAM lejana, como en `test_variables.py`:
 el terreno no se ve, así que ninguna golden lo cobraría.
 
-**El mapa es el 5 y no es al azar**: de los cuarenta del cartucho de pruebas es
+**El mapa es el 5 y no es al azar**: de los del cartucho de pruebas es
 el único cuyo ChipSet tiene más de un terreno —cuatro: 1, 2, 9 y 10—, así que
 es el único donde la respuesta puede estar mal sin que se note. En todos los
 demás el terreno es 1 en todas partes, que es también lo que contesta un

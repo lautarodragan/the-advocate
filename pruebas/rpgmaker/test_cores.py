@@ -1,12 +1,11 @@
 """La misma ROM en dos emuladores, y las dos pantallas comparadas **entre sí**.
 
-Es lo que era la receta `bsnes`, que hasta el 2026-09-16 corría tres casos con
-`CORE=bsnes` contra la referencia de Python. Acá no hay referencia ni golden: lo
-que se compara es snes9x contra bsnes, cuadro contra cuadro, y eso contesta
-exactamente la pregunta para la que ese caso existe —"anda en snes9x y no en la
-consola"— sin depender de un tercer programa que también se puede equivocar.
+Acá no hay golden: lo que se compara es snes9x contra bsnes, cuadro contra
+cuadro, y eso contesta exactamente la pregunta para la que esto existe —"anda en
+snes9x y no en la consola"— sin depender de un tercer programa que también se
+puede equivocar.
 
-Por qué vale la pena, que es lo mismo que decía la receta: **bsnes llena la WRAM
+Por qué vale la pena: **bsnes llena la WRAM
 de basura al encender** —`bsnes_entropy`, que `retro.py` pone en "High"—, que es
 lo que hace la consola de verdad; snes9x la deja siempre en el mismo estado, y
 por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin inicializar, que sin
@@ -37,7 +36,7 @@ tramo de ocho. Con eso, un nivel de diferencia de verdad —que a 8 bits son och
 unidades— sigue saltando, y lo único que el recorte tapa son las dos unidades
 del frontend.
 
-## Los tres casos, y por qué cada uno
+## Los casos, y por qué cada uno
 
     evento        tiñe la pantalla desde un evento: CGRAM y el intérprete.
     caminando     camina: la RAM del control, que es la que tenía el error.
@@ -47,8 +46,8 @@ del frontend.
                   la clase de escritura que snes9x perdona y ahí ya nos mordió
                   dos veces. De paso trae `msg_abierto`, una variable de RAM que
                   si nadie pone en cero deja la página bloqueada para siempre.
-
-Los dos primeros venían de la receta `mednafen`, que se borró el 2026-09-16.
+    escena        la pelea compuesta: lo que más memoria nueva estrena. Ver su
+                  docstring.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -92,8 +91,9 @@ def iguales(nombre, una, otra):
     """Las dos capturas, y tienen que ser idénticas a 15 bits.
 
     Cuando difieren, las dos quedan en `pruebas/snapshots/cores/`, al lado de
-    las de los otros rojos, para poder mirarlas una al lado de la otra. Acá no hay golden que reemplazar: lo único que se
-    puede hacer con un rojo es ir a buscar qué lee la ROM sin haberlo escrito.
+    las de los otros rojos, para poder mirarlas una al lado de la otra. Acá no
+    hay golden que reemplazar: lo único que se puede hacer con un rojo es ir a
+    buscar qué lee la ROM sin haberlo escrito.
     """
     assert una.size == otra.size, (
         "%s: snes9x da %s y bsnes %s" % (nombre, una.size, otra.size))
@@ -169,7 +169,7 @@ def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():
     Con eso, un nivel de diferencia de verdad —ocho unidades a 8 bits— sigue
     dando rojo, y lo único que se pierde son las una o dos unidades del
     frontend. Si un core cambiara su expansión y dos niveles suyos cayeran en el
-    mismo tramo, esto se pone en rojo antes de que los otros cuatro casos
+    mismo tramo, esto se pone en rojo antes de que los otros casos
     empiecen a dar cero por la razón equivocada.
     """
     for nombre, imagen in zip(("snes9x", "bsnes"),
@@ -193,7 +193,7 @@ def test_escena_de_la_pelea():
     —que bsnes enciende con basura— y el estado de `ESC_*`. Si la ROM leyera
     un byte de ahí sin haberlo escrito, el fondo, un battler o las celdas del
     borrado saldrían distintos. Es el encuentro de la tropa 100 de
-    `test_escena.py`, con el del medio muerto a mano.
+    `test_batalla_escena_dibujo.py`, con el del medio muerto a mano.
     """
     from consola import en_la_wram
     imagenes = []

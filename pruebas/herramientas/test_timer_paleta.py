@@ -29,7 +29,7 @@ JUEGO = render_map.GAME_DIR
 MAPA = 2
 PUERTA = 30 - 1          # `npcs_dibujables` numera los eventos desde cero
 
-# Los mapas son `DEMO`, los de `demo-apertura`, con el mismo grupo inicial. Los
+# Los mapas son `DEMO`, los de la apertura, con el mismo grupo inicial. Los
 # líderes posibles no son un detalle: cada uno se lleva su paleta de sprite,
 # así que preguntar con una lista corta da un mapa que entra holgado y una
 # prueba que no mide nada —la primera versión de esto daba "no se descarta

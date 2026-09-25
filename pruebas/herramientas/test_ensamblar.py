@@ -74,8 +74,8 @@ def test_las_fuentes_son_los_s_que_se_incluyen_y_no_los_generados(tmp_path):
 def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
     """Si no, editar un archivo incluido deja el cartucho "al día" y las
     pruebas corren contra una ROM vieja sin avisar. Sobre el árbol de verdad, y
-    sobre uno armado a mano, que es el que cobra aunque `main.s` no incluya
-    ningún `.s` todavía."""
+    sobre uno armado a mano con un solo `.include`, que no depende de cuáles
+    tenga el árbol."""
     from ensamblado import cartuchos
 
     def cubiertas(fuente):

@@ -298,8 +298,8 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
 
 # --- lo que se ve -----------------------------------------------------------
 #
-# El nivel y los HP máximos del menú eran tiras del cartucho con el nivel de
-# arranque. Ahora los compone la ROM de la partida, y se comparan pixel por
+# El nivel y los HP máximos del menú los compone la ROM de la partida, y se
+# comparan pixel por
 # pixel contra `titulo.render_menu` y `titulo.render_ranuras` con el mismo
 # nivel. Los niveles son distintos entre sí y de los de arranque, y hay uno
 # de una cifra y otro de dos, que es donde "%2d" y "/%d" se equivocan.

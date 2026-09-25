@@ -1,5 +1,5 @@
-"""Las tablas de páginas, del lado de Python: lo que la ROM y la referencia van
-a leer igual, así que conviene mirar acá que digan lo que tienen que decir.
+"""Las tablas de páginas, del lado de Python: lo que la ROM va a leer, así que
+conviene mirar acá que digan lo que tienen que decir.
 
 No corre ninguna ROM. Es la red para las decisiones de `paginas_del_mapa` que
 no cambian un pixel por sí solas pero deciden qué página está activa.
@@ -24,10 +24,9 @@ def paginas_de(map_id, evento_id):
 
 def test_la_pagina_con_item_lleva_el_item():
     """EV0041 del mapa 8: tres páginas, la tercera por switches **y por un
-    ítem**, el 90. Durante un día el port no tenía inventario y esa página se
-    emitía como "nunca activa"; desde el 2026-09-10 a la noche lleva el ítem y
-    la ROM mira su cuenta en `FAR_ITEMS`. Que la elección se vea la cobra
-    `cofre-llave` en `pruebas/*/test_tanda*.py`.
+    ítem**, el 90. La tabla lleva el ítem y la ROM mira su cuenta en
+    `FAR_ITEMS`. Que una elección por ítem se vea la cobra `cofre-llave` en
+    `test_comandos_golden.py`.
     """
     paginas = paginas_de(8, 41)
     assert len(paginas) == 3, "EV0041 tiene tres páginas y la tabla trae %d" \
@@ -45,8 +44,8 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     """El KeyChest del mapa 133: la primera página pide la variable 123 >= 8,
     la segunda un switch y la tercera un ítem. La tabla lleva la ranura, la
     comparación y el valor de la primera, nada en la segunda, y el ítem en la
-    tercera. Que la ROM elija con eso lo cobra `vars 133 ... cofre` en
-    `pruebas/*/test_tanda*.py`."""
+    tercera. Que la ROM elija con eso lo cobran `cofre` y `cofre-llave` en
+    `test_comandos_golden.py`."""
     eventos.indexar_variables(GAME_DIR)
     paginas = paginas_de(133, 2)
     assert len(paginas) == 3

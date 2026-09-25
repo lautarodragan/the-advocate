@@ -2,7 +2,7 @@
 la página.
 
 Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
-`batalla*` de `test_tanda_pantallas.py` comparan **la pantalla** contra su
+de `test_batalla_golden.py` comparan **la pantalla** contra su
 golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
 cuesta ningún tick —ver `OP_BATTLE` en tools/port/eventos.py—. Lo que pasa adentro
 se mira desde acá.
@@ -13,15 +13,13 @@ mismas fórmulas, y la prueba exige que la consola dé **el número exacto** en
 cada HP, turno por turno. Si la ROM y el modelo se separan en un tiro de dado
 o en una división, el primer turno ya no coincide.
 
-Las dos peleas de la intro, medidas el 2026-09-12:
+Las dos peleas de la intro:
 
-    mapa 2  FightableDroid  tropa 82  Sentry Drone x1   se alcanza jugando
-    mapa 9  EV0004          tropa 86  GangMember LT x4  **no se alcanza**
+    mapa 2  FightableDroid  tropa 82  Sentry Drone x1
+    mapa 9  EV0004          tropa 86  GangMember LT x4
 
-La segunda no es culpa de la batalla: su página la corta un `MoveEvent` con la
-orden de ruta 9 —"hacia el héroe"—, que la ROM no camina. Por eso la tropa de
-cuatro enemigos la ejercitan los casos `batalla` de
-`test_tanda_pantallas.py`, con la página de prueba.
+Acá se pelea la primera. La tropa de cuatro enemigos la ejercitan los casos
+`batalla` de `test_batalla_golden.py`, con la página de prueba.
 """
 
 from port import titulo
@@ -52,11 +50,7 @@ PENDIENTE_DE = {"errar": "BA_SE_ERRAR",
 # --- los HP como estado ----------------------------------------------------
 
 def test_los_hp_arrancan_llenos(partida):
-    """`Game_Actor::Setup`: un actor nuevo arranca con los HP del nivel.
-
-    Hasta el 2026-09-12 los HP no eran estado —el menú los mostraba llenos
-    siempre— y esto es lo que lo vuelve comprobable.
-    """
+    """`Game_Actor::Setup`: un actor nuevo arranca con los HP del nivel."""
     una = partida()
     base = datos.base()
     for actor in GRUPO:
@@ -72,8 +66,7 @@ def test_los_hp_viajan_en_la_partida(partida):
     """Bajarlos, guardar y volver a cargar tiene que devolver los mismos.
 
     Es lo que obliga a que `FAR_HP` esté en `partida_tabla`: sin eso una
-    partida cargada después de una pelea volvería con todos llenos, que es
-    justo lo que hacía la ROM antes de que los HP existieran.
+    partida cargada después de una pelea volvería con todos llenos.
 
     La prueba **resetea la consola de verdad**, como `test_guardar.py`: la
     SRAM sobrevive al reset y por eso lo que vuelve salió del cartucho. Se
@@ -230,10 +223,9 @@ def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
     """`actor_hab`, contra `batalla.habilidades_de`.
 
     Kersh 131 y 146, Core 129 y 150, Manta 130, 143, 144 y 150: las que el LDB
-    dice que se aprenden en un nivel menor o igual al suyo. Con el nivel 1 que
-    el port tenía mockeado hasta el 2026-09-13 **las tres listas estarían
-    vacías**, porque la primera se aprende en el 3; el caso lo exige para no
-    pasar mirando ceros.
+    dice que se aprenden en un nivel menor o igual al suyo. Con nivel 1 **las
+    tres listas estarían vacías**, porque la primera se aprende en el 3; el
+    caso exige que no lo estén para no pasar mirando ceros.
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
@@ -387,7 +379,7 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     Es lo único de las siete que pide estado nuevo por combatiente —el
     modificador de cada parámetro y su base, que es lo que
     `CanChangeAtkModifier` necesita para topar la bajada en la mitad del base—
-    y por eso `BA_BYTES` pasó de 18 a 40.
+    y por eso agranda `BA_BYTES`.
 
     Se compara el parámetro **efectivo** del droide contra el del modelo, que
     es `AdjustParam`: `clamp(base + modificador, 1, 999)`.
@@ -465,9 +457,9 @@ def test_perder_sigue_por_el_defeat_handler(partida):
     for actor in GRUPO:
         una.poner_hp(actor, 1)
     pelea = Pelea(una).abrir()
-    # **Se defienden en vez de atacar**: desde que los actores pelean con su
-    # nivel del LDB —Kersh con ataque 280 y no 17— tres golpes matan al droide
-    # antes de que él mate a nadie, y la pelea terminaba en victoria. Con
+    # **Se defienden en vez de atacar**: con su nivel del LDB los actores
+    # matan al droide en tres golpes, antes de que él mate a nadie, y la pelea
+    # terminaría en victoria. Con
     # `Defend` el único que actúa es él.
     for _ in range(12):
         if pelea.modo() == "FIN":
@@ -476,8 +468,8 @@ def test_perder_sigue_por_el_defeat_handler(partida):
             for _ in range(400):
                 if pelea.modo() != "ORDEN":
                     break
-                # **Dos derechas y no una desde el 2026-09-13**: el menú tiene
-                # el orden del original y `Defend` es la tercera orden.
+                # **Dos derechas**: el menú tiene el orden del original y
+                # `Defend` es la tercera orden.
                 pelea.tocar("right")
                 pelea.tocar("right")
                 pelea.tocar()
@@ -505,10 +497,9 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
     """La regla que sostiene la comparación de pixeles: `vueltas` no avanza
     mientras se ve la pantalla.
 
-    Es lo mismo que la pantalla de ranuras y la tienda, y es lo que le permite
-    a la referencia salir del opcode en el mismo tick tarde lo que tarde el
-    jugador. Sin esto, `OP_BATTLE` tendría que modelar cuántos cuadros dura
-    una pelea, que es justo lo que no se puede medir honestamente.
+    Es lo mismo que la pantalla de ranuras y la tienda, y es lo que deja que
+    la pelea salga del opcode en el mismo tick tarde lo que tarde el jugador:
+    lo que la tanda ve después de una pelea no depende de cuánto duró.
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
@@ -521,8 +512,7 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
 # --- el audio de la pelea --------------------------------------------------
 #
 # Esto es lo que ninguna prueba de pixeles puede ver: **el silencio no cambia
-# un pixel**, que es el argumento que dejaron escrito los dos defectos de
-# audio del 2026-09-12. El caso `batalla` de la tanda compara la
+# un pixel**. El caso `batalla` de `test_batalla_golden.py` compara la
 # pantalla y da cero con la pelea muda.
 #
 # Lo que se pregunta acá es lo mismo que en `test_musica_paquete.py`: qué dice
@@ -734,8 +724,8 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     actor es actor_damaged_se, y a un enemigo enemy_damaged_se salvo que lo
     mate, que es el enemy_death_se de `ProcessBattleActionDeath`. Cuando el que
     pega es un enemigo, primero suena su enemy_attack_se y el del daño queda
-    pendiente en `BA_SE2`, que es lo que RM2k hace con dos efectos y acá hace
-    falta porque **hay una sola voz**.
+    pendiente en `BA_SE2`: RM2k los hace sonar juntos, y acá el segundo
+    espera su turno.
 
     Lo que se compara no es circular: `BA_MDANO` y `BA_MBLA` son la mecánica,
     que el resto de este archivo ya cobra contra `batalla.py` número por
@@ -771,7 +761,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
 
 # --- usar un ítem ----------------------------------------------------------
 #
-# `Use Item`, desde el 2026-09-13. Lo que se mide acá es lo mismo que en el
+# `Use Item`. Lo que se mide acá es lo mismo que en el
 # resto del archivo: **el número exacto**. `batalla.curacion` dice cuánto
 # tendría que curar y la consola tiene que dejar ese HP, ni uno más.
 
@@ -881,7 +871,7 @@ def test_el_menu_va_en_el_orden_del_original(partida):
 
     Una captura del juego de verdad, del 2026-09-12, muestra el menú de Manta:
     Attack / Slicing / Defend / Use Item. La habilidad va
-    **segunda**, y hasta el 2026-09-13 acá iba cuarta y en gris. `Escape` no
+    **segunda**. `Escape` no
     está en el original —huir es una orden del grupo— y acá va quinta, que es
     la simplificación que `batalla.py` declara.
 
@@ -940,11 +930,10 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
     """Con MSU-1, el tema del mapa también tiene que volver al terminar.
 
     Con una pista de CD sonando, `music_start` deja el SPC700 callado a
-    propósito —`music_apagada` en 1— y hasta el 2026-09-21 la pelea miraba sólo
-    eso: anotaba $FF, "no sonaba nada", y al volver al mapa lo callaba en vez
-    de reponerlo. Ninguna prueba lo veía porque la tanda corre sin MSU-1 —la
-    consola le esconde las pistas al core, ver `retro.Consola`—; el agente del
-    tema de cada mapa lo encontró leyendo.
+    propósito —`music_apagada` en 1—, y una pelea que mirara sólo eso anotaría
+    $FF, "no sonaba nada", y al volver al mapa lo callaría en vez de
+    reponerlo. Las pruebas corren sin MSU-1 —la consola le esconde las pistas
+    al core, ver `retro.Consola`—.
 
     Así que acá se pone el estado que deja una pista sonando —las dos banderas,
     escritas a mano— y se mira qué anota la pelea. Sin el arreglo de

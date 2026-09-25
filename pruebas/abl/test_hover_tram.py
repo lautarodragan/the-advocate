@@ -3,7 +3,7 @@
 En RM2k el tram es un `ShowPicture` anclado al mapa que nunca se mueve, así que
 en el port no es una imagen sino **tiles de la capa de encima** de un ChipSet
 propio del mapa 32. El porqué, con todo lo medido, está en
-`workflow/tasks/wip/el-hover-tram-en-la-terraza.md`.
+`workflow/tasks/done/el-hover-tram-en-la-terraza.md`.
 
 Esto existe porque **ninguna otra prueba ejecuta ese camino**. Las goldens
 `32-*` del héroe miran el mapa desde adentro del depósito, donde el tram ni
@@ -119,7 +119,7 @@ def test_el_tram_esta_dibujado_donde_va(silueta):
     """El tram se ve, y su silueta cae donde la pone el arte original.
 
     Lo que se compara es **la forma**, no los colores: los colores pasan por
-    146 fusiones del asignador y compararlos sería comparar el conversor contra
+    las fusiones del asignador y compararlos sería comparar el conversor contra
     sí mismo. La forma en cambio sale del PNG del juego y de la cuenta de dónde
     lo ancla RM2k, que se midió calzando el dibujo contra una captura del juego
     original.

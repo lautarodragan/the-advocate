@@ -1,11 +1,9 @@
 """La pantalla de la pelea, y el arnés de las que **congelan el reloj del
 juego**.
 
-Hasta el 2026-09-25 este archivo se llamaba `test_tanda_pantallas.py` y
-juntaba también el menú, guardar y el título, que viven ahora en
-`test_menu_golden.py`, `test_guardar_golden.py` y `test_titulo_golden.py`.
-Lo que los junta no es de qué habla cada caso sino cómo hay que correrlo,
-y eso es lo que sigue: vale para los cuatro.
+Lo que sigue vale también para `test_menu_golden.py`, `test_guardar_golden.py`
+y `test_titulo_golden.py`: lo que los junta no es de qué habla cada caso sino
+cómo hay que correrlo.
 
 En todos los demás, un tick de la ROM es una vuelta del lazo principal y
 `vueltas` lo cuenta; acá no: la pantalla de batalla corre su propio lazo, y el
@@ -29,8 +27,8 @@ Y los que vuelven al mapa —`*-vuelve-*`— son los otros: ahí la pantalla ya 
 cerró, el reloj del juego corre de nuevo y los ticks vuelven a ser ticks, con
 los toques todavía en cuadros de hardware porque caen adentro de la pantalla.
 
-Ninguna de las recetas de este archivo existe ya: el nombre que abre cada
-docstring es el del caso, que es también el de su golden.
+El nombre que abre cada docstring es el del caso, que es también el de su
+golden.
 """
 
 import pytest
@@ -46,20 +44,19 @@ BATALLAS = (
     ("batalla", "batalla", 200, (), None),
     ("batalla-blanco", "batalla", 200, ("a:130", "down:140", "down:150"),
      None),
-    # La tropa del droide del mapa 2 sobre su fondo, que es la única pelea que
-    # el jugador alcanza hoy: un enemigo y otro fondo, o sea el otro camino de
+    # La tropa del droide del mapa 2 sobre su fondo: un enemigo y otro fondo,
+    # o sea el otro camino de
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
     ("batalla-droide", "batalla-droide", 200, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
     # inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich—.
-    # Verificado que dan rojo corriendo dos celdas la columna de la cuenta sólo
-    # del lado de la ROM: 142 pixeles.
+    # Verificado que dan rojo corriendo dos celdas la columna de la cuenta: 142
+    # pixeles.
     #
-    # **Son tres derechas y no dos desde el 2026-09-13**: el menú pasó a tener
-    # el orden del original —Attack / <habilidad> / Defend / Use Item— y
-    # `Use Item` quedó cuarta.
+    # **Son tres derechas**: el menú tiene el orden del original —Attack /
+    # <habilidad> / Defend / Use Item— y `Use Item` es la cuarta.
     ("batalla-item", "batalla-item", 220,
      ("right:130", "right:140", "right:150", "a:160"), None),
     ("batalla-item-blanco", "batalla-item", 250,
@@ -75,7 +72,7 @@ BATALLAS = (
     #   batalla-hab-dos     la misma lista con el cursor en la segunda, o sea
     #                       con otra descripción arriba: sin esto, el renglón
     #                       de arriba podría estar escrito con la habilidad
-    #                       equivocada y los dos lados darían igual igual
+    #                       equivocada y la golden lo defendería
     #   batalla-hab-blanco  Healing Syringe apunta al grupo —`scope` 3— así que
     #                       después de elegirla el cursor se va a los actores,
     #                       con la lista en gris. Es el camino que la de ítems
@@ -86,8 +83,8 @@ BATALLAS = (
     ("batalla-hab-blanco", "batalla", 240,
      ("right:130", "a:140", "a:150"), None),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
-    # taro jugó: `abl` lleva 57 ítems y los textos de la batalla
-    # arrancan en el 273, así que la tabla de un byte que los nombraba dibujaba
+    # taro jugó: en la ROM que se juega los textos de la batalla arrancaban
+    # pasado el 255, así que la tabla de un byte que los nombraba dibujaba
     # otros cuatro uno encima del otro, y con eso el menú era ilegible. El
     # relleno, en `test-special`, lo garantiza sin depender de cuántos
     # ítems y mapas lleve el de pruebas.
@@ -109,7 +106,7 @@ def test_batalla(nombre, caso, cuantos, toques, en):
     `vueltas` no avanza mientras dura, así que todo acá va en cuadros de
     hardware, los toques incluidos.
 
-    El grupo son tres actores y no el de las demás recetas: la pantalla muestra
+    El grupo son tres actores y no el de los demás casos: la pantalla muestra
     a los tres. La pelea es la misma todas las veces porque el azar está
     clavado en `BATALLA_SEMILLA`.
     """
@@ -133,14 +130,13 @@ def test_vuelta(cuadro):
     de ahí. La escena de la batalla sube 32 KB de VRAM, así que volver al mapa
     es reponer todo lo que se llevó puesto.
 
-    Y es lo que lo hace barato: **la pelea no cuesta ningún tick**. La
-    referencia salía del `OP_BATTLE` por la rama de victoria en el mismo tick
-    en que entraba, o sea que el tick N es el mapa quieto, igual que si no
-    hubiera habido pelea, y que la ROM dibuje eso mismo **es** la prueba.
+    Y es lo que lo hace barato: **la pelea no cuesta ningún tick**. Se sale
+    del `OP_BATTLE` por la rama de victoria en el mismo tick en que se entra,
+    o sea que el tick N es el mapa quieto, igual que si no hubiera habido
+    pelea, y que la ROM dibuje eso mismo **es** la prueba.
 
     Es con ventana, que es donde la pelea más se lleva puesto: los tiles de la
-    ventana y los dos tilemaps. Hasta el 2026-09-17 había un segundo caso sin
-    ventana, con otro reparto de VRAM; la ventana pasó a ser obligatoria.
+    ventana y los dos tilemaps.
     """
     nombre = "vuelta-ventana"
     p = partida(nombre)
@@ -148,8 +144,8 @@ def test_vuelta(cuadro):
     golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-# En qué paso sale el encuentro, que es lo que la referencia contestaba y ahora
-# está congelado con la golden: el paso 8, contra la tropa 96. El avance de la
+# En qué paso sale el encuentro, congelado con la golden: el paso 8, contra la
+# tropa 96. El avance de la
 # captura de control es `(paso - 1) * 16`, o sea una celda antes.
 PASO_DEL_ENCUENTRO = 8
 

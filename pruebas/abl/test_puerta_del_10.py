@@ -12,7 +12,7 @@ defecto que arregla haberlas pasado por el intérprete, y es lo que esta prueba
 cobra.
 
 **El 38 no entra en ningún cartucho** —sus tiles de fondo y de sprite más la
-ventana no entran en los 64 KB de VRAM, y por eso tampoco está en `abl`—, así
+ventana no entran en los 64 KB de VRAM, y por eso tampoco está en `release`—, así
 que un `Teleport` hacia él no compila y con él se cae la página entera. Lo que
 se puede verificar desde acá, entonces, no es que lleve al 38: es que **no
 lleva al 8**, que es la mitad que sí depende de este cambio. La otra mitad la

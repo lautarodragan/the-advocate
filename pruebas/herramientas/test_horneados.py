@@ -27,9 +27,7 @@ from ensamblado import cartuchos
 
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
 # goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita
-# que la lista envejezca cuando se le suma un mapa al proyecto. El 11 —el HQ de
-# los Lazer Teeth— fue el que horneaba la mayoría y el que motivó todo esto,
-# hasta que sus baldosas dejaron de ser eventos.
+# que la lista envejezca cuando se le suma un mapa al proyecto.
 MAPAS = cartuchos.MAPAS
 
 
@@ -44,13 +42,6 @@ def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
 
     Sin número escrito: un filtro de más y no se hornea nada, y nadie se
     entera. Cuántos son lo dice el conversor en su informe.
-
-    **El sujeto ya no es el mapa 11**, que es para el que se escribió. El
-    2026-09-21 su minijuego se rediseñó y sus 52 baldosas de luz dejaron de ser
-    eventos —ver `parches/manual/README.md`—, así que las 22 que horneaba no
-    existen: lo que le quedaba a la regla en este cartucho es otro mapa. La
-    regla sigue entera y sigue valiendo para el resto del juego; lo que se fue
-    es su cliente más grande.
     """
     renderer = Renderer()
     horneados = {m: horneados_de(renderer, m)[1] for m in MAPAS}

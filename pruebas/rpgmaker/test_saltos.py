@@ -20,11 +20,7 @@ sin control, y `hzstream` fundiéndose y volviendo a empezar.
 
 
 def test_el_presupuesto_vuelve_cuando_el_jugador_tiene_el_control(partida):
-    """La cadena termina cuando el jugador puede moverse, y ahí se repone.
-
-    Es el alcance que el tope tiene en la referencia, donde `saltos` es local a
-    `entrar_al_mapa`.
-    """
+    """La cadena termina cuando el jugador puede moverse, y ahí se repone."""
     una = partida()
     for _ in range(3000):
         una.correr(1)

@@ -2,9 +2,8 @@
 
 `release` lleva siempre sus pistas —`just build release` las deja al lado de
 la ROM— y el emulador busca el `.msu` al lado del `.sfc`: si el core lo
-encontrara, cada prueba que escucha correría con el SPC700 callado. Hasta el
-2026-09-25 lo evitaba tenerlas en otro directorio; ahora lo evita el arnés,
-que le da al core una copia de la ROM en un directorio vacío —ver
+encontrara, cada prueba que escucha correría con el SPC700 callado. Lo evita
+el arnés, que le da al core una copia de la ROM en un directorio vacío —ver
 `retro.Consola`—, y esto es lo que lo cobra si deja de hacerlo.
 
 Se escucha la pantalla de título, que es lo primero que suena y tiene pista.

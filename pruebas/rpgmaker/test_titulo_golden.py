@@ -1,7 +1,7 @@
 """La pantalla de título y su lista de ranuras, contra sus goldens.
 
-Estuvo en `test_tanda_pantallas.py` hasta el 2026-09-25. Corre con el reloj
-en cuadros de hardware, porque el título no es el juego y no cuenta ticks:
+Corre con el reloj en cuadros de hardware, porque el título no es el juego y
+no cuenta ticks:
 el arnés está explicado en `test_batalla_golden.py`. Qué hace cada opción lo
 mira `test_titulo_dibujo.py`.
 """
@@ -41,22 +41,3 @@ def test_titulo(nombre, sosteniendo, toques):
     consola = encender("release", ARRANQUE_CON_TITULO)
     correr_hardware(consola, 20, toques=toques, sosteniendo=sosteniendo)
     golden(nombre, consola.imagen())
-
-
-# `test_titulo_es_el_mismo_juego` estuvo acá hasta el 2026-09-20 y se fue con
-# el cartucho `titulo`, que existía para ser su otra mitad: comparaba la ROM
-# con título contra la misma sin él, 300 ticks adentro del mapa, y era el único
-# caso de la tanda que comparaba **una ROM contra otra**.
-#
-# Se fue por dos razones medidas, y la primera sola ya alcanzaba. Sus dos
-# goldens —`titulo-juego` y `titulo-juego-sin`— eran **la pantalla entera en
-# negro**: a los 300 ticks con `start` sostenido no se ve nada, así que la
-# comparación que daba nombre al caso comparaba negro contra negro. Y con el
-# título mudado al cartucho del juego ya no hay dos ROMs que se distingan sólo
-# por la pantalla: la que la lleva arranca en el 4 y con cronómetro.
-#
-# Lo que la pregunta buscaba —¿la ROM con título dibuja lo mismo adentro del
-# mapa?— lo cobran ahora las diecisiete goldens de `cinematica`, `apertura` y
-# `cartel` de `pruebas/abl/test_tanda_escenas.py`: se congelaron cuando el
-# cartucho no llevaba título y hoy se sacan a través de él, byte por byte
-# iguales, en imágenes que no son negras.

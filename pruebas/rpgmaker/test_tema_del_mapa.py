@@ -2,9 +2,8 @@
 
 Es el `Game_Map::PlayBgm` de easyrpg, que corre cada vez que un teletransporte
 cambia de mapa: el tema del mapa —`music_type` 2—, o el del padre si es 0, o
-**nada** si es 1, "lo decide un evento". Hasta el 2026-09-21 la ROM lo hacía
-sólo con el mapa de arranque, y taro lo encontró en los Rat Tracks: se entraba
-con el tema del mapa de antes.
+**nada** si es 1, "lo decide un evento". Sin esto, en los Rat Tracks se
+entraba con el tema del mapa de antes.
 
 Como todo lo de la música, esto **no cambia un pixel**, así que la tanda no lo
 ve: se pregunta por la RAM. Y no alcanza con `tema_actual`, por lo mismo que en

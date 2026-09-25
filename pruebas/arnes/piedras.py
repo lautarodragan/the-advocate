@@ -1,7 +1,5 @@
 """El minijuego de las piedras del mapa 11, desde afuera: hablarle a la reja
 para que Talan tenga las piedras, y dónde está cada evento.
-
-Vivía en `test_piedras.py`, y `test_luces.py` lo importaba de ahí.
 """
 
 import functools
@@ -31,7 +29,7 @@ def ranura(numero):
 def mapa11():
     """El mapa 11 por el mismo camino que el conversor: `GAME_DIR`, que
     `lcf.Map` lee del volcado de `data/` con el fork de `parches/manual/`
-    encima —34 eventos, no los 84 del original—."""
+    encima: no es el mapa 11 del original."""
     return lcf.Map(os.path.join(GAME_DIR, "Map0011.lmu"))
 
 

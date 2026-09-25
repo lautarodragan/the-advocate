@@ -1,7 +1,7 @@
 """Un video con sonido de una ROM jugando, para que taro la vea sin correrla.
 
 No trae una jugada propia: juega **las del recorrido**, llamando a las funciones
-de `pruebas/abl/test_recorrido.py` tal cual, con una fábrica de `recorrido` que
+de `pruebas/abl/test_recorrido_golden.py` tal cual, con una fábrica de `recorrido` que
 apunta a la ROM que se le pida. Así la jugada es una sola y
 esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware

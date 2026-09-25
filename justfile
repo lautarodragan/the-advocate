@@ -113,12 +113,12 @@ herramientas:
 #
 # Las de estado le preguntan a la ROM en qué mapa está, qué switch tiene
 # prendido, qué evento corre, y no miran la pantalla. Las de la tanda
-# —`pruebas/*/test_tanda*.py`— miran sólo la pantalla, contra las capturas
-# congeladas de `pruebas/golden/tanda/`. Son dos redes distintas y se
+# —`pruebas/*/test_*_golden.py`— miran sólo la pantalla, contra las capturas
+# congeladas de `pruebas/golden/`. Son dos redes distintas y se
 # complementan: una cobra los errores de PPU —una paleta mal repartida, una
 # prioridad de OAM—, la otra los de lógica, que es donde la comparación de
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
-# verde en la tanda entera, porque los dos lados se equivocaban igual.
+# verde en la tanda entera. Qué prueba cubre qué, en `pruebas/README.md`.
 #
 # Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
@@ -235,8 +235,8 @@ build cual:
   python3 tools/ensamblado/cartuchos.py {{cual}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
-# del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,
-# `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
+# del nombre de las pruebas de `pruebas/abl/test_recorrido_golden.py`
+# —`apertura`, `talan`— o `quieto:N`, N ticks sin tocar nada; `--leer 150` aprieta A más
 # despacio para que se lean los textos. Por qué `-O`, en `video.py`. Suena con
 # el MSU-1 si el build tiene pistas, como se juega; `--sin-msu`, sólo el
 # SPC700.

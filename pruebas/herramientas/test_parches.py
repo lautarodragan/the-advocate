@@ -14,13 +14,13 @@ y el diff va al commit, que es donde alguien lo mira.
 No arranca ninguna ROM: compara lo que dejaron escrito los cartuchos que armó
 `just cartuchos` contra lo commiteado. Y los compara **todos**, que es lo que
 sostiene que el cartucho no entre en la clave —medido el 2026-09-21, con las
-capas y con las animaciones: los tres cartuchos de prueba y `abl` emiten los
-mismos archivos byte por byte—.
+capas y con las animaciones: todos los cartuchos emitían los mismos archivos
+byte por byte—.
 
-Lo versionado es lo que decide `abl`, el ROM jugable. Lo que los cartuchos de
+Lo versionado es lo que decide `release`, el ROM jugable. Lo que los cartuchos de
 prueba llevan de más —mapas que el juego no tiene, y una animación que sólo
 muestra un caso de la tanda— no se versiona: ahí el cartucho decide solo y esto
-no le pide nada; cuáles son los imprime `just parches-check`. De `abl`, en
+no le pide nada; cuáles son los imprime `just parches-check`. De `release`, en
 cambio, exige que todo lo que convierte esté versionado.
 """
 

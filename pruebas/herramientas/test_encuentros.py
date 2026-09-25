@@ -100,13 +100,6 @@ def test_ninguna_tropa_queda_afuera_por_el_terreno(juego):
     simplificación no se sostiene por ahí: se sostiene porque ninguna de ellas
     excluye un terreno que su mapa pise de verdad. Eso es lo que se mide acá,
     mapa por mapa y celda por celda, y no que el `terrain_set` esté vacío.
-
-    Hasta el 2026-09-14 esta prueba decía lo segundo y **no medía nada**: leía
-    el `terrain_set` del chunk 0x13 de la base, que es `animations` y no
-    `troops` —el de las tropas es el 0x0F—, así que preguntaba por un chunk que
-    ninguna animación tiene y siempre daba vacío. Lo destapó la mudanza a los
-    JSON de Ditto, que ya no se leen por número de chunk. Es el caso de manual
-    del repo: un camino que ninguna prueba ejecuta, con la prueba puesta.
     """
     db, tree = juego
     crudas = db.decode()["troops"]
@@ -160,7 +153,7 @@ def test_cuantos_mapas(juego):
     """Los números del juego, clavados: si cambian, cambió el volcado.
 
     Están acá y no en un comentario porque son los que deciden el alcance: 53
-    mapas de 328 pueden tener un encuentro, y de los 29 de `abl` son
+    mapas de 328 pueden tener un encuentro, y de los 29 de `release` son
     cinco.
     """
     _db, tree = juego
@@ -216,8 +209,8 @@ def test_apagados_no_tiran_azar():
     """`encounter_steps` 0 vuelve antes de `PercentChance`, sin tocar el azar.
 
     No es un detalle: el azar de los encuentros es una sola corriente, así que
-    un mapa apagado que igual tirara un número correría la secuencia y la
-    referencia y la ROM dejarían de coincidir en el mapa siguiente.
+    un mapa apagado que igual tirara un número correría la secuencia, y el
+    encuentro del mapa siguiente saldría en otro paso.
     """
     apagado = eventos.Encuentros(0, [(0, 0, 10, 10, [1])])
     semilla = apagado.semilla
@@ -249,7 +242,7 @@ def test_el_area_tapa_con_el_rectangulo_semiabierto(juego):
 
 
 def test_el_paso_ocho_del_caso_de_la_tanda(juego):
-    """El caso `encuentro`, del lado de la referencia.
+    """El caso `encuentro`, del lado de Python.
 
     Si esto cambia —otra semilla, otra cuenta— el caso de la tanda pasa a
     comparar contra otra tropa y hay que rehacer su caso de la tanda. Vale

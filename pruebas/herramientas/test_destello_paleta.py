@@ -3,13 +3,12 @@
 El destello de un evento —`FlashSprite`, la orden 11320— en la consola es un
 tinte de CGRAM: `pintar_flash` sube la paleta del personaje con el color
 mezclado, así que **tiñe la paleta entera** y con ella todo lo que la comparta.
-La referencia no: aplica el destello sobre la imagen del sprite —`destellar_
-imagen`, por blanco—, que es lo que hace RM2k.
+RM2k no: aplica el destello sobre la imagen del sprite.
 
 O sea que compartir la paleta del héroe no es un detalle de empaquetado: es una
-diferencia real entre los dos lados que la tanda de pixeles **no puede ver**,
-porque ninguno de sus casos tiene un segundo sprite visible compartiendo la
-paleta del que destella.
+diferencia real con RM2k que la tanda de pixeles **no puede ver**, porque
+ninguno de sus casos tiene un segundo sprite visible compartiendo la paleta
+del que destella.
 
 taro lo encontró jugando el 2026-09-07: en el Emitter Room, cuando Talan absorbe
 el enojo de Core y destella en rojo, dos tiles encima de unos cofres —negros y

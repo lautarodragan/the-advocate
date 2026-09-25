@@ -1,6 +1,6 @@
 """El CharSet que `ChangeSpriteAssociation` le pone a un actor es estado.
 
-El comando destraba 102 de las 134 páginas disparables de la persecución en
+El comando destraba la mayoría de las páginas disparables de la persecución en
 auto, y lo que las páginas hacen con él es siempre lo mismo: cambiarle el
 gráfico a `CarRED` o `CarBLUE` —que son el héroe mientras dura la carrera— y
 **teletransportar en el comando siguiente**. O sea que lo único que se ve del

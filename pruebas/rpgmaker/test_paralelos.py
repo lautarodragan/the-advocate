@@ -1,8 +1,8 @@
 """La lista de eventos con página paralela: qué la invalida, y qué cuesta.
 
-El HQ de los Lazer Teeth —el mapa 11— tiene once eventos con página paralela, y
-hasta el 2026-09-13 cada uno volvía a resolver su página activa en cada cuadro:
-`un_paralelo` llamaba a `pagina_desde_eleg`, que lee del cartucho los
+El HQ de los Lazer Teeth —el mapa 11— tiene muchos eventos con página
+paralela, y hasta el 2026-09-13 cada uno volvía a resolver su página activa en
+cada cuadro: `un_paralelo` llamaba a `pagina_desde_eleg`, que lee del cartucho los
 veinticuatro bytes de la cabecera de la página por la ventana de banco. Con el
 décimo paralelo el lazo se pasaba del cuadro y el mapa caía a 30 fps de golpe
 —no hay 45: perder el vblank cuesta el cuadro entero—.
@@ -27,11 +27,10 @@ HQ = "en-11"
 # banco $7E, así que el offset de `FAR_PAR_LISTA` es el de la WRAM.
 #
 # Lo que la lista lleva son **índices de evento**, o sea la posición en la tabla
-# del mapa y no el id de RM2k. Hasta el 2026-09-21 los once estaban escritos
-# acá, y eran un censo del mapa: el rediseño del minijuego de las piedras le
-# sacó 52 eventos y les corrió el índice a todos. Lo que esta prueba cuida no es
-# cuántos son sino que la lista **siga a la página activa**, así que el censo se
-# fue y los dos que se miran se buscan por nombre.
+# del mapa y no el id de RM2k. Lo que esta prueba cuida no es cuántos son sino
+# que la lista **siga a la página activa**, así que los dos que se miran se
+# buscan por nombre: un censo escrito acá se corre con cualquier cambio al
+# mapa, como pasó con el rediseño del minijuego de las piedras.
 SENTRY1 = "LTSentry1"
 NVSPY = "NVSpy"
 

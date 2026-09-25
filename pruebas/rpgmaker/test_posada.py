@@ -2,9 +2,7 @@
 
 Es el tercero de los tres que taro encontró jugando el 2026-09-19: el bum del
 mapa 20 —`InnBum`, el evento 4— ofrece un montón de basura por 5 créditos, y
-su página no compilaba, así que no se le podía hablar. Hay 18 páginas con un
-`ShowInn` en el juego y 17 compilan con esto; la del mapa 348 sigue cortada
-por otra cosa, una elección con rama de cancelar.
+su página no compilaba, así que no se le podía hablar.
 
 **No es un opcode nuevo.** `ShowInn` se expande a comandos que el intérprete
 ya hacía —el saludo, la elección, una rama por oro, el cobro y la cura— igual

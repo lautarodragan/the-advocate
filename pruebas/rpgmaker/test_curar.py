@@ -82,9 +82,9 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
 
 # --- `ChangeHP` que suma -----------------------------------------------------
 #
-# Comparte OP_HEAL con `FullHeal`, con la cantidad puesta, y hasta el
-# 2026-09-19 compilaba a nada por el mismo motivo. Es `Game_Battler::ChangeHp`:
-# al caído no lo levanta, topa en el máximo y no toca los SP. La página
+# Comparte OP_HEAL con `FullHeal`, con la cantidad puesta. Es
+# `Game_Battler::ChangeHp`: al caído no lo levanta, topa en el máximo y no
+# toca los SP. La página
 # `curar-sumar` espera 18 ticks —los que la prueba usa para poner los HP de
 # partida— y suma 5 al grupo, 3 al actor 11, y 999 al 12 y al 13.
 

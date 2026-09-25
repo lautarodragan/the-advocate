@@ -1,13 +1,10 @@
 """Las declaraciones del bytecode y sus generados no se pueden ir separando.
 
-Hay dos bytecodes en este port y los dos tenían el mismo problema. El de
-eventos: el número lo decidía `tools/port/eventos.py` y le llegaba al intérprete de
-`main.s` **adentro de los datos de un mapa**. El del stream de música, más
-crudo todavía: los tres opcodes estaban escritos a mano de los dos lados, en
-`tools/audio/snes_music.py` y en `main.s`, sin nada que atara las copias.
-
-Desde el 2026-09-15 los declara `tools/protocol/`, que no es de ninguno de los dos
-lados, y de ahí salen generados los cuatro archivos de `GENERADOS`. El
+Hay dos bytecodes en este port: el de eventos, que emite `tools/port/eventos.py`
+e interpreta la ROM, y el stream de música, que escribe
+`tools/audio/snes_music.py` y lee `irq_musica`. Los declara `tools/protocol/`,
+que no es de ninguno de los dos lados, y de ahí salen generados los archivos
+de `GENERADOS`. El
 generador es un binario de Rust que se instala con `just herramientas` y se usa
 desde el PATH, así que estos casos lo necesitan instalado; lo generado está
 commiteado, así que **compilar la ROM no necesita ni eso**.
@@ -136,14 +133,11 @@ def test_los_largos_se_derivan_del_layout(nombre, modulo, inc, py):
 
 # --- los largos, contra el juego -------------------------------------------
 #
-# Vivía en `test_teleport.py`.
-#
 # El destino de un teletransporte entra en dos bytes, y los largos cuadran.
 #
 # `OP_TELEPORT` guardaba el índice del mapa destino en **un byte**, así que el
-# formato no podía nombrar más de 256 mapas y el juego tiene 328. Hoy no molesta
-# —la demo más grande lleva 29— pero era un techo escrito en el bytecode, y esto
-# lo saca.
+# formato no podía nombrar más de 256 mapas y el juego tiene 328: era un techo
+# escrito en el bytecode, y esto lo saca.
 #
 # Lo que hace falta probar no es "el teletransporte anda", que eso ya lo miran la
 # tanda de pixeles y `test_puerta_misma`: es que **el emisor y el intérprete

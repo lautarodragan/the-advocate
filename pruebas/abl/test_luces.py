@@ -3,7 +3,7 @@
 Las 52 baldosas de luz dejaron de ser eventos: el charco es un tile del mapa,
 apagar un cono es un `TileSubstitution` y atrapar al héroe es un proceso
 paralelo que mira el terreno de la celda en la que está. El porqué está en
-`workflow/done/el-mapa-11-se-rediseno.md`.
+`workflow/tasks/done/el-mapa-11-se-rediseno.md`.
 
 Esto existe porque **ninguna otra prueba ejecuta ese camino**. La tanda de
 pixeles no lo ve —el mapa se dibuja igual que antes, que es justamente lo que

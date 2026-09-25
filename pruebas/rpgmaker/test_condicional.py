@@ -22,18 +22,10 @@ Son dos cosas distintas: que la rama no corra —el 19 no vuelve al grupo— y q
 la página **siga después del `end`** —el 175 se prende—. Una implementación que
 saltee de más deja el 175 apagado.
 
-Hasta el 2026-09-17 el banco era el mapa 66, que se había elegido porque ahí la
-ventana de mensaje no entra y ninguna página con mensajes compilaba. La ventana
-pasó a ser obligatoria, y el 66 dejó de armar.
-
-**La rama que corre** no se puede probar con una página del juego. Ninguna de
-las que usan `ConditionalBranch` prende antes el switch que la decide —todas
-leen uno que viene de otra parte— y prenderlo desde la página de prueba, que
-entonces corría **después** de las del mapa, llegaba tarde: cuando la página
-del mapa 66 preguntaba por el 162, el 162 todavía no estaba.
-
-Así que esa mitad va sobre una rama en la página de prueba, que prende el switch
-arriba y ramifica abajo, en la misma página: ahí el orden es nuestro. La página
+**La rama que corre** va sobre una rama en la página de prueba, que prende el
+switch arriba y ramifica abajo, en la misma página: ahí el orden es nuestro.
+Ninguna página del juego que use `ConditionalBranch` prende antes el switch
+que la decide —todas leen uno que viene de otra parte—. La página
 es `pruebas/casos/rama-300.json`, un dato de RM2k que compila
 `compilar_pagina` igual que a una página del juego.
 """
