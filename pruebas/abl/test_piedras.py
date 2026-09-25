@@ -38,6 +38,8 @@ from port import eventos
 from rpgmaker import lcf
 from render.render_map import GAME_DIR
 
+import datos
+
 # El mapa del minijuego, con el grupo del juego: no sale de ahí.
 MAPAS = "en-11"
 # Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
@@ -57,9 +59,7 @@ def mapa11():
 
 
 def ranura(numero):
-    if numero not in eventos.VARIABLE_SLOT:
-        eventos.indexar_variables(GAME_DIR)
-    return eventos.VARIABLE_SLOT[numero]
+    return datos.ranuras_de_variable()[numero]
 
 
 def celda_de(p, mapa11, evento):

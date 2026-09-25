@@ -12,14 +12,10 @@ que nombren las páginas de prueba del cartucho**, así que la prueba rearma el
 la 152 —se la enseña el mapa 48— y le hace olvidar la 147, que el LDB le da.
 """
 
-import functools
-import json
-import os
-
 from port import eventos
-from render.render_map import GAME_DIR
 
-from test_game_over import pagina_de
+import datos
+from datos import pagina_de
 
 ARDEN, KERSH, CORE, MANTA = 15, 11, 12, 13
 APRENDE, OLVIDA = 152, 147
@@ -31,23 +27,8 @@ SABE_LA_NUEVA, SABE_LA_VIEJA = 136, 138
 DESPUES = 60
 
 
-@functools.lru_cache(maxsize=None)
-def indice():
-    """El índice de pares del cartucho de pruebas: el del juego con los que
-    nombran sus casos, que es lo que le pasa el conversor."""
-    from ensamblado import cartuchos
-    from rpgmaker import lcf
-    extra = set()
-    for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
-        with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
-                  encoding="utf-8") as archivo:
-            extra |= eventos.pares_de_habilidad_de_comandos(
-                lcf.comandos_escritos(json.load(archivo)))
-    return eventos.pares_de_habilidad(GAME_DIR, extra)
-
-
 def ranura(actor, habilidad):
-    return indice()[(actor, habilidad)]
+    return datos.ranuras_de_habilidad()[(actor, habilidad)]
 
 
 def sabe(una, actor, habilidad):
@@ -73,11 +54,6 @@ def item(una, numero):
     return una.consola.ram(una.simbolos["FAR_ITEMS"] + numero, 1)[0]
 
 
-def db():
-    from rpgmaker import lcf
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
 # --- las habilidades --------------------------------------------------------
 
 def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
@@ -85,7 +61,7 @@ def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
     que no copiara nada y dejara `FAR_HAB` en cero daría "no la sabe" para la
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")
-    assert una.simbolos["HAB_BYTES"] == (len(indice()) + 7) // 8, (
+    assert una.simbolos["HAB_BYTES"] == (len(datos.ranuras_de_habilidad()) + 7) // 8, (
         "el cartucho tiene otro índice de pares que el que arma la prueba: "
         "sus ranuras no valen")
     assert sabe(una, ARDEN, OLVIDA), "Arden arranca sin la 147 del LDB"
@@ -127,7 +103,7 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     """El grupo —Kersh y Core— sin arma, y Manta sin casco. Lo que tenían puesto
     vuelve al inventario, que es `Game_Actor::ChangeEquipment(ranura, 0)`."""
     una = partida(caso="equipo-quitar")
-    base = db()
+    base = datos.base()
     arma_k = base.actors[KERSH].initial_equipment[0]
     arma_c = base.actors[CORE].initial_equipment[0]
     casco_m = base.actors[MANTA].initial_equipment[3]
@@ -148,7 +124,7 @@ def test_change_equipment_no_toca_lo_demas(partida):
     """El control: Manta no está en el grupo, así que su arma sigue; y de Kersh
     sólo se va el arma."""
     una = partida(caso="equipo-quitar")
-    base = db()
+    base = datos.base()
     una.correr(DESPUES)
     assert equipo(una, MANTA)[0] == base.actors[MANTA].initial_equipment[0]
     assert equipo(una, KERSH)[1:] == base.actors[KERSH].initial_equipment[1:]

@@ -19,25 +19,9 @@ Corre en el mapa 20 porque tiene encuentros al azar en la celda de llegada y
 ningún evento que toque el grupo, y el control necesita las dos cosas.
 """
 
-import os
-
+from datos import maximos
 from batalla import (DESPUES_DE_PERDER, cuadros_hasta_reiniciar, grupo_de,
                      palabra_de, sin_hp)
-
-def maximos():
-    """Los HP y SP máximos de cada actor, sacados del LDB y no de la ROM.
-
-    Es la misma cuenta que emite `actor_hpmax`, pero leída del otro lado: si
-    la ROM copiara de una tabla equivocada, comparar contra esa misma tabla
-    daría verde.
-    """
-    from port import titulo
-    from rpgmaker import lcf
-    from render.render_map import GAME_DIR
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    return {a: (titulo.parametro_de(actor, "maxhp"),
-                titulo.parametro_de(actor, "maxsp"))
-            for a, actor in db.actors.items()}
 
 
 def perdida_y_curada(partida):

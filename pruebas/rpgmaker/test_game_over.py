@@ -28,13 +28,10 @@ página sigue. Sin él, un reinicio por cualquier otra causa —una pelea que
 cuelgue, una pila que se desborde— pasaría por verde.
 """
 
-import os
-
 from port import eventos
-from rpgmaker import lcf
-from render.render_map import GAME_DIR
 
 from batalla import con_encuentros, cuadros_hasta_reiniciar, sin_hp
+from datos import pagina_de
 
 # Las páginas de prueba `pelea-82` y `pelea-82-game-over` pelean contra la
 # tropa del droide del mapa 2, que es la que ya viaja en los cartuchos de
@@ -72,20 +69,6 @@ def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
 
 
 # --- lo que se emite -------------------------------------------------------
-
-def pagina_de(map_id, evento_id, numero):
-    """La página `numero` del evento `evento_id` del mapa, compilada."""
-    game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    evento = [e for e in game_map.events if e.id == evento_id][0]
-    for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
-                    eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
-                    eventos.indexar_actores, eventos.indexar_habilidades):
-        indexar(GAME_DIR)
-    del_mapa = eventos.Eventos(game_map).para(evento.id)
-    return eventos.compilar_pagina(
-        evento.pages[numero], lambda mid: 0, eventos.Mensajes(), del_mapa,
-        eventos.Temas(), eventos.Graficos(), eventos.Imagenes(GAME_DIR))
-
 
 def pagina_del_jefe(numero):
     """La página `numero` del evento del jefe de los Rat Tracks, compilada."""

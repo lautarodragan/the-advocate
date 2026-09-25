@@ -17,9 +17,9 @@ toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
 con el número, está en `KEY_INPUT_PROC` en `eventos.py`.
 """
 
-
 from port import eventos
-from render.render_map import GAME_DIR
+
+import datos
 
 # La variable de RM2k donde el comando guarda lo que leyó. Cualquiera sirve: el
 # conversor le da ranura porque la nombra la página de prueba.
@@ -34,14 +34,8 @@ ESPERA = 30
 
 
 def ranura():
-    """La ranura de la variable, con el mismo índice que armó el conversor.
-
-    Hay que armarlo acá: `VARIABLE_SLOT` lo llena `indexar_variables`, y el que
-    lo llamó fue el conversor, en otro proceso.
-    """
-    if VARIABLE not in eventos.VARIABLE_SLOT:
-        eventos.indexar_variables(GAME_DIR, {VARIABLE})
-    return eventos.VARIABLE_SLOT[VARIABLE]
+    """La ranura de la variable, con el mismo índice que armó el conversor."""
+    return datos.ranuras_de_variable()[VARIABLE]
 
 
 def leer(una):

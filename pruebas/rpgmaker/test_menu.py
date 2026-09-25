@@ -8,22 +8,16 @@ por la página de prueba, guardar desde el menú, y el pedido de menú hecho a
 mitad de un paso.
 """
 
-import os
-
-import pytest
-
 from consola import TITULO_AIRE
+import datos
 from menu import GRUPO, ORO, abrir, con_grupo, tocar
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
     from tanda import pantalla_distinta, quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
@@ -200,13 +194,10 @@ def test_los_hp_del_menu_cambian_de_verdad():
     arriba el día que la referencia se equivocara igual, que es la forma de
     falla que AGENTS.md nombra primero.
     """
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
     from tanda import quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)
     herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,

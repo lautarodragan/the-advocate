@@ -24,17 +24,14 @@ cuatro enemigos la ejercitan los casos `batalla` de
 `test_tanda_pantallas.py`, con la página de prueba.
 """
 
-import os
-
-from rpgmaker import lcf
 from port import titulo
 from port import batalla as modelo
-from render.render_map import GAME_DIR
 
 from batalla import (ACTOR, BLANCO, DROIDE, FIN, GRUPO, HAB, ITEM, MENSAJE,
                      O_HABILIDAD, O_HUIR, O_USAR, ORDEN, Pelea, en_el_droide,
                      hab_id, modelo_de)
 from consola import en_la_rom, en_la_wram
+import datos
 from tanda import LINKAGE
 
 # Las habilidades que el grupo de la intro sabe, por si alguna prueba quiere
@@ -56,10 +53,6 @@ PENDIENTE_DE = {"errar": "BA_SE_ERRAR",
                 "muerte": "BA_SE_MUERTE"}
 
 
-def db():
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
 # --- los HP como estado ----------------------------------------------------
 
 def test_los_hp_arrancan_llenos(partida):
@@ -69,7 +62,7 @@ def test_los_hp_arrancan_llenos(partida):
     siempre— y esto es lo que lo vuelve comprobable.
     """
     una = partida()
-    base = db()
+    base = datos.base()
     pelea = Pelea(una)
     for actor in GRUPO:
         esperado = titulo.parametro_de(base.actors[actor], "maxhp")
@@ -119,7 +112,7 @@ def test_los_sp_arrancan_llenos(partida):
     —52 HP y 0 SP— o el 38, 193 contra 79.
     """
     una = partida()
-    base = db()
+    base = datos.base()
     pelea = Pelea(una)
     distintos = 0
     for actor in sorted(base.actors):
@@ -168,7 +161,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     esperado = modelo_de(base)
     assert pelea.byte("BA_NACT") == 3
     assert pelea.byte("BA_NENE") == 1
@@ -187,7 +180,7 @@ def test_la_chance_de_huir_es_la_de_rm2k(partida):
     lados. Con el droide da cero: es cinco veces más ágil que el grupo."""
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    assert pelea.byte("BA_HUIDA") == modelo_de(db()).huida_chance
+    assert pelea.byte("BA_HUIDA") == modelo_de(datos.base()).huida_chance
 
 
 def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
@@ -206,7 +199,7 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(db())
+    esperado = modelo_de(datos.base())
     for turno in range(1, 8):
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
@@ -249,7 +242,7 @@ def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     esperado = {11: [131, 146], 12: [129, 150], 13: [130, 143, 144, 150]}
     for actor, cuales in esperado.items():
         assert habilidades(base, actor) == cuales, (
@@ -291,7 +284,7 @@ def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     esperado = modelo_de(base)
     fury = base.skills[FURY_PUNCH]
     assert habilidades(base, GRUPO[1])[0] == FURY_PUNCH
@@ -327,7 +320,7 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     assert habilidades(base, GRUPO[2])[1] == MINDSHIELD
     switch = base.skills[MINDSHIELD].switch_id
     assert not pelea.switch(switch), \
@@ -364,7 +357,7 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     distinguiría entre curar bien y no curar nada.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     assert habilidades(base, GRUPO[0])[0] == HEALING_SYRINGE
     lastimado = titulo.parametro_de(base.actors[GRUPO[1]], "maxhp") // 2
     una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[1],
@@ -403,7 +396,7 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     assert habilidades(base, GRUPO[0])[1] == AGENCY_BADGE
     esperado = modelo_de(base)
     antes = pelea.palabra(una.simbolos["BA_UNO"]
@@ -442,7 +435,7 @@ def test_ganar_sigue_por_el_victory_handler(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(db())
+    esperado = modelo_de(datos.base())
     while esperado.resultado is None:
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
@@ -627,7 +620,7 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(db())
+    esperado = modelo_de(datos.base())
     antes = None
     while esperado.resultado is None:
         antes = cursor_del_stream(una)
@@ -665,7 +658,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     pelea = Pelea(una).abrir()
     assert una.palabra("tema_actual") == una.simbolos["BA_TEMA"], \
         "la pelea tiene que tapar el tema del mapa"
-    esperado = modelo_de(db())
+    esperado = modelo_de(datos.base())
     while esperado.resultado is None:
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
@@ -802,7 +795,7 @@ def en_el_droide_con_pocion(partida):
     # que el nivel sale del LDB, Kersh tiene 168 de máximo y cincuenta no lo
     # llenan.
     for actor in GRUPO:
-        maximo = titulo.parametro_de(db().actors[actor], "maxhp")
+        maximo = titulo.parametro_de(datos.base().actors[actor], "maxhp")
         falta = maximo - 20
         una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
                                  [falta & 0xFF, falta >> 8])
@@ -824,7 +817,7 @@ def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     assert pelea.byte("BA_ORDEN") == O_USAR
     pelea.tocar()
     assert pelea.modo() == ITEM, "A sobre `Use Item` abre la lista"
-    base = db()
+    base = datos.base()
     esperados = [n for n in sorted(base.items)
                  if modelo.item_usable_en_batalla(base.items[n])]
     # De ésos, los que hay en el inventario.
@@ -848,7 +841,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
     """
     una = en_el_droide_con_pocion(partida)
     pelea = Pelea(una).abrir()
-    base = db()
+    base = datos.base()
     esperado = modelo_de(base)
     for quien in esperado.actores:
         quien.hp = quien.hp_max - 20
@@ -927,7 +920,7 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     Talan siga sin saber ninguna, porque si algún día aprendiera una dejaría de
     probar lo que dice probar.
     """
-    base = db()
+    base = datos.base()
     assert not modelo.habilidades_de(base, 14), \
         "Talan tenía que no saber ninguna: si supiera, este caso no distingue"
     una = partida(caso=LINKAGE)

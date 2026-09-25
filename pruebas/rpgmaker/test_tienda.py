@@ -4,25 +4,16 @@ A para el mensaje y A para cerrarlo, y cada modo de `Scene_Shop` pixel por
 pixel contra `pantallas.pantalla_tienda`.
 """
 
-import os
-
 from port import pantallas as P
 
 from consola import TITULO_AIRE
+import datos
 from menu import tocar
 
 VENDE = [96, 92, 93]                    # el cuchillo, el caño y la cachiporra
 CANO = 92
 ORO = 150
 KERSH = 11
-
-
-def db_y_skin():
-    from rpgmaker import lcf
-    from port import ventana
-    from render.render_map import GAME_DIR
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    return db, ventana.skin(GAME_DIR, db.system_name)
 
 
 def oro(una):
@@ -63,7 +54,7 @@ def comparar(una, esperada, nombre):
 
 
 def test_comprar_y_vender(partida):
-    db, skin = db_y_skin()
+    db, skin = datos.base(), datos.skin()
     una = entrar(partida)
     equipos = [list(db.actors[KERSH].initial_equipment)]
 

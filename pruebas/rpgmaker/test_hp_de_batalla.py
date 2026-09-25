@@ -19,9 +19,8 @@ y Core queda en 79 de 127. Que el número esté escrito acá no es adorno: si
 alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
 """
 
-import os
-
 from menu import abrir
+import datos
 
 # La pelea es la de la página de prueba `pelea-82-grupo-11-12`: la tropa del
 # droide del mapa 2, la misma que usan las demás pruebas de pelea, 18 ticks
@@ -81,16 +80,13 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
     from tanda import pantalla_distinta, quince_bits
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
     abrir(una)
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     oro = int.from_bytes(una.consola.ram(una.simbolos["oro"], 3), "little")
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],

@@ -28,10 +28,10 @@ import os
 
 import pytest
 
-from port import eventos
 from rpgmaker import lcf, rm2k
 from render.render_map import GAME_DIR
 
+import datos
 from tanda import partida
 
 MAPA = 5
@@ -49,7 +49,7 @@ POR_VARIABLE = (23, 25), 40
 
 
 def ranuras():
-    return eventos.variables_de(GAME_DIR, None, ())
+    return datos.ranuras_de_variable()
 
 
 @pytest.fixture(scope="module")

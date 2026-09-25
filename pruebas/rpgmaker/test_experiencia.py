@@ -8,13 +8,12 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-
 from port import batalla as modelo
 from port import experiencia
 
 from consola import en_la_rom
 from batalla import GRUPO, TROPA_DROIDE, Pelea, en_el_droide
-from test_batalla import db
+import datos
 
 
 def rom_de(una):
@@ -58,7 +57,7 @@ def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
     que la ROM no necesita porque nunca baja a nadie de nivel.
     """
     niveles = niveles or {}
-    base = db()
+    base = datos.base()
     esperado = modelo.Batalla(
         [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in grupo],
         [modelo.enemigo_de(base, e, n)
@@ -88,7 +87,7 @@ def test_cada_actor_arranca_con_la_experiencia_de_su_nivel(partida):
     tabla corrida, o la del nivel 1, esto se ve.
     """
     una = partida()
-    base = db()
+    base = datos.base()
     for actor in GRUPO:
         esperado = (experiencia.exp_inicial(base.actors[actor]),
                     experiencia.nivel_inicial(base.actors[actor]))
@@ -107,7 +106,7 @@ def test_ganar_da_la_experiencia_de_la_tropa_a_los_vivos(partida):
     los vivos".
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     antes = {a: exp_y_nivel(una, a) for a in GRUPO}
     esperado = ganar_al_droide(una, caidos=(GRUPO[1],))
     ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
@@ -133,7 +132,7 @@ def test_la_experiencia_se_topa_en_la_de_rm2k(partida):
     equivoca por uno. Se arranca a menos de lo que da el droide del tope.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     actor = GRUPO[0]
     nivel = experiencia.nivel_max(base.actors[actor])
     poner_exp(una, actor, experiencia.EXP_MAX - 10, nivel)
@@ -171,7 +170,7 @@ def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
     coincidirían con los del modelo.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     kersh, manta = GRUPO[0], GRUPO[2]
     lista = experiencia.lista_de(base.actors[kersh])
     nivel_k = experiencia.nivel_inicial(base.actors[kersh])
@@ -194,7 +193,7 @@ def test_en_el_tope_no_sube_mas(partida):
     """`GetMaxLevel()`: con el `final_level` del LDB alcanzado, la experiencia
     se suma y el nivel no se mueve."""
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     actor = GRUPO[0]
     tope = experiencia.nivel_max(base.actors[actor])
     lista = experiencia.lista_de(base.actors[actor])
@@ -215,7 +214,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     pasan por `eq_parametro`, que es también la de la pantalla de equipo.
     """
     una = en_el_droide(partida)
-    base = db()
+    base = datos.base()
     kersh = GRUPO[0]
     poner_exp(una, kersh, experiencia.lista_de(base.actors[kersh])[29], 30)
     pelea = Pelea(una).abrir()
@@ -239,7 +238,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     de arranque."""
     from batalla import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
     una = partida(caso="pelea-82-curar")
-    base = db()
+    base = datos.base()
     sin_hp(una)
     actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
     poner_exp(una, actor, experiencia.lista_de(base.actors[actor])[29], 30)
@@ -270,7 +269,7 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     con el orden al revés el droide le pega a Arden hasta tirarlo, y lo que
     decide eso es el azar de la pelea, que el modelo juega igual."""
     from test_equipo_y_habilidades import sabe
-    base = db()
+    base = datos.base()
     arden = base.actors[ARDEN]
     assert experiencia.nivel_inicial(arden) == 3
     ensena = {nivel: s for nivel, s in arden.skills}
@@ -315,10 +314,8 @@ def diferencia(una, esperada):
 
 
 def referencias():
-    from port import ventana
     from render.render_map import GAME_DIR
-    base = db()
-    return base, ventana.skin(GAME_DIR, base.system_name), GAME_DIR
+    return datos.base(), datos.skin(), GAME_DIR
 
 
 def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):

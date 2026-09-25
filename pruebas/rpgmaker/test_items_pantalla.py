@@ -7,11 +7,10 @@ la ROM lo tiene por el mismo camino que el juego. La tanda mira el mapa
 después de usar la consola —`items` en `pruebas/*/test_tanda*.py`—.
 """
 
-import os
-
 from port import titulo
 
 from consola import TITULO_AIRE
+import datos
 from menu import abrir, tocar
 
 # Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
@@ -39,12 +38,8 @@ def entrar(una):
 
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
-    from rpgmaker import lcf
-    from port import ventana
-    from render.render_map import GAME_DIR
     from tanda import pantalla_distinta, quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_items(skin, db, inventario, elegida, arriba,
                                    db.font_id)
@@ -95,8 +90,6 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
     verdad es `test_curar_menu.py`—; B vuelve a la lista con el cursor donde
     estaba."""
-    from rpgmaker import lcf
-    from port import ventana
     from render.render_map import GAME_DIR
     from tanda import quince_bits
     una = partida(caso="items-pantalla")
@@ -104,8 +97,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     una.poner_grupo(14, 11)
     entrar(una)
     tocar(una, "a", TITULO_AIRE)        # la poción
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
         captura = una.imagen().convert("RGB")
         esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,

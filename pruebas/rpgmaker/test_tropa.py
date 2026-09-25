@@ -25,16 +25,11 @@ pasa a ser un líder posible del cartucho de pruebas, que le pondría su sprite
 en todos los mapas y le podría mover los colores a más de una golden.
 """
 
-import functools
-import json
-import os
-
-from rpgmaker import lcf
 from port import eventos
-from render.render_map import GAME_DIR
 
 from consola import en_la_rom
 from batalla import FIN, ORDEN, Pelea, hab_id
+import datos
 
 CASO = "tropa-talan-aura"
 TALAN = 14
@@ -44,43 +39,14 @@ TROPA = 121
 PAGINA = 7
 
 
-def db():
-    return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
-def casos_del_cartucho():
-    from ensamblado import cartuchos
-    comandos = []
-    for nombre in cartuchos.casos_de(cartuchos.PRUEBAS):
-        with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
-                  encoding="utf-8") as archivo:
-            comandos += lcf.comandos_escritos(json.load(archivo))
-    return comandos
-
-
-@functools.lru_cache(maxsize=None)
-def ranuras_de_variable():
-    """El índice de variables del cartucho de pruebas: el del juego, con las
-    de sus casos y la que elige el caso, que es lo que le pasa el conversor."""
-    extra = eventos.variables_de_comandos(casos_del_cartucho())
-    extra.add(eventos.VARIABLE_DE_CASO)
-    return eventos.variables_de(GAME_DIR, None, extra)
-
-
-@functools.lru_cache(maxsize=None)
-def ranuras_de_habilidad():
-    return eventos.pares_de_habilidad(
-        GAME_DIR, eventos.pares_de_habilidad_de_comandos(casos_del_cartucho()))
-
-
 def sabe(una, habilidad):
-    r = ranuras_de_habilidad()[(TALAN, habilidad)]
+    r = datos.ranuras_de_habilidad()[(TALAN, habilidad)]
     octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
     return bool(octeto & (1 << (r & 7)))
 
 
 def variable(una, numero):
-    return una.variable(ranuras_de_variable()[numero])
+    return una.variable(datos.ranuras_de_variable()[numero])
 
 
 def pagina_del_switch(base, switch):
@@ -200,7 +166,7 @@ def abrir_la_lista(una, pelea):
 
 
 def test_el_sistema_de_batalla_de_talan(partida):
-    base = db()
+    base = datos.base()
     detecta = pagina_del_switch(base, base.skills[DETECT_AURA].switch_id)
     absorbe = pagina_del_switch(base, base.skills[ABSORB_AURA].switch_id)
     s_detecta = base.skills[DETECT_AURA].switch_id

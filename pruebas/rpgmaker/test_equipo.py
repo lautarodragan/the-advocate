@@ -6,11 +6,10 @@ arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
 `FAR_EQUIPO` en el reset.
 """
 
-import os
-
 from port import pantallas
 
 from consola import TITULO_AIRE
+import datos
 from menu import abrir, tocar
 
 TALAN, KERSH = 14, 11
@@ -21,14 +20,6 @@ INVENTARIO = {PALO: 2, LANZA: 1, ESCUDO: 1}
 
 def items_de(inventario):
     return tuple(x for par in sorted(inventario.items()) for x in par)
-
-
-def db_y_skin():
-    from rpgmaker import lcf
-    from port import ventana
-    from render.render_map import GAME_DIR
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    return db, ventana.skin(GAME_DIR, db.system_name)
 
 
 def equipo(una, actor):
@@ -64,7 +55,7 @@ def comparar(una, esperada, nombre):
 
 def test_arranca_con_el_equipo_inicial(partida):
     una = partida()
-    db, _ = db_y_skin()
+    db = datos.base()
     assert equipo(una, TALAN) == db.actors[TALAN].initial_equipment
     assert equipo(una, KERSH) == db.actors[KERSH].initial_equipment
 
@@ -72,7 +63,7 @@ def test_arranca_con_el_equipo_inicial(partida):
 def test_equipar_desde_el_menu(partida):
     """Las ranuras de Talan, la lista del arma con los parámetros que
     quedarían, y el palo puesto: sale del inventario y queda en la RAM."""
-    db, skin = db_y_skin()
+    db, skin = datos.base(), datos.skin()
     una = entrar(partida(caso="equipo-inventario"))
     puesto = list(db.actors[TALAN].initial_equipment)
     inv = dict(INVENTARIO)
@@ -92,7 +83,7 @@ def test_equipar_desde_el_menu(partida):
 
 def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     """Con el escudo puesto, ponerse la lanza lo devuelve al inventario."""
-    db, skin = db_y_skin()
+    db, skin = datos.base(), datos.skin()
     una = entrar(partida(caso="equipo-inventario"))
     tocar(una, "down")                  # el escudo
     tocar(una, "a", 10)

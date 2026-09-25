@@ -21,11 +21,10 @@ El caso `curar-menu` da dos sándwiches, un vino, un elixir y unas botas. Las bo
 son lo último que la pantalla de ítems pinta antes de abrir la elección.
 """
 
-import os
-
 from consola import TITULO_AIRE
 from batalla import palabra_de
-from test_curar import maximos
+import datos
+from datos import maximos
 from menu import abrir, tocar
 
 TALAN, ARDEN = 14, 15
@@ -65,12 +64,10 @@ def usar_sobre_la_segunda(una, fila_del_item):
 
 def diferencia_con_la_eleccion(una, elegida, hp):
     """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_objetivo`."""
-    from rpgmaker import lcf
-    from port import titulo, ventana
+    from port import titulo
     from render.render_map import GAME_DIR
     from tanda import pantalla_distinta, quince_bits
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     captura = una.imagen().convert("RGB")
     esperada = titulo.render_objetivo(skin, db, 4, (TALAN, ARDEN), elegida,
                                       db.font_id, None, GAME_DIR, hp)
@@ -199,15 +196,12 @@ def test_el_elixir_no_sirve_sobre_uno_en_pie(partida):
 def test_el_ultimo_elixir_sale_de_la_lista_al_volver(partida):
     """`Scene_Item::Continue` rehace la lista: el elixir, gastado, ya no está,
     y el cursor que estaba sobre él baja al que ahora ocupa su lugar."""
-    from rpgmaker import lcf
-    from port import titulo, ventana
-    from render.render_map import GAME_DIR
+    from port import titulo
     from tanda import quince_bits
     una = en_los_items(partida, 0)
     usar_sobre_la_segunda(una, FILA_ELIXIR)
     tocar(una, "b", TITULO_AIRE)
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     quedan = {SANDWICH: 2, VINO: 1, BOTAS: 1}
     esperada = titulo.render_items(skin, db, quedan, FILA_ELIXIR, 0,
                                    db.font_id)

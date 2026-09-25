@@ -16,9 +16,9 @@ porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
 `juego`, un cartucho parecido con una página que abría la pantalla de guardar.
 """
 
-import os
 import pytest
 
+import datos
 
 EMPEZAR, SEGUIR = 0, 1
 
@@ -265,10 +265,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     estar en el grupo con los mapas de esta ROM—: Talan tiene cara y nombre,
     DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
     """
-    import os
-    from rpgmaker import lcf
     from port import titulo
-    from port import ventana
     from render.render_map import GAME_DIR
     from tanda import pantalla_distinta, quince_bits
 
@@ -277,8 +274,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     una.guardar_por_el_menu(1)
     una.abrir_ranuras_desde_el_titulo()
 
-    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    skin = ventana.skin(GAME_DIR, db.system_name)
+    db, skin = datos.base(), datos.skin()
     ranuras = una.simbolos["SRAM_RANURAS"]
 
     def comparar(elegida):
