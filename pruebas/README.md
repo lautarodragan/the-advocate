@@ -89,6 +89,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_rama_grupo.py`: `ConditionalBranch` "¿está en el grupo?"
 * `rpgmaker/test_elegir.py`: `ShowChoice`
 * `rpgmaker/test_tecla.py`: `KeyInputProc`
+* `rpgmaker/test_autofire.py`: X sostenido es el autofire de A, que RM2k no
+  tiene
 * `rpgmaker/test_variables.py`: variables
 * `rpgmaker/test_oro.py`: `ChangeGold` y su rama
 * `rpgmaker/test_items.py`: el inventario desde un evento

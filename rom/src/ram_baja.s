@@ -591,3 +591,13 @@ pal_buf:  .res 512
 ; acá, y lo que hay se sube en el vblank que sigue. La RAM del banco 0 no daba
 ; para otros 512 bytes.
 
+; Cuántas vueltas lleva X apretado, módulo 256: de su bit `AUTOFIRE_CUADROS`
+; sale la fase del autofire, ver `read_pad`. No está en página cero, al lado de
+; `pad_a`, porque ahí quedaban tres bytes y esto cuesta sólo cuatro bytes más
+; de código en direccionamiento absoluto; y el absoluto es seguro porque
+; `read_pad` ya lee `JOY1L` así, o sea que todos sus llamadores tienen un banco
+; de datos que ve la RAM baja. Va al final para no correrle la dirección a
+; nadie. `arranque` lo pone en cero aunque `read_pad` lo pise en cada vuelta
+; con X suelto, porque con X apretado desde el encendido el primer cuadro
+; leería basura en bsnes.
+autofire: .res 1

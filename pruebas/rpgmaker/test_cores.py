@@ -48,6 +48,8 @@ del frontend.
                   si nadie pone en cero deja la página bloqueada para siempre.
     escena        la pelea compuesta: lo que más memoria nueva estrena. Ver su
                   docstring.
+    autofire      X sostenido cierra cinco mensajes seguidos: el camino de
+                  `read_pad` con su contador, que ninguno de los otros aprieta.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -154,6 +156,18 @@ def test_cerrar(cuadro):
     """
     iguales("cerrar-%d" % cuadro,
             *dos_cores("cerrar", cuadro, apretar_a=(200,)))
+
+
+def test_autofire():
+    """Los cinco mensajes de `autofire` cerrados con X sostenido.
+
+    **No cobra que `arranque` ponga el contador en cero**: el arnés aprieta X
+    recién pasado el arranque, y para entonces cada `read_pad` con X suelto
+    ya lo puso en cero. Ese `stz` es para un X apretado desde el encendido,
+    que ninguna prueba hace. Lo que mira esto es el camino con X en el core
+    que arranca con basura."""
+    iguales("autofire-120",
+            *dos_cores("autofire", 120, sosteniendo=("x",)))
 
 
 def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():

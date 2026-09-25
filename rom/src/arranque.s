@@ -168,6 +168,7 @@ grupo_listo:
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
     stz pad_a_ant
+    stz autofire
     lda #MOVIL_HEROE
     sta movil
     lda #CAPA_HEROE

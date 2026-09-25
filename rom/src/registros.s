@@ -84,6 +84,8 @@ PAD_START = $10
 ; relleno; JOY1H trae los ocho de más peso y JOY1L los ocho de menos, así que
 ; A es el bit 7 de JOY1L.
 PAD_A     = $80
+; Y X, el que le sigue: RM2k no lo usa, y acá es el autofire de A. Ver `read_pad`.
+PAD_X     = $40
 
 ; B vive con los otros en JOY1H, y es el de más peso de los dieciséis. Lo usa
 ; la elección para cancelar; caminar no lo mira.
