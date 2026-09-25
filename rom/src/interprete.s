@@ -12,8 +12,11 @@
 ; ROM. Por eso hay temas en más de un archivo; cuando uno sigue en otro, el
 ; encabezado lo dice.
 ;
-; Un opcode nuevo toca tres lugares: su número en tools/protocol/events.toml,
-; su comparación en la cadena de abajo y su `.proc` en el archivo que le toque.
+; Un opcode nuevo toca dos lugares: su número en tools/protocol/events.toml
+; —de donde sale, al regenerar con `just protocolo`, su entrada en la tabla del
+; despacho— y su `.proc op_x` en el archivo que le toque, con el nombre del
+; opcode en minúsculas. El despacho no se toca: si el manejador falta, la tabla
+; no ensambla.
 
 ; El bucle del intérprete: un opcode por vuelta hasta el FIN.
 ;
@@ -33,7 +36,8 @@ otro:
     lda [cod_ptr], y
     iny
     ; Un número que no es un opcode corta la página, igual que OP_DONE y igual
-    ; que hacía la cadena de `cmp` de antes, que terminaba en el `stz`. No
+    ; que hacía la cadena de `cmp` que era el despacho hasta el 2026-09-25, que
+    ; terminaba en el `stz`. No
     ; debería llegar nunca —el bytecode lo emite el conversor con los mismos
     ; números—, pero llega en cuanto un manejador cuenta mal sus operandos y
     ; Y queda en el medio de una instrucción; sin el tope, ese byte indexaría

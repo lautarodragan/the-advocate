@@ -1,6 +1,6 @@
 ---
 name: "La segunda etapa de partir main.s"
-description: "Mudanzas e interprete.s partido (B) hechos; falta el despacho por tabla (C)"
+description: "Mudanzas, interprete.s partido (B) y el despacho por tabla (C): hecha"
 type: refactor
 ---
 
@@ -9,8 +9,7 @@ El corte del 2026-09-25 (`391930c`, ver `done/partir-main.s.md`) partió
 cambia la ROM y mover sí. Así que quedaron rutinas en un archivo que no es el
 suyo. Eso ya está hecho (ver "Las mudanzas"). Después vino `interprete.s`:
 taro eligió **B, y C después** entre las particiones de "interprete.s". B está
-hecha (ver "B, hecha"); **lo que queda es C** (ver "C, pendiente", al final),
-y se hace con B ya mergeada en `main`.
+hecha (ver "B, hecha"), y C también (ver "C, hecha", al final).
 
 ## Las mudanzas
 
@@ -190,7 +189,7 @@ líneas, cada una da el mismo commit que en el `interprete.s` de antes salvo
 el blanco final de doce archivos, que culpa al corte de `main.s`. Ninguna
 culpa al corte de `interprete.s`.
 
-## C, pendiente
+## C, antes de hacerla
 
 **Un despacho por tabla**: `jmp (tabla, x)` con una `.addr` por opcode, en
 lugar de la cadena de `cmp`/`bne`/`jmp`. Cambia la ROM. Es lo que de verdad
@@ -232,3 +231,53 @@ Lo que se aprendió haciendo B y cambia o afina C:
   anchos explícitos lo mostró): el orden de los manejadores en la ROM no le
   importa al despacho.
 * `op_battle_destination` no es un opcode: no va en la tabla.
+
+## C, hecha
+
+El 2026-09-25, sobre `73fc639`, en cuatro commits más la prosa:
+
+| commit | qué |
+|---|---|
+| `a0b0358` | `protocol --jump-table`: `EVENT_OPCODE_COUNT` y la macro `EVENT_HANDLERS`, un `.addr op_x` por opcode en el orden del número |
+| `40661ce` | la receta `protocolo` y `test_los_generados_estan_al_dia` lo piden; la ROM no cambia (las tres byte por byte iguales) |
+| `79d765e` | el despacho: `cmp #EVENT_OPCODE_COUNT` / `bcs op_done` / `asl` / `xba` / `lda #0` / `xba` / `tax` / `jmp (manejadores_de_opcode, x)` |
+| `97614f8` | `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` |
+
+Lo que se decidió en el camino:
+
+* **El nombre sale de una regla**: el manejador de `OP_X` es `op_x`. Por eso
+  `OP_DONE` pasó a tener su `.proc op_done` (el `stz ev_activo` / `rts` del
+  final de la cadena), en vez de ser una excepción.
+* **Es un flag y una macro**, no algo que el generador haga siempre: pide
+  números contiguos, y `music.toml` termina en 0xFF. El `.inc` sigue en
+  `rom/src/` porque es el mismo para todos los cartuchos y no tapa a nadie;
+  la regla de los generados es por los de cartucho.
+* **Un opcode fuera de rango corta la página**, como hacía la cadena. No
+  debería llegar nunca —lo emite el conversor con los mismos números—, pero
+  llega si un manejador cuenta mal sus operandos, y sin tope indexaría
+  fuera de la tabla. Ninguna prueba ejecuta ese camino.
+* **B se limpia con `xba` / `lda #0` / `xba`**, no con `rep` / `and` /
+  `sep`: un ciclo y tres bytes menos.
+
+**X, A y las banderas.** Cada manejador entra ahora con X = opcode × 2, A =
+opcode × 2 con B en cero, C=0 y Z=0 (antes: X lo que dejó el anterior, A el
+opcode con B basura, C=1 y Z=1). Cuatro scripts descartables que siguen
+ramas, `jmp`, `jsr` y `jsl` —cortando en la vuelta a `correr_codigo::otro`—
+no encuentran ningún camino que lea X, A, C o Z/N antes de fijarlos, ni
+desde los 45 manejadores ni desde el `jsr correr_codigo` de los tres
+llamadores (y los de ellos) al volver. Lo que cruzan de `phx`/`plx` con X
+sin escribir es guardar-y-restaurar, o el truco de la dirección de vuelta de
+`cerrar` en `ranuras.s`.
+
+**Medido**: el banco 0 tiene 210 bytes más libres en los tres cartuchos
+(`.res N, $00` en `TABLAS` contra el `.o` de cada uno): release 2139 → 2349,
+tests/main 1769 → 1979, tests/special 2463 → 2673. **Calculado, no medido**:
+22 ciclos de `cmp` a `jmp` para cualquier opcode, contra `5k + 7` de la
+cadena; tres se encarecen (`OP_MESSAGE` 7 → 22, `OP_SWITCH` 12, `OP_ROUTE`
+17). Pesado por cuántas veces aparece cada opcode en las páginas compiladas
+del juego —estático, no por cuántas veces corre—, de 87 a 22 ciclos por
+instrucción.
+
+Verificado con `just cartuchos` y `just pruebas` tres veces sobre el
+despacho, en verde, sin ninguna golden cambiada ni ninguna prueba tocada, y
+`test_cores.py` tres veces más aparte.

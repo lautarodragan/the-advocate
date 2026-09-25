@@ -7,7 +7,8 @@
 ; Los saltos de acá adentro van con `jmp` y no con `bra`: el cuerpo pasó de
 ; siete órdenes a quince y los 127 bytes de alcance de un `bra` se quedaron
 ; cortos tres veces seguidas. Es la misma trampa que ya había cortado dos veces
-; en el despacho de opcodes de `correr_codigo`, y se saca igual.
+; en la cadena de `cmp` que era el despacho de `correr_codigo` antes de la
+; tabla, y se saca igual.
 .proc paso_de_ruta
 .a8
 .i16
