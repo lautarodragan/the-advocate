@@ -40,6 +40,9 @@ GENERADOS = ("mapdata.inc", "musicdata.inc")
 CHECKSUM = 0x7FDE
 COMPLEMENTO = 0x7FDC
 
+# La raíz del repo: `ca65` y `ld65` corren parados acá, con rutas relativas.
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 FALTA = """falta `%s`, del proyecto cc65.
 
 No viene empaquetado en Arch; se compila una vez y queda en el PATH:
@@ -157,6 +160,14 @@ def simbolos(dbg):
     return tabla
 
 
+def _relativa(ruta):
+    """`ruta` relativa a `RAIZ` si está adentro del repo; si no, absoluta."""
+    absoluta = os.path.abspath(ruta)
+    if os.path.commonpath([absoluta, RAIZ]) != RAIZ:
+        return absoluta
+    return os.path.relpath(absoluta, RAIZ)
+
+
 def ensamblar(fuente, incluir, rom, tabla=None):
     """Arma `rom` desde `fuente`, con los generados y el `.cfg` de `incluir`."""
     directorio = os.path.dirname(os.path.abspath(fuente))
@@ -167,11 +178,21 @@ def ensamblar(fuente, incluir, rom, tabla=None):
             "saldría con los datos de otro cartucho. Son generados; se pueden "
             "borrar." % (fuente, " y ".join(tapan), incluir))
     ca65, ld65 = binarios()
-    objeto, dbg = rom + ".o", rom + ".dbg"
-    subprocess.run([ca65, "-g", "--cpu", "65816", "-I", incluir, fuente,
-                    "-o", objeto], check=True)
-    subprocess.run([ld65, "-C", os.path.join(incluir, "memoria.cfg"), objeto,
-                    "-o", rom, "--dbgfile", dbg], check=True)
+    # Rutas relativas a la raíz y `cwd` ahí, porque `ca65` escribe en el
+    # archivo de depuración cada fuente tal como la abrió —el `.include` pegado
+    # al directorio del que incluye, o al `-I`—. Con rutas absolutas quedaría
+    # la del contenedor, y Mesen2 no encontraría el fuente en el clon del
+    # host: busca `file.Name` al lado del `.dbg` y va subiendo de carpeta.
+    # Ver "Depurar con Mesen2" en `docs/snes/emulators.md`.
+    fuente_r, incluir_r = _relativa(fuente), _relativa(incluir)
+    rom_r = _relativa(rom)
+    objeto, dbg = rom_r + ".o", rom_r + ".dbg"
+    subprocess.run([ca65, "-g", "--cpu", "65816", "-I", incluir_r, fuente_r,
+                    "-o", objeto], check=True, cwd=RAIZ)
+    subprocess.run([ld65, "-C", os.path.join(incluir_r, "memoria.cfg"),
+                    objeto, "-o", rom_r, "--dbgfile", dbg], check=True,
+                   cwd=RAIZ)
+    dbg = os.path.join(RAIZ, dbg)
     with open(rom, "r+b") as archivo:
         datos = bytearray(archivo.read())
         checksum(datos)
