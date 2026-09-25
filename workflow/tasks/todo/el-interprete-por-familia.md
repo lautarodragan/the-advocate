@@ -4,7 +4,10 @@ description: "Juntar los manejadores de opcode de cada familia en un solo archiv
 type: refactor
 ---
 
-**Espera a la parte C de `main-s-segunda-etapa`** —el despacho por tabla—.
+El despacho es por tabla desde el 2026-09-25 (la parte C de
+`done/main-s-segunda-etapa.md`), así que ya se puede hacer. Ojo: la prueba
+`test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` exige que
+cada manejador siga en el banco de `correr_codigo`.
 
 Desde la parte B cada manejador de opcode es su propio `.proc`, repartidos en
 `rom/src/interprete_*.s` por tramo contiguo con un tema, no por familia: las
