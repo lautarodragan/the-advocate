@@ -350,7 +350,7 @@ SALTO_VELOCIDAD = 24
 # diagonal con el pad no existe y darle un paso diagonal al héroe pediría
 # duplicar `try_up` y sus tres hermanas para nada. El conversor rechaza la
 # página que lo intente —ver MOVE_EVENT en `traducir`—, que es lo que impide
-# que los dos lados se separen en silencio.
+# que la ROM camine otra cosa en silencio.
 RUTA_DIAGONALES = {4: (0, 1), 5: (2, 1), 6: (2, 3), 7: (0, 3)}
 
 
@@ -4103,9 +4103,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # salto las órdenes no se ejecutan: `BeginMoveRouteJump` sólo **suma**
         # los `move_*` y los giros, y la 9 ahí tendría que preguntar por el
         # héroe en el medio de la cuenta. Ninguna ruta del juego lo hace
-        # —medido, cero—, así que se rechaza en vez de modelarlo a ciegas: si
-        # los dos lados la ignoraran, se equivocarían igual y la comparación
-        # daría cero.
+        # —medido, cero—, así que se rechaza en vez de dejar que la ROM la
+        # camine por un camino que ninguna prueba ejercita.
         en_salto = False
         for orden, extras in ordenes:
             if orden == RUTA_SALTO_INICIO:
@@ -4134,32 +4133,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if orden in (RUTA_ENCARAR_HEROE, RUTA_HACIA_HEROE) and blanco == 0:
                 raise NoSePuede()   # el héroe encarándose o yendo hacia sí mismo
             if orden in RUTA_HEROE_AFUERA and blanco == 0:
-                # Fijar y soltar la mirada y subir y bajar la velocidad, sobre
-                # **el héroe**: se aceptan y se tiran, como el sonido y la
-                # transparencia. La ROM las ignora —su paso es fijo,
-                # `WALK_SPEED`, ocho cuadros por celda— y tirarlas al compilar
-                # es lo que hace que la referencia tampoco las camine. Sobre
-                # eventos sí se hacen.
+                # Fijar y soltar la mirada sobre **el héroe**: se aceptan y se
+                # tiran, como el sonido y la transparencia. Sobre eventos sí se
+                # hacen. Subir y bajar la velocidad también se tiraban sobre el
+                # héroe, y se hacen desde el 2026-09-10: ver RUTA_HEROE_AFUERA.
                 #
-                # Rechazar la página entera, que fue lo primero que se probó,
-                # arreglaba la paridad y costaba demasiado: **la escena de
-                # Talan tiene una ruta del héroe que empieza con la 28**, así
-                # que la escena que motivó los seis puntos del 2026-09-06 se
-                # quedaba sin compilar y el jugador no podía salir del pasillo
-                # del Emitter Room. Son 4 páginas automáticas más esa.
-                #
-                # Lo que se pierde es el cambio de ritmo: donde RM2k acelera al
-                # héroe, acá camina a la suya. Es visible y está aceptado; lo
-                # que lo arregla de verdad es que su paso deje de ser fijo, y
-                # eso no está hecho.
+                # Tirarlas y no rechazar la página entera, que fue lo primero
+                # que se probó, es del 2026-09-06: **la escena de Talan tiene
+                # una ruta del héroe que empieza con la 28**, así que la escena
+                # que motivó los seis puntos de ese día se quedaba sin compilar
+                # y el jugador no podía salir del pasillo del Emitter Room.
                 continue
             if orden in RUTA_DIAGONALES and blanco == 0:
                 # Y el héroe en diagonal: la ROM no lo sabe hacer y ninguna
                 # de las 26 rutas del juego con diagonales es del héroe. Sin
-                # este corte la referencia caminaría la diagonal y la ROM se
-                # iría para la izquierda —el `mover` de `paso_de_ruta` cae en
-                # `try_left` por descarte—, o peor, los dos lados harían lo
-                # mismo mal el día que alguien "arregle" uno solo.
+                # este corte la ROM se iría para la izquierda —el `mover` de
+                # `paso_de_ruta` cae en `try_left` por descarte—.
                 raise NoSePuede()
             if orden == RUTA_CAMBIAR_GRAFICO:
                 # La única orden con operando: detrás del 34 va el índice del
