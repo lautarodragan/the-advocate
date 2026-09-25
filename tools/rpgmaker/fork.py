@@ -30,8 +30,9 @@ porque un fork que pisa una entrada de la base envejece sin avisar el día que
 `just datos` la cambie.
 
 **La imagen del ChipSet no se versiona: se arma.** El arte del juego no es
-nuestro para redistribuir —vive en `/extras`, ver `assets/README.md`—, así que
-el fork guarda la *receta* —qué bloque se copia adónde— y `imagen_del_chipset`
+nuestro para redistribuir —vive en `/extras`, ver
+`docs/research/graficos-de-rm2k-a-snes.md`—, así que el fork guarda la
+*receta* —qué bloque se copia adónde— y `imagen_del_chipset`
 la aplica sobre el PNG original dejando el resultado en
 `rom/build/parches-manual/`.
 

@@ -20,4 +20,4 @@ orden: es darle a la ruta la dirección de partida del evento.
 
 Los cuatro giros absolutos —`face_up` y compañía— sí están, y **encarar al
 héroe** también: ver "La frecuencia de la ruta, y encarar al héroe" en
-`docs/events.md`.
+`docs/port/events.md`.

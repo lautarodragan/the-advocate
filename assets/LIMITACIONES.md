@@ -2,7 +2,7 @@
 
 Este archivo existe porque el horizonte del proyecto es un `migrar-rm2k-a-snes
 juego.zip juego.sfc` que ande sin ajustar tuercas —ver el final de
-`assets/README.md`— y varias de las decisiones que tomamos **no son generales**:
+`docs/research/graficos-de-rm2k-a-snes.md`— y varias de las decisiones que tomamos **no son generales**:
 funcionan porque *A Blurred Line* es como es. Si mañana alguien apunta esto a
 otro juego, acá está lo que hay que volver a mirar, con el número que justificó
 cada cosa.
