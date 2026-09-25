@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `TileSubstitution`: de ahora en más, donde la grilla diga tal bloque se
 ; dibuja tal otro. La instrucción trae **varios** pares porque RM2k sustituye
 ; por número de tile y acá la unidad es el bloque de 16x16, que lleva las dos

@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 .proc op_teleport
     rep #$20
 .a16

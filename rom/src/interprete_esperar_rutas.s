@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
 ; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
 ; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el

@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
 ; comando siguiente —el `iny` del lazo— pero `eventos_tick` no vuelve a llamar
 ; acá hasta que el jugador apriete A.

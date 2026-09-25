@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `OpenShop`: tipo, juego, cuántos y la lista, de a dos bytes cada ítem. La
 ; tienda se abre acá adentro y, al salir, el mapa vuelve y la página sigue.
 .proc op_shop

@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; El cronómetro: poner, arrancar o parar. Los cinco bytes de operando son fijos
 ; aunque cada operación use dos, así que el cursor avanza igual en las tres.
 .proc op_timer

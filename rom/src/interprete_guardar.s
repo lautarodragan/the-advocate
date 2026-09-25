@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `OpenSaveMenu`: la pantalla de ranuras en modo guardar, y la partida a la
 ; que el jugador elija. Sin operandos. La referencia hace lo mismo con el mismo
 ; opcode: ver `OP_SAVE` en tools/port/eventos.py.

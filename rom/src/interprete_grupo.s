@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 .proc op_party
     lda [cod_ptr], y            ; 0 = agregar, 1 = sacar
     sta temp

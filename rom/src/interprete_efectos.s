@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
 .proc op_sound

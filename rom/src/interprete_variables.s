@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
 ; a y b de dieciséis bits. Ver OP_VAR en eventos.py. Dieciséis bits con signo,
 ; dando la vuelta.

@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `PlayBGM`. El operando es el índice del tema en `Temas`, y el cartucho lleva
 ; los que hayan entrado en la ARAM: los primeros `TEMA_TOTAL`. Un índice más
 ; alto es un tema que no entró y no suena, que es lo que pasaba con todos menos

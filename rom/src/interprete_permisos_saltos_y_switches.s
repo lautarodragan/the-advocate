@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `ChangeSaveAccess`, `ChangeMainMenuAccess` y `ChangeEscapeAccess`: **el bit**
 ; del permiso y si queda permitido. Prende o apaga ese bit de "prohibido" de
 ; `FAR_ACCESO`.

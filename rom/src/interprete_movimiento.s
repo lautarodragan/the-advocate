@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; Una ruta forzada de MoveEvent. El primer operando dice sobre quién: 0 es el
 ; héroe, y cualquier otro número es el índice del evento en la tabla del mapa
 ; más uno. **No es el id de RM2k**: 39 mapas de este juego tienen huecos en la

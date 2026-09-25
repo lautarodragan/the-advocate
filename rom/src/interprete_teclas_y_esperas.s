@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
 ; OP_KEY en eventos.py, que es donde está el porqué de que la forma que
 ; espera se emita dos veces.

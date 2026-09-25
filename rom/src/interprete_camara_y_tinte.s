@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `PanScreen`, en sus dos operaciones: correr la cámara sin el héroe y
 ; devolverla. El desplazamiento viene con signo y en 1/16 de pixel, y el paso
 ; por cuadro ya resuelto; lo que se cuenta acá son los cuadros que la página

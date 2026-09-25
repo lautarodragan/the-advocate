@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `GameOver`: volver al arranque, igual que perder una pelea sin manejador de
 ; derrota —ver `op_battle_destination`—, y por lo mismo con `jml`: no hay a
 ; dónde volver.

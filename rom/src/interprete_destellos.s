@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `ShakeScreen`: `ShakeOnce`, que no reinicia la posición para que dos
 ; sacudidas seguidas se encadenen suaves, o `ShakeEnd` con cero cuadros. No
 ; corta el cuadro: si la página espera, el conversor le pone un OP_DELAY

@@ -1,3 +1,7 @@
+.segment "CODE"
+.a8
+.i16
+
 ; `ConditionalBranch` con condición de switch. Los operandos son el número (dos
 ; bytes), la polaridad —copiada tal cual de RM2k, donde 0 quiere decir "tiene
 ; que estar prendido"— y el destino: **el índice absoluto dentro de la página**
