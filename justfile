@@ -176,7 +176,7 @@ _xdist:
   echo "para correrlas en serie sin instalarlo: PROCESOS=0 just pruebas" >&2
   exit 1
 
-# Los cartuchos de prueba, en `rom/build/tests/`: `test-main`, que
+# Los cartuchos de prueba, en `rom/build/tests/roms/`: `test-main`, que
 # lleva todos los casos de `pruebas/casos/`, y los demás, que llevan lo que
 # no entra en él. Qué va en cada uno y por qué está en `tools/ensamblado/cartuchos.py`;
 # `--lista` lo imprime.
@@ -200,14 +200,14 @@ parches: (build "release")
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Mira todos los cartuchos que haya
 # armados, porque lo versionado tiene que salir igual en todos.
-parches-check *builds="rom/build/tests rom/build/release":
+parches-check *builds="rom/build/tests/roms rom/build/release":
   python3 tools/port/parches.py {{builds}} --check
 
 # Arma un cartucho por nombre, si no está al día:
 #
 #     release        la ROM que taro juega, en `rom/build/release/abl.sfc`
-#     test-main      los de la tanda, en `rom/build/tests/main` y `special`
-#     test-special
+#     test-main      los de la tanda, en `rom/build/tests/roms/main`
+#     test-special   y `rom/build/tests/roms/special`
 #
 # `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
 # qué, en `tools/ensamblado/cartuchos.py`: los flags de `release` también viven

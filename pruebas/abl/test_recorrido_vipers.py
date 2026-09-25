@@ -57,7 +57,7 @@ negocio —los eventos 51 y 53 de (59,23) y (59,24), que piden el switch 33— y
 otra candidata es la reja del mapa 12, que sale con un salto de cinco celdas:
 las dos están en `workflow/tasks/wishlist/la-otra-rama-de-los-neon-vipers.md`.
 
-Las capturas de los hitos van a `rom/build/tests/recorrido/vipers/` y **no
+Las capturas de los hitos van a `rom/build/tests/snapshots/playthrough/vipers/` y **no
 están bendecidas**: son para que taro las mire. Ver `Recorrido.foto`.
 """
 

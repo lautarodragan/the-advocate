@@ -314,8 +314,8 @@ def golden(nombre, imagen):
     el descarte de sprites del PPU es el mismo de los dos lados. Ver el
     `LEEME.md` del congelado.
 
-    Cuando difieren, la captura queda en `rom/build/tests/rojo/` para poder
-    mirarla al lado de la golden. **No se pisa la golden**: cambiarla es un acto
+    Cuando difieren, la captura queda en `rom/build/tests/snapshots/failed/`
+    para poder mirarla al lado de la golden. **No se pisa la golden**: cambiarla es un acto
     deliberado y va a git con su porqué.
     """
     ruta = os.path.join(GOLDEN, "%s.png" % nombre)
@@ -332,7 +332,8 @@ def golden(nombre, imagen):
     if actual.tobytes() != esperada.tobytes():
         distintos = sum(1 for a, b in zip(actual.getdata(), esperada.getdata())
                         if a != b)
-        rojo = os.path.join(RAIZ, "rom", "build", "tests", "rojo")
+        rojo = os.path.join(RAIZ, "rom", "build", "tests", "snapshots",
+                            "failed")
         os.makedirs(rojo, exist_ok=True)
         donde = os.path.join(rojo, "%s.png" % nombre)
         actual.save(donde)

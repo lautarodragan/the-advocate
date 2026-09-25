@@ -46,7 +46,7 @@ CASOS = os.path.join(RAIZ, "pruebas", "casos")
 # Dónde quedan. La variable es para correr la tanda contra otros —los de otro
 # worktree, por ejemplo—; `tanda.py` lee la misma.
 DESTINO = os.environ.get("CARTUCHOS",
-                         os.path.join(RAIZ, "rom", "build", "tests"))
+                         os.path.join(RAIZ, "rom", "build", "tests", "roms"))
 
 # Dónde arranca `test-main`: el mapa de la mayoría de los casos, y
 # el que se midió en el 9e. Un caso que corre en otro lugar llega con el
@@ -261,9 +261,10 @@ def sello(nombre, fuentes=None):
 
 def directorio(nombre):
     """Dónde queda el cartucho: `release` en el suyo, y los de la tanda en
-    DESTINO sin el `test-` del nombre —`rom/build/tests/main`—, al lado de lo
-    demás que dejan las pruebas: las fotos del recorrido y las capturas en
-    rojo."""
+    DESTINO sin el `test-` del nombre —`rom/build/tests/roms/main`—. Lo que
+    las pruebas escriben mientras corren va al lado, en
+    `rom/build/tests/snapshots/`: los cartuchos son entrada y no se tocan
+    durante la corrida, las capturas son salida."""
     if nombre == RELEASE:
         return os.path.join(RAIZ, "rom", "build", RELEASE)
     return os.path.join(DESTINO, nombre.replace("test-", "", 1))
