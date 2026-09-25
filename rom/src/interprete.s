@@ -32,158 +32,50 @@
 otro:
     lda [cod_ptr], y
     iny
-    ; Cada opcode se despacha con `bne` al salteo y `jmp` al cuerpo, y no con un
-    ; `beq` derecho al cuerpo, que es lo que había. La diferencia es el alcance:
-    ; un `beq` llega a 127 bytes y el cuerpo del último opcode está detrás de
-    ; todos los demás, así que el límite lo marca la suma de los otros seis.
+    ; Un número que no es un opcode corta la página, igual que OP_DONE y igual
+    ; que hacía la cadena de `cmp` de antes, que terminaba en el `stz`. No
+    ; debería llegar nunca —el bytecode lo emite el conversor con los mismos
+    ; números—, pero llega en cuanto un manejador cuenta mal sus operandos y
+    ; Y queda en el medio de una instrucción; sin el tope, ese byte indexaría
+    ; más allá de la tabla y saltaría a cualquier lado.
+    cmp #EVENT_OPCODE_COUNT
+    bcs op_done
+    ; `tax` con índices de dieciséis bits copia los dieciséis de C aunque A sea
+    ; de ocho, así que el byte de arriba tiene que ser cero: es lo que quedó
+    ; del manejador anterior. `xba` / `lda #0` / `xba` lo limpia sin tocar
+    ; los anchos, un ciclo y tres bytes menos que `rep` / `and #$00FF` /
+    ; `sep`. El `asl` va antes, en ocho bits: el tope de arriba deja el opcode
+    ; por debajo de 128 y no se pierde nada.
     ;
-    ; Eso ya cortó dos veces. La primera, al aparecer OP_MESSAGE, dejó a
-    ; OP_TELEPORT a 140 bytes; se arregló ordenando las comparaciones como los
-    ; cuerpos. La segunda fue darle su operando a OP_MESSAGE: 129 bytes, o sea
-    ; que aquel arreglo duraba exactamente un opcode. Y faltan cuatro —MoveEvent
-    ; sobre otro evento, FlashSprite, PlaySound y ControlVars, en ese orden y
-    ; medidos con `just snes-destraba`—, así que el límite se saca del medio de
-    ; una vez: un `jmp` llega a cualquier parte del banco.
-    ;
-    ; Sale tres bytes y cuatro ciclos por opcode que no matchea, en un despacho
-    ; que corre unas pocas veces por cuadro. El orden ya no significa nada.
-    cmp #OP_MESSAGE
-    bne :+
-    jmp op_message
-:   cmp #OP_SWITCH
-    bne :+
-    jmp op_switch
-:   cmp #OP_ROUTE
-    bne :+
-    jmp op_route
-:   cmp #OP_PARTY
-    bne :+
-    jmp op_party
-:   cmp #OP_DELAY
-    bne :+
-    jmp op_delay
-:   cmp #OP_TINT
-    bne :+
-    jmp op_tint
-:   cmp #OP_FLASH
-    bne :+
-    jmp op_flash
-:   cmp #OP_WAIT_ROUTES
-    bne :+
-    jmp op_wait_routes
-:   cmp #OP_BGM
-    bne :+
-    jmp op_bgm
-:   cmp #OP_PLACE
-    bne :+
-    jmp op_place
-:   cmp #OP_PLACE_VAR
-    bne :+
-    jmp op_place_var
-:   cmp #OP_SWAP
-    bne :+
-    jmp op_swap
-:   cmp #OP_SHAKE
-    bne :+
-    jmp op_shake
-:   cmp #OP_FLASH_SCREEN
-    bne :+
-    jmp op_flash_screen
-:   cmp #OP_FADE_BGM
-    bne :+
-    jmp op_fade_bgm
-:   cmp #OP_PAN
-    bne :+
-    jmp op_pan
-:   cmp #OP_TIMER
-    bne :+
-    jmp op_timer
-:   cmp #OP_IF
-    bne :+
-    jmp op_if
-:   cmp #OP_GOTO
-    bne :+
-    jmp op_goto
-:   cmp #OP_CHOICE
-    bne :+
-    jmp op_choice
-:   cmp #OP_GOLD
-    bne :+
-    jmp op_gold
-:   cmp #OP_ITEM
-    bne :+
-    jmp op_item
-:   cmp #OP_ACCESS
-    bne :+
-    jmp op_access
-:   cmp #OP_ACTOR_SPRITE
-    bne :+
-    jmp op_actor_sprite
-:   cmp #OP_KEY
-    bne :+
-    jmp op_key
-:   cmp #OP_SHOP
-    bne :+
-    jmp op_shop
-:   cmp #OP_BATTLE
-    bne :+
-    jmp op_battle
-:   cmp #OP_WEATHER
-    bne :+
-    jmp op_weather
-:   cmp #OP_ANIMATION
-    bne :+
-    jmp op_animation
-:   cmp #OP_SOUND
-    bne :+
-    jmp op_sound
-:   cmp #OP_PICTURE
-    bne :+
-    jmp op_picture
-:   cmp #OP_PICTURE_MOVE
-    bne :+
-    jmp op_picture_move
-:   cmp #OP_PICTURE_ERASE
-    bne :+
-    jmp op_picture_erase
-:   cmp #OP_SAVE
-    bne :+
-    jmp op_save
-:   cmp #OP_TELEPORT
-    bne :+
-    jmp op_teleport
-:   cmp #OP_VAR
-    bne :+
-    jmp op_var
-:   cmp #OP_IF_VAR
-    bne :+
-    jmp op_if_var
-:   cmp #OP_IF_ACTOR
-    bne :+
-    jmp op_if_actor
-:   cmp #OP_STOP_ROUTES
-    bne :+
-    jmp op_stop_routes
-:   cmp #OP_HEAL
-    bne :+
-    jmp op_heal
-:   cmp #OP_TILE_SUB
-    bne :+
-    jmp op_tile_sub
-:   cmp #OP_TERRAIN
-    bne :+
-    jmp op_terrain
-:   cmp #OP_EQUIPMENT
-    bne :+
-    jmp op_equipment
-:   cmp #OP_SKILL
-    bne :+
-    jmp op_skill
-:   cmp #OP_GAME_OVER
-    bne :+
-    jmp op_game_over
-:   stz ev_activo              ; OP_DONE, o algo que no conocemos: se corta
-    rts
-
+    ; X llega pisado a cada manejador —vale el opcode por dos— y A también,
+    ; con B en cero; ninguno los lee antes de escribirlos. La cadena no los
+    ; tocaba, y eso se revisó siguiendo saltos y `jsr` desde cada manejador y
+    ; desde los tres llamadores de `correr_codigo` al volver.
+    asl a
+    xba
+    lda #0
+    xba
+    tax
+    ; `jmp (abs, x)` lee la tabla del banco del programa, que es donde está: el
+    ; de datos es el del bytecode (ver `op_shop`) y un `lda tabla, x` leería
+    ; otra cosa.
+    jmp (manejadores_de_opcode, x)
 .endproc
 
+.assert EVENT_OPCODE_COUNT <= 128, error, "el asl de correr_codigo va en 8 bits"
+
+; OP_DONE, y cualquier número que no sea un opcode: se corta la página.
+.proc op_done
+.a8
+.i16
+    stz ev_activo
+    rts
+.endproc
+
+; La entrada k es el manejador del opcode k. La emite tools/protocol/ desde
+; events.toml, así que un opcode nuevo no toca esto: el manejador de `OP_X`
+; tiene que llamarse `op_x`, y si falta no ensambla. Tiene que estar en el
+; banco de `correr_codigo`, que es de donde la lee el `jmp`, y cada manejador
+; también: un `.addr` es de dieciséis bits.
+manejadores_de_opcode:
+    EVENT_HANDLERS
