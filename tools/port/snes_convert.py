@@ -7078,8 +7078,8 @@ def mapa_del_caso(caso, orden, inicial):
     si no el mapa donde arranca la ROM.
 
     Es como un caso elige dónde arrancar desde el paso 9e, en vez de un
-    `--map-id` y un `--inicio` por cartucho: con el `Teleport` de RM2k, que
-    es dato y no flag. La página vive igual en el evento 0 del mapa de
+    `--map-id` y una celda de arranque por cartucho: con el `Teleport` de
+    RM2k, que es dato y no flag. La página vive igual en el evento 0 del mapa de
     arranque —ahí la encuentra la ROM y ahí corre primero—, pero lo que viene
     después del salto corre en el otro mapa, así que se compila con su
     contexto: sus eventos, las variables que miran sus páginas, sus gráficos.

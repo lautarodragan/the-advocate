@@ -17,7 +17,10 @@ probar ese caso, y no tiene sentido adelantarse tanto. Se retoma cuando entre
 en `release` y en `test-main`.
 
 Lo que sigue es el comentario que tenía la receta, que es lo que costó
-averiguar, y la receta misma.
+averiguar. La receta no se guarda: arrancaba en el mapa 49 plantando al héroe
+con `--inicio 1 26`, y ese flag del conversor se sacó el 2026-09-25. La
+carrera se va a probar **llegando al mapa normalmente**, por el `Teleport` del
+juego, no arrancando en una celda elegida desde afuera.
 
 # Lo que se sabía
 
@@ -38,13 +41,13 @@ de la base, el héroe se dibuja **sin gráfico** hasta que el `PanScreen` de
 `RaceController1` termina y recién ahí entra el auto, que es un síntoma que
 taro reportó jugando.
 
-**`--inicio 1 26` es la celda por la que se entra en el juego**, y no es
+**La celda por la que se entra en el juego es la (1, 26)**, y no es
 cosmético. Sin ella el conversor planta al héroe en el tile abierto más cercano
 al centro, que en este mapa cae en una fila donde **no hay ni un obstáculo** ni
 ninguno de los eventos que saltan al mapa siguiente: el auto podía cruzar las
 500 celdas del mapa sin chocar con nada y sin llegar a ninguna parte. La celda
 sale del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
-juego entra.
+juego entra, así que llegando al mapa normalmente se cae ahí sin hacer nada.
 
 **El switch 171 es lo que la hace arrancar** —lo prende la página de prueba
 `pruebas/casos/switch-171.json`—, y hay que saber por qué. El
@@ -65,18 +68,3 @@ sin aceptarse está en `KEY_INPUT_PROC` en eventos.py.
 Aparte de `release` porque el mapa inicial es otro y porque no comparte un solo
 mapa con ella: juntarlas sería un `if` en el medio de una receta que ya tiene
 la lista escrita a mano.
-
-# La receta
-
-```
-_carrera:
-  mkdir -p rom/build/carrera
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 49 \
-      --mapas 50 51 52 53 54 \
-      --sin-titulo --inicio 1 26 \
-      -o rom/build/carrera/mapdata.inc \
-      --comandos-de-prueba pruebas/casos/switch-171.json
-  {{ensamblar}} rom/src/main.s -I rom/build/carrera \
-      -o rom/build/carrera/abl.sfc \
-      --simbolos rom/build/carrera/abl.sfc.sym
-```

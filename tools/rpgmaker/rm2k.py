@@ -92,7 +92,7 @@ def hero_start(passable, width, height, blocked=()):
         # que poder decirlo.
         raise ValueError(
             "el mapa no tiene ninguna celda abierta por los cuatro lados, así "
-            "que no hay dónde poner al héroe; hace falta pasarle un --inicio")
+            "que no hay dónde poner al héroe")
     return best[1], best[2]
 
 
