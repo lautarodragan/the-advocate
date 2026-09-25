@@ -107,26 +107,3 @@ listo:
     rts
 .endproc
 
-
-.proc destello_de_codigo
-.a8
-.i16
-    lda [cod_ptr], y            ; r
-    sta destello_rgb
-    iny
-    lda [cod_ptr], y            ; g
-    sta destello_rgb + 1
-    iny
-    lda [cod_ptr], y            ; b
-    sta destello_rgb + 2
-    iny
-    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
-    sta destello_nivel + 1
-    stz destello_nivel
-    iny
-    lda [cod_ptr], y            ; cuadros
-    sta destello_resta
-    iny
-    rts
-.endproc
-
