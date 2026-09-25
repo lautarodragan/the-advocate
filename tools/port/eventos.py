@@ -3165,8 +3165,9 @@ def tropa_de_encuentro(cmd):
       —o sea a la pantalla de título, con la partida guardada esperando en la
       SRAM— que es lo que `Scene_Gameover` hace después de mostrar su imagen.
       **La imagen no se dibuja**, y eso es deuda declarada en
-      `assets/LIMITACIONES.md`; lo que no se hace es lo de antes, que era no
-      compilar la página: costaba 15, entre ellas el jefe de los Rat Tracks.
+      `workflow/divergencias/game-over-sin-imagen-ni-tema.md`; lo que no se
+      hace es lo de antes, que era no compilar la página: costaba 15, entre
+      ellas el jefe de los Rat Tracks.
 
     El fondo no se mira: la pantalla de batalla va sobre un color plano, que es
     lo que taro pidió para esta vuelta. Ver "la batalla" en README.md.
@@ -4042,7 +4043,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # reparto de la referencia—, así que los dos lados volvían a ser
             # el mismo programa. Lo que queda es una divergencia declarada con
             # RM2k, que destella la imagen de un sprite solo, y está en
-            # `assets/LIMITACIONES.md`.
+            # `workflow/divergencias/destello-sobre-la-paleta-de-otro.md`.
         if any(not 0 <= v <= 31 for v in p[1:5]):
             raise NoSePuede()
         cuadros = p[5] * CUADROS_POR_DECIMA

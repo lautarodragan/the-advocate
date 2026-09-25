@@ -9,7 +9,7 @@ Tracks: hasta el 2026-09-13 ninguna compilaba y el jefe no aparecía nunca.
 Ahora compilan, con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 —$FFFF, un destino imposible adentro de una página— y la ROM lo resuelve en
 `op_battle` con un `jml reset`. **La imagen no se dibuja**; ver
-`assets/LIMITACIONES.md`.
+`workflow/divergencias/game-over-sin-imagen-ni-tema.md`.
 
 Esto va acá y no en la tanda de pixeles por una razón que conviene tener
 escrita: del lado de la referencia la pelea no se juega —`OP_BATTLE` se va

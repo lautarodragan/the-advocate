@@ -42,9 +42,8 @@ entrada de la base envejece sin avisar el día que `just datos` la cambie;
 agregando una entrada nueva no hay nada que pueda quedar viejo.
 
 **Y su imagen no se versiona: se arma.** El arte del juego no es nuestro para
-redistribuir —vive en `/extras`, ver
-`docs/research/graficos-de-rm2k-a-snes.md`—, así que el fork guarda la
-**receta**: qué bloque de autotile y qué tile alto se copian adónde.
+redistribuir —vive en `/extras`, ver `docs/rpgmaker/rtp.md`—, así que el fork
+guarda la **receta**: qué bloque de autotile y qué tile alto se copian adónde.
 El PNG sale a `rom/build/parches-manual/ChipSet/`, que es un directorio de build como
 cualquier otro.
 

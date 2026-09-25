@@ -1,24 +1,17 @@
 # Los gráficos y el sonido, de RM2k a la SNES
 
-Esto es un sub-proyecto aparte del port, y la razón es que el trabajo es de
-otra naturaleza. Volcar un `.lmu` a JSON —lo que hace `data/`— es mecánico: el
-formato de origen y el de destino dicen lo mismo. Pasar los gráficos de RM2k a
-un cartucho de SNES no lo es: hay que **elegir** qué se lleva, con qué paleta y
-compartido con quién, y esas decisiones se toman midiendo.
+> **Medido el 2026-09-07**, entre los commits `d3095de` y `de55cf7`, con
+> `assets/medir.py`. Los números son de ese día y este archivo no se actualiza:
+> el conversor cambió mucho desde entonces. El script se borró el 2026-09-19 en
+> `17e8b79`; el último commit que lo tiene es `5fadb64`.
 
-Acá vive la estrategia que salió de medir.
+Pasar los gráficos de RM2k a un cartucho de SNES no es mecánico, como volcar un
+`.lmu` a JSON: hay que **elegir** qué se lleva, con qué paleta y compartido con
+quién, y esas decisiones se toman midiendo. Esto es lo que salió de medir.
 
-    LIMITACIONES.md   lo que decidimos que este port **no** hace, con el
-                      número que justificó cada cosa. Varias de esas
-                      decisiones valen porque el ABL es como es, así que es
-                      lo primero a releer si esto se apunta a otro juego.
-
-**Los números de este archivo salieron de `assets/medir.py`**, que medía por
-rubro —los CharSets por fotograma, los ChipSets en lo que se usa, si alcanza
-una paleta por chipset, y el resto— y se borró el 2026-09-19 con todo lo que no
-era ni pipeline ni pruebas. Para volver a medir, está en el historial: el
-último commit que lo tiene es 5fadb64. Si un número de acá no coincide con lo
-que mide, el que miente es el README.
+`medir.py` medía por rubro —los CharSets por fotograma, los ChipSets en lo que
+se usa, si alcanza una paleta por chipset, y el resto—. Lo que el port decidió
+no hacer a partir de estas cuentas está en `workflow/divergencias/`.
 
 
 ## Cómo contar sin engañarse
@@ -232,7 +225,7 @@ grande: los nueve mapas del PoC pasaron de fusionar 97 colores a fusionar 8, y
 se ve —la sangre de Core en el piso del mapa 2 era marrón y ahora es roja—.
 
 
-## Lo que sigue
+## Lo que seguía
 
 1. ~~**La estrategia de paletas.**~~ Hecha a medias y con un final inesperado:
    la mitad de calidad rindió mucho —97 colores fusionados a 8— y la de ahorro

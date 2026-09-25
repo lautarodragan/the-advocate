@@ -126,7 +126,7 @@ FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))
 # es de treinta y dos. La referencia da la misma vuelta a propósito: lo que
 # tiene que coincidir es lo que dibujan los dos lados, y perder un paso de agua
 # una vez cada dieciocho minutos no lo ve nadie. Está declarado en
-# assets/LIMITACIONES.md.
+# workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
 TICK_MASCARA = 0xFFFF
 AGUA_CUADROS_LENTO, AGUA_CUADROS_RAPIDO = 24, 12
 # Tres dibujos recorridos en cuatro pasos, con el cuarto repitiendo el segundo.

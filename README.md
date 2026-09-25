@@ -480,7 +480,8 @@ VRAM, poses— lo trata como a cualquier gráfico. Quien mire
 El camino viejo sigue estando, con `MODO_TRANSLUCIDO=trama`, para poder
 comparar los dos sobre el mismo árbol.
 
-Lo que se paga, y está declarado en `assets/LIMITACIONES.md`:
+Lo que se paga, y está declarado en
+`workflow/divergencias/los-translucidos-quedan-opacos.md`:
 
 * **El sprite queda opaco.** Nadie que pase por detrás se ve. Para un fuego
   sobre un barril y para un save point da igual —nada camina por ahí—, pero el

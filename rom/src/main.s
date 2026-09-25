@@ -5030,8 +5030,9 @@ op_battle_destination:
     ; **Game Over es volver al arranque**, que es la pantalla de título si esta
     ; ROM la lleva, con la partida guardada esperando en la SRAM: es lo que
     ; `Scene_Gameover` hace cuando el jugador aprieta, menos la imagen, que este
-    ; port no dibuja —ver assets/LIMITACIONES.md—. Se va con `jml` y no
-    ; devolviendo el control porque no hay a dónde volver: la página no tiene
+    ; port no dibuja —ver
+    ; workflow/divergencias/game-over-sin-imagen-ni-tema.md—. Se va con `jml` y
+    ; no devolviendo el control porque no hay a dónde volver: la página no tiene
     ; rama de derrota y `reset` repone la pila él mismo.
     iny
     bne sigue_la_pagina
@@ -16075,8 +16076,9 @@ listo:
 ; pasos con el tercero repitiendo el primero.
 ;
 ; **La fase no es la de RM2k**, que arranca el contador de cada personaje cuando
-; el mapa lo crea; acá es global. Está declarado en assets/LIMITACIONES.md, y lo
-; único que cambia es en cuál de los cuatro pasos del ciclo entra cada evento.
+; el mapa lo crea; acá es global. Está declarado en
+; workflow/divergencias/la-fase-de-los-quietos-que-animan.md, y lo único que
+; cambia es en cuál de los cuatro pasos del ciclo entra cada evento.
 ;
 ; Va antes de `mover_eventos` a propósito: si una ruta forzada agarra a uno de
 ; éstos, la ranura le pisa la pose después y gana ella, que es la que lleva el
@@ -21014,8 +21016,9 @@ anim_por_vel:
 ; El tick es `vueltas`, el mismo número que cuenta la referencia. Como es de
 ; dieciséis bits, cada 65536 ticks —dieciocho minutos— da la vuelta y el ciclo
 ; se saltea un dibujo; RM2k cuenta en treinta y dos. La referencia da la misma
-; vuelta —ver `TICK_BITS` en tools/rpgmaker/rm2k.py— así que los dos lados siguen
-; diciendo lo mismo, y lo que se pierde está declarado en LIMITACIONES.md.
+; vuelta —ver `TICK_MASCARA` en tools/rpgmaker/rm2k.py— así que los dos lados
+; siguen diciendo lo mismo, y lo que se pierde está declarado en
+; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
 .proc anim_paso
 .a8
 .i16

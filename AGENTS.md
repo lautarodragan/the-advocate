@@ -14,6 +14,8 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
     justfile         qué se puede correr; los comentarios explican el porqué
     README.md        el juego original, el volcado a JSON, y el port a SNES
                      entero con sus trampas y "Lo que falta"
+    docs/            RM2k, la consola, cómo funciona el port hoy, y los
+                     estudios fechados: su README dice qué va en cada carpeta
     data/README.md   el volcado a JSON visto desde adentro de data/
     DITTO.md         qué es Ditto, por qué existe acá y en qué estado está
                      la idea de que los JSON sean la fuente de verdad

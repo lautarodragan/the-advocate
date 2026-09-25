@@ -32,7 +32,8 @@ de 96x96 queda en 64x64, el 67%— y las grandes de la intro sí: la 82 mide
 536x416 y queda en 64x49, el 11%. Nada se dibuja mal en silencio: el criterio
 es una cuenta, la emite el conversor y la referencia la repite.
 
-Lo que se pierde, y está declarado en `assets/LIMITACIONES.md`:
+Lo que se pierde, y está declarado en
+`workflow/divergencias/la-animacion-de-batalla-achicada.md`:
 
 * **La transparencia de una celda no existe.** Un objeto de la consola es opaco
   o no está. Lo que se hace es componer las celdas con su alfa en el cuadro y
