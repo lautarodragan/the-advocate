@@ -17,8 +17,8 @@ guion: cuando uno se agota, el mensaje dice **en qué hito** se agotó y **con q
 estado**, porque un fallo al minuto siete no se depura con un `assert False`.
 
 **Por dónde se camina lo dice el juego original, no una lista escrita a mano.**
-La ruta sale de un BFS sobre la misma tabla de colisión que usan el conversor y
-la referencia —`rm2k.passability_map`—, así que si un tile cambia de lado, la
+La ruta sale de un BFS sobre la misma tabla de colisión que usa el conversor
+—`rm2k.passability_map`—, así que si un tile cambia de lado, la
 prueba camina por donde se pueda caminar y no por donde alguien anotó que se
 podía. Lo único escrito a mano es **a dónde** hay que ir, y eso también sale del
 juego: es la celda del evento que teletransporta al mapa que sigue.
@@ -50,9 +50,8 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     celda tiene una puerta— y las reglas tienen que ser las mismas, no una
     copia parecida.
 
-    Vivía en `rpgmaker/rm2k.py` hasta el 2026-09-20 y se mudó acá porque este
-    archivo es su único llamador: en Python queda lo de las pruebas, y lo que
-    el port necesita de verdad se va yendo a Rust.
+    Vive acá y no en `rpgmaker/rm2k.py` porque este archivo es su único
+    llamador.
     """
     leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
                (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
@@ -76,7 +75,7 @@ TRIGGER_ACCION, TRIGGER_CONTACTO, TRIGGER_CHOQUE, TRIGGER_AUTO, \
 
 # Cuántos ticks se le da a un paso de una celda antes de darlo por trabado. Un
 # paso a velocidad normal son unos ocho ticks; los mapas de Lashe City corren
-# más lento y un teletransporte de puerta se come varios. Treinta es paciencia
+# más lento y un teletransporte de puerta se come varios. Cuarenta es paciencia
 # de sobra sin que un trabado cueste una corrida entera.
 PASO_TOPE = 40
 
@@ -468,15 +467,14 @@ class Recorrido:
         cuadros después de un cuadro de texto, en otro mapa, y ningún assert de
         estado lo habría notado.
 
-        La golden la bendice taro mirándola una vez —lo hizo el 2026-09-13 con
-        las ocho de las dos jugadas— y vive en `pruebas/golden/`. Si no hay
+        La golden la bendice taro mirándola una vez, y vive en
+        `pruebas/golden/playthrough/`. Si no hay
         golden, la captura se guarda igual y el caso **no falla**: así se
         agrega un hito nuevo sin romper la prueba, y se bendice después.
 
         **La tolerancia es grande a propósito.** No es una comparación pixel
-        por pixel como la de `test_tanda*.py`: acá los cuadros no están
-        elegidos
-        para ser deterministas —el agua se mueve, los NPCs caminan, el reloj
+        por pixel como la de `tanda.golden`: acá los cuadros no están
+        elegidos para ser deterministas —el agua se mueve, los NPCs caminan, el reloj
         corre— y apretar el umbral traería rojos que no son defectos. Lo que
         tiene que cazar es la corrupción, y taro lo dijo mejor: "incluso si no
         logramos 100% de match, con que logremos 90% va a alcanzar, porque las
@@ -866,10 +864,7 @@ class Recorrido:
         """Parado sobre un save point, tocarle A y elegir `ranura`.
 
         Es el camino de guardado **del juego** —`OpenSaveMenu`, el evento 66
-        del mapa 8— y no el de la página de prueba que usan los casos `guardar`
-        de la tanda y `test_titulo.py`. Hasta el 2026-09-13 ninguna prueba lo recorría, y
-        por eso el `xfail` de guardar con pantalla de título no podía decir de
-        quién era el defecto.
+        del mapa 8— y no el de la página de prueba de los casos `guardar*`.
 
         **Todo por cuadros de hardware, y ésa es la parte que hay que saber.**
         `OpenSaveMenu` bloquea adentro del intérprete —como `Scene_Save` en

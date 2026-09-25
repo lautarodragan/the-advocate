@@ -3,8 +3,7 @@ golden: el menú, la tienda, los ítems, el equipo, las ranuras.
 
 El dibujo lo hace `tools/port/` —`titulo.render_menu`, `pantallas.pantalla_tienda`
 y compañía— con la base de datos y el System de `arnes/datos.py`, y se compara
-a 15 bits, que es lo que la consola puede mostrar. La comparación estaba
-copiada en nueve pruebas.
+a 15 bits, que es lo que la consola puede mostrar.
 """
 
 import os

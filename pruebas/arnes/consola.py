@@ -1,8 +1,9 @@
 """Una partida de la ROM corriendo, para hacerle preguntas sobre su estado.
 
-Esto **no compara pixeles**. La tanda de `pruebas/*/test_tanda*.py` compara la pantalla
-contra la referencia de Python, cuadro por cuadro; acá se le pregunta a la ROM
-en qué mapa está, qué switch tiene prendido o qué evento está corriendo. Son
+Esto **no compara pixeles**. Las pruebas `_golden` comparan la pantalla contra
+las capturas congeladas de `pruebas/golden/`, cuadro por cuadro; acá se le
+pregunta a la ROM en qué mapa está, qué switch tiene prendido o qué evento está
+corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
@@ -129,8 +130,8 @@ class Partida:
         # Los ids de mapa de RM2k en el orden de la tabla de la ROM, que es lo
         # que `mapa_actual` indexa. Sale del `mapdata.inc` generado y no de
         # rehacer la convención de "el de --map-id primero": ya está escrita
-        # dos veces —conversor y referencia— y una tercera copia sería una
-        # tercera manera de equivocarse igual en los tres lados.
+        # en el conversor, y una segunda copia sería una segunda manera de
+        # equivocarse igual en los dos lados.
         self.mapas = mapas
         # `nucleo` es para correr la **misma** partida en dos cores y
         # comparar las dos pantallas entre sí: ver `pruebas/rpgmaker/test_cores.py`.
@@ -533,10 +534,9 @@ class Partida:
         """Un toque de los botones que se le digan: un cuadro apretados y uno
         suelto, que es el flanco que la ROM mira.
 
-        `correr(..., apretar_a=...)` sólo sabe de A porque eso es todo lo que la
-        tanda de pixeles sabe apretar. Acá hacen falta las direcciones y B: el
-        cursor de `ShowChoice` se mueve con ellos, y ése es justamente el camino
-        que la tanda no puede ejercitar.
+        Es el toque de ahora, sin agendar: las listas de `correr` los ponen en
+        un tick dado de antemano, y esto sirve para ir tocando a medida que se
+        mira el estado —el cursor de `ShowChoice`, un menú—.
         """
         self.consola.apretar(*botones)
         self._un_tick()
@@ -545,11 +545,12 @@ class Partida:
         return self
 
     def sostener(self, ticks, *botones):
-        """Los botones apretados durante `ticks` vueltas, y después sueltos.
+        """Los botones apretados durante `ticks` vueltas; quedan apretados
+        hasta `soltar` o hasta lo próximo que apriete.
 
-        Es la caminata con el pad: `correr` sólo sabe de A. Se lee el estado
-        **antes** de soltar, así que lo que se pregunta después es lo que la
-        ROM tenía con el botón todavía apretado en la última vuelta.
+        Es la caminata con el pad, contada desde ahora y no agendada como las
+        listas de `correr`. Lo que se pregunta después es lo que la ROM tenía
+        con el botón todavía apretado en la última vuelta.
         """
         self.consola.apretar(*botones)
         for _ in range(ticks):
@@ -792,15 +793,14 @@ class Partida:
         # puerta de verdad no.
         #
         # El tinte **sobrevive al cambio de mapa**, y con razón: es lo que hace
-        # RM2k y lo que la referencia modela. Pero saltar acá no es cruzar una
+        # RM2k. Pero saltar acá no es cruzar una
         # puerta: es aparecer en un mapa al que la partida no llegó jugando, sin
         # haber corrido las páginas que en el juego habrían dejado la pantalla
         # como corresponde. Con el mapa de arranque de las demos, que tiñe de
         # azul en su cinemática, eso dejaba el mapa entero azul y parecía el
-        # defecto que uno estaba buscando: costó una hora el 2026-09-13, y
-        # estuvo escrito como trampa en AGENTS.md hasta que esto lo hizo
-        # innecesario. Con `tinte=False` se conserva, para una prueba que
-        # quiera justamente mirar que sobrevive.
+        # defecto que uno estaba buscando: costó una hora el 2026-09-13. Con
+        # `tinte=False` se conserva, para una prueba que quiera justamente
+        # mirar que sobrevive.
         if tinte:
             for nombre in ("tinte_r", "tinte_g", "tinte_b", "tinte_s"):
                 self.consola.escribir_ram(self.simbolos[nombre],

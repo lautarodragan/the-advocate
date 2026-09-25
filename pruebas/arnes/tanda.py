@@ -1,12 +1,9 @@
 """El arnés de la tanda de regresión, contra las capturas congeladas.
 
-Lo que hasta el 2026-09-16 era una receta de `just` por caso, en cinco procesos
-—convertir, ensamblar, correr la referencia, correr el emulador, comparar— acá
-es una llamada: `partida(caso)` busca el caso en los cartuchos de prueba y lo
-corre. Y lo que se compara ya no es una referencia de Python sino el PNG
-congelado de `pruebas/golden/tanda/`, que **es una captura del emulador** y por
-eso se compara en cero pixeles exactos, sin máscara; el porqué está en el
-`LEEME.md` de ese directorio.
+`partida(caso)` busca el caso en los cartuchos de prueba y lo corre, y `golden`
+compara la pantalla contra el PNG congelado de `pruebas/golden/tanda/`, que **es
+una captura del emulador** y por eso se compara en cero pixeles exactos, sin
+máscara; el porqué está en el `LEEME.md` de ese directorio.
 
 **Acá no se arma nada.** Los cartuchos los arma `tools/ensamblado/cartuchos.py`, una
 vez, antes de la tanda —`just pruebas` lo corre primero—, y el arnés sólo sabe
@@ -15,19 +12,19 @@ el cartucho es de otros fuentes, se niega a correr: ver `Cartucho`.
 
 Tres cosas que este archivo hace y conviene tener a la vista:
 
-* **El plan sale del congelado, no de la referencia.** Los 16 `plan-*.txt`
-  dicen, por dirección, cuántas celdas camina el héroe y cuántos ticks duraba la
-  caminata; lo segundo es lo que dice cuánto correr el emulador. Los escribió la
-  referencia cuando existía, y por eso están congelados: son lo último que queda
-  de ella, y lo que hizo que un caso de caminata dejara de necesitarla.
+* **El plan está congelado.** Los `plan-*.txt` dicen, por dirección, cuántas
+  celdas camina el héroe y cuántos ticks duraba la caminata; lo segundo es lo
+  que dice cuánto correr el emulador. Los escribió la referencia de Python que
+  hubo hasta el 2026-09-16, y por eso no se regeneran: no queda nada que los
+  sepa calcular.
 * **El grupo es el 11 y no el 10.** Es el del banco de pruebas y no el del
   juego de verdad, y lo arma la página de prueba: `grupo-11`, o
   `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el `--arranque 115` del corredor**, que era
   `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_CUADROS`
-  (112) más tres, y de ahí en más se cuentan ticks de `vueltas` con la misma
-  convención —el cuadro N de la referencia es el tick N+1— y se aprieta A un
+  más tres, y de ahí en más se cuentan ticks de `vueltas` con la misma
+  convención —el cuadro N de aquella referencia es el tick N+1— y se aprieta A un
   tick antes por `RETRASO_DE_PANTALLA`. O sea que para un caso de caminata con
   toques de A, `Partida.correr` **es** el lazo de aquel corredor, y por eso las
   goldens que sacó siguen valiendo. El corredor se borró el 2026-09-19; cuando

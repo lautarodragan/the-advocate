@@ -1,9 +1,6 @@
 """La pelea de la consola, manejada desde afuera, y lo que las pruebas de
-pelea comparten: el droide del mapa 2, el grupo de la intro y el modelo.
-
-Vivía en `test_batalla.py`, y `test_escena`, `test_tropa` y
-`test_experiencia` lo importaban de ahí. Lo de perder sin pelear —`sin_hp`,
-`cuadros_hasta_reiniciar`— venía de `test_game_over.py` y `test_curar.py`.
+pelea comparten: el droide del mapa 2, el grupo de la intro, el modelo de
+`port.batalla` y perder sin pelear.
 
 **Todo en cuadros de hardware**: la pelea corre su propio lazo y `vueltas` no
 avanza mientras dura.
@@ -24,19 +21,17 @@ GRUPO = (11, 12, 13)
 # Los modos de la pantalla y las cinco órdenes del menú **se leen de la tabla
 # de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BA_M_*` de
 # la ROM sin el prefijo —"ORDEN", "BLANCO", "FIN"...— y las órdenes son
-# `BA_ORDEN_ATACAR` y compañía. **El orden de las órdenes cambió el
-# 2026-09-13**: es el del original —Attack / <habilidad> / Defend / Use
-# Item— y `Escape` va quinta, que es la simplificación que `batalla.py`
-# declara.
+# `BA_ORDEN_ATACAR` y compañía. El orden es el del original —Attack /
+# <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
+# simplificación que `port/batalla.py` declara.
 
 
 class Pelea:
     """La pelea de la consola, manejada por cuadros de hardware.
 
     Por cuadros y no por ticks porque **el reloj del juego no corre mientras se
-    ve**: es lo mismo que hace `guardar` con la pantalla de ranuras, y lo
-    que le da sentido a que la referencia diga que una batalla no cuesta ningún
-    tick.
+    ve**: es lo mismo que pasa con la pantalla de ranuras, y por eso una
+    batalla no cuesta ningún tick.
     """
 
     def __init__(self, una):
