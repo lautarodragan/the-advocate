@@ -1,9 +1,8 @@
 """Los cuadros de texto rearmados para el ancho de la SNES: `port.textos`.
 
-No corre ninguna ROM. La función todavía no la llama el conversor, así que lo
-que cubre esto es la función y nada más: que lo que devuelve entra, que no
-pierde palabras, y que no toca lo que ya entraba. Si se lee bien lo dice taro
-jugando.
+No corre ninguna ROM. Cubre la función —que lo que devuelve entra, que no
+pierde palabras, y que no toca lo que ya entraba— y que el conversor la
+llame. Si se lee bien lo dice taro jugando.
 """
 
 import glob

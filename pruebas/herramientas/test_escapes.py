@@ -1,15 +1,15 @@
 """Los dos escapes de texto de RM2k, del lado de Python: `\\|` y `\\^`.
 
 No corre ninguna ROM, y por eso está acá y no en la tanda: lo que mira es el
-**formato**, o sea el byte de cabecera del cuadro que el intérprete de la ROM y
-el de la referencia leen con las mismas máscaras. Que el mensaje se pause y se
-cierre solo en el mismo cuadro de los dos lados lo cobran `autocierre` y
-`autocierre-3` en `pruebas/*/test_tanda*.py`, que comparan pixeles.
+**formato**, o sea el byte de cabecera del cuadro que el intérprete de la ROM
+lee con las mismas máscaras. Que el mensaje se pause y se cierre solo lo
+cobran `autocierre` y `autocierre-3` en `test_comandos_golden.py`, que
+comparan pixeles.
 
 Lo que sí cubre y ningún cuadro comparado podría cubrir es la deduplicación:
 dos cuadros con el mismo texto y distinta cola compartiendo desplazamiento
-darían **cero** en la comparación, porque la ROM y la referencia leerían los
-mismos bytes equivocados. Es exactamente la forma de falla que AGENTS.md nombra.
+estarían mal desde el día que nacen, y una golden sacada ese día lo
+defendería. Ver "Una golden caza regresiones" en AGENTS.md.
 """
 
 
@@ -38,7 +38,7 @@ def test_la_cola_con_espacios_entre_medio():
     """El `RunDirectorScene` del mapa 98 es el único que escribe `\\| \\| \\| \\^`.
 
     Los espacios de la cola se van con ella: un espacio al final de un renglón
-    no dibuja un pixel, así que sacarlo da la misma pantalla de los dos lados.
+    no dibuja un pixel, así que sacarlo da la misma pantalla.
     Los de antes del primer escape se quedan, porque ésos son texto.
     """
     lineas, pausas, autocierre = eventos.cola_de_escapes(

@@ -45,12 +45,13 @@ from tanda import consola_cruda, correr_hardware, encender, partida
 UMBRAL = bancos.PILA // 2
 
 # Los A que pelean hasta ganar, en cuadros de hardware porque adentro de la
-# pelea no hay ticks. Es la misma lista de `test_tanda_pantallas.py`, y sobran a
+# pelea no hay ticks. Es la misma lista de `test_batalla_golden.py`, y sobran a
 # propósito: los que caen después de que la pelea terminó no hacen nada.
 PELEAR = tuple("a:%d" % n for n in range(140, 3001, 9))
 
-# Los toques que abren cada pantalla, copiados de las recetas de la tanda que
-# ya las abren: ver `pruebas/rpgmaker/test_tanda_pantallas.py`.
+# Los toques que abren cada pantalla, copiados de los casos de la tanda que ya
+# las abren: `test_menu_golden.py`, `test_guardar_golden.py` y
+# `test_titulo_golden.py`, en `pruebas/rpgmaker/`.
 AL_MENU = ("b:40",)
 AL_EQUIPO = ("b:40", "down:52", "down:56", "a:60", "a:72", "a:92", "down:112")
 A_LOS_ITEMS = ("b:40", "a:52", "down:64", "down:68")
@@ -117,8 +118,8 @@ def _tocar(consola, boton, cuadros=8):
 def _tienda():
     """La tienda del mapa 10, que es el otro que se fue al banco 1.
 
-    Adentro se **compra y se vende**, que es lo que baja: con la tienda recién
-    abierta son 36 bytes, y metiéndose en los submenús, 41. Los ticks llegan
+    Adentro se **compra y se vende**, que es lo que baja más que la tienda
+    recién abierta: los submenús. Los ticks llegan
     hasta hablarle al vendedor y de ahí en más van cuadros de hardware, porque
     la tienda congela el reloj del juego.
     """
@@ -155,7 +156,7 @@ def _titulo():
 def _tropa():
     """Una página de tropa corriendo adentro de la pelea: la de Detect Aura.
 
-    Es la cadena más honda desde el 2026-09-21, y por construcción: la pelea
+    Es la cadena más honda, y por construcción: la pelea
     se abre desde adentro de `correr_codigo` —`op_battle`—, cruza al banco 1,
     y desde ahí vuelve al banco 0 por `ba_t_pagina` a correr **otra vez**
     `correr_codigo`, con el contexto del mapa guardado en la pila. Ver
@@ -185,7 +186,7 @@ def _tropa():
 
 
 # Los caminos hondos, cada uno con lo que baja. Un `CallEvent` anidado **no está
-# acá y no falta**: desde el 2026-09-12 se compila en línea —ver
+# acá y no falta**: se compila en línea —ver
 # `_compilar_llamada` en `tools/port/eventos.py`— así que el cuerpo del llamado
 # es bytecode del llamador y no cuesta un solo byte de pila.
 CAMINOS = (
