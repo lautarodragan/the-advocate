@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la ventana de mensaje -------------------------------------------------
 ; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
 ; que los de la capa de encima. Viven en el banco que sigue al de encima, y BG2

@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el tinte de pantalla --------------------------------------------------
 ;
 ; RM2k escala cada canal por un valor de 0 a 200, con 100 como neutro. En una

@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- armado de OAM ---------------------------------------------------------
 ; Un objeto por NPC más uno para el héroe, en el orden en que RM2k los dibuja:
 ; primero por capa y recién después por Y. En la consola el objeto con índice

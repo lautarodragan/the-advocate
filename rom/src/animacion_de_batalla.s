@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la animación de batalla ------------------------------------------------
 ;
 ; `OP_ANIMATION` deja acá la línea de tiempo: dónde está la entrada que sigue

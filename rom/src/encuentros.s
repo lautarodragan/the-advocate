@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- los encuentros al azar, fuera del banco 0 -------------------------------
 ;
 ; Lo que RM2k hace, de `Game_Player::UpdateEncounterSteps`, `GetEncountersAt` y

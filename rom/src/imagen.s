@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el cartel del ShowPicture ----------------------------------------------
 ;
 ; Seis objetos de 32x32 con una paleta de sprite para ellos solos, y un fundido

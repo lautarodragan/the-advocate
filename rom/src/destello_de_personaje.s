@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- los destellos ----------------------------------------------------------
 ;
 ; RM2k destella un personaje mezclando su dibujo hacia un color durante unos

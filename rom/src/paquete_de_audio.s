@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el paquete de audio de cada mapa ----------------------------------------
 ;
 ; La ARAM no alcanza para todas las muestras del cartucho —la música de los

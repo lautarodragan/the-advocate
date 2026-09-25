@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la pantalla de título -------------------------------------------------
 ;
 ; La imagen del LDB —`title_name`, que en el ABL es ABL20Title— con su tema

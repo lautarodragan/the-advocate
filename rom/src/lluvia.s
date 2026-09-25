@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la lluvia ------------------------------------------------------------------
 ;
 ; `Game_Screen::UpdateRain` y `Weather::DrawRain`, con la regla de RM2k sobre

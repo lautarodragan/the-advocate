@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; Si la celda de al lado en la dirección que trae A existe, o sea si no se cae
 ; del mapa. Devuelve A distinto de cero si existe.
 ;

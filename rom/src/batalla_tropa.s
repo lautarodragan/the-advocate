@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- las páginas de evento de la tropa ----------------------------------------
 ;
 ; `Game_Interpreter_Battle`: cada tropa trae sus páginas, y una corre cuando

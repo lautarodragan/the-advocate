@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la pantalla de ranuras ------------------------------------------------
 ;
 ; La usan las dos puntas: "Resume the Story" en el título, y el save point de

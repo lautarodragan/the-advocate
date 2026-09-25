@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- el nivel y el máximo en el menú -------------------------------------------
 ;
 ; Hasta el 2026-09-21 los dos eran tiras del cartucho, compuestas al convertir

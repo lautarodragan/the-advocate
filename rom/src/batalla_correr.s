@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; La pelea entera. Se entra con `jsl` desde `op_battle`, con el banco de datos
 ; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
 ;

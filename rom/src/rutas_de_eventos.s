@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- las rutas forzadas de los eventos --------------------------------------
 ;
 ; Un evento con ruta forzada camina como el héroe: girar no consume cuadro,

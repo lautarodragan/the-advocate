@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el MSU-1 ---------------------------------------------------------------
 ;
 ; El MSU-1 no es hardware de la consola: es una extensión que soportan el FX

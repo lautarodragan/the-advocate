@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- lectura del control ---------------------------------------------------
 ; La consola lee los controles sola al empezar el vblank, pero tarda unos
 ; scanlines. El bit 0 de HVBJOY dice si todavía está en eso: leer antes devuelve

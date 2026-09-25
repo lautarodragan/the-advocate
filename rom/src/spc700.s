@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- carga al SPC700 -------------------------------------------------------
 ; El protocolo de la ROM interna del SPC700:
 ;

@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; El xorshift de la pelea, el mismo que `eventos.azar_siguiente` y que
 ; `lluvia_azar`, pero sobre `BA_SEM`, que tiene **semilla propia**: pelear no
 ; le corre el azar del mapa, que es lo que la referencia de pixeles supone

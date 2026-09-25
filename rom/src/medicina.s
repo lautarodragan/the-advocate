@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- una medicina desde el menú ----------------------------------------------
 ;
 ; `Game_Party::UseItem(id, actor)` de easyrpg (`game_party.cpp:322`), que es

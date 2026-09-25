@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- guardar y cargar la partida -------------------------------------------
 ;
 ; El cartucho lleva SRAM con batería, con las ranuras de `SRAM_RANURAS`.

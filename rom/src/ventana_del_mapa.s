@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la ventana móvil del mapa ---------------------------------------------
 ; El tilemap del PPU son 64x32 celdas y los mapas del juego llegan a 1000x80:
 ; el mapa entero nunca está en la VRAM. Lo que hay es una ventana que se trata

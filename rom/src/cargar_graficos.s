@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; Deja en A1T0L/A1B0 el puntero de 24 bits que el registro del mapa guarda en el
 ; campo que venga en Y. Los tres bytes del puntero están seguidos, así que la
 ; parte baja sale de una lectura de 16 bits y el banco de la de al lado.

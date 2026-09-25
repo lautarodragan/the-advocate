@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- volcado del mapa a la VRAM --------------------------------------------
 ; Todo por DMA y con la pantalla apagada, que es cuando se puede escribir la
 ; VRAM sin pelearle al PPU.

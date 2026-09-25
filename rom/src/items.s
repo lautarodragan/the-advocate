@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la pantalla de ítems -------------------------------------------------------
 ;
 ; `Scene_Item`: arriba la descripción del ítem marcado, abajo la lista del

@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- los eventos quietos que animan igual ---------------------------------
 ;
 ; `animation_type` 1 y 3 de RM2k —"Continuous" y "Fixed Dir/Continuous"— hacen

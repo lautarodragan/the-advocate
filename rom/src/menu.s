@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el menú de pausa --------------------------------------------------------
 ;
 ; `Scene_Menu`, sobre el banco de la pantalla de ranuras: la geometría y los

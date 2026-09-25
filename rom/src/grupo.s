@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; ¿Está el actor de A en el grupo? Vuelve con Z=0 si sí.
 .proc en_el_grupo
 .a8

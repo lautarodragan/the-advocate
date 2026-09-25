@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; El bucle del intérprete: un opcode por vuelta hasta el FIN.
 ;
 ; Y es el cursor del bytecode y tiene que sobrevivir a todo el bucle, así que

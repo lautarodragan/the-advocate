@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el destello de pantalla -------------------------------------------------
 ; Un cuadro del destello de pantalla: `Flash::Update` de easyrpg, con la cuenta
 ; entera que sigue. El nivel va a

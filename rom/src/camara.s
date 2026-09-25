@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la cámara corrida sin el héroe ----------------------------------------
 ; `Game_Player::UpdatePan`: cada eje se acerca a su destino de a `pan_paso`
 ; dieciseisavos de pixel, sin pasarse. Y de paso se baja a pixeles enteros, que

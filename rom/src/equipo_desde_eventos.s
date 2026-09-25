@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- el equipo y las habilidades desde un evento ----------------------------
 ;
 ; Los cuerpos de OP_EQUIPMENT y OP_SKILL, y lo que la rama "sabe la habilidad"

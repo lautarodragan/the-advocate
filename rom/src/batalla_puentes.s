@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la batalla -----------------------------------------------------------------
 ;
 ; `EnemyEncounter`, abierto por `OP_BATTLE` desde el intérprete: como la

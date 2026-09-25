@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- el equipo y la tienda, fuera del banco 0 -------------------------------
 ;
 ; Las dos pantallas son tres kilobytes, y al banco 0 le quedaban doce bytes en

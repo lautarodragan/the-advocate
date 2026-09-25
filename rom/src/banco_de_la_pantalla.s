@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- el banco de la pantalla, también fuera del banco 0 ---------------------
 ;
 ; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis

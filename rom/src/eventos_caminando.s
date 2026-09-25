@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- los eventos que se dibujan caminando ------------------------------------
 ;
 ; Un evento con gráfico que camina cambia de tres cosas por cuadro: dónde está

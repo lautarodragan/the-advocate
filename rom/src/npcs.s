@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; Sube la pose A del NPC de la fila Y, si no es la que ya está en la VRAM.
 ;
 ; Salió de adentro de `refrescar_npc`, que era el único que la necesitaba, el

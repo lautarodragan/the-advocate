@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el cronómetro ---------------------------------------------------------
 ; Un cuadro de la cuenta. Es `Game_Party::UpdateTimers`, y lo que importa es el
 ; final: al llegar a cero segundos RM2k llama a `StopTimer`, que apaga la cuenta

@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- lo que va sí o sí dentro del vblank -----------------------------------
 ; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
 ; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un

@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- la escena de la pelea --------------------------------------------------
 ;
 ; El fondo de batalla con los monstruos encima: una sola capa de 8bpp de

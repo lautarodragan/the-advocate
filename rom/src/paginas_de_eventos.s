@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el intérprete de eventos ----------------------------------------------
 ;
 ; RM2k se queda con la página de número más alto cuyas condiciones se cumplen

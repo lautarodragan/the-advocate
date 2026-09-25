@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; Hasta el próximo banco: los datos generados arrancan pegados a uno, que es lo
 ; único que `tools/ensamblado/bancos.py` supone del mapa de memoria.
 .align $8000

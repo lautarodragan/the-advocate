@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- las pantallas de texto -----------------------------------------------------
 ;
 ; El equipo y la tienda son pantallas de puro texto sobre la fuente de la

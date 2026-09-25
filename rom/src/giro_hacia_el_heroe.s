@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el giro hacia el héroe ------------------------------------------------
 ;
 ; `Game_Event::ScheduleForegroundExecution`: el evento que el héroe dispara

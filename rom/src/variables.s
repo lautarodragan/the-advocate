@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- las variables ---------------------------------------------------------
 ;
 ; Viven en la RAM lejana, así que no se indexan: se apunta WMADD a la ranura y

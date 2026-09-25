@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la tecla de acción -----------------------------------------------------
 ;
 ; Hablarle a algo. Es lo que convierte a esto en un juego y no en una cinemática:

@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- el héroe --------------------------------------------------------------
 ; RM2k no mueve al personaje libremente: se compromete a una celda vecina y
 ; recorre los 16 pixeles hasta ella sin poder frenar. Por eso el estado es la

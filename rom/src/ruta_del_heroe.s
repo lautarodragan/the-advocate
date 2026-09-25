@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; Un comando de la ruta forzada. Girar no consume cuadro y se sigue con el
 ; siguiente; esperar sí; y moverse arranca un paso de una celda, que después
 ; camina `advance_step` como cualquier otro. Un movimiento bloqueado se saltea:

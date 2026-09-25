@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- ejecutar una habilidad -----------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Skill::vStart` y `vExecute`. **El orden en que consume

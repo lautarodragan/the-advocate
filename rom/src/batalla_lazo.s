@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- el lazo de la pelea --------------------------------------------------
 
 ; El promedio de agilidad de un lado: A8 en 0 el grupo y en 1 la tropa. Si no

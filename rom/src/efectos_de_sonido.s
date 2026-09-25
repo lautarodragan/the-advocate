@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- los efectos de sonido -------------------------------------------------------
 ;
 ; `PlaySound`, en dos voces que se le roban a la música mientras duran: SE_VOZ

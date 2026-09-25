@@ -1,3 +1,5 @@
+.segment "CODE"
+
 ; --- la animación del ChipSet ----------------------------------------------
 ;
 ; Dos animaciones que corren a la vez y a cadencias distintas: los autotiles de

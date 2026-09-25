@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- la tienda -----------------------------------------------------------------
 ;
 ; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la

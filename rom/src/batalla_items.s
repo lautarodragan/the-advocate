@@ -1,3 +1,5 @@
+.segment "FAR"
+
 ; --- usar un ítem en la pelea ---------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Item` con lo que este port sabe hacer: las medicinas
