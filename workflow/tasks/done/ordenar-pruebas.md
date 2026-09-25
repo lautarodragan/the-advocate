@@ -7,7 +7,7 @@ description: "Los bugs de las pruebas, los helpers a arnes/, la organización y 
 Decidido con taro: se hace **después de que se mergee el cambio de MSU-1**
 —que toca `tools/emulador/retro.py` y el arnés—, y en tres trabajos
 separados, en este orden. Los números de línea son de ese commit: verificar
-antes de tocar.
+antes de tocar. **Los cuatro están hechos.**
 
 ## 1. Los bugs — hecho el 2026-09-25
 
@@ -112,35 +112,40 @@ medido está en cada mensaje. Lo que quedó y dónde buscarlo:
 - `test_teleport.py` vive ahora al final de `test_protocolo.py`; las capturas
   de `test_cores` van a `pruebas/snapshots/cores/`.
 
-## 3. La pasada de prosa (su propio commit)
+## 3. La pasada de prosa — hecho el 2026-09-25
 
-Guiada por el diff de las dos anteriores y por esto. Los números de línea son
-de `43bd1aa`, y el trabajo 2 corrió muchos: buscar por el texto.
+Un commit por zona —`arnes/`, `rpgmaker/`, `abl/`, `herramientas/`,
+`UNTESTED.md` y el `LEEME.md` de las goldens, y lo de afuera de `pruebas/`—,
+cada uno con `just pruebas` en verde; qué se sacó, qué se arregló y qué se
+dejó a propósito está en cada mensaje. Antes, el índice:
 
-- Rutas que se mudaron: `test_luces.py:6`, `test_hover_tram.py:6`,
-  `test_tanda_paginas.py:275`, `test_tanda_rutas.py:19`,
-  `golden/tanda/LEEME.md:42`; el `xfail` que ya no existe
-  (`test_guardar_save_point.py`, `recorrido.py:852-856`); `demo-apertura`,
-  `cerrar`, `bsnes` como recetas.
-- La "referencia de Python" citada como si existiera, en casi todos los
-  `test_tanda*.py`, `consola.py`, `recorrido.py` y una docena más (`grep -rn
-  referencia pruebas/`; no confundir con los dibujos de `titulo.render_*`).
-- Prosa que contradice al código: `test_recorrido_vipers.py:241-246`,
-  `recorrido.py:75-78` (`PASO_TOPE`), `test_guardar.py:130` ("8 KB"),
-  `test_batalla.py:955`, `test_guardar_save_point.py:54-56`,
-  `test_tanda.py:27-31`, `test_condicional.py:29-33`, `test_tanda_paginas.py:11`
-  y `:490-491`, `pruebas/README.md`.
-- Números del estado del trabajo: `golden/tanda/LEEME.md:3`,
-  `test_teleport.py:5` (ahora en la sección "los largos, contra el juego"
-  de `test_protocolo.py`), `test_recorrido.py:9-11`, `tanda.py:18`,
-  `test_parches.py:17`.
-- Lápidas: `test_tanda_pantallas.py:360-376`, `test_titulo.py:252-257` y
-  `:145-156`, `test_tanda.py` (varias), `test_tanda_escenas.py:19-32`,
-  `UNTESTED.md` sobre `plx`/`ply`.
+- **`pruebas/README.md` tiene un índice por sistema** de todos los
+  `test_*.py`, la convención de nombres y qué hacer cuando se pone rojo cada
+  tipo. Lo cuida `herramientas/test_indice.py`: falla si un archivo de prueba
+  no está nombrado ahí, o si el README nombra uno que no existe. Lo que no
+  puede cuidar es que la descripción de cada uno sea verdad.
+- **Prosa que contradecía al código**, además de la que listaba la revisión
+  (`PASO_TOPE`, los 8 KB que son 32, "hay una sola voz", las tres cosas que
+  eran dos): `Partida.tocar` y `sostener` decían que `correr` sólo sabe de A;
+  `test_textos` decía que el conversor no llama a la función que su último
+  caso cobra que llame; `test_un_ano_antes` decía que no hay menú;
+  `test_condicional`, que la rama que corre no se puede probar con una página
+  del juego por un orden de switches que `Partida.prender` ya resolvió.
+- **Se quedan**, aunque cuenten historia, los porqués que protegen una línea:
+  los cuatro que nombraba la revisión y otros con el mismo criterio —el
+  `inc a` del permiso de escapar, `vueltas` y no `mapa_actual` después del
+  Game Over, `nmi_boot` y la cuarta ranura, la SRAM que pasaba en vacío—, y
+  los números que una aserción clava a propósito (`test_cuantos_mapas`, las
+  123 ranuras de `test_paginas`).
 
-**Se quedan aunque cuenten historia**, porque protegen una línea:
-`test_titulo.py:102-105`, `test_game_over.py:88-92`, `consola.py:659-661`,
-`recorrido.py:567-573`.
+Lo que quedó sin hacer:
+
+- `AGENTS.md` cita todavía el glob `pruebas/*/test_tanda*.py` en
+  "Repartirles los números de antemano"; hoy es `pruebas/*/test_*_golden.py`.
+  No lo tocó el sub-agente de esta pasada porque es el archivo de
+  instrucciones del agente.
+- `workflow/tasks/done/` y los registros de lo que se corrió en `wishlist/`
+  siguen con los nombres viejos, a propósito: son historia.
 
 ## 4. Organización — hecho el 2026-09-25
 
