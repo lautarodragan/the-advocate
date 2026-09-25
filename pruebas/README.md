@@ -58,6 +58,10 @@ también exige que el héroe haya caminado las celdas del plan.
 
 ## Qué prueba cubre qué
 
+Todo archivo `test_*.py` de `pruebas/` tiene que estar nombrado en esta
+lista, y todo lo nombrado tiene que existir: lo cobra
+`herramientas/test_indice.py`.
+
 **Caminar, rutas y la cámara**
 
 * `rpgmaker/test_caminar_golden.py`: el héroe en cada mapa y dirección,
@@ -168,6 +172,7 @@ también exige que el héroe haya caminado las celdas del plan.
 * `herramientas/test_lideres.py`: quién puede ser líder
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
 * `herramientas/test_timer_paleta.py`: el cronómetro y sus paletas
+* `herramientas/test_indice.py`: que esta lista esté al día
 
 ## Casos
 
