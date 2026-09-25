@@ -17,19 +17,20 @@ REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, os.path.join(REPO, "tools"))
 
 from port import snes_convert                            # noqa: E402
+from ensamblado import ensamblar  # noqa: E402
 
 MAIN = os.path.join(REPO, "rom", "src", "main.s")
 
 
 def de_main(nombre):
-    fuente = open(MAIN, encoding="utf-8").read()
+    fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s\s*=\s*(\d+)\s*$" % nombre, fuente, re.M)
     assert hallado, "main.s ya no declara %s" % nombre
     return int(hallado.group(1))
 
 
 def reserva(nombre):
-    fuente = open(MAIN, encoding="utf-8").read()
+    fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s:\s*\.res\s+([^;\n]+)" % nombre, fuente, re.M)
     assert hallado, "main.s ya no reserva %s" % nombre
     return hallado.group(1).strip()

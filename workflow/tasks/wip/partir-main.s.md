@@ -463,3 +463,14 @@ Sus cambios, que son obligatorios:
 
 ## Bitácora
 
+**2026-09-25, ejecución.** Sobre `cd4adf8`.
+
+1. Plan y script: el cherry-pick de `5377d8b` con los nombres y las
+   correcciones A, B y D. `partir_main.py --ver` encuentra todas las anclas.
+2. Herramientas: el parche del plan, y la lista de archivos de `huella()`
+   sacada a `cartuchos.archivos_de_la_huella(fuente)` para poder probarla.
+   La prueba de C, `test_todo_lo_que_arma_la_rom_esta_en_la_huella`, mira el
+   árbol de verdad y uno armado a mano con un `main.s` que incluye un
+   `tienda.s`; el segundo es el que cobra hoy, cuando `main.s` todavía no
+   incluye ningún `.s`. Con el `huella()` de antes —sólo `main.s`— en una
+   copia, da rojo: `Left contains one more item: '…/tienda.s'`.

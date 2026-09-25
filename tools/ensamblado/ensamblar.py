@@ -26,6 +26,7 @@ de los `.inc`. Ver `tools/ensamblado/bancos.py`.
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -48,6 +49,38 @@ No viene empaquetado en Arch; se compila una vez y queda en el PATH:
     ln -s /extras/ref/cc65/bin/ca65 /extras/ref/cc65/bin/ld65 /usr/local/bin/
 
 Ver "Dónde corre esto" en AGENTS.md."""
+
+
+# Un `.include` de verdad, no uno citado en un comentario.
+INCLUDE = re.compile(r'^\s*\.include\s+"([^"]+)"', re.M)
+
+
+def fuentes(principal):
+    """`principal` y los `.s` que incluye, en el orden en que los lee `ca65`.
+
+    Es la fuente escrita a mano de la ROM: lo que una prueba tiene que leer
+    para preguntar "¿la ROM declara tal cosa?". Los `.inc` quedan afuera porque
+    son generados —los de `tools/protocol/` y los del cartucho—. Un `.include`
+    se busca al lado del archivo que lo hace, que es lo primero que prueba
+    `ca65`.
+    """
+    directorio = os.path.dirname(os.path.abspath(principal))
+    rutas = [principal]
+    with open(principal, encoding="utf-8") as archivo:
+        texto = archivo.read()
+    for nombre in INCLUDE.findall(texto):
+        if nombre.endswith(".s"):
+            rutas += fuentes(os.path.join(directorio, nombre))
+    return rutas
+
+
+def texto_de_la_fuente(principal):
+    """Todas las `fuentes` pegadas, como si fueran un solo archivo."""
+    partes = []
+    for ruta in fuentes(principal):
+        with open(ruta, encoding="utf-8") as archivo:
+            partes.append(archivo.read())
+    return "".join(partes)
 
 
 class FaltaCc65(RuntimeError):

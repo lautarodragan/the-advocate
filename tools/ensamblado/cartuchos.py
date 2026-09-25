@@ -27,6 +27,7 @@ from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 
 CASOS = os.path.join(RAIZ, "pruebas", "casos")
+FUENTE = os.path.join(RAIZ, "rom", "src")
 
 # `tanda.py` lee la misma variable.
 DESTINO = os.environ.get("CARTUCHOS",
@@ -103,16 +104,25 @@ def huella():
     `data/` no, que lo regenera `just datos`. Se mira el contenido y no la fecha, que `git checkout` cambia.
     """
     h = hashlib.sha256()
-    partes = ([os.path.join(RAIZ, "rom", "src", "main.s")]
+    for ruta in archivos_de_la_huella():
+        with open(ruta, "rb") as archivo:
+            h.update(archivo.read())
+    return h.hexdigest()[:16]
+
+
+def archivos_de_la_huella(fuente=FUENTE):
+    """Los archivos que lee `huella`, en orden. `fuente` es un parámetro sólo
+    para que una prueba pueda pasarle un árbol armado a mano."""
+    # Todo `rom/src/`, y no sólo lo que `main.s` incluye hoy: un archivo que
+    # se agrega y se incluye en el mismo cambio tiene que dejar viejo al cartucho.
+    partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
+                                          recursive=True) if os.path.isfile(r))
               + ensamblar.binarios()
               + [tiles_bin.binario(), muestras_brr.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
     partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*",
                                             "*")))
-    for ruta in partes:
-        with open(ruta, "rb") as archivo:
-            h.update(archivo.read())
-    return h.hexdigest()[:16]
+    return partes
 
 
 def todos_los_casos():

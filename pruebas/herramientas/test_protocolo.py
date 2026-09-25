@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(REPO, "tools"))
 import pytest  # noqa: E402
 
 from port import event_opcodes  # noqa: E402
+from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 
 # Cada bytecode: su declaración, su módulo de Python y su .inc.
@@ -87,7 +88,7 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     para la ROM son un solo espacio de símbolos, y de hecho por eso `OP_FIN`
     tuvo que llamarse `OP_DONE` —`OP_END` ya era del stream de música—.
     """
-    fuente = open(MAIN, encoding="utf-8").read()
+    fuente = ensamblar.texto_de_la_fuente(MAIN)
     # Sólo los usos como operando: los nombres sueltos de los comentarios no.
     usados = set(re.findall(r"#(OP_[A-Z_]+)\b", fuente))
     assert usados, "no se encontró un solo uso de un opcode en main.s"

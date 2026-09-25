@@ -1,4 +1,4 @@
-"""Las tres cosas que `tools/ensamblado/ensamblar.py` hace además de llamar a `ca65` + `ld65`.
+"""Lo que `tools/ensamblado/ensamblar.py` hace además de llamar a `ca65` + `ld65`.
 
 Lo grande —que la ROM salga igual que la de antes— lo cobran todas las pruebas
 que arman un cartucho. Esto es lo chico, que un error ahí no rompe ninguna
@@ -59,3 +59,37 @@ def test_no_arma_con_un_inc_generado_al_lado_de_la_fuente(tmp_path):
     with pytest.raises(RuntimeError, match="mapdata.inc"):
         ensamblar.ensamblar(str(tmp_path / "main.s"), str(tmp_path / "otro"),
                             str(tmp_path / "x.sfc"))
+
+
+def test_las_fuentes_son_los_s_que_se_incluyen_y_no_los_generados(tmp_path):
+    (tmp_path / "main.s").write_text(
+        '.include "event_opcodes.inc"\n'
+        '.include "tienda.s"\n'
+        '; .include "citado.s" en un comentario no cuenta\n')
+    (tmp_path / "tienda.s").write_text('.include "precios.s"\n')
+    (tmp_path / "precios.s").write_text("")
+    principal = str(tmp_path / "main.s")
+    assert ensamblar.fuentes(principal) == [
+        principal, str(tmp_path / "tienda.s"), str(tmp_path / "precios.s")]
+    assert ensamblar.texto_de_la_fuente(principal).endswith(
+        '.include "precios.s"\n')
+
+
+def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
+    """Si no, editar un archivo incluido deja el cartucho "al día" y las
+    pruebas corren contra una ROM vieja sin avisar. Sobre el árbol de verdad, y
+    sobre uno armado a mano, que es el que cobra aunque `main.s` no incluya
+    ningún `.s` todavía."""
+    from ensamblado import cartuchos
+
+    def cubiertas(fuente):
+        huella = {os.path.realpath(r)
+                  for r in cartuchos.archivos_de_la_huella(fuente)}
+        principal = os.path.join(fuente, "main.s")
+        return [r for r in ensamblar.fuentes(principal)
+                if os.path.realpath(r) not in huella]
+
+    assert cubiertas(cartuchos.FUENTE) == []
+    (tmp_path / "main.s").write_text('.include "tienda.s"\n')
+    (tmp_path / "tienda.s").write_text("")
+    assert cubiertas(str(tmp_path)) == []
