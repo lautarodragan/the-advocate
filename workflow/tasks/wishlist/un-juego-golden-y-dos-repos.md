@@ -15,7 +15,7 @@ Dos capas de pruebas en vez de una:
   chico y determinista, y el juego entero es el golden. Es **la regla del
   cartucho único resuelta de raíz** —un juego, un ROM— y es la especificación
   de qué soporta el port. Portar otro juego lo reusa entero.
-* **Aceptación de ABL**: que sus primeros minutos se jueguen y se vean así.
+* **Aceptación de ABL**: que se juegue y se vea así.
   Sigue haciendo falta, porque los errores más caros salieron de contenido real
   que nadie escribiría a propósito. **El juego golden crece con ésos**: cada
   error que aparezca en un juego real se abstrae y se suma como un caso.

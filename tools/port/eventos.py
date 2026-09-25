@@ -559,9 +559,8 @@ IGNORABLES = {
 # diagonales finos de 24 pixeles de alto, que entre dos cuadros seguidos mueven
 # el 3,9% de la pantalla. Se ven sobre todo en las zonas oscuras.
 #
-# Se acepta porque **es lo único que traba la cinemática de apertura**, que es
-# la puerta a los primeros diez minutos del juego. Sin esto la ROM no arranca la
-# historia; con esto arranca, sin lluvia.
+# Se acepta porque **es lo único que traba la cinemática de apertura**. Sin
+# esto la ROM no arranca la historia; con esto arranca, sin lluvia.
 #
 # **Desde el 2026-09-11 la lluvia se dibuja**: ver OP_WEATHER. La nieve, la
 # niebla y la tormenta de arena siguen sin dibujarse, y apagan la lluvia.
@@ -706,7 +705,9 @@ CHANGE_HERO_TITLE = 10620
 # * Las trece que lo ponen en cero están **apagando algo que todavía no pasa**.
 #   Lo que se ganaría es lo que esas páginas hacen además.
 # * Está en nueve mapas —el 66, el 81, el 121, del 152 al 156 y el 165— y
-#   **ninguno está cerca de los primeros diez minutos**, que es el objetivo.
+#   ninguno está cerca de los primeros diez minutos. **Esta razón caducó el
+#   2026-09-25**: el objetivo pasó a ser el juego entero, así que la próxima
+#   vez que se mire esta lista hay que ver si lo demás alcanza para el no.
 # * Y se midió lo que cuesta: aceptándolo, la automática
 #   `DaliaGoingToTasgarde` del mapa 66 pasa a compilar, y esa página desarma el
 #   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 era el
