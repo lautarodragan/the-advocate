@@ -204,7 +204,6 @@ parches-check *builds="rom/build/pruebas-unico rom/build/release":
   python3 tools/port/parches.py {{builds}} --check
 
 #     release        la que taro juega, en `rom/build/release/abl.sfc`
-#     carrera        la persecución en auto, en `rom/build/carrera/abl.sfc`
 #     test-main      los cartuchos de la tanda, en `rom/build/pruebas-unico/`;
 #     test-special   `just pruebas` los arma solos. Qué lleva cada uno, en
 #     juego          `pruebas/arnes/cartuchos.py`
@@ -212,13 +211,12 @@ parches-check *builds="rom/build/pruebas-unico rom/build/release":
 # Las que se juegan se llaman `abl.sfc` aunque el directorio cambie, porque
 # el MSU-1 busca sus pistas por el nombre del `.sfc`: ver `msu`.
 #
-# Arma una ROM por nombre: release, carrera, test-main, test-special o juego.
+# Arma una ROM por nombre: release, test-main, test-special o juego.
 build cual:
   #!/usr/bin/env bash
   set -euo pipefail
   case "{{cual}}" in
     release) just _release ;;
-    carrera) just _carrera ;;
     *) python3 pruebas/arnes/cartuchos.py "{{cual}}" ;;
   esac
 
@@ -250,7 +248,8 @@ build cual:
 #                            hace, y el 49 además tiene un `KeyInputProc`. Sin
 #                            eso el auto no dobla y el tráfico no aparece. De
 #                            paso, sus tres mapas de 500x40 no entraban en los
-#                            2 MB del cartucho. Está aparte, en `carrera`.
+#                            2 MB del cartucho. Ver
+#                            `wishlist/la-carrera-en-release.md`.
 #   los sectores con auto    a dónde lleva la elección del mapa 36. El **38 no
 #                            entra en ningún reparto de VRAM**: sus tiles de
 #                            fondo y de sprite más la ventana no entran en los
@@ -277,61 +276,6 @@ _release:
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
 video cual salida +jugadas:
   python3 -O pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
-
-# La persecución en auto, que no entra en `abl` y no hace falta que
-# entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
-# juega desde el primer cuadro sin tener que recorrer Lashe City.
-#
-# Los siete mapas son los de la escena: el 49, el 52 y el 54 son las tres
-# vueltas, el 50 es la sala de choque con el "vamos de nuevo", el 51 el puente
-# levantado, y el 53 el final.
-#
-# **Con `--grupo 14`, Talan, que es con quien el juego llega hasta acá.** Al
-# entrar al 49, `RaceController1` saca del grupo a los actores que pueden estar
-# ahí y mete a `CarRED` o a `CarBLUE` según el switch que él mismo prende, así
-# que el héroe **es el auto**. Con el grupo de pruebas puesto, Kersh quedaría
-# adentro —no está en esa lista— y el gráfico saldría mal; con el grupo inicial
-# de la base, el héroe se dibuja **sin gráfico** hasta que el `PanScreen` de
-# `RaceController1` termina y recién ahí entra el auto, que es un síntoma que
-# taro reportó jugando.
-#
-# **`--inicio 1 26` es la celda por la que se entra en el juego**, y no es
-# cosmético. Sin ella el conversor planta al héroe en el tile abierto más cercano
-# al centro, que en este mapa cae en una fila donde **no hay ni un obstáculo** ni
-# ninguno de los eventos que saltan al mapa siguiente: el auto podía cruzar las
-# 500 celdas del mapa sin chocar con nada y sin llegar a ninguna parte. La celda
-# sale del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
-# juego entra.
-#
-# **El switch 171 es lo que la hace arrancar** —lo prende la página de prueba
-# `pruebas/casos/switch-171.json`—, y hay que saber por qué. El
-# evento 1 del mapa 49 tiene dos páginas automáticas, una por switch, y la que
-# arma el auto pide el 171. Con los dos apagados **ninguna es la activa** y el
-# evento no hace nada, así que el héroe se queda siendo `DummyHero`, cuyo sprite
-# es una celda vacía a propósito: pantalla sin auto. Quien lo prende en el juego
-# es `RaceControllerZERO`, la intro de Talan con el cartel de los controles; esa
-# página compila, y el switch sigue puesto a mano sólo porque nadie volvió a
-# mirar esa escena desde entonces: sacarlo es una prueba a mano de toda la intro.
-#
-# **Y la carrera no corre sola**, que es lo primero que se nota jugando: el héroe
-# camina libre y a la velocidad que le dejó `RaceController1`. Quien la corre es
-# `RaceController2`, la única página paralela del 49 que no compila, y lo que la
-# corta es el `KeyInputProc` **sin espera**; el porqué de que ese comando siga
-# sin aceptarse está en `KEY_INPUT_PROC` en eventos.py.
-#
-# Aparte de `release` porque el mapa inicial es otro y porque no comparte un solo
-# mapa con ella: juntarlas sería un `if` en el medio de una receta que ya tiene
-# la lista escrita a mano.
-_carrera:
-  mkdir -p rom/build/carrera
-  python3 tools/port/snes_convert.py --grupo 14 --map-id 49 \
-      --mapas 50 51 52 53 54 \
-      --sin-titulo --inicio 1 26 \
-      -o rom/build/carrera/mapdata.inc \
-      --comandos-de-prueba pruebas/casos/switch-171.json
-  {{ensamblar}} rom/src/main.s -I rom/build/carrera \
-      -o rom/build/carrera/abl.sfc \
-      --simbolos rom/build/carrera/abl.sfc.sym
 
 # Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
 # —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
