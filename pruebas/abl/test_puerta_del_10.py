@@ -26,17 +26,13 @@ DESDE = (42, 16)                # la celda de abajo, desde donde se la pisa
 EQUIVOCADO = 8                  # a donde lleva su primera página
 
 
-def heroe(una):
-    return (una.palabra("hero_x") // 16, una.palabra("hero_y") // 16)
-
-
 def pisar_la_puerta(una):
     """Camina para arriba hasta pisar la puerta o hasta cambiar de mapa."""
     for _ in range(40):
         una.sostener(8, "up")
         una.soltar()
         una.correr(2)
-        if una.mapa() != MAPA or heroe(una) == PUERTA:
+        if una.mapa() != MAPA or una.heroe() == PUERTA:
             break
     # Y los ticks del fundido, por si la pisada disparó uno: `mapa_actual`
     # cambia recién en el cuadro negro, decenas de ticks después.
@@ -57,9 +53,9 @@ def test_con_el_switch_231_la_puerta_no_lleva_al_8(partida):
         "el 38 no está en el cartucho, así que la página de la puerta no "
         "compila y la partida se tiene que quedar en el %d; quedó en el %d"
         % (MAPA, una.mapa()))
-    assert heroe(una) == PUERTA, (
+    assert una.heroe() == PUERTA, (
         "el héroe no llegó a pisar la puerta —quedó en %s— así que la prueba "
-        "pasaría igual sin puerta" % (heroe(una),))
+        "pasaría igual sin puerta" % (una.heroe(),))
 
 
 def test_sin_el_switch_la_misma_puerta_sigue_llevando_al_8(partida):

@@ -23,12 +23,6 @@ def items_de(inventario):
     return tuple(x for par in sorted(inventario.items()) for x in par)
 
 
-def equipo(una, actor):
-    base = una.simbolos["FAR_EQUIPO"] + actor * 10
-    datos = una.consola.ram(base, 10)
-    return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
-
-
 def entrar(una):
     """Del mapa a la pantalla de equipo de Talan: B, Equipment, y A sobre la
     primera fila del grupo."""
@@ -46,8 +40,8 @@ def entrar(una):
 def test_arranca_con_el_equipo_inicial(partida):
     una = partida()
     db = datos.base()
-    assert equipo(una, TALAN) == db.actors[TALAN].initial_equipment
-    assert equipo(una, KERSH) == db.actors[KERSH].initial_equipment
+    assert una.equipo(TALAN) == db.actors[TALAN].initial_equipment
+    assert una.equipo(KERSH) == db.actors[KERSH].initial_equipment
 
 
 def test_equipar_desde_el_menu(partida):
@@ -65,7 +59,7 @@ def test_equipar_desde_el_menu(partida):
              "equipo-lista")
     tocar(una, "a", 10)                 # el palo
     pantallas.equipar(db, puesto, inv, 0, PALO)
-    assert equipo(una, TALAN) == puesto
+    assert una.equipo(TALAN) == puesto
     assert una.item(PALO) == 1
     comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo-puesto")
@@ -78,7 +72,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     tocar(una, "down")                  # el escudo
     tocar(una, "a", 10)
     tocar(una, "a", 10)                 # el escudo, único en la lista
-    assert equipo(una, TALAN)[1] == ESCUDO
+    assert una.equipo(TALAN)[1] == ESCUDO
     assert una.item(ESCUDO) == 0
     tocar(una, "up")                    # el arma
     tocar(una, "a", 10)
@@ -91,7 +85,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
                                             1).render(skin, db.font_id),
              "equipo-lanza")
     tocar(una, "a", 10)
-    assert equipo(una, TALAN)[:2] == [LANZA, 0]
+    assert una.equipo(TALAN)[:2] == [LANZA, 0]
     assert una.item(ESCUDO) == 1, "el escudo no volvió al inventario"
     assert una.item(LANZA) == 0
 
@@ -104,7 +98,7 @@ def test_la_linea_vacia_saca_lo_puesto(partida):
     tocar(una, "down")                  # la armadura
     tocar(una, "a", 10)
     tocar(una, "a", 10)
-    assert equipo(una, TALAN)[2] == 0
+    assert una.equipo(TALAN)[2] == 0
     assert una.item(89) == 1
 
 
@@ -114,4 +108,4 @@ def test_el_equipo_viaja_en_la_partida(partida):
                              [PALO, 0])
     una.guardar_en(0)
     una.reiniciar()
-    assert equipo(una, TALAN)[0] == PALO, "el equipo no volvió de la SRAM"
+    assert una.equipo(TALAN)[0] == PALO, "el equipo no volvió de la SRAM"

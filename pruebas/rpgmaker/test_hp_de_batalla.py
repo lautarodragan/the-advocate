@@ -87,7 +87,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     quedo = hp_de(una)
     abrir(una)
     db, skin = datos.base(), datos.skin()
-    oro = int.from_bytes(una.consola.ram(una.simbolos["oro"], 3), "little")
+    oro = una.oro()
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo)

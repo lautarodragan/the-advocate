@@ -17,17 +17,11 @@ ORO = 150
 KERSH = 11
 
 
-def oro(una):
-    b = una.consola.ram(una.simbolos["oro"], 3)
-    return b[0] | (b[1] << 8) | (b[2] << 16)
-
-
 def entrar(partida):
     una = partida(caso="en-10")
     una.correr(5)
     una.poner_grupo(KERSH)
-    una.consola.escribir_ram(una.simbolos["oro"],
-                             list(ORO.to_bytes(3, "little")))
+    una.poner_oro(ORO)
     una.ir_al_mapa(10, 42, 6)
     una.poner_byte("hero_dir", 0)       # mirando al vendedor
     una.correr(5)
@@ -66,7 +60,7 @@ def test_comprar_y_vender(partida):
     ver(P.TI_CUANTOS_COMPRA, {}, ORO, 1, 2, nombre="cuantos-tope")
     tocar(una, "a", 8)
     queda = ORO - 2 * 65
-    assert oro(una) == queda
+    assert una.oro() == queda
     assert una.item(CANO) == 2
     ver(P.TI_COMPRADO, {CANO: 2}, queda, 1, nombre="comprado")
     una.consola.correr(P.TI_SEGUNDO)
@@ -81,7 +75,7 @@ def test_comprar_y_vender(partida):
     tocar(una, "up", 8)                 # +10, topado en los dos que tiene
     ver(P.TI_CUANTOS_VENTA, {CANO: 2}, queda, 0, 2, nombre="cuantos-venta")
     tocar(una, "a", 8)
-    assert oro(una) == queda + 2 * (65 // 2)
+    assert una.oro() == queda + 2 * (65 // 2)
     assert una.item(CANO) == 0
     una.consola.correr(P.TI_SEGUNDO)
     tocar(una, "b", 8)

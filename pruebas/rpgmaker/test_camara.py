@@ -19,28 +19,6 @@ Neon Vipers. Y lo que lo causa está medido acá abajo, en
 """
 
 
-def coherente(una):
-    """Las celdas de la ventana que no coinciden con lo que dibuja un
-    `fill_window` en el mismo lugar, y la foto de antes.
-
-    Teletransporta a la partida a la celda donde ya está, que es lo que hace
-    que la ROM rearme la ventana entera por su propio camino. Vale sólo con la
-    cámara quieta y el pan de vuelta en cero: si no, el teletransporte la deja
-    en otro lado y la comparación no compararía lo mismo. Eso se cobra acá.
-    """
-    antes = una.ventana()
-    camara = (una.palabra("camara_x"), una.palabra("camara_y"))
-    mapa = una.mapa()
-    una.ir_al_mapa(mapa, una.palabra("tile_x"), una.palabra("tile_y"))
-    una.correr(10)
-    assert (una.palabra("camara_x"), una.palabra("camara_y")) == camara, (
-        "el teletransporte dejó la cámara en %s y antes estaba en %s: la "
-        "referencia no sirve" % ((una.palabra("camara_x"),
-                                  una.palabra("camara_y")), camara))
-    despues = una.ventana()
-    return [c for c in antes if antes[c] != despues[c]], antes
-
-
 def test_la_camara_llega_a_dos_filas_por_vuelta(partida):
     """El peor caso del juego son **dos** filas o columnas por vuelta.
 
@@ -75,7 +53,7 @@ def test_la_ventana_sigue_a_la_camara_que_baja_rapido(partida):
     siempre: la ranura del toro no se vuelve a tocar hasta 32 filas después."""
     una = partida(caso="camara-veloz")
     una.correr(120)
-    distintas, todas = coherente(una)
+    distintas, todas = una.celdas_mal_dibujadas()
     assert not distintas, (
         "%d de las %d celdas que se ven tienen dibujada otra celda del mapa; "
         "las primeras: %s" % (len(distintas), len(todas), distintas[:6])
@@ -87,7 +65,7 @@ def test_la_ventana_sigue_a_la_camara_que_va_a_la_derecha_rapido(partida):
     pero un pan sostenido las gasta en cuatro cuadros."""
     una = partida(caso="camara-veloz-x")
     una.correr(120)
-    distintas, todas = coherente(una)
+    distintas, todas = una.celdas_mal_dibujadas()
     assert not distintas, (
         "%d de las %d celdas que se ven tienen dibujada otra celda del mapa; "
         "las primeras: %s" % (len(distintas), len(todas), distintas[:6])

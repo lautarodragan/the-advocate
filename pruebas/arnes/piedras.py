@@ -23,10 +23,7 @@ def ranura(numero):
 
 def celda_de(p, mapa11, evento):
     """En qué celda tiene la ROM al evento `evento` de RM2k, ahora mismo."""
-    indice = mapa11.para(1).blanco(evento) - 1
-    base = p.simbolos["ev_pos_buf"] + 4 * indice
-    bytes_ = p.consola.ram(base, 4)
-    return (bytes_[0] | (bytes_[1] << 8), bytes_[2] | (bytes_[3] << 8))
+    return p.evento(mapa11.para(1).blanco(evento) - 1)
 
 
 def hablarle_a_la_reja(p):

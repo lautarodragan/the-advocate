@@ -40,15 +40,6 @@ def poner(una, actor, habilidad, valor):
     una.consola.escribir_ram(donde, [octeto])
 
 
-def equipo(una, actor):
-    datos = una.consola.ram(una.simbolos["FAR_EQUIPO"] + actor * 10, 10)
-    return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
-
-
-def item(una, numero):
-    return una.consola.ram(una.simbolos["FAR_ITEMS"] + numero, 1)[0]
-
-
 # --- las habilidades --------------------------------------------------------
 
 def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
@@ -108,12 +99,12 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + arma_c,
                              [eventos.ITEM_MAX])
     una.correr(DESPUES)
-    assert equipo(una, KERSH)[0] == 0 and equipo(una, CORE)[0] == 0, (
-        "el grupo sigue armado: %s, %s" % (equipo(una, KERSH), equipo(una, CORE)))
-    assert equipo(una, MANTA)[3] == 0, "Manta sigue con el casco"
-    assert item(una, arma_k) == 1, "el arma de Kersh no volvió al inventario"
-    assert item(una, arma_c) == eventos.ITEM_MAX, "el inventario pasó del tope"
-    assert item(una, casco_m) == 1, "el casco de Manta no volvió al inventario"
+    assert una.equipo(KERSH)[0] == 0 and una.equipo(CORE)[0] == 0, (
+        "el grupo sigue armado: %s, %s" % (una.equipo(KERSH), una.equipo(CORE)))
+    assert una.equipo(MANTA)[3] == 0, "Manta sigue con el casco"
+    assert una.item(arma_k) == 1, "el arma de Kersh no volvió al inventario"
+    assert una.item(arma_c) == eventos.ITEM_MAX, "el inventario pasó del tope"
+    assert una.item(casco_m) == 1, "el casco de Manta no volvió al inventario"
 
 
 def test_change_equipment_no_toca_lo_demas(partida):
@@ -122,8 +113,8 @@ def test_change_equipment_no_toca_lo_demas(partida):
     una = partida(caso="equipo-quitar")
     base = datos.base()
     una.correr(DESPUES)
-    assert equipo(una, MANTA)[0] == base.actors[MANTA].initial_equipment[0]
-    assert equipo(una, KERSH)[1:] == base.actors[KERSH].initial_equipment[1:]
+    assert una.equipo(MANTA)[0] == base.actors[MANTA].initial_equipment[0]
+    assert una.equipo(KERSH)[1:] == base.actors[KERSH].initial_equipment[1:]
 
 
 # --- y las páginas que esto destraba ---------------------------------------

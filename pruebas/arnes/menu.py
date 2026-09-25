@@ -43,6 +43,5 @@ def con_grupo(una):
     """La partida con `GRUPO` y `ORO` escritos en la RAM."""
     una.correr(5)
     una.poner_grupo(*GRUPO)
-    una.consola.escribir_ram(una.simbolos["oro"],
-                             list(ORO.to_bytes(3, "little")))
+    una.poner_oro(ORO)
     return una

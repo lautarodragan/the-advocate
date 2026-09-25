@@ -569,6 +569,51 @@ class Partida:
         los pixeles, o sea la de salida hasta que llega."""
         return (self.palabra("hero_x") // 16, self.palabra("hero_y") // 16)
 
+    def evento(self, indice):
+        """La celda (x, y) donde la ROM tiene ahora al evento `indice` de su
+        tabla: desde cero, en el orden de los ids del mapa."""
+        base = self.simbolos["ev_pos_buf"] + indice * self.simbolos["EV_STRIDE"]
+        b = self.consola.ram(base, 4)
+        return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
+
+    def oro(self):
+        b = self.consola.ram(self.simbolos["oro"], 3)
+        return b[0] | (b[1] << 8) | (b[2] << 16)
+
+    def poner_oro(self, cuanto):
+        self.consola.escribir_ram(self.simbolos["oro"],
+                                  [cuanto & 0xFF, (cuanto >> 8) & 0xFF,
+                                   (cuanto >> 16) & 0xFF])
+        return self
+
+    def equipo(self, actor):
+        """Las cinco ranuras de equipo del actor, leídas de `FAR_EQUIPO`."""
+        datos = self.consola.ram(self.simbolos["FAR_EQUIPO"] + actor * 10, 10)
+        return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
+
+    def celdas_mal_dibujadas(self):
+        """Las celdas de la ventana que no coinciden con lo que dibuja un
+        `fill_window` en el mismo lugar, y la foto de antes.
+
+        Teletransporta a la partida a la celda donde ya está, que es lo que
+        hace que la ROM rearme la ventana entera por su propio camino —y por
+        eso **repara** lo que encuentre: adentro de una jugada, lo que venga
+        después ya no lo ve—. Vale sólo con la cámara quieta y el pan de
+        vuelta en cero: si no, el teletransporte la deja en otro lado y la
+        comparación no compararía lo mismo. Eso se cobra acá.
+        """
+        antes = self.ventana()
+        camara = (self.palabra("camara_x"), self.palabra("camara_y"))
+        self.ir_al_mapa(self.mapa(), self.palabra("tile_x"),
+                        self.palabra("tile_y"))
+        self.correr(10)
+        assert (self.palabra("camara_x"), self.palabra("camara_y")) == camara, (
+            "el teletransporte dejó la cámara en %s y antes estaba en %s: la "
+            "referencia no sirve" % ((self.palabra("camara_x"),
+                                      self.palabra("camara_y")), camara))
+        despues = self.ventana()
+        return [c for c in antes if antes[c] != despues[c]], antes
+
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""
         indice = self.palabra("mapa_actual")

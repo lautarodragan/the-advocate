@@ -137,31 +137,9 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
     return mirar
 
 
-def ventana_coherente(una):
-    """Las celdas que la VRAM dibuja distinto de lo que dibujaría recién
-    llegando, que es lo que delata una fila sin redibujar.
-
-    Es lo mismo que hace `coherente` en `pruebas/rpgmaker/test_camara.py` —de
-    ahí sale— y está copiado en vez de compartido porque allá la comparación
-    **es** la prueba y acá es un hito más de una jugada: el teletransporte que
-    sirve de referencia rellena la ventana entera, así que reparara lo que
-    encuentre, y eso adentro de un recorrido hay que decirlo donde se usa.
-    """
-    antes = una.ventana()
-    camara = (una.palabra("camara_x"), una.palabra("camara_y"))
-    una.ir_al_mapa(una.mapa(), una.palabra("tile_x"), una.palabra("tile_y"))
-    una.correr(10)
-    assert (una.palabra("camara_x"), una.palabra("camara_y")) == camara, (
-        "el teletransporte de referencia dejó la cámara en %s y antes estaba en "
-        "%s: la comparación no compararía lo mismo"
-        % ((una.palabra("camara_x"), una.palabra("camara_y")), camara))
-    despues = una.ventana()
-    return [c for c in antes if antes[c] != despues[c]], antes
-
-
 def quedarse_quieto(p, tope=60):
-    """Corre hasta que la cámara deja de moverse, que es lo que `ventana_coherente`
-    pide para poder comparar.
+    """Corre hasta que la cámara deja de moverse, que es lo que
+    `Partida.celdas_mal_dibujadas` pide para poder comparar.
 
     Caminar termina apenas cambia la celda —ver `Recorrido._paso`— y ahí el
     héroe todavía está a mitad de paso: la cámara le queda doce pixeles atrás y
@@ -180,7 +158,9 @@ def quedarse_quieto(p, tope=60):
 
 def mirar_la_ventana(r):
     quedarse_quieto(r.p)
-    distintas, todas = ventana_coherente(r.p)
+    # El teletransporte con que compara repara lo que encuentre: lo que se
+    # mire después en la jugada ya no ve la fila rota.
+    distintas, todas = r.p.celdas_mal_dibujadas()
     assert not distintas, (
         "%d de las %d celdas que se ven tienen dibujada otra celda del mapa; "
         "las primeras: %s. %s"
