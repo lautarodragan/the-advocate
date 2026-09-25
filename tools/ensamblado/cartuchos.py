@@ -262,9 +262,9 @@ def sello(nombre, fuentes=None):
 def directorio(nombre):
     """Dónde queda el cartucho: `release` en el suyo, y los de la tanda en
     DESTINO sin el `test-` del nombre —`rom/build/tests/roms/main`—. Lo que
-    las pruebas escriben mientras corren va al lado, en
-    `rom/build/tests/snapshots/`: los cartuchos son entrada y no se tocan
-    durante la corrida, las capturas son salida."""
+    las pruebas escriben mientras corren no va acá sino a
+    `pruebas/snapshots/`: los cartuchos son salida del build y entrada de la
+    tanda, las capturas son salida de las pruebas."""
     if nombre == RELEASE:
         return os.path.join(RAIZ, "rom", "build", RELEASE)
     return os.path.join(DESTINO, nombre.replace("test-", "", 1))
