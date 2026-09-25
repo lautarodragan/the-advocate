@@ -365,21 +365,20 @@ def test_pan(nombre, cuadros):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
-# `ShakeScreen`: nombre —el de su caso—, el mapa donde arranca y los ticks.
-# Sin mapa, el caso llega a su lugar con un `Teleport`.
+# `ShakeScreen`: nombre —el de su caso— y los ticks.
 SACUDIDAS = (
-    ("sacudir", 7, (3, 6, 9, 11, 13, 60)),
-    ("sacudir-fuerte", 6, (2, 5, 9, 14, 17, 60)),
+    ("sacudir", (3, 6, 9, 11, 13, 60)),
+    ("sacudir-fuerte", (2, 5, 9, 14, 17, 60)),
     # Contra el borde del mapa, que es donde la sacudida no puede correr la
     # cámara para los dos lados.
-    ("sacudir-borde", None, (3, 6, 9, 11, 13, 60)),
-    ("sacudir-lluvia", 6, (2, 5, 9, 14, 17, 60)),
+    ("sacudir-borde", (3, 6, 9, 11, 13, 60)),
+    ("sacudir-lluvia", (2, 5, 9, 14, 17, 60)),
 )
 
 
-@pytest.mark.parametrize("nombre,mapa,cuadros",
+@pytest.mark.parametrize("nombre,cuadros",
                          SACUDIDAS, ids=[caso[0] for caso in SACUDIDAS])
-def test_sacudir(nombre, mapa, cuadros):
+def test_sacudir(nombre, cuadros):
     """`sacudir`: `ShakeScreen`, la pantalla temblando."""
     for cuadro in cuadros:
         p = partida(nombre)

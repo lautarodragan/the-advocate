@@ -293,32 +293,6 @@ def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
     return consola
 
 
-def correr_ticks(consola, simbolos, ticks, sosteniendo=()):
-    """El lazo de ticks de `Reloj.avanzar`, sobre una consola sin `Partida`.
-
-    Hace falta para el único par de casos que arranca en el cuadro **cero**:
-    la ROM con pantalla de título contra la misma sin ella. Ahí no se puede
-    pasar un arranque fijo —la mitad del arranque es el título— así que el
-    reloj se lee desde el primer cuadro. `Reloj` corre uno antes de mirar,
-    porque con cero cuadros corridos la WRAM es todavía la basura con que el
-    emulador enciende y el contador leería 21845.
-    """
-    consola.correr(1)
-    sosteniendo = tuple(sosteniendo)
-    if sosteniendo:
-        consola.apretar(*sosteniendo)
-    direccion = simbolos["vueltas"]
-    tope = (ticks + 2) * 240
-    while True:
-        bajo, alto = consola.ram(direccion, 2)
-        if (bajo | (alto << 8)) - 1 >= ticks:
-            return consola
-        consola.correr(1)
-        tope -= 1
-        if tope <= 0:
-            raise RuntimeError("la ROM no llegó al tick %d" % ticks)
-
-
 def quince_bits(imagen):
     """La imagen a 15 bits, que es lo que la consola puede mostrar."""
     return [(r >> 3, g >> 3, b >> 3)

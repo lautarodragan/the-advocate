@@ -52,11 +52,6 @@ def test_espera(cuadro):
     golden("espera-%d" % cuadro, p.imagen())
 
 
-# El save point abre su pantalla diez cuadros después de que la espera de la
-# página termina.
-ABRE_LA_DE_RANURAS = 130
-
-
 @pytest.mark.parametrize("nombre,cuantos,toques", (
     ("guardar", 130, ()),
     # El cursor dos ranuras más abajo, que es lo único que ejercita el DMA del

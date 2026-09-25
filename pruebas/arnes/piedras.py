@@ -11,7 +11,6 @@ MAPAS = "en-11"
 # Abajo de `Grate1`, que está en (26,51) y es pared: desde acá se le habla
 # mirando hacia arriba, que es como se juega el minijuego.
 DEBAJO_DE_LA_REJA = (26, 52)
-REJA = (26, 51)
 # El evento que hace de piedra, y dónde lo deja el mapa antes de que nadie lo
 # mueva: lejos, en (45,75).
 STONE = 18
