@@ -695,34 +695,3 @@ repintar:
     rts
 .endproc
 
-; La cola de poses en caliente después de reponer el banco: cada ranura tiene
-; ahora la pose que el conversor dejó en el cartucho, y no la que su NPC venía
-; mostrando. `load_sprite` arregla la del héroe —deja `hero_pose_vram` en $FF—
-; y las de los NPC viven en `npc_buf + 12`, que es la única parte de esa tabla
-; que esto toca: es una sombra de lo que hay en la VRAM, no estado del juego.
-;
-; Con $FF ninguna pose coincide, así que el próximo `subir_pose_npc` de cada
-; fila la vuelve a encolar. Sin esto la sombra mentiría y un NPC que ya
-; estuviera en su pose se quedaría con la del cartucho para siempre.
-.proc poses_npc_olvidar
-.a8
-.i16
-    ldy #$0000
-otra:
-    cpy npc_total               ; viene en bytes, no en filas
-    beq listo
-    lda #$FF
-    sta npc_buf + 12, y
-    rep #$20
-.a16
-    tya
-    clc
-    adc #NPC_STRIDE
-    tay
-    sep #$20
-.a8
-    bra otra
-listo:
-    rts
-.endproc
-
