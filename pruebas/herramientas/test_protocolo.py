@@ -29,6 +29,8 @@ from rpgmaker import lcf  # noqa: E402
 from render.render_map import GAME_DIR  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
+from ensamblado import cartuchos  # noqa: E402
+import tanda  # noqa: E402
 
 # Cada bytecode: su declaración, su módulo de Python y su .inc.
 GENERADOS = [
@@ -107,6 +109,44 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     assert not sin_declarar, (
         "rom/src/ compara contra %s, que no está declarado en tools/protocol/"
         % ", ".join(sorted(sin_declarar)))
+
+
+def desde_la_rom(datos, direccion):
+    """El byte de LoROM que cae en `direccion`, sea del banco que sea o de su
+    espejo rápido (`$80xxxx`)."""
+    return ((direccion >> 16) & 0x7F) * 0x8000 + (direccion & 0x7FFF)
+
+
+@pytest.mark.parametrize("nombre", sorted(cartuchos.CARTUCHOS))
+def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
+    """El despacho de `correr_codigo` es `jmp (manejadores_de_opcode, x)`.
+
+    Que cada `op_x` exista lo cobra el ensamblador: la tabla es una macro que
+    los nombra. Esto mira la ROM armada: que la entrada k, leída como la lee
+    el `jmp`, sea la dirección del manejador del opcode k, y que ése esté en
+    el banco de `correr_codigo`, porque la entrada es de dieciséis bits y el
+    `jmp` salta adentro del banco del programa. Un manejador que alguien
+    mande a otro banco ensamblaría igual si el `.addr` lo trunca.
+    """
+    uno = tanda.cartucho(nombre)
+    with open(uno.sfc, "rb") as archivo:
+        datos = archivo.read()
+    tabla = uno.simbolos["manejadores_de_opcode"]
+    banco = uno.simbolos["correr_codigo"] >> 16
+    codigos = {v: n for n, v in declarados(event_opcodes).items()}
+    assert sorted(codigos) == list(range(len(codigos))), (
+        "los números de events.toml tienen huecos: la tabla no puede ser")
+    for k in sorted(codigos):
+        manejador = codigos[k].lower()
+        direccion = uno.simbolos[manejador]
+        en = desde_la_rom(datos, tabla + 2 * k)
+        entrada = datos[en] | datos[en + 1] << 8
+        assert entrada == direccion & 0xFFFF, (
+            "la entrada $%02X de la tabla apunta a $%04X y %s está en $%06X"
+            % (k, entrada, manejador, direccion))
+        assert direccion >> 16 == banco, (
+            "%s está en el banco $%02X y correr_codigo en el $%02X: el `jmp` "
+            "de la tabla no llega" % (manejador, direccion >> 16, banco))
 
 
 def test_los_dos_bytecodes_no_comparten_un_nombre():
