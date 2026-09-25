@@ -45,7 +45,7 @@ def comparar(una, inventario, elegida, arriba=0, nombre="items"):
     from rpgmaker import lcf
     from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     captura = una.imagen().convert("RGB")
@@ -53,16 +53,10 @@ def comparar(una, inventario, elegida, arriba=0, nombre="items"):
                                    db.font_id)
     distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
-    if distintos:
-        donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)))), "rom", "shots")
-        os.makedirs(donde, exist_ok=True)
-        captura.save(os.path.join(donde, "prueba-%s.png" % nombre))
-        esperada.save(os.path.join(donde, "prueba-%s.esperado.png" % nombre))
+    donde = pantalla_distinta(nombre, captura, esperada, distintos)
     assert distintos == 0, (
         "la pantalla de ítems con el cursor en %d difiere de la referencia en "
-        "%d pixeles; están en rom/shots/prueba-%s*.png"
-        % (elegida, distintos, nombre))
+        "%d pixeles; están en %s" % (elegida, distintos, donde))
 
 
 def test_la_pantalla_se_ve_como_la_referencia(partida):

@@ -45,7 +45,7 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     from port import titulo
     from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     captura = una.imagen().convert("RGB")
@@ -54,16 +54,10 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
                                   None, GAME_DIR, hp)
     distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
-    if distintos:
-        donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)))), "rom", "shots")
-        os.makedirs(donde, exist_ok=True)
-        captura.save(os.path.join(donde, "prueba-%s.png" % nombre))
-        esperada.save(os.path.join(donde, "prueba-%s.esperado.png" % nombre))
+    donde = pantalla_distinta(nombre, captura, esperada, distintos)
     assert distintos == 0, (
         "el menú con el cursor en la %d difiere de la referencia en %d "
-        "pixeles; están en rom/shots/prueba-%s*.png"
-        % (elegida, distintos, nombre))
+        "pixeles; están en %s" % (elegida, distintos, donde))
 
 
 def con_grupo(una):

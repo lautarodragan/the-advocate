@@ -276,7 +276,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     from port import titulo
     from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
@@ -294,19 +294,12 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
                                          {1: [14, 10]}, GAME_DIR)
         distintos = sum(1 for x, y in zip(quince_bits(captura),
                                           quince_bits(esperada)) if x != y)
-        if distintos:
-            donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-                os.path.abspath(__file__)))), "rom", "shots")
-            os.makedirs(donde, exist_ok=True)
-            captura.save(os.path.join(
-                donde, "prueba-ranuras-grupo-%d.png" % elegida))
-            esperada.save(os.path.join(
-                donde, "prueba-ranuras-grupo-%d.esperado.png" % elegida))
+        donde = pantalla_distinta("ranuras-grupo-%d" % elegida, captura,
+                                  esperada, distintos)
         assert distintos == 0, (
             "la pantalla de ranuras con la partida de Talan y el cursor en la "
-            "%d difiere de la referencia en %d pixeles; están en "
-            "rom/shots/prueba-ranuras-grupo-%d*.png"
-            % (elegida, distintos, elegida))
+            "%d difiere de la referencia en %d pixeles; están en %s"
+            % (elegida, distintos, donde))
 
     # Como se entra, y con el cursor sobre la fila de Talan: bajar el cursor
     # repinta la fila entera adentro del vblank, cara y nombre incluidos, y

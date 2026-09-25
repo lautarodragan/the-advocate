@@ -55,19 +55,14 @@ def entrar(una):
 
 
 def comparar(una, esperada, nombre):
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
     captura = una.imagen().convert("RGB")
     distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
-    if distintos:
-        donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)))), "rom", "shots")
-        os.makedirs(donde, exist_ok=True)
-        captura.save(os.path.join(donde, "prueba-%s.png" % nombre))
-        esperada.save(os.path.join(donde, "prueba-%s.esperado.png" % nombre))
+    donde = pantalla_distinta(nombre, captura, esperada, distintos)
     assert distintos == 0, (
-        "%s difiere de la referencia en %d pixeles; están en "
-        "rom/shots/prueba-%s*.png" % (nombre, distintos, nombre))
+        "%s difiere de la referencia en %d pixeles; están en %s"
+        % (nombre, distintos, donde))
 
 
 def test_arranca_con_el_equipo_inicial(partida):

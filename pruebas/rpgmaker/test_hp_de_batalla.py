@@ -90,7 +90,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     from port import titulo
     from port import ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
     abrir(una)
@@ -103,16 +103,10 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
                                   GAME_DIR, quedo)
     distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
                     if x != y)
-    if distintos:
-        donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)))), "rom", "shots")
-        os.makedirs(donde, exist_ok=True)
-        captura.save(os.path.join(donde, "prueba-menu-tras-pelea.png"))
-        esperada.save(os.path.join(donde,
-                                   "prueba-menu-tras-pelea.esperado.png"))
+    donde = pantalla_distinta("menu-tras-pelea", captura, esperada, distintos)
     assert distintos == 0, (
         "el menú después de la pelea difiere de la referencia en %d pixeles; "
-        "están en rom/shots/prueba-menu-tras-pelea*.png" % distintos)
+        "están en %s" % (distintos, donde))
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
     # dibuja **otra** imagen. Sin esto, una ROM que volviera a hornear el
     # máximo pasaría el caso el día que la referencia se equivocara igual.

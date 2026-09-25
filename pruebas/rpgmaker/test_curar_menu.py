@@ -73,7 +73,7 @@ def diferencia_con_la_eleccion(una, elegida, hp):
     from rpgmaker import lcf
     from port import titulo, ventana
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
+    from tanda import pantalla_distinta, quince_bits
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
     skin = ventana.skin(GAME_DIR, db.system_name)
     captura = una.imagen().convert("RGB")
@@ -81,13 +81,7 @@ def diferencia_con_la_eleccion(una, elegida, hp):
                                       db.font_id, None, GAME_DIR, hp)
     distintos = sum(1 for x, y in zip(quince_bits(captura),
                                       quince_bits(esperada)) if x != y)
-    if distintos:
-        donde = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__)))), "rom", "shots")
-        os.makedirs(donde, exist_ok=True)
-        captura.save(os.path.join(donde, "prueba-curar-eleccion.png"))
-        esperada.save(os.path.join(donde,
-                                   "prueba-curar-eleccion.esperado.png"))
+    pantalla_distinta("curar-eleccion", captura, esperada, distintos)
     return distintos
 
 
@@ -110,7 +104,7 @@ def test_el_sandwich_cura_desde_el_menu_y_se_gasta(partida):
     assert una.menu_abierto()
     assert diferencia_con_la_eleccion(una, 1, {ARDEN: 40}) == 0, (
         "la elección, después de curar, no muestra los HP nuevos de Arden; "
-        "está en rom/shots/prueba-curar-eleccion*.png")
+        "está en pruebas/snapshots/pantallas/curar-eleccion*.png")
 
 
 def test_el_sandwich_topa_en_el_maximo(partida):
@@ -253,9 +247,9 @@ def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     tocar(una, "a", TITULO_AIRE)
     assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
         "la elección, entrando derecho desde la lista, difiere de la "
-        "referencia; está en rom/shots/prueba-curar-eleccion*.png")
+        "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")
     tocar(una, "b", TITULO_AIRE)
     tocar(una, "a", TITULO_AIRE)
     assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
         "la elección, al volver a entrar sin cerrar el menú, difiere de la "
-        "referencia; está en rom/shots/prueba-curar-eleccion*.png")
+        "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")
