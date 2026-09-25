@@ -140,8 +140,8 @@ ba_t_armar:
 ; contexto.
 ;
 ; El del mapa se guarda en la pila y vuelve al final, como en `paralelos_tick`,
-; y no es una precaución: una pelea se abre desde **adentro** de
-; `correr_codigo` —`op_battle`— y al volver sigue leyendo la página del mapa con
+; y no es una precaución: una pelea se abre desde **adentro** del
+; intérprete —`op_battle`— y al volver sigue leyendo la página del mapa con
 ; el `cod_ptr` y el Y que tenía. El de la tropa vive en la RAM lejana entre un
 ; tramo y otro, porque un mensaje la frena varios cuadros.
 ;

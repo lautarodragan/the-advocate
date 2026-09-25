@@ -3833,7 +3833,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/port/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        "; OP_KEY. Ver `op_key` en rom/src/interprete.s.\n"
+        "; OP_KEY. Ver `op_key` en rom/src/interprete_teclas_y_esperas.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -6323,7 +6323,7 @@ def main():
         # dibujaría de más. Cuántas entradas puede llegar a tener se sabe acá,
         # y es la cantidad de bloques distintos que alguna sustitución del mapa
         # usa como clave, porque una clave nunca se pisa: la segunda vuelta
-        # cambia su valor. Ver `op_tile_sub` en rom/src/interprete.s.
+        # cambia su valor. Ver `op_tile_sub` en rom/src/interprete_mapa.s.
         claves = len(mapa["sustituciones"].claves)
         if claves > SUB_MAX:
             sys.exit("el mapa %d sustituye %d bloques distintos y la tabla de "
