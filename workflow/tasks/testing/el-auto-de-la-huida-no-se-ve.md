@@ -1,6 +1,7 @@
 ---
 name: "El auto de la huida no se ve"
 description: "Con una automática corriendo, el refresco completo sólo mira las automáticas"
+type: bug
 ---
 
 **Después de elegir el auto en el techo, la cinemática del mapa 4 corre con la

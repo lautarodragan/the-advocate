@@ -1,6 +1,7 @@
 ---
 name: "Velocidad: colores por tile"
 description: "Guardar los colores de cada tile en vez de recalcularlos"
+type: refactor
 ---
 
 # Qué

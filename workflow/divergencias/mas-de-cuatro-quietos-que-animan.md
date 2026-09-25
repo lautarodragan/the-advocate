@@ -15,7 +15,7 @@ congelada— y pediría una regla para elegir cuáles.
 El 2026-09-09, con el tope en cuatro: el mapa 52 tiene treinta y pedía 572
 tiles de sprite contra los 384 que entraban. De los 328 mapas del juego, 312
 tenían cuatro o menos, y de los que llevaban las ROMs el único que se pasaba
-era el 52, que no es de los primeros diez minutos.
+era el 52.
 
 # Cómo se ve hoy
 

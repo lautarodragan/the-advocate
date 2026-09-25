@@ -1,6 +1,7 @@
 ---
 name: "La escena del ascensor"
 description: "Un caso propio en la tanda para la escena del ascensor del mapa 2"
+type: test
 ---
 
 # Qué

@@ -7,6 +7,8 @@
     research/   estudios fechados: "el día tal, con el commit tal, medimos
                 esto".
 
+    jetbrains.md  lo que hay que configurar en el IDE para este repo.
+
 La diferencia que importa es entre `port/` y `research/`:
 
 * **Un doc de `port/` tiene que estar al día, o miente.** Por eso conviene que

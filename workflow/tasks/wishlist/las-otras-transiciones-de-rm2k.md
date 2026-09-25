@@ -1,6 +1,7 @@
 ---
 name: "Las otras transiciones"
 description: "Bloques, persianas y demás transiciones que no son el fundido"
+type: feature
 ---
 
 # Qué

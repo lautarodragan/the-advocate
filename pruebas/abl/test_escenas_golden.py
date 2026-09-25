@@ -186,8 +186,7 @@ def test_cinematica(nombre, cuadros, apretar, caso, en):
     El mapa 4 prende dos switches, tiñe y teletransporta al 1; ahí arranca la
     lluvia, se salta dos veces **adentro del mismo mapa**, se manda a caminar
     al evento 8, cambia el grupo —sale DummyHero y entra Kersh— y el héroe sube
-    tres celdas por una ruta forzada. Es la puerta a los primeros diez minutos
-    del juego.
+    tres celdas por una ruta forzada.
 
     Los dos primeros ticks de `cinematica` caen adentro de la rampa de vuelta
     del primer fundido y son lo único de la tanda que compara la rampa misma.

@@ -1,6 +1,7 @@
 ---
 name: "Muestras por paquete"
 description: "Repartir la ARAM por paquete de mapa y no por banco"
+type: feature
 ---
 
 # Qué

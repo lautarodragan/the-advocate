@@ -1,6 +1,7 @@
 ---
 name: "La música en el SPC700"
 description: "Un secuenciador en el SPC700 en vez del 65816"
+type: refactor
 ---
 
 # Qué

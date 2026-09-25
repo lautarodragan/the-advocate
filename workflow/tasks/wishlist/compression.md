@@ -1,6 +1,7 @@
 ---
 name: "Compresión"
 description: "Comprimir lo que viaja en la ROM: medido, un 75% menos"
+type: feature
 ---
 
 Lo que se puede esperar de comprimir, medido: la parte usada de

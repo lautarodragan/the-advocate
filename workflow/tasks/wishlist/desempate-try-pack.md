@@ -1,6 +1,7 @@
 ---
 name: "El desempate de try_pack"
 description: "Que el reparto de colores no dependa del orden de hash de CPython"
+type: bug
 ---
 
 # Qué

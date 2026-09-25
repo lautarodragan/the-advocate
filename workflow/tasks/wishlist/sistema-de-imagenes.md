@@ -1,6 +1,7 @@
 ---
 name: "El sistema de imágenes"
 description: "ShowPicture entero, más allá del cartel"
+type: feature
 ---
 
 # Qué

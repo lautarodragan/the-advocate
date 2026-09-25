@@ -1,6 +1,7 @@
 ---
 name: "Ataque y decaimiento"
 description: "Las envolventes de cada instrumento, leídas del SoundFont"
+type: feature
 ---
 
 # Qué

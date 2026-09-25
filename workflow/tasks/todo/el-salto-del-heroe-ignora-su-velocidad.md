@@ -1,6 +1,7 @@
 ---
 name: "El salto del héroe ignora su velocidad"
 description: "Los eventos saltan según su velocidad y el héroe siempre a la del paso normal"
+type: bug
 ---
 
 **El salto del héroe usa una velocidad fija** —`SALTO_VELOCIDAD`, la de la

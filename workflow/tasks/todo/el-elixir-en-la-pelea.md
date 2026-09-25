@@ -1,6 +1,7 @@
 ---
 name: "El Elixir en la pelea"
 description: "Usar en la pelea un ítem que sólo sirve sobre un caído"
+type: feature
 ---
 
 **Usar en la pelea un ítem que sólo sirve sobre un caído.**

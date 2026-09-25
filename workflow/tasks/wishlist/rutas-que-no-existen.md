@@ -1,6 +1,7 @@
 ---
 name: "Rutas que no existen"
 description: "Una prueba que falle si un .md o un comentario nombra un archivo que ya no está"
+type: test
 ---
 
 # Qué
@@ -18,6 +19,10 @@ y lo confundieron. Nada las cazaba.
 Se miró la alternativa de un linter de markdown —markdownlint, mdformat,
 Prettier— y no ataca esto: revisan la forma, no si lo nombrado existe. Si
 algún día molesta la forma, mdformat sólo para los `.md` es lo más barato.
+
+Otro caso, el 2026-09-25: el índice de `README.md` enlaza a una sección
+"El MSU-1" que no existe, y el docstring de `tools/audio/msu.py` la cita.
+Un ancla de markdown es una ruta más: la prueba debería mirarlas también.
 
 # Lo que no cubre
 

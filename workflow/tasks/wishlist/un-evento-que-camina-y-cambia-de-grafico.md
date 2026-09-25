@@ -1,6 +1,7 @@
 ---
 name: "Caminar y cambiar de gráfico"
 description: "Un evento que camina y cambia de gráfico con la página"
+type: feature
 ---
 
 # Qué

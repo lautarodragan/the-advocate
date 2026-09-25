@@ -1,6 +1,7 @@
 ---
 name: "La otra rama de la cinemática de los Neon Vipers"
 description: "Lo que el recorrido del mapa 12 dejó sin ejecutar: la rama del `no`, la reja y el mapa 14"
+type: test
 ---
 
 `pruebas/abl/test_recorrido_vipers_golden.py` juega el tramo entero por la

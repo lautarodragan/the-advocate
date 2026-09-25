@@ -1,6 +1,7 @@
 ---
 name: "La paleta del cronómetro"
 description: "Reservarla sólo mientras el cronómetro corre"
+type: refactor
 ---
 
 # Qué

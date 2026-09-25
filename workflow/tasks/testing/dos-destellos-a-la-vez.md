@@ -1,6 +1,7 @@
 ---
 name: "Dos destellos a la vez"
 description: "Kersh se queda azul en la terraza: dos destellos juntos suben una sola paleta"
+type: bug
 ---
 
 **En la terraza del mapa 32, el Agency Captain —Kersh— se queda teñido de azul

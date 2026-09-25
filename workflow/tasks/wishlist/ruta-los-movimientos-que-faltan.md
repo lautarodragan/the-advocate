@@ -1,6 +1,7 @@
 ---
 name: "Ruta: los movimientos que faltan"
 description: "Las nueve órdenes de movimiento que la ROM no hace"
+type: feature
 ---
 
 # Qué

@@ -1,6 +1,7 @@
 ---
 name: "Parches de decisiones artísticas"
 description: "Lo que se pierde al convertir, como archivos versionados"
+type: feature
 ---
 
 # Qué

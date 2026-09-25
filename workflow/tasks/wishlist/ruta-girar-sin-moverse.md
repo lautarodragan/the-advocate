@@ -1,6 +1,7 @@
 ---
 name: "Ruta: girar sin moverse"
 description: "Las órdenes de ruta que giran sin caminar"
+type: feature
 ---
 
 # Qué

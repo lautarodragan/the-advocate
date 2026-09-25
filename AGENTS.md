@@ -171,11 +171,7 @@ en las líneas únicas, **cada línea sale con el mismo commit que daba el
 archivos.
 
 Los IDE que no dejan pasarle opciones a `blame` —el annotate de JetBrains—
-lo hacen sólo si el git del host tiene `diff.algorithm=histogram` en su
-configuración global (`git config --global diff.algorithm histogram`), y
-con su opción de detectar movimientos entre archivos, que es la `-C`. Acá
-adentro `.git/config` es de sólo lectura, así que eso lo configura taro del
-lado del host.
+necesitan configuración del lado del host: ver `docs/jetbrains.md`.
 
 ## La regla que sostiene todo
 

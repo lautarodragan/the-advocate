@@ -1,6 +1,7 @@
 ---
 name: "Pruebas declarativas"
 description: "Un ejecutor de pruebas escritas como datos"
+type: test
 ---
 
 # Qué
