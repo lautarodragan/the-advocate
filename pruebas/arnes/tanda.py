@@ -314,10 +314,15 @@ def golden(nombre, imagen):
     el descarte de sprites del PPU es el mismo de los dos lados. Ver el
     `LEEME.md` del congelado.
 
-    Cuando difieren, la captura queda en `pruebas/snapshots/failed/` para
-    poder mirarla al lado de la golden. **No se pisa la golden**: cambiarla es un acto
-    deliberado y va a git con su porqué.
+    Cuando difieren, la captura queda en `pruebas/snapshots/tanda/`, con el
+    mismo nombre que su golden en `pruebas/golden/tanda/`, para poder mirarlas
+    lado a lado. **No se pisa la golden**: cambiarla es un acto deliberado y
+    va a git con su porqué. Y cuando coinciden, se borra la captura que haya
+    quedado de una corrida anterior: así ese directorio tiene sólo lo que está
+    en rojo ahora, y no lo que estuvo alguna vez.
     """
+    rojo = os.path.join(RAIZ, "pruebas", "snapshots", "tanda")
+    donde = os.path.join(rojo, "%s.png" % nombre)
     ruta = os.path.join(GOLDEN, "%s.png" % nombre)
     if not os.path.exists(ruta):
         raise AssertionError("no hay golden para %r: %s" % (nombre, ruta))
@@ -329,12 +334,13 @@ def golden(nombre, imagen):
                              % (nombre, actual.size, esperada.size))
     # El caso verde se contesta con los bytes crudos, que es una comparación y
     # no 57.344; contar cuántos difieren sólo hace falta para el mensaje.
-    if actual.tobytes() != esperada.tobytes():
+    if actual.tobytes() == esperada.tobytes():
+        if os.path.exists(donde):
+            os.remove(donde)
+    else:
         distintos = sum(1 for a, b in zip(actual.getdata(), esperada.getdata())
                         if a != b)
-        rojo = os.path.join(RAIZ, "pruebas", "snapshots", "failed")
         os.makedirs(rojo, exist_ok=True)
-        donde = os.path.join(rojo, "%s.png" % nombre)
         actual.save(donde)
         total = esperada.size[0] * esperada.size[1]
         raise AssertionError(
