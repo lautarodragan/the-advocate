@@ -11,6 +11,7 @@ from port import titulo
 
 from consola import TITULO_AIRE
 import datos
+from dibujo import comparar_pantalla
 from menu import abrir, tocar
 
 # Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
@@ -38,17 +39,11 @@ def entrar(una):
 
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
-    from tanda import pantalla_distinta, quince_bits
     db, skin = datos.base(), datos.skin()
-    captura = una.imagen().convert("RGB")
     esperada = titulo.render_items(skin, db, inventario, elegida, arriba,
                                    db.font_id)
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "la pantalla de ítems con el cursor en %d difiere de la referencia en "
-        "%d pixeles; están en %s" % (elegida, distintos, donde))
+    comparar_pantalla(una, esperada, nombre,
+                      "la pantalla de ítems con el cursor en %d" % elegida)
 
 
 def test_la_pantalla_se_ve_como_la_referencia(partida):
@@ -91,7 +86,6 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     verdad es `test_curar_menu.py`—; B vuelve a la lista con el cursor donde
     estaba."""
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
     una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
@@ -99,14 +93,11 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     tocar(una, "a", TITULO_AIRE)        # la poción
     db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
-        captura = una.imagen().convert("RGB")
         esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
                                           db.font_id, None, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quince_bits(captura),
-                                          quince_bits(esperada)) if x != y)
-        assert distintos == 0, (
-            "la elección de actor con el cursor en %d difiere de la "
-            "referencia en %d pixeles" % (elegida, distintos))
+        comparar_pantalla(una, esperada,
+                          que="la elección de actor con el cursor en %d"
+                          % elegida)
         tocar(una, "down")
     tocar(una, "a", 20)
     assert una.item(1) == 13, "la poción se gastó sin tener efecto"

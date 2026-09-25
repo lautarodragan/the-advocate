@@ -14,6 +14,7 @@ from port import experiencia
 from consola import en_la_rom
 from batalla import GRUPO, TROPA_DROIDE, Pelea, en_el_droide
 import datos
+from dibujo import diferencia
 
 
 def rom_de(una):
@@ -304,13 +305,6 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
 # nivel. Los niveles son distintos entre sí y de los de arranque, y hay uno
 # de una cifra y otro de dos, que es donde "%2d" y "/%d" se equivocan.
 NIVELES_DEL_MENU = {14: 9, 11: 30}
-
-
-def diferencia(una, esperada):
-    from tanda import quince_bits
-    captura = una.imagen().convert("RGB")
-    return sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-               if x != y)
 
 
 def referencias():

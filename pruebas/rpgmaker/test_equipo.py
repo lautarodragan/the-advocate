@@ -10,6 +10,7 @@ from port import pantallas
 
 from consola import TITULO_AIRE
 import datos
+from dibujo import comparar_pantalla
 from menu import abrir, tocar
 
 TALAN, KERSH = 14, 11
@@ -42,17 +43,6 @@ def entrar(una):
     return una
 
 
-def comparar(una, esperada, nombre):
-    from tanda import pantalla_distinta, quince_bits
-    captura = una.imagen().convert("RGB")
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "%s difiere de la referencia en %d pixeles; están en %s"
-        % (nombre, distintos, donde))
-
-
 def test_arranca_con_el_equipo_inicial(partida):
     una = partida()
     db = datos.base()
@@ -67,17 +57,17 @@ def test_equipar_desde_el_menu(partida):
     una = entrar(partida(caso="equipo-inventario"))
     puesto = list(db.actors[TALAN].initial_equipment)
     inv = dict(INVENTARIO)
-    comparar(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
+    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo")
     tocar(una, "a", 10)
-    comparar(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
+    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
                                             0).render(skin, db.font_id),
              "equipo-lista")
     tocar(una, "a", 10)                 # el palo
     pantallas.equipar(db, puesto, inv, 0, PALO)
     assert equipo(una, TALAN) == puesto
     assert una.item(PALO) == 1
-    comparar(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
+    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo-puesto")
 
 
@@ -97,7 +87,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     puesto[1] = ESCUDO
     inv = dict(INVENTARIO)
     inv[ESCUDO] = 0
-    comparar(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
+    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
                                             1).render(skin, db.font_id),
              "equipo-lanza")
     tocar(una, "a", 10)

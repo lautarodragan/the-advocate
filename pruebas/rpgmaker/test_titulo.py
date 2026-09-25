@@ -19,6 +19,7 @@ porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
 import pytest
 
 import datos
+from dibujo import comparar_pantalla
 
 EMPEZAR, SEGUIR = 0, 1
 
@@ -267,7 +268,6 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     """
     from port import titulo
     from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
@@ -278,18 +278,12 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     ranuras = una.simbolos["SRAM_RANURAS"]
 
     def comparar(elegida):
-        captura = una.imagen().convert("RGB")
         esperada = titulo.render_ranuras(skin, db, ranuras, [False] * ranuras,
                                          elegida, 0, db.font_id,
                                          {1: [14, 10]}, GAME_DIR)
-        distintos = sum(1 for x, y in zip(quince_bits(captura),
-                                          quince_bits(esperada)) if x != y)
-        donde = pantalla_distinta("ranuras-grupo-%d" % elegida, captura,
-                                  esperada, distintos)
-        assert distintos == 0, (
-            "la pantalla de ranuras con la partida de Talan y el cursor en la "
-            "%d difiere de la referencia en %d pixeles; están en %s"
-            % (elegida, distintos, donde))
+        comparar_pantalla(una, esperada, "ranuras-grupo-%d" % elegida,
+                          "la pantalla de ranuras con la partida de Talan y "
+                          "el cursor en la %d" % elegida)
 
     # Como se entra, y con el cursor sobre la fila de Talan: bajar el cursor
     # repinta la fila entera adentro del vblank, cara y nombre incluidos, y

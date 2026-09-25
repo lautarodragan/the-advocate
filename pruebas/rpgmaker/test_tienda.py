@@ -8,6 +8,7 @@ from port import pantallas as P
 
 from consola import TITULO_AIRE
 import datos
+from dibujo import comparar_pantalla
 from menu import tocar
 
 VENDE = [96, 92, 93]                    # el cuchillo, el caño y la cachiporra
@@ -42,24 +43,13 @@ def entrar(partida):
     return una
 
 
-def comparar(una, esperada, nombre):
-    from tanda import pantalla_distinta, quince_bits
-    captura = una.imagen().convert("RGB")
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "%s difiere de la referencia en %d pixeles; están en %s"
-        % (nombre, distintos, donde))
-
-
 def test_comprar_y_vender(partida):
     db, skin = datos.base(), datos.skin()
     una = entrar(partida)
     equipos = [list(db.actors[KERSH].initial_equipment)]
 
     def ver(modo, inv, oro_, elegido=0, cuantos=1, resaludo=False, nombre=""):
-        comparar(una, P.pantalla_tienda(
+        comparar_pantalla(una, P.pantalla_tienda(
             db, 0, 0, VENDE, oro_, inv, equipos, modo, elegido, 0, cuantos,
             resaludo).render(skin, db.font_id), "tienda-" + nombre)
 

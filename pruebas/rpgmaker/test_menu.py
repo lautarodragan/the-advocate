@@ -10,24 +10,19 @@ mitad de un paso.
 
 from consola import TITULO_AIRE
 import datos
+from dibujo import comparar_pantalla, pixeles_distintos
 from menu import GRUPO, ORO, abrir, con_grupo, tocar
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     from port import titulo
     from render.render_map import GAME_DIR
-    from tanda import pantalla_distinta, quince_bits
     db, skin = datos.base(), datos.skin()
-    captura = una.imagen().convert("RGB")
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
-    distintos = sum(1 for x, y in zip(quince_bits(captura), quince_bits(esperada))
-                    if x != y)
-    donde = pantalla_distinta(nombre, captura, esperada, distintos)
-    assert distintos == 0, (
-        "el menú con el cursor en la %d difiere de la referencia en %d "
-        "pixeles; están en %s" % (elegida, distintos, donde))
+    comparar_pantalla(una, esperada, nombre,
+                      "el menú con el cursor en la %d" % elegida)
 
 
 def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
@@ -196,14 +191,12 @@ def test_los_hp_del_menu_cambian_de_verdad():
     """
     from port import titulo
     from render.render_map import GAME_DIR
-    from tanda import quince_bits
     db, skin = datos.base(), datos.skin()
     llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)
     herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                 None, GAME_DIR, HP_DE_PELEA)
-    distintos = sum(1 for x, y in zip(quince_bits(llena), quince_bits(herida))
-                    if x != y)
+    distintos = pixeles_distintos(llena, herida)
     assert distintos > 50, (
         "la referencia dibuja lo mismo con el grupo entero y con el grupo "
         "herido: %d pixeles de diferencia" % distintos)

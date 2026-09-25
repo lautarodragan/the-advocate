@@ -327,30 +327,6 @@ def quince_bits(imagen):
             for r, g, b in imagen.convert("RGB").get_flattened_data()]
 
 
-# Las pantallas que se comparan contra un dibujo de Python y no contra una
-# golden: el menú, la tienda, los ítems. Cuando difieren, la captura y la
-# esperada quedan acá para mirarlas, como las de la tanda en snapshots/tanda.
-PANTALLAS = os.path.join(RAIZ, "pruebas", "snapshots", "pantallas")
-
-
-def pantalla_distinta(nombre, captura, esperada, distintos):
-    """Si difieren, deja la captura y la esperada en PANTALLAS; si no, borra
-    las que haya dejado una corrida anterior, así el directorio tiene sólo lo
-    que está en rojo ahora. Devuelve el patrón de los dos archivos, para el
-    mensaje de la prueba."""
-    base = os.path.join(PANTALLAS, nombre)
-    rutas = (base + ".png", base + ".esperado.png")
-    if distintos:
-        os.makedirs(PANTALLAS, exist_ok=True)
-        captura.save(rutas[0])
-        esperada.save(rutas[1])
-    else:
-        for ruta in rutas:
-            if os.path.exists(ruta):
-                os.remove(ruta)
-    return os.path.relpath(base, RAIZ) + "*.png"
-
-
 # Las goldens que dieron verde en la prueba en curso, con un hash de sus
 # pixeles. La vacía y la mira `conftest._capturas_distintas`.
 CAPTURAS = []
