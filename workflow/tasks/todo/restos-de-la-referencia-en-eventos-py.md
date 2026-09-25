@@ -1,5 +1,5 @@
 ---
-name: "Restos de la referencia en eventos.py"
+name: "Restos de la referencia"
 description: "Comentarios que se apoyan en la referencia de Python, y constantes sin uso"
 type: refactor
 ---
@@ -20,3 +20,9 @@ hacer una barrida general, en `tools/port/eventos.py`:
 candidatos: separar los que hablan de la referencia de Python de los que
 hablan de otra cosa (los dibujos de `tools/port/` que comparan las pruebas
 `_dibujo` también se llaman así a veces).
+
+**Y en `rom/src/`**: `grep -n -i referencia rom/src/*.s` da unas cincuenta
+líneas. Una la vio taro depurando en Mesen2 el 2026-09-25, en `eventos_tick`
+(`rom/src/cargar_mapa.s`, después de `espera_boton`): "sería un cuadro de
+diferencia contra la referencia". Mismo criterio: si el porqué sigue valiendo
+sin la referencia, se reescribe; si sólo existía por ella, se va.

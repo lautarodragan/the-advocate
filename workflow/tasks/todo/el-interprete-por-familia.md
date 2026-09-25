@@ -27,3 +27,10 @@ Decidido con taro el 2026-09-25: el intérprete sí, y **no** reordenar todo
 `rom/src/` —el banco 0 va justo, hay código sensible al tiempo, choca con
 cada rama abierta, y para depurar en un emulador alcanza con los símbolos del
 `.dbg`—.
+
+**De paso, otra mudanza del mismo tipo**, vista depurando en Mesen2:
+`eventos_tick` —con `espera_boton` adentro, lo que corre las páginas cada
+cuadro— vive en `rom/src/cargar_mapa.s`, junto con `entrar_en_panico`,
+`empezar_fundido` y `fundido_tick`. Quedaron ahí porque el corte cortó por
+tramos y ése empezaba con `cargar_mapa`. Mirar si tienen un archivo mejor
+(mismo segmento) y moverlas con las mismas verificaciones.
