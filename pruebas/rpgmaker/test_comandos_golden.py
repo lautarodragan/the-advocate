@@ -5,10 +5,9 @@ inventada que emite **un** comando —su archivo en `pruebas/casos/`, con el
 nombre del caso—, y unos ticks donde mirar lo que hizo. La
 página es inventada por la razón de siempre —ninguna del juego que compile
 ejercita el comando sola, o la que lo hace termina teletransportando y no queda
-dónde mirar—, y lo inventado es la entrada y no la comparación: los dos lados
-corren el mismo bytecode.
+dónde mirar—, y lo inventado es la entrada y no la comparación.
 
-Del arnés hay tres cosas que valen para casi todos:
+Del arnés hay dos cosas que valen para casi todos:
 
 * **nadie aprieta el pad**, salvo `cerrar-right`, que existe justamente para
   probar que el pad **no** mueva al héroe mientras hay un mensaje;
@@ -17,9 +16,8 @@ Del arnés hay tres cosas que valen para casi todos:
   tick de después del comando se ve teñido y el de antes no, así que un comando
   que no termina se nota.
 
-De las quince recetas que esto reemplaza sólo sobrevive `cerrar`, porque la
-llama `bsnes`; el nombre que abre cada docstring es el del caso, que es también
-el de su golden.
+El nombre que abre cada docstring es el del caso, que es también el de su
+golden.
 """
 
 import pytest
@@ -34,9 +32,8 @@ TECLAS = (
     # La cruceta, que es lo que le faltaba al minijuego de las piedras del mapa
     # 11. El héroe arranca en **(22,8), donde abajo está cerrado**, y el toque
     # es hacia abajo, que es hacia donde ya mira: así el flanco lo lee el
-    # comando y no mueve ni gira a nadie, que es lo único que la referencia no
-    # modela de un toque de dirección. La celda no es decoración: en otra, el
-    # mismo toque camina.
+    # comando y no mueve ni gira a nadie. La celda no es decoración: en otra,
+    # el mismo toque camina.
     ("tecla-dir", (41, 60), (), ("down:40",)),
 )
 
@@ -329,8 +326,7 @@ def test_rama_actor(nombre):
 
 @pytest.mark.parametrize("cuadro", (2, 5, 9))
 def test_relampago(cuadro):
-    """`relampago`: el destello de pantalla, que hasta el 2026-09-08 no lo
-    corría nadie.
+    """`relampago`: el destello de pantalla.
 
     Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
     """
@@ -349,8 +345,7 @@ PANEOS = (
     ("pan-cero", (1, 2, 3, 4)),
     # La lluvia pegada al mapa: la cámara se corre dos celdas y las gotas con
     # ella. La apertura es el único lugar donde llueve y ahí la cámara no se
-    # mueve, así que sin esto nada miraría el scroll de las gotas. `pan-lluvia`
-    # encontró además que la referencia pintaba encimadas al revés que el PPU.
+    # mueve, así que sin esto nada miraría el scroll de las gotas.
     ("pan-lluvia", (16, 32, 48, 64, 65, 66)),
 )
 
@@ -423,7 +418,7 @@ def test_animacion(nombre, cuadros):
 @pytest.mark.parametrize("cuadro", (60, 400))
 @pytest.mark.parametrize("direccion", ("none", "right"))
 def test_cerrar(direccion, cuadro):
-    """`just cerrar`: la ventana de mensaje abierta, y cerrada con A.
+    """`cerrar`: la ventana de mensaje abierta, y cerrada con A.
 
     Dos ticks, y el segundo es el único que ejercita el cierre: `flush_video`
     apaga el HDMA de la ventana cuando `msg_abierto` vuelve a cero.
@@ -459,9 +454,7 @@ def test_cerrar(direccion, cuadro):
     ningún mapa.** Lo pone `pruebas/casos/cerrar.json`, y el `TintScreen` de
     atrás, sin espera, es lo que hace visible que la página siguió.
 
-    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
-    dos cores y compara las dos pantallas entre sí.
+    `test_cores.py` corre el mismo caso en snes9x y en bsnes.
     """
     nombre = "cerrar" if direccion == "none" else "cerrar-right"
     p = partida("cerrar")
@@ -483,11 +476,10 @@ def test_autocierre(nombre, pausas, cuadros):
     ticks están pegados al cierre a propósito**, para que 62 y 63 no den lo
     mismo: con una pausa cierra en el 63 y con tres en el 185, así que el
     primero de cada par mira la ventana todavía abierta y el segundo el tinte
-    que va detrás del mensaje. Verificado en rojo con la referencia contando
-    60: 4122 pixeles en el 62 y los mismos en el 184.
+    que va detrás del mensaje.
 
     Del arnés: **la cola del mensaje se arma acá**, con una barra por pausa y
-    el `\\^` al final, que es lo que la receta hacía con un `for` de bash.
+    el `\\^` al final.
     """
     for cuadro in cuadros:
         p = partida("autocierre-%d" % pausas)
@@ -529,10 +521,9 @@ def test_espera(cuadro):
     camino —el corazón del cambio— no lo ejercitaba nada. Lo sintético es la
     entrada y no la comparación.
 
-    Se mira antes y después, no el tick exacto en que cambia: el arranque de la
-    ROM incluye la subida al SPC700 y la referencia no modelaba eso, así que el
-    borde caía en cuadros distintos de cada lado. Con margen a los dos lados la
-    prueba sigue siendo filosa: si la espera no esperara, el tick de antes ya
+    Se mira antes y después, no el tick exacto en que cambia —viene de cuando
+    se comparaba contra una referencia que no modelaba la subida al SPC700—,
+    y así sigue siendo filosa: si la espera no esperara, el tick de antes ya
     estaría teñido.
     """
     p = partida("espera")

@@ -5,17 +5,10 @@ que no es el primero de la tabla; el héroe plantado en una celda; el mismo con
 prioridad 2 de objeto; el teletransporte del mapa 4; una página automática con
 el grupo que pide; una puerta; y el héroe a mitad de camino.
 
-Este archivo fue el piloto de la mudanza, con cinco casos, y por eso tiene
-algunos de otras familias que después se fueron a su lugar. Lo que decide qué
-vive acá es el arnés y no el tema: son los que se corren con `Partida.correr` y
-a lo sumo un pad sostenido.
-
-**Ninguna de estas recetas existe ya**, desde que se fue `bsnes`: era la última
-que llamaba a `cerrar`, `evento` y `caminando`. El nombre que abre cada
-docstring es el del caso, que es también el de su golden.
-
-Lo que cada docstring lleva es la trampa **del arnés** que vivía en el
-comentario de la receta, más el porqué del caso, que se mudó con él.
+Lo que decide qué vive acá es el arnés y no el tema: son los que se corren con
+`Partida.correr` y a lo sumo un pad sostenido. El nombre que abre cada
+docstring es el del caso, que es también el de su golden, y lo que lleva es el
+porqué del caso y la trampa del arnés, si la hay.
 """
 
 import pytest
@@ -27,8 +20,8 @@ DIRECCIONES = ("none", "right", "left", "up", "down")
 # Los trece mapas de `heroe`, de mayor a menor. El orden viene de cuando la
 # tanda se repartía en procesos: era lo que evitaba que el último trabajador
 # arrancara el 52 —dos mil ticks por dirección— cuando los demás ya habían
-# terminado. Con pytest en serie no cambia nada, y se deja igual porque
-# reordenarlo no compra nada.
+# terminado. Hoy xdist reparte con `worksteal` —ver `procesos` en el
+# justfile— y el orden no compra nada; se deja igual porque cambiarlo tampoco.
 MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
 
 
@@ -80,21 +73,16 @@ def test_heroe(mapa, direccion):
 
     El 21 es Rat Tracks B1, el que destapó la página automática vacía: sus dos
     —el idioma con el que RM2k desactiva un evento— dejaban el mapa congelado
-    para siempre. Antes de ese arreglo el caso tardaba catorce minutos, porque
-    la referencia se comía sus 100.000 ticks de páginas automáticas; acá no
-    hay referencia que correr y lo que queda es lo que la ROM tarde.
+    para siempre.
 
     Cuánto dura cada caminata lo dice el plan y no un número elegido a ojo: son
     ocho ticks por celda más lo que la ROM tarde en frenar contra la pared.
     El corredor le sumaba `--margen 0`, o sea nada, así que acá el plan es el
     número exacto.
 
-    **El nombre de la captura lleva el mapa además de la dirección.** Con sólo
-    la dirección, cada mapa de la tanda escribía su `none.png` encima del
-    anterior: en serie era sobreescritura inofensiva, pero el PNG que uno
-    querría mirar cuando algo falla ya lo pisó un mapa posterior. Con las
-    goldens el nombre pasó a ser **la clave**, así que ahora además es
-    obligatorio.
+    **El nombre de la captura lleva el mapa además de la dirección**, porque
+    es la clave de su golden: con sólo la dirección, cada mapa pisaría el
+    `none.png` del anterior.
 
     Una consola nueva por dirección, como hace el corredor: arrancar de cero es
     parte de lo que se compara.
@@ -115,12 +103,10 @@ def test_puerta_30_28():
     quieta antes de que termine: los últimos ticks son el fundido ya resuelto.
     Eso es un dato en sí mismo —la carga del mapa pasa adentro del negro y no
     corre el reloj, y la ROM pierde cuadros de hardware ahí sin perder un solo
-    tick—. El `--margen 16` que la receta le pasa a la referencia es aire de
-    cuando la ROM se tomaba cuadros que nadie contaba; al corredor le pasa
-    `--margen 0`, y ése es el que vale.
+    tick—.
 
     El mapa destino tiene que estar en el cartucho: una puerta a un mapa que no
-    entró no lleva a ningún lado, ni en la consola ni en la referencia.
+    entró no lleva a ningún lado.
     """
     p = partida("grupo-11-en-30")
     p.correr(plan("puerta-30-28")["down"], sosteniendo=("down",))
@@ -170,10 +156,9 @@ def test_parado(nombre):
     cruceta; acá la celda la fija el `Teleport` del caso y la captura no se
     negocia.
 
-    Del arnés: **los 240 son ticks y no cuadros de hardware**. La receta los
-    pedía por `shot`, que le pasa `--teclas` vacío al corredor, y ése es el
-    camino que cuenta `vueltas` igual que los demás. En un mapa que no pierde
-    cuadros da lo mismo; en uno que sí, no.
+    Del arnés: **los 240 son ticks y no cuadros de hardware**, que es como se
+    sacaron las goldens. En un mapa que no pierde cuadros da lo mismo; en uno
+    que sí, no.
     """
     p = partida("parado-" + nombre)
     p.correr(240)
@@ -198,7 +183,7 @@ def test_encima():
 
 
 def test_evento():
-    """`just evento`: la cinemática del mapa 4 vista en su cuadro asentado.
+    """`evento`: la cinemática del mapa 4 vista en su cuadro asentado.
 
     El mapa 4 es una habitación vacía y negra cuyo único trabajo es prender dos
     switches, teñir la pantalla y teletransportar: es la página que abre A
@@ -209,9 +194,7 @@ def test_evento():
     no entró no compila, y entonces la página no se emite y el evento no hace
     nada. Con el mapa 4 solo la pantalla se queda en negro, y eso es correcto.
 
-    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
-    dos cores y compara las dos pantallas entre sí.
+    `test_cores.py` corre el mismo caso en snes9x y en bsnes.
     """
     p = partida("grupo-11-en-4")
     p.correr(240)
@@ -237,9 +220,7 @@ def test_pagina(caso, nombre):
 
     Del arnés: el grupo lo arma la página de prueba, así que va en `caso`. El
     121 llega con `en-121`, que deja el del juego, y el 74 con
-    `grupo-21-en-74`. Los dos casos van en `test-main`: el 21 vivió en
-    `test-special` hasta que la pantalla de ranuras dejó de hornear un bloque
-    de texto por actor.
+    `grupo-21-en-74`.
     """
     p = partida(caso)
     p.correr(240)
@@ -255,7 +236,7 @@ CAMINANDO = ((73, "right", (40, 60, 80)),
 
 @pytest.mark.parametrize("mapa,direccion,avances", CAMINANDO)
 def test_caminando(mapa, direccion, avances):
-    """`just caminando`: el héroe a mitad de camino, con N pixeles andados.
+    """`caminando`: el héroe a mitad de camino, con N pixeles andados.
 
     Es el único caso que mira el movimiento en sí. Todos los demás comparan el
     cuadro final, y ahí el héroe choca contra una pared: `moving` vale cero, la
@@ -271,9 +252,7 @@ def test_caminando(mapa, direccion, avances):
     `ticks_de_avance`, y errarle por uno mueve media pantalla. Los avances de
     un mismo mapa son la misma partida corrida otra vez desde el reset.
 
-    **La receta se fue el 2026-09-16**, con `bsnes`: lo que la llamaba
-    ahora es `pruebas/rpgmaker/test_cores.py`, que corre esta misma ROM en los
-    dos cores y compara las dos pantallas entre sí.
+    `test_cores.py` corre uno de estos casos en snes9x y en bsnes.
     """
     for pixeles in avances:
         p = partida(grupo_11_en(mapa))

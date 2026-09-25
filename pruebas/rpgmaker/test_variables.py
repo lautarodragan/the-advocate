@@ -24,8 +24,8 @@ import datos
 
 
 def ranuras():
-    # El índice es del juego entero desde el 2026-09-10 a la noche: las cinco
-    # de la página de prueba ya son del juego, así que no agregan ninguna.
+    # El índice es del juego entero: las cinco de la página de prueba ya son
+    # del juego, así que no agregan ninguna.
     return datos.ranuras_de_variable()
 
 
@@ -48,8 +48,9 @@ def test_las_operaciones_dan_lo_que_dan_en_python(con_variables):
 
 def test_el_azar_es_el_mismo_de_los_dos_lados(con_variables):
     """El primer número al azar de la ROM es el primero del xorshift de
-    `eventos.py` desde la misma semilla. Si no fuera el mismo, una página con
-    azar daría pixeles distintos sin que ninguno de los dos lados esté mal."""
+    `eventos.py` desde la misma semilla. Es el generador del modelo de
+    `port/batalla.py`, así que si se separaran, las pruebas que comparan una
+    pelea número por número se separarían con él."""
     una, r = con_variables, ranuras()
     esperado = eventos.azar_siguiente(eventos.AZAR_SEMILLA) % 101
     assert una.variable(r[21]) == esperado, (

@@ -1,8 +1,8 @@
 """El menú de pausa: que se abra con B como en RM2k, que se vea como
 `titulo.render_menu` pixel por pixel, y que guardar ande desde ahí.
 
-La tanda cobra el mapa después de cerrarlo —`menu` en `pruebas/*/test_tanda*.py`—;
-acá se mira lo que una captura suelta no puede: el menú con un grupo y oro
+El mapa después de cerrarlo lo cobra `menu` en `test_menu_golden.py`; acá se
+mira lo que una captura suelta no puede: el menú con un grupo y oro
 puestos, los permisos de `ChangeSaveAccess` y `ChangeMainMenuAccess` puestos
 por la página de prueba, guardar desde el menú, y el pedido de menú hecho a
 mitad de un paso.
@@ -28,7 +28,7 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
 def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
     """Se abre con B, el cursor baja y da la vuelta para arriba, y B lo
     cierra. Mientras está abierto el reloj del juego no avanza, que es lo
-    que deja a la tanda comparar el mapa después con la referencia del mismo
+    que deja a la tanda comparar el mapa después con la golden del mismo
     tick."""
     una = con_grupo(partida())
     abrir(una)
@@ -158,11 +158,11 @@ HP_DE_PELEA = {14: 7, 11: 103}
 def test_el_menu_muestra_los_hp_que_dejo_la_pelea(partida):
     """Lo que taro reportó jugando: el número del menú no se movía nunca.
 
-    Hasta el 2026-09-13 los HP iban horneados adentro del bloque de la fila del
-    actor, que el conversor dibuja una vez y la ROM sube tal cual, así que el
-    menú mostraba siempre el máximo del nivel —"siempre se muestra en 40", que
-    es el de Talan— por más que la pelea los hubiera bajado. Ahora las tres
-    cifras las escribe la ROM desde `FAR_HP`, con las mismas celdas que el oro.
+    Los HP iban horneados adentro del bloque de la fila del actor, que el
+    conversor dibuja una vez y la ROM sube tal cual, así que el menú mostraba
+    siempre el máximo del nivel —"siempre se muestra en 40", que es el de
+    Talan— por más que la pelea los hubiera bajado. Las tres cifras las
+    escribe la ROM desde `FAR_HP`, con las mismas celdas que el oro.
 
     **Comprobado en rojo con la ROM de antes**: 111 pixeles de diferencia, los
     de las tres cifras que la ROM no escribía.
@@ -180,7 +180,8 @@ def test_los_hp_del_menu_cambian_de_verdad():
 
     Sin esto, una ROM que siguiera horneando el máximo pasaría el caso de
     arriba el día que la referencia se equivocara igual, que es la forma de
-    falla que AGENTS.md nombra primero.
+    falla de toda comparación de dos lados: ver AGENTS.md, "La regla que
+    sostiene todo".
     """
     from port import titulo
     from render.render_map import GAME_DIR

@@ -178,8 +178,8 @@ def en_sector_27(partida):
 def test_escena_un_encuentro_al_azar_hereda_el_fondo_del_mapa(partida):
     """`Game_Map::SetupBattle`: el área 31 no trae fondo y Sector 27 sí.
 
-    Hasta el 2026-09-21 una pelea al azar no tenía fondo; ahora es el del mapa,
-    subiendo por el árbol como RM2k. Se compara el fondo limpio que quedó en la
+    El fondo de una pelea al azar es el del mapa, subiendo por el árbol como
+    RM2k. Se compara el fondo limpio que quedó en la
     WRAM contra el de `ABLBackdropSJ03` convertido de este lado.
     """
     una = en_sector_27(partida)

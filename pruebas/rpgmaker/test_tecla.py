@@ -6,9 +6,9 @@ lo que un pixel no dice: **qué número quedó en la variable**, que es lo que l
 páginas del juego leen después con un `ConditionalBranch`, y que la variable
 quede en cero mientras se espera.
 
-El valor esperado sale de `eventos.tecla_de`, que es la misma función que corre
-la referencia: si alguien le cambia el número a la tecla de acción, esto se cae
-aunque los dos lados sigan coincidiendo entre ellos.
+El valor esperado sale de `eventos.tecla_de`, que es `CheckInput` escrito de
+este lado: si la ROM y esa tabla dejan de coincidir en el número de una tecla,
+esto se cae.
 
 **La cruceta y cancelar se prueban acá y no en la tanda**, salvo una dirección:
 el cronómetro del caso `tecla-dir` muestra un número por ROM, así que cubrir las
@@ -119,10 +119,6 @@ def test_cancelar_guarda_seis(partida):
     página **termina**: el comando era su último. Por eso el toque es un tick y
     no `tocar`, que son dos: con la pantalla de pausa abierta `vueltas` no
     avanza y el segundo tick no llega nunca.
-
-    Y por eso B no entra en la tanda de pixeles: el menú de pausa la referencia
-    no lo modela, así que un caso que lo abriera mediría dos programas
-    distintos.
     """
     una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
@@ -137,7 +133,7 @@ def test_cancelar_guarda_seis(partida):
 def test_con_las_tres_pedidas_gana_cancelar(partida):
     """El orden de `CheckInput` es de mayor valor a menor —"RPG processes keys
     from highest variable value to lowest"— así que B le gana a A y A a la
-    cruceta. Los dos lados lo miran con el mismo orden."""
+    cruceta."""
     una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
     una.sostener(1, "b", "a", "up")
@@ -149,9 +145,8 @@ def test_con_las_tres_pedidas_gana_cancelar(partida):
 def test_sostener_una_direccion_no_contesta(partida):
     """Lo mismo que con A: es el **flanco**, `Input::IsTriggered`.
 
-    Sin esto, una dirección sostenida desde el arranque —que es lo único que
-    `--walk` sabe hacer— contestaría en el primer cuadro de un lado y en otro
-    del otro, y el caso `tecla-dir` de la tanda no mediría nada.
+    Sin esto, una dirección sostenida desde el arranque contestaría en el
+    primer cuadro, y el caso `tecla-dir` de la tanda no mediría nada.
     """
     una = partida(caso="tecla-esperar-dir")
     una.correr(ESPERA + 20, sosteniendo=("left",))

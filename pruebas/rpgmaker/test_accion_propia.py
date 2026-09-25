@@ -10,11 +10,9 @@ No es simetría de adorno: un evento de la capa del héroe le cierra el paso, as
 que nunca podría pararse encima; y uno de otra capa no lo frena, así que se le
 camina por arriba.
 
-La propia estuvo sin hacer hasta el 2026-09-07 —el conversor rechazaba esas
-páginas y `probar_accion` sólo miraba adelante— y taro la encontró jugando: la
-puerta que sale del pad de Talan es `TalDoorTop`, evento 3 del mapa 7, de acción
-y **capa 2**, y se abre parándose encima y apretando A. Sin esto, del pad no se
-podía salir.
+La puerta que sale del pad de Talan es `TalDoorTop`, evento 3 del mapa 7, de
+acción y **capa 2**, y se abre parándose encima y apretando A. Sin esto, del
+pad no se puede salir.
 """
 
 

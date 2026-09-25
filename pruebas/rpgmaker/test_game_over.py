@@ -4,18 +4,17 @@ En RM2k un `EnemyEncounter` con `defeat_mode` 0 no trae bloque de manejadores:
 perder no es una rama de la página sino `Scene_Gameover`, o sea la imagen de
 Game Over y, al apretar, la pantalla de título. Son **15 páginas del juego**,
 y entre ellas las tres del `EV0006` del mapa 26, que es el jefe de los Rat
-Tracks: hasta el 2026-09-13 ninguna compilaba y el jefe no aparecía nunca.
+Tracks.
 
-Ahora compilan, con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
+Compilan con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 —$FFFF, un destino imposible adentro de una página— y la ROM lo resuelve en
 `op_battle` con un `jml reset`. **La imagen no se dibuja**; ver
 `workflow/divergencias/game-over-sin-imagen-ni-tema.md`.
 
-Esto va acá y no en la tanda de pixeles por una razón que conviene tener
-escrita: del lado de la referencia la pelea no se juega —`OP_BATTLE` se va
-siempre por la rama de victoria, ver tools/port/eventos.py— así que no hay ningún
-cuadro que comparar. Sin esta prueba, el `jml reset` sería exactamente lo que
-AGENTS.md llama "un camino que ninguna prueba ejecuta".
+Esto va acá y no en la tanda de pixeles porque lo que importa es que la ROM
+se reinicie y vuelva a correr, y eso es estado, no un cuadro. Sin esta prueba,
+el `jml reset` sería exactamente lo que AGENTS.md llama "un camino que ninguna
+prueba ejecuta".
 
 **Cómo se pierde sin pelear**: con todo el grupo en cero HP, `batalla_correr`
 contesta derrota antes de abrir la pantalla —el `ba_actor_siguiente` que
@@ -181,13 +180,13 @@ def test_el_game_over_vuelve_al_juego(partida):
 
 # --- y el otro camino a una pelea: el encuentro al azar ---------------------
 #
-# Hasta el 2026-09-13 el Game Over era sólo del `EnemyEncounter` de una página:
-# `op_battle` miraba `BA_RESULT` y saltaba al destino, y `BATALLA_PERDER` lo
-# mandaba a `reset`. El encuentro al azar arranca la pelea **sin bytecode**
-# —`pelea_arrancar` desde `move_hero`— así que nadie miraba el resultado y
-# perder devolvía el control al mapa.
+# En una página, `op_battle` mira `BA_RESULT` y salta al destino, y
+# `BATALLA_PERDER` lo manda a `reset`. El encuentro al azar arranca la pelea
+# **sin bytecode** —`pelea_arrancar` desde `move_hero`—, así que no hay
+# `op_battle` que mire el resultado: si nadie más lo mira, perder devuelve el
+# control al mapa.
 #
-# Lo que eso dejaba puesto es lo que taro reportó jugando: el grupo vuelve al
+# Lo que eso deja puesto es lo que taro reportó jugando: el grupo vuelve al
 # mapa con todos en cero HP, `modo_fin` los guarda así en `FAR_HP`, y de ahí en
 # más **cada pelea se pierde sola antes de abrirse**, porque `batalla_correr`
 # contesta derrota con nadie en pie. O sea que los tres síntomas —no hay Game
@@ -256,7 +255,7 @@ def test_ganar_encuentros_al_azar_no_reinicia(partida):
 
 # --- y el `GameOver` de una página -----------------------------------------
 #
-# Desde el 2026-09-21 compila a OP_GAME_OVER, que es el mismo `jml reset` que
+# Compila a OP_GAME_OVER, que es el mismo `jml reset` que
 # el destino `BATALLA_PERDER`. La página de prueba `game-over` espera 18 ticks
 # y lo llama; el control es `pelea-82`, que tampoco reinicia —ver
 # `test_perder_con_manejador_no_reinicia`— y el de `nada`, abajo.

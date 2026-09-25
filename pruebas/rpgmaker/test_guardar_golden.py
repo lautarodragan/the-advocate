@@ -1,8 +1,8 @@
 """La pantalla de ranuras de guardar, contra sus goldens: abierta desde el
 save point, y el mapa de vuelta al cerrarla.
 
-Estuvo en `test_tanda_pantallas.py` hasta el 2026-09-25. Corre con el reloj
-en cuadros de hardware, porque adentro de la pantalla no hay ticks: el arnés
+Corre con el reloj en cuadros de hardware, porque adentro de la pantalla no
+hay ticks: el arnés
 está explicado en `test_batalla_golden.py`. Lo que se guarda lo mira
 `test_guardar.py`.
 """
@@ -28,8 +28,8 @@ def test_guardar_pantalla(nombre, cuantos, toques):
     mirar.
 
     Del arnés: los toques van con el nombre `toques` y no `toques_hardware`
-    porque así los pasaba la receta, y eso les corre el cuadro en uno. Ver la
-    cabecera de este archivo.
+    porque así se sacó la golden, y eso les corre el cuadro en uno. Ver la
+    cabecera de `test_batalla_golden.py`.
     """
     consola = consola_cruda("guardar")
     correr_hardware(consola, cuantos, toques=toques)
@@ -40,7 +40,7 @@ def test_guardar_pantalla(nombre, cuantos, toques):
 @pytest.mark.parametrize("nombre,toques", (
     # Con B se sale sin guardar y con A se guarda: de vuelta en el mapa las dos
     # tienen que dar la misma pantalla, porque **guardar no cambia un pixel**.
-    # Por eso los dos comparten golden en la receta y acá comparten tabla.
+    # Por eso los dos comparten golden.
     ("guardar-vuelve", ("down:130", "down:134", "b:138")),
     ("guardar-elige", ("down:130", "a:134")),
 ))

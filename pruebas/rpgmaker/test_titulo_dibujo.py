@@ -1,9 +1,9 @@
 """La pantalla de título: que sus dos opciones hagan lo que dicen.
 
-Lo que se ve —la imagen, el menú, el cursor— lo cobran los casos `titulo`
-de `test_tanda_pantallas.py`, pixel por pixel. Lo que **no** puede cobrar es lo de acá: que elegir una opción u otra
-deje la partida en estados distintos, porque las dos terminan mostrando el mismo
-mapa y la diferencia está en la RAM.
+Lo que se ve —la imagen, el menú, el cursor— lo cobra `test_titulo_golden.py`,
+pixel por pixel. Lo que **no** puede cobrar es lo de acá: que elegir una opción
+u otra deje la partida en estados distintos, porque las dos terminan mostrando
+el mismo mapa y la diferencia está en la RAM.
 
 El reparto es el de siempre: la tanda mira la pantalla y esto mira el estado.
 
@@ -12,8 +12,7 @@ pantalla de título: la pantalla cambia el arranque —sin ella la partida
 guardada se carga sola, con ella espera a que el menú lo decida— y ése es
 justamente el camino que hay que probar. Así que estas pruebas arrancan donde
 arranca el jugador, y **guardan como él**: con el menú de pausa, en el mapa 5,
-porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
-`juego`, un cartucho parecido con una página que abría la pantalla de guardar.
+porque `release` no lleva páginas de prueba.
 """
 
 import pytest
@@ -59,9 +58,10 @@ def test_el_reloj_del_juego_no_corre_en_el_titulo(partida):
     pantalla de título estuvo puesta.
 
     No es un detalle interno: es lo que hace que una ROM con título corra el
-    mapa igual que una sin él, y por lo tanto que las dos referencias sigan
-    siendo comparables. Si el reloj corriera, la animación del ChipSet entraría
-    al mapa con otra fase y todos los cuadros de la tanda se moverían.
+    mapa igual que una sin él, y por lo tanto que las goldens sacadas sin
+    título sigan valiendo a través de él. Si el reloj corriera, la animación
+    del ChipSet entraría al mapa con otra fase y todos los cuadros de la tanda
+    se moverían.
     """
     una = partida(titulo=EMPEZAR)
     assert una.palabra("vueltas") <= 3, (
@@ -142,14 +142,13 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     # Las dos entradas de la música en `partida_tabla`, en su orden:
     # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
     # en cero. Están al final de la partida, **antes de las variables**, que
-    # desde el 2026-09-10 siguen con VARIABLES_N palabras, de la velocidad
-    # del héroe, un byte, del inventario, ITEMS_N bytes, de los permisos del
-    # menú, un byte, del equipo, diez bytes por actor, desde el 2026-09-12 de
-    # los HP, dos bytes por actor, y desde el 2026-09-13 de los SP, otros dos,
-    # y del gráfico que un `ChangeSpriteAssociation` le haya puesto a cada
-    # actor, un byte, y desde el 2026-09-21 de las habilidades que sabe cada
-    # uno, HAB_BYTES, y de la experiencia y el nivel, cuatro bytes por cada
-    # actor que puede pelear, que es lo que cierra la tabla.
+    # siguen con VARIABLES_N palabras; después vienen la velocidad del héroe,
+    # un byte; el inventario, ITEMS_N bytes; los permisos del menú, un byte;
+    # el equipo, diez bytes por actor; los HP, dos bytes por actor, y los SP,
+    # otros dos; el gráfico que un `ChangeSpriteAssociation` le haya puesto a
+    # cada actor, un byte; las habilidades que sabe cada uno, HAB_BYTES; y la
+    # experiencia y el nivel, cuatro bytes por cada actor que puede pelear,
+    # que es lo que cierra la tabla.
     #
     # Esta resta es un duplicado de `partida_tabla` y lo sabe: agregarle un
     # campo a la partida la deja mal, y lo que se ve es este caso en rojo. Es
@@ -242,14 +241,6 @@ def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
     assert una.switch(7), (
         "se guardó en la ranura %d —la %da de la pantalla— y al elegirla desde "
         "el título no volvió la partida" % (ranura, ranura + 1))
-
-
-# `test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso` estuvo acá hasta el
-# 2026-09-20 y vive ahora en `pruebas/abl/test_guardar_save_point.py`: con el
-# título y el juego en un cartucho solo, el mapa de arranque es el 4 —el
-# enrutador—, y al volver de cargar su página automática se lleva la partida
-# antes de que la de prueba abra la pantalla de ranuras. Ahí el cursor se mira
-# en el save point de verdad, que es donde el jugador lo ve.
 
 
 def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):

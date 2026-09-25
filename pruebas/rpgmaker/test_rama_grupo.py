@@ -7,9 +7,7 @@ mueve a escena si está. Por el camino del hover tram Arden no se suma, y
 aparecía igual.
 
 Las ramas de actor con dos operandos —equipo y habilidad— tienen su prueba en
-`test_tanda_paginas.py::test_rama_actor`; ésta no la tenía, y
-`pruebas/UNTESTED.md` avisaba que el arreglo del 2026-09-12 era lectura del
-manual y no medición.
+`test_comandos_golden.py::test_rama_actor`.
 
 Los dos casos son la misma página preguntando por dos actores: el 10, que está
 en el grupo con que arranca el cartucho, y Arden, que no. **Ninguno de los dos
@@ -18,8 +16,11 @@ con `ChangePartyMembers` y movió cinco goldens de escenas que no tenían nada q
 ver —`autos9`, `mecanico`, `puerta-8-9` y dos del `tram`—. Eso está medido: sin
 el cambio de grupo no se mueve ninguna. **Por qué, no**: la explicación probable
 es que `lideres_posibles` mira también las páginas de los casos, así que Arden
-pasa a ser un líder posible y se le reserva sprite y paleta en cada mapa. La rama prende el switch 709, que ningún comando del juego toca. Sin el
-arreglo de `si_actor` en `rom/src/interprete.s`, `rama-grupo-no` lo prende igual.
+pasa a ser un líder posible y se le reserva sprite y paleta en cada mapa.
+
+La rama prende el switch 709, que ningún comando del juego toca. Sin el
+arreglo de `si_actor` en `rom/src/interprete.s`, `rama-grupo-no` lo prende
+igual.
 """
 
 import pytest

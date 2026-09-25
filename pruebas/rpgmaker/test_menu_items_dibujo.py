@@ -3,8 +3,8 @@
 se sale, y que usar un ítem de switch lo prenda y vuelva al mapa.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad, así que
-la ROM lo tiene por el mismo camino que el juego. La tanda mira el mapa
-después de usar la consola —`items` en `pruebas/*/test_tanda*.py`—.
+la ROM lo tiene por el mismo camino que el juego. El mapa después de usar la
+consola lo mira `items` en `test_menu_golden.py`.
 """
 
 from port import titulo
@@ -18,10 +18,7 @@ from menu import abrir, tocar
 # que da la página de prueba `items-pantalla`, y `MUCHOS` lo que da
 # `items-pantalla-muchos`: los dos tienen que decir lo mismo que su archivo.
 INVENTARIO = {1: 13, 17: 1, 81: 1}
-# Catorce distintos, para que la lista no entre en las once filas. La primera
-# versión llevaba el texto de cada ítem ya dibujado y éstos no entraban en el
-# banco —700 tiles de 448—; con la fuente de a una letra por celda el banco es
-# el mismo para cualquier inventario.
+# Catorce distintos, para que la lista no entre en las once filas.
 MUCHOS = {n: 1 for n in range(1, 15)}
 
 
@@ -83,8 +80,8 @@ def test_un_item_en_gris_no_hace_nada(partida):
 def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     """La poción va en blanco y abre `Scene_ActorTarget`. Los dos tienen los
     HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
-    verdad es `test_curar_menu.py`—; B vuelve a la lista con el cursor donde
-    estaba."""
+    verdad es `test_menu_curar_dibujo.py`—; B vuelve a la lista con el cursor
+    donde estaba."""
     from render.render_map import GAME_DIR
     una = partida(caso="items-pantalla")
     una.correr(5)

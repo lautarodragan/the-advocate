@@ -1,8 +1,8 @@
 """El compositor de texto con un largo de renglón que no puede ser.
 
 Ésta es la red que faltó dos veces. Un cuadro de texto trae, por renglón, un
-byte con cuántos caracteres tiene, y ese byte sale del cartucho: hasta el
-2026-09-14 la ROM le creía sin mirar. `componer_char` escribe en `texto_buf` con
+byte con cuántos caracteres tiene, y ese byte sale del cartucho.
+`componer_char` escribe en `texto_buf` con
 un desplazamiento que sale de la columna, así que un largo mayor que
 `MENSAJE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
 tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el contador de la cola

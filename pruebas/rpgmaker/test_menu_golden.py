@@ -1,8 +1,8 @@
 """El menú de pausa, la lista de ítems y la pantalla del equipo, contra sus
 goldens: abiertos, y el mapa de vuelta al cerrarlos.
 
-Estuvieron en `test_tanda_pantallas.py` hasta el 2026-09-25. Corren con el
-reloj en cuadros de hardware, porque adentro del menú no hay ticks: el arnés
+Corren con el reloj en cuadros de hardware, porque adentro del menú no hay
+ticks: el arnés
 está explicado en `test_batalla_golden.py`.
 """
 

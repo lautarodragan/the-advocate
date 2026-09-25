@@ -14,9 +14,9 @@ El switch 25 es lo que hace comprobable la rama que corrió: no hay nada más en
 la página que se pueda mirar desde afuera, y las dos ramas terminan con la
 página cerrada igual.
 
-**Esto vive acá y no en la tanda de pixeles a propósito.** Mover el cursor pide
-apretar arriba y abajo, y la tanda sólo sabe apretar A; por eso la referencia
-tampoco modelaba el movimiento del cursor, y por eso esta prueba existe. Lo que la tanda sí cubre es cómo se ve la ventana.
+**Esto vive acá y no en la tanda de pixeles a propósito.** Lo que importa del
+cursor es a qué rama salta cada opción, y eso no es un pixel. Lo que la tanda
+sí cubre es cómo se ve la ventana.
 """
 
 import pytest

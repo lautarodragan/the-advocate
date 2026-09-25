@@ -4,8 +4,8 @@ evento, y lo que cuelga de ellas.
 Todo lo de acá corre en el **mapa 6** salvo donde se diga, y eso es una decisión
 y no una costumbre: es grande y está abierto, así que una ruta camina en
 cualquier dirección sin chocar, y **es mudo**, que es lo que hace usable el
-desfasaje de arranque —la ROM no empieza a interpretar en el cuadro 0 y la
-referencia no modelaba nada de eso—. Si algún día los cuadros intermedios dan
+desfasaje de arranque —la ROM no empieza a interpretar en el cuadro 0—. Si
+algún día los cuadros intermedios dan
 rojo a la vez y el asentado no, es eso.
 
 Del arnés hay una sola cosa que valga para todos: **ninguno de estos casos
@@ -19,8 +19,8 @@ puesta y sin ella. Está anotado en
 `divergencias/fase-de-los-tiles-animados.md` y es anterior a estos casos; por
 eso varios miran hasta el 40 y no más lejos.
 
-Ninguna de las recetas de este archivo existe ya: el nombre que abre cada
-docstring es el del caso, que es también el de su golden.
+El nombre que abre cada docstring es el del caso, que es también el de su
+golden.
 """
 
 import pytest
@@ -104,8 +104,7 @@ BAJO_EN_EL_TICK = {
 def test_ruta_evento(cuadro):
     """`ruta-evento`: un evento **sin gráfico** caminando su ruta.
 
-    Es lo que `MoveEvent` agrega sobre otro evento: hasta ese día la única ruta
-    forzada que la ROM sabía caminar era la del héroe. Como el evento no se ve,
+    Es lo que `MoveEvent` agrega sobre otro evento. Como el evento no se ve,
     lo único comparable es **cuánto tarda**, y eso es exactamente lo que espera
     el `ProceedWithMovement` que va detrás; lo que se mira en pantalla es el
     tinte de la página, que llega cuando la ruta terminó.
@@ -215,8 +214,8 @@ def test_lugar(nombre, cuadros):
     ninguna.
 
     **Las celdas son del piso marrón a la vista y no da lo mismo**: plantado
-    donde lo tapa la capa de encima los dos lados lo dibujan escondido, y la
-    prueba daba cero con el corte del paso sacado. Los ticks tampoco son los de
+    donde lo tapa la capa de encima se dibuja escondido, y la prueba daba
+    cero con el corte del paso sacado. Los ticks tampoco son los de
     la espera: `OP_DELAY n` suelta la página en el cuadro n+2, y elegidos a ojo
     caían antes del corte.
     """
@@ -242,7 +241,7 @@ def test_parar_rutas(cuadro):
     de control.
 
     Verificado en rojo con `op_stop_routes` cambiado por un `jmp otro` pelado
-    —o sea el comando aceptado y no hecho, sólo en la ROM—: 59,89% en el
+    —o sea el comando aceptado y no hecho—: 59,89% en el
     cuadro 34.
 
     **Los ticks llegan hasta el 40 y no más lejos a propósito**: ver el aviso
@@ -312,8 +311,7 @@ def test_ruta_pisa(nombre, cuadros):
     `Game_Player::UpdateMovement`: al terminar un paso se mira la celda **salvo
     que el héroe tenga una ruta forzada puesta**, y un movimiento que es la
     última orden de la ruta la cancela entera antes de ese chequeo. O sea: los
-    pasos del medio no pisan nada, el último sí. La ROM tenía la mitad —miraba
-    en todos— y la referencia la otra —no miraba en ninguno—.
+    pasos del medio no pisan nada, el último sí.
 
     Los tres son en el mapa 70: una ruta que termina sobre el evento y abre el
     mensaje, una que **pasa** por encima y no abre nada, y una que termina con

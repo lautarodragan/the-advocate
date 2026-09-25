@@ -3,8 +3,8 @@
 El save point de Lashe City —`SaveByTalansPad0`, el evento 67 del mapa 8— pide
 `OpenSaveMenu`, y eso abre la pantalla de ranuras adentro del intérprete: se
 elige una con el cursor, se guarda ahí y la página sigue. Lo que se guarda lo
-dice `partida_tabla` en `rom/src/banco1.s`; cómo se ve la pantalla lo cobran los casos
-`guardar` de `test_tanda_pantallas.py`.
+dice `partida_tabla` en `rom/src/banco1.s`; cómo se ve la pantalla lo cobra
+`test_guardar_golden.py`.
 
 Esto no lo puede cubrir la tanda de pixeles: guardar no cambia un pixel. Lo que
 se mira acá es lo único que importa —que lo guardado sobreviva a apagar la
@@ -126,7 +126,7 @@ def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
 
 
 def test_las_cuatro_ranuras_entran_en_la_sram(partida):
-    """La última ranura termina adentro de los 8 KB del cartucho.
+    """La última ranura termina adentro de los 32 KB de SRAM del cartucho.
 
     Es una cuenta y no una medición, pero conviene que la haga la prueba y no
     yo: `PARTIDA_BYTES` crece cada vez que se agrega un campo a la partida —ya
