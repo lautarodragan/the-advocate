@@ -74,7 +74,7 @@ def _con_mapas(arranque, *mas):
 # casos van en el orden de sus páginas, y el primero es el que corre sin que
 # nadie lo pida. `None` son todos los de `pruebas/casos/` menos los de
 # `FUERA`.
-_DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, *[
+_DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
     f for charset, indice in GRAFICOS
     for f in ("--grafico-de-prueba", charset, indice)])
 
@@ -108,6 +108,7 @@ CARTUCHOS = {
     # `subir_timer_pal` sube sin teñir, y salían grises en una pantalla
     # teñida. Hoy `gotas_de_lluvia` saltea esa paleta.
     "chico": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
+               "--sin-titulo", "--sin-timer",
                "--heroe-encima", "--encuentros-de-prueba", "8",
                "--relleno-de-textos", "200"],
               ["parado-tapado", "grupo-11-12-13",
@@ -133,8 +134,7 @@ CARTUCHOS = {
     # El tema de arranque es para las pruebas de música, porque el 4 no trae
     # uno propio. Y los casos son pocos a propósito: lo que pedía los cien era
     # ser el gemelo del de pruebas, y eso ya no hace falta.
-    "juego": (_con_mapas(4, "--con-timer", "--con-titulo",
-                         "--tema-de-arranque", "escape_newyork"),
+    "juego": (_con_mapas(4, "--tema-de-arranque", "escape_newyork"),
               ["nada", "cartel", "en-2", "guardar-198-titulo"]),
 }
 

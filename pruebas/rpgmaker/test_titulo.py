@@ -7,10 +7,11 @@ mapa y la diferencia está en la RAM.
 
 El reparto es el de siempre: la tanda mira la pantalla y esto mira el estado.
 
-La ROM de estas pruebas lleva `--con-titulo`, y el único cartucho que lo lleva
-es `juego`, el que arranca en el 4 como el juego de verdad: el flag cambia el
-arranque —sin él la partida guardada se carga sola, con él espera a que el menú
-lo decida— y ése es justamente el camino que hay que probar. Desde el
+La ROM de estas pruebas lleva la pantalla de título —no pide `--sin-titulo`—, y
+el único cartucho de la tanda que la lleva es `juego`, el que arranca en el 4
+como el juego de verdad: la pantalla cambia el arranque —sin ella la partida
+guardada se carga sola, con ella espera a que el menú lo decida— y ése es
+justamente el camino que hay que probar. Desde el
 2026-09-20 no hay un cartucho de título aparte: se fundió con el del juego, así
 que estas pruebas arrancan donde arranca el jugador.
 """

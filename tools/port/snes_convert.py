@@ -4424,7 +4424,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
         # La pantalla de ranuras, que **va en toda ROM** y no sólo en las que
         # llevan título: la abre el save point desde adentro del juego. Hasta
-        # el 2026-09-10 salía sólo con `--con-titulo` y sin él quedaba un byte
+        # el 2026-09-10 salía sólo con la pantalla de título y sin ella quedaba un byte
         # de relleno con `RANURA_TILES` en cero; y un DMA de "cero bytes" son
         # 65536, así que abrirla desde una ROM sin título llenaba la VRAM de
         # basura. Es la "pantalla negra con basura arriba" que durante un
@@ -5852,14 +5852,13 @@ def parser_de_flags():
                              "armar un cartucho de veintinueve mapas. No\n"
                              "cambia un pixel, y por eso no van delante de\n"
                              "todo: el nombre del ítem k es el texto 3k")
-    parser.add_argument("--con-titulo", action="store_true",
-                        help="lleva la pantalla de título del juego, con su "
-                             "menú de empezar y cargar. Sin esto la ROM "
-                             "arranca directo en el mapa, que es lo que hace "
-                             "toda la tanda de regresión: la pantalla de "
-                             "título le agregaría cuadros al arranque y los "
-                             "96 casos comparan cuadros contados desde el "
-                             "reset.")
+    parser.add_argument("--sin-titulo", action="store_true",
+                        help="sin la pantalla de título del juego y su menú "
+                             "de empezar y cargar: la ROM arranca directo en "
+                             "el mapa. Es lo que piden los cartuchos de la "
+                             "tanda de regresión: la pantalla de título le "
+                             "agregaría cuadros al arranque, y los casos "
+                             "comparan cuadros contados desde el reset.")
     parser.add_argument("--banco-entero", action="store_true",
                         help="que **todos** los temas aporten muestras al "
                              "banco compartido, en vez de recortar los "
@@ -5872,10 +5871,13 @@ def parser_de_flags():
                              "todas. El banco pasa a no entrar entero en la "
                              "ARAM, que no es un problema: ahí vive un "
                              "paquete de mapa por vez")
-    parser.add_argument("--con-timer", action="store_true",
-                        help="la ROM lleva los dígitos del cronómetro: once "
-                             "glifos de la imagen de System al final del banco "
-                             "de sprites. Comparten paleta con un personaje")
+    parser.add_argument("--sin-timer", action="store_true",
+                        help="los dígitos del cronómetro —once glifos de la "
+                             "imagen de System al final del banco de sprites, "
+                             "que comparten paleta con un personaje— sólo en "
+                             "los mapas donde corre un caso que los usa, y no "
+                             "en todos. Es lo que piden los cartuchos de la "
+                             "tanda: ver `args.timer_en`")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="mete este gráfico en el banco de sprites\n"
@@ -5954,14 +5956,14 @@ def main():
         caso.mapa = mapa_del_caso(caso, orden, args.inicial)
     de_archivo = comandos_de_casos(args)
     # Qué mapas llevan los dígitos del cronómetro, que cuestan una paleta de
-    # sprite. Con `--con-timer`, todos: es lo que piden las demos, donde la
-    # cuenta atrás arranca en un mapa y se ve en los que siguen. Sin él, los
-    # mapas donde corre un caso que lo toca: hasta el paso 9e bastaba uno para
+    # sprite. Normalmente, todos: es lo que pide el juego, donde la cuenta
+    # atrás arranca en un mapa y se ve en los que siguen. Con `--sin-timer`,
+    # los mapas donde corre un caso que lo toca: hasta el paso 9e bastaba uno para
     # que los llevaran todos los del cartucho, y en el cartucho único del 9f
     # eso le sacaba la paleta a cada mapa —medido, quince goldens se movían—.
     # Un mapa sin dígitos no los dibuja: `TIMER_BASE` en cero, ver
     # `timer_oam`.
-    args.timer_en = set(orden) if args.con_timer else {
+    args.timer_en = set(orden) if not args.sin_timer else {
         caso.mapa for caso in args.casos
         if any(cmd.code == eventos.TIMER_OPERATION for cmd in caso.comandos)}
 
@@ -6454,7 +6456,7 @@ def main():
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
                        for a in sorted(ranura_caras)) or "ninguno"))
     titulo_datos = None
-    if args.con_titulo:
+    if not args.sin_titulo:
         from PIL import Image
         nombre = renderer.database.title_name
         imagen = Image.open(os.path.join(args.game_dir, "Title",
@@ -6611,7 +6613,7 @@ def main():
     pedidos, arranque, tema_titulo, tema_de_mapa = temas_de_la_rom(
         mapas[args.inicial]["id"], temas, args.game_dir,
         args.tema_de_arranque,
-        renderer.database.title_music if args.con_titulo else None,
+        renderer.database.title_music if not args.sin_titulo else None,
         [m["id"] for m in mapas])
     # Los efectos, en el orden en que los piden las páginas compiladas: los
     # mapas se compilan en el orden de la ROM, así que los del mapa donde

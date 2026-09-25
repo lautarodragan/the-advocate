@@ -242,7 +242,6 @@ demo nombre="abl":
   python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
       --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
               32 33 34 36 \
-      --con-timer --con-titulo \
       -o rom/build/{{nombre}}/mapdata.inc
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
@@ -308,7 +307,7 @@ demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
   python3 tools/port/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
-      --con-timer --inicio 1 26 \
+      --sin-titulo --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc \
       --comandos-de-prueba pruebas/casos/switch-171.json
   {{ensamblar}} rom/src/main.s -I rom/build/{{nombre}} \
