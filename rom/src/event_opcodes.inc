@@ -50,3 +50,59 @@ OP_TERRAIN       = $2A
 OP_EQUIPMENT     = $2B
 OP_SKILL         = $2C
 OP_GAME_OVER     = $2D
+
+; How many opcodes there are: every number below this one is declared,
+; so an opcode at or above it is not one, and must not index the table.
+EVENT_OPCODE_COUNT = $2E
+
+; One `.addr` per opcode, in the order of their numbers, to expand where a
+; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is
+; named after it, in lower case, and a missing one does not assemble.
+.macro EVENT_HANDLERS
+    .addr op_done              ; $00
+    .addr op_switch            ; $01
+    .addr op_teleport          ; $02
+    .addr op_delay             ; $03
+    .addr op_tint              ; $04
+    .addr op_party             ; $05
+    .addr op_route             ; $06
+    .addr op_message           ; $07
+    .addr op_wait_routes       ; $08
+    .addr op_flash             ; $09
+    .addr op_timer             ; $0A
+    .addr op_bgm               ; $0B
+    .addr op_place             ; $0C
+    .addr op_swap              ; $0D
+    .addr op_shake             ; $0E
+    .addr op_flash_screen      ; $0F
+    .addr op_fade_bgm          ; $10
+    .addr op_pan               ; $11
+    .addr op_if                ; $12
+    .addr op_goto              ; $13
+    .addr op_choice            ; $14
+    .addr op_gold              ; $15
+    .addr op_save              ; $16
+    .addr op_var               ; $17
+    .addr op_if_var            ; $18
+    .addr op_item              ; $19
+    .addr op_access            ; $1A
+    .addr op_shop              ; $1B
+    .addr op_weather           ; $1C
+    .addr op_sound             ; $1D
+    .addr op_animation         ; $1E
+    .addr op_picture           ; $1F
+    .addr op_picture_move      ; $20
+    .addr op_picture_erase     ; $21
+    .addr op_battle            ; $22
+    .addr op_stop_routes       ; $23
+    .addr op_if_actor          ; $24
+    .addr op_actor_sprite      ; $25
+    .addr op_key               ; $26
+    .addr op_place_var         ; $27
+    .addr op_heal              ; $28
+    .addr op_tile_sub          ; $29
+    .addr op_terrain           ; $2A
+    .addr op_equipment         ; $2B
+    .addr op_skill             ; $2C
+    .addr op_game_over         ; $2D
+.endmacro

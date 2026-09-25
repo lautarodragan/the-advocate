@@ -38,6 +38,10 @@ GENERADOS = [
      "tools/audio/music_opcodes.py"),
 ]
 MAIN = os.path.join(REPO, "rom", "src", "main.s")
+# Lo que cada uno pide de más, igual que en la receta `protocolo` del justfile:
+# sin esto el `--check` compara contra un `.inc` sin la tabla del despacho y lo
+# da por viejo.
+BANDERAS = {"events": ["--jump-table"]}
 
 
 def declarados(modulo):
@@ -52,7 +56,8 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
         ["protocol",
          os.path.join(REPO, "tools", "protocol", nombre + ".toml"),
          "--python", os.path.join(REPO, py),
-         "--asm", os.path.join(REPO, inc), "--check"],
+         "--asm", os.path.join(REPO, inc), "--check"]
+        + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
         "el generador no pudo correr —¿falta `just herramientas`?—:\n%s"
