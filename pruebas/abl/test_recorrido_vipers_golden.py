@@ -3,8 +3,8 @@
 Es el recorrido que pidió taro el 2026-09-22, y el motivo no es la cobertura en
 abstracto: **los dos defectos de esa semana aparecieron acá y ninguna prueba
 pasaba por esta escena**. Del mapa 12 no había nada, y de los techos del 8
-tampoco: `test_recorrido.py` cruza Lashe City por la calle de abajo y se va a la
-fábrica.
+tampoco: `test_recorrido_golden.py` cruza Lashe City por la calle de abajo y
+se va a la fábrica.
 
 El camino es el del juego, y cada tramo lo mueve el evento que lo mueve:
 
@@ -66,7 +66,7 @@ from recorrido import A_CADA
 # El switch que prende el despertador de Talan —"se levantó y va a trabajar"—.
 # No es decoración: la página 0 del hotplate lo pide, y las tres del caño
 # también, así que sin él esta escena no existe. Lo prende el evento 4 del mapa
-# 7, y `test_recorrido.py` lo cruza jugando.
+# 7, y `test_recorrido_golden.py` lo cruza jugando.
 VA_A_TRABAJAR = 24
 
 # Dónde empieza el tramo: la celda a la que el mapa 8 **se teletransporta a sí
@@ -218,12 +218,12 @@ def test_del_cano_de_lashe_city_al_hq_de_los_neon_vipers(recorrido):
     r.foto("de-vuelta-en-la-calle")
     mirar_la_ventana(r)
 
-    # Y recién acá aparece el otro defecto: **el mapa corrido se ve caminando,
-    # no llegando**. El `Teleport` de la cinemática rellena la ventana entera,
-    # así que el hito de arriba siempre está bien; lo que queda mal es lo que
-    # se dibuja después, mientras la cámara sigue al héroe por una calle donde
-    # los eventos del HQ ya están corriendo. Lo pidió taro el 2026-09-23 y su
-    # sospecha era exacta.
+    # Y acá es donde se vería el otro defecto, porque **el mapa corrido se ve
+    # caminando, no llegando**: el `Teleport` de la cinemática rellena la
+    # ventana entera, así que el hito de arriba siempre está bien, y lo que
+    # quedaría mal es lo que se dibuja después, con la cámara siguiendo al
+    # héroe. Pero esta caminata no lo reproduce —la cámara no llega a cruzar
+    # dos celdas en una vuelta—: ver el docstring, "no alcanza, medido".
     r.empezar("caminar por la calle con la cámara siguiendo al héroe")
     r.caminar_a(CAMINAR_POR_LA_CALLE, tope=8000)
     assert r.celda() == CAMINAR_POR_LA_CALLE, r.estado()

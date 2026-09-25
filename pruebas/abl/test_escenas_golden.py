@@ -2,21 +2,16 @@
 
 Una escena es el héroe plantado en una celda, una ruta forzada que lo lleva a
 pisar o a encarar algo, y la página del juego que eso dispara, mirada en varios
-ticks. Es la receta más usada de la tanda.
+ticks. Es la familia más usada de la tanda.
 
-Tres cosas del arnés, que son las que vivían en el comentario de la receta:
+Dos cosas del arnés:
 
-* **La dirección no llega a la ROM.** `escena` tomaba un `dir` y se lo pasaba
-  sólo a la referencia: era hacia dónde mira el héroe **al arrancar**, que
-  la referencia necesita que le digan y la ROM ya sabe. Si la página lo gira
-  con un `face_*`, gana la página, en los dos lados. Contra una captura de la
-  ROM ese argumento no tiene a quién decírselo, así que acá no está.
 * **Los toques de A van en ticks y los de `toques` en cuadros de hardware.**
-  Los primeros son `--apretar-a`, con su tick de corrimiento por
-  `RETRASO_DE_PANTALLA`; los segundos son `--toques-hardware`, que es lo único
+  Los primeros son `apretar_a`, con su tick de corrimiento por
+  `RETRASO_DE_PANTALLA`; los segundos son `toques_hardware`, que es lo único
   que puede apretar adentro de la pantalla de ranuras del save point, donde
   `vueltas` no avanza. Ver `Partida.correr`.
-* **`--toques-hardware` ignoraba `--apretar-a`** hasta el 2026-09-10, así que
+* **`toques_hardware` ignoraba `apretar_a`** hasta el 2026-09-10, así que
   `savepoint-guarda` nunca apretaba el A que abre el save point. Pasaba en
   verde igual porque guardar no cambia un pixel. Acá los cuatro caminos de
   `Partida.correr` valen a la vez, que es lo que evita que se repita.
@@ -24,12 +19,10 @@ Tres cosas del arnés, que son las que vivían en el comentario de la receta:
 Los cuadros de cada caso —por qué el 380 y no el 400— son del caso y no del
 arnés, y están en el docstring de cada uno.
 
-Las recetas `escena`, `hablar` y `cinematica` ya no existen: el nombre que abre
-cada docstring es el del caso, que es también el de su golden. La familia
-`hablar` vive en `pruebas/rpgmaker/test_tanda_hablar.py` desde que las pruebas
-se separaron por lo que prueban: lo que cobra es la regla de RM2k para hablarle
-a algo, y lo de acá son escenas de ABL. Las tres cosas del arnés de arriba
-valen también para ella.
+El nombre que abre cada docstring es el del caso, que es también el de su
+golden. La familia `hablar` corre con este mismo arnés y está en
+`pruebas/rpgmaker/test_hablar_golden.py`: lo que cobra es la regla de RM2k para
+hablarle a algo, y lo de acá son escenas de ABL.
 """
 
 import pytest
@@ -41,9 +34,7 @@ from tanda import golden, partida
 # Cada caso es: nombre —que es también el de su página de prueba, con el
 # `Teleport` a su mapa y su celda, la ruta forzada y el switch que arranca
 # prendido—, los ticks que se capturan, los toques de A por tick y los toques
-# por cuadro de hardware. Es la
-# línea que el caso tenía en la lista de la tanda, sin el `dir` y sin el
-# `115` del arranque, que es el de siempre.
+# por cuadro de hardware.
 ESCENAS = (
     # Las dos del Sector 32: la puerta de la izquierda y la pantalla que se
     # lee. La segunda es la más larga de las dos y la que más mensajes encadena.
@@ -77,8 +68,7 @@ ESCENAS = (
     ("puerta-10-8", (40, 120, 220), (), ()),
     ("puerta-8-9", (40, 120, 220), (), ()),
     ("puerta-9-8", (40, 120, 220), (), ()),
-    # EV0041 del mapa 8, que hasta el 2026-09-10 se caía entero por la
-    # condición de ítem de su tercera página: con el switch 24 corre la primera
+    # EV0041 del mapa 8: con el switch 24 corre la primera
     # —"Well, it's worth a try"— y el héroe salta la reja y se va para arriba.
     # El caso lo pone **encima** del evento, que es de la capa de abajo, por
     # lo mismo que `savepoint-guarda`: de frente la página no corre. Los ticks
@@ -93,14 +83,8 @@ ESCENAS = (
     ("droide-cuadrado", (50, 120, 300, 600), (), ()),
     # `ShowChoice`, del que la tanda sólo ve la ventana dibujada: acá sólo se
     # aprieta A, así que arriba, abajo y B no los toca nadie. El cursor lo
-    # cubre `pruebas/rpgmaker/test_elegir.py`.
-    #
-    # **Lo que este caso pierde al mudarse**: la receta además imprimía el
-    # texto de la ventana —el cuadro 140 tiene que decir `('> Yes', '  No')`—
-    # porque cuatro cuadros en cero también sería el resultado si la página no
-    # compilara de los dos lados. Contra una captura congelada eso no se puede
-    # preguntar, y taro lo aceptó: lo que queda son los pixeles de esa misma
-    # ventana, que si la página no corriera no estarían dibujados.
+    # cubre `pruebas/rpgmaker/test_elegir.py`. Que la página corra lo dicen
+    # los pixeles de la ventana, que si no corriera no estarían dibujados.
     ("elegir", (55, 90, 140, 210), (25, 60, 95, 150), ()),
     ("droide-tapado", (25, 50, 80, 95, 130), (), ()),
     # Core rompiendo la puerta, con el switch 7: los seis ticks caen alrededor
@@ -114,14 +98,14 @@ ESCENAS = (
     ("puerta-emisor", (10, 40), (20,), ()),
     # El más largo de la tanda: mil doscientos ticks de la escena entera del
     # Emitter Room. Un cero largo no prueba nada por sí solo —este caso estuvo
-    # una vez en verde sin ejercitar nada, con la página sin compilar de los
-    # dos lados—, así que lo que lo sostiene es que la página compile.
+    # una vez en verde sin ejercitar nada, con la página sin compilar—, así
+    # que lo que lo sostiene es que la página compile.
     ("talan", (40, 90, 120, 200, 400, 700, 1200), (), ()),
     # El Tram Officer del mapa 9 entero: cuatro mensajes, la elección
     # "1 minute", la caminata de espera, el cronómetro leído a una variable y
     # restado, la rama que dice "it's official, I'm late", y el azar que decide
-    # "It's here!". Los ticks van después de que cada ventana esté compuesta de
-    # los dos lados: la ROM tarda unos doce en componerla. El `CallEvent` al
+    # "It's here!". Los ticks van después de que cada ventana esté compuesta:
+    # la ROM tarda unos doce en componerla. El `CallEvent` al
     # Hover-Tram se acepta sin hacer.
     ("tram", (26, 50, 70, 88, 108, 150, 190, 220, 243, 256, 320),
      (10, 30, 54, 74, 91, 115, 224, 246, 260), ()),
@@ -155,17 +139,16 @@ TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
 # en la RAM antes del primer cuadro; en los demás es la página de prueba.
 CINEMATICAS = (
     # La misma que `apertura`, mirada en otros ticks: los dos primeros caen
-    # adentro de la rampa del primer fundido. Hasta el 2026-09-17 iba sin
-    # ventana, y sin ella la página que saca el tinte —que también tiene
-    # mensajes— no compilaba: la golden del 750 había congelado la escena
-    # teñida y sin personajes para siempre.
+    # adentro de la rampa del primer fundido. Va con ventana: sin ella la
+    # página que saca el tinte —que también tiene mensajes— no compila, y la
+    # golden del 750 congelaba la escena teñida y sin personajes.
     ("cinematica", (50, 68, 170, 370, 750, 1110), TOQUES_APERTURA,
      (), "release"),
     # La cinemática no termina en el teletransporte: el último paso pisa el
     # evento 2, que es la escena de apertura entera, con cuatro personajes
     # caminando en el mismo mapa, o sea las poses en caliente en su caso real.
     # Es la misma corrida que `cinematica`, así que un tick que ya mira aquélla
-    # acá es la misma golden dos veces: pasó con el 370 hasta el 2026-09-25.
+    # acá sería la misma golden dos veces.
     ("apertura", (770, 830, 1210, 1980, 2910),
      TOQUES_APERTURA, (), "release"),
     # El recuerdo de CORE y MANTA, que lo destraba el switch 16: lo prende una
@@ -178,7 +161,7 @@ CINEMATICAS = (
       3018, 3079, 3110, 3141, 3214, 3510, 3541, 3723, 3826), "manta", None),
     # El cartel de "One year previously", que es lo único que este port dibuja
     # de `ShowPicture`. Arranca con el switch 21 —el que prende el final del
-    # recuerdo; hasta el 2026-09-24 lo prendía la página `cartel`— así que la página 3 del evento 1 del mapa 4 corre sola, y los
+    # recuerdo— así que la página 3 del evento 1 del mapa 4 corre sola, y los
     # cinco ticks agarran el fundido entero: recién puesto y casi negro (470),
     # a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
     # bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único
@@ -214,21 +197,21 @@ def test_cinematica(nombre, cuadros, apretar, caso, en):
     lo que dura su fundido, y la cinemática lleva uno por salto, porque RM2k
     funde también los que no cambian de mapa.
 
-    Del arnés, dos que sólo tiene esta receta:
+    Del arnés, dos que sólo tiene este caso:
 
     * **el grupo es el 10 y no el 11**, que es el único lugar de la tanda donde
       eso pasa: la cinemática *es* la que cambia el grupo, así que tiene que
       arrancar con el que el juego trae —DummyHero— y no con Kersh ya adentro;
     * **lo que no se compara**: nada en movimiento en un tick en que la ROM
       venga atrasada. El atraso lo producen los picos del lazo, y el toque de A
-      lo resincroniza, porque de ahí en adelante los dos lados cuentan desde el
-      mismo cuadro.
+      lo resincroniza. Viene de cuando se comparaba contra una referencia que
+      no perdía cuadros, y los ticks de entonces son los de las goldens.
     """
     for cuadro in cuadros:
         if en == RELEASE:
             # "Begin the Story", que es por donde se entra a `release`, la
-            # ROM que se juega. Las seis goldens de `cinematica`, las seis de
-            # `apertura` y las cinco de `cartel` se congelaron en un cartucho
+            # ROM que se juega. Las goldens de `cinematica`, `apertura` y
+            # `cartel` se congelaron en un cartucho
             # sin pantalla de título y salen byte por byte iguales a través
             # de ella: el título no cambia lo que se dibuja adentro del mapa.
             # Medido al fundir el título con el cartucho del juego, el

@@ -7,11 +7,10 @@ bendiga. No compara contra ninguna referencia: acá hay un juego que
 tiene que seguir siendo jugable de punta a punta.
 
 Lo que la hace barata es que **la emulación no es el problema**: snes9x corre
-unos 2.900 ticks por segundo, así que los cinco mil ticks de las dos jugadas
-cuestan menos de tres segundos. Corre en `release`, la ROM que se juega, que
+miles de ticks por segundo. Corre en `release`, la ROM que se juega, que
 arranca en el 4 como el juego de verdad y lleva la pantalla de título: por eso
 la jugada empieza eligiendo "Begin the Story", que es por donde entra el
-jugador. Hasta el 2026-09-24 corría en `juego`, un cartucho parecido.
+jugador.
 
 **Dos cosas que esta prueba no hace, las dos medidas.**
 
@@ -102,7 +101,7 @@ def test_de_la_casa_de_talan_al_auditorio(recorrido):
     assert r.celda() == (36, 73), r.estado()
     # **El cronómetro tiene que haber quedado parado**, porque lo para la
     # escena del mapa 16: es la única prueba de que la cinemática corrió entera
-    # y no que el mapa 17 se cargó por otro lado. Medido, queda en 581 de 600.
+    # y no que el mapa 17 se cargó por otro lado.
     assert not r.p.byte("timer_activo"), (
         "la corrida al trabajo tiene que parar el cronómetro. %s" % r.estado())
     assert 0 < r.p.palabra("timer_seg") < 600, r.estado()

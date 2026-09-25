@@ -1,18 +1,18 @@
 """El recuerdo de CORE y MANTA, sin mirar la pantalla.
 
-El caso `manta` de `pruebas/abl/test_tanda_escenas.py` compara esta misma
-escena pixel por pixel contra la referencia, en ocho cuadros elegidos a mano esquivando la animación
-de la ventana de mensaje. Esto pregunta otra cosa, más chica y más directa: si
-la partida **llegó** a donde tenía que llegar.
+El caso `manta` de `pruebas/abl/test_escenas_golden.py` compara esta misma
+escena pixel por pixel contra sus goldens, en cuadros elegidos a mano
+esquivando la animación de la ventana de mensaje. Esto pregunta otra cosa, más
+chica y más directa: si la partida **llegó** a donde tenía que llegar.
 
 Vale la pena tener las dos. El bug que taro encontró jugando el 2026-09-06 —el
 recuerdo que no arrancaba— se veía en una línea acá; en la tanda de pixeles no
-se veía en ninguna parte, porque la referencia tenía el mismo error y los dos
-lados no hacían nada.
+se veía en ninguna parte, porque la referencia de entonces tenía el mismo
+error. Una golden sacada con el error puesto lo defendería igual.
 """
 
 # Los cuadros en que hay que apretar A para que la escena avance sola. Salieron
-# de correr la referencia e ir agregando un toque treinta cuadros después de
+# de ir agregando un toque treinta cuadros después de
 # cada mensaje que la frena: la ROM ignora el botón mientras compone la ventana
 # —medido, de 9 a 19 cuadros según el texto—, así que un toque que caiga ahí no
 # pasa. Es la misma lista que usa el caso `manta`.
@@ -30,7 +30,7 @@ def test_el_recuerdo_arranca(partida):
 
 
 def test_el_recuerdo_cruza_a_la_ciudad(partida):
-    """De la casa a la isla: la mitad que estuvo muerta hasta el 2026-09-06.
+    """De la casa a la isla.
 
     El mapa 5 salta primero dentro de sí mismo y después al 6, y **prende el
     switch 17 recién después de aterrizar**. Que el 6 arranque su cinemática
