@@ -221,20 +221,37 @@ def cuadro_de_texto(cartucho, renglon):
 def plan(nombre):
     """El plan congelado: por dirección, cuántos ticks dura la caminata.
 
-    El archivo lleva `<dirección> <celdas> <ticks>` por línea. Las celdas no se
-    usan acá —son el dato que hacía falta para leer el plan con los ojos— y los
-    ticks son lo que se corre.
+    El archivo lleva `<dirección> <celdas> <ticks>` por línea. Los ticks son
+    lo que se corre; las celdas, lo que tiene que haber caminado: ver
+    `celdas_del_plan`.
 
     El margen que el corredor suma sobre el plan es **cero** en los casos que
     lo usan, así que acá no hay margen: el plan dice el número exacto.
     """
-    ticks = {}
+    return {direccion: ticks
+            for direccion, (_celdas, ticks) in _plan(nombre).items()}
+
+
+def celdas_del_plan(nombre):
+    """El plan congelado: por dirección, cuántas celdas camina el héroe.
+
+    Es lo que dice si una caminata caminó: `varios-18-down` fotografió
+    durante días lo mismo que `varios-18-none` —una página automática no
+    dejaba moverse al héroe— y la golden lo defendía, porque había congelado
+    eso.
+    """
+    return {direccion: celdas
+            for direccion, (celdas, _ticks) in _plan(nombre).items()}
+
+
+def _plan(nombre):
+    lineas = {}
     with open(os.path.join(GOLDEN, "plan-%s.txt" % nombre)) as archivo:
         for linea in archivo:
             if linea.split():
-                direccion, _celdas, cuadros = linea.split()
-                ticks[direccion] = int(cuadros)
-    return ticks
+                direccion, celdas, cuadros = linea.split()
+                lineas[direccion] = (int(celdas), int(cuadros))
+    return lineas
 
 
 def ticks_de_avance(pixeles):
@@ -331,6 +348,11 @@ def pantalla_distinta(nombre, captura, esperada, distintos):
     return os.path.relpath(base, RAIZ) + "*.png"
 
 
+# Las goldens que dieron verde en la prueba en curso, con un hash de sus
+# pixeles. La vacía y la mira `conftest._capturas_distintas`.
+CAPTURAS = []
+
+
 def golden(nombre, imagen):
     """La captura contra su congelada, y tienen que ser **idénticas**.
 
@@ -359,6 +381,7 @@ def golden(nombre, imagen):
     # El caso verde se contesta con los bytes crudos, que es una comparación y
     # no 57.344; contar cuántos difieren sólo hace falta para el mensaje.
     if actual.tobytes() == esperada.tobytes():
+        CAPTURAS.append((nombre, hash(esperada.tobytes())))
         if os.path.exists(donde):
             os.remove(donde)
     else:
