@@ -42,7 +42,8 @@ ciclo_tres:
 ; mismo que contar los cuadros por dos.
 paso_medio_por_vel:
     .byte 2, 4, 8, 16, 32, 64
-; Y cada cuántos cuadros cambia el frame de la caminata: `ANIM_PARADO`.
+; Y cada cuántos cuadros cambia el frame de la caminata:
+; `GetStationaryAnimFrames`, los mismos números que `anim_parado`.
 anim_por_vel:
     .byte 12, 10, 8, 6, 5, 4
 

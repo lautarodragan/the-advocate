@@ -1569,7 +1569,7 @@ ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
 ITEM_MAX = 99
 # `ChangeSaveAccess`, `ChangeMainMenuAccess` y `ChangeEscapeAccess`, desde que
 # hay menú de pausa: **el bit** del permiso y si queda permitido. La ROM lo
-# guarda en `FAR_ACCESO`; acá en `Estado`. Guardar desde el save point no lo
+# guarda en `FAR_ACCESO`. Guardar desde el save point no lo
 # mira, como `OpenSaveMenu` en RM2k.
 #
 # El operando es el bit y no el número del permiso, y eso es de la tercera
@@ -1764,10 +1764,9 @@ BATALLA_PERDER = 0xFFFF
 # `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
 # Es `Game_Map::RemoveAllPendingMoves`, o sea un `CancelMoveRoute` sobre el
 # héroe y sobre cada evento, y lo que cancelar quiere decir está escrito una
-# sola vez de cada lado: es **lo mismo que pasa cuando la ruta termina sola**
-# —quien tenía ruta propia de página vuelve a la suya, quien no, se queda
-# quieto— y por eso la ROM llama a `retomar_pagina` y la referencia a
-# `Ruta.cancelar`, que reusa `cargar_pagina`.
+# sola vez: es **lo mismo que pasa cuando la ruta termina sola** —quien tenía
+# ruta propia de página vuelve a la suya, quien no, se queda quieto— y por eso
+# la ROM llama a `retomar_pagina`.
 #
 # Lo que **no** toca, igual que `CancelMoveRoute`: el paso o el salto en curso
 # se terminan, y hacia dónde mira cada uno queda donde la ruta lo dejó.
@@ -4125,9 +4124,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03,
             # cuando los dos lados empezaron a coincidir *durante* la caminata y
             # no sólo al final: lo prueba `ruta`, que compara cuatro
-            # cuadros de una ruta de doce celdas con esperas en el medio. Todo
-            # lo demás de `rpg::MoveCommand::Code` —moverse hacia el héroe o
-            # desde él, girar en el lugar, los switches— sigue afuera.
+            # cuadros de una ruta de doce celdas con esperas en el medio. Lo
+            # que entra de `rpg::MoveCommand::Code` es `RUTA_ORDENES`, y moverse
+            # hacia el héroe está adentro desde el 2026-09-12 —ver
+            # RUTA_HACIA_HEROE—; alejarse de él, girar en el lugar y los
+            # switches siguen afuera.
             if orden not in RUTA_ORDENES:
                 raise NoSePuede()
             if orden in (RUTA_ENCARAR_HEROE, RUTA_HACIA_HEROE) and blanco == 0:
@@ -4387,11 +4388,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
 
 class Estado:
-    """Lo que el intérprete recuerda entre páginas y entre mapas."""
+    """El grupo, para simular sus cambios al convertir: `lideres_posibles` y
+    `grupo_de_la_pagina` en snes_convert.py. Es lo que quedó del estado del
+    intérprete de Python, que se fue con la referencia; la ROM es la única que
+    corre el bytecode."""
 
     def __init__(self, grupo=()):
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
-        # esto no es contabilidad: se ve en la pantalla que se compara.
+        # el orden decide qué poses tienen que entrar en la VRAM.
         self.grupo = list(grupo)
 
     def cambiar_grupo(self, operacion, actor):

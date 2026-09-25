@@ -627,7 +627,8 @@ scrolls:
 ; `salto_por_vel` bajó a RODATA el 2026-09-14: un solo acceso, y pasarlo por X
 ; cuesta cuatro bytes contra los seis de la tabla. Ver `banco1.s`.
 ; Cada cuántos cuadros cambia el frame de la caminata, por velocidad: caminando
-; y quieto con la animación continua. ANIM_PARADO y ANIM_CONTINUA de eventos.py.
+; y quieto con la animación continua: `GetStationaryAnimFrames` y
+; `GetContinuousAnimFrames` de `Game_Character::UpdateAnimation`.
 anim_parado:
     .byte 12, 10, 8, 6, 5, 4
 anim_continua:

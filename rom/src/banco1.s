@@ -67,7 +67,7 @@ tabla_fila_buf:
 
 ; Cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
 ; izquierda, y las cuatro diagonales. Con signo, que es como las suma
-; `armar_salto`. Son RUTA_PASOS de eventos.py.
+; `armar_salto`.
 paso_dx:
     .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
 paso_dy:
@@ -79,8 +79,9 @@ paso_dy:
 ; primeras son con X, que tiene modo largo; la tercera tiene uno solo y se pasa
 ; por X salvando la ranura, cuatro bytes contra los doce de la tabla.
 ; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
-; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
-; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
+; celda, y cuánto el salto: PASO_POR_VELOCIDAD de eventos.py y
+; `jump_speed[move_speed - 1]` de RM2k. La 4 es la del héroe: 32 por cuadro,
+; dos pixeles.
 paso_por_vel:
     .word 4, 8, 16, 32, 64, 128
 

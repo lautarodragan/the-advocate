@@ -256,9 +256,9 @@ listo:
 .endproc
 
 ; Si la ranura de ruta X tiene algo andando: la ruta propia de su página,
-; órdenes por dar, un paso, una espera o un salto. Z=1 si está libre. Es
-; `Ruta.pendiente or Ruta.de_pagina` en eventos.py. Una ranura no se suelta
-; hasta que se carga otro mapa, así que "tiene ranura" no alcanzaba: el
+; órdenes por dar, un paso, una espera o un salto. Z=1 si está libre. Una
+; ranura no se suelta hasta que se carga otro mapa, así que "tiene ranura" no
+; alcanzaba: el
 ; `GangMember1` de Lashe City, al que una escena ya había movido, no giraba
 ; nunca más. taro lo encontró jugando.
 .proc ruta_ocupada

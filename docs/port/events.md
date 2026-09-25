@@ -62,10 +62,10 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
 | Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
-| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `Ruta.cargar_pagina` |
+| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `ruta_propia` |
 | La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro` |
 | La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `frecuencia_minima` |
-| Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | `puede_en_diagonal`, `encarar_en_diagonal` |
+| Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | — |
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos` |
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
