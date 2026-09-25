@@ -59,13 +59,12 @@ def test_los_hp_arrancan_llenos(partida):
     """
     una = partida()
     base = datos.base()
-    pelea = Pelea(una)
     for actor in GRUPO:
         esperado = titulo.parametro_de(base.actors[actor], "maxhp")
         assert esperado > 40, (
             "el actor %d tendría que tener los HP de su nivel inicial y no "
             "los del 1: si son 40 el caso no distingue nada" % actor)
-        assert pelea.hp_guardado(actor) == esperado, \
+        assert una.hp(actor) == esperado, \
             "el actor %d no arranca con los HP de su nivel" % actor
 
 
@@ -82,14 +81,13 @@ def test_los_hp_viajan_en_la_partida(partida):
     que sin eso el 7 podría ser el de antes.
     """
     una = partida(caso="guardar-198")
-    pelea = Pelea(una)
-    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[0], [7, 0])
+    una.poner_hp(GRUPO[0], 7)
     una.guardar_en()
-    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[0], [99, 0])
+    una.poner_hp(GRUPO[0], 99)
     una.reiniciar()
-    assert pelea.hp_guardado(GRUPO[0]) == 7, \
+    assert una.hp(GRUPO[0]) == 7, \
         "los HP no volvieron de la SRAM: quedaron en %d" \
-        % pelea.hp_guardado(GRUPO[0])
+        % una.hp(GRUPO[0])
 
 
 # --- los SP como estado ----------------------------------------------------
@@ -109,13 +107,12 @@ def test_los_sp_arrancan_llenos(partida):
     """
     una = partida()
     base = datos.base()
-    pelea = Pelea(una)
     distintos = 0
     for actor in sorted(base.actors):
         esperado = titulo.parametro_de(base.actors[actor], "maxsp")
         distintos += (esperado
                       != titulo.parametro_de(base.actors[actor], "maxhp"))
-        assert pelea.sp_guardado(actor) == esperado, \
+        assert una.sp(actor) == esperado, \
             "el actor %d no arranca con los SP de su nivel" % actor
     assert distintos > 10, (
         "si ningún actor tuviera SP distintos de sus HP este caso no "
@@ -134,14 +131,13 @@ def test_los_sp_viajan_en_la_partida(partida):
     —la SRAM sobrevive— y pisa la RAM antes, porque snes9x no la borra.
     """
     una = partida(caso="guardar-198")
-    pelea = Pelea(una)
-    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [7, 0])
+    una.poner_sp(GRUPO[0], 7)
     una.guardar_en()
-    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [99, 0])
+    una.poner_sp(GRUPO[0], 99)
     una.reiniciar()
-    assert pelea.sp_guardado(GRUPO[0]) == 7, \
+    assert una.sp(GRUPO[0]) == 7, \
         "los SP no volvieron de la SRAM: quedaron en %d" \
-        % pelea.sp_guardado(GRUPO[0])
+        % una.sp(GRUPO[0])
 
 
 # --- la pelea del droide ---------------------------------------------------
@@ -200,8 +196,10 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
             [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-        de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
-                     + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
+        de_la_rom = ([pelea.hp_del_combatiente(k)
+                      for k in range(len(GRUPO))]
+                     + [pelea.hp_del_combatiente(
+                         una.simbolos["BA_GRUPO_MAX"])])
         del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
         assert de_la_rom == del_modelo, \
             "turno %d: la consola dejó %r y el modelo %r" % (
@@ -293,16 +291,18 @@ def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
         esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
                               (modelo.ORDEN_HABILIDAD, (fury, 0)),
                               (modelo.ORDEN_DEFENDER, 0)])
-        de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
-                     + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
+        de_la_rom = ([pelea.hp_del_combatiente(k)
+                      for k in range(len(GRUPO))]
+                     + [pelea.hp_del_combatiente(
+                         una.simbolos["BA_GRUPO_MAX"])])
         del_modelo = [c.hp for c in esperado.actores] + [
             esperado.enemigos[0].hp]
         assert de_la_rom == del_modelo, \
             "turno %d: la consola dejó %r y el modelo %r" % (
                 turno, de_la_rom, del_modelo)
-        assert pelea.sp(1) == esperado.actores[1].sp, \
+        assert pelea.sp_del_combatiente(1) == esperado.actores[1].sp, \
             "turno %d: los SP de Core, %d contra %d" % (
-                turno, pelea.sp(1), esperado.actores[1].sp)
+                turno, pelea.sp_del_combatiente(1), esperado.actores[1].sp)
         if esperado.resultado is not None:
             break
     assert esperado.actores[1].sp < esperado.actores[1].sp_max, \
@@ -336,13 +336,13 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
                           (modelo.ORDEN_HABILIDAD,
                            (base.skills[MINDSHIELD], 0))])
     assert esperado.switches == [switch]
-    assert pelea.sp(2) == esperado.actores[2].sp, \
-        "los SP de Manta, %d contra %d" % (pelea.sp(2),
+    assert pelea.sp_del_combatiente(2) == esperado.actores[2].sp, \
+        "los SP de Manta, %d contra %d" % (pelea.sp_del_combatiente(2),
                                            esperado.actores[2].sp)
     # Y el azar **no se movió**: una de switch vuelve antes de cualquier tiro.
     # Si la ROM tirara un dado de más, los HP del turno siguiente no darían.
-    de_la_rom = ([pelea.hp(k) for k in range(len(GRUPO))]
-                 + [pelea.hp(una.simbolos["BA_GRUPO_MAX"])])
+    de_la_rom = ([pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
+                 + [pelea.hp_del_combatiente(una.simbolos["BA_GRUPO_MAX"])])
     del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
     assert de_la_rom == del_modelo, \
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo)
@@ -359,12 +359,11 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     base = datos.base()
     assert habilidades(base, GRUPO[0])[0] == HEALING_SYRINGE
     lastimado = titulo.parametro_de(base.actors[GRUPO[1]], "maxhp") // 2
-    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[1],
-                             [lastimado & 0xFF, lastimado >> 8])
+    una.poner_hp(GRUPO[1], lastimado)
     pelea = Pelea(una).abrir()
     esperado = modelo_de(base)
     esperado.actores[1].hp = lastimado
-    assert pelea.hp(1) == lastimado, \
+    assert pelea.hp_del_combatiente(1) == lastimado, \
         "la pelea tenía que arrancar con Core lastimado"
     pelea.ordenar(("habilidad", 0, 1))
     pelea.ordenar(("defender",))
@@ -374,12 +373,12 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
                            (base.skills[HEALING_SYRINGE], 1)),
                           (modelo.ORDEN_DEFENDER, 0),
                           (modelo.ORDEN_DEFENDER, 0)])
-    assert pelea.hp(1) == esperado.actores[1].hp, \
+    assert pelea.hp_del_combatiente(1) == esperado.actores[1].hp, \
         "los HP de Core: la consola %d y el modelo %d" % (
-            pelea.hp(1), esperado.actores[1].hp)
+            pelea.hp_del_combatiente(1), esperado.actores[1].hp)
     assert esperado.actores[1].hp > lastimado, \
         "si la habilidad no curara nada el caso no distinguiría"
-    assert pelea.sp(0) == esperado.actores[0].sp
+    assert pelea.sp_del_combatiente(0) == esperado.actores[0].sp
 
 
 def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
@@ -438,9 +437,9 @@ def test_ganar_sigue_por_el_victory_handler(partida):
         pelea.turno(len(esperado.vivos(esperado.actores)))
         esperado.jugar_turno(
             [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-    quedaron = [pelea.hp(k) for k in range(len(GRUPO))]
+    quedaron = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
     pelea.cerrar()
-    assert [pelea.hp_guardado(a) for a in GRUPO] == quedaron, \
+    assert [una.hp(a) for a in GRUPO] == quedaron, \
         "los HP de la pelea no quedaron en la partida"
     mensajes = 0
     for _ in range(600):
@@ -464,7 +463,7 @@ def test_perder_sigue_por_el_defeat_handler(partida):
     """
     una = en_el_droide(partida)
     for actor in GRUPO:
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor, [1, 0])
+        una.poner_hp(actor, 1)
     pelea = Pelea(una).abrir()
     # **Se defienden en vez de atacar**: desde que los actores pelean con su
     # nivel del LDB —Kersh con ataque 280 y no 17— tres golpes matan al droide
@@ -702,7 +701,7 @@ def mirar_los_golpes(una, pelea, esperados):
             cual = "errar"
         elif blanco < una.simbolos["BA_GRUPO_MAX"]:
             cual = "dano_actor"
-        elif pelea.hp(blanco) == 0:
+        elif pelea.hp_del_combatiente(blanco) == 0:
             cual = "muerte"
         else:
             cual = "dano_enemigo"
@@ -755,7 +754,8 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     for _ in range(8):
         if pelea.modo() == "FIN":
             break
-        vivos = len([k for k in range(len(GRUPO)) if pelea.hp(k)])
+        vivos = len([k for k in range(len(GRUPO))
+                     if pelea.hp_del_combatiente(k)])
         for _ in range(vivos):
             for _ in range(400):
                 if pelea.modo() != "ORDEN":
@@ -795,8 +795,7 @@ def en_el_droide_con_pocion(partida):
     for actor in GRUPO:
         maximo = titulo.parametro_de(datos.base().actors[actor], "maxhp")
         falta = maximo - 20
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
-                                 [falta & 0xFF, falta >> 8])
+        una.poner_hp(actor, falta)
     return una
 
 
@@ -869,7 +868,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
     esperado.jugar_turno(
         [(modelo.ORDEN_ITEM, (base.items[POCION], 0)),
          (modelo.ORDEN_ATACAR, 0), (modelo.ORDEN_ATACAR, 0)])
-    de_la_rom = [pelea.hp(k) for k in range(len(GRUPO))]
+    de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
     del_modelo = [c.hp for c in esperado.actores]
     assert de_la_rom == del_modelo, (
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))

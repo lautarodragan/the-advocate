@@ -21,7 +21,7 @@ ningún evento que toque el grupo, y el control necesita las dos cosas.
 
 from datos import maximos
 from batalla import (DESPUES_DE_PERDER, cuadros_hasta_reiniciar, grupo_de,
-                     palabra_de, sin_hp)
+                     sin_hp)
 
 
 def perdida_y_curada(partida):
@@ -40,12 +40,12 @@ def test_full_heal_despues_de_perder_llena_hp_y_sp_del_grupo(partida):
     tope = maximos()
     for actor in grupo:
         hp, sp = tope[actor]
-        assert palabra_de(una, "FAR_HP", actor) == hp, (
+        assert una.hp(actor) == hp, (
             "el actor %d quedó con %d HP después del FullHeal y el máximo es "
-            "%d" % (actor, palabra_de(una, "FAR_HP", actor), hp))
-        assert palabra_de(una, "FAR_SP", actor) == sp, (
+            "%d" % (actor, una.hp(actor), hp))
+        assert una.sp(actor) == sp, (
             "el actor %d quedó con %d SP después del FullHeal y el máximo es "
-            "%d" % (actor, palabra_de(una, "FAR_SP", actor), sp))
+            "%d" % (actor, una.sp(actor), sp))
 
 
 def test_full_heal_del_grupo_no_cura_a_los_de_afuera(partida):
@@ -57,7 +57,7 @@ def test_full_heal_del_grupo_no_cura_a_los_de_afuera(partida):
     una = perdida_y_curada(partida)
     afuera = [a for a in range(1, 13) if a not in grupo_de(una)]
     for actor in afuera:
-        assert palabra_de(una, "FAR_HP", actor) == 0, (
+        assert una.hp(actor) == 0, (
             "el actor %d no está en el grupo y el FullHeal [0, 0] le llenó "
             "los HP" % actor)
 
@@ -91,9 +91,8 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
 def sumada(partida, hp):
     una = partida(caso="curar-sumar")
     for actor, valor in hp.items():
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
-                                 [valor & 0xFF, valor >> 8])
-    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * 10, [0, 0])
+        una.poner_hp(actor, valor)
+    una.poner_sp(10, 0)
     una.correr(DESPUES_DE_PERDER)
     return una
 
@@ -103,25 +102,25 @@ def test_change_hp_suma_al_grupo_y_a_un_actor(partida):
     assert grupo_de(una) == [10], (
         "el caso cuenta con el grupo de arranque del cartucho, que es el "
         "actor 10 solo, y es %s" % grupo_de(una))
-    assert palabra_de(una, "FAR_HP", 10) == 15, (
+    assert una.hp(10) == 15, (
         "ChangeHP de 5 al grupo dejó al actor 10 en %d, desde 10"
-        % palabra_de(una, "FAR_HP", 10))
-    assert palabra_de(una, "FAR_HP", 11) == 53, (
+        % una.hp(10))
+    assert una.hp(11) == 53, (
         "ChangeHP de 3 al actor 11 lo dejó en %d, desde 50"
-        % palabra_de(una, "FAR_HP", 11))
-    assert palabra_de(una, "FAR_SP", 10) == 0, (
+        % una.hp(11))
+    assert una.sp(10) == 0, (
         "ChangeHP le tocó los SP al actor 10: los dejó en %d"
-        % palabra_de(una, "FAR_SP", 10))
+        % una.sp(10))
 
 
 def test_change_hp_topa_en_el_maximo_y_no_levanta_a_un_caido(partida):
     una = sumada(partida, {12: 1, 13: 0})
-    assert palabra_de(una, "FAR_HP", 12) == maximos()[12][0], (
+    assert una.hp(12) == maximos()[12][0], (
         "ChangeHP de 999 al actor 12 lo dejó en %d, y el máximo es %d"
-        % (palabra_de(una, "FAR_HP", 12), maximos()[12][0]))
-    assert palabra_de(una, "FAR_HP", 13) == 0, (
+        % (una.hp(12), maximos()[12][0]))
+    assert una.hp(13) == 0, (
         "ChangeHP levantó al actor 13, que estaba caído: quedó en %d"
-        % palabra_de(una, "FAR_HP", 13))
+        % una.hp(13))
 
 
 # --- y el `FullHeal` que el jugador usa a propósito --------------------------
@@ -136,7 +135,7 @@ def test_el_balde_del_mapa_23_deja_los_hp_llenos(partida):
     cartel decía "HP and SP completely recovered!".
     """
     una = partida(caso="curar-balde")
-    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * 10, [7, 0])
+    una.poner_hp(10, 7)
     for _ in range(240):
         una.consola.apretar("up")
         una.consola.correr(1)
@@ -145,6 +144,6 @@ def test_el_balde_del_mapa_23_deja_los_hp_llenos(partida):
         una.consola.apretar(*(("a",) if n % 8 < 2 else ()))
         una.consola.correr(1)
     una.consola.apretar()
-    assert palabra_de(una, "FAR_HP", 10) == maximos()[10][0], (
+    assert una.hp(10) == maximos()[10][0], (
         "el balde dejó al actor 10 en %d y su máximo es %d"
-        % (palabra_de(una, "FAR_HP", 10), maximos()[10][0]))
+        % (una.hp(10), maximos()[10][0]))
