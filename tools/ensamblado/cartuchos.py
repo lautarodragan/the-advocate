@@ -97,7 +97,7 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
 #
 # Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
 # y la de sin no la jugaba nadie. Es la misma decisión que dejó un solo `.sfc`
-# en `pruebas-manuales/`; está en AGENTS.md.
+# por build en `/shared/builds/`; está en AGENTS.md.
 #
 # **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
 # juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con

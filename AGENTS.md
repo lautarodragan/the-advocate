@@ -374,16 +374,18 @@ Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 
 Lo que hay que hacer siempre:
 
-* **Traer los builds al repo principal.** Los worktrees viven en `/extras`, que
-  no está montado en el host. Van a `pruebas-manuales/<fecha>-<commit>/`, con un
-  `LEEME.txt` que diga qué mirar y con qué limitaciones se chocó.
+* **Traer los builds a `/shared`.** Los worktrees viven en `/extras`, que no
+  está montado en el host, y `/shared` sí: es donde taro los encuentra. Van a
+  `/shared/builds/<fecha>-<commit>/`, con un `LEEME.txt` que diga qué mirar y
+  con qué limitaciones se chocó. Hasta el 2026-09-24 iban a
+  `pruebas-manuales/`, adentro del repo.
 
   **Un solo `.sfc` por build, y se llama `abl.sfc`**: el cartucho con pantalla
   de título, que es el que taro juega. Las otras demos no se copian; el que las
   quiera las arma. Y **se dejan los dos últimos directorios y nada más**: el
   anterior sirve para comparar con lo que se venía jugando, y los de más atrás
-  se rearman desde su commit. Es de taro, el 2026-09-20, después de que
-  `pruebas-manuales/` llegara a 4,3 GB en 51 directorios.
+  se rearman desde su commit. Es de taro, el 2026-09-20, después de que los
+  builds llegaran a 4,3 GB en 51 directorios.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.

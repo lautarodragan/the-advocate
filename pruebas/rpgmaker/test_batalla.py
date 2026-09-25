@@ -1096,8 +1096,8 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
 def test_el_menu_va_en_el_orden_del_original(partida):
     """Las cinco órdenes, en el orden de la captura del juego de verdad.
 
-    `pruebas-manuales/capturas-batalla/auto_20260912_123013.png` muestra el
-    menú de Manta: Attack / Slicing / Defend / Use Item. La habilidad va
+    Una captura del juego de verdad, del 2026-09-12, muestra el menú de Manta:
+    Attack / Slicing / Defend / Use Item. La habilidad va
     **segunda**, y hasta el 2026-09-13 acá iba cuarta y en gris. `Escape` no
     está en el original —huir es una orden del grupo— y acá va quinta, que es
     la simplificación que `batalla.py` declara.

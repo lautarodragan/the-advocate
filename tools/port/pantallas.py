@@ -362,9 +362,9 @@ BA_HP_MAX_NUM = 25              # y las tres del máximo, en el grupo
 # El ancho es diez porque es lo que mide la orden más larga: `Tech Skill`, y
 # `AgentTrain`, que es como se llama la de Kersh.
 BA_ORDEN_ANCHO = 10
-# **El orden es el del original**: Attack, la habilidad, Defend, Use Item. Se
-# ve en la captura `pruebas-manuales/capturas-batalla/auto_20260912_123013.png`,
-# donde el menú de Manta dice Attack / Slicing / Defend / Use Item. `Escape` no
+# **El orden es el del original**: Attack, la habilidad, Defend, Use Item. En
+# una captura del juego de verdad, del 2026-09-12, el menú de Manta dice
+# Attack / Slicing / Defend / Use Item. `Escape` no
 # está allá —huir es una orden del grupo, de otro menú— y acá va quinta; es la
 # simplificación que `batalla.py` declara.
 (BA_ORDEN_ATACAR, BA_ORDEN_HABILIDAD, BA_ORDEN_DEFENDER, BA_ORDEN_USAR,

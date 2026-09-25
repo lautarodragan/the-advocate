@@ -7,12 +7,6 @@ rom/build/
 # contra lo que se comparan. Es salida de las pruebas y no del build, por eso
 # no va en `rom/build/`.
 pruebas/snapshots/
-# Las ROMs para probar a mano, con sus pistas de MSU-1. Viven acá y no en
-# `rom/build/` porque eso lo pisan las pruebas y el `snes-demos` siguiente; y
-# adentro del repo y no en `/extras` porque taro las saca desde el host y desde
-# ahí había que copiarlas con `podman cp` cada vez. Pesan: un build con las ocho
-# pistas son 383 MB.
-pruebas-manuales/
 # Los worktrees de los sub-agentes. Son repositorios de git adentro del repo, y
 # un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
 .claude/worktrees/

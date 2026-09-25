@@ -28496,11 +28496,10 @@ items_listos:
 
     ; --- la lista de habilidades, donde van los enemigos ---
     ;
-    ; La forma es la del original —ver
-    ; `pruebas-manuales/capturas-batalla/auto_20260912_123023.png`—: la
-    ; descripción de la que marca el cursor arriba de todo, y abajo dos
-    ; columnas con el nombre a la izquierda y el costo en SP a la derecha, con
-    ; un guión delante. Se lee **por filas**, que es lo que la captura muestra.
+    ; La forma es la del original —la de una captura del juego de verdad, del
+    ; 2026-09-12—: la descripción de la que marca el cursor arriba de todo, y
+    ; abajo dos columnas con el nombre a la izquierda y el costo en SP a la
+    ; derecha, con un guión delante. Se lee **por filas**, que es lo que la captura muestra.
 la_lista_hab:
     jsr ba_hab_lista
     lda BA_HAB_N
