@@ -1,6 +1,7 @@
 ---
 name: "Efectos de sonido sin recortes"
 description: "Revisar los límites que se les pusieron a los efectos y ver cuáles se pueden levantar"
+type: feature
 ---
 
 # Qué

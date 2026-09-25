@@ -1,6 +1,7 @@
 ---
 name: "Velocidad: percusión"
 description: "El presupuesto de percusión por búsqueda binaria"
+type: refactor
 ---
 
 # Qué

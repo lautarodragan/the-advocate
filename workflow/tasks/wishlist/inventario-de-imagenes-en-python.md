@@ -1,6 +1,7 @@
 ---
 name: "Inventario: imágenes a tiles en Python"
 description: "Qué conversiones de imagen a tiles siguen en Python y cuáles puede hacer Voodoo"
+type: refactor
 ---
 
 **Contar qué conversiones de imagen a tiles siguen hechas en Python**, y para

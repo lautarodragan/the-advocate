@@ -1,6 +1,7 @@
 ---
 name: "Paletas sobre todo el juego"
 description: "Calcular las paletas con todas las imágenes a la vez"
+type: feature
 ---
 
 # Qué

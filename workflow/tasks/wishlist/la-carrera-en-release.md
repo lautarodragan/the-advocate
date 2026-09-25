@@ -1,6 +1,7 @@
 ---
 name: "La carrera en release"
 description: "La persecución en auto, que hoy no entra en ninguna ROM"
+type: feature
 ---
 
 # Qué

@@ -1,6 +1,7 @@
 ---
 name: "Ruta: transparencia"
 description: "Las órdenes 40 y 41, que suben y bajan la transparencia"
+type: feature
 ---
 
 # Qué

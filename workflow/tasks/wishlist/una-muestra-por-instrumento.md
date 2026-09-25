@@ -1,6 +1,7 @@
 ---
 name: "Varias muestras por instrumento"
 description: "Multimuestrear como un piano de verdad"
+type: feature
 ---
 
 # Qué

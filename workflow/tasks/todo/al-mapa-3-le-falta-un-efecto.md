@@ -1,6 +1,7 @@
 ---
 name: "Al mapa 3 le puede faltar un efecto"
 description: "Hay que investigarlo: la cuenta dice que su paquete de audio no entra entrando desde el 2"
+type: bug
 ---
 
 # Qué

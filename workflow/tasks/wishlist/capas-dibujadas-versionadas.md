@@ -1,6 +1,7 @@
 ---
 name: "Capas dibujadas versionadas"
 description: "Las capas de cada mapa como artefacto que se mira en git"
+type: test
 ---
 
 # Qué

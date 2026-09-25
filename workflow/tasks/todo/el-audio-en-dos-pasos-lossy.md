@@ -1,6 +1,7 @@
 ---
 name: "El audio en dos pasos lossy"
 description: "MIDI y SoundFont reducidos y versionados, para escucharlos en un DAW"
+type: feature
 ---
 
 # Qué

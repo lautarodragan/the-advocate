@@ -1,6 +1,7 @@
 ---
 name: "El panorama del mapa 2"
 description: "Los puntitos sobre azul que se desplazan en diagonal"
+type: feature
 ---
 
 # Qué
