@@ -1,0 +1,15 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [5, 39, 34]},
+    {"code": "ShowMessage", "string": "One."},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 1, 0]},
+    {"code": "ShowMessage", "string": "Two."},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 1, 0]},
+    {"code": "ShowMessage", "string": "Three."},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 1, 0]},
+    {"code": "ShowMessage", "string": "Four."},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 1, 0]},
+    {"code": "ShowMessage", "string": "Five."},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 1, 0, 1, 0]}
+  ]
+}
