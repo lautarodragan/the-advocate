@@ -1,7 +1,9 @@
-"""El fork de `parches/manual/` no se puede quedar a medias ni apuntar al mapa de al lado.
+"""Un fork de `parches/manual/` no se puede quedar a medias ni apuntar al mapa
+de al lado.
 
-Un fork reemplaza un archivo entero de `data/` —ver `parches/manual/README.md`—, y sus
-dos modos de falla no dan error por sí solos: se ven bien hasta que no.
+Un fork reemplaza un archivo entero de `data/` —ver
+`parches/manual/README.md`—, y sus dos modos de falla no dan error por sí
+solos: se ven bien hasta que no.
 
 * **A medias.** Las capas de tiles viven afuera del JSON, así que un `.json`
   sin su `.tiles` deja el build con las capas viejas y los eventos nuevos.
@@ -48,7 +50,8 @@ PISABLE = rm2k.PASS_ALL
 
 @pytest.fixture
 def fork_de_mentira(tmp_path, monkeypatch):
-    """Un `parches/manual/` armable a mano, para los casos que el árbol no tiene."""
+    """Un `parches/manual/` armable a mano, para los casos que el árbol no
+    tiene."""
     mapas = tmp_path / "mapas"
     mapas.mkdir()
     monkeypatch.setattr(fork, "MAPAS", str(mapas))

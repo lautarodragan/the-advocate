@@ -51,10 +51,10 @@ def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
 
     **El sujeto ya no es el mapa 11**, que es para el que se escribió. El
     2026-09-21 su minijuego se rediseñó y sus 52 baldosas de luz dejaron de ser
-    eventos —ver `parches/manual/README.md`—, así que las 22 que horneaba no existen:
-    lo que le quedaba a la regla en este cartucho es otro mapa. La regla sigue
-    entera y sigue valiendo para el resto del juego; lo que se fue es su
-    cliente más grande.
+    eventos —ver `parches/manual/README.md`—, así que las 22 que horneaba no
+    existen: lo que le quedaba a la regla en este cartucho es otro mapa. La
+    regla sigue entera y sigue valiendo para el resto del juego; lo que se fue
+    es su cliente más grande.
     """
     renderer = Renderer()
     horneados = {m: horneados_de(renderer, m)[1] for m in MAPAS}

@@ -41,14 +41,15 @@ porque la decisión es un rectángulo::
 La clave
 --------
 
-Un archivo por situación del juego: ``parches/auto/mapas/<id>.toml`` para las capas
-de un mapa, con una sección por capa, y ``parches/auto/animaciones/<n>.toml`` para
-las animaciones de batalla. **El id del mapa es del juego y no del cartucho**: no se mueve cuando
-cambia la lista de mapas de la ROM, ni cuando cambia el orden interno del
-conversor, ni cuando cambia el algoritmo del asignador. Los colores se escriben
-por su valor —RGB de 15 bits, que es la profundidad real de la consola— y no
-por su índice en ninguna paleta, por lo mismo: el índice se corre con cualquier
-cosa y el valor identifica al color para siempre.
+Un archivo por situación del juego: ``parches/auto/mapas/<id>.toml`` para las
+capas de un mapa, con una sección por capa, y
+``parches/auto/animaciones/<n>.toml`` para las animaciones de batalla. **El id
+del mapa es del juego y no del cartucho**: no se mueve cuando cambia la lista
+de mapas de la ROM, ni cuando cambia el orden interno del conversor, ni cuando
+cambia el algoritmo del asignador. Los colores se escriben por su valor —RGB de
+15 bits, que es la profundidad real de la consola— y no por su índice en
+ninguna paleta, por lo mismo: el índice se corre con cualquier cosa y el valor
+identifica al color para siempre.
 
 Y el cartucho **no entra en la clave**: la regla es de taro, del 2026-09-21, y
 dice que *la decisión versionada es siempre la del ROM jugable*, hoy `release`. Lo
@@ -188,7 +189,8 @@ def _cadena(valor):
 
 
 def escribir(destino, mapas):
-    """Los parches de los mapas de un cartucho, en `<destino>/parches/auto/mapas/`.
+    """Los parches de los mapas de un cartucho, en
+    `<destino>/parches/auto/mapas/`.
 
     `mapas` son los que devuelve `main()` del conversor. Devuelve cuántos
     archivos escribió y cuántos bytes ocupan.

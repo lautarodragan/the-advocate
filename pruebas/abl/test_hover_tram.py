@@ -7,9 +7,9 @@ propio del mapa 32. El porqué, con todo lo medido, está en
 
 Esto existe porque **ninguna otra prueba ejecuta ese camino**. Las goldens
 `32-*` del héroe miran el mapa desde adentro del depósito, donde el tram ni
-asoma, y la receta de la imagen la cuidan las pruebas de `parches/manual/` —que miran
-archivos, no la pantalla—. Sin esto, el tram podía dejar de dibujarse, salir
-corrido o quedar **debajo** del héroe sin que nada se pusiera en rojo.
+asoma, y la receta de la imagen la cuidan las pruebas de `parches/manual/` —que
+miran archivos, no la pantalla—. Sin esto, el tram podía dejar de dibujarse,
+salir corrido o quedar **debajo** del héroe sin que nada se pusiera en rojo.
 
 Las dos cosas que mira son las dos que la tarea pide que no se rompan:
 
@@ -33,8 +33,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
 from tanda import partida                                      # noqa: E402
 
 # Dónde cae el tram en el mapa y a qué escala, que es lo que dice la receta de
-# `parches/manual/chipsets/0055.json`. Está acá repetido a propósito: si la receta se
-# mueve sin querer, esta prueba tiene que decirlo en vez de seguirla.
+# `parches/manual/chipsets/0055.json`. Está acá repetido a propósito: si la
+# receta se mueve sin querer, esta prueba tiene que decirlo en vez de seguirla.
 X0, Y0, ESCALA = 324, 49, 56
 # El caso para en (25,8): desde ahí la cámara muestra el tram entero **y** el
 # héroe queda tapado por su cuerpo. Las dos cosas de una sola captura.

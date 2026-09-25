@@ -97,7 +97,8 @@ def huella():
     """De qué depende un cartucho, además de sus flags y sus casos.
 
     Lo que cambie la ROM y no esté acá la deja vieja en silencio: por eso
-    entran los binarios y `parches/manual/`, que la cambian sin tocar ningún fuente.
+    entran los binarios y `parches/manual/`, que la cambian sin tocar ningún
+    fuente.
     `data/` no, que lo regenera `just datos`. Se mira el contenido y no la fecha, que `git checkout` cambia.
     """
     h = hashlib.sha256()
@@ -105,7 +106,8 @@ def huella():
               + ensamblar.binarios()
               + [tiles_bin.binario(), muestras_brr.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
-    partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*", "*")))
+    partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*",
+                                            "*")))
     for ruta in partes:
         with open(ruta, "rb") as archivo:
             h.update(archivo.read())

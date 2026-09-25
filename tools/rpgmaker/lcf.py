@@ -189,9 +189,9 @@ class EventCommand:
 # port pone `textos.reajustar_comandos`; el lector no sabe de pantallas, y
 # sin nadie que la ponga el juego se lee tal cual.
 #
-# Es un paso aparte de los forks de `parches/manual/` y de `parches/`, y corre después
-# de ellos: lee lo que sea que haya quedado, y un cuadro que ya entra lo deja
-# como está. Así un texto corregido a mano en un fork gana siempre.
+# Es un paso aparte de `parches/`, y corre después: lee lo que sea que haya
+# quedado, y un cuadro que ya entra lo deja como está. Así un texto corregido a
+# mano en un fork de `parches/manual/` gana siempre.
 #
 # Se aplica a las páginas de los mapas y a los eventos comunes, y no a las de
 # las tropas: la ventana de la pelea tiene otro ancho.
@@ -667,10 +667,9 @@ class Database:
         self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
         crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
-        # Los ChipSets que agrega `parches/manual/` —hoy uno solo, el propio del mapa
-        # 11—. Se **suman**: un id que ya esté en la base es un error, porque
-        # un fork que pisa una entrada envejece sin avisar el día que
-        # `just datos` la cambie. Ver `fork.py`.
+        # Los ChipSets que agrega `parches/manual/`. Se **suman**: un id que ya
+        # esté en la base es un error, porque un fork que pisa una entrada
+        # envejece sin avisar el día que `just datos` la cambie. Ver `fork.py`.
         if raiz == os.path.join(DATOS, "db"):
             for numero, datos in fork.chipsets().items():
                 if numero in crudas["chipsets"]:

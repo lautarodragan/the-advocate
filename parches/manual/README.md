@@ -5,10 +5,8 @@ que es **derivado** —`just datos` lo rehace entero— y del que nada de acá s
 Esto es lo contrario: entrada escrita por nosotros que el pipeline usa **en
 lugar** de la de `data/`.
 
-Un fork **no describe cambios: es el archivo entero.** Eso es a propósito y lo
-que lo separa de `parches/`, que es salida generada por el conversor —las
-fusiones de color que decidió el asignador—. Dos direcciones opuestas en un
-mismo directorio son lo que alguien regenera sin mirar.
+Un fork **no describe cambios: es el archivo entero.** Por qué está separado de
+`parches/auto/`, en `parches/README.md`.
 
 El diff contra el original no se pierde: `data/` sigue versionado y `unpack`
 escribe ahí y nunca acá, así que se computa cuando haga falta.

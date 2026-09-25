@@ -32,7 +32,8 @@ porque un fork que pisa una entrada de la base envejece sin avisar el día que
 **La imagen del ChipSet no se versiona: se arma.** El arte del juego no es
 nuestro para redistribuir —vive en `/extras`, ver `assets/README.md`—, así que
 el fork guarda la *receta* —qué bloque se copia adónde— y `imagen_del_chipset`
-la aplica sobre el PNG original dejando el resultado en `rom/build/parches-manual/`.
+la aplica sobre el PNG original dejando el resultado en
+`rom/build/parches-manual/`.
 
 La receta tiene cinco operaciones. Dos copian de adentro del propio ChipSet
 —`bloques_bajos` y `tiles_altos`— y dos **traen pixeles de afuera**:
@@ -80,8 +81,8 @@ def mapas():
     for entrada in sorted(os.listdir(MAPAS)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
-            raise ForkRoto("%s: en parches/manual/mapas/ sólo van .json y .tiles"
-                           % entrada)
+            raise ForkRoto("%s: en parches/manual/mapas/ sólo van .json y "
+                           ".tiles" % entrada)
         if not (base.startswith("Map") and base[3:].isdigit()):
             raise ForkRoto("%s: el nombre tiene que ser MapNNNN" % entrada)
         map_id = int(base[3:])
@@ -126,7 +127,8 @@ def chipsets():
     for entrada in sorted(os.listdir(CHIPSETS)):
         base, extension = os.path.splitext(entrada)
         if extension != ".json" or not base.isdigit():
-            raise ForkRoto("%s: en parches/manual/chipsets/ van NNNN.json" % entrada)
+            raise ForkRoto("%s: en parches/manual/chipsets/ van NNNN.json"
+                           % entrada)
         with open(os.path.join(CHIPSETS, entrada), encoding="utf-8") as handle:
             datos = json.load(handle)
         if datos["chipset"]["id"] != int(base):
@@ -207,13 +209,13 @@ def _lo_que_dibuja(map_id):
 def podar(imagen, map_id):
     """Borra del ChipSet todo lo que ese mapa no dibuja.
 
-    Un ChipSet del fork es **privado de su mapa** —ver `parches/manual/README.md`—, así
-    que ningún otro puede pedirle un tile que éste no use: lo que no se dibuja
-    es peso muerto. Y el peso que importa no son los pixeles sino los **índices
-    de paleta**: el PNG es indexado y tiene 256, que es el techo contra el que
-    choca `desde_imagen` al traer un dibujo de afuera. Podando el ChipSet 1 se
-    pasa de 122 índices libres a 174, y ésa es la diferencia entre que el Hover
-    Tram entre y no entre.
+    Un ChipSet del fork es **privado de su mapa** —ver
+    `parches/manual/README.md`—, así que ningún otro puede pedirle un tile que
+    éste no use: lo que no se dibuja es peso muerto. Y el peso que importa no
+    son los pixeles sino los **índices de paleta**: el PNG es indexado y tiene
+    256, que es el techo contra el que choca `desde_imagen` al traer un dibujo
+    de afuera. Podando el ChipSet 1 se pasa de 122 índices libres a 174, y ésa
+    es la diferencia entre que el Hover Tram entre y no entre.
 
     No puede cambiar lo que se ve —borra tiles que el mapa no nombra— y eso acá
     se demuestra, no se supone: la ROM sale byte por byte igual con el ChipSet
@@ -285,8 +287,8 @@ def _a_quince(color):
 
     Que el PNG del ChipSet quede con colores que el arte original no tiene no
     es un problema: esa imagen **no se versiona, se arma** —ver
-    `parches/manual/README.md`—, así que es un intermedio del build y no el arte del
-    juego, que sigue intacto en su `Picture/`.
+    `parches/manual/README.md`—, así que es un intermedio del build y no el
+    arte del juego, que sigue intacto en su `Picture/`.
     """
     return tuple((canal >> 3) << 3 for canal in color)
 
@@ -309,7 +311,8 @@ def imagen_del_chipset(datos, buscar):
 
     `buscar(carpeta, nombre)` es quien encuentra los originales —el ChipSet
     del que sale, y los CharSets que se hornean—; el resultado cae en
-    `rom/build/parches-manual/ChipSet/` con el nombre que la entrada de la base pide.
+    `rom/build/parches-manual/ChipSet/` con el nombre que la entrada de la
+    base pide.
     Se reescribe siempre —armarlo son copias de rectángulos— y se mueve al
     lugar de una, así que dos builds a la vez no se dejan un PNG a medio
     escribir.
